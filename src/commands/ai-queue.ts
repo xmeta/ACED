@@ -60,6 +60,7 @@ export function runAiBlock(root: string, taskId: string, reason: string): number
 
 export function buildNextTask(root: string): string {
   const wbs = readWbs(root);
+  const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
   const candidates = listTasks(root)
     .flatMap(({ task }) => {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];
@@ -67,6 +68,8 @@ export function buildNextTask(root: string): string {
       if (!node) return [];
       const status = node.status ?? "planned";
       if (status !== "planned") return [];
+      const dependencies = (wbs.relations ?? []).filter((relation) => relation.type === "dependsOn" && relation.source === node.id);
+      if (dependencies.some((relation) => nodesById.get(relation.target)?.status !== "completed")) return [];
       return [{ taskId: task.id, nodeName: node.name, nodeCode: node.code }];
     })
     .sort((a, b) => a.taskId.localeCompare(b.taskId));

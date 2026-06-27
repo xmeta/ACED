@@ -7,6 +7,7 @@ import { runCheckDiff } from "./commands/check-diff.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runStatus } from "./commands/status.js";
+import { runTaskLock } from "./commands/task-lock.js";
 import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
 
 function usage(): void {
@@ -18,6 +19,7 @@ function usage(): void {
   scwbs ai packet --task <task-id> [--relation-depth <n>]
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
+  scwbs task lock --task <task-id>
   scwbs status
   scwbs wbs validate
   scwbs wbs apply <change-set.json> [--force] [--output <file>]
@@ -78,6 +80,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runAiBlock(root, taskId, reason);
   }
   if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
+  if (command === "task" && subcommand === "lock") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runTaskLock(root, taskId);
+  }
   if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
   if (command === "wbs" && subcommand === "apply") {
     if (!third) {

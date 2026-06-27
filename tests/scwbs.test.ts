@@ -9,6 +9,7 @@ import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js"
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { buildStatus } from "../src/commands/status.js";
+import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { makeTempRepo, sampleTask, sampleWbs, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
@@ -96,19 +97,53 @@ describe("scwbs MVP", () => {
     ]);
   });
 
-  test("ai next-task lists planned tasks without human gate paths", () => {
+  test("ai next-task excludes a planned task when its dependency is not completed", () => {
     const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
     writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
     writeYaml(
       root,
-      "contracts/tasks/WBS-001-005.yaml",
+      "contracts/tasks/WBS-001-004.yaml",
       sampleTask({
-        id: "WBS-001-005",
-        wbsNodeId: "node-root",
         humanGateRequiredPaths: []
       }) as unknown as Record<string, unknown>
     );
-    expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-005 | Root | 1\n");
+    expect(buildNextTask(root)).toBe("No available planned tasks.\n");
+  });
+
+  test("ai next-task includes a planned task when its dependency is completed", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.nodes[0].status = "completed";
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        humanGateRequiredPaths: []
+      }) as unknown as Record<string, unknown>
+    );
+    expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
   });
 
   test("health warns when evidence has only low-trust checks", () => {
@@ -195,6 +230,19 @@ describe("scwbs MVP", () => {
     );
     const issues = collectCheckIssues(root);
     expect(issues.some((issue) => issue.code === "task.contractLock.wbsNodeId")).toBe(true);
+  });
+
+  test("task lock writes a current contract lock", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "initial"], { cwd: root, stdio: "ignore" });
+
+    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+    const locked = buildLockedTask(root, "WBS-001-004", new Date("2026-06-27T00:00:00.000Z"));
+    expect(locked.contractLock?.wbsNodeId).toBe("node-api");
+    expect(locked.contractLock?.wbsRevision).toMatch(/^[0-9a-f]{40}$/);
+    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
   });
 
   test("health warns when changed test files lack test quality metadata", () => {

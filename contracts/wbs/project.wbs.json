@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "0.1.0",
+  "id": "scwbs",
+  "name": "scwbs CLI",
+  "description": "SC-WBS-managed development plan for this repository.",
+  "rootId": "node-project",
+  "nodes": [
+    {
+      "id": "node-project",
+      "parentId": null,
+      "code": "1",
+      "name": "scwbs CLI project",
+      "type": "deliverable",
+      "status": "inProgress",
+      "progressPercent": 35,
+      "outputs": [
+        "artifact-cli",
+        "artifact-methodology"
+      ],
+      "acceptanceCriteria": [
+        "The repository can validate its own contracts with scwbs check.",
+        "AI implementation work is bounded by Task Contracts.",
+        "Evidence is recorded before WBS nodes are completed."
+      ]
+    },
+    {
+      "id": "node-dogfood-contracts",
+      "parentId": "node-project",
+      "code": "1.1",
+      "name": "Dogfood SC-WBS contracts",
+      "type": "workPackage",
+      "status": "inProgress",
+      "progressPercent": 60,
+      "outputs": [
+        "artifact-contracts"
+      ],
+      "acceptanceCriteria": [
+        "contracts/wbs/project.wbs.json exists and validates.",
+        "contracts/registry.yaml indexes active contracts.",
+        "At least one active Task Contract represents current work."
+      ]
+    },
+    {
+      "id": "node-spec-contracts",
+      "parentId": "node-project",
+      "code": "1.2",
+      "name": "First-class Spec Contract support",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-spec-schema"
+      ],
+      "acceptanceCriteria": [
+        "Spec Contract files have a documented schema.",
+        "scwbs check validates Spec Contract metadata.",
+        "Task Contract locks can reference approved Spec versions."
+      ]
+    },
+    {
+      "id": "node-test-quality",
+      "parentId": "node-project",
+      "code": "1.3",
+      "name": "Test quality and coverage verification",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-test-quality"
+      ],
+      "acceptanceCriteria": [
+        "Test diffs are inspected for disabled or weakened tests.",
+        "Coverage summaries are checked when available.",
+        "Evidence testQuality metadata is cross-checked with observed changes."
+      ]
+    },
+    {
+      "id": "node-ci-integration",
+      "parentId": "node-project",
+      "code": "1.4",
+      "name": "CI integration",
+      "type": "workPackage",
+      "status": "planned",
+      "acceptanceCriteria": [
+        "scwbs check and health run in CI.",
+        "CI evidence can be referenced from Evidence files."
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel-spec-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-spec-contracts",
+      "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-quality-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-test-quality",
+      "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-ci-depends-on-quality",
+      "type": "dependsOn",
+      "source": "node-ci-integration",
+      "target": "node-test-quality"
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-human",
+      "name": "Human maintainer",
+      "type": "role"
+    },
+    {
+      "id": "resource-ai",
+      "name": "AI implementation agent",
+      "type": "role"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-cli",
+      "name": "scwbs CLI source",
+      "type": "sourceCode",
+      "uri": "src/"
+    },
+    {
+      "id": "artifact-methodology",
+      "name": "SC-WBS methodology",
+      "type": "document",
+      "uri": "docs/sc-wbs-development.md"
+    },
+    {
+      "id": "artifact-contracts",
+      "name": "Repository SC-WBS contracts",
+      "type": "configuration",
+      "uri": "contracts/"
+    },
+    {
+      "id": "artifact-spec-schema",
+      "name": "Spec Contract schema and validation",
+      "type": "configuration",
+      "uri": "src/"
+    },
+    {
+      "id": "artifact-test-quality",
+      "name": "Test quality verification",
+      "type": "sourceCode",
+      "uri": "src/"
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-06-27T00:00:00+09:00",
+    "createdBy": "codex",
+    "language": "ja-JP",
+    "source": "docs/sc-wbs-development.md"
+  },
+  "extensions": {
+    "scwbs": {
+      "profile": "Standard"
+    }
+  }
+}

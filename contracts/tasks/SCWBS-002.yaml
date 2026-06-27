@@ -1,0 +1,26 @@
+id: SCWBS-002
+type: task-contract
+wbsNodeId: node-spec-contracts
+featureId: F-SCWBS-SPEC
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - First-class Spec Contract file format is defined
+  - Spec Contract validation is implemented
+  - Registry and Contract Lock checks use Spec Contract metadata
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

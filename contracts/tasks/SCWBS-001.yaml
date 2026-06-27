@@ -1,0 +1,30 @@
+id: SCWBS-001
+type: task-contract
+wbsNodeId: node-dogfood-contracts
+featureId: F-SCWBS-DOGFOOD
+allowedPaths:
+  - contracts/**
+  - docs/**
+  - README.md
+  - AGENTS.md
+  - src/**
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Project has canonical SC-WBS contracts under contracts/
+  - WBS-JSON validates with wjs and scwbs check
+  - Current implementation work is represented by a Task Contract
+  - Documentation explains how the repository is dogfooded
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

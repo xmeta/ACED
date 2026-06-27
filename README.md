@@ -15,6 +15,7 @@ It uses the bundled `wjs` submodule as the canonical WBS-JSON implementation and
 │   ├── commands/
 │   └── core/
 ├── tests/                   # Vitest coverage for the MVP CLI
+├── contracts/               # SC-WBS contracts for this repository
 ├── docs/
 │   └── sc-wbs-development.md # SC-WBS methodology document
 ├── wjs/                     # WBS-JSON submodule
@@ -48,6 +49,18 @@ contracts/
 └── approvals/
 ```
 
+This repository dogfoods SC-WBS. The active project WBS is:
+
+```text
+contracts/wbs/project.wbs.json
+```
+
+Current and planned repository work is represented by:
+
+```text
+contracts/tasks/*.yaml
+```
+
 ## Commands
 
 Run through the npm script:
@@ -63,9 +76,11 @@ npm run scwbs -- init
 npm run scwbs -- check
 npm run scwbs -- health
 npm run scwbs -- check-diff --task WBS-001-004
+npm run scwbs -- check-diff --task SCWBS-001
 npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
 npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
 npm run scwbs -- ai next-task
+npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- status
 npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
@@ -104,6 +119,7 @@ Implemented in v0.1:
 - Done-task Evidence checks
 - Document health checks for Evidence trust and contract freshness
 - Optional Contract Lock checks for stale WBS revisions, WBS node IDs, and Spec versions
+- Task Contract Lock generation from the current Git HEAD
 - Test quality health checks through Evidence `testQuality`
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation with relation-depth filtering

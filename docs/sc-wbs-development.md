@@ -285,6 +285,12 @@ Task Contractは、生成時点のWBS revisionとSpec versionを `contractLock` 
 AI Work Packet生成時および `scwbs check` では、`contractLock` と現在のWBS-JSON、Spec Contractの鮮度を比較する。
 WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
 staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
+Task Contractのlockを生成するには以下を実行する。
+
+```bash
+npm run scwbs -- task lock --task WBS-001-004
+```
+
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 
@@ -646,7 +652,7 @@ blocked化は、実装継続ではなく、承認待ち、情報不足、契約�
 
 * 人間またはPM Agentが次のTask Contractを明示的に割り当てる
 * Task Queueに優先順位付きで割り当て済みのTask Contractが存在する
-* `scwbs ai next-task` が、planned状態でHuman Gate対象パスを持たない候補を提示する
+* `scwbs ai next-task` が、planned状態、Human Gate対象パスなし、未完了dependsOnなしの候補を提示する
 
 AIは候補タスクを提示できるが、プロジェクトの優先順位を最終決定してはならない。
 

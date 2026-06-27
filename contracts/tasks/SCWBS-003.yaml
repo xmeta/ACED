@@ -1,0 +1,25 @@
+id: SCWBS-003
+type: task-contract
+wbsNodeId: node-test-quality
+featureId: F-SCWBS-QUALITY
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Test diff inspection detects disabled or weakened tests
+  - Coverage summary parsing is supported when a report exists
+  - Evidence testQuality metadata is compared with observed diffs
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

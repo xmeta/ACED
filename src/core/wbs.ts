@@ -77,7 +77,7 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath): Iss
   if (!existsSync(path.resolve(root, "node_modules/ajv"))) return validateWbsDocument(root, relativePath);
 
   const result = spawnSync(process.execPath, ["--experimental-strip-types", validator, "--wbs", target], {
-    cwd: root,
+    cwd: path.resolve(root, "wjs"),
     encoding: "utf8"
   });
 
