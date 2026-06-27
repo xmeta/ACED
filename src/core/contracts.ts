@@ -79,11 +79,20 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
   });
 }
 
+export function matchingRegistrySpecByPath(registry: Registry | undefined, specPath: string): RegistryContract | undefined {
+  return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
+}
+
+export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {
+  const { spec, issues } = readSpec(root, contract.path);
+  return { spec, path: contract.path, issues };
+}
+
 export function resolveSpecForTask(root: string, registry: Registry | undefined, task: TaskContract): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
   const contract = matchingSpecContract(registry, task);
   if (!contract) return { issues: [] };
-  const { spec, issues } = readSpec(root, contract.path);
-  return { contract, spec, path: contract.path, issues };
+  const { spec, path, issues } = readSpecFromRegistryContract(root, contract);
+  return { contract, spec, path, issues };
 }
 
 export function evidenceExists(root: string, taskId: string): boolean {

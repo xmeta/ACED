@@ -83,9 +83,12 @@ npm run scwbs -- ai next-task
 npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- status
+npm run scwbs -- review-queue
 npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
 ```
+
+`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, and also flags Human Gate changes that still lack an approval record.
 
 After building:
 
@@ -121,12 +124,14 @@ Implemented in v0.1:
 - Document health checks for Evidence trust and contract freshness
 - Optional Contract Lock checks for stale WBS revisions, WBS node IDs, and Spec versions
 - Task Contract Lock generation from WBS and Spec content hashes
+- First-class Spec Contract files under `contracts/specs/*.yaml`
 - Test quality health checks through Evidence `testQuality`
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation with relation-depth filtering
 - AI blocked-task change-set generation and next-task candidate listing
 - Task Contract draft generation from WBS nodes
 - WBS status summary
+- Review queue listing for likely human-review candidates
 - WJS semantic operation apply wrapper
 
 Not included yet:

@@ -433,6 +433,16 @@ npm run scwbs -- health
 
 ---
 
+Review待ち候補を一覧するには `scwbs review-queue` を使う。
+```bash
+npm run scwbs -- review-queue
+```
+
+このコマンドは少なくとも次を候補として表示する。
+* Evidence が存在し、依存が完了していれば human review に進める task
+* Evidence が存在するが、未完了の dependsOn があるため completed に進めない task
+* Human Gate 対象 path を Evidence が変更しているのに approval 記録がない task
+
 ## 9. Evidence
 
 Evidenceは、作業がDone条件を満たしたことを示す証跡である。
@@ -740,6 +750,7 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 
 * `bootstrap`
 * `normal`
+
 ## 18. Spec Contract Files
 
 Spec Contract files live under `contracts/specs/*.yaml`.

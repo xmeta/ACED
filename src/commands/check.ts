@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listSpecs, listTasks, readEvidence, readRegistry, resolveSpecForTask } from "../core/contracts.js";
+import { approvalExists, evidenceExists, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -54,6 +54,15 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
       code: "task.contractLock.wbsRevision",
       message: `${task.id} contractLock.wbsRevision is stale: ${task.contractLock.wbsRevision} != ${wbsRevision}`
     });
+  }
+
+  if ((task.contractLock.specVersion || task.contractLock.specRevision) && (!spec || !specPath)) {
+    issues.push({
+      severity: "error",
+      code: "task.spec.missing",
+      message: `${task.id} contractLock references a spec but no matching spec contract was resolved`
+    });
+    return issues;
   }
 
   if (task.contractLock.specVersion && spec?.version && task.contractLock.specVersion !== spec.version) {
@@ -112,20 +121,26 @@ function validateRegistryContracts(root: string, registry: Registry | undefined)
       continue;
     }
     if (contract.type !== "spec") continue;
-    const { spec, issues: specIssues } = resolveSpecForTask(root, registry, {
-      id: contract.relatedTask ?? `registry:${contract.id}`,
-      type: "task-contract",
-      wbsNodeId: "",
-      featureId: contract.featureId ?? "",
-      allowedPaths: [],
-      forbiddenPaths: [],
-      humanGateRequiredPaths: [],
-      requiredChecks: [],
-      doneCriteria: [],
-      evidenceRequired: []
-    });
+    const { spec, issues: specIssues } = readSpecFromRegistryContract(root, contract);
     issues.push(...specIssues);
     if (spec) issues.push(...validateRegistrySpecContract(contract, spec));
+  }
+  return issues;
+}
+
+function validateIndexedSpecs(root: string, registry: Registry | undefined): Issue[] {
+  const issues: Issue[] = [];
+  for (const entry of listSpecs(root)) {
+    issues.push(...entry.issues);
+    if (!entry.spec) continue;
+    const registryContract = matchingRegistrySpecByPath(registry, entry.path);
+    if (!registryContract) {
+      issues.push({
+        severity: "error",
+        code: "spec.registry.missing",
+        message: `${entry.path} is not indexed by contracts/registry.yaml`
+      });
+    }
   }
   return issues;
 }
@@ -146,10 +161,7 @@ export function collectCheckIssues(root: string): Issue[] {
   const { registry, issues: registryIssues } = readRegistry(root);
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
-
-  for (const entry of listSpecs(root)) {
-    issues.push(...entry.issues);
-  }
+  issues.push(...validateIndexedSpecs(root, registry));
 
   for (const entry of listTasks(root)) {
     issues.push(...entry.issues);

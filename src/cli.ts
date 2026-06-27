@@ -6,6 +6,7 @@ import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
+import { runReviewQueue } from "./commands/review-queue.js";
 import { runStatus } from "./commands/status.js";
 import { runTaskGenerate } from "./commands/task-generate.js";
 import { runTaskLock } from "./commands/task-lock.js";
@@ -23,6 +24,7 @@ function usage(): void {
   scwbs task generate --node <node-id> --task <task-id> [--force]
   scwbs task lock --task <task-id>
   scwbs status
+  scwbs review-queue
   scwbs wbs validate
   scwbs wbs apply <change-set.json> [--force] [--output <file>]
 `);
@@ -52,6 +54,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   if (command === "check") return runCheck(root);
   if (command === "health") return runHealth(root);
   if (command === "status") return runStatus(root);
+  if (command === "review-queue") return runReviewQueue(root);
   if (command === "check-diff") {
     const taskId = valueAfter(argv, "--task");
     if (!taskId) {

@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
 import { collectDiffIssues } from "../src/commands/check-diff.js";
+import { buildReviewQueue } from "../src/commands/review-queue.js";
 import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
@@ -420,6 +421,35 @@ describe("scwbs MVP", () => {
     expect(issues.some((issue) => issue.code.endsWith("spec.status"))).toBe(true);
   });
 
+  test("check errors when a spec file is not indexed in the registry", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: []
+    });
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "spec.registry.missing")).toBe(true);
+  });
+
+  test("check errors when a task lock references a missing spec", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: []
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      contractLock: {
+        wbsNodeId: "node-api",
+        specVersion: "1.0.0",
+        specRevision: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }) as unknown as Record<string, unknown>);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "task.spec.missing")).toBe(true);
+  });
+
   test("task generate writes a draft contract from a WBS node", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -487,6 +517,58 @@ describe("scwbs MVP", () => {
     writeScwbsProject(root, "blocked");
     const status = buildStatus(root);
     expect(status).toContain("- blocked: 1");
+  });
+
+  test("review queue lists tasks with evidence awaiting review", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("Review Queue:");
+    expect(queue).toContain("WBS-001-004");
+    expect(queue).toContain("evidence exists and the WBS node is ready for human review");
+  });
+
+  test("review queue reports incomplete dependencies that block completion", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("ready");
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root, "planned");
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("evidence exists and the WBS node is not completed");
+    expect(queue).toContain("warning: dependsOn node 1 Root is not completed");
+    expect(queue).toContain("completionBlockedBy: 1 Root");
+  });
+
+  test("review queue lists missing approval for human gate changes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["src/security/policy.ts"]
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("human gate paths were changed but no approval record exists");
+  });
+
+  test("review queue is empty when there is nothing pending", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    const queue = buildReviewQueue(root);
+    expect(queue).toBe("Review Queue:\n- None\n");
   });
 
   test("wbs apply dry-run does not write output file", () => {
