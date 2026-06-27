@@ -766,10 +766,10 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 Spec Contract files live under `contracts/specs/*.yaml`.
 Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
 
-### Approval Record Notes
+### Approval Record 補足
 
-Human approval records live under `contracts/approvals/*.yaml`.
-The minimal format is:
+Human approval record は `contracts/approvals/*.yaml` に置く。
+最小形式は次のとおり。
 
 ```yaml
 id: APR-WBS-001-004
@@ -781,9 +781,9 @@ notes:
   - Awaiting human gate review
 ```
 
-`status` must be one of `requested`, `approved`, or `rejected`.
-When `status: approved`, `approvedBy` and `approvedAt` are required.
-`scwbs review-queue` may show `approvalStatus` and may reuse `pullRequest` from the approval record when Evidence does not include it.
+`status` は `requested`、`approved`、`rejected` のいずれかを取る。
+`status: approved` の場合は `approvedBy` と `approvedAt` を必須にする。
+`scwbs review-queue` は `approvalStatus` を表示でき、Evidence に `pullRequest` がない場合は approval record 側の `pullRequest` を再利用できる。
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。
