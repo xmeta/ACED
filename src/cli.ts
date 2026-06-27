@@ -2,6 +2,7 @@
 import { pathToFileURL } from "node:url";
 import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
 import { runAiPacket } from "./commands/ai-packet.js";
+import { runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runHealth } from "./commands/health.js";
@@ -21,6 +22,7 @@ function usage(): void {
   scwbs ai packet --task <task-id> [--relation-depth <n>]
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
+  scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
   scwbs task generate --node <node-id> --task <task-id> [--force]
   scwbs task lock --task <task-id>
   scwbs status
@@ -85,6 +87,18 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runAiBlock(root, taskId, reason);
   }
   if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
+  if (command === "approval" && subcommand === "request") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runApprovalRequest(root, taskId, {
+      pullRequest: valueAfter(argv, "--pull-request"),
+      note: valueAfter(argv, "--note"),
+      force: argv.includes("--force")
+    });
+  }
   if (command === "task" && subcommand === "generate") {
     const nodeId = valueAfter(argv, "--node");
     const taskId = valueAfter(argv, "--task");

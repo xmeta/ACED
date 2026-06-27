@@ -784,6 +784,10 @@ notes:
 `status` は `requested`、`approved`、`rejected` のいずれかを取る。
 `status: approved` の場合は `approvedBy` と `approvedAt` を必須にする。
 `scwbs review-queue` は `approvalStatus` を表示でき、Evidence に `pullRequest` がない場合は approval record 側の `pullRequest` を再利用できる。
+AI や実装者が review 依頼を残すだけなら、`requested` の record を生成する。
+```bash
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+```
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

@@ -9,6 +9,7 @@ import { buildReviewQueue } from "../src/commands/review-queue.js";
 import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
+import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
 import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
@@ -512,6 +513,29 @@ describe("scwbs MVP", () => {
     expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).toBe(before);
     expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: true })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).not.toBe(before);
+  });
+
+  test("approval request writes a requested approval record", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#42", note: "Awaiting human review", force: false })).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toBe(buildApprovalRequestYaml("WBS-001-004", { pullRequest: "#42", note: "Awaiting human review" }));
+    expect(actual).toContain("status: requested");
+    expect(actual).toContain('pullRequest: "#42"');
+  });
+
+  test("approval request refuses to overwrite an existing record without force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#99", note: "Updated", force: false })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#99", note: "Updated", force: true })).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).not.toBe(before);
   });
 
   test("health warns when changed test files lack test quality metadata", () => {

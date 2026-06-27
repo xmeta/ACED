@@ -80,6 +80,7 @@ npm run scwbs -- check-diff --task SCWBS-001
 npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
 npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
 npm run scwbs -- ai next-task
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- status
@@ -100,6 +101,12 @@ status: requested
 pullRequest: "#42"
 notes:
   - Awaiting human gate review
+```
+
+Use `approval request` to create a `requested` record without fabricating human approval:
+
+```bash
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 ```
 
 After building:
