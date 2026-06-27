@@ -80,6 +80,7 @@ npm run scwbs -- check-diff --task SCWBS-001
 npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
 npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
 npm run scwbs -- ai next-task
+npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- status
 npm run scwbs -- wbs validate
@@ -124,6 +125,7 @@ Implemented in v0.1:
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation with relation-depth filtering
 - AI blocked-task change-set generation and next-task candidate listing
+- Task Contract draft generation from WBS nodes
 - WBS status summary
 - WJS semantic operation apply wrapper
 

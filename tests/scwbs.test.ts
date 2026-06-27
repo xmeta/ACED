@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -9,6 +9,7 @@ import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js"
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { buildStatus } from "../src/commands/status.js";
+import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
@@ -241,6 +242,33 @@ describe("scwbs MVP", () => {
     expect(locked.contractLock?.wbsNodeId).toBe("node-api");
     expect(locked.contractLock?.wbsRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+  });
+
+  test("task generate writes a draft contract from a WBS node", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: false })).toBe(0);
+    const expected = buildDraftTaskYaml(root, "node-api", "WBS-001-999");
+    const actual = readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8");
+    expect(actual).toBe(expected);
+    expect(expected).toContain("id: WBS-001-999");
+    expect(expected).toContain("wbsNodeId: node-api");
+    expect(expected).toContain("featureId: F-1-1");
+    expect(expected).toContain("allowedPaths:");
+    expect(expected).toContain("doneCriteria:");
+  });
+
+  test("task generate refuses to overwrite an existing contract without force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-999.yaml", sampleTask({ id: "WBS-001-999" }) as unknown as Record<string, unknown>);
+    const before = readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8");
+
+    expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: false })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).toBe(before);
+    expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: true })).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).not.toBe(before);
   });
 
   test("health warns when changed test files lack test quality metadata", () => {

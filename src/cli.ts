@@ -7,6 +7,7 @@ import { runCheckDiff } from "./commands/check-diff.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runStatus } from "./commands/status.js";
+import { runTaskGenerate } from "./commands/task-generate.js";
 import { runTaskLock } from "./commands/task-lock.js";
 import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
 
@@ -19,6 +20,7 @@ function usage(): void {
   scwbs ai packet --task <task-id> [--relation-depth <n>]
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
+  scwbs task generate --node <node-id> --task <task-id> [--force]
   scwbs task lock --task <task-id>
   scwbs status
   scwbs wbs validate
@@ -80,6 +82,19 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runAiBlock(root, taskId, reason);
   }
   if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
+  if (command === "task" && subcommand === "generate") {
+    const nodeId = valueAfter(argv, "--node");
+    const taskId = valueAfter(argv, "--task");
+    if (!nodeId) {
+      console.error("Missing --node <node-id>");
+      return 2;
+    }
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runTaskGenerate(root, nodeId, taskId, { force: argv.includes("--force") });
+  }
   if (command === "task" && subcommand === "lock") {
     const taskId = valueAfter(argv, "--task");
     if (!taskId) {

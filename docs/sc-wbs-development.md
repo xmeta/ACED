@@ -306,6 +306,14 @@ Task Contractの推奨粒度は以下である。
 
 危険領域に触る作業は分離する。UI変更、API変更、DB変更、権限変更、マイグレーション追加を1つのTask Contractに混ぜてはならない。
 
+WBS nodeからTask Contract草案を生成するには以下を実行する。
+
+```bash
+npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
+```
+
+生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
+
 ---
 
 ## 7. AI Work Packet

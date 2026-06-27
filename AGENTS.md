@@ -49,6 +49,7 @@ npm run scwbs -- check-diff --task <task-id>
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
 npm run scwbs -- ai next-task
+npm run scwbs -- task generate --node <node-id> --task <task-id>
 npm run scwbs -- task lock --task <task-id>
 ```
 
