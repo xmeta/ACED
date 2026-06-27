@@ -788,6 +788,7 @@ AI や実装者が review 依頼を残すだけなら、`requested` の record �
 ```bash
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 ```
+`--note` は複数語を含む引用付き引数でも、`--note=Awaiting human review` のような inline 形式でも受け付ける。
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

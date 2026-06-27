@@ -109,6 +109,8 @@ Use `approval request` to create a `requested` record without fabricating human 
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 ```
 
+`--note` is available both as a quoted multi-word argument and as inline syntax such as `--note=Awaiting human review`.
+
 After building:
 
 ```bash
