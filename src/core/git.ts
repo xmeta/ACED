@@ -10,3 +10,11 @@ export function changedFiles(root: string): string[] {
   }
   return result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
+
+export function commitExists(root: string, commit: string): boolean {
+  const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{commit}`], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return result.status === 0;
+}

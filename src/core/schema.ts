@@ -84,6 +84,12 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
     value.checks.forEach((check, index) => {
       if (!isObject(check) || typeof check.name !== "string" || typeof check.status !== "string") {
         issues.push(issue("evidence.check", `${filePath}.checks[${index}] must include name and status`));
+        return;
+      }
+      for (const key of ["source", "runId", "url", "command", "executedAt", "verifiedBy"]) {
+        if (check[key] !== undefined && typeof check[key] !== "string") {
+          issues.push(issue("evidence.check", `${filePath}.checks[${index}].${key} must be a string when present`));
+        }
       }
     });
   }

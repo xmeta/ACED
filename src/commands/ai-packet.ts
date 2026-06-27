@@ -60,6 +60,8 @@ ${artifacts.map((artifact) => `- ${artifact.id}: ${artifact.name}${artifact.uri 
 - API契約の破壊的変更が必要
 - Business Ruleが不足している
 - allowedPaths外の変更が必要
+- 仕様変更レベル判断に迷う場合はLevel 2として扱う
+- Human Gate対象変更はLevel 0またはLevel 1に見えても停止する
 `;
 }
 

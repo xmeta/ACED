@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import { runAiPacket } from "./commands/ai-packet.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
+import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runStatus } from "./commands/status.js";
 import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
@@ -11,6 +12,7 @@ function usage(): void {
   console.log(`Usage:
   scwbs init
   scwbs check
+  scwbs health
   scwbs check-diff --task <task-id>
   scwbs ai packet --task <task-id>
   scwbs status
@@ -34,6 +36,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   if (command === "init") return runInit(root);
   if (command === "check") return runCheck(root);
+  if (command === "health") return runHealth(root);
   if (command === "status") return runStatus(root);
   if (command === "check-diff") {
     const taskId = valueAfter(argv, "--task");

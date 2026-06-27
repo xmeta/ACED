@@ -50,7 +50,7 @@ contracts/
 
 ## Commands
 
-Run from source:
+Run through the npm script:
 
 ```bash
 npm run scwbs -- --help
@@ -61,6 +61,7 @@ Available commands:
 ```bash
 npm run scwbs -- init
 npm run scwbs -- check
+npm run scwbs -- health
 npm run scwbs -- check-diff --task WBS-001-004
 npm run scwbs -- ai packet --task WBS-001-004
 npm run scwbs -- status
@@ -99,6 +100,7 @@ Implemented in v0.1:
 - `contracts/wbs/project.wbs.json` initialization
 - Task Contract and Evidence validation
 - Done-task Evidence checks
+- Document health checks for Evidence trust and contract freshness
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation
 - WBS status summary

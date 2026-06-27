@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
 import { collectDiffIssues } from "../src/commands/check-diff.js";
+import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { buildStatus } from "../src/commands/status.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
@@ -62,6 +63,71 @@ describe("scwbs MVP", () => {
     expect(packet).toContain("API Implementation");
     expect(packet).toContain("WBS-001-004");
     expect(packet).toContain("Stop Conditions");
+    expect(packet).toContain("仕様変更レベル判断に迷う場合はLevel 2");
+    expect(packet).toContain("Human Gate対象変更はLevel 0またはLevel 1に見えても停止する");
+  });
+
+  test("health warns when evidence has only low-trust checks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.lowTrust")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.check.lowTrust")).toBe(true);
+  });
+
+  test("health accepts CI evidence with run id as Level A", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        checks: [
+          { name: "test", status: "passed", source: "ci", runId: "github-actions-123456" },
+          { name: "typecheck", status: "passed", source: "ci", runId: "github-actions-123456" }
+        ]
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.lowTrust")).toBe(false);
+    expect(issues.some((issue) => issue.code === "health.evidence.check.lowTrust")).toBe(false);
+  });
+
+  test("health accepts local evidence with command and timestamp as Level B", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        checks: [
+          { name: "test", status: "passed", source: "local", command: "npm test", executedAt: "2026-06-27T10:00:00+09:00" },
+          { name: "typecheck", status: "passed", source: "local", command: "npm run typecheck", executedAt: "2026-06-27T10:00:00+09:00" }
+        ]
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.lowTrust")).toBe(false);
+    expect(issues.some((issue) => issue.code === "health.evidence.check.lowTrust")).toBe(false);
+  });
+
+  test("health errors when evidence changed files touch forbidden paths", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["src/auth/session.ts"] }) as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.forbiddenPaths")).toBe(true);
+    expect(runHealth(root)).toBe(1);
+  });
+
+  test("health warns when evidence commit is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.commit.missing")).toBe(true);
+    expect(runHealth(root)).toBe(0);
   });
 
   test("status summarizes WBS node status", () => {

@@ -13,6 +13,7 @@ export type RegistryContract = {
   type: RegistryContractType;
   path: string;
   status?: string;
+  version?: string;
   featureId?: string;
   relatedTask?: string;
 };
@@ -36,6 +37,7 @@ export type TaskContract = {
 };
 
 export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
+export type EvidenceCheckSource = "ci" | "local" | "manual";
 
 export type Evidence = {
   id: string;
@@ -46,7 +48,12 @@ export type Evidence = {
   checks: Array<{
     name: string;
     status: EvidenceCheckStatus;
-    source?: string;
+    source?: EvidenceCheckSource | string;
+    runId?: string;
+    url?: string;
+    command?: string;
+    executedAt?: string;
+    verifiedBy?: string;
   }>;
   notes?: string[];
 };
