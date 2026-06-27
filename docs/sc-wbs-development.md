@@ -273,15 +273,15 @@ evidenceRequired:
   - typecheck-result
   - lint-result
 contractLock:
-  wbsRevision: abc1234
+  wbsRevision: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   wbsNodeId: node-api-implementation
   specVersion: 1.2.0
-  specRevision: def5678
+  specRevision: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
   createdAt: 2026-06-27T10:00:00+09:00
 ```
 
 `wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
-Task Contractは、生成時点のWBS revisionとSpec versionを `contractLock` として記録する。
+Task Contractは、生成時点のWBS content hashとSpec versionを `contractLock` として記録する。
 AI Work Packet生成時および `scwbs check` では、`contractLock` と現在のWBS-JSON、Spec Contractの鮮度を比較する。
 WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
 staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。

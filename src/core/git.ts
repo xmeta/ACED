@@ -18,12 +18,3 @@ export function commitExists(root: string, commit: string): boolean {
   });
   return result.status === 0;
 }
-
-export function currentHead(root: string): string | undefined {
-  const result = spawnSync("git", ["rev-parse", "HEAD"], {
-    cwd: root,
-    encoding: "utf8"
-  });
-  if (result.status !== 0) return undefined;
-  return result.stdout.trim() || undefined;
-}

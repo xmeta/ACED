@@ -10,7 +10,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Git diff path checks
 - AI Work Packet generation with relation-depth filtering
 - Optional Contract Lock metadata validation
-- Task Contract Lock generation from Git HEAD
+- Task Contract Lock generation from WBS and Spec content hashes
 - Evidence `testQuality` metadata validation
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff

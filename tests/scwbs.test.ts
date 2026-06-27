@@ -235,13 +235,11 @@ describe("scwbs MVP", () => {
   test("task lock writes a current contract lock", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    execFileSync("git", ["add", "."], { cwd: root });
-    execFileSync("git", ["commit", "-m", "initial"], { cwd: root, stdio: "ignore" });
 
     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
     const locked = buildLockedTask(root, "WBS-001-004", new Date("2026-06-27T00:00:00.000Z"));
     expect(locked.contractLock?.wbsNodeId).toBe("node-api");
-    expect(locked.contractLock?.wbsRevision).toMatch(/^[0-9a-f]{40}$/);
+    expect(locked.contractLock?.wbsRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
   });
 

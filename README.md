@@ -119,7 +119,7 @@ Implemented in v0.1:
 - Done-task Evidence checks
 - Document health checks for Evidence trust and contract freshness
 - Optional Contract Lock checks for stale WBS revisions, WBS node IDs, and Spec versions
-- Task Contract Lock generation from the current Git HEAD
+- Task Contract Lock generation from WBS and Spec content hashes
 - Test quality health checks through Evidence `testQuality`
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation with relation-depth filtering

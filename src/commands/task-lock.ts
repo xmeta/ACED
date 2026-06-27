@@ -1,15 +1,15 @@
 import { writeFileSync } from "node:fs";
-import { currentHead } from "../core/git.js";
-import { resolveFrom, taskPath } from "../core/paths.js";
+import { fileSha256 } from "../core/hash.js";
+import { defaultWbsPath, resolveFrom, taskPath } from "../core/paths.js";
 import { readRegistry, readTask } from "../core/contracts.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { Registry, TaskContract } from "../core/types.js";
+import type { Registry, RegistryContract, TaskContract } from "../core/types.js";
 
-function matchingSpecVersion(registry: Registry | undefined, task: TaskContract): string | undefined {
+function matchingSpec(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
   return registry?.contracts.find((contract) => {
     if (contract.type !== "spec") return false;
     return contract.relatedTask === task.id || contract.featureId === task.featureId;
-  })?.version;
+  });
 }
 
 export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
@@ -18,19 +18,14 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
 
-  const head = currentHead(root);
-  if (!head) {
-    throw new Error("Cannot create contractLock because git HEAD is not available");
-  }
-
   const { registry } = readRegistry(root);
-  const specVersion = matchingSpecVersion(registry, task);
+  const spec = matchingSpec(registry, task);
   return {
     ...task,
     contractLock: {
-      wbsRevision: head,
+      wbsRevision: fileSha256(root, defaultWbsPath),
       wbsNodeId: task.wbsNodeId,
-      ...(specVersion ? { specVersion, specRevision: head } : {}),
+      ...(spec?.version ? { specVersion: spec.version, specRevision: fileSha256(root, spec.path) } : {}),
       createdAt: createdAt.toISOString()
     }
   };

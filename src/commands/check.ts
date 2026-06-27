@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import { approvalExists, evidenceExists, listTasks, readEvidence, readRegistry } from "../core/contracts.js";
-import { currentHead } from "../core/git.js";
-import { resolveFrom } from "../core/paths.js";
+import { fileSha256 } from "../core/hash.js";
+import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import type { Evidence, Issue, Registry, TaskContract, WbsDocument } from "../core/types.js";
+import type { Evidence, Issue, Registry, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
@@ -18,11 +18,11 @@ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[
     }));
 }
 
-function matchingSpecVersion(registry: Registry | undefined, task: TaskContract): string | undefined {
+function matchingSpec(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
   return registry?.contracts.find((contract) => {
     if (contract.type !== "spec") return false;
     return contract.relatedTask === task.id || contract.featureId === task.featureId;
-  })?.version;
+  });
 }
 
 function validateContractLock(root: string, registry: Registry | undefined, task: TaskContract): Issue[] {
@@ -37,21 +37,28 @@ function validateContractLock(root: string, registry: Registry | undefined, task
     });
   }
 
-  const head = currentHead(root);
-  if (task.contractLock.wbsRevision && head && task.contractLock.wbsRevision !== head) {
+  const wbsRevision = fileSha256(root, defaultWbsPath);
+  if (task.contractLock.wbsRevision && task.contractLock.wbsRevision !== wbsRevision) {
     issues.push({
       severity: "error",
       code: "task.contractLock.wbsRevision",
-      message: `${task.id} contractLock.wbsRevision is stale: ${task.contractLock.wbsRevision} != ${head}`
+      message: `${task.id} contractLock.wbsRevision is stale: ${task.contractLock.wbsRevision} != ${wbsRevision}`
     });
   }
 
-  const specVersion = matchingSpecVersion(registry, task);
-  if (task.contractLock.specVersion && specVersion && task.contractLock.specVersion !== specVersion) {
+  const spec = matchingSpec(registry, task);
+  if (task.contractLock.specVersion && spec?.version && task.contractLock.specVersion !== spec.version) {
     issues.push({
       severity: "error",
       code: "task.contractLock.specVersion",
-      message: `${task.id} contractLock.specVersion is stale: ${task.contractLock.specVersion} != ${specVersion}`
+      message: `${task.id} contractLock.specVersion is stale: ${task.contractLock.specVersion} != ${spec.version}`
+    });
+  }
+  if (task.contractLock.specRevision && spec?.path && task.contractLock.specRevision !== fileSha256(root, spec.path)) {
+    issues.push({
+      severity: "error",
+      code: "task.contractLock.specRevision",
+      message: `${task.id} contractLock.specRevision is stale`
     });
   }
 
