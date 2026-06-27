@@ -23,6 +23,8 @@ export type Registry = {
   contracts: RegistryContract[];
 };
 
+export type ApprovalStatus = "requested" | "approved" | "rejected";
+
 export type SpecContractStatus = "draft" | "approved" | "superseded";
 
 export type SpecContract = {
@@ -44,6 +46,7 @@ export type TaskContract = {
   type: "task-contract";
   wbsNodeId: string;
   featureId: string;
+  branchName?: string;
   contractLock?: {
     wbsRevision?: string;
     wbsNodeId?: string;
@@ -67,6 +70,12 @@ export type Evidence = {
   type: "evidence";
   taskId: string;
   commit?: string;
+  git?: {
+    branch?: string;
+    base?: string;
+    headCommit?: string;
+    pullRequest?: string;
+  };
   changedFiles: string[];
   checks: Array<{
     name: string;
@@ -84,6 +93,17 @@ export type Evidence = {
     coverageDecreased?: boolean;
     notes?: string[];
   };
+  notes?: string[];
+};
+
+export type ApprovalRecord = {
+  id: string;
+  type: "approval";
+  taskId: string;
+  status: ApprovalStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  pullRequest?: string;
   notes?: string[];
 };
 

@@ -256,6 +256,7 @@ id: WBS-001-004
 type: task-contract
 wbsNodeId: node-api-implementation
 featureId: F001
+branchName: task/WBS-001-004-api-implementation
 allowedPaths:
   - src/features/staff-search/**
   - tests/features/staff-search/**
@@ -433,6 +434,22 @@ npm run scwbs -- health
 
 ---
 
+Review待ち候補を一覧するには `scwbs review-queue` を使う。
+```bash
+npm run scwbs -- review-queue
+```
+
+このコマンドは少なくとも次を候補として表示する。
+* Evidence が存在し、依存が完了していれば human review に進める task
+* Evidence が存在するが、未完了の dependsOn があるため completed に進めない task
+* Human Gate 対象 path を Evidence が変更しているのに approval 記録がない task
+* Task Contract または Evidence に branch / PR 情報がある場合、その情報
+* review に必要な branch / PR 情報が不足している場合、その warning
+* taskごとの `suggestedAction`
+* review候補数、依存block数、PR metadata不足数などの簡易summary
+
+Task Contractごとにbranchを分ける運用では、`1 Task Contract = 1 branch = 1 review unit` を基本とする。
+
 ## 9. Evidence
 
 Evidenceは、作業がDone条件を満たしたことを示す証跡である。
@@ -450,6 +467,11 @@ id: EVD-001-004
 type: evidence
 taskId: WBS-001-004
 commit: abc1234
+git:
+  branch: task/WBS-001-004-api-implementation
+  base: main
+  headCommit: abc1234
+  pullRequest: "#42"
 changedFiles:
   - src/features/staff-search/api.ts
 checks:
@@ -740,10 +762,35 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 
 * `bootstrap`
 * `normal`
+
 ## 18. Spec Contract Files
 
 Spec Contract files live under `contracts/specs/*.yaml`.
 Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
+
+### Approval Record 補足
+
+Human approval record は `contracts/approvals/*.yaml` に置く。
+最小形式は次のとおり。
+
+```yaml
+id: APR-WBS-001-004
+type: approval
+taskId: WBS-001-004
+status: requested
+pullRequest: "#42"
+notes:
+  - Awaiting human gate review
+```
+
+`status` は `requested`、`approved`、`rejected` のいずれかを取る。
+`status: approved` の場合は `approvedBy` と `approvedAt` を必須にする。
+`scwbs review-queue` は `approvalStatus` を表示でき、Evidence に `pullRequest` がない場合は approval record 側の `pullRequest` を再利用できる。
+AI や実装者が review 依頼を残すだけなら、`requested` の record を生成する。
+```bash
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+```
+`--note` は複数語を含む引用付き引数でも、`--note=Awaiting human review` のような inline 形式でも受け付ける。
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

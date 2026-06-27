@@ -1,4 +1,4 @@
-import { approvalExists, listTasks, readEvidence, readRegistry } from "../core/contracts.js";
+import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
 import { commitExists } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -23,6 +23,10 @@ function strongestEvidenceLevel(evidence: Evidence): EvidenceLevel {
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
+  const { approval, issues: approvalIssues } = readApproval(root, task.id);
+  const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+  const approvalPullRequest = approval?.pullRequest;
+  const hasApproval = Boolean(approval) && !missingApprovalOnly;
 
   if (node && isDoneNode(node) && strongestEvidenceLevel(evidence) === "C") {
     issues.push({
@@ -50,6 +54,18 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
   }
 
+  if (!evidence.git?.branch && !task.branchName) {
+    issues.push({ severity: "warn", code: "health.evidence.git.branch.missing", message: `${task.id} evidence has no branch metadata` });
+  }
+  if (!evidence.git?.headCommit) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
+  } else if (!commitExists(root, evidence.git.headCommit)) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
+  }
+  if (node && !isDoneNode(node) && !evidence.git?.pullRequest && !approvalPullRequest) {
+    issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });
+  }
+
   for (const file of evidence.changedFiles) {
     if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
@@ -57,7 +73,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     if (matchesAny(file, task.forbiddenPaths)) {
       issues.push({ severity: "error", code: "health.evidence.changedFiles.forbiddenPaths", message: `${file} is forbidden by ${task.id}` });
     }
-    if (matchesAny(file, task.humanGateRequiredPaths) && !approvalExists(root, task.id)) {
+    if (matchesAny(file, task.humanGateRequiredPaths) && !hasApproval) {
       issues.push({ severity: "warn", code: "health.evidence.changedFiles.humanGate", message: `${file} requires human gate approval for ${task.id}` });
     }
   }

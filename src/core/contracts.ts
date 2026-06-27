@@ -1,8 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { defaultEvidenceDir, defaultRegistryPath, defaultSpecsDir, defaultTasksDir, resolveFrom, taskPath, evidencePath } from "./paths.js";
-import { asEvidence, asRegistry, asSpecContract, asTaskContract, validateEvidence, validateRegistry, validateSpecContract, validateTaskContract } from "./schema.js";
-import type { Evidence, Issue, Registry, RegistryContract, SpecContract, TaskContract } from "./types.js";
+import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultSpecsDir, defaultTasksDir, resolveFrom, taskPath, evidencePath } from "./paths.js";
+import { asApprovalRecord, asEvidence, asRegistry, asSpecContract, asTaskContract, validateApprovalRecord, validateEvidence, validateRegistry, validateSpecContract, validateTaskContract } from "./schema.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
@@ -46,6 +46,17 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
   return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues };
 }
 
+export function readApproval(root: string, taskId: string): { approval?: ApprovalRecord; issues: Issue[] } {
+  const relativePath = approvalPath(taskId);
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) {
+    return { issues: [{ severity: "error", code: "approval.missing", message: `${relativePath} does not exist` }] };
+  }
+  const value = readYamlFile<unknown>(fullPath);
+  const issues = validateApprovalRecord(value, relativePath);
+  return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
+}
+
 export function listTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
   const dir = resolveFrom(root, defaultTasksDir);
   if (!existsSync(dir)) return [];
@@ -72,6 +83,19 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
     });
 }
 
+export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultApprovalsDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const path = `${defaultApprovalsDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, path));
+      const issues = validateApprovalRecord(value, path);
+      return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues, path };
+    });
+}
+
 export function matchingSpecContract(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
   return registry?.contracts.find((contract) => {
     if (contract.type !== "spec") return false;
@@ -79,11 +103,20 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
   });
 }
 
+export function matchingRegistrySpecByPath(registry: Registry | undefined, specPath: string): RegistryContract | undefined {
+  return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
+}
+
+export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {
+  const { spec, issues } = readSpec(root, contract.path);
+  return { spec, path: contract.path, issues };
+}
+
 export function resolveSpecForTask(root: string, registry: Registry | undefined, task: TaskContract): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
   const contract = matchingSpecContract(registry, task);
   if (!contract) return { issues: [] };
-  const { spec, issues } = readSpec(root, contract.path);
-  return { contract, spec, path: contract.path, issues };
+  const { spec, path, issues } = readSpecFromRegistryContract(root, contract);
+  return { contract, spec, path, issues };
 }
 
 export function evidenceExists(root: string, taskId: string): boolean {
@@ -91,7 +124,5 @@ export function evidenceExists(root: string, taskId: string): boolean {
 }
 
 export function approvalExists(root: string, taskId: string): boolean {
-  const dir = resolveFrom(root, "contracts/approvals");
-  if (!existsSync(dir)) return false;
-  return readdirSync(dir).some((file) => file.includes(taskId) && (file.endsWith(".yaml") || file.endsWith(".yml") || file.endsWith(".md")));
+  return existsSync(resolveFrom(root, approvalPath(taskId)));
 }

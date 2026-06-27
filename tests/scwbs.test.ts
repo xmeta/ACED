@@ -5,16 +5,19 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
 import { collectDiffIssues } from "../src/commands/check-diff.js";
+import { buildReviewQueue } from "../src/commands/review-queue.js";
 import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
+import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
 import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecs, readSpec } from "../src/core/contracts.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+import { main } from "../src/cli.js";
+import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
   test("init creates a valid minimal WJS document", () => {
@@ -300,6 +303,42 @@ describe("scwbs MVP", () => {
     expect(runHealth(root)).toBe(0);
   });
 
+  test("health warns when evidence git metadata is missing for review workflow", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.missing")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(true);
+  });
+
+  test("health accepts approval pull request metadata when evidence pull request is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(false);
+  });
+
   test("health warns when task contract has no contract lock", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -420,6 +459,35 @@ describe("scwbs MVP", () => {
     expect(issues.some((issue) => issue.code.endsWith("spec.status"))).toBe(true);
   });
 
+  test("check errors when a spec file is not indexed in the registry", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: []
+    });
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "spec.registry.missing")).toBe(true);
+  });
+
+  test("check errors when a task lock references a missing spec", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: []
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      contractLock: {
+        wbsNodeId: "node-api",
+        specVersion: "1.0.0",
+        specRevision: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }) as unknown as Record<string, unknown>);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "task.spec.missing")).toBe(true);
+  });
+
   test("task generate writes a draft contract from a WBS node", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -431,6 +499,7 @@ describe("scwbs MVP", () => {
     expect(expected).toContain("id: WBS-001-999");
     expect(expected).toContain("wbsNodeId: node-api");
     expect(expected).toContain("featureId: F-1-1");
+    expect(expected).toContain("branchName: task/WBS-001-999-api-implementation");
     expect(expected).toContain("allowedPaths:");
     expect(expected).toContain("doneCriteria:");
   });
@@ -445,6 +514,47 @@ describe("scwbs MVP", () => {
     expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).toBe(before);
     expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: true })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).not.toBe(before);
+  });
+
+  test("approval request writes a requested approval record", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#42", note: "Awaiting human review", force: false })).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toBe(buildApprovalRequestYaml("WBS-001-004", { pullRequest: "#42", note: "Awaiting human review" }));
+    expect(actual).toContain("status: requested");
+    expect(actual).toContain('pullRequest: "#42"');
+  });
+
+  test("approval request refuses to overwrite an existing record without force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#99", note: "Updated", force: false })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
+    expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#99", note: "Updated", force: true })).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).not.toBe(before);
+  });
+
+  test("approval request CLI accepts multi-word notes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", "Awaiting", "human", "review"], root)).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("  - Awaiting human review");
+  });
+
+  test("approval request CLI accepts inline note syntax", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["approval", "request", "--task", "WBS-001-004", "--note=Awaiting human review"], root)).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("  - Awaiting human review");
   });
 
   test("health warns when changed test files lack test quality metadata", () => {
@@ -487,6 +597,148 @@ describe("scwbs MVP", () => {
     writeScwbsProject(root, "blocked");
     const status = buildStatus(root);
     expect(status).toContain("- blocked: 1");
+  });
+
+  test("review queue lists tasks with evidence awaiting review", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("Review Queue:");
+    expect(queue).toContain("WBS-001-004");
+    expect(queue).toContain("branch: task/WBS-001-004-api-implementation");
+    expect(queue).toContain("evidence exists and the WBS node is ready for human review");
+    expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
+  });
+
+  test("review queue reports incomplete dependencies that block completion", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("ready");
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root, "planned");
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("evidence exists and the WBS node is not completed");
+    expect(queue).toContain("warning: dependsOn node 1 Root is not completed");
+    expect(queue).toContain("completionBlockedBy: 1 Root");
+    expect(queue).toContain("suggestedAction: review evidence now, but defer completion until dependencies are completed");
+  });
+
+  test("review queue shows pull request metadata when present", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("pullRequest: #42");
+  });
+
+  test("review queue shows approval status and approval pull request metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("pullRequest: #42");
+    expect(queue).toContain("approvalStatus: requested");
+    expect(queue).toContain("warning: human review approval has been requested but is not approved yet");
+  });
+
+  test("review queue warns when pull request metadata is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("warning: no pull request is recorded for this review candidate");
+  });
+
+  test("review queue lists missing approval for human gate changes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["src/security/policy.ts"]
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("human gate paths were changed but no approval record exists");
+  });
+
+  test("review queue is empty when there is nothing pending", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    const queue = buildReviewQueue(root);
+    expect(queue).toBe("Review Queue:\n- None\n");
+  });
+
+  test("review queue includes review health summary sections", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("ready");
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root, "planned");
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("Review Health:");
+    expect(queue).toContain("- 1 review candidates");
+    expect(queue).toContain("- 1 candidates missing pull request metadata");
+    expect(queue).toContain("- 1 candidates blocked by incomplete dependencies");
+    expect(queue).toContain("- 0 candidates ready for completion review");
+    expect(queue).toContain("Ready for completion review:");
+    expect(queue).toContain("Blocked review candidates:");
+    expect(queue).toContain("- WBS-001-004 blocked by 1 Root");
+    expect(queue).toContain("Missing PR metadata:");
+    expect(queue).toContain("- WBS-001-004");
   });
 
   test("wbs apply dry-run does not write output file", () => {

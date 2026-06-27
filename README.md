@@ -80,12 +80,36 @@ npm run scwbs -- check-diff --task SCWBS-001
 npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
 npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
 npm run scwbs -- ai next-task
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- status
+npm run scwbs -- review-queue
 npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
 ```
+
+`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata when available, shows approval status from `contracts/approvals/*.yaml` when present, warns when review metadata is still missing, adds a `suggestedAction` per candidate, and includes a compact review-health summary.
+
+Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
+
+```yaml
+id: APR-SCWBS-006
+type: approval
+taskId: SCWBS-006
+status: requested
+pullRequest: "#42"
+notes:
+  - Awaiting human gate review
+```
+
+Use `approval request` to create a `requested` record without fabricating human approval:
+
+```bash
+npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+```
+
+`--note` is available both as a quoted multi-word argument and as inline syntax such as `--note=Awaiting human review`.
 
 After building:
 
@@ -121,12 +145,15 @@ Implemented in v0.1:
 - Document health checks for Evidence trust and contract freshness
 - Optional Contract Lock checks for stale WBS revisions, WBS node IDs, and Spec versions
 - Task Contract Lock generation from WBS and Spec content hashes
+- First-class Spec Contract files under `contracts/specs/*.yaml`
 - Test quality health checks through Evidence `testQuality`
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
 - AI Work Packet generation with relation-depth filtering
 - AI blocked-task change-set generation and next-task candidate listing
 - Task Contract draft generation from WBS nodes
 - WBS status summary
+- Review queue listing for likely human-review candidates
+- Task Contract branch naming and Evidence git metadata for branch-per-task workflows
 - WJS semantic operation apply wrapper
 
 Not included yet:
