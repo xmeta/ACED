@@ -27,6 +27,19 @@ function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): 
   return selected;
 }
 
+function subtreePhase(wbs: WbsDocument, node: WbsNode): "bootstrap" | "normal" | "unspecified" {
+  let current: WbsNode | undefined = node;
+
+  while (current) {
+    const scwbs = current.extensions?.scwbs;
+    const phase = typeof scwbs === "object" && scwbs !== null ? (scwbs as Record<string, unknown>).phase : undefined;
+    if (phase === "bootstrap" || phase === "normal") return phase;
+    current = current.parentId ? findNode(wbs, current.parentId) : undefined;
+  }
+
+  return "unspecified";
+}
+
 export function buildAiPacket(root: string, taskId: string, relationDepth = 1): string {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
@@ -59,6 +72,9 @@ ${task.id} ${node.name}
 - Type: ${node.type}
 - Status: ${node.status ?? "planned"}
 - Feature: ${task.featureId}
+
+## Subtree Phase
+- Phase: ${subtreePhase(wbs, node)}
 
 ## Scope
 ${task.doneCriteria.length === 0 ? "- Not specified" : task.doneCriteria.map((item) => `- ${item}`).join("\n")}

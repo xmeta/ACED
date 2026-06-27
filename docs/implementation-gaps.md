@@ -16,6 +16,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Sensitive meta/config file guardrails in check-diff
+- Subtree-scoped bootstrap phase metadata and AI packet reporting
 - Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
 - WBS status summary
 - WJS semantic apply wrapper
@@ -37,7 +38,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
 | Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
 | WBS collaboration | Distributed WBS or semantic merge support | Review A correctly notes that one canonical JSON file can become a merge hotspot |
-| Bootstrap | Subtree-scoped bootstrap transition | Review A correctly notes that large projects may mix bootstrap and normal operation by feature |
 
 ## Near-Term Follow-Ups
 
@@ -46,7 +46,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Introduce a lightweight spec-change proposal artifact.
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
-- Document subtree-scoped Bootstrap transition and represent phase on WBS nodes or extensions.
 - Define a low-cost WBS conflict mitigation path before full distributed WBS support.
 - Add a provenance-aware evidence verifier.
 - Wire the current checks into CI once the contract model stabilizes.

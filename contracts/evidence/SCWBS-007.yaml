@@ -1,0 +1,37 @@
+id: EVD-SCWBS-007
+type: evidence
+taskId: SCWBS-007
+changedFiles:
+  - src/commands/ai-packet.ts
+  - tests/scwbs.test.ts
+  - docs/sc-wbs-development.md
+  - docs/implementation-gaps.md
+  - contracts/wbs/project.wbs.json
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added tests for direct and inherited subtree phase in AI packets.
+notes:
+  - AI Work Packet now reports subtree phase.
+  - Subtree phase convention documented in methodology.

@@ -723,3 +723,17 @@ Human Gateで責任ある判断を制御する。
 * Spec Contractに `status`、`version`、`approvedBy`、`approvedAt` を持たせる
 * Spec Change Proposalの形式を定義する
 * Strict Profile向けにRisk Registerの形式を定義する
+
+## 17. Subtree Phase
+
+Bootstrapから通常運用への移行は、プロジェクト全体ではなくWBS subtree単位で扱ってよい。
+
+subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
+
+値は以下である。
+
+* `bootstrap`
+* `normal`
+
+AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
+対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

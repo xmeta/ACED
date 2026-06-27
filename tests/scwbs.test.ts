@@ -101,6 +101,52 @@ describe("scwbs MVP", () => {
     expect(packet).toContain("Human Gate対象変更はLevel 0またはLevel 1に見えても停止する");
   });
 
+  test("ai packet reports a direct subtree phase on the target node", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.nodes[1].extensions = {
+      scwbs: {
+        phase: "bootstrap"
+      }
+    };
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    const packet = buildAiPacket(root, "WBS-001-004");
+    expect(packet).toContain("## Subtree Phase");
+    expect(packet).toContain("- Phase: bootstrap");
+  });
+
+  test("ai packet inherits subtree phase from the nearest parent node", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.nodes.push({
+      id: "node-api-child",
+      parentId: "node-api",
+      code: "1.1.1",
+      name: "API Child Task",
+      type: "workPackage",
+      status: "planned"
+    });
+    wbs.nodes[1].extensions = {
+      scwbs: {
+        phase: "normal"
+      }
+    };
+    wbs.relations = [];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        wbsNodeId: "node-api-child"
+      }) as unknown as Record<string, unknown>
+    );
+    const packet = buildAiPacket(root, "WBS-001-004");
+    expect(packet).toContain("## Subtree Phase");
+    expect(packet).toContain("- Phase: normal");
+  });
+
   test("ai packet reports relation depth filtering", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
