@@ -113,6 +113,9 @@ Not included yet:
 - GitHub Actions integration
 - Pull request comments
 - Markdown auto-generation
+- Contract locking, spec version metadata, and spec change proposals
+- Provenance-aware Evidence verification
+- Independent review automation
 
 ## Methodology
 
@@ -120,4 +123,10 @@ Read the SC-WBS methodology here:
 
 ```text
 docs/sc-wbs-development.md
+```
+
+Current follow-up items are tracked in:
+
+```text
+docs/implementation-gaps.md
 ```
