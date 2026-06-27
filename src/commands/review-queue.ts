@@ -12,6 +12,7 @@ type ReviewQueueEntry = {
   branchName?: string;
   pullRequest?: string;
   approvalStatus?: string;
+  suggestedAction: string;
 };
 
 function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readWbs>): string[] {
@@ -79,6 +80,9 @@ export function buildReviewQueue(root: string): string {
     }
 
     if (reasons.length > 0) {
+      const suggestedAction = completionBlockedBy.length === 0
+        ? "create or record PR, then human review for completion"
+        : "review evidence now, but defer completion until dependencies are completed";
       entries.push({
         taskId: task.id,
         nodeCode: node.code,
@@ -88,7 +92,8 @@ export function buildReviewQueue(root: string): string {
         completionBlockedBy,
         branchName: evidence?.git?.branch ?? task.branchName,
         pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
-        approvalStatus: approval?.status
+        approvalStatus: approval?.status,
+        suggestedAction
       });
     }
   }
@@ -99,7 +104,20 @@ export function buildReviewQueue(root: string): string {
     return `${lines.join("\n")}\n`;
   }
 
-  for (const item of entries.sort((a, b) => a.taskId.localeCompare(b.taskId))) {
+  const sortedEntries = entries.sort((a, b) => a.taskId.localeCompare(b.taskId));
+  const missingPullRequestCount = sortedEntries.filter((item) => !item.pullRequest).length;
+  const blockedCount = sortedEntries.filter((item) => item.completionBlockedBy.length > 0).length;
+  const readyCount = sortedEntries.length - blockedCount;
+
+  lines.push("");
+  lines.push("Review Health:");
+  lines.push(`- ${sortedEntries.length} review candidates`);
+  lines.push(`- ${missingPullRequestCount} candidates missing pull request metadata`);
+  lines.push(`- ${blockedCount} candidates blocked by incomplete dependencies`);
+  lines.push(`- ${readyCount} candidates ready for completion review`);
+  lines.push("");
+
+  for (const item of sortedEntries) {
     lines.push(`- ${item.taskId} | ${item.nodeCode} | ${item.nodeName}`);
     if (item.branchName) {
       lines.push(`  branch: ${item.branchName}`);
@@ -119,6 +137,38 @@ export function buildReviewQueue(root: string): string {
     for (const blockedBy of item.completionBlockedBy) {
       lines.push(`  completionBlockedBy: ${blockedBy}`);
     }
+    lines.push(`  suggestedAction: ${item.suggestedAction}`);
+  }
+
+  const readyEntries = sortedEntries.filter((item) => item.completionBlockedBy.length === 0);
+  const blockedEntries = sortedEntries.filter((item) => item.completionBlockedBy.length > 0);
+  const missingPullRequestEntries = sortedEntries.filter((item) => !item.pullRequest);
+
+  lines.push("");
+  lines.push("Ready for completion review:");
+  if (readyEntries.length === 0) {
+    lines.push("- None");
+  } else {
+    for (const item of readyEntries) lines.push(`- ${item.taskId}`);
+  }
+
+  lines.push("");
+  lines.push("Blocked review candidates:");
+  if (blockedEntries.length === 0) {
+    lines.push("- None");
+  } else {
+    for (const item of blockedEntries) {
+      const blockers = item.completionBlockedBy.join(", ");
+      lines.push(`- ${item.taskId} blocked by ${blockers}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("Missing PR metadata:");
+  if (missingPullRequestEntries.length === 0) {
+    lines.push("- None");
+  } else {
+    for (const item of missingPullRequestEntries) lines.push(`- ${item.taskId}`);
   }
 
   return `${lines.join("\n")}\n`;

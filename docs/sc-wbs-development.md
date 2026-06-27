@@ -445,6 +445,8 @@ npm run scwbs -- review-queue
 * Human Gate 対象 path を Evidence が変更しているのに approval 記録がない task
 * Task Contract または Evidence に branch / PR 情報がある場合、その情報
 * review に必要な branch / PR 情報が不足している場合、その warning
+* taskごとの `suggestedAction`
+* review候補数、依存block数、PR metadata不足数などの簡易summary
 
 Task Contractごとにbranchを分ける運用では、`1 Task Contract = 1 branch = 1 review unit` を基本とする。
 

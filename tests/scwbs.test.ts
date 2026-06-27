@@ -608,6 +608,7 @@ describe("scwbs MVP", () => {
     expect(queue).toContain("WBS-001-004");
     expect(queue).toContain("branch: task/WBS-001-004-api-implementation");
     expect(queue).toContain("evidence exists and the WBS node is ready for human review");
+    expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
   });
 
   test("review queue reports incomplete dependencies that block completion", () => {
@@ -629,6 +630,7 @@ describe("scwbs MVP", () => {
     expect(queue).toContain("evidence exists and the WBS node is not completed");
     expect(queue).toContain("warning: dependsOn node 1 Root is not completed");
     expect(queue).toContain("completionBlockedBy: 1 Root");
+    expect(queue).toContain("suggestedAction: review evidence now, but defer completion until dependencies are completed");
   });
 
   test("review queue shows pull request metadata when present", () => {
@@ -708,6 +710,35 @@ describe("scwbs MVP", () => {
     writeScwbsProject(root, "planned");
     const queue = buildReviewQueue(root);
     expect(queue).toBe("Review Queue:\n- None\n");
+  });
+
+  test("review queue includes review health summary sections", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("ready");
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root, "planned");
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("Review Health:");
+    expect(queue).toContain("- 1 review candidates");
+    expect(queue).toContain("- 1 candidates missing pull request metadata");
+    expect(queue).toContain("- 1 candidates blocked by incomplete dependencies");
+    expect(queue).toContain("- 0 candidates ready for completion review");
+    expect(queue).toContain("Ready for completion review:");
+    expect(queue).toContain("Blocked review candidates:");
+    expect(queue).toContain("- WBS-001-004 blocked by 1 Root");
+    expect(queue).toContain("Missing PR metadata:");
+    expect(queue).toContain("- WBS-001-004");
   });
 
   test("wbs apply dry-run does not write output file", () => {
