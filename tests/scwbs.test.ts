@@ -15,7 +15,7 @@ import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecs, readSpec } from "../src/core/contracts.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
   test("init creates a valid minimal WJS document", () => {
@@ -318,6 +318,25 @@ describe("scwbs MVP", () => {
     expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(true);
   });
 
+  test("health accepts approval pull request metadata when evidence pull request is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(false);
+  });
+
   test("health warns when task contract has no contract lock", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -586,6 +605,27 @@ describe("scwbs MVP", () => {
     );
     const queue = buildReviewQueue(root);
     expect(queue).toContain("pullRequest: #42");
+  });
+
+  test("review queue shows approval status and approval pull request metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("pullRequest: #42");
+    expect(queue).toContain("approvalStatus: requested");
+    expect(queue).toContain("warning: human review approval has been requested but is not approved yet");
   });
 
   test("review queue warns when pull request metadata is missing", () => {

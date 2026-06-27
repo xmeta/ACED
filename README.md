@@ -88,7 +88,19 @@ npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
 ```
 
-`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata when available, and warns when review metadata is still missing.
+`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata when available, shows approval status from `contracts/approvals/*.yaml` when present, and warns when review metadata is still missing.
+
+Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
+
+```yaml
+id: APR-SCWBS-006
+type: approval
+taskId: SCWBS-006
+status: requested
+pullRequest: "#42"
+notes:
+  - Awaiting human gate review
+```
 
 After building:
 

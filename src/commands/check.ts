@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { approvalExists, evidenceExists, listApprovals, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -162,6 +162,9 @@ export function collectCheckIssues(root: string): Issue[] {
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
   issues.push(...validateIndexedSpecs(root, registry));
+  for (const entry of listApprovals(root)) {
+    issues.push(...entry.issues);
+  }
 
   for (const entry of listTasks(root)) {
     issues.push(...entry.issues);

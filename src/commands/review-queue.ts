@@ -1,4 +1,4 @@
-import { approvalExists, listTasks, readEvidence } from "../core/contracts.js";
+import { readApproval, listTasks, readEvidence } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 
@@ -11,6 +11,7 @@ type ReviewQueueEntry = {
   completionBlockedBy: string[];
   branchName?: string;
   pullRequest?: string;
+  approvalStatus?: string;
 };
 
 function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readWbs>): string[] {
@@ -38,8 +39,11 @@ export function buildReviewQueue(root: string): string {
     const warnings: string[] = [];
     const completionBlockedBy = incompleteDependencies(node.id, wbs);
     const { evidence, issues } = readEvidence(root, task.id);
+    const { approval, issues: approvalIssues } = readApproval(root, task.id);
     const missingEvidenceOnly = issues.length === 1 && issues[0]?.code === "evidence.missing";
+    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
     const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
+    const hasApproval = Boolean(approval) && !missingApprovalOnly;
 
     if (hasEvidence && !isDoneNode(node)) {
       reasons.push(
@@ -57,15 +61,21 @@ export function buildReviewQueue(root: string): string {
 
     if (evidence) {
       const touchesHumanGate = evidence.changedFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths));
-      if (touchesHumanGate && !approvalExists(root, task.id)) {
+      if (touchesHumanGate && !hasApproval) {
         reasons.push("human gate paths were changed but no approval record exists");
       }
       if (hasEvidence && !evidence.git?.branch && !task.branchName) {
         warnings.push("no branch metadata is recorded for this review candidate");
       }
-      if (hasEvidence && !evidence.git?.pullRequest) {
+      if (hasEvidence && !evidence.git?.pullRequest && !approval?.pullRequest) {
         warnings.push("no pull request is recorded for this review candidate");
       }
+    }
+
+    if (approval?.status === "requested") {
+      warnings.push("human review approval has been requested but is not approved yet");
+    } else if (approval?.status === "rejected") {
+      warnings.push("human review approval was rejected");
     }
 
     if (reasons.length > 0) {
@@ -77,7 +87,8 @@ export function buildReviewQueue(root: string): string {
         warnings,
         completionBlockedBy,
         branchName: evidence?.git?.branch ?? task.branchName,
-        pullRequest: evidence?.git?.pullRequest
+        pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
+        approvalStatus: approval?.status
       });
     }
   }
@@ -95,6 +106,9 @@ export function buildReviewQueue(root: string): string {
     }
     if (item.pullRequest) {
       lines.push(`  pullRequest: ${item.pullRequest}`);
+    }
+    if (item.approvalStatus) {
+      lines.push(`  approvalStatus: ${item.approvalStatus}`);
     }
     for (const reason of item.reasons) {
       lines.push(`  reason: ${reason}`);

@@ -1,4 +1,4 @@
-import type { Evidence, Issue, Registry, SpecContract, TaskContract, WbsDocument } from "./types.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -177,6 +177,42 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
 
 export function asEvidence(value: unknown): Evidence {
   return value as Evidence;
+}
+
+export function validateApprovalRecord(value: unknown, filePath = "approval"): Issue[] {
+  const issues: Issue[] = [];
+  if (!isObject(value)) return [issue("approval.invalid", `${filePath} must be an object`)];
+  for (const key of ["id", "type", "taskId", "status"]) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      issues.push(issue("approval.field", `${filePath}.${key} must be a non-empty string`));
+    }
+  }
+  if (value.type !== "approval") {
+    issues.push(issue("approval.type", `${filePath}.type must be approval`));
+  }
+  if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
+    issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
+  }
+  for (const key of ["approvedBy", "approvedAt", "pullRequest"]) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
+    }
+  }
+  if (value.notes !== undefined && !isStringArray(value.notes)) {
+    issues.push(issue("approval.notes", `${filePath}.notes must be a string array when present`));
+  }
+  if (value.status === "approved") {
+    for (const key of ["approvedBy", "approvedAt"]) {
+      if (typeof value[key] !== "string" || value[key].length === 0) {
+        issues.push(issue("approval.status", `${filePath}.${key} must be present when status is approved`));
+      }
+    }
+  }
+  return issues;
+}
+
+export function asApprovalRecord(value: unknown): ApprovalRecord {
+  return value as ApprovalRecord;
 }
 
 export function validateWbsShape(value: unknown): Issue[] {

@@ -23,6 +23,8 @@ export type Registry = {
   contracts: RegistryContract[];
 };
 
+export type ApprovalStatus = "requested" | "approved" | "rejected";
+
 export type SpecContractStatus = "draft" | "approved" | "superseded";
 
 export type SpecContract = {
@@ -91,6 +93,17 @@ export type Evidence = {
     coverageDecreased?: boolean;
     notes?: string[];
   };
+  notes?: string[];
+};
+
+export type ApprovalRecord = {
+  id: string;
+  type: "approval";
+  taskId: string;
+  status: ApprovalStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  pullRequest?: string;
   notes?: string[];
 };
 

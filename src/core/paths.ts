@@ -22,3 +22,7 @@ export function specPath(specId: string): string {
 export function evidencePath(taskId: string): string {
   return `${defaultEvidenceDir}/${taskId}.yaml`;
 }
+
+export function approvalPath(taskId: string): string {
+  return `${defaultApprovalsDir}/${taskId}.yaml`;
+}
