@@ -17,6 +17,8 @@ This repository is managed with its own SC-WBS contracts under `contracts/`.
 * If a change needs Human Gate approval, stop implementation and use `scwbs ai block` to propose a blocked WBS change set.
 * Do not mark a WBS node `completed`; completion is a human decision after Evidence and review are present.
 * Do not revert user changes or unrelated local changes.
+* If the current chat context has become large and the next task is mostly independent, tell the user that starting a new chat may reduce cost before continuing. This is especially important before large tasks such as new contract schemas, CI integration, or broad refactors.
+* When suggesting a new chat, explicitly tell the user and provide a handoff note before continuing. The handoff note must include the current task id, latest commit, relevant files, remaining goal, and exact validation commands so the next chat can resume cheaply.
 
 ## Development
 
