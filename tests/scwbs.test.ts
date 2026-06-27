@@ -16,6 +16,7 @@ import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecs, readSpec } from "../src/core/contracts.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
+import { main } from "../src/cli.js";
 import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
@@ -536,6 +537,24 @@ describe("scwbs MVP", () => {
     expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
     expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#99", note: "Updated", force: true })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).not.toBe(before);
+  });
+
+  test("approval request CLI accepts multi-word notes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", "Awaiting", "human", "review"], root)).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("  - Awaiting human review");
+  });
+
+  test("approval request CLI accepts inline note syntax", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["approval", "request", "--task", "WBS-001-004", "--note=Awaiting human review"], root)).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("  - Awaiting human review");
   });
 
   test("health warns when changed test files lack test quality metadata", () => {

@@ -33,8 +33,24 @@ function usage(): void {
 }
 
 function valueAfter(args: string[], flag: string): string | undefined {
+  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
+  if (inline) return inline.slice(flag.length + 1);
   const index = args.indexOf(flag);
   return index >= 0 ? args[index + 1] : undefined;
+}
+
+function textAfter(args: string[], flag: string): string | undefined {
+  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
+  if (inline) return inline.slice(flag.length + 1);
+  const index = args.indexOf(flag);
+  if (index < 0) return undefined;
+  const parts: string[] = [];
+  for (let i = index + 1; i < args.length; i += 1) {
+    const part = args[i];
+    if (!part || part.startsWith("--")) break;
+    parts.push(part);
+  }
+  return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
 function numberAfter(args: string[], flag: string, fallback: number): number {
@@ -95,7 +111,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     }
     return runApprovalRequest(root, taskId, {
       pullRequest: valueAfter(argv, "--pull-request"),
-      note: valueAfter(argv, "--note"),
+      note: textAfter(argv, "--note"),
       force: argv.includes("--force")
     });
   }
