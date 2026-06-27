@@ -1,0 +1,63 @@
+id: EVD-SCWBS-001
+type: evidence
+taskId: SCWBS-001
+commit: 26c3378
+git:
+  branch: task/SCWBS-001-dogfood-sc-wbs-contracts
+  base: main
+  headCommit: 26c3378edfc72083cc557196889bf07ac62c662c
+changedFiles:
+  - README.md
+  - contracts/evidence/SCWBS-004.yaml
+  - contracts/evidence/SCWBS-005.yaml
+  - contracts/evidence/SCWBS-006.yaml
+  - contracts/evidence/SCWBS-007.yaml
+  - contracts/tasks/SCWBS-001.yaml
+  - contracts/tasks/SCWBS-002.yaml
+  - contracts/tasks/SCWBS-003.yaml
+  - contracts/tasks/SCWBS-004.yaml
+  - contracts/tasks/SCWBS-005.yaml
+  - contracts/tasks/SCWBS-006.yaml
+  - contracts/tasks/SCWBS-007.yaml
+  - docs/sc-wbs-development.md
+  - src/cli.ts
+  - src/commands/approval-request.ts
+  - src/commands/check.ts
+  - src/commands/health.ts
+  - src/commands/review-queue.ts
+  - src/commands/task-generate.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/helpers.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: 2026-06-28T07:07:41+09:00
+    verifiedBy: codex
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: 2026-06-28T07:07:41+09:00
+    verifiedBy: codex
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: 2026-06-28T07:07:41+09:00
+    verifiedBy: codex
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added review queue coverage and approval request CLI tests.
+notes:
+  - Dogfooded branch-per-task metadata, approval records, and review queue behavior for this repository.
+  - No package or dependency changes.
+  - No wjs submodule changes.
