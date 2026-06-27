@@ -1,0 +1,12 @@
+import { spawnSync } from "node:child_process";
+
+export function changedFiles(root: string): string[] {
+  const result = spawnSync("git", ["diff", "--name-only", "HEAD"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "git diff failed");
+  }
+  return result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
