@@ -256,6 +256,7 @@ id: WBS-001-004
 type: task-contract
 wbsNodeId: node-api-implementation
 featureId: F001
+branchName: task/WBS-001-004-api-implementation
 allowedPaths:
   - src/features/staff-search/**
   - tests/features/staff-search/**
@@ -442,6 +443,10 @@ npm run scwbs -- review-queue
 * Evidence が存在し、依存が完了していれば human review に進める task
 * Evidence が存在するが、未完了の dependsOn があるため completed に進めない task
 * Human Gate 対象 path を Evidence が変更しているのに approval 記録がない task
+* Task Contract または Evidence に branch / PR 情報がある場合、その情報
+* review に必要な branch / PR 情報が不足している場合、その warning
+
+Task Contractごとにbranchを分ける運用では、`1 Task Contract = 1 branch = 1 review unit` を基本とする。
 
 ## 9. Evidence
 
@@ -460,6 +465,11 @@ id: EVD-001-004
 type: evidence
 taskId: WBS-001-004
 commit: abc1234
+git:
+  branch: task/WBS-001-004-api-implementation
+  base: main
+  headCommit: abc1234
+  pullRequest: "#42"
 changedFiles:
   - src/features/staff-search/api.ts
 checks:

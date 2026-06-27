@@ -9,6 +9,14 @@ function draftFeatureId(code: string): string {
   return `F-${code.replace(/\./g, "-")}`;
 }
 
+function branchSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+}
+
 export function buildDraftTask(root: string, nodeId: string, taskId: string): TaskContract {
   const wbs = readWbs(root);
   const node = findNode(wbs, nodeId);
@@ -21,6 +29,7 @@ export function buildDraftTask(root: string, nodeId: string, taskId: string): Ta
     type: "task-contract",
     wbsNodeId: node.id,
     featureId: draftFeatureId(node.code),
+    branchName: `task/${taskId}-${branchSlug(node.name)}`,
     allowedPaths: ["src/**", "tests/**", "docs/**"],
     forbiddenPaths: ["wjs/**"],
     humanGateRequiredPaths: ["package.json", "package-lock.json", ".github/**"],

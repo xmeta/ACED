@@ -50,6 +50,18 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
   }
 
+  if (!evidence.git?.branch && !task.branchName) {
+    issues.push({ severity: "warn", code: "health.evidence.git.branch.missing", message: `${task.id} evidence has no branch metadata` });
+  }
+  if (!evidence.git?.headCommit) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
+  } else if (!commitExists(root, evidence.git.headCommit)) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
+  }
+  if (node && !isDoneNode(node) && !evidence.git?.pullRequest) {
+    issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });
+  }
+
   for (const file of evidence.changedFiles) {
     if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });

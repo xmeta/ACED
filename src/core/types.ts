@@ -44,6 +44,7 @@ export type TaskContract = {
   type: "task-contract";
   wbsNodeId: string;
   featureId: string;
+  branchName?: string;
   contractLock?: {
     wbsRevision?: string;
     wbsNodeId?: string;
@@ -67,6 +68,12 @@ export type Evidence = {
   type: "evidence";
   taskId: string;
   commit?: string;
+  git?: {
+    branch?: string;
+    base?: string;
+    headCommit?: string;
+    pullRequest?: string;
+  };
   changedFiles: string[];
   checks: Array<{
     name: string;

@@ -301,6 +301,23 @@ describe("scwbs MVP", () => {
     expect(runHealth(root)).toBe(0);
   });
 
+  test("health warns when evidence git metadata is missing for review workflow", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.missing")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(true);
+  });
+
   test("health warns when task contract has no contract lock", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -461,6 +478,7 @@ describe("scwbs MVP", () => {
     expect(expected).toContain("id: WBS-001-999");
     expect(expected).toContain("wbsNodeId: node-api");
     expect(expected).toContain("featureId: F-1-1");
+    expect(expected).toContain("branchName: task/WBS-001-999-api-implementation");
     expect(expected).toContain("allowedPaths:");
     expect(expected).toContain("doneCriteria:");
   });
@@ -526,6 +544,7 @@ describe("scwbs MVP", () => {
     const queue = buildReviewQueue(root);
     expect(queue).toContain("Review Queue:");
     expect(queue).toContain("WBS-001-004");
+    expect(queue).toContain("branch: task/WBS-001-004-api-implementation");
     expect(queue).toContain("evidence exists and the WBS node is ready for human review");
   });
 
@@ -548,6 +567,43 @@ describe("scwbs MVP", () => {
     expect(queue).toContain("evidence exists and the WBS node is not completed");
     expect(queue).toContain("warning: dependsOn node 1 Root is not completed");
     expect(queue).toContain("completionBlockedBy: 1 Root");
+  });
+
+  test("review queue shows pull request metadata when present", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("pullRequest: #42");
+  });
+
+  test("review queue warns when pull request metadata is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("warning: no pull request is recorded for this review candidate");
   });
 
   test("review queue lists missing approval for human gate changes", () => {

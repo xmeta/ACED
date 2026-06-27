@@ -9,6 +9,8 @@ type ReviewQueueEntry = {
   reasons: string[];
   warnings: string[];
   completionBlockedBy: string[];
+  branchName?: string;
+  pullRequest?: string;
 };
 
 function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readWbs>): string[] {
@@ -58,6 +60,12 @@ export function buildReviewQueue(root: string): string {
       if (touchesHumanGate && !approvalExists(root, task.id)) {
         reasons.push("human gate paths were changed but no approval record exists");
       }
+      if (hasEvidence && !evidence.git?.branch && !task.branchName) {
+        warnings.push("no branch metadata is recorded for this review candidate");
+      }
+      if (hasEvidence && !evidence.git?.pullRequest) {
+        warnings.push("no pull request is recorded for this review candidate");
+      }
     }
 
     if (reasons.length > 0) {
@@ -67,7 +75,9 @@ export function buildReviewQueue(root: string): string {
         nodeName: node.name,
         reasons,
         warnings,
-        completionBlockedBy
+        completionBlockedBy,
+        branchName: evidence?.git?.branch ?? task.branchName,
+        pullRequest: evidence?.git?.pullRequest
       });
     }
   }
@@ -80,6 +90,12 @@ export function buildReviewQueue(root: string): string {
 
   for (const item of entries.sort((a, b) => a.taskId.localeCompare(b.taskId))) {
     lines.push(`- ${item.taskId} | ${item.nodeCode} | ${item.nodeName}`);
+    if (item.branchName) {
+      lines.push(`  branch: ${item.branchName}`);
+    }
+    if (item.pullRequest) {
+      lines.push(`  pullRequest: ${item.pullRequest}`);
+    }
     for (const reason of item.reasons) {
       lines.push(`  reason: ${reason}`);
     }

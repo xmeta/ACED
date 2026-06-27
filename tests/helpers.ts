@@ -82,6 +82,7 @@ export function sampleTask(overrides: Partial<TaskContract> = {}): TaskContract 
     type: "task-contract",
     wbsNodeId: "node-api",
     featureId: "F001",
+    branchName: "task/WBS-001-004-api-implementation",
     allowedPaths: ["src/features/api/**", "tests/features/api/**"],
     forbiddenPaths: ["src/auth/**"],
     humanGateRequiredPaths: ["src/security/**"],
@@ -115,6 +116,11 @@ export function sampleEvidence(overrides: Partial<Evidence> = {}): Evidence {
     type: "evidence",
     taskId: "WBS-001-004",
     changedFiles: ["src/features/api/index.ts"],
+    git: {
+      branch: "task/WBS-001-004-api-implementation",
+      base: "main",
+      headCommit: "abc1234"
+    },
     checks: [
       { name: "test", status: "passed" },
       { name: "typecheck", status: "passed" }

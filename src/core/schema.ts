@@ -92,6 +92,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   if (value.type !== "task-contract") {
     issues.push(issue("task.type", `${filePath}.type must be task-contract`));
   }
+  if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
+    issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));
+  }
   for (const key of ["allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "doneCriteria", "evidenceRequired"]) {
     if (!isStringArray(value[key])) {
       issues.push(issue("task.array", `${filePath}.${key} must be a string array`));
@@ -128,6 +131,17 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
   }
   if (!isStringArray(value.changedFiles)) {
     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+  }
+  if (value.git !== undefined) {
+    if (!isObject(value.git)) {
+      issues.push(issue("evidence.git", `${filePath}.git must be an object when present`));
+    } else {
+      for (const key of ["branch", "base", "headCommit", "pullRequest"]) {
+        if (value.git[key] !== undefined && typeof value.git[key] !== "string") {
+          issues.push(issue("evidence.git", `${filePath}.git.${key} must be a string when present`));
+        }
+      }
+    }
   }
   if (!Array.isArray(value.checks)) {
     issues.push(issue("evidence.checks", `${filePath}.checks must be an array`));

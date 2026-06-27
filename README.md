@@ -88,7 +88,7 @@ npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
 ```
 
-`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, and also flags Human Gate changes that still lack an approval record.
+`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes that are ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata when available, and warns when review metadata is still missing.
 
 After building:
 
@@ -132,6 +132,7 @@ Implemented in v0.1:
 - Task Contract draft generation from WBS nodes
 - WBS status summary
 - Review queue listing for likely human-review candidates
+- Task Contract branch naming and Evidence git metadata for branch-per-task workflows
 - WJS semantic operation apply wrapper
 
 Not included yet:
