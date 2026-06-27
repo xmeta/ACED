@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listTasks, readEvidence, readRegistry } from "../core/contracts.js";
+import { approvalExists, evidenceExists, listSpecs, listTasks, readEvidence, readRegistry, resolveSpecForTask } from "../core/contracts.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import type { Evidence, Issue, Registry, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+import type { Evidence, Issue, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
@@ -18,14 +18,24 @@ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[
     }));
 }
 
-function matchingSpec(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
-  return registry?.contracts.find((contract) => {
-    if (contract.type !== "spec") return false;
-    return contract.relatedTask === task.id || contract.featureId === task.featureId;
-  });
+function validateRegistrySpecContract(contract: RegistryContract, spec: SpecContract): Issue[] {
+  const issues: Issue[] = [];
+  if (contract.id !== spec.id) {
+    issues.push({ severity: "error", code: "registry.spec.id", message: `${contract.path} id does not match registry entry ${contract.id}` });
+  }
+  if (contract.featureId && contract.featureId !== spec.featureId) {
+    issues.push({ severity: "error", code: "registry.spec.featureId", message: `${contract.id} featureId does not match ${contract.path}` });
+  }
+  if (contract.status && contract.status !== spec.status) {
+    issues.push({ severity: "error", code: "registry.spec.status", message: `${contract.id} status does not match ${contract.path}` });
+  }
+  if (contract.version && contract.version !== spec.version) {
+    issues.push({ severity: "error", code: "registry.spec.version", message: `${contract.id} version does not match ${contract.path}` });
+  }
+  return issues;
 }
 
-function validateContractLock(root: string, registry: Registry | undefined, task: TaskContract): Issue[] {
+function validateContractLock(root: string, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
   const issues: Issue[] = [];
   if (!task.contractLock) return issues;
 
@@ -46,7 +56,6 @@ function validateContractLock(root: string, registry: Registry | undefined, task
     });
   }
 
-  const spec = matchingSpec(registry, task);
   if (task.contractLock.specVersion && spec?.version && task.contractLock.specVersion !== spec.version) {
     issues.push({
       severity: "error",
@@ -54,7 +63,7 @@ function validateContractLock(root: string, registry: Registry | undefined, task
       message: `${task.id} contractLock.specVersion is stale: ${task.contractLock.specVersion} != ${spec.version}`
     });
   }
-  if (task.contractLock.specRevision && spec?.path && task.contractLock.specRevision !== fileSha256(root, spec.path)) {
+  if (task.contractLock.specRevision && specPath && task.contractLock.specRevision !== fileSha256(root, specPath)) {
     issues.push({
       severity: "error",
       code: "task.contractLock.specRevision",
@@ -65,14 +74,15 @@ function validateContractLock(root: string, registry: Registry | undefined, task
   return issues;
 }
 
-function validateTaskAgainstWbs(root: string, registry: Registry | undefined, wbs: WbsDocument, task: TaskContract): Issue[] {
+function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocument, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
   if (!node) {
     issues.push({ severity: "error", code: "task.wbsNodeId", message: `${task.id} references missing WBS node: ${task.wbsNodeId}` });
     return issues;
   }
-  issues.push(...validateContractLock(root, registry, task));
+  issues.push(...specIssues);
+  issues.push(...validateContractLock(root, task, spec, specPath));
 
   const done = isDoneNode(node);
   const hasEvidence = evidenceExists(root, task.id);
@@ -93,6 +103,33 @@ function validateTaskAgainstWbs(root: string, registry: Registry | undefined, wb
   return issues;
 }
 
+function validateRegistryContracts(root: string, registry: Registry | undefined): Issue[] {
+  const issues: Issue[] = [];
+  if (!registry) return issues;
+  for (const contract of registry.contracts) {
+    if (!existsSync(resolveFrom(root, contract.path))) {
+      issues.push({ severity: "error", code: "registry.path", message: `${contract.id} path does not exist: ${contract.path}` });
+      continue;
+    }
+    if (contract.type !== "spec") continue;
+    const { spec, issues: specIssues } = resolveSpecForTask(root, registry, {
+      id: contract.relatedTask ?? `registry:${contract.id}`,
+      type: "task-contract",
+      wbsNodeId: "",
+      featureId: contract.featureId ?? "",
+      allowedPaths: [],
+      forbiddenPaths: [],
+      humanGateRequiredPaths: [],
+      requiredChecks: [],
+      doneCriteria: [],
+      evidenceRequired: []
+    });
+    issues.push(...specIssues);
+    if (spec) issues.push(...validateRegistrySpecContract(contract, spec));
+  }
+  return issues;
+}
+
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   issues.push(...runWjsValidate(root));
@@ -108,17 +145,20 @@ export function collectCheckIssues(root: string): Issue[] {
 
   const { registry, issues: registryIssues } = readRegistry(root);
   issues.push(...registryIssues);
-  if (registry) {
-    for (const contract of registry.contracts) {
-      if (!existsSync(resolveFrom(root, contract.path))) {
-        issues.push({ severity: "error", code: "registry.path", message: `${contract.id} path does not exist: ${contract.path}` });
-      }
-    }
+  issues.push(...validateRegistryContracts(root, registry));
+
+  for (const entry of listSpecs(root)) {
+    issues.push(...entry.issues);
   }
 
   for (const entry of listTasks(root)) {
     issues.push(...entry.issues);
-    if (wbs && entry.task) issues.push(...validateTaskAgainstWbs(root, registry, wbs, entry.task));
+    if (!wbs || !entry.task) continue;
+    const { spec, path: specPath, issues: specIssues } = resolveSpecForTask(root, registry, entry.task);
+    if (spec && spec.status !== "approved") {
+      specIssues.push({ severity: "error", code: "task.spec.status", message: `${entry.task.id} references non-approved spec ${spec.id}` });
+    }
+    issues.push(...validateTaskAgainstWbs(root, specIssues, wbs, entry.task, spec, specPath));
   }
 
   return issues;

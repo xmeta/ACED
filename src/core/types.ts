@@ -23,6 +23,22 @@ export type Registry = {
   contracts: RegistryContract[];
 };
 
+export type SpecContractStatus = "draft" | "approved" | "superseded";
+
+export type SpecContract = {
+  id: string;
+  type: "spec-contract";
+  featureId: string;
+  title: string;
+  status: SpecContractStatus;
+  version: string;
+  summary?: string;
+  sourcePaths?: string[];
+  acceptanceCriteria: string[];
+  approvedBy?: string;
+  approvedAt?: string;
+};
+
 export type TaskContract = {
   id: string;
   type: "task-contract";

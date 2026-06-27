@@ -12,8 +12,9 @@ import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
+import { listSpecs, readSpec } from "../src/core/contracts.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
-import { makeTempRepo, sampleTask, sampleWbs, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
   test("init creates a valid minimal WJS document", () => {
@@ -27,6 +28,18 @@ describe("scwbs MVP", () => {
     writeJson(root, "contracts/wbs/project.wbs.json", { schemaVersion: "0.1.0", id: "bad" });
     const issues = validateWbsDocument(root);
     expect(issues.some((issue) => issue.code.startsWith("wbs."))).toBe(true);
+  });
+
+  test("spec contracts are first-class files with required metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const { spec, issues } = readSpec(root, "contracts/specs/SPEC-F001-API.yaml");
+    expect(issues).toEqual([]);
+    expect(spec?.type).toBe("spec-contract");
+    expect(spec?.status).toBe("approved");
+    expect(spec?.approvedBy).toBe("Product Owner");
+    expect(listSpecs(root).some((entry) => entry.path === "contracts/specs/SPEC-F001-API.yaml" && entry.issues.length === 0)).toBe(true);
   });
 
   test("missing wbsNodeId is an error", () => {
@@ -317,8 +330,94 @@ describe("scwbs MVP", () => {
     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
     const locked = buildLockedTask(root, "WBS-001-004", new Date("2026-06-27T00:00:00.000Z"));
     expect(locked.contractLock?.wbsNodeId).toBe("node-api");
+    expect(locked.contractLock?.specVersion).toBe("1.0.0");
+    expect(locked.contractLock?.specRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(locked.contractLock?.wbsRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+  });
+
+  test("check errors when a locked spec contract becomes stale", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const locked = buildLockedTask(root, "WBS-001-004", new Date("2026-06-27T00:00:00.000Z"));
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      {
+        ...locked,
+        contractLock: {
+          ...locked.contractLock,
+          specVersion: "9.9.9",
+          specRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      } as unknown as Record<string, unknown>
+    );
+
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "task.contractLock.specVersion")).toBe(true);
+    expect(issues.some((issue) => issue.code === "task.contractLock.specRevision")).toBe(true);
+  });
+
+  test("check validates first-class spec contracts in the registry", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code.startsWith("registry.spec."))).toBe(false);
+    expect(issues.some((issue) => issue.code === "task.spec.status")).toBe(false);
+  });
+
+  test("check errors when a spec contract is missing approval metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const invalidApprovedSpec = { ...sampleSpec() } as Record<string, unknown>;
+    delete invalidApprovedSpec.approvedBy;
+    delete invalidApprovedSpec.approvedAt;
+    writeYaml(
+      root,
+      "contracts/specs/SPEC-F001-API.yaml",
+      invalidApprovedSpec
+    );
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "spec.approval")).toBe(true);
+  });
+
+  test("check errors when registry spec metadata drifts from the spec contract", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        {
+          id: "SPEC-F001-API",
+          type: "spec",
+          path: "contracts/specs/SPEC-F001-API.yaml",
+          status: "approved",
+          version: "2.0.0",
+          featureId: "F001",
+          relatedTask: "WBS-001-004"
+        }
+      ]
+    });
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code.startsWith("registry.spec."))).toBe(true);
+  });
+
+  test("check errors when a task references a draft spec", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const draftSpec = { ...sampleSpec({ status: "draft" }) } as Record<string, unknown>;
+    writeYaml(
+      root,
+      "contracts/specs/SPEC-F001-API.yaml",
+      draftSpec
+    );
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      contractLock: {
+        wbsNodeId: "node-api"
+      }
+    }) as unknown as Record<string, unknown>);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code.endsWith("spec.status"))).toBe(true);
   });
 
   test("task generate writes a draft contract from a WBS node", () => {

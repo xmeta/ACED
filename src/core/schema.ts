@@ -1,4 +1,4 @@
-import type { Evidence, Issue, Registry, TaskContract, WbsDocument } from "./types.js";
+import type { Evidence, Issue, Registry, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -38,6 +38,46 @@ export function validateRegistry(value: unknown): Issue[] {
 
 export function asRegistry(value: unknown): Registry {
   return value as Registry;
+}
+
+export function validateSpecContract(value: unknown, filePath = "spec"): Issue[] {
+  const issues: Issue[] = [];
+  if (!isObject(value)) return [issue("spec.invalid", `${filePath} must be an object`)];
+
+  for (const key of ["id", "type", "featureId", "title", "status", "version"]) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      issues.push(issue("spec.field", `${filePath}.${key} must be a non-empty string`));
+    }
+  }
+  if (value.type !== "spec-contract") {
+    issues.push(issue("spec.type", `${filePath}.type must be spec-contract`));
+  }
+  if (value.status !== undefined && !["draft", "approved", "superseded"].includes(String(value.status))) {
+    issues.push(issue("spec.status", `${filePath}.status must be draft, approved, or superseded`));
+  }
+  if (!isStringArray(value.acceptanceCriteria)) {
+    issues.push(issue("spec.array", `${filePath}.acceptanceCriteria must be a string array`));
+  }
+  if (value.sourcePaths !== undefined && !isStringArray(value.sourcePaths)) {
+    issues.push(issue("spec.array", `${filePath}.sourcePaths must be a string array when present`));
+  }
+  for (const key of ["summary", "approvedBy", "approvedAt"]) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      issues.push(issue("spec.field", `${filePath}.${key} must be a string when present`));
+    }
+  }
+  if (value.status === "approved") {
+    for (const key of ["approvedBy", "approvedAt"]) {
+      if (typeof value[key] !== "string" || value[key].length === 0) {
+        issues.push(issue("spec.approval", `${filePath}.${key} must be present when status is approved`));
+      }
+    }
+  }
+  return issues;
+}
+
+export function asSpecContract(value: unknown): SpecContract {
+  return value as SpecContract;
 }
 
 export function validateTaskContract(value: unknown, filePath = "task"): Issue[] {

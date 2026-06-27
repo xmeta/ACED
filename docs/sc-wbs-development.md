@@ -12,6 +12,10 @@ AI-Collaborative Spec Contract and WBS Driven Development
 
 この文書は方法論と運用ルールを定義する。CLIの具体的な使い方はルートの `README.md` を参照する。
 
+Spec Contract files live under `contracts/specs/*.yaml`.
+Minimum required fields are `id`, `type: spec-contract`, `featureId`, `title`, `status`, `version`, and `acceptanceCriteria`.
+When `status: approved`, `approvedBy` and `approvedAt` are also required.
+`contracts/registry.yaml` remains the index, but each `type: spec` entry must point to a Spec Contract file whose `id`, `featureId`, `status`, and `version` match the registry metadata.
 ---
 
 ## 1. 基本方針
@@ -63,6 +67,8 @@ SC-WBS固有の契約情報は、WBS-JSONとは分けて以下に置く。
 ```text
 contracts/
   registry.yaml
+  specs/
+    SPEC-001.yaml
   wbs/
     project.wbs.json
   tasks/
@@ -734,6 +740,10 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 
 * `bootstrap`
 * `normal`
+## 18. Spec Contract Files
+
+Spec Contract files live under `contracts/specs/*.yaml`.
+Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

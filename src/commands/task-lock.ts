@@ -1,16 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom, taskPath } from "../core/paths.js";
-import { readRegistry, readTask } from "../core/contracts.js";
+import { readRegistry, readTask, resolveSpecForTask } from "../core/contracts.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { Registry, RegistryContract, TaskContract } from "../core/types.js";
-
-function matchingSpec(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
-  return registry?.contracts.find((contract) => {
-    if (contract.type !== "spec") return false;
-    return contract.relatedTask === task.id || contract.featureId === task.featureId;
-  });
-}
+import type { TaskContract } from "../core/types.js";
 
 export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
   const { task, issues } = readTask(root, taskId);
@@ -19,13 +12,13 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
   }
 
   const { registry } = readRegistry(root);
-  const spec = matchingSpec(registry, task);
+  const { spec, path: specPath } = resolveSpecForTask(root, registry, task);
   return {
     ...task,
     contractLock: {
       wbsRevision: fileSha256(root, defaultWbsPath),
       wbsNodeId: task.wbsNodeId,
-      ...(spec?.version ? { specVersion: spec.version, specRevision: fileSha256(root, spec.path) } : {}),
+      ...(spec?.version && specPath ? { specVersion: spec.version, specRevision: fileSha256(root, specPath) } : {}),
       createdAt: createdAt.toISOString()
     }
   };

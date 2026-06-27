@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import type { Evidence, TaskContract, WbsDocument } from "../src/core/types.js";
+import type { Evidence, SpecContract, TaskContract, WbsDocument } from "../src/core/types.js";
 import { stringifySimpleYaml } from "../src/core/yaml.js";
 
 export function makeTempRepo(): string {
@@ -92,6 +92,23 @@ export function sampleTask(overrides: Partial<TaskContract> = {}): TaskContract 
   };
 }
 
+export function sampleSpec(overrides: Partial<SpecContract> = {}): SpecContract {
+  return {
+    id: "SPEC-F001-API",
+    type: "spec-contract",
+    featureId: "F001",
+    title: "API Implementation",
+    status: "approved",
+    version: "1.0.0",
+    summary: "Spec for the sample API implementation.",
+    sourcePaths: ["src/features/api/index.ts"],
+    acceptanceCriteria: ["API tests pass"],
+    approvedBy: "Product Owner",
+    approvedAt: "2026-06-27T10:00:00+09:00",
+    ...overrides
+  };
+}
+
 export function sampleEvidence(overrides: Partial<Evidence> = {}): Evidence {
   return {
     id: "EVD-001-004",
@@ -108,6 +125,27 @@ export function sampleEvidence(overrides: Partial<Evidence> = {}): Evidence {
 
 export function writeScwbsProject(root: string, status: WbsDocument["nodes"][number]["status"] = "planned"): void {
   writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs(status));
-  writeYaml(root, "contracts/registry.yaml", { projectId: "test-wbs", contracts: [] });
+  const spec = sampleSpec();
+  writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
+  writeYaml(root, "contracts/registry.yaml", {
+    projectId: "test-wbs",
+    contracts: [
+      {
+        id: spec.id,
+        type: "spec",
+        path: "contracts/specs/SPEC-F001-API.yaml",
+        status: spec.status,
+        version: spec.version,
+        featureId: spec.featureId,
+        relatedTask: "WBS-001-004"
+      },
+      {
+        id: "TASK-WBS-001-004",
+        type: "task",
+        path: "contracts/tasks/WBS-001-004.yaml",
+        featureId: "F001"
+      }
+    ]
+  });
   writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask() as unknown as Record<string, unknown>);
 }

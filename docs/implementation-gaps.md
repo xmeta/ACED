@@ -12,6 +12,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - AI Work Packet generation with relation-depth filtering
 - Optional Contract Lock metadata validation
 - Task Contract Lock generation from WBS and Spec content hashes
+- First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
 - Evidence `testQuality` metadata validation
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
@@ -26,8 +27,8 @@ This document tracks the pieces that are intentionally still missing from the cu
 
 | Area | Missing Piece | Why It Matters |
 |---|---|---|
-| Contract freshness | First-class Spec Contract files with `status`, `version`, `approvedBy`, `approvedAt` | Contract Lock can compare registry metadata, but approved Spec Contract artifacts are not yet formalized |
-| Contract locking | Lock refresh policy and commands | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
+| Contract freshness | Lock refresh policy and commands | Approved Spec Contract artifacts now exist, but the CLI does not yet define when stale locks may be refreshed |
+| Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
 | Change control | Spec Change Proposal format and command | Spec gaps still rely on ad hoc human coordination |
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
 | Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
@@ -42,7 +43,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 
 ## Near-Term Follow-Ups
 
-- Add first-class Spec Contract files and schema validation.
 - Define a lock refresh policy for stale Task Contracts.
 - Introduce a lightweight spec-change proposal artifact.
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
