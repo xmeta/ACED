@@ -1,0 +1,30 @@
+id: SCWBS-007
+type: task-contract
+wbsNodeId: node-bootstrap-subtree
+featureId: F-SCWBS-BOOTSTRAP
+allowedPaths:
+  - docs/**
+  - contracts/**
+  - src/**
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Bootstrap-to-normal transition is documented as subtree-scoped
+  - WBS node or subtree metadata can represent bootstrap and normal operation states
+  - AI Work Packet generation respects subtree phase where relevant
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:62714563ddd1e1a3409de66da0f1b82bd7da8d166b6264d9878eb16561f42fa3"
+  wbsNodeId: node-bootstrap-subtree
+  createdAt: "2026-06-27T15:39:36.368Z"

@@ -34,13 +34,21 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
 | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
 | Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
+| Contract authoring | Task Contract draft generation | Review A correctly notes that manual contract authoring can dominate small Lean tasks |
+| WBS collaboration | Distributed WBS or semantic merge support | Review A correctly notes that one canonical JSON file can become a merge hotspot |
+| Safety | Implicit Human Gate for sensitive meta/config files | Review A correctly notes that config changes can be used to bypass path guardrails |
+| Bootstrap | Subtree-scoped bootstrap transition | Review A correctly notes that large projects may mix bootstrap and normal operation by feature |
 
 ## Near-Term Follow-Ups
 
 - Add first-class Spec Contract files and schema validation.
 - Define a lock refresh policy for stale Task Contracts.
 - Introduce a lightweight spec-change proposal artifact.
-- Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata.
+- Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
+- Add `task generate --node <node-id>` to reduce Lean workflow contract-authoring overhead.
+- Add meta-file safety defaults for package, TypeScript, test runner, CI, and git ignore changes.
+- Document subtree-scoped Bootstrap transition and represent phase on WBS nodes or extensions.
+- Define a low-cost WBS conflict mitigation path before full distributed WBS support.
 - Add a provenance-aware evidence verifier.
 - Wire the current checks into CI once the contract model stabilizes.

@@ -83,6 +83,70 @@
         "scwbs check and health run in CI.",
         "CI evidence can be referenced from Evidence files."
       ]
+    },
+    {
+      "id": "node-task-generate",
+      "parentId": "node-project",
+      "code": "1.5",
+      "name": "Task Contract draft generation",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-task-generate"
+      ],
+      "acceptanceCriteria": [
+        "A CLI command can generate a draft Task Contract from a WBS node.",
+        "The generated contract keeps human review and locking as explicit steps.",
+        "Lean workflows can reduce manual contract authoring overhead."
+      ]
+    },
+    {
+      "id": "node-wbs-merge",
+      "parentId": "node-project",
+      "code": "1.6",
+      "name": "WBS conflict mitigation",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-wbs-merge"
+      ],
+      "acceptanceCriteria": [
+        "WBS merge and distributed WBS options are documented.",
+        "A low-cost semantic merge roadmap exists before large distributed WBS support.",
+        "Parallel agent workflows have a clear WBS conflict mitigation path."
+      ]
+    },
+    {
+      "id": "node-meta-file-safety",
+      "parentId": "node-project",
+      "code": "1.7",
+      "name": "Meta-file safety guardrails",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-meta-file-safety"
+      ],
+      "acceptanceCriteria": [
+        "Sensitive config and meta files are Human Gate required unless explicitly allowed.",
+        "check-diff prevents AI from evading path controls through project configuration changes.",
+        "Documentation treats meta-file changes as Level 2 by default."
+      ]
+    },
+    {
+      "id": "node-bootstrap-subtree",
+      "parentId": "node-project",
+      "code": "1.8",
+      "name": "Subtree-scoped bootstrap transition",
+      "type": "workPackage",
+      "status": "planned",
+      "outputs": [
+        "artifact-bootstrap-subtree"
+      ],
+      "acceptanceCriteria": [
+        "Bootstrap and normal operation can coexist across WBS subtrees.",
+        "Transition criteria are defined per feature or milestone node.",
+        "AI Work Packet behavior can account for subtree phase."
+      ]
     }
   ],
   "relations": [
@@ -103,6 +167,30 @@
       "type": "dependsOn",
       "source": "node-ci-integration",
       "target": "node-test-quality"
+    },
+    {
+      "id": "rel-task-generate-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-task-generate",
+      "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-wbs-merge-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-wbs-merge",
+      "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-meta-safety-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-meta-file-safety",
+      "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-bootstrap-subtree-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-bootstrap-subtree",
+      "target": "node-dogfood-contracts"
     }
   ],
   "resources": [
@@ -147,6 +235,30 @@
       "name": "Test quality verification",
       "type": "sourceCode",
       "uri": "src/"
+    },
+    {
+      "id": "artifact-task-generate",
+      "name": "Task Contract draft generation",
+      "type": "sourceCode",
+      "uri": "src/"
+    },
+    {
+      "id": "artifact-wbs-merge",
+      "name": "WBS conflict mitigation design",
+      "type": "document",
+      "uri": "docs/implementation-gaps.md"
+    },
+    {
+      "id": "artifact-meta-file-safety",
+      "name": "Meta-file safety rules",
+      "type": "sourceCode",
+      "uri": "src/"
+    },
+    {
+      "id": "artifact-bootstrap-subtree",
+      "name": "Subtree bootstrap transition rules",
+      "type": "document",
+      "uri": "docs/sc-wbs-development.md"
     }
   ],
   "metadata": {

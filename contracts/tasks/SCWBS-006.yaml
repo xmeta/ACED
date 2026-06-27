@@ -1,0 +1,34 @@
+id: SCWBS-006
+type: task-contract
+wbsNodeId: node-meta-file-safety
+featureId: F-SCWBS-SAFETY
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .gitignore
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - check-diff treats sensitive meta/config files as Human Gate required unless explicitly allowed
+  - safety rule covers package, tsconfig, test runner, CI, and git ignore files
+  - documentation describes meta-file changes as Level 2 by default
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:62714563ddd1e1a3409de66da0f1b82bd7da8d166b6264d9878eb16561f42fa3"
+  wbsNodeId: node-meta-file-safety
+  createdAt: "2026-06-27T15:39:32.823Z"

@@ -1,7 +1,7 @@
-id: SCWBS-002
+id: SCWBS-004
 type: task-contract
-wbsNodeId: node-spec-contracts
-featureId: F-SCWBS-SPEC
+wbsNodeId: node-task-generate
+featureId: F-SCWBS-TASK-GENERATE
 allowedPaths:
   - src/**
   - tests/**
@@ -17,14 +17,14 @@ requiredChecks:
   - typecheck
   - build
 doneCriteria:
-  - First-class Spec Contract file format is defined
-  - Spec Contract validation is implemented
-  - Registry and Contract Lock checks use Spec Contract metadata
+  - task generate command creates a draft Task Contract from a WBS node
+  - generated draft includes allowedPaths, requiredChecks, doneCriteria, and evidenceRequired placeholders
+  - generated draft can be reviewed and locked by a human
 evidenceRequired:
   - test-result
   - typecheck-result
   - build-result
 contractLock:
   wbsRevision: "sha256:62714563ddd1e1a3409de66da0f1b82bd7da8d166b6264d9878eb16561f42fa3"
-  wbsNodeId: node-spec-contracts
-  createdAt: "2026-06-27T15:39:16.212Z"
+  wbsNodeId: node-task-generate
+  createdAt: "2026-06-27T15:39:24.062Z"
