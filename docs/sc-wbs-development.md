@@ -272,9 +272,19 @@ evidenceRequired:
   - test-result
   - typecheck-result
   - lint-result
+contractLock:
+  wbsRevision: abc1234
+  wbsNodeId: node-api-implementation
+  specVersion: 1.2.0
+  specRevision: def5678
+  createdAt: 2026-06-27T10:00:00+09:00
 ```
 
 `wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
+Task Contractは、生成時点のWBS revisionとSpec versionを `contractLock` として記録する。
+AI Work Packet生成時および `scwbs check` では、`contractLock` と現在のWBS-JSON、Spec Contractの鮮度を比較する。
+WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
+staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 
@@ -297,7 +307,7 @@ Task Contractの推奨粒度は以下である。
 AIに実装を依頼するときは、長い文書一式をそのまま読ませるのではなく、`scwbs` でAI Work Packetを生成する。
 
 ```bash
-npm run scwbs -- ai packet --task WBS-001-004
+npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
 ```
 
 AI Work Packetには以下を含める。
@@ -314,6 +324,12 @@ AI Work Packetには以下を含める。
 * Stop Conditions
 
 AIはWork Packetを作業時の優先コンテキストとして扱う。
+AI Work Packetは、対象Task Contractを最優先コンテキストとし、関連情報は作業判断に必要な範囲へ絞る。
+既定では、relationsの展開範囲は対象WBS nodeからdepth=1までとする。
+depth=1には、親node、直接の子node、直接dependsOn、直接blocks、同一親配下の直近の兄弟nodeを含める。
+depth=2以上の展開は、Task ContractまたはCLI引数で明示された場合のみ許可する。
+Work Packetが大きくなる場合、`scwbs` は本文全体を含めるのではなく、要約、artifact参照、または該当箇所へのパスを優先する。
+AIが追加コンテキストを必要と判断した場合は、実装前に不足コンテキストを明示して要求する。
 
 Stop Conditionsに該当する場合、AIは実装せずに停止する。
 
@@ -340,6 +356,7 @@ npm run scwbs -- check
 * WBS-JSONが不正
 * registryの参照先が存在しない
 * Task Contractの `wbsNodeId` がWBS nodeに存在しない
+* Task Contractの `contractLock` が現在のWBS revisionまたはSpec versionと整合していない
 * WBS nodeの `outputs` が存在しないartifactを指している
 * Done相当nodeにEvidenceがない
 * EvidenceにrequiredChecksがない
@@ -375,6 +392,10 @@ npm run scwbs -- health
 * Human Gate対象のEvidenceに承認記録がない
 * registry上のRequirement ContractやSpec Contractにstatusがない
 * Spec Contractにversion相当の情報がない
+* Task Contractに `contractLock` がない
+* テストファイルの差分で、assertion、expect、snapshot、fixture検証などの検証要素が確認できない
+* 既存テストがskip化、コメントアウト、または削除されているが、Evidenceまたは承認記録に理由がない
+* coverage summaryが存在する場合に、対象範囲のカバレッジが低下している
 
 ---
 
@@ -404,6 +425,12 @@ checks:
     status: passed
   - name: lint
     status: passed
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - staff search APIの正常系と権限エラー系を検証
 notes:
   - DBスキーマ変更なし
   - 認証処理変更なし
@@ -435,6 +462,10 @@ checks:
     command: npm run typecheck
     executedAt: 2026-06-27T10:00:00+09:00
     verifiedBy: human
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
 ```
 
 Standard ProfileではLevel AまたはLevel Bを推奨する。Strict ProfileではLevel Aを必須とする。
@@ -470,6 +501,12 @@ contracts/approvals/
 ```
 
 Human Gateが必要な変更をAIが検出した場合、AIは実装せず、承認要求を作成する。
+Human Gateが必要なため実装を停止する場合、AIは対象WBS nodeをblockedへ移行するchange setを提案し、承認要求を作成する。
+AIは承認待ちのタスクを勝手に進めてはならない。
+
+```bash
+npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
+```
 
 ---
 
@@ -558,6 +595,9 @@ Doneは、コードが動いたことではない。
 * `allowedPaths` 外の変更がない
 * `forbiddenPaths` への変更がない
 * 必要なテストが通っている
+* テストコードを変更した場合、検証意図を持つassertion、expect、snapshot、fixture検証、または同等の確認が含まれている
+* 既存テストを削除、skip化、コメントアウト、弱体化していない。ただし、仕様変更に伴う削除はHuman GateまたはReviewで理由が承認されている
+* テストカバレッジを採用しているプロジェクトでは、対象範囲のカバレッジが低下していない
 * 型チェックが通っている
 * ビルドが通っている
 * Evidenceが記録されている
@@ -599,6 +639,20 @@ WBS-JSONの標準状態で表現できないSC-WBS固有状態は、必要に応
 | blocked → planned | HumanまたはPM Agent |
 
 AIはEvidenceと必要なレビューが揃っていないnodeをcompletedにしてはならない。
+AIがStop Conditionを検出した場合、対象nodeをblockedにする変更を提案できる。
+blocked化は、実装継続ではなく、承認待ち、情報不足、契約不足を明示するための状態変更である。
+
+別タスクへ切り替えるには、以下のいずれかを満たす必要がある。
+
+* 人間またはPM Agentが次のTask Contractを明示的に割り当てる
+* Task Queueに優先順位付きで割り当て済みのTask Contractが存在する
+* `scwbs ai next-task` が、planned状態でHuman Gate対象パスを持たない候補を提示する
+
+AIは候補タスクを提示できるが、プロジェクトの優先順位を最終決定してはならない。
+
+```bash
+npm run scwbs -- ai next-task
+```
 
 ---
 
@@ -639,6 +693,5 @@ Human Gateで責任ある判断を制御する。
 次段階の正式候補は以下である。
 
 * Spec Contractに `status`、`version`、`approvedBy`、`approvedAt` を持たせる
-* Task Contract生成時点のWBS revisionとSpec versionをContract Lockとして固定する
 * Spec Change Proposalの形式を定義する
 * Strict Profile向けにRisk Registerの形式を定義する

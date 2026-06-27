@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
+import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
 import { runAiPacket } from "./commands/ai-packet.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
@@ -14,7 +15,9 @@ function usage(): void {
   scwbs check
   scwbs health
   scwbs check-diff --task <task-id>
-  scwbs ai packet --task <task-id>
+  scwbs ai packet --task <task-id> [--relation-depth <n>]
+  scwbs ai block --task <task-id> --reason <reason>
+  scwbs ai next-task
   scwbs status
   scwbs wbs validate
   scwbs wbs apply <change-set.json> [--force] [--output <file>]
@@ -24,6 +27,13 @@ function usage(): void {
 function valueAfter(args: string[], flag: string): string | undefined {
   const index = args.indexOf(flag);
   return index >= 0 ? args[index + 1] : undefined;
+}
+
+function numberAfter(args: string[], flag: string, fallback: number): number {
+  const value = valueAfter(args, flag);
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
@@ -52,8 +62,22 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runAiPacket(root, taskId);
+    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1));
   }
+  if (command === "ai" && subcommand === "block") {
+    const taskId = valueAfter(argv, "--task");
+    const reason = valueAfter(argv, "--reason");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    if (!reason) {
+      console.error("Missing --reason <reason>");
+      return 2;
+    }
+    return runAiBlock(root, taskId, reason);
+  }
+  if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
   if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
   if (command === "wbs" && subcommand === "apply") {
     if (!third) {

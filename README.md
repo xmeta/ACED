@@ -63,7 +63,9 @@ npm run scwbs -- init
 npm run scwbs -- check
 npm run scwbs -- health
 npm run scwbs -- check-diff --task WBS-001-004
-npm run scwbs -- ai packet --task WBS-001-004
+npm run scwbs -- ai packet --task WBS-001-004 --relation-depth 1
+npm run scwbs -- ai block --task WBS-001-004 --reason "Human Gate required"
+npm run scwbs -- ai next-task
 npm run scwbs -- status
 npm run scwbs -- wbs validate
 npm run scwbs -- wbs apply change-set.json
@@ -101,8 +103,11 @@ Implemented in v0.1:
 - Task Contract and Evidence validation
 - Done-task Evidence checks
 - Document health checks for Evidence trust and contract freshness
+- Optional Contract Lock checks for stale WBS revisions, WBS node IDs, and Spec versions
+- Test quality health checks through Evidence `testQuality`
 - Git diff checks against `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`
-- AI Work Packet generation
+- AI Work Packet generation with relation-depth filtering
+- AI blocked-task change-set generation and next-task candidate listing
 - WBS status summary
 - WJS semantic operation apply wrapper
 
@@ -113,7 +118,7 @@ Not included yet:
 - GitHub Actions integration
 - Pull request comments
 - Markdown auto-generation
-- Contract locking, spec version metadata, and spec change proposals
+- Spec change proposals
 - Provenance-aware Evidence verification
 - Independent review automation
 

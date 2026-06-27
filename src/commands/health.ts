@@ -62,6 +62,39 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     }
   }
 
+  const changedTests = evidence.changedFiles.some((file) => /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/.test(file));
+  if (changedTests) {
+    if (!evidence.testQuality) {
+      issues.push({
+        severity: "warn",
+        code: "health.evidence.testQuality.missing",
+        message: `${task.id} changes tests but evidence has no testQuality metadata`
+      });
+    } else {
+      if (evidence.testQuality.assertionsAdded === false) {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQuality.assertions",
+          message: `${task.id} changes tests without recorded verification assertions`
+        });
+      }
+      if (evidence.testQuality.testsDisabled === true) {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQuality.disabled",
+          message: `${task.id} evidence reports disabled or weakened tests`
+        });
+      }
+      if (evidence.testQuality.coverageDecreased === true) {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQuality.coverage",
+          message: `${task.id} evidence reports decreased coverage`
+        });
+      }
+    }
+  }
+
   return issues;
 }
 
@@ -101,6 +134,10 @@ export function collectHealthIssues(root: string): Issue[] {
   for (const entry of listTasks(root)) {
     issues.push(...entry.issues);
     if (!wbs || !entry.task) continue;
+
+    if (!entry.task.contractLock) {
+      issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${entry.task.id} has no contractLock` });
+    }
 
     const { evidence, issues: evidenceIssues } = readEvidence(root, entry.task.id);
     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";

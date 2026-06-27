@@ -57,6 +57,17 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
       issues.push(issue("task.array", `${filePath}.${key} must be a string array`));
     }
   }
+  if (value.contractLock !== undefined) {
+    if (!isObject(value.contractLock)) {
+      issues.push(issue("task.contractLock", `${filePath}.contractLock must be an object when present`));
+    } else {
+      for (const key of ["wbsRevision", "wbsNodeId", "specVersion", "specRevision", "createdAt"]) {
+        if (value.contractLock[key] !== undefined && typeof value.contractLock[key] !== "string") {
+          issues.push(issue("task.contractLock", `${filePath}.contractLock.${key} must be a string when present`));
+        }
+      }
+    }
+  }
   return issues;
 }
 
@@ -92,6 +103,20 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
         }
       }
     });
+  }
+  if (value.testQuality !== undefined) {
+    if (!isObject(value.testQuality)) {
+      issues.push(issue("evidence.testQuality", `${filePath}.testQuality must be an object when present`));
+    } else {
+      for (const key of ["assertionsAdded", "testsDisabled", "coverageDecreased"]) {
+        if (value.testQuality[key] !== undefined && typeof value.testQuality[key] !== "boolean") {
+          issues.push(issue("evidence.testQuality", `${filePath}.testQuality.${key} must be a boolean when present`));
+        }
+      }
+      if (value.testQuality.notes !== undefined && !isStringArray(value.testQuality.notes)) {
+        issues.push(issue("evidence.testQuality", `${filePath}.testQuality.notes must be a string array when present`));
+      }
+    }
   }
   return issues;
 }

@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
 import { collectDiffIssues } from "../src/commands/check-diff.js";
+import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { buildStatus } from "../src/commands/status.js";
@@ -65,6 +66,49 @@ describe("scwbs MVP", () => {
     expect(packet).toContain("Stop Conditions");
     expect(packet).toContain("仕様変更レベル判断に迷う場合はLevel 2");
     expect(packet).toContain("Human Gate対象変更はLevel 0またはLevel 1に見えても停止する");
+  });
+
+  test("ai packet reports relation depth filtering", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const packet = buildAiPacket(root, "WBS-001-004", 0);
+    expect(packet).toContain("Relation depth: 0");
+    expect(packet).toContain("Included WBS nodes: 1");
+  });
+
+  test("ai block emits a change set for the task node", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const changeSet = JSON.parse(buildBlockChangeSet(root, "WBS-001-004", "Human review needed"));
+    expect(changeSet.schemaVersion).toBe("0.1.0");
+    expect(changeSet.targetWbsId).toBe("test-wbs");
+    expect(changeSet.changeSetId).toBe("changeset-block-WBS-001-004");
+    expect(changeSet.author).toBe("ai-agent");
+    expect(changeSet.reason).toBe("Human review needed");
+    expect(changeSet.dryRun).toBe(true);
+    expect(changeSet.operations).toEqual([
+      {
+        operationId: "op-001",
+        operation: "changeNodeStatus",
+        nodeId: "node-api",
+        status: "blocked"
+      }
+    ]);
+  });
+
+  test("ai next-task lists planned tasks without human gate paths", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-005.yaml",
+      sampleTask({
+        id: "WBS-001-005",
+        wbsNodeId: "node-root",
+        humanGateRequiredPaths: []
+      }) as unknown as Record<string, unknown>
+    );
+    expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-005 | Root | 1\n");
   });
 
   test("health warns when evidence has only low-trust checks", () => {
@@ -128,6 +172,64 @@ describe("scwbs MVP", () => {
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.commit.missing")).toBe(true);
     expect(runHealth(root)).toBe(0);
+  });
+
+  test("health warns when task contract has no contract lock", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.task.contractLock.missing")).toBe(true);
+  });
+
+  test("check errors when contract lock wbs node id is stale", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        contractLock: {
+          wbsNodeId: "node-old"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "task.contractLock.wbsNodeId")).toBe(true);
+  });
+
+  test("health warns when changed test files lack test quality metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["tests/features/api/api.test.ts"]
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.missing")).toBe(true);
+  });
+
+  test("evidence test quality notes are accepted", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["tests/features/api/api.test.ts"],
+        testQuality: {
+          assertionsAdded: true,
+          testsDisabled: false,
+          coverageDecreased: false,
+          notes: ["API success case asserts response body"]
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "evidence.testQuality")).toBe(false);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.missing")).toBe(false);
   });
 
   test("status summarizes WBS node status", () => {

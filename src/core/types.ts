@@ -28,6 +28,13 @@ export type TaskContract = {
   type: "task-contract";
   wbsNodeId: string;
   featureId: string;
+  contractLock?: {
+    wbsRevision?: string;
+    wbsNodeId?: string;
+    specVersion?: string;
+    specRevision?: string;
+    createdAt?: string;
+  };
   allowedPaths: string[];
   forbiddenPaths: string[];
   humanGateRequiredPaths: string[];
@@ -55,6 +62,12 @@ export type Evidence = {
     executedAt?: string;
     verifiedBy?: string;
   }>;
+  testQuality?: {
+    assertionsAdded?: boolean;
+    testsDisabled?: boolean;
+    coverageDecreased?: boolean;
+    notes?: string[];
+  };
   notes?: string[];
 };
 
