@@ -1,0 +1,29 @@
+id: EVD-SCWBS-005
+type: evidence
+taskId: SCWBS-005
+changedFiles:
+  - docs/wbs-conflict-mitigation.md
+  - docs/implementation-gaps.md
+  - contracts/wbs/project.wbs.json
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: 2026-06-28T00:00:00+09:00
+    verifiedBy: codex
+notes:
+  - Documented semantic change-set workflow before distributed WBS support.
+  - No source code changes.
