@@ -59,6 +59,37 @@ describe("scwbs MVP", () => {
     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
   });
 
+  test("check-diff flags sensitive meta files unless they are explicitly allowed", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({
+      allowedPaths: ["src/**", "docs/**"],
+      humanGateRequiredPaths: []
+    });
+    const issues = collectDiffIssues(root, task, ["package.json"]);
+    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(true);
+  });
+
+  test("check-diff does not flag explicitly allowed sensitive meta files", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({
+      allowedPaths: ["src/**", "docs/**", "package.json"],
+      humanGateRequiredPaths: []
+    });
+    const issues = collectDiffIssues(root, task, ["package.json"]);
+    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff warns on human-gated sensitive meta files without adding a meta-file error", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({
+      allowedPaths: [],
+      humanGateRequiredPaths: ["tsconfig.json"]
+    });
+    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
+    expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
   test("ai packet includes WBS node, task contract, and stop conditions", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

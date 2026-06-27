@@ -389,8 +389,22 @@ npm run scwbs -- check-diff --task WBS-001-004
 | `allowedPaths` 外の変更 | Error |
 | `forbiddenPaths` への変更 | Error |
 | `humanGateRequiredPaths` への変更 | WarningまたはHuman Gate要求 |
+| 明示許可されていないメタファイル変更 | Error |
 
 CIでは、Errorがある場合にPRを通してはならない。
+
+メタファイルは、AIがpath制約や検証環境を迂回するために変更できるため、既定で強い制約を受ける。
+代表例は以下である。
+
+* `package.json`
+* `package-lock.json`
+* `tsconfig.json`
+* `vitest.config.ts`
+* `.gitignore`
+* `.github/**`
+
+これらを変更するTask Contractは、対象ファイルを `allowedPaths` または `humanGateRequiredPaths` に明示しなければならない。
+明示されていない場合、`scwbs check-diff` はErrorとして扱う。
 
 `scwbs health` は、契約ファイルと実装のdriftを検出する。
 
