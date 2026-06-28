@@ -1,0 +1,33 @@
+id: SCWBS-018
+type: task-contract
+wbsNodeId: node-lightweight-lite-promote
+featureId: F-SCWBS-LIGHTWEIGHT-LITE
+branchName: task/SCWBS-018-lite-promote-commands
+allowedPaths:
+  - src/commands/lite.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - lite task creates a small Task Contract
+  - promote creates formalization artifacts and flags stop conditions
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-lite-promote
+  createdAt: "2026-06-28T06:16:12.363Z"

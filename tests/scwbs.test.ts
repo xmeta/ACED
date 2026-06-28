@@ -4,11 +4,17 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
-import { collectDiffIssues } from "../src/commands/check-diff.js";
+import { collectBranchIssues, collectDiffIssues } from "../src/commands/check-diff.js";
+import { buildDoctorReport } from "../src/commands/doctor.js";
+import { buildStartArtifacts } from "../src/commands/start.js";
 import { buildReviewQueue } from "../src/commands/review-queue.js";
 import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
+import { readProfile, runProfileSet } from "../src/commands/profile.js";
+import { buildTaskRefreshPreview, runTaskRefresh } from "../src/commands/task-refresh.js";
+import { buildReviewRequestYaml, runReviewRequest } from "../src/commands/review-request.js";
+import { buildTrace } from "../src/commands/trace.js";
 import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
 import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
@@ -75,6 +81,12 @@ describe("scwbs MVP", () => {
     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
   });
 
+  test("check-diff flags current branch mismatches", () => {
+    const task = sampleTask({ branchName: "task/WBS-001-004-api-implementation" });
+    expect(collectBranchIssues(task, "task/WBS-001-004-api-implementation")).toEqual([]);
+    expect(collectBranchIssues(task, "task/OTHER").some((issue) => issue.code === "diff.branchName")).toBe(true);
+  });
+
   test("check-diff flags sensitive meta files unless they are explicitly allowed", () => {
     const root = makeTempRepo();
     const task = sampleTask({
@@ -104,6 +116,31 @@ describe("scwbs MVP", () => {
     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
     expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(true);
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ allowedPaths: ["contracts/**"] });
+    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]).some((issue) => issue.code === "diff.wbsOperations")).toBe(true);
+    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json", "contracts/changesets/change.json"]).some((issue) => issue.code === "diff.wbsOperations")).toBe(false);
+  });
+
+  test("check-diff validates WBS operation change sets with WJS validate", () => {
+    const root = makeTempRepo();
+    writeText(root, "wjs/tools/validate.ts", "if (process.argv.includes('--operations')) process.exit(1);");
+    const task = sampleTask({ allowedPaths: ["contracts/**"] });
+    const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
+    expect(issues.some((issue) => issue.code.startsWith("diff.wbsOperations."))).toBe(true);
+  });
+
+  test("start emits schema-shaped WBS addNode operations", () => {
+    const artifacts = buildStartArtifacts("Add reporting");
+    const changeSetPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/changesets/start-"));
+    expect(changeSetPath).toBeTruthy();
+    const changeSet = JSON.parse(artifacts[changeSetPath!]);
+    expect(changeSet.targetWbsId).toBe("scwbs");
+    expect(changeSet.operations[0].operation).toBe("addNode");
+    expect(changeSet.operations[0].node.parentId).toBe("node-project");
   });
 
   test("ai packet includes WBS node, task contract, and stop conditions", () => {
@@ -169,6 +206,15 @@ describe("scwbs MVP", () => {
     const packet = buildAiPacket(root, "WBS-001-004", 0);
     expect(packet).toContain("Relation depth: 0");
     expect(packet).toContain("Included WBS nodes: 1");
+  });
+
+  test("ai packet supports compact agent formats without breaking default content", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const packet = buildAiPacket(root, "WBS-001-004", 1, "codex");
+    expect(packet).toContain("# AI Work Packet (codex)");
+    expect(packet).toContain("## Agent Notes");
+    expect(packet).toContain("Allowed Paths");
   });
 
   test("ai block emits a change set for the task node", () => {
@@ -375,6 +421,16 @@ describe("scwbs MVP", () => {
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
   });
 
+  test("task refresh previews lock changes and apply writes safe lock fields", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const preview = buildTaskRefreshPreview(root, "WBS-001-004");
+    expect(preview).toContain("Task Contract refresh preview");
+    expect(preview).toContain("Safe updates");
+    expect(runTaskRefresh(root, "WBS-001-004", { apply: true })).toBe(0);
+    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+  });
+
   test("check errors when a locked spec contract becomes stale", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -555,6 +611,38 @@ describe("scwbs MVP", () => {
     expect(main(["approval", "request", "--task", "WBS-001-004", "--note=Awaiting human review"], root)).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("  - Awaiting human review");
+  });
+
+  test("doctor reports suggested fixes for stale contracts", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      contractLock: {
+        wbsRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        wbsNodeId: "node-api"
+      }
+    }) as unknown as Record<string, unknown>);
+    const report = buildDoctorReport(root);
+    expect(report).toContain("task.contractLock.wbsRevision");
+    expect(report).toContain("scwbs task refresh --task <task-id>");
+  });
+
+  test("profile set updates the WBS profile", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(readProfile(root)).toBe("Standard");
+    expect(runProfileSet(root, "lean")).toBe(0);
+    expect(readProfile(root)).toBe("Lean");
+  });
+
+  test("review request writes a review record and trace shows missing links", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(buildReviewRequestYaml("WBS-001-004", { pullRequest: "#42" })).toContain("type: review");
+    expect(runReviewRequest(root, "WBS-001-004", { pullRequest: "#42", force: false })).toBe(0);
+    const trace = buildTrace(root, "WBS-001-004");
+    expect(trace).toContain("Review: RVW-WBS-001-004 requested");
+    expect(trace).toContain("Evidence: missing");
   });
 
   test("health warns when changed test files lack test quality metadata", () => {

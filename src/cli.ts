@@ -2,29 +2,58 @@
 import { pathToFileURL } from "node:url";
 import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
 import { runAiPacket } from "./commands/ai-packet.js";
+import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
+import { runDoctor } from "./commands/doctor.js";
+import { runEvidenceCollect } from "./commands/evidence-collect.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
+import { runLiteTask, runPromote } from "./commands/lite.js";
+import { runNext } from "./commands/next.js";
+import { runPlan } from "./commands/plan.js";
+import { runProfileSet, runProfileShow } from "./commands/profile.js";
+import { runRegistryRebuild } from "./commands/registry-rebuild.js";
+import { runReviewRequest } from "./commands/review-request.js";
 import { runReviewQueue } from "./commands/review-queue.js";
+import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
 import { runTaskGenerate } from "./commands/task-generate.js";
 import { runTaskLock } from "./commands/task-lock.js";
+import { runTaskRefresh } from "./commands/task-refresh.js";
+import { runTrace } from "./commands/trace.js";
+import { runServe, runUi } from "./commands/ui.js";
 import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
 
 function usage(): void {
   console.log(`Usage:
   scwbs init
   scwbs check
+  scwbs doctor
   scwbs health
   scwbs check-diff --task <task-id>
   scwbs ai packet --task <task-id> [--relation-depth <n>]
+  scwbs ai run --task <task-id> [--agent codex]
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
+  scwbs evidence collect --task <task-id> [--force]
+  scwbs registry rebuild [--check] [--force]
+  scwbs profile show
+  scwbs profile set <lean|standard|strict>
+  scwbs review request --task <task-id> [--pull-request <id>] [--force]
+  scwbs next
+  scwbs start <goal>
+  scwbs plan --spec <spec-id>
+  scwbs lite task <title>
+  scwbs promote --task <task-id>
+  scwbs trace --task <task-id>
+  scwbs ui
+  scwbs serve
   scwbs task generate --node <node-id> --task <task-id> [--force]
   scwbs task lock --task <task-id>
+  scwbs task refresh --task <task-id> [--apply]
   scwbs status
   scwbs review-queue
   scwbs wbs validate
@@ -70,9 +99,45 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   if (command === "init") return runInit(root);
   if (command === "check") return runCheck(root);
+  if (command === "doctor") return runDoctor(root);
   if (command === "health") return runHealth(root);
   if (command === "status") return runStatus(root);
   if (command === "review-queue") return runReviewQueue(root);
+  if (command === "next") return runNext(root);
+  if (command === "ui") return runUi(root);
+  if (command === "serve") return runServe();
+  if (command === "start") {
+    const goal = argv.slice(1).join(" ").trim();
+    if (!goal) {
+      console.error("Missing goal text");
+      return 2;
+    }
+    return runStart(root, goal);
+  }
+  if (command === "plan") {
+    const specId = valueAfter(argv, "--spec");
+    if (!specId) {
+      console.error("Missing --spec <spec-id>");
+      return 2;
+    }
+    return runPlan(root, specId);
+  }
+  if (command === "promote") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runPromote(root, taskId);
+  }
+  if (command === "trace") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runTrace(root, taskId);
+  }
   if (command === "check-diff") {
     const taskId = valueAfter(argv, "--task");
     if (!taskId) {
@@ -87,7 +152,20 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1));
+    const format = valueAfter(argv, "--format") ?? "default";
+    if (!["default", "compact", "codex", "claude", "cursor"].includes(format)) {
+      console.error("Invalid --format");
+      return 2;
+    }
+    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1), format as "default" | "compact" | "codex" | "claude" | "cursor");
+  }
+  if (command === "ai" && subcommand === "run") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runAiRun(root, taskId, valueAfter(argv, "--agent"));
   }
   if (command === "ai" && subcommand === "block") {
     const taskId = valueAfter(argv, "--task");
@@ -115,6 +193,44 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       force: argv.includes("--force")
     });
   }
+  if (command === "evidence" && subcommand === "collect") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runEvidenceCollect(root, taskId, { force: argv.includes("--force") });
+  }
+  if (command === "registry" && subcommand === "rebuild") {
+    return runRegistryRebuild(root, { check: argv.includes("--check"), force: argv.includes("--force") });
+  }
+  if (command === "profile" && subcommand === "show") return runProfileShow(root);
+  if (command === "profile" && subcommand === "set") {
+    if (!third) {
+      console.error("Missing profile");
+      return 2;
+    }
+    return runProfileSet(root, third);
+  }
+  if (command === "review" && subcommand === "request") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runReviewRequest(root, taskId, {
+      pullRequest: valueAfter(argv, "--pull-request"),
+      force: argv.includes("--force")
+    });
+  }
+  if (command === "lite" && subcommand === "task") {
+    const title = argv.slice(2).join(" ").trim();
+    if (!title) {
+      console.error("Missing lite task title");
+      return 2;
+    }
+    return runLiteTask(root, title);
+  }
   if (command === "task" && subcommand === "generate") {
     const nodeId = valueAfter(argv, "--node");
     const taskId = valueAfter(argv, "--task");
@@ -135,6 +251,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       return 2;
     }
     return runTaskLock(root, taskId);
+  }
+  if (command === "task" && subcommand === "refresh") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runTaskRefresh(root, taskId, { apply: argv.includes("--apply") });
   }
   if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
   if (command === "wbs" && subcommand === "apply") {

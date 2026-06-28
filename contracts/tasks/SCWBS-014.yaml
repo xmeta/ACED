@@ -1,0 +1,37 @@
+id: SCWBS-014
+type: task-contract
+wbsNodeId: node-lightweight-review-request
+featureId: F-SCWBS-LIGHTWEIGHT-REVIEW
+branchName: task/SCWBS-014-review-request-command
+allowedPaths:
+  - src/commands/review-request.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - review request creates Review records
+  - Review records validate through schema helpers
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-review-request
+  createdAt: "2026-06-28T06:15:52.098Z"

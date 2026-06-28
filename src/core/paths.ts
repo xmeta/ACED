@@ -6,6 +6,7 @@ export const defaultSpecsDir = "contracts/specs";
 export const defaultTasksDir = "contracts/tasks";
 export const defaultEvidenceDir = "contracts/evidence";
 export const defaultApprovalsDir = "contracts/approvals";
+export const defaultReviewsDir = "contracts/reviews";
 
 export function resolveFrom(root: string, relativePath: string): string {
   return path.resolve(root, relativePath);
@@ -25,4 +26,8 @@ export function evidencePath(taskId: string): string {
 
 export function approvalPath(taskId: string): string {
   return `${defaultApprovalsDir}/${taskId}.yaml`;
+}
+
+export function reviewPath(taskId: string): string {
+  return `${defaultReviewsDir}/${taskId}.yaml`;
 }

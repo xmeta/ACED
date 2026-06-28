@@ -1,6 +1,6 @@
 import { readTask } from "../core/contracts.js";
 import { findNode, readWbs } from "../core/wbs.js";
-import type { WbsDocument, WbsNode } from "../core/types.js";
+import type { AiPacketFormat, WbsDocument, WbsNode } from "../core/types.js";
 
 function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): Set<string> {
   const selected = new Set<string>([node.id]);
@@ -40,7 +40,7 @@ function subtreePhase(wbs: WbsDocument, node: WbsNode): "bootstrap" | "normal" |
   return "unspecified";
 }
 
-export function buildAiPacket(root: string, taskId: string, relationDepth = 1): string {
+export function buildAiPacket(root: string, taskId: string, relationDepth = 1, format: AiPacketFormat = "default"): string {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
@@ -58,7 +58,18 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1): 
     .map((artifactId) => (wbs.artifacts ?? []).find((artifact) => artifact.id === artifactId))
     .filter((artifact) => artifact !== undefined);
 
-  return `# AI Work Packet
+  const header = format === "default" ? "# AI Work Packet" : `# AI Work Packet (${format})`;
+  const formatHint = format === "codex"
+    ? "\n## Agent Notes\n- Run the validation commands exactly.\n- Keep edits inside Allowed Paths.\n"
+    : format === "compact"
+      ? "\n## Agent Notes\n- Compact packet: prioritize Task, Scope, Paths, Checks, Stop Conditions.\n"
+      : format === "claude"
+        ? "\n## Agent Notes\n- Include reasoning in the review summary and preserve SC-WBS constraints.\n"
+        : format === "cursor"
+          ? "\n## Agent Notes\n- Use Allowed Paths as the editing file set.\n"
+          : "";
+
+  return `${header}
 
 ## Role
 Implementation Agent
@@ -90,6 +101,7 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 
 ## Required Checks
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+${formatHint}
 
 ## Depends On
 ${dependsOn.map((item) => `- ${item}`).join("\n") || "- None"}
@@ -116,9 +128,9 @@ ${artifacts.map((artifact) => `- ${artifact.id}: ${artifact.name}${artifact.uri 
 `;
 }
 
-export function runAiPacket(root: string, taskId: string, relationDepth = 1): number {
+export function runAiPacket(root: string, taskId: string, relationDepth = 1, format: AiPacketFormat = "default"): number {
   try {
-    process.stdout.write(buildAiPacket(root, taskId, relationDepth));
+    process.stdout.write(buildAiPacket(root, taskId, relationDepth, format));
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

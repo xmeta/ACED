@@ -1,8 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultSpecsDir, defaultTasksDir, resolveFrom, taskPath, evidencePath } from "./paths.js";
-import { asApprovalRecord, asEvidence, asRegistry, asSpecContract, asTaskContract, validateApprovalRecord, validateEvidence, validateRegistry, validateSpecContract, validateTaskContract } from "./schema.js";
-import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, SpecContract, TaskContract } from "./types.js";
+import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecContract, asTaskContract, validateApprovalRecord, validateEvidence, validateRegistry, validateReviewRecord, validateSpecContract, validateTaskContract } from "./schema.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
@@ -57,6 +57,17 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
 }
 
+export function readReview(root: string, taskId: string): { review?: ReviewRecord; issues: Issue[] } {
+  const relativePath = reviewPath(taskId);
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) {
+    return { issues: [{ severity: "error", code: "review.missing", message: `${relativePath} does not exist` }] };
+  }
+  const value = readYamlFile<unknown>(fullPath);
+  const issues = validateReviewRecord(value, relativePath);
+  return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
+}
+
 export function listTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
   const dir = resolveFrom(root, defaultTasksDir);
   if (!existsSync(dir)) return [];
@@ -96,6 +107,32 @@ export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; 
     });
 }
 
+export function listEvidence(root: string): Array<{ evidence?: Evidence; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultEvidenceDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const path = `${defaultEvidenceDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, path));
+      const issues = validateEvidence(value, path);
+      return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues, path };
+    });
+}
+
+export function listReviews(root: string): Array<{ review?: ReviewRecord; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultReviewsDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const path = `${defaultReviewsDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, path));
+      const issues = validateReviewRecord(value, path);
+      return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues, path };
+    });
+}
+
 export function matchingSpecContract(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
   return registry?.contracts.find((contract) => {
     if (contract.type !== "spec") return false;
@@ -125,4 +162,8 @@ export function evidenceExists(root: string, taskId: string): boolean {
 
 export function approvalExists(root: string, taskId: string): boolean {
   return existsSync(resolveFrom(root, approvalPath(taskId)));
+}
+
+export function reviewExists(root: string, taskId: string): boolean {
+  return existsSync(resolveFrom(root, reviewPath(taskId)));
 }

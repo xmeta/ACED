@@ -1,0 +1,89 @@
+﻿# SC-WBS Task Contract
+
+Source: docs/sc-wbs-development.md split reference.
+
+## 6. Task Contract
+
+Task Contractは、AIが実装する1作業単位に対する契約である。
+1つのTask Contractは、原則として1つのWBS nodeに対応させる。
+
+正本は以下に置く。
+
+```text
+contracts/tasks/{task-id}.yaml
+```
+
+最小形式は以下である。
+
+```yaml
+id: WBS-001-004
+type: task-contract
+wbsNodeId: node-api-implementation
+featureId: F001
+branchName: task/WBS-001-004-api-implementation
+allowedPaths:
+  - src/features/staff-search/**
+  - tests/features/staff-search/**
+forbiddenPaths:
+  - src/auth/**
+  - src/database/schema/**
+  - migrations/**
+humanGateRequiredPaths:
+  - src/security/**
+  - src/permissions/**
+  - openapi/**
+requiredChecks:
+  - test
+  - typecheck
+  - lint
+doneCriteria:
+  - Spec Contractを満たしている
+  - 正常系と異常系のテストが通る
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - lint-result
+contractLock:
+  wbsRevision: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  wbsNodeId: node-api-implementation
+  specVersion: 1.2.0
+  specRevision: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+  createdAt: 2026-06-27T10:00:00+09:00
+```
+
+`wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
+Task Contractは、生成時点のWBS content hashとSpec versionを `contractLock` として記録する。
+AI Work Packet生成時および `scwbs check` では、`contractLock` と現在のWBS-JSON、Spec Contractの鮮度を比較する。
+WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
+staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
+Task Contractのlockを生成するには以下を実行する。
+
+```bash
+npm run scwbs -- task lock --task WBS-001-004
+```
+
+`allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+`forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+
+AIはTask Contractの範囲外を変更してはならない。範囲外変更が必要な場合は、実装を止めてSpec Change ProposalまたはHuman Gateを要求する。
+
+Task Contractの推奨粒度は以下である。
+
+* 1つのPRで完了できる
+* 1つの主要成果物に対応する
+* `allowedPaths` が3〜5グループ以内である
+* Stop Conditionsを明確に判定できる
+* 人間が15分〜30分でレビューできる差分である
+
+危険領域に触る作業は分離する。UI変更、API変更、DB変更、権限変更、マイグレーション追加を1つのTask Contractに混ぜてはならない。
+
+WBS nodeからTask Contract草案を生成するには以下を実行する。
+
+```bash
+npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
+```
+
+生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
+
+---
+

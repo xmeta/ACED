@@ -1,0 +1,33 @@
+id: SCWBS-021
+type: task-contract
+wbsNodeId: node-lightweight-branch-guard
+featureId: F-SCWBS-LIGHTWEIGHT-BRANCH
+branchName: task/SCWBS-021-task-branch-guard
+allowedPaths:
+  - src/commands/check-diff.ts
+  - src/core/git.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - check-diff validates current branch against task branchName
+  - branch mismatch behavior is covered by tests
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-branch-guard
+  createdAt: "2026-06-28T06:16:28.528Z"

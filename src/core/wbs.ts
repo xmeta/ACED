@@ -70,18 +70,21 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
   return issues;
 }
 
-export function runWjsValidate(root: string, relativePath = defaultWbsPath): Issue[] {
-  const validator = path.resolve(root, "wjs/tools/validate.ts");
+export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
+  const wjsRoot = path.resolve(root, "wjs");
+  const validator = path.resolve(wjsRoot, "tools/validate.ts");
   const target = resolveFrom(root, relativePath);
   if (!existsSync(validator)) return validateWbsDocument(root, relativePath);
-  if (!existsSync(path.resolve(root, "node_modules/ajv"))) return validateWbsDocument(root, relativePath);
 
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", validator, "--wbs", target], {
-    cwd: path.resolve(root, "wjs"),
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
+    cwd: wjsRoot,
     encoding: "utf8"
   });
 
   if (result.status === 0) return [];
   const lines = `${result.stderr}\n${result.stdout}`.split(/\r?\n/).filter(Boolean);
+  if (lines.length === 0) {
+    return [{ severity: "error", code: "wjs.validate", message: `${relativePath} failed WJS ${kind} validation` }];
+  }
   return lines.map((line) => ({ severity: "error", code: "wjs.validate", message: line }));
 }

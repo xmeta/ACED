@@ -1,0 +1,33 @@
+id: SCWBS-015
+type: task-contract
+wbsNodeId: node-lightweight-next
+featureId: F-SCWBS-LIGHTWEIGHT-NEXT
+branchName: task/SCWBS-015-next-action-command
+allowedPaths:
+  - src/commands/next.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - next prints a single prioritized action
+  - next reuses existing check, evidence, review, and task queue signals
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-next
+  createdAt: "2026-06-28T06:15:56.784Z"

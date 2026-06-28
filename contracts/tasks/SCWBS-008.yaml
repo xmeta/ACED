@@ -1,0 +1,36 @@
+id: SCWBS-008
+type: task-contract
+wbsNodeId: node-lightweight-orchestration
+featureId: F-SCWBS-LIGHTWEIGHT
+branchName: task/SCWBS-008-lightweight-orchestration-roadmap
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+  - README.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Lightweight roadmap commands are exposed through the CLI
+  - Expensive or dependency-heavy features are represented as stubs or follow-up Human Gate work
+  - Generated files refuse overwrite unless force is requested
+  - Existing SC-WBS checks continue to pass
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-orchestration
+  createdAt: "2026-06-28T06:15:26.483Z"

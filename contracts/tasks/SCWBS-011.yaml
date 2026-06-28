@@ -1,0 +1,34 @@
+id: SCWBS-011
+type: task-contract
+wbsNodeId: node-lightweight-task-refresh
+featureId: F-SCWBS-LIGHTWEIGHT-REFRESH
+branchName: task/SCWBS-011-task-refresh-command
+allowedPaths:
+  - src/commands/task-refresh.ts
+  - src/commands/task-lock.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - task refresh previews lock changes
+  - task refresh apply updates only safe lock fields
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-task-refresh
+  createdAt: "2026-06-28T06:15:39.373Z"
