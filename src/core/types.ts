@@ -116,6 +116,11 @@ export type ReviewRecord = {
   reviewProfile: "self-review" | "independent-ai-review" | "human-review" | string;
   pullRequest?: string;
   groundTruth: string[];
+  requestedReviewers?: Array<{
+    role: string;
+    user?: string;
+    reason: string;
+  }>;
   notes?: string[];
 };
 

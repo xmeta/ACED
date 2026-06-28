@@ -49,11 +49,14 @@ Generated contract commands must refuse to overwrite existing files unless an ex
 
 ```bash
 npm run scwbs -- review-queue
+npm run scwbs -- review route --task WBS-001-004
 npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 ```
 
 `review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata, shows approval status from `contracts/approvals/*.yaml`, warns when review metadata is missing, adds a `suggestedAction` per candidate, and includes a compact review-health summary.
+
+`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers`.
 
 Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
 

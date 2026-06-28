@@ -238,6 +238,26 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
   if (!isStringArray(value.groundTruth)) {
     issues.push(issue("review.groundTruth", `${filePath}.groundTruth must be a string array`));
   }
+  if (value.requestedReviewers !== undefined) {
+    if (!Array.isArray(value.requestedReviewers)) {
+      issues.push(issue("review.requestedReviewers", `${filePath}.requestedReviewers must be an array when present`));
+    } else {
+      value.requestedReviewers.forEach((reviewer, index) => {
+        if (!isObject(reviewer)) {
+          issues.push(issue("review.requestedReviewers", `${filePath}.requestedReviewers[${index}] must be an object`));
+          return;
+        }
+        for (const key of ["role", "reason"]) {
+          if (typeof reviewer[key] !== "string" || reviewer[key].length === 0) {
+            issues.push(issue("review.requestedReviewers", `${filePath}.requestedReviewers[${index}].${key} must be a non-empty string`));
+          }
+        }
+        if (reviewer.user !== undefined && typeof reviewer.user !== "string") {
+          issues.push(issue("review.requestedReviewers", `${filePath}.requestedReviewers[${index}].user must be a string when present`));
+        }
+      });
+    }
+  }
   if (value.notes !== undefined && !isStringArray(value.notes)) {
     issues.push(issue("review.notes", `${filePath}.notes must be a string array when present`));
   }
