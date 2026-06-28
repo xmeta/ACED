@@ -143,8 +143,8 @@ describe("scwbs MVP", () => {
   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
     const root = makeTempRepo();
     const task = sampleTask({ allowedPaths: ["contracts/**"] });
-    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]).some((issue) => issue.code === "diff.wbsOperations")).toBe(true);
-    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json", "contracts/changesets/change.json"]).some((issue) => issue.code === "diff.wbsOperations")).toBe(false);
+    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(true);
+    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json", "contracts/changesets/change.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(false);
   });
 
   test("check-diff validates WBS operation change sets with WJS validate", () => {
@@ -153,6 +153,37 @@ describe("scwbs MVP", () => {
     const task = sampleTask({ allowedPaths: ["contracts/**"] });
     const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
     expect(issues.some((issue) => issue.code.startsWith("diff.wbsOperations."))).toBe(true);
+  });
+
+  test("check rejects direct WBS edits without a corresponding changeset", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: root, stdio: "ignore" });
+
+    const changed = sampleWbs("planned");
+    changed.nodes.push({
+      id: "node-wbs-tool-only",
+      parentId: "node-meta-file-safety",
+      code: "1.7.1",
+      name: "WBS JSON tool-only enforcement",
+      type: "workPackage",
+      status: "ready"
+    });
+    writeJson(root, "contracts/wbs/project.wbs.json", changed);
+
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "wbs.changeset.required")).toBe(true);
+
+    writeJson(root, "contracts/changesets/SCWBS-023-wbs-tool-only.json", {
+      schemaVersion: "0.1.0",
+      targetWbsId: "test-wbs",
+      changeSetId: "changeset-SCWBS-023-wbs-tool-only",
+      dryRun: true,
+      operations: []
+    });
+
+    expect(collectCheckIssues(root).some((issue) => issue.code === "wbs.changeset.required")).toBe(false);
   });
 
   test("start emits schema-shaped WBS addNode operations", () => {

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-023-wbs-tool-only",
+  "author": "codex",
+  "reason": "Add WBS JSON tool-only enforcement work package under node-meta-file-safety.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-wbs-tool-only",
+        "parentId": "node-meta-file-safety",
+        "code": "1.7.1",
+        "name": "WBS JSON tool-only enforcement",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "scwbs check enforces that project.wbs.json changes require a corresponding changeset.",
+          "All existing Task Contracts list project.wbs.json as humanGateRequiredPaths.",
+          "Documentation explains the tool-only rule for project.wbs.json."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-002",
+      "operation": "addRelation",
+      "relation": {
+        "id": "rel-wbs-tool-only-depends-on-meta-safety",
+        "type": "dependsOn",
+        "source": "node-wbs-tool-only",
+        "target": "node-meta-file-safety"
+      }
+    }
+  ]
+}
