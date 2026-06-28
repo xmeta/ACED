@@ -1,4 +1,4 @@
-import { approvalExists, readTask } from "../core/contracts.js";
+import { approvalExists, readEvidence, readTask } from "../core/contracts.js";
 import { changedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -66,6 +66,21 @@ export function collectBranchIssues(task: TaskContract, branch: string | undefin
   }];
 }
 
+export function collectEvidenceGateIssues(root: string, task: TaskContract): Issue[] {
+  const { evidence, issues } = readEvidence(root, task.id);
+  if (!evidence) {
+    return issues.map((issue) => ({
+      ...issue,
+      code: `diff.${issue.code}`,
+      message: `${issue.message}; run npm run scwbs -- evidence collect --task ${task.id} before opening a PR`
+    }));
+  }
+  return issues.map((issue) => ({
+    ...issue,
+    code: `diff.${issue.code}`
+  }));
+}
+
 export function runCheckDiff(root: string, taskId: string): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
@@ -73,7 +88,11 @@ export function runCheckDiff(root: string, taskId: string): number {
     return 1;
   }
   const files = changedFiles(root);
-  const diffIssues = [...collectBranchIssues(task, currentBranch(root)), ...collectDiffIssues(root, task, files)];
+  const diffIssues = [
+    ...collectBranchIssues(task, currentBranch(root)),
+    ...collectEvidenceGateIssues(root, task),
+    ...collectDiffIssues(root, task, files)
+  ];
   if (diffIssues.length === 0) {
     console.log(`PASS check-diff ${taskId}`);
     return 0;

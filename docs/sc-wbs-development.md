@@ -18,6 +18,7 @@ This file is intentionally short. Detailed methodology and tool operations are s
 - Use `contracts/wbs/project.wbs.json` as the WBS source of truth.
 - Propose WBS changes through WJS semantic operation change sets under `contracts/changesets/*.json`.
 - Validate WBS and operation files with the WJS validate tool before Done.
+- Create or refresh `contracts/evidence/<task-id>.yaml` before opening a PR.
 - Run `npm run scwbs -- check-diff --task <task-id>` before Done.
 - Keep one Task Contract on one branch; `check-diff` rejects branch mismatch against `branchName`.
 - Do not mark WBS nodes `completed`; human review decides completion after Evidence and review exist.

@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
-import { collectBranchIssues, collectDiffIssues } from "../src/commands/check-diff.js";
+import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues } from "../src/commands/check-diff.js";
 import { buildDoctorReport } from "../src/commands/doctor.js";
 import { buildStartArtifacts } from "../src/commands/start.js";
 import { buildReviewQueue } from "../src/commands/review-queue.js";
@@ -85,6 +85,16 @@ describe("scwbs MVP", () => {
     const task = sampleTask({ branchName: "task/WBS-001-004-api-implementation" });
     expect(collectBranchIssues(task, "task/WBS-001-004-api-implementation")).toEqual([]);
     expect(collectBranchIssues(task, "task/OTHER").some((issue) => issue.code === "diff.branchName")).toBe(true);
+  });
+
+  test("check-diff requires evidence before PR readiness", () => {
+    const root = makeTempRepo();
+    const task = sampleTask();
+    const missingIssues = collectEvidenceGateIssues(root, task);
+    expect(missingIssues.some((issue) => issue.code === "diff.evidence.missing")).toBe(true);
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    expect(collectEvidenceGateIssues(root, task)).toEqual([]);
   });
 
   test("check-diff flags sensitive meta files unless they are explicitly allowed", () => {

@@ -38,8 +38,10 @@ npm run scwbs -- check-diff --task WBS-001-004
 | `project.wbs.json` 変更時にsemantic operation change setがない | Error |
 | `contracts/changesets/*.json` が `wjs` operations schemaに適合しない | Error |
 | 現在のGit branchがTask Contractの `branchName` と一致しない | Error |
+| 対象Task ContractのEvidenceが存在しない | Error |
 
 CIでは、Errorがある場合にPRを通してはならない。
+PRを開く前に `npm run scwbs -- evidence collect --task <task-id>` を実行し、`contracts/evidence/<task-id>.yaml` を追加または更新してから `scwbs check-diff --task <task-id>` を通す。
 
 メタファイルは、AIがpath制約や検証環境を迂回するために変更できるため、既定で強い制約を受ける。
 代表例は以下である。
