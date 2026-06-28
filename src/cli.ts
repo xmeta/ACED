@@ -28,7 +28,7 @@ import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
 
 function usage(): void {
   console.log(`Usage:
-  scwbs init
+  scwbs init [--profile lean|standard|strict] [--agent codex] [--lang ja|en]
   scwbs check
   scwbs doctor
   scwbs health
@@ -97,7 +97,11 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return 0;
   }
 
-  if (command === "init") return runInit(root);
+  if (command === "init") return runInit(root, {
+    profile: valueAfter(argv, "--profile"),
+    agent: valueAfter(argv, "--agent"),
+    lang: valueAfter(argv, "--lang")
+  });
   if (command === "check") return runCheck(root);
   if (command === "doctor") return runDoctor(root);
   if (command === "health") return runHealth(root);

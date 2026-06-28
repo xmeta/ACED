@@ -32,6 +32,18 @@ describe("scwbs MVP", () => {
     expect(validateWbsDocument(root)).toEqual([]);
   });
 
+  test("init stores profile agent and language options", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { profile: "lean", agent: "codex", lang: "ja" })).toBe(0);
+    const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")) as WbsDocument;
+    expect(wbs.metadata?.language).toBe("ja-JP");
+    expect(wbs.extensions?.scwbs).toEqual({
+      profile: "Lean",
+      agent: "codex",
+      lang: "ja"
+    });
+  });
+
   test("invalid WBS document reports validation errors", () => {
     const root = makeTempRepo();
     writeJson(root, "contracts/wbs/project.wbs.json", { schemaVersion: "0.1.0", id: "bad" });

@@ -121,6 +121,10 @@ export type ReviewRecord = {
 
 export type Profile = "Lean" | "Standard" | "Strict";
 
+export type Agent = "codex";
+
+export type Language = "ja" | "en";
+
 export type AiPacketFormat = "default" | "compact" | "codex" | "claude" | "cursor";
 
 export type WbsNode = {

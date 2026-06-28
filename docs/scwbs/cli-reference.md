@@ -11,7 +11,7 @@ npm run scwbs -- --help
 ## Core Checks
 
 ```bash
-npm run scwbs -- init
+npm run scwbs -- init --profile lean --agent codex --lang ja
 npm run scwbs -- check
 npm run scwbs -- doctor
 npm run scwbs -- health
