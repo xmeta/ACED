@@ -1,0 +1,37 @@
+id: SCWBS-023
+type: task-contract
+wbsNodeId: node-wbs-tool-only
+featureId: F-SCWBS-META-SAFETY-WBS-TOOL
+branchName: task/SCWBS-023-wbs-tool-only
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/changesets/**
+  - contracts/tasks/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - scwbs check enforces that project.wbs.json changes require a corresponding changeset.
+  - All existing Task Contracts list project.wbs.json as humanGateRequiredPaths.
+  - Documentation explains the tool-only rule for project.wbs.json.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"
+  wbsNodeId: node-wbs-tool-only
+  createdAt: "2026-06-28T08:28:04.623Z"

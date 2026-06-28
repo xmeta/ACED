@@ -133,6 +133,22 @@
       ]
     },
     {
+      "status": "ready",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "scwbs check enforces that project.wbs.json changes require a corresponding changeset.",
+        "All existing Task Contracts list project.wbs.json as humanGateRequiredPaths.",
+        "Documentation explains the tool-only rule for project.wbs.json."
+      ],
+      "outputs": [],
+      "tags": [],
+      "id": "node-wbs-tool-only",
+      "parentId": "node-meta-file-safety",
+      "code": "1.7.1",
+      "name": "WBS JSON tool-only enforcement",
+      "type": "workPackage"
+    },
+    {
       "id": "node-bootstrap-subtree",
       "parentId": "node-project",
       "code": "1.8",
@@ -427,6 +443,12 @@
       "type": "dependsOn",
       "source": "node-lightweight-orchestration",
       "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-wbs-tool-only-depends-on-meta-safety",
+      "type": "dependsOn",
+      "source": "node-wbs-tool-only",
+      "target": "node-meta-file-safety"
     }
   ],
   "resources": [

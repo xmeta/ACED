@@ -17,6 +17,7 @@ This file is intentionally short. Detailed methodology and tool operations are s
 - Do not implement outside the assigned Task Contract unless explicitly approved.
 - Use `contracts/wbs/project.wbs.json` as the WBS source of truth.
 - Propose WBS changes through WJS semantic operation change sets under `contracts/changesets/*.json`.
+- Do not edit `contracts/wbs/project.wbs.json` directly; use `scwbs wbs apply` and a change set.
 - Validate WBS and operation files with the WJS validate tool before Done.
 - Create or refresh `contracts/evidence/<task-id>.yaml` before opening a PR.
 - Run `npm run scwbs -- check-diff --task <task-id>` before Done.
@@ -30,7 +31,8 @@ This file is intentionally short. Detailed methodology and tool operations are s
 - `docs/scwbs/wbs-json.md` - WBS-JSON operation policy.
 - `docs/scwbs/task-contract.md` - Task Contract and lock rules.
 - `docs/scwbs/ai-work-packet.md` - AI Work Packet rules.
-- `docs/scwbs/contract-enforcement.md` - `check-diff`, path constraints, health checks, and branch workflow.
+- `docs/scwbs/contract-enforcement.md` - `check-diff`, path constraints, the tool-only WBS gate, health checks, and branch workflow.
+- `docs/scwbs/wbs-json.md` - WBS operation workflow and `scwbs wbs apply` usage.
 - `docs/scwbs/evidence-human-gate-review.md` - Evidence, Human Gate, Review, DoD, and status management.
 - `docs/scwbs/operations-profile-and-specs.md` - profiles, principles, subtree phase, and Spec Contract files.
 - `docs/scwbs/cli-reference.md` - command examples.

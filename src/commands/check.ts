@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { approvalExists, evidenceExists, listApprovals, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { changedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -145,6 +146,21 @@ function validateIndexedSpecs(root: string, registry: Registry | undefined): Iss
   return issues;
 }
 
+export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
+  const issues: Issue[] = [];
+  const changesWbs = files.some((file) => file.replace(/\\/g, "/") === "contracts/wbs/project.wbs.json");
+  if (!changesWbs) return issues;
+  const hasWbsChangeSet = files.some((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
+  if (!hasWbsChangeSet) {
+    issues.push({
+      severity: "error",
+      code: "wbs.changeset.required",
+      message: "contracts/wbs/project.wbs.json was modified without a corresponding contracts/changesets/*.json; run scwbs wbs apply instead of editing the WBS directly"
+    });
+  }
+  return issues;
+}
+
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   issues.push(...runWjsValidate(root));
@@ -175,6 +191,14 @@ export function collectCheckIssues(root: string): Issue[] {
     }
     issues.push(...validateTaskAgainstWbs(root, specIssues, wbs, entry.task, spec, specPath));
   }
+
+  let changed: string[] = [];
+  try {
+    changed = changedFiles(root);
+  } catch {
+    // not in a git repo or git unavailable: skip changeset gate
+  }
+  issues.push(...collectWbsChangesetGateIssues(changed));
 
   return issues;
 }

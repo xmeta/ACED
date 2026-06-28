@@ -4,6 +4,7 @@ import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
+import { collectWbsChangesetGateIssues } from "./check.js";
 
 const SENSITIVE_META_PATHS = [
   "package.json",
@@ -20,16 +21,10 @@ function requiresMetaFileGuard(file: string): boolean {
 
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
-  const changesWbs = files.includes("contracts/wbs/project.wbs.json");
-  const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
-  const hasWbsChangeSet = wbsChangeSets.length > 0;
-  if (changesWbs && !hasWbsChangeSet) {
-    issues.push({
-      severity: "error",
-      code: "diff.wbsOperations",
-      message: "contracts/wbs/project.wbs.json changed without a contracts/changesets/*.json semantic operation file"
-    });
+  for (const issue of collectWbsChangesetGateIssues(files)) {
+    issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }
+  const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
   for (const changeSet of wbsChangeSets) {
     issues.push(...runWjsValidate(root, changeSet, "operations").map((issue) => ({
       ...issue,
