@@ -1,1 +1,34 @@
-id: SCWBS-021type: task-contractwbsNodeId: node-lightweight-branch-guardfeatureId: F-SCWBS-LIGHTWEIGHT-BRANCHbranchName: task/SCWBS-021-task-branch-guardallowedPaths:  - src/commands/check-diff.ts  - src/core/git.ts  - tests/**  - contracts/**forbiddenPaths:  - wjs/**humanGateRequiredPaths:  - package.json  - package-lock.json  - tsconfig.json  - vitest.config.ts  - .github/**  - contracts/wbs/project.wbs.jsonrequiredChecks:  - test  - typecheck  - builddoneCriteria:  - check-diff validates current branch against task branchName  - branch mismatch behavior is covered by testsevidenceRequired:  - test-result  - typecheck-result  - build-resultcontractLock:  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"  wbsNodeId: node-lightweight-branch-guard  createdAt: "2026-06-28T08:28:00.092Z"
+id: SCWBS-021
+type: task-contract
+wbsNodeId: node-lightweight-branch-guard
+featureId: F-SCWBS-LIGHTWEIGHT-BRANCH
+branchName: task/SCWBS-021-task-branch-guard
+allowedPaths:
+  - src/commands/check-diff.ts
+  - src/core/git.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - check-diff validates current branch against task branchName
+  - branch mismatch behavior is covered by tests
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"
+  wbsNodeId: node-lightweight-branch-guard
+  createdAt: "2026-06-28T08:28:00.092Z"

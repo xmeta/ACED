@@ -1,1 +1,36 @@
-id: SCWBS-006type: task-contractwbsNodeId: node-meta-file-safetyfeatureId: F-SCWBS-SAFETYbranchName: task/SCWBS-006-meta-file-safety-guardrailsallowedPaths:  - src/**  - tests/**  - docs/**  - contracts/**forbiddenPaths:  - wjs/**humanGateRequiredPaths:  - package.json  - package-lock.json  - tsconfig.json  - vitest.config.ts  - .github/**  - .gitignore  - contracts/wbs/project.wbs.jsonrequiredChecks:  - test  - typecheck  - builddoneCriteria:  - check-diff treats sensitive meta/config files as Human Gate required unless explicitly allowed  - safety rule covers package, tsconfig, test runner, CI, and git ignore files  - documentation describes meta-file changes as Level 2 by defaultevidenceRequired:  - test-result  - typecheck-result  - build-resultcontractLock:  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"  wbsNodeId: node-meta-file-safety  createdAt: "2026-06-28T08:27:01.013Z"
+id: SCWBS-006
+type: task-contract
+wbsNodeId: node-meta-file-safety
+featureId: F-SCWBS-SAFETY
+branchName: task/SCWBS-006-meta-file-safety-guardrails
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .gitignore
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - check-diff treats sensitive meta/config files as Human Gate required unless explicitly allowed
+  - safety rule covers package, tsconfig, test runner, CI, and git ignore files
+  - documentation describes meta-file changes as Level 2 by default
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"
+  wbsNodeId: node-meta-file-safety
+  createdAt: "2026-06-28T08:27:01.013Z"

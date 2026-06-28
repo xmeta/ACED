@@ -1,1 +1,35 @@
-id: SCWBS-010type: task-contractwbsNodeId: node-lightweight-evidence-collectfeatureId: F-SCWBS-LIGHTWEIGHT-EVIDENCEbranchName: task/SCWBS-010-evidence-collect-commandallowedPaths:  - src/commands/evidence-collect.ts  - src/core/git.ts  - src/cli.ts  - tests/**  - contracts/**forbiddenPaths:  - wjs/**humanGateRequiredPaths:  - package.json  - package-lock.json  - tsconfig.json  - vitest.config.ts  - .github/**  - contracts/wbs/project.wbs.jsonrequiredChecks:  - test  - typecheck  - builddoneCriteria:  - evidence collect creates Evidence from local git state  - evidence collect refuses overwrite without forceevidenceRequired:  - test-result  - typecheck-result  - build-resultcontractLock:  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"  wbsNodeId: node-lightweight-evidence-collect  createdAt: "2026-06-28T08:27:17.330Z"
+id: SCWBS-010
+type: task-contract
+wbsNodeId: node-lightweight-evidence-collect
+featureId: F-SCWBS-LIGHTWEIGHT-EVIDENCE
+branchName: task/SCWBS-010-evidence-collect-command
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - src/core/git.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - evidence collect creates Evidence from local git state
+  - evidence collect refuses overwrite without force
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:1d02eeff44c14ecaa0eacba8d196bc02255469c99f3eb01cd7317c516abdb33d"
+  wbsNodeId: node-lightweight-evidence-collect
+  createdAt: "2026-06-28T08:27:17.330Z"
