@@ -1,0 +1,34 @@
+id: SCWBS-013
+type: task-contract
+wbsNodeId: node-lightweight-ai-run
+featureId: F-SCWBS-LIGHTWEIGHT-AI-RUN
+branchName: task/SCWBS-013-ai-run-dry-run
+allowedPaths:
+  - src/commands/ai-run.ts
+  - src/commands/ai-packet.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - ai run prints guarded dry-run implementation steps
+  - ai run does not launch external agents
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-ai-run
+  createdAt: "2026-06-28T06:15:47.831Z"

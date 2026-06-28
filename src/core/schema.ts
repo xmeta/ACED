@@ -1,4 +1,4 @@
-import type { ApprovalRecord, Evidence, Issue, Registry, SpecContract, TaskContract, WbsDocument } from "./types.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -94,6 +94,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
     issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));
+  }
+  if (value.mode !== undefined && value.mode !== "lite") {
+    issues.push(issue("task.mode", `${filePath}.mode must be lite when present`));
   }
   for (const key of ["allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "doneCriteria", "evidenceRequired"]) {
     if (!isStringArray(value[key])) {
@@ -213,6 +216,36 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
 
 export function asApprovalRecord(value: unknown): ApprovalRecord {
   return value as ApprovalRecord;
+}
+
+export function validateReviewRecord(value: unknown, filePath = "review"): Issue[] {
+  const issues: Issue[] = [];
+  if (!isObject(value)) return [issue("review.invalid", `${filePath} must be an object`)];
+  for (const key of ["id", "type", "taskId", "status", "reviewProfile"]) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      issues.push(issue("review.field", `${filePath}.${key} must be a non-empty string`));
+    }
+  }
+  if (value.type !== "review") {
+    issues.push(issue("review.type", `${filePath}.type must be review`));
+  }
+  if (value.status !== undefined && !["requested", "approved", "changes-requested"].includes(String(value.status))) {
+    issues.push(issue("review.status", `${filePath}.status must be requested, approved, or changes-requested`));
+  }
+  if (value.pullRequest !== undefined && typeof value.pullRequest !== "string") {
+    issues.push(issue("review.field", `${filePath}.pullRequest must be a string when present`));
+  }
+  if (!isStringArray(value.groundTruth)) {
+    issues.push(issue("review.groundTruth", `${filePath}.groundTruth must be a string array`));
+  }
+  if (value.notes !== undefined && !isStringArray(value.notes)) {
+    issues.push(issue("review.notes", `${filePath}.notes must be a string array when present`));
+  }
+  return issues;
+}
+
+export function asReviewRecord(value: unknown): ReviewRecord {
+  return value as ReviewRecord;
 }
 
 export function validateWbsShape(value: unknown): Issue[] {

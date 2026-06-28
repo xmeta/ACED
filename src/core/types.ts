@@ -6,7 +6,7 @@ export type Issue = {
   message: string;
 };
 
-export type RegistryContractType = "requirement" | "spec" | "task" | "evidence" | "approval" | "adr";
+export type RegistryContractType = "requirement" | "spec" | "task" | "evidence" | "approval" | "review" | "adr";
 
 export type RegistryContract = {
   id: string;
@@ -44,6 +44,7 @@ export type SpecContract = {
 export type TaskContract = {
   id: string;
   type: "task-contract";
+  mode?: "lite";
   wbsNodeId: string;
   featureId: string;
   branchName?: string;
@@ -106,6 +107,25 @@ export type ApprovalRecord = {
   pullRequest?: string;
   notes?: string[];
 };
+
+export type ReviewRecord = {
+  id: string;
+  type: "review";
+  taskId: string;
+  status: "requested" | "approved" | "changes-requested";
+  reviewProfile: "self-review" | "independent-ai-review" | "human-review" | string;
+  pullRequest?: string;
+  groundTruth: string[];
+  notes?: string[];
+};
+
+export type Profile = "Lean" | "Standard" | "Strict";
+
+export type Agent = "codex";
+
+export type Language = "ja" | "en";
+
+export type AiPacketFormat = "default" | "compact" | "codex" | "claude" | "cursor";
 
 export type WbsNode = {
   id: string;

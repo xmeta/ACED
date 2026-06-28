@@ -1,0 +1,35 @@
+id: SCWBS-019
+type: task-contract
+wbsNodeId: node-lightweight-trace
+featureId: F-SCWBS-LIGHTWEIGHT-TRACE
+branchName: task/SCWBS-019-trace-command
+allowedPaths:
+  - src/commands/trace.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - trace displays contract chain links
+  - trace marks missing Evidence Review and Approval
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-trace
+  createdAt: "2026-06-28T06:16:17.811Z"

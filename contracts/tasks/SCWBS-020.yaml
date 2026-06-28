@@ -1,0 +1,33 @@
+id: SCWBS-020
+type: task-contract
+wbsNodeId: node-lightweight-ui-serve
+featureId: F-SCWBS-LIGHTWEIGHT-UI
+branchName: task/SCWBS-020-ui-dashboard-serve-stub
+allowedPaths:
+  - src/commands/ui.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - ui prints a text dashboard
+  - serve reports Human Gate requirement for Web UI dependencies
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-ui-serve
+  createdAt: "2026-06-28T06:16:23.620Z"

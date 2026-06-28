@@ -1,0 +1,36 @@
+id: SCWBS-012
+type: task-contract
+wbsNodeId: node-lightweight-registry-profile
+featureId: F-SCWBS-LIGHTWEIGHT-REGISTRY-PROFILE
+branchName: task/SCWBS-012-registry-profile-commands
+allowedPaths:
+  - src/commands/registry-rebuild.ts
+  - src/commands/profile.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - registry rebuild supports check and force modes
+  - profile show and set manage WBS profile metadata
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-registry-profile
+  createdAt: "2026-06-28T06:15:43.088Z"

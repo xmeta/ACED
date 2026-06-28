@@ -1,8 +1,9 @@
-import { approvalExists, readTask } from "../core/contracts.js";
-import { changedFiles } from "../core/git.js";
+import { approvalExists, readEvidence, readTask } from "../core/contracts.js";
+import { changedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
+import { runWjsValidate } from "../core/wbs.js";
 
 const SENSITIVE_META_PATHS = [
   "package.json",
@@ -19,6 +20,23 @@ function requiresMetaFileGuard(file: string): boolean {
 
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
+  const changesWbs = files.includes("contracts/wbs/project.wbs.json");
+  const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
+  const hasWbsChangeSet = wbsChangeSets.length > 0;
+  if (changesWbs && !hasWbsChangeSet) {
+    issues.push({
+      severity: "error",
+      code: "diff.wbsOperations",
+      message: "contracts/wbs/project.wbs.json changed without a contracts/changesets/*.json semantic operation file"
+    });
+  }
+  for (const changeSet of wbsChangeSets) {
+    issues.push(...runWjsValidate(root, changeSet, "operations").map((issue) => ({
+      ...issue,
+      code: `diff.wbsOperations.${issue.code}`,
+      message: `${changeSet}: ${issue.message}`
+    })));
+  }
   for (const file of files) {
     if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
       issues.push({ severity: "error", code: "diff.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
@@ -38,6 +56,31 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
   return issues;
 }
 
+export function collectBranchIssues(task: TaskContract, branch: string | undefined): Issue[] {
+  if (!task.branchName || !branch) return [];
+  if (task.branchName === branch) return [];
+  return [{
+    severity: "error",
+    code: "diff.branchName",
+    message: `current branch ${branch} does not match ${task.id} branchName ${task.branchName}`
+  }];
+}
+
+export function collectEvidenceGateIssues(root: string, task: TaskContract): Issue[] {
+  const { evidence, issues } = readEvidence(root, task.id);
+  if (!evidence) {
+    return issues.map((issue) => ({
+      ...issue,
+      code: `diff.${issue.code}`,
+      message: `${issue.message}; run npm run scwbs -- evidence collect --task ${task.id} before opening a PR`
+    }));
+  }
+  return issues.map((issue) => ({
+    ...issue,
+    code: `diff.${issue.code}`
+  }));
+}
+
 export function runCheckDiff(root: string, taskId: string): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
@@ -45,7 +88,11 @@ export function runCheckDiff(root: string, taskId: string): number {
     return 1;
   }
   const files = changedFiles(root);
-  const diffIssues = collectDiffIssues(root, task, files);
+  const diffIssues = [
+    ...collectBranchIssues(task, currentBranch(root)),
+    ...collectEvidenceGateIssues(root, task),
+    ...collectDiffIssues(root, task, files)
+  ];
   if (diffIssues.length === 0) {
     console.log(`PASS check-diff ${taskId}`);
     return 0;

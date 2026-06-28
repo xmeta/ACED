@@ -1,0 +1,34 @@
+id: SCWBS-016
+type: task-contract
+wbsNodeId: node-lightweight-ai-packet-format
+featureId: F-SCWBS-LIGHTWEIGHT-PACKET
+branchName: task/SCWBS-016-ai-packet-format
+allowedPaths:
+  - src/commands/ai-packet.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - ai packet supports agent-specific formats
+  - default ai packet behavior remains compatible
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
+  wbsNodeId: node-lightweight-ai-packet-format
+  createdAt: "2026-06-28T06:16:02.360Z"

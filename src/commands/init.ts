@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultTasksDir, defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { WbsDocument } from "../core/types.js";
+import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
 
 function writeIfMissing(root: string, relativePath: string, content: string): boolean {
   const fullPath = resolveFrom(root, relativePath);
@@ -12,7 +12,51 @@ function writeIfMissing(root: string, relativePath: string, content: string): bo
   return true;
 }
 
-export function runInit(root: string): number {
+export type InitOptions = {
+  profile?: string;
+  agent?: string;
+  lang?: string;
+};
+
+function normalizeProfile(value: string | undefined): Profile | undefined {
+  if (value === undefined) return "Standard";
+  const lowered = value.toLowerCase();
+  if (lowered === "lean") return "Lean";
+  if (lowered === "standard") return "Standard";
+  if (lowered === "strict") return "Strict";
+  return undefined;
+}
+
+function normalizeAgent(value: string | undefined): Agent | undefined {
+  if (value === undefined) return "codex";
+  return value.toLowerCase() === "codex" ? "codex" : undefined;
+}
+
+function normalizeLanguage(value: string | undefined): Language | undefined {
+  if (value === undefined) return "ja";
+  const lowered = value.toLowerCase();
+  if (lowered === "ja" || lowered === "ja-jp") return "ja";
+  if (lowered === "en" || lowered === "en-us") return "en";
+  return undefined;
+}
+
+export function runInit(root: string, options: InitOptions = {}): number {
+  const profile = normalizeProfile(options.profile);
+  if (!profile) {
+    console.error("Profile must be lean, standard, or strict");
+    return 2;
+  }
+  const agent = normalizeAgent(options.agent);
+  if (!agent) {
+    console.error("Agent must be codex");
+    return 2;
+  }
+  const lang = normalizeLanguage(options.lang);
+  if (!lang) {
+    console.error("Language must be ja or en");
+    return 2;
+  }
+
   for (const dir of [defaultTasksDir, defaultEvidenceDir, defaultApprovalsDir, "contracts/wbs"]) {
     mkdirSync(resolveFrom(root, dir), { recursive: true });
   }
@@ -54,11 +98,13 @@ export function runInit(root: string): number {
     artifacts: [],
     metadata: {
       createdBy: "scwbs",
-      language: "ja-JP"
+      language: lang === "ja" ? "ja-JP" : "en-US"
     },
     extensions: {
       scwbs: {
-        profile: "Standard"
+        profile,
+        agent,
+        lang
       }
     }
   };

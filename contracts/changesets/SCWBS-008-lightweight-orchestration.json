@@ -1,0 +1,291 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-008-lightweight-orchestration",
+  "author": "codex",
+  "reason": "Add lightweight orchestration roadmap and mini-friendly child work packages.",
+  "dryRun": true,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-orchestration",
+        "parentId": "node-project",
+        "code": "1.9",
+        "name": "SC-WBS lightweight orchestration roadmap",
+        "type": "workPackage",
+        "status": "ready",
+        "outputs": [
+          "artifact-cli",
+          "artifact-contracts"
+        ],
+        "acceptanceCriteria": [
+          "Lightweight orchestration commands provide low-cost scaffolds for the roadmap.",
+          "Generated contract artifacts are not overwritten unless force is requested.",
+          "The implementation avoids new dependencies and keeps serve as a Human Gate follow-up."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-002",
+      "operation": "addRelation",
+      "relation": {
+        "id": "rel-lightweight-depends-on-dogfood",
+        "type": "dependsOn",
+        "source": "node-lightweight-orchestration",
+        "target": "node-dogfood-contracts"
+      }
+    },
+    {
+      "operationId": "op-003",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-doctor",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.1",
+        "name": "Doctor command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "doctor summarizes check and health issues.",
+          "doctor prints actionable suggested fixes."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-004",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-evidence-collect",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.2",
+        "name": "Evidence collect command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "evidence collect creates Evidence from git state and required checks.",
+          "existing Evidence is not overwritten without force."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-005",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-task-refresh",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.3",
+        "name": "Task refresh command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "task refresh previews lock drift.",
+          "task refresh apply updates only safe lock fields."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-006",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-registry-profile",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.4",
+        "name": "Registry rebuild and profile commands",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "registry rebuild regenerates registry from contract files.",
+          "profile show and set read and update WBS profile metadata."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-007",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-ai-run",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.5",
+        "name": "AI run dry-run orchestrator",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "ai run prints guarded pre and post implementation steps.",
+          "ai run does not launch external agents in the initial implementation."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-008",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-review-request",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.6",
+        "name": "Review request command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "review request creates a Review record.",
+          "existing Review records are not overwritten without force."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-009",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-next",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.7",
+        "name": "Next action command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "next prints one suggested action.",
+          "next prioritizes stale tasks, missing evidence, review candidates, and planned work."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-010",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-ai-packet-format",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.8",
+        "name": "AI packet format option",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "ai packet supports compact, codex, claude, and cursor formats.",
+          "default packet output remains backward compatible."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-011",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-start-plan",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.9",
+        "name": "Start and plan commands",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "start creates draft artifacts from natural language.",
+          "plan creates draft task and WBS change-set candidates from a Spec."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-012",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-lite-promote",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.10",
+        "name": "Lite task and promote commands",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "lite task creates a small Task Contract.",
+          "promote creates formalization artifacts and reports stop conditions."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-013",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-trace",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.11",
+        "name": "Trace command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "trace shows Spec, WBS, Task, Evidence, Review, and Approval links.",
+          "trace clearly marks missing links."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-014",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-ui-serve",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.12",
+        "name": "UI dashboard and serve stub",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "ui prints a text dashboard without new dependencies.",
+          "serve fails clearly until a Human Gate approves dependency-heavy Web UI work."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-015",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-branch-guard",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.13",
+        "name": "Task branch guard",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "check-diff fails when current branch differs from task branchName.",
+          "tests cover matching and mismatching task branches."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    }
+  ]
+}

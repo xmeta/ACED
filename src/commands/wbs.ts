@@ -27,7 +27,7 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
   if (options.force) args.push("--force");
 
   const result = spawnSync(process.execPath, args, {
-    cwd: root,
+    cwd: path.resolve(root, "wjs"),
     encoding: "utf8"
   });
   if (result.stdout) process.stdout.write(result.stdout);

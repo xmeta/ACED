@@ -1,31 +1,33 @@
-id: SCWBS-002
+id: SCWBS-009
 type: task-contract
-wbsNodeId: node-spec-contracts
-featureId: F-SCWBS-SPEC
-branchName: task/SCWBS-002-first-class-spec-contract-support
+wbsNodeId: node-lightweight-doctor
+featureId: F-SCWBS-LIGHTWEIGHT-DOCTOR
+branchName: task/SCWBS-009-doctor-command
 allowedPaths:
-  - src/**
+  - src/commands/doctor.ts
+  - src/cli.ts
   - tests/**
-  - docs/**
   - contracts/**
 forbiddenPaths:
   - wjs/**
 humanGateRequiredPaths:
   - package.json
   - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
 requiredChecks:
   - test
   - typecheck
   - build
 doneCriteria:
-  - First-class Spec Contract file format is defined
-  - Spec Contract validation is implemented
-  - Registry and Contract Lock checks use Spec Contract metadata
+  - doctor summarizes check and health issues
+  - doctor prints suggested fixes
 evidenceRequired:
   - test-result
   - typecheck-result
   - build-result
 contractLock:
   wbsRevision: "sha256:b35b1d8d8b7f182d19c0103fddcdcb3869d7c6f0e70a77cbc3bccb8cfa4deeb7"
-  wbsNodeId: node-spec-contracts
-  createdAt: "2026-06-28T06:14:56.687Z"
+  wbsNodeId: node-lightweight-doctor
+  createdAt: "2026-06-28T06:15:31.360Z"
