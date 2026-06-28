@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-022-review-routing",
+  "author": "codex",
+  "reason": "Add review routing work package for automatic reviewer recommendation.",
+  "dryRun": true,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-lightweight-review-routing",
+        "parentId": "node-lightweight-orchestration",
+        "code": "1.9.14",
+        "name": "Review routing command",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "review request records requested reviewers based on changed files.",
+          "review route previews reviewer assignments without writing files.",
+          "unresolved reviewer roles are surfaced for Human Gate follow-up."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    }
+  ]
+}

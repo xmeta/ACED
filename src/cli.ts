@@ -15,7 +15,7 @@ import { runNext } from "./commands/next.js";
 import { runPlan } from "./commands/plan.js";
 import { runProfileSet, runProfileShow } from "./commands/profile.js";
 import { runRegistryRebuild } from "./commands/registry-rebuild.js";
-import { runReviewRequest } from "./commands/review-request.js";
+import { runReviewRequest, runReviewRoute } from "./commands/review-request.js";
 import { runReviewQueue } from "./commands/review-queue.js";
 import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
@@ -43,6 +43,7 @@ function usage(): void {
   scwbs profile show
   scwbs profile set <lean|standard|strict>
   scwbs review request --task <task-id> [--pull-request <id>] [--force]
+  scwbs review route --task <task-id>
   scwbs next
   scwbs start <goal>
   scwbs plan --spec <spec-id>
@@ -226,6 +227,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       pullRequest: valueAfter(argv, "--pull-request"),
       force: argv.includes("--force")
     });
+  }
+  if (command === "review" && subcommand === "route") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runReviewRoute(root, taskId);
   }
   if (command === "lite" && subcommand === "task") {
     const title = argv.slice(2).join(" ").trim();

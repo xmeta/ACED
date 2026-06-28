@@ -13,7 +13,7 @@ import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { readProfile, runProfileSet } from "../src/commands/profile.js";
 import { buildTaskRefreshPreview, runTaskRefresh } from "../src/commands/task-refresh.js";
-import { buildReviewRequestYaml, runReviewRequest } from "../src/commands/review-request.js";
+import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../src/commands/review-request.js";
 import { buildTrace } from "../src/commands/trace.js";
 import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
 import { buildStatus } from "../src/commands/status.js";
@@ -696,6 +696,30 @@ describe("scwbs MVP", () => {
     const trace = buildTrace(root, "WBS-001-004");
     expect(trace).toContain("Review: RVW-WBS-001-004 requested");
     expect(trace).toContain("Evidence: missing");
+  });
+
+  test("review route and request include requested reviewers from evidence changes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: [
+          "src/features/api/index.ts",
+          "contracts/tasks/WBS-001-004.yaml"
+        ]
+      }) as unknown as Record<string, unknown>
+    );
+    const route = buildReviewRouteReport(root, "WBS-001-004");
+    expect(route).toContain("code-owner");
+    expect(route).toContain("methodology-owner");
+
+    expect(runReviewRequest(root, "WBS-001-004", { pullRequest: "#42", force: false })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("requestedReviewers:");
+    expect(review).toContain("role: code-owner");
+    expect(review).toContain("role: methodology-owner");
   });
 
   test("health warns when changed test files lack test quality metadata", () => {
