@@ -57,6 +57,25 @@
       ]
     },
     {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "Contract YAML files are parsed into objects and validated with JSON Schema.",
+        "Task Contract, Evidence, Approval, and Registry schemas are documented and enforced by scwbs check.",
+        "Existing semantic validators remain responsible for repository references and cross-file consistency.",
+        "The supported YAML subset and schema validation boundary are documented."
+      ],
+      "outputs": [
+        "artifact-spec-schema"
+      ],
+      "tags": [],
+      "id": "node-yaml-json-schema-validation",
+      "parentId": "node-spec-contracts",
+      "code": "1.2.1",
+      "name": "YAML contract JSON Schema validation",
+      "type": "workPackage"
+    },
+    {
       "id": "node-test-quality",
       "parentId": "node-project",
       "code": "1.3",
@@ -449,6 +468,12 @@
       "type": "dependsOn",
       "source": "node-wbs-tool-only",
       "target": "node-meta-file-safety"
+    },
+    {
+      "id": "rel-yaml-json-schema-validation-depends-on-spec-contracts",
+      "type": "dependsOn",
+      "source": "node-yaml-json-schema-validation",
+      "target": "node-spec-contracts"
     }
   ],
   "resources": [
