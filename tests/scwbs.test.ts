@@ -20,7 +20,7 @@ import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
-import { listSpecs, readSpec } from "../src/core/contracts.js";
+import { listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readTask } from "../src/core/contracts.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
 import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
@@ -61,6 +61,53 @@ describe("scwbs MVP", () => {
     expect(spec?.status).toBe("approved");
     expect(spec?.approvedBy).toBe("Product Owner");
     expect(listSpecs(root).some((entry) => entry.path === "contracts/specs/SPEC-F001-API.yaml" && entry.issues.length === 0)).toBe(true);
+  });
+
+  test("YAML contract reads run JSON Schema validation after parsing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      mode: "full"
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+  });
+
+  test("JSON Schema validation applies to every YAML contract kind", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", { projectId: "test-wbs", contracts: [{ id: "TASK-WBS-001-004", type: "bad", path: "contracts/tasks/WBS-001-004.yaml" }] });
+    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", { ...sampleSpec(), status: "archived" });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", { ...sampleEvidence(), checks: [{ name: "test", status: "unknown" }] });
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...sampleApproval(), status: "waiting" });
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "pending",
+      reviewProfile: "self-review",
+      groundTruth: ["contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    expect(readRegistry(root).issues.some((issue) => issue.code === "registry.schema")).toBe(true);
+    expect(readSpec(root, "contracts/specs/SPEC-F001-API.yaml").issues.some((issue) => issue.code === "spec.schema")).toBe(true);
+    expect(readEvidence(root, "WBS-001-004").issues.some((issue) => issue.code === "evidence.schema")).toBe(true);
+    expect(readApproval(root, "WBS-001-004").issues.some((issue) => issue.code === "approval.schema")).toBe(true);
+    expect(readReview(root, "WBS-001-004").issues.some((issue) => issue.code === "review.schema")).toBe(true);
+  });
+
+  test("semantic validation still owns repository consistency after schema validation", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ wbsNodeId: "missing-node" }) as unknown as Record<string, unknown>);
+
+    const directRead = readTask(root, "WBS-001-004");
+    expect(directRead.issues).toEqual([]);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "task.wbsNodeId")).toBe(true);
   });
 
   test("missing wbsNodeId is an error", () => {
