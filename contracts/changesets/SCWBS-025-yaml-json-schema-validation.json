@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-025-yaml-json-schema-validation",
+  "author": "codex",
+  "reason": "Add a planned work package for validating YAML contract files with JSON Schema.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-yaml-json-schema-validation",
+        "parentId": "node-spec-contracts",
+        "code": "1.2.1",
+        "name": "YAML contract JSON Schema validation",
+        "type": "workPackage",
+        "status": "planned",
+        "acceptanceCriteria": [
+          "Contract YAML files are parsed into objects and validated with JSON Schema.",
+          "Task Contract, Evidence, Approval, and Registry schemas are documented and enforced by scwbs check.",
+          "Existing semantic validators remain responsible for repository references and cross-file consistency.",
+          "The supported YAML subset and schema validation boundary are documented."
+        ],
+        "outputs": [
+          "artifact-spec-schema"
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-002",
+      "operation": "addRelation",
+      "relation": {
+        "id": "rel-yaml-json-schema-validation-depends-on-spec-contracts",
+        "type": "dependsOn",
+        "source": "node-yaml-json-schema-validation",
+        "target": "node-spec-contracts"
+      }
+    }
+  ]
+}
