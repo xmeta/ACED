@@ -1,0 +1,37 @@
+id: SCWBS-025
+type: task-contract
+wbsNodeId: node-yaml-json-schema-validation
+featureId: F-SCWBS-SPEC
+branchName: codex/wbs-yaml-json-schema-validation
+allowedPaths:
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - contracts/approvals/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - WBS contains a planned work package for YAML contract JSON Schema validation.
+  - WBS change is represented by a semantic changeset.
+  - Task Contract and Evidence exist for the WBS addition.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b7cb6e6d7d50f456653e4d8d670c2cd2fa2562c9c009d0e790591b6ce1b04939"
+  wbsNodeId: node-yaml-json-schema-validation
+  createdAt: "2026-06-29T15:06:20.853Z"
