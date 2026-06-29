@@ -1,20 +1,20 @@
-id: SCWBS-001
+id: SCWBS-024
 type: task-contract
 wbsNodeId: node-dogfood-contracts
 featureId: F-SCWBS-DOGFOOD
-branchName: task/SCWBS-001-dogfood-sc-wbs-contracts
+branchName: codex/architecture-audit-doc
 allowedPaths:
-  - contracts/**
   - docs/**
-  - README.md
-  - AGENTS.md
-  - src/**
-  - tests/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/registry.yaml
 forbiddenPaths:
   - wjs/**
 humanGateRequiredPaths:
   - package.json
   - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
   - .github/**
   - contracts/wbs/project.wbs.json
 requiredChecks:
@@ -22,10 +22,9 @@ requiredChecks:
   - typecheck
   - build
 doneCriteria:
-  - Project has canonical SC-WBS contracts under contracts/
-  - WBS-JSON validates with wjs and scwbs check
-  - Current implementation work is represented by a Task Contract
-  - Documentation explains how the repository is dogfooded
+  - Architecture audit findings are verified against current implementation.
+  - Incorrect audit claims are corrected or removed.
+  - Related documentation reflects confirmed behavior and remaining gaps.
 evidenceRequired:
   - test-result
   - typecheck-result
@@ -35,4 +34,4 @@ contractLock:
   wbsNodeId: node-dogfood-contracts
   specVersion: 0.1.0
   specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
-  createdAt: "2026-06-29T11:59:47.131Z"
+  createdAt: "2026-06-29T12:01:56.613Z"

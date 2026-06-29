@@ -56,13 +56,13 @@ PRを開く前に `npm run scwbs -- evidence collect --task <task-id>` を実行
 これらを変更するTask Contractは、対象ファイルを `allowedPaths` または `humanGateRequiredPaths` に明示しなければならない。
 明示されていない場合、`scwbs check-diff` はErrorとして扱う。
 
-`scwbs health` は、契約ファイルと実装のdriftを検出する。
+`scwbs health` は、契約ファイルとEvidence metadataから運用健全性のdriftを検出する。
 
 ```bash
 npm run scwbs -- health
 ```
 
-`scwbs check` が構文、参照、存在確認を扱うのに対し、`scwbs health` は運用健全性を扱う。代表的な検出対象は以下である。
+`scwbs check` が構文、参照、存在確認を扱うのに対し、`scwbs health` は運用健全性を扱う。現行実装の代表的な検出対象は以下である。
 
 * Evidenceの信頼度が低い
 * Evidenceのcommitが欠けている、またはGitで確認できない
@@ -71,9 +71,12 @@ npm run scwbs -- health
 * registry上のRequirement ContractやSpec Contractにstatusがない
 * Spec Contractにversion相当の情報がない
 * Task Contractに `contractLock` がない
-* テストファイルの差分で、assertion、expect、snapshot、fixture検証などの検証要素が確認できない
-* 既存テストがskip化、コメントアウト、または削除されているが、Evidenceまたは承認記録に理由がない
-* coverage summaryが存在する場合に、対象範囲のカバレッジが低下している
+* テストファイルを変更したEvidenceに `testQuality` metadataがない
+* Evidenceの `testQuality.assertionsAdded` が `false` である
+* Evidenceの `testQuality.testsDisabled` が `true` である
+* Evidenceの `testQuality.coverageDecreased` が `true` である
+
+現行の `scwbs health` は、テスト差分のAST解析、assertion数の自動比較、coverage reportの直接解析は行わない。これらは `testQuality` metadataに記録された内容を検査する。
 
 ---
 
