@@ -14,6 +14,9 @@ This repository is managed with its own SC-WBS contracts under `contracts/`.
 * Treat `contracts/tasks/*.yaml` as the allowed work scope for AI implementation.
 * For repository work, start by reading the active Task Contract and run `scwbs check-diff --task <task-id>` before Done.
 * Respect `allowedPaths`, `forbiddenPaths`, and `humanGateRequiredPaths`.
+* Documentation-only or audit branches still need an explicit Task Contract, Evidence, and registry entry before they are mergeable.
+* If `scwbs check` reports stale `contractLock.wbsRevision` after a WBS update, refresh affected Task Contracts with `scwbs task refresh --task <task-id> --apply` and rerun `scwbs registry rebuild --check`.
+* Do not rely on `--help` unless the command explicitly supports it; some current `scwbs` subcommands treat extra arguments as ignored and may still write files.
 * If a change needs Human Gate approval, stop implementation and use `scwbs ai block` to propose a blocked WBS change set.
 * Do not mark a WBS node `completed`; completion is a human decision after Evidence and review are present.
 * Do not revert user changes or unrelated local changes.
