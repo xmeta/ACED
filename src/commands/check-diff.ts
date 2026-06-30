@@ -1,5 +1,5 @@
 import { approvalExists, readEvidence, readTask } from "../core/contracts.js";
-import { changedFiles, currentBranch } from "../core/git.js";
+import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
@@ -76,13 +76,24 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
   }));
 }
 
-export function runCheckDiff(root: string, taskId: string): number {
+export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string } = {}): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     printIssues(issues);
     return 1;
   }
-  const files = changedFiles(root);
+  const baseRef = options.baseRef ?? "origin/main";
+  let files: string[] = [];
+  try {
+    files = branchChangedFiles(root, baseRef);
+  } catch (error) {
+    printIssues([{
+      severity: "error",
+      code: "diff.git.base",
+      message: error instanceof Error ? error.message : String(error)
+    }]);
+    return 1;
+  }
   const diffIssues = [
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task),

@@ -74,6 +74,8 @@ export type Evidence = {
   git?: {
     branch?: string;
     base?: string;
+    baseCommit?: string;
+    changedFilesBasis?: "working-tree" | "branch-diff" | string;
     headCommit?: string;
     pullRequest?: string;
   };

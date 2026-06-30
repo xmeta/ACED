@@ -1,0 +1,50 @@
+id: SCWBS-027
+type: task-contract
+wbsNodeId: node-evidence-provenance-diff-basis
+featureId: F-SCWBS-LIGHTWEIGHT-EVIDENCE
+branchName: codex/evidence-provenance-diff-basis
+allowedPaths:
+  - src/core/git.ts
+  - src/core/types.ts
+  - src/core/schema.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/health.ts
+  - src/cli.ts
+  - tests/**
+  - docs/scwbs/**
+  - docs/implementation-gaps.md
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - contracts/approvals/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Working-tree changed files and base/head branch diffs are exposed as separate Git helper APIs.
+  - check-diff uses a configurable base/head branch diff for PR readiness.
+  - evidence collect records base, baseCommit, headCommit, changedFilesBasis, and branch-diff changedFiles.
+  - health warns when Evidence provenance is missing or stale.
+  - Documentation describes the branch-diff default and provenance warnings.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:8c1e278ee58d89e7305756c4146817883241e904feb836d051b18e31a19e1330"
+  wbsNodeId: node-evidence-provenance-diff-basis
+  createdAt: "2026-06-30T01:34:42.499Z"
