@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+const TEXT_FILE_PATTERN = /\.(cjs|js|json|md|ts|tsx|yaml|yml)$/;
 
 function gitLines(root: string, args: string[], errorMessage: string): string[] {
   const result = spawnSync("git", ["-c", "core.quotePath=false", ...args], {
@@ -12,7 +15,7 @@ function gitLines(root: string, args: string[], errorMessage: string): string[] 
 }
 
 export function workingTreeChangedFiles(root: string): string[] {
-  const tracked = spawnSync("git", ["-c", "core.quotePath=false", "diff", "--name-only", "HEAD"], {
+  const tracked = spawnSync("git", ["-c", "core.quotePath=false", "diff", "--ignore-submodules=dirty", "--name-only", "HEAD"], {
     cwd: root,
     encoding: "utf8"
   });
@@ -71,4 +74,40 @@ export function commitExists(root: string, commit: string): boolean {
     encoding: "utf8"
   });
   return result.status === 0;
+}
+
+export function trackedTextFiles(root: string): string[] {
+  return gitLines(root, ["ls-files"], "git ls-files failed").filter((file) => TEXT_FILE_PATTERN.test(file));
+}
+
+export function filesWithCrlf(root: string): string[] {
+  return trackedTextFiles(root).filter((file) => readFileSync(`${root}/${file}`, "utf8").includes("\r\n"));
+}
+
+function submoduleHasDirtyState(root: string, submodulePath: string): boolean {
+  const status = spawnSync("git", ["-C", submodulePath, "status", "--short"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  const eol = spawnSync("git", ["-C", submodulePath, "ls-files", "--eol"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return (status.status === 0 && status.stdout.trim().length > 0)
+    || (eol.status === 0 && /\bw\/crlf\b/.test(eol.stdout));
+}
+
+export function dirtySubmodulePaths(root: string): string[] {
+  const status = spawnSync("git", ["-c", "core.quotePath=false", "submodule", "status", "--recursive"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (status.status !== 0) return [];
+  const paths = status.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split(/\s+/)[1])
+    .filter((path): path is string => Boolean(path));
+  return paths.filter((submodulePath) => submoduleHasDirtyState(root, submodulePath));
 }

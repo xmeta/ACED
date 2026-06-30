@@ -594,6 +594,31 @@ describe("scwbs MVP", () => {
     expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(false);
   });
 
+  test("health warns when tracked text files contain CRLF line endings", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "README.md", "title\r\n");
+    execFileSync("git", ["add", "README.md"], { cwd: root });
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.workingTree.crlf" && issue.message.includes("README.md"))).toBe(true);
+  });
+
+  test("health warns when a submodule worktree is dirty", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    mkdirSync(path.join(root, "wjs"), { recursive: true });
+    execFileSync("git", ["init"], { cwd: path.join(root, "wjs"), stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: path.join(root, "wjs") });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: path.join(root, "wjs") });
+    writeText(root, "wjs/README.md", "clean\n");
+    execFileSync("git", ["add", "README.md"], { cwd: path.join(root, "wjs") });
+    execFileSync("git", ["commit", "-m", "initial"], { cwd: path.join(root, "wjs"), stdio: "ignore" });
+    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", "./wjs", "vendor/wjs"], { cwd: root, stdio: "ignore" });
+    writeText(root, "vendor/wjs/README.md", "dirty\n");
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.submodule.dirty" && issue.message.includes("vendor/wjs"))).toBe(true);
+  }, 15000);
+
   test("health warns when task contract has no contract lock", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

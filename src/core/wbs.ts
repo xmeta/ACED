@@ -70,16 +70,48 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
   return issues;
 }
 
+function validateOperationsFallback(target: string): Issue[] {
+  try {
+    const document = readJsonFile<unknown>(target);
+    if (typeof document !== "object" || document === null || Array.isArray(document)) {
+      return [{ severity: "error", code: "wjs.validate", message: "operation change set must be an object" }];
+    }
+    const value = document as Record<string, unknown>;
+    const issues: Issue[] = [];
+    for (const key of ["schemaVersion", "targetWbsId", "changeSetId", "operations"]) {
+      if (value[key] === undefined) issues.push({ severity: "error", code: "wjs.validate", message: `operation change set missing ${key}` });
+    }
+    if (!Array.isArray(value.operations)) {
+      issues.push({ severity: "error", code: "wjs.validate", message: "operation change set operations must be an array" });
+    }
+    return issues;
+  } catch (error) {
+    return [{ severity: "error", code: "wjs.validate", message: error instanceof Error ? error.message : String(error) }];
+  }
+}
+
 export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
   const wjsRoot = path.resolve(root, "wjs");
   const validator = path.resolve(wjsRoot, "tools/validate.ts");
   const target = resolveFrom(root, relativePath);
   if (!existsSync(validator)) return validateWbsDocument(root, relativePath);
 
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
+  let result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
     cwd: wjsRoot,
     encoding: "utf8"
   });
+  if (result.status !== 0 && result.stderr?.includes("ERR_NO_TYPESCRIPT")) {
+    result = spawnSync(process.execPath, ["tools/validate.ts", `--${kind}`, target], {
+      cwd: wjsRoot,
+      encoding: "utf8"
+    });
+  }
+  if (result.status !== 0 && kind === "operations" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
+    return validateOperationsFallback(target);
+  }
+  if (result.status !== 0 && kind === "wbs" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
+    return validateWbsDocument(root, relativePath);
+  }
 
   if (result.status === 0) return [];
   const lines = `${result.stderr}\n${result.stdout}`.split(/\r?\n/).filter(Boolean);
