@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-027-evidence-provenance-diff-basis",
+  "author": "codex",
+  "reason": "Add a ready work package for provenance-aware Evidence changed file collection and PR readiness diff checks.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-evidence-provenance-diff-basis",
+        "parentId": "node-lightweight-evidence-collect",
+        "code": "1.9.2.1",
+        "name": "Evidence provenance and diff basis",
+        "type": "workPackage",
+        "status": "ready",
+        "acceptanceCriteria": [
+          "Working-tree changed files and base/head branch diffs are separate Git helper APIs.",
+          "check-diff uses a configurable base/head branch diff for PR readiness.",
+          "evidence collect records base, base commit, head commit, changed file basis, and branch-diff changed files.",
+          "health warns when Evidence provenance is missing or stale."
+        ],
+        "outputs": [
+          "artifact-contracts"
+        ],
+        "tags": [
+          "evidence",
+          "provenance"
+        ]
+      },
+      "position": {
+        "mode": "after",
+        "siblingId": "node-lightweight-evidence-collect"
+      }
+    },
+    {
+      "operationId": "op-002",
+      "operation": "addRelation",
+      "relation": {
+        "id": "rel-evidence-provenance-diff-basis-depends-on-evidence-collect",
+        "type": "dependsOn",
+        "source": "node-evidence-provenance-diff-basis",
+        "target": "node-lightweight-evidence-collect"
+      }
+    }
+  ]
+}

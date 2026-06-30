@@ -4,7 +4,8 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
-import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues } from "../src/commands/check-diff.js";
+import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../src/commands/check-diff.js";
+import { buildCollectedEvidence } from "../src/commands/evidence-collect.js";
 import { buildDoctorReport } from "../src/commands/doctor.js";
 import { buildStartArtifacts } from "../src/commands/start.js";
 import { buildReviewQueue } from "../src/commands/review-queue.js";
@@ -20,7 +21,8 @@ import { buildStatus } from "../src/commands/status.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
-import { listSpecs, readSpec } from "../src/core/contracts.js";
+import { listSpecs, readEvidence, readSpec } from "../src/core/contracts.js";
+import { branchChangedFiles, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
 import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
@@ -153,6 +155,62 @@ describe("scwbs MVP", () => {
     const task = sampleTask({ allowedPaths: ["contracts/**"] });
     const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
     expect(issues.some((issue) => issue.code.startsWith("diff.wbsOperations."))).toBe(true);
+  });
+
+  test("git changed file helpers split working-tree and branch diff basis", () => {
+    const root = makeTempRepo();
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "branch change"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/features/api/uncommitted.ts", "export const pending = true;\n");
+    writeText(root, "src/features/api/untracked.ts", "export const extra = true;\n");
+
+    expect(branchChangedFiles(root, "base")).toEqual(["src/features/api/index.ts"]);
+    expect(workingTreeChangedFiles(root).sort()).toEqual([
+      "src/features/api/uncommitted.ts",
+      "src/features/api/untracked.ts"
+    ]);
+  });
+
+  test("check-diff uses branch diff files from the requested base", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    writeText(root, "src/auth/session.ts", "export const forbidden = true;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "forbidden branch change"], { cwd: root, stdio: "ignore" });
+
+    expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(1);
+  });
+
+  test("evidence collect records branch diff provenance from the requested base", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(evidence.git?.base).toBe("base");
+    expect(evidence.git?.baseCommit).toBeTruthy();
+    expect(evidence.git?.headCommit).toBe(headCommit(root));
+    expect(evidence.git?.changedFilesBasis).toBe("branch-diff");
+    expect(evidence.changedFiles).toContain("src/features/api/index.ts");
   });
 
   test("check rejects direct WBS edits without a corresponding changeset", () => {
@@ -417,6 +475,60 @@ describe("scwbs MVP", () => {
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.missing")).toBe(true);
     expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(true);
+  });
+
+  test("evidence git provenance fields are validated as strings", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          baseCommit: "abc1234",
+          changedFilesBasis: false as unknown as string,
+          headCommit: "abc1234"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const { issues } = readEvidence(root, "WBS-001-004");
+    expect(issues.some((issue) => issue.code === "evidence.git")).toBe(true);
+  });
+
+  test("health warns when evidence provenance basis is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.changedFilesBasis.missing")).toBe(true);
+  });
+
+  test("health warns when evidence head commit is stale", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    const oldHead = headCommit(root) ?? "";
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "base",
+          baseCommit: oldHead,
+          changedFilesBasis: "branch-diff",
+          headCommit: oldHead
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(true);
   });
 
   test("health accepts approval pull request metadata when evidence pull request is missing", () => {

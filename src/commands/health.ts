@@ -1,5 +1,5 @@
 import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { commitExists } from "../core/git.js";
+import { commitExists, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -23,6 +23,7 @@ function strongestEvidenceLevel(evidence: Evidence): EvidenceLevel {
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
+  const currentHead = headCommit(root);
   const { approval, issues: approvalIssues } = readApproval(root, task.id);
   const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
   const approvalPullRequest = approval?.pullRequest;
@@ -61,6 +62,21 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
   } else if (!commitExists(root, evidence.git.headCommit)) {
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
+  } else if (currentHead && evidence.git.headCommit !== currentHead) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.stale", message: `${task.id} evidence git.headCommit ${evidence.git.headCommit} does not match current HEAD ${currentHead}` });
+  }
+  if (!evidence.git?.changedFilesBasis) {
+    issues.push({ severity: "warn", code: "health.evidence.git.changedFilesBasis.missing", message: `${task.id} evidence has no git.changedFilesBasis` });
+  }
+  if (evidence.git?.changedFilesBasis === "branch-diff") {
+    if (!evidence.git.base) {
+      issues.push({ severity: "warn", code: "health.evidence.git.base.missing", message: `${task.id} branch-diff evidence has no git.base` });
+    }
+    if (!evidence.git.baseCommit) {
+      issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.missing", message: `${task.id} branch-diff evidence has no git.baseCommit` });
+    } else if (!commitExists(root, evidence.git.baseCommit)) {
+      issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
+    }
   }
   if (node && !isDoneNode(node) && !evidence.git?.pullRequest && !approvalPullRequest) {
     issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });

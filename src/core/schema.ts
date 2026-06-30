@@ -139,7 +139,7 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
     if (!isObject(value.git)) {
       issues.push(issue("evidence.git", `${filePath}.git must be an object when present`));
     } else {
-      for (const key of ["branch", "base", "headCommit", "pullRequest"]) {
+      for (const key of ["branch", "base", "baseCommit", "changedFilesBasis", "headCommit", "pullRequest"]) {
         if (value.git[key] !== undefined && typeof value.git[key] !== "string") {
           issues.push(issue("evidence.git", `${filePath}.git.${key} must be a string when present`));
         }

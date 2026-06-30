@@ -32,13 +32,13 @@ function usage(): void {
   scwbs check
   scwbs doctor
   scwbs health
-  scwbs check-diff --task <task-id>
+  scwbs check-diff --task <task-id> [--base <ref>]
   scwbs ai packet --task <task-id> [--relation-depth <n>]
   scwbs ai run --task <task-id> [--agent codex]
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
-  scwbs evidence collect --task <task-id> [--force]
+  scwbs evidence collect --task <task-id> [--base <ref>] [--force]
   scwbs registry rebuild [--check] [--force]
   scwbs profile show
   scwbs profile set <lean|standard|strict>
@@ -149,7 +149,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runCheckDiff(root, taskId);
+    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base") });
   }
   if (command === "ai" && subcommand === "packet") {
     const taskId = valueAfter(argv, "--task");
@@ -204,7 +204,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runEvidenceCollect(root, taskId, { force: argv.includes("--force") });
+    return runEvidenceCollect(root, taskId, { force: argv.includes("--force"), baseRef: valueAfter(argv, "--base") });
   }
   if (command === "registry" && subcommand === "rebuild") {
     return runRegistryRebuild(root, { check: argv.includes("--check"), force: argv.includes("--force") });
