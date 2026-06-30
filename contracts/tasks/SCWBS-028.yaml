@@ -1,0 +1,37 @@
+id: SCWBS-028
+type: task-contract
+wbsNodeId: node-dogfood-contracts
+featureId: F-SCWBS-DOGFOOD
+branchName: task/SCWBS-003-test-quality-and-coverage-verification
+allowedPaths:
+  - contracts/tasks/SCWBS-028.yaml
+  - contracts/evidence/SCWBS-003.yaml
+  - contracts/evidence/SCWBS-028.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-003 Evidence is recorded without implementation changes.
+  - Registry indexes the SCWBS-003 Evidence file.
+  - Evidence backfill has its own Task Contract and Evidence.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:8c1e278ee58d89e7305756c4146817883241e904feb836d051b18e31a19e1330"
+  wbsNodeId: node-dogfood-contracts
+  specVersion: 0.1.0
+  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+  createdAt: "2026-06-30T07:01:42.677Z"
