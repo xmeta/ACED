@@ -1,5 +1,5 @@
 import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { changedFilesSince, commitExists, dirtySubmodulePaths, filesWithCrlf, headCommit } from "../core/git.js";
+import { baseBranchStatus, changedFilesSince, commitExists, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -165,6 +165,23 @@ function validateRegistryHealth(contract: RegistryContract): Issue[] {
 
 function validateRepositoryHealth(root: string): Issue[] {
   const issues: Issue[] = [];
+  const baseStatus = baseBranchStatus(root);
+  if (baseStatus.isBehind) {
+    issues.push({
+      severity: "warn",
+      code: "health.git.baseBehind",
+      message: `current branch is behind ${baseStatus.baseRef}; merge or rebase before collecting final Evidence`
+    });
+  }
+  const collidingContractFiles = filesAddedOnBothSides(root)
+    .filter((file) => /^contracts\/(tasks|evidence|approvals|changesets)\//.test(file.replace(/\\/g, "/")));
+  for (const file of collidingContractFiles) {
+    issues.push({
+      severity: "warn",
+      code: "health.git.addedPathCollision",
+      message: `${file} was also added on ${baseStatus.baseRef} with different content; rename or reassign the task before merge`
+    });
+  }
   for (const file of filesWithCrlf(root)) {
     issues.push({ severity: "warn", code: "health.workingTree.crlf", message: `${file} contains CRLF line endings` });
   }

@@ -56,6 +56,41 @@ export function mergeBase(root: string, baseRef: string, headRef = "HEAD"): stri
   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
 }
 
+function gitObject(root: string, ref: string, file: string): string | undefined {
+  const result = spawnSync("git", ["show", `${ref}:${file}`], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return result.status === 0 ? result.stdout : undefined;
+}
+
+export function baseBranchStatus(root: string, baseRef = "origin/main"): { baseRef: string; baseCommit?: string; mergeBase?: string; headCommit?: string; isBehind: boolean } {
+  const baseCommit = resolveCommit(root, baseRef);
+  const currentHead = headCommit(root);
+  const commonBase = baseCommit && currentHead ? mergeBase(root, baseRef, "HEAD") : undefined;
+  return {
+    baseRef,
+    baseCommit,
+    mergeBase: commonBase,
+    headCommit: currentHead,
+    isBehind: Boolean(baseCommit && commonBase && baseCommit !== commonBase)
+  };
+}
+
+export function filesAddedOnBothSides(root: string, baseRef = "origin/main"): string[] {
+  const commonBase = mergeBase(root, baseRef, "HEAD");
+  if (!commonBase) return [];
+  const addedInHead = gitLines(root, ["diff", "--name-only", "--diff-filter=A", `${commonBase}..HEAD`], "git diff failed");
+  return addedInHead.filter((file) => {
+    const baseContent = gitObject(root, baseRef, file);
+    if (baseContent === undefined) return false;
+    const commonBaseContent = gitObject(root, commonBase, file);
+    if (commonBaseContent !== undefined) return false;
+    const headContent = gitObject(root, "HEAD", file);
+    return headContent !== baseContent;
+  });
+}
+
 export function currentBranch(root: string): string | undefined {
   const result = spawnSync("git", ["branch", "--show-current"], {
     cwd: root,

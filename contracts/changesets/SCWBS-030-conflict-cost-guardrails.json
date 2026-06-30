@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-030-conflict-cost-guardrails",
+  "author": "codex",
+  "reason": "Add a planned work package for low-cost conflict prevention guardrails learned from PR #15.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-conflict-cost-guardrails",
+        "parentId": "node-project",
+        "code": "1.11",
+        "name": "Conflict cost guardrails",
+        "type": "workPackage",
+        "status": "planned",
+        "outputs": [
+          "artifact-contracts",
+          "artifact-cli",
+          "artifact-methodology"
+        ],
+        "acceptanceCriteria": [
+          "scwbs health warns when the current branch is behind origin/main.",
+          "scwbs health warns when both sides added the same SC-WBS contract path with different content.",
+          "Documentation records the PR #15 conflict lesson and the pre-PR mitigation workflow."
+        ],
+        "tags": [
+          "meta-health",
+          "conflict-mitigation"
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    }
+  ]
+}

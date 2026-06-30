@@ -53,3 +53,9 @@
 - PR作成後にEvidenceへPR metadataを記録する運用を徹底する。
 - 古いEvidenceは各タスクの所有範囲で再採取する。
 - サブモジュールの更新は専用タスクに分け、親リポジトリのSC-WBS evidenceと混ぜない。
+
+## 追加知見: PR #15のコンフリクト解消
+
+PR #15では、`origin/main` 側が先に `SCWBS-028` を使い、このPR側も同じ `contracts/tasks/SCWBS-028.yaml` と `contracts/evidence/SCWBS-028.yaml` を追加していたため add/add conflict が発生した。解消には、このPR側の作業を `SCWBS-029` にリネームし、Task Contract、Approval、Changeset、Evidence、Registryを再生成する必要があった。
+
+この作業は実装価値を増やさない純粋な調整コストだった。再発防止として、`scwbs health` は現在ブランチが `origin/main` より遅れている場合と、双方が同じSC-WBS契約パスを異なる内容で追加している場合に警告する。Evidence採取やPR待ちの前にこの警告を解消することで、無駄なCI待ちとEvidence再採取を減らす。

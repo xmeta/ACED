@@ -22,7 +22,7 @@ import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-genera
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readTask } from "../src/core/contracts.js";
-import { branchChangedFiles, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
+import { baseBranchStatus, branchChangedFiles, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
 import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
@@ -222,6 +222,29 @@ describe("scwbs MVP", () => {
       "src/features/api/uncommitted.ts",
       "src/features/api/untracked.ts"
     ]);
+  });
+
+  test("git helpers detect branch lag and same-path additions on base", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: root });
+
+    execFileSync("git", ["switch", "-c", "feature"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/tasks/SCWBS-030.yaml", sampleTask({ id: "SCWBS-030", featureId: "F-OURS" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature task"], { cwd: root, stdio: "ignore" });
+
+    execFileSync("git", ["switch", "-c", "upstream", "refs/remotes/origin/main"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/tasks/SCWBS-030.yaml", sampleTask({ id: "SCWBS-030", featureId: "F-THEIRS" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "upstream task"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: root });
+    execFileSync("git", ["switch", "feature"], { cwd: root, stdio: "ignore" });
+
+    expect(baseBranchStatus(root).isBehind).toBe(true);
+    expect(filesAddedOnBothSides(root)).toContain("contracts/tasks/SCWBS-030.yaml");
   });
 
   test("check-diff uses branch diff files from the requested base", () => {
@@ -649,6 +672,30 @@ describe("scwbs MVP", () => {
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.workingTree.crlf" && issue.message.includes("README.md"))).toBe(true);
   });
+
+  test("health warns when current branch is behind base and contract paths collide", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: root });
+
+    execFileSync("git", ["switch", "-c", "feature"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/tasks/SCWBS-030.yaml", sampleTask({ id: "SCWBS-030", featureId: "F-OURS" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature task"], { cwd: root, stdio: "ignore" });
+
+    execFileSync("git", ["switch", "-c", "upstream", "refs/remotes/origin/main"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/tasks/SCWBS-030.yaml", sampleTask({ id: "SCWBS-030", featureId: "F-THEIRS" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "upstream task"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: root });
+    execFileSync("git", ["switch", "feature"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.git.baseBehind")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.git.addedPathCollision" && issue.message.includes("contracts/tasks/SCWBS-030.yaml"))).toBe(true);
+  }, 15000);
 
   test("health warns when a submodule worktree is dirty", () => {
     const root = makeTempRepo();
