@@ -1,3 +1,4 @@
+import { Ajv, type ErrorObject } from "ajv";
 import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -10,6 +11,229 @@ function isStringArray(value: unknown): value is string[] {
 
 function issue(code: string, message: string): Issue {
   return { severity: "error", code, message };
+}
+
+const ajv = new Ajv({ allErrors: true, strict: false });
+
+const stringArraySchema = {
+  type: "array",
+  items: { type: "string" }
+};
+
+const registrySchema = {
+  type: "object",
+  required: ["projectId", "contracts"],
+  additionalProperties: true,
+  properties: {
+    projectId: { type: "string", minLength: 1 },
+    contracts: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["id", "type", "path"],
+        additionalProperties: true,
+        properties: {
+          id: { type: "string", minLength: 1 },
+          type: { type: "string", enum: ["requirement", "spec", "task", "evidence", "approval", "review", "adr"] },
+          path: { type: "string", minLength: 1 },
+          status: { type: "string" },
+          version: { type: "string" },
+          featureId: { type: "string" },
+          relatedTask: { type: "string" }
+        }
+      }
+    }
+  }
+};
+
+const specContractSchema = {
+  type: "object",
+  required: ["id", "type", "featureId", "title", "status", "version", "acceptanceCriteria"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "spec-contract" },
+    featureId: { type: "string", minLength: 1 },
+    title: { type: "string", minLength: 1 },
+    status: { type: "string", enum: ["draft", "approved", "superseded"] },
+    version: { type: "string", minLength: 1 },
+    summary: { type: "string" },
+    sourcePaths: stringArraySchema,
+    acceptanceCriteria: stringArraySchema,
+    approvedBy: { type: "string" },
+    approvedAt: { type: "string" }
+  }
+};
+
+const taskContractSchema = {
+  type: "object",
+  required: ["id", "type", "wbsNodeId", "featureId", "allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "doneCriteria", "evidenceRequired"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "task-contract" },
+    mode: { const: "lite" },
+    wbsNodeId: { type: "string", minLength: 1 },
+    featureId: { type: "string", minLength: 1 },
+    branchName: { type: "string", minLength: 1 },
+    allowedPaths: stringArraySchema,
+    forbiddenPaths: stringArraySchema,
+    humanGateRequiredPaths: stringArraySchema,
+    requiredChecks: stringArraySchema,
+    doneCriteria: stringArraySchema,
+    evidenceRequired: stringArraySchema,
+    contractLock: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        wbsRevision: { type: "string" },
+        wbsNodeId: { type: "string" },
+        specVersion: { type: "string" },
+        specRevision: { type: "string" },
+        createdAt: { type: "string" }
+      }
+    }
+  }
+};
+
+const evidenceSchema = {
+  type: "object",
+  required: ["id", "type", "taskId", "changedFiles", "checks"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "evidence" },
+    taskId: { type: "string", minLength: 1 },
+    commit: { type: "string" },
+    changedFiles: stringArraySchema,
+    git: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        branch: { type: "string" },
+        base: { type: "string" },
+        headCommit: { type: "string" },
+        pullRequest: { type: "string" }
+      }
+    },
+    checks: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["name", "status"],
+        additionalProperties: true,
+        properties: {
+          name: { type: "string", minLength: 1 },
+          status: { type: "string", enum: ["passed", "failed", "skipped"] },
+          source: { type: "string" },
+          runId: { type: "string" },
+          url: { type: "string" },
+          command: { type: "string" },
+          executedAt: { type: "string" },
+          verifiedBy: { type: "string" }
+        }
+      }
+    },
+    testQuality: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        assertionsAdded: { type: "boolean" },
+        testsDisabled: { type: "boolean" },
+        coverageDecreased: { type: "boolean" },
+        notes: stringArraySchema
+      }
+    },
+    notes: stringArraySchema
+  }
+};
+
+const approvalRecordSchema = {
+  type: "object",
+  required: ["id", "type", "taskId", "status"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "approval" },
+    taskId: { type: "string", minLength: 1 },
+    status: { type: "string", enum: ["requested", "approved", "rejected"] },
+    approvedBy: { type: "string" },
+    approvedAt: { type: "string" },
+    pullRequest: { type: "string" },
+    notes: stringArraySchema
+  }
+};
+
+const reviewRecordSchema = {
+  type: "object",
+  required: ["id", "type", "taskId", "status", "reviewProfile", "groundTruth"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "review" },
+    taskId: { type: "string", minLength: 1 },
+    status: { type: "string", enum: ["requested", "approved", "changes-requested"] },
+    reviewProfile: { type: "string", minLength: 1 },
+    pullRequest: { type: "string" },
+    groundTruth: stringArraySchema,
+    requestedReviewers: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["role", "reason"],
+        additionalProperties: true,
+        properties: {
+          role: { type: "string", minLength: 1 },
+          user: { type: "string" },
+          reason: { type: "string", minLength: 1 }
+        }
+      }
+    },
+    notes: stringArraySchema
+  }
+};
+
+const schemaValidators = {
+  registry: ajv.compile(registrySchema),
+  spec: ajv.compile(specContractSchema),
+  task: ajv.compile(taskContractSchema),
+  evidence: ajv.compile(evidenceSchema),
+  approval: ajv.compile(approvalRecordSchema),
+  review: ajv.compile(reviewRecordSchema)
+};
+
+function formatSchemaPath(error: ErrorObject): string {
+  return error.instancePath ? error.instancePath.replace(/\//g, ".").replace(/^\./, "") : "<root>";
+}
+
+function schemaIssues(kind: keyof typeof schemaValidators, value: unknown, filePath: string): Issue[] {
+  const validate = schemaValidators[kind];
+  if (validate(value)) return [];
+  return (validate.errors ?? []).map((error: ErrorObject) => issue(`${kind}.schema`, `${filePath}.${formatSchemaPath(error)} ${error.message ?? "does not match schema"}`));
+}
+
+export function validateRegistrySchema(value: unknown, filePath = "registry"): Issue[] {
+  return schemaIssues("registry", value, filePath);
+}
+
+export function validateSpecContractSchema(value: unknown, filePath = "spec"): Issue[] {
+  return schemaIssues("spec", value, filePath);
+}
+
+export function validateTaskContractSchema(value: unknown, filePath = "task"): Issue[] {
+  return schemaIssues("task", value, filePath);
+}
+
+export function validateEvidenceSchema(value: unknown, filePath = "evidence"): Issue[] {
+  return schemaIssues("evidence", value, filePath);
+}
+
+export function validateApprovalRecordSchema(value: unknown, filePath = "approval"): Issue[] {
+  return schemaIssues("approval", value, filePath);
+}
+
+export function validateReviewRecordSchema(value: unknown, filePath = "review"): Issue[] {
+  return schemaIssues("review", value, filePath);
 }
 
 export function validateRegistry(value: unknown): Issue[] {

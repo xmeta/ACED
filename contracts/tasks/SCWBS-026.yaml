@@ -1,0 +1,39 @@
+id: SCWBS-026
+type: task-contract
+wbsNodeId: node-yaml-json-schema-validation
+featureId: F-SCWBS-SPEC
+branchName: codex/yaml-contract-json-schema-validation
+allowedPaths:
+  - src/core/schema.ts
+  - src/core/contracts.ts
+  - src/core/yaml.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/**
+  - contracts/evidence/SCWBS-026.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - YAML remains the authoring format for SC-WBS contract files.
+  - Parsed YAML contract objects are validated with JSON Schema before semantic validation.
+  - TypeScript semantic validators continue to own cross-file and repository consistency checks.
+  - Tests cover JSON Schema failures and the semantic validation boundary.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:8c1e278ee58d89e7305756c4146817883241e904feb836d051b18e31a19e1330"
+  wbsNodeId: node-yaml-json-schema-validation
+  createdAt: "2026-06-30T02:10:09.217Z"
