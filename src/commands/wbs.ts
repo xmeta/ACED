@@ -22,14 +22,20 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
     return 1;
   }
 
-  const args = ["--experimental-strip-types", applyTool, resolveFrom(root, defaultWbsPath), resolveFrom(root, changeSetPath)];
-  if (options.output) args.push("-o", resolveFrom(root, options.output));
-  if (options.force) args.push("--force");
+  const toolArgs = [applyTool, resolveFrom(root, defaultWbsPath), resolveFrom(root, changeSetPath)];
+  if (options.output) toolArgs.push("-o", resolveFrom(root, options.output));
+  if (options.force) toolArgs.push("--force");
 
-  const result = spawnSync(process.execPath, args, {
+  let result = spawnSync(process.execPath, ["--experimental-strip-types", ...toolArgs], {
     cwd: path.resolve(root, "wjs"),
     encoding: "utf8"
   });
+  if (result.status !== 0 && result.stderr?.includes("ERR_NO_TYPESCRIPT")) {
+    result = spawnSync(process.execPath, toolArgs, {
+      cwd: path.resolve(root, "wjs"),
+      encoding: "utf8"
+    });
+  }
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   return result.status ?? 1;

@@ -1,0 +1,77 @@
+id: EVD-SCWBS-029
+type: evidence
+taskId: SCWBS-029
+commit: 5b54ae150b23337964e72758410f8a8cd8781369
+git:
+  branch: codex/meta-health-audit-hygiene
+  base: origin/main
+  baseCommit: 0ad0a8874f7aebf5d247c0b1a20c4bfe364aa8fc
+  changedFilesBasis: branch-diff
+  headCommit: 5b54ae150b23337964e72758410f8a8cd8781369
+  pullRequest: "#15"
+changedFiles:
+  - .editorconfig
+  - .gitattributes
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-029.yaml
+  - contracts/changesets/SCWBS-029-meta-health-audit-hygiene.json
+  - contracts/evidence/SCWBS-029.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-001.yaml
+  - contracts/tasks/SCWBS-002.yaml
+  - contracts/tasks/SCWBS-003.yaml
+  - contracts/tasks/SCWBS-004.yaml
+  - contracts/tasks/SCWBS-005.yaml
+  - contracts/tasks/SCWBS-006.yaml
+  - contracts/tasks/SCWBS-007.yaml
+  - contracts/tasks/SCWBS-008.yaml
+  - contracts/tasks/SCWBS-009.yaml
+  - contracts/tasks/SCWBS-010.yaml
+  - contracts/tasks/SCWBS-011.yaml
+  - contracts/tasks/SCWBS-012.yaml
+  - contracts/tasks/SCWBS-013.yaml
+  - contracts/tasks/SCWBS-014.yaml
+  - contracts/tasks/SCWBS-015.yaml
+  - contracts/tasks/SCWBS-016.yaml
+  - contracts/tasks/SCWBS-017.yaml
+  - contracts/tasks/SCWBS-018.yaml
+  - contracts/tasks/SCWBS-019.yaml
+  - contracts/tasks/SCWBS-020.yaml
+  - contracts/tasks/SCWBS-021.yaml
+  - contracts/tasks/SCWBS-022.yaml
+  - contracts/tasks/SCWBS-023.yaml
+  - contracts/tasks/SCWBS-024.yaml
+  - contracts/tasks/SCWBS-025.yaml
+  - contracts/tasks/SCWBS-026.yaml
+  - contracts/tasks/SCWBS-027.yaml
+  - contracts/tasks/SCWBS-028.yaml
+  - contracts/tasks/SCWBS-029.yaml
+  - contracts/wbs/project.wbs.json
+  - docs/meta-health-audit-2026-06-30.md
+  - src/commands/health.ts
+  - src/commands/wbs.ts
+  - src/core/git.ts
+  - src/core/wbs.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-06-30T14:15:03.022Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-06-30T14:15:09.460Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-06-30T14:15:15.973Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added health coverage for CRLF text files and dirty submodule worktrees.

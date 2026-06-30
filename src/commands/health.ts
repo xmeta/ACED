@@ -1,5 +1,5 @@
 import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { changedFilesSince, commitExists, headCommit } from "../core/git.js";
+import { changedFilesSince, commitExists, dirtySubmodulePaths, filesWithCrlf, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -163,9 +163,26 @@ function validateRegistryHealth(contract: RegistryContract): Issue[] {
   return issues;
 }
 
+function validateRepositoryHealth(root: string): Issue[] {
+  const issues: Issue[] = [];
+  for (const file of filesWithCrlf(root)) {
+    issues.push({ severity: "warn", code: "health.workingTree.crlf", message: `${file} contains CRLF line endings` });
+  }
+  for (const submodulePath of dirtySubmodulePaths(root)) {
+    issues.push({ severity: "warn", code: "health.submodule.dirty", message: `${submodulePath} submodule has uncommitted changes or CRLF-normalized files` });
+  }
+  return issues;
+}
+
 export function collectHealthIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   let wbs: WbsDocument | undefined;
+
+  try {
+    issues.push(...validateRepositoryHealth(root));
+  } catch (error) {
+    issues.push({ severity: "warn", code: "health.repository.inspect", message: error instanceof Error ? error.message : String(error) });
+  }
 
   try {
     wbs = readWbs(root);
