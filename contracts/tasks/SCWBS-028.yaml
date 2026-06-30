@@ -1,42 +1,37 @@
 id: SCWBS-028
 type: task-contract
-wbsNodeId: node-meta-health-audit-hygiene
-featureId: F-SCWBS-META-HEALTH
-branchName: codex/meta-health-audit-hygiene
+wbsNodeId: node-dogfood-contracts
+featureId: F-SCWBS-DOGFOOD
+branchName: task/SCWBS-003-test-quality-and-coverage-verification
 allowedPaths:
-  - .editorconfig
-  - .gitattributes
-  - .github/**
-  - contracts/**
-  - docs/**
-  - src/commands/wbs.ts
-  - src/core/git.ts
-  - src/core/wbs.ts
-  - src/commands/health.ts
-  - tests/**
+  - contracts/tasks/SCWBS-028.yaml
+  - contracts/evidence/SCWBS-003.yaml
+  - contracts/evidence/SCWBS-028.yaml
+  - contracts/registry.yaml
 forbiddenPaths:
   - wjs/**
 humanGateRequiredPaths:
-  - .github/**
   - contracts/wbs/project.wbs.json
   - package.json
   - package-lock.json
   - tsconfig.json
   - vitest.config.ts
+  - .github/**
 requiredChecks:
   - test
   - typecheck
   - build
 doneCriteria:
-  - Meta-health audit findings are documented under docs.
-  - LF line-ending policy is explicit for source, contract, and documentation files.
-  - scwbs health warns on tracked CRLF text files and dirty submodule worktrees.
-  - CI runs the core local validation commands.
+  - SCWBS-003 Evidence is recorded without implementation changes.
+  - Registry indexes the SCWBS-003 Evidence file.
+  - Evidence backfill has its own Task Contract and Evidence.
 evidenceRequired:
   - test-result
   - typecheck-result
   - build-result
 contractLock:
   wbsRevision: "sha256:03a50b7f153ffcb91589d525947ba54bb1ee54d7beb3c50aba882b9740c38814"
-  wbsNodeId: node-meta-health-audit-hygiene
-  createdAt: "2026-06-30T13:22:42.827Z"
+  wbsNodeId: node-dogfood-contracts
+  specVersion: 0.1.0
+  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+  createdAt: "2026-06-30T13:58:18.298Z"

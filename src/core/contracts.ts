@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
 import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
-import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecContract, asTaskContract, validateApprovalRecord, validateEvidence, validateRegistry, validateReviewRecord, validateSpecContract, validateTaskContract } from "./schema.js";
+import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
 import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
@@ -10,7 +10,7 @@ export function readRegistry(root: string): { registry?: Registry; issues: Issue
     return { issues: [{ severity: "error", code: "registry.missing", message: `${defaultRegistryPath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateRegistry(value);
+  const issues = [...validateRegistrySchema(value, defaultRegistryPath), ...validateRegistry(value)];
   return { registry: issues.length === 0 ? asRegistry(value) : undefined, issues };
 }
 
@@ -21,7 +21,7 @@ export function readTask(root: string, taskId: string): { task?: TaskContract; i
     return { issues: [{ severity: "error", code: "task.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateTaskContract(value, relativePath);
+  const issues = [...validateTaskContractSchema(value, relativePath), ...validateTaskContract(value, relativePath)];
   return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues };
 }
 
@@ -31,7 +31,7 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
     return { issues: [{ severity: "error", code: "spec.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateSpecContract(value, relativePath);
+  const issues = [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)];
   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
 }
 
@@ -42,7 +42,7 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
     return { issues: [{ severity: "error", code: "evidence.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateEvidence(value, relativePath);
+  const issues = [...validateEvidenceSchema(value, relativePath), ...validateEvidence(value, relativePath)];
   return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues };
 }
 
@@ -53,7 +53,7 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
     return { issues: [{ severity: "error", code: "approval.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateApprovalRecord(value, relativePath);
+  const issues = [...validateApprovalRecordSchema(value, relativePath), ...validateApprovalRecord(value, relativePath)];
   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
 }
 
@@ -64,7 +64,7 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
     return { issues: [{ severity: "error", code: "review.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = validateReviewRecord(value, relativePath);
+  const issues = [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)];
   return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
 }
 
@@ -76,7 +76,7 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
     .map((file) => {
       const path = `${defaultTasksDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = validateTaskContract(value, path);
+      const issues = [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)];
       return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues, path };
     });
 }
@@ -89,7 +89,7 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
     .map((file) => {
       const path = `${defaultSpecsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = validateSpecContract(value, path);
+      const issues = [...validateSpecContractSchema(value, path), ...validateSpecContract(value, path)];
       return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues, path };
     });
 }
@@ -102,7 +102,7 @@ export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; 
     .map((file) => {
       const path = `${defaultApprovalsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = validateApprovalRecord(value, path);
+      const issues = [...validateApprovalRecordSchema(value, path), ...validateApprovalRecord(value, path)];
       return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues, path };
     });
 }
@@ -115,7 +115,7 @@ export function listEvidence(root: string): Array<{ evidence?: Evidence; issues:
     .map((file) => {
       const path = `${defaultEvidenceDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = validateEvidence(value, path);
+      const issues = [...validateEvidenceSchema(value, path), ...validateEvidence(value, path)];
       return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues, path };
     });
 }
@@ -128,7 +128,7 @@ export function listReviews(root: string): Array<{ review?: ReviewRecord; issues
     .map((file) => {
       const path = `${defaultReviewsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = validateReviewRecord(value, path);
+      const issues = [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)];
       return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues, path };
     });
 }
