@@ -1,5 +1,5 @@
 import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { commitExists, headCommit } from "../core/git.js";
+import { changedFilesSince, commitExists, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -18,6 +18,24 @@ function strongestEvidenceLevel(evidence: Evidence): EvidenceLevel {
   if (levels.includes("A")) return "A";
   if (levels.includes("B")) return "B";
   return "C";
+}
+
+function isPostEvidenceMetadataFile(taskId: string, file: string): boolean {
+  const normalized = file.replace(/\\/g, "/");
+  return normalized === `contracts/evidence/${taskId}.yaml`
+    || normalized === `contracts/approvals/${taskId}.yaml`
+    || normalized === `contracts/reviews/${taskId}.yaml`
+    || normalized === "contracts/registry.yaml";
+}
+
+function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string, evidenceHead: string, currentHead: string): boolean {
+  if (evidenceHead === currentHead) return false;
+  try {
+    const files = changedFilesSince(root, evidenceHead);
+    return files.some((file) => !isPostEvidenceMetadataFile(taskId, file));
+  } catch {
+    return true;
+  }
 }
 
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
@@ -62,8 +80,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
   } else if (!commitExists(root, evidence.git.headCommit)) {
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
-  } else if (currentHead && evidence.git.headCommit !== currentHead) {
-    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.stale", message: `${task.id} evidence git.headCommit ${evidence.git.headCommit} does not match current HEAD ${currentHead}` });
+  } else if (currentHead && evidenceHeadHasStaleImplementationChanges(root, task.id, evidence.git.headCommit, currentHead)) {
+    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.stale", message: `${task.id} evidence git.headCommit ${evidence.git.headCommit} is behind implementation changes in current HEAD ${currentHead}` });
   }
   if (!evidence.git?.changedFilesBasis) {
     issues.push({ severity: "warn", code: "health.evidence.git.changedFilesBasis.missing", message: `${task.id} evidence has no git.changedFilesBasis` });

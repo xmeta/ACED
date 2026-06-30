@@ -33,6 +33,10 @@ export function branchChangedFiles(root: string, baseRef = "origin/main"): strin
   return gitLines(root, ["diff", "--name-only", `${baseRef}...HEAD`], "git diff failed");
 }
 
+export function changedFilesSince(root: string, ref: string): string[] {
+  return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
+}
+
 export function resolveCommit(root: string, ref: string): string | undefined {
   const result = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], {
     cwd: root,

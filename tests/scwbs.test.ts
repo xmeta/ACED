@@ -531,6 +531,50 @@ describe("scwbs MVP", () => {
     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(true);
   });
 
+  test("health accepts post-evidence metadata-only commits", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    const evidenceHead = headCommit(root) ?? "";
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "base",
+          baseCommit: evidenceHead,
+          changedFilesBasis: "branch-diff",
+          headCommit: evidenceHead
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "evidence"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        {
+          id: "TASK-WBS-001-004",
+          type: "task",
+          path: "contracts/tasks/WBS-001-004.yaml",
+          featureId: "F001"
+        },
+        {
+          id: "EVD-WBS-001-004",
+          type: "evidence",
+          path: "contracts/evidence/WBS-001-004.yaml",
+          relatedTask: "WBS-001-004"
+        }
+      ]
+    });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "registry"], { cwd: root, stdio: "ignore" });
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(false);
+  });
+
   test("health accepts approval pull request metadata when evidence pull request is missing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "planned");
