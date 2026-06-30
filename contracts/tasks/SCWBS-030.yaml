@@ -1,0 +1,36 @@
+id: SCWBS-030
+type: task-contract
+wbsNodeId: node-conflict-cost-guardrails
+featureId: F-SCWBS-CONFLICT-COST
+branchName: codex/conflict-cost-guardrails
+allowedPaths:
+  - contracts/**
+  - docs/**
+  - src/core/git.ts
+  - src/commands/health.ts
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Meta-health lessons from PR conflict resolution are documented.
+  - scwbs health warns when a branch is behind origin/main.
+  - scwbs health warns when both branch and base added the same SC-WBS contract path with different content.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:1bc96fe5b5a960c17126cd90da48abc2ee4843f4e4fa9fe95123088a67068941"
+  wbsNodeId: node-conflict-cost-guardrails
+  createdAt: "2026-06-30T14:49:10.290Z"

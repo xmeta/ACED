@@ -1,0 +1,73 @@
+id: EVD-SCWBS-030
+type: evidence
+taskId: SCWBS-030
+commit: 0a976e976cb32930476baf97d5c90b32e73b0f35
+git:
+  branch: codex/conflict-cost-guardrails
+  base: origin/main
+  baseCommit: 7667c2e1cf866ce1d8dbb9dd91a07c2af6c178fd
+  changedFilesBasis: branch-diff
+  headCommit: 0a976e976cb32930476baf97d5c90b32e73b0f35
+  pullRequest: "#16"
+changedFiles:
+  - contracts/approvals/SCWBS-030.yaml
+  - contracts/changesets/SCWBS-030-conflict-cost-guardrails.json
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-001.yaml
+  - contracts/tasks/SCWBS-002.yaml
+  - contracts/tasks/SCWBS-003.yaml
+  - contracts/tasks/SCWBS-004.yaml
+  - contracts/tasks/SCWBS-005.yaml
+  - contracts/tasks/SCWBS-006.yaml
+  - contracts/tasks/SCWBS-007.yaml
+  - contracts/tasks/SCWBS-008.yaml
+  - contracts/tasks/SCWBS-009.yaml
+  - contracts/tasks/SCWBS-010.yaml
+  - contracts/tasks/SCWBS-011.yaml
+  - contracts/tasks/SCWBS-012.yaml
+  - contracts/tasks/SCWBS-013.yaml
+  - contracts/tasks/SCWBS-014.yaml
+  - contracts/tasks/SCWBS-015.yaml
+  - contracts/tasks/SCWBS-016.yaml
+  - contracts/tasks/SCWBS-017.yaml
+  - contracts/tasks/SCWBS-018.yaml
+  - contracts/tasks/SCWBS-019.yaml
+  - contracts/tasks/SCWBS-020.yaml
+  - contracts/tasks/SCWBS-021.yaml
+  - contracts/tasks/SCWBS-022.yaml
+  - contracts/tasks/SCWBS-023.yaml
+  - contracts/tasks/SCWBS-024.yaml
+  - contracts/tasks/SCWBS-025.yaml
+  - contracts/tasks/SCWBS-026.yaml
+  - contracts/tasks/SCWBS-027.yaml
+  - contracts/tasks/SCWBS-028.yaml
+  - contracts/tasks/SCWBS-029.yaml
+  - contracts/tasks/SCWBS-030.yaml
+  - contracts/wbs/project.wbs.json
+  - docs/meta-health-audit-2026-06-30.md
+  - docs/wbs-conflict-mitigation.md
+  - src/commands/health.ts
+  - src/core/git.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-06-30T14:54:06.456Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-06-30T14:54:12.422Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-06-30T14:54:18.700Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added coverage for branch-behind detection and same-path SC-WBS contract additions on the base branch.
