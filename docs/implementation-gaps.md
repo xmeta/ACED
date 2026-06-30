@@ -14,6 +14,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Task Contract Lock generation from WBS and Spec content hashes
 - First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
 - Evidence `testQuality` metadata validation
+- Base/head-aware Evidence changed file collection
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Sensitive meta/config file guardrails in check-diff
@@ -32,7 +33,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Change control | Spec Change Proposal format and command | Spec gaps still rely on ad hoc human coordination |
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
 | Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
-| Evidence diff basis | Base/head-aware changed file collection | `evidence collect` currently records working-tree changes, not a reproducible branch diff basis |
+| Evidence diff basis | Richer PR metadata and CI correlation | `evidence collect` records branch-diff provenance, but PR number and CI run correlation are still optional metadata |
 | Test quality | Diff-aware assertion and coverage inspection | `testQuality` is validated as metadata, but source diffs and coverage reports are not parsed yet |
 | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
 | Review independence | Separate independent review mode | Single-session review is still policy-driven, not enforced by the tool |
@@ -49,6 +50,5 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
-- Add a provenance-aware evidence verifier.
-- Split working-tree changed files from base/head branch diffs for Evidence and PR readiness.
+- Add a provenance-aware evidence verifier that can correlate Evidence with PR and CI metadata.
 - Wire the current checks into CI once the contract model stabilizes.

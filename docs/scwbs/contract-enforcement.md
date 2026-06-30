@@ -25,7 +25,10 @@ Git差分はTask単位で検査する。
 
 ```bash
 npm run scwbs -- check-diff --task WBS-001-004
+npm run scwbs -- check-diff --task WBS-001-004 --base origin/main
 ```
+
+`check-diff` はPR readiness用の検査として、既定で `origin/main...HEAD` のbranch diffを使う。base branchが異なる場合は `--base <ref>` で明示する。作業ツリー上のWBS直編集ガードは `scwbs check` 側で引き続き検査する。
 
 判定ルール:
 
@@ -66,6 +69,9 @@ npm run scwbs -- health
 
 * Evidenceの信頼度が低い
 * Evidenceのcommitが欠けている、またはGitで確認できない
+* Evidenceの `git.headCommit` が現在のHEADと一致しない
+* Evidenceの `git.changedFilesBasis` が欠けている
+* branch diff基準のEvidenceに `git.base` または `git.baseCommit` が欠けている
 * EvidenceのchangedFilesがTask Contractのpath制約と整合していない
 * Human Gate対象のEvidenceに承認記録がない
 * registry上のRequirement ContractやSpec Contractにstatusがない
@@ -96,4 +102,3 @@ npm run scwbs -- review-queue
 
 Task Contractごとにbranchを分ける運用では、`1 Task Contract = 1 branch = 1 review unit` を基本とする。
 `scwbs check-diff --task <task-id>` は、現在のGit branchがTask Contractの `branchName` と一致しない場合にErrorとし、別Taskのbranchで誤って実装を進めることを防ぐ。
-

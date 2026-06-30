@@ -22,7 +22,9 @@ commit: abc1234
 git:
   branch: task/WBS-001-004-api-implementation
   base: main
+  baseCommit: def5678
   headCommit: abc1234
+  changedFilesBasis: branch-diff
   pullRequest: "#42"
 changedFiles:
   - src/features/staff-search/api.ts
@@ -46,7 +48,7 @@ notes:
 
 Evidenceは自己申告だけで完結させない。可能な限り、CIログ、テスト結果、コミットID、差分、レビュー結果と結びつける。
 
-現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.headCommit`、`changedFiles`、required checksのローカル実行結果を生成する。`changedFiles` は現在の実装では `git diff --name-only HEAD` と未追跡ファイルを合わせた作業ツリー基準であり、PR baseからのブランチ全体差分ではない。PR reviewや再現性の根拠にするEvidenceでは、必要に応じて `git.base`、`git.pullRequest`、base commit、head commit、差分基準を手動で補う。
+現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
 
 Evidenceの信頼度は以下に分ける。
 
@@ -265,4 +267,3 @@ npm run scwbs -- ai next-task
 ```
 
 ---
-

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { readTask } from "../core/contracts.js";
-import { changedFiles, currentBranch, headCommit } from "../core/git.js";
+import { branchChangedFiles, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
@@ -31,10 +31,12 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
   };
 }
 
-export function buildCollectedEvidence(root: string, taskId: string): Evidence {
+export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string } = {}): Evidence {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+  const baseRef = options.baseRef ?? "origin/main";
   const head = headCommit(root);
+  const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
   return {
     id: `EVD-${taskId}`,
     type: "evidence",
@@ -42,18 +44,21 @@ export function buildCollectedEvidence(root: string, taskId: string): Evidence {
     ...(head ? { commit: head } : {}),
     git: {
       ...(currentBranch(root) ? { branch: currentBranch(root) } : {}),
+      base: baseRef,
+      ...(baseCommit ? { baseCommit } : {}),
+      changedFilesBasis: "branch-diff",
       ...(head ? { headCommit: head } : {})
     },
-    changedFiles: changedFiles(root),
+    changedFiles: branchChangedFiles(root, baseRef),
     checks: task.requiredChecks.map((check) => runCheck(root, check))
   };
 }
 
-export function buildCollectedEvidenceYaml(root: string, taskId: string): string {
-  return stringifySimpleYaml(buildCollectedEvidence(root, taskId) as unknown as Record<string, unknown>);
+export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string } = {}): string {
+  return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean }): number {
+export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string }): number {
   try {
     const relativePath = evidencePath(taskId);
     const fullPath = resolveFrom(root, relativePath);
@@ -62,7 +67,7 @@ export function runEvidenceCollect(root: string, taskId: string, options: { forc
       return 1;
     }
     mkdirSync(path.dirname(fullPath), { recursive: true });
-    const yaml = buildCollectedEvidenceYaml(root, taskId);
+    const yaml = buildCollectedEvidenceYaml(root, taskId, { baseRef: options.baseRef });
     writeFileSync(fullPath, yaml, "utf8");
     process.stdout.write(yaml);
     return 0;

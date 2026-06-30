@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { approvalExists, evidenceExists, listApprovals, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
-import { changedFiles } from "../core/git.js";
+import { workingTreeChangedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -194,7 +194,7 @@ export function collectCheckIssues(root: string): Issue[] {
 
   let changed: string[] = [];
   try {
-    changed = changedFiles(root);
+    changed = workingTreeChangedFiles(root);
   } catch {
     // not in a git repo or git unavailable: skip changeset gate
   }
