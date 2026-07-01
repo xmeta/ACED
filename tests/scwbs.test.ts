@@ -18,6 +18,7 @@ import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from
 import { buildTrace } from "../src/commands/trace.js";
 import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
 import { buildStatus } from "../src/commands/status.js";
+import { buildNextAction } from "../src/commands/next.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
@@ -491,7 +492,7 @@ describe("scwbs MVP", () => {
         humanGateRequiredPaths: []
       }) as unknown as Record<string, unknown>
     );
-    expect(buildNextTask(root)).toBe("No available planned tasks.\n");
+    expect(buildNextTask(root)).toBe("No available planned tasks.\nFollow-up work remains for existing contracts. Run `scwbs next` for Evidence or review guidance.\n\n");
   });
 
   test("ai next-task includes a planned task when its dependency is completed", () => {
@@ -517,6 +518,22 @@ describe("scwbs MVP", () => {
       }) as unknown as Record<string, unknown>
     );
     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
+  });
+
+  test("ai next-task points to scwbs next when no planned task is available but evidence is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        humanGateRequiredPaths: []
+      }) as unknown as Record<string, unknown>
+    );
+
+    expect(buildNextTask(root)).toContain("No available planned tasks.");
+    expect(buildNextTask(root)).toContain("Run `scwbs next` for Evidence or review guidance.");
+    expect(buildNextAction(root)).toContain("Collect evidence for WBS-001-004");
   });
 
   test("health warns when evidence has only low-trust checks", () => {
