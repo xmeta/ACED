@@ -1,13 +1,13 @@
 id: EVD-SCWBS-014
 type: evidence
 taskId: SCWBS-014
-commit: a51d04785218d5b949028645b00ab113dab87b81
+commit: f7e5cfbd0f6100ab52bf950b23c790c917c3e6b0
 git:
   branch: task/SCWBS-014-review-request-command
   base: origin/main
   baseCommit: 9a5375ba7f6f4138a91ab7554cd79adcc792205c
   changedFilesBasis: branch-diff
-  headCommit: a51d04785218d5b949028645b00ab113dab87b81
+  headCommit: f7e5cfbd0f6100ab52bf950b23c790c917c3e6b0
 changedFiles:
   - contracts/evidence/SCWBS-014.yaml
   - contracts/registry.yaml
@@ -31,6 +31,12 @@ checks:
     source: local
     command: npm run build
     executedAt: "2026-07-01T12:01:44.918Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Only the timeout budget for an existing git-heavy test was increased; assertions and coverage behavior were not changed.
 notes:
   - npm test passed when rerun directly after extending the git-heavy test timeout.
   - Follow-up LITE-001 tracks stronger evidence collect diagnostics for failed local checks.
