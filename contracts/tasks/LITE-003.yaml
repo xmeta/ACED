@@ -1,0 +1,44 @@
+id: LITE-003
+type: task-contract
+mode: lite
+wbsNodeId: node-project
+featureId: F-SCWBS-LITE
+branchName: codex/lite-003-approval-completion-cli
+allowedPaths:
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/cli.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/**
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - contracts/changesets/**
+  - contracts/tasks/LITE-003.yaml
+  - contracts/evidence/LITE-003.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - approval approve records explicit human approval without hand-writing YAML
+  - completion apply generates approved records and WBS completion changesets for eligible reviewed tasks
+  - completion apply refuses broad root-node completion by default and supports dry-run before apply
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a53b528fa945527cbc99a1f2b7714f8eb02a6bdd2070242e9642bff572a41e84"
+  wbsNodeId: node-project
+  createdAt: "2026-07-01T21:54:42.398Z"

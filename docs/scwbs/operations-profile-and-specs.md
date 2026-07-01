@@ -80,7 +80,17 @@ AI や実装者が review 依頼を残すだけなら、`requested` の record �
 ```bash
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
 ```
-`--note` は複数語を含む引用付き引数でも、`--note=Awaiting human review` のような inline 形式でも受け付ける。
+Human が Evidence と PR を確認して承認する場合は、YAML を手書きせずに `approved` record を生成できる。
+```bash
+npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --reason "Evidence and PR reviewed"
+```
+複数の review-ready task を completed に進める場合は、まず dry-run で対象nodeと生成される changeset を確認し、明示的に `--apply` する。
+```bash
+npm run scwbs -- completion apply --tasks WBS-001-004,WBS-001-005 --task WBS-001-999 --reason "Reviewed and accepted"
+npm run scwbs -- completion apply --tasks WBS-001-004,WBS-001-005 --task WBS-001-999 --reason "Reviewed and accepted" --apply
+```
+`completion apply` は root node completion を既定で拒否する。プロジェクト全体の完了など broad な判断だけは、明示的な Human decision と `--allow-root` を必要とする。
+`--note` と `--reason` は複数語を含む引用付き引数でも、`--note=Awaiting human review` のような inline 形式でも受け付ける。
 
 AI Work Packet生成時は、対象nodeから親方向へたどり、最初に見つかったphaseを採用する。
 対象nodeにも祖先nodeにもphaseがない場合は `unspecified` と表示する。

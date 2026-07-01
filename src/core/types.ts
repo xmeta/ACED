@@ -110,6 +110,7 @@ export type ApprovalRecord = {
   approvedBy?: string;
   approvedAt?: string;
   pullRequest?: string;
+  reason?: string;
   notes?: string[];
 };
 
