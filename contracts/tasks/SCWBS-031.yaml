@@ -1,31 +1,23 @@
-id: SCWBS-024
+id: SCWBS-031
 type: task-contract
 wbsNodeId: node-dogfood-contracts
 featureId: F-SCWBS-DOGFOOD
-branchName: codex/architecture-audit-doc
+branchName: codex/review-queue-completion-sweep
 allowedPaths:
-  - AGENTS.md
-  - docs/**
-  - contracts/tasks/**
-  - contracts/evidence/**
-  - contracts/registry.yaml
+  - contracts/**
 forbiddenPaths:
   - wjs/**
 humanGateRequiredPaths:
-  - package.json
-  - package-lock.json
-  - tsconfig.json
-  - vitest.config.ts
-  - .github/**
   - contracts/wbs/project.wbs.json
 requiredChecks:
   - test
   - typecheck
   - build
 doneCriteria:
-  - Architecture audit findings are verified against current implementation.
-  - Incorrect audit claims are corrected or removed.
-  - Related documentation reflects confirmed behavior and remaining gaps.
+  - Review queue candidates with merged PRs have PR metadata recorded.
+  - Human-approved completion records exist for completed Human Gate tasks.
+  - Completed WBS node status changes are represented by a changeset.
+  - scwbs review-queue reports no pending candidates.
 evidenceRequired:
   - test-result
   - typecheck-result
@@ -35,4 +27,4 @@ contractLock:
   wbsNodeId: node-dogfood-contracts
   specVersion: 0.1.0
   specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
-  createdAt: "2026-07-01T11:21:04.202Z"
+  createdAt: "2026-07-01T20:17:26+09:00"
