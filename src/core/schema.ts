@@ -129,6 +129,9 @@ const evidenceSchema = {
           runId: { type: "string" },
           url: { type: "string" },
           command: { type: "string" },
+          exitStatus: { type: "number" },
+          stdoutSummary: { type: "string" },
+          stderrSummary: { type: "string" },
           executedAt: { type: "string" },
           verifiedBy: { type: "string" }
         }
@@ -378,10 +381,13 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
         issues.push(issue("evidence.check", `${filePath}.checks[${index}] must include name and status`));
         return;
       }
-      for (const key of ["source", "runId", "url", "command", "executedAt", "verifiedBy"]) {
+      for (const key of ["source", "runId", "url", "command", "stdoutSummary", "stderrSummary", "executedAt", "verifiedBy"]) {
         if (check[key] !== undefined && typeof check[key] !== "string") {
           issues.push(issue("evidence.check", `${filePath}.checks[${index}].${key} must be a string when present`));
         }
+      }
+      if (check.exitStatus !== undefined && typeof check.exitStatus !== "number") {
+        issues.push(issue("evidence.check", `${filePath}.checks[${index}].exitStatus must be a number when present`));
       }
     });
   }

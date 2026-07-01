@@ -1,0 +1,41 @@
+id: EVD-LITE-001
+type: evidence
+taskId: LITE-001
+commit: 2255ead5d2ff3d5bc9909045c104f46ba74cf3d0
+git:
+  branch: task/LITE-001-evidence-failure-diagnostics
+  base: origin/main
+  baseCommit: ed77428e0f4f55fbe00886a5c77778ba014157d4
+  changedFilesBasis: branch-diff
+  headCommit: 2255ead5d2ff3d5bc9909045c104f46ba74cf3d0
+  pullRequest: https://github.com/xmeta/ACED/pull/20
+changedFiles:
+  - contracts/evidence/LITE-001.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/LITE-001.yaml
+  - src/commands/evidence-collect.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-01T13:12:03.904Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-01T13:12:08.207Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-01T13:12:12.236Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for failed-check diagnostics and passed-check Evidence shape.

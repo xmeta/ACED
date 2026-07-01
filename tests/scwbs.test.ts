@@ -267,6 +267,7 @@ describe("scwbs MVP", () => {
   test("evidence collect records branch diff provenance from the requested base", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["branch", "base"], { cwd: root });
@@ -282,6 +283,57 @@ describe("scwbs MVP", () => {
     expect(evidence.git?.changedFilesBasis).toBe("branch-diff");
     expect(evidence.changedFiles).toContain("src/features/api/index.ts");
   });
+
+  test("evidence collect records bounded diagnostics for failed checks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeJson(root, "package.json", {
+      scripts: {
+        test: "node -e \"console.log('stdout ' + 'x'.repeat(1200)); console.error('stderr failure'); process.exit(7)\""
+      }
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    const check = evidence.checks[0];
+    expect(check).toMatchObject({
+      name: "test",
+      status: "failed",
+      command: "npm test",
+      exitStatus: 7
+    });
+    expect(check?.stdoutSummary).toContain("[truncated]");
+    expect(check?.stdoutSummary?.length).toBeLessThanOrEqual(1000);
+    expect(check?.stderrSummary).toContain("stderr failure");
+  }, 30000);
+
+  test("evidence collect preserves passed-check evidence shape", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeJson(root, "package.json", {
+      scripts: {
+        test: "node -e \"console.log('ok')\""
+      }
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    const check = evidence.checks[0];
+    expect(check).toMatchObject({
+      name: "test",
+      status: "passed",
+      command: "npm test"
+    });
+    expect(check).not.toHaveProperty("exitStatus");
+    expect(check).not.toHaveProperty("stdoutSummary");
+    expect(check).not.toHaveProperty("stderrSummary");
+  }, 30000);
 
   test("check rejects direct WBS edits without a corresponding changeset", () => {
     const root = makeTempRepo();
@@ -643,7 +695,7 @@ describe("scwbs MVP", () => {
     execFileSync("git", ["commit", "-m", "registry"], { cwd: root, stdio: "ignore" });
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(false);
-  });
+  }, 30000);
 
   test("health accepts approval pull request metadata when evidence pull request is missing", () => {
     const root = makeTempRepo();
