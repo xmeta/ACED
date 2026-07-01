@@ -7,11 +7,21 @@ import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 
+const maxCheckOutputSummaryLength = 1000;
+
 function commandForCheck(check: string): string[] {
   if (check === "test") return ["npm", "test"];
   if (check === "typecheck") return ["npm", "run", "typecheck"];
   if (check === "build") return ["npm", "run", "build"];
   return ["npm", "run", check];
+}
+
+function summarizeCheckOutput(output: string | null | undefined): string | undefined {
+  const normalized = (output ?? "").replace(/\r\n/g, "\n").trim();
+  if (normalized.length === 0) return undefined;
+  if (normalized.length <= maxCheckOutputSummaryLength) return normalized;
+  const marker = "[truncated]\n";
+  return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
 }
 
 function runCheck(root: string, check: string): Evidence["checks"][number] {
@@ -22,12 +32,21 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
     shell: process.platform === "win32"
   });
   const status: EvidenceCheckStatus = result.status === 0 ? "passed" : "failed";
-  return {
+  const record: Evidence["checks"][number] = {
     name: check,
     status,
     source: "local",
     command: command.join(" "),
     executedAt: new Date().toISOString()
+  };
+  if (status === "passed") return record;
+  const stdoutSummary = summarizeCheckOutput(result.stdout);
+  const stderrSummary = summarizeCheckOutput(result.stderr);
+  return {
+    ...record,
+    ...(typeof result.status === "number" ? { exitStatus: result.status } : {}),
+    ...(stdoutSummary ? { stdoutSummary } : {}),
+    ...(stderrSummary ? { stderrSummary } : {})
   };
 }
 

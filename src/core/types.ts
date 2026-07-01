@@ -87,6 +87,9 @@ export type Evidence = {
     runId?: string;
     url?: string;
     command?: string;
+    exitStatus?: number;
+    stdoutSummary?: string;
+    stderrSummary?: string;
     executedAt?: string;
     verifiedBy?: string;
   }>;
