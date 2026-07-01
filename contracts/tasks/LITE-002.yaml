@@ -1,0 +1,36 @@
+id: LITE-002
+type: task-contract
+mode: lite
+wbsNodeId: node-project
+featureId: F-SCWBS-LITE
+allowedPaths:
+  - src/commands/ai-queue.ts
+  - src/commands/next.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - ai next-task and scwbs next semantics are documented so planned-task handoff and ready-task follow-up are not confused
+  - the CLI points users toward scwbs next when no planned task is available but existing contracts still need Evidence or review work
+  - tests cover the no planned tasks but missing Evidence scenario
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a53b528fa945527cbc99a1f2b7714f8eb02a6bdd2070242e9642bff572a41e84"
+  wbsNodeId: node-project
+  createdAt: "2026-07-01T12:13:55.879Z"

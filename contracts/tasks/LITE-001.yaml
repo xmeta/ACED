@@ -1,0 +1,36 @@
+id: LITE-001
+type: task-contract
+mode: lite
+wbsNodeId: node-project
+featureId: F-SCWBS-LITE
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - src/core/types.ts
+  - src/core/schema.ts
+  - tests/**
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - evidence collect records enough failed-check diagnostics to explain local failures without rerunning manually
+  - failed required checks include command, exit status, and a bounded stdout or stderr summary in Evidence or console output
+  - tests cover failed-check diagnostic capture and preserve existing passed-check Evidence behavior
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a53b528fa945527cbc99a1f2b7714f8eb02a6bdd2070242e9642bff572a41e84"
+  wbsNodeId: node-project
+  createdAt: "2026-07-01T12:13:52.364Z"

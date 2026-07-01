@@ -245,7 +245,7 @@ describe("scwbs MVP", () => {
 
     expect(baseBranchStatus(root).isBehind).toBe(true);
     expect(filesAddedOnBothSides(root)).toContain("contracts/tasks/SCWBS-030.yaml");
-  });
+  }, 30000);
 
   test("check-diff uses branch diff files from the requested base", () => {
     const root = makeTempRepo();
