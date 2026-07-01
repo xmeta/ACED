@@ -1,0 +1,30 @@
+id: EVD-SCWBS-014
+type: evidence
+taskId: SCWBS-014
+commit: 9a5375ba7f6f4138a91ab7554cd79adcc792205c
+git:
+  branch: task/SCWBS-014-review-request-command
+  base: origin/main
+  baseCommit: 9a5375ba7f6f4138a91ab7554cd79adcc792205c
+  changedFilesBasis: branch-diff
+  headCommit: 9a5375ba7f6f4138a91ab7554cd79adcc792205c
+changedFiles:
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-01T12:03:41.000Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-01T12:01:40.054Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-01T12:01:44.918Z"
+notes:
+  - npm test passed when rerun directly after extending the git-heavy test timeout.
