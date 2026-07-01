@@ -1,0 +1,30 @@
+id: EVD-SCWBS-015
+type: evidence
+taskId: SCWBS-015
+commit: df14a8fa68e1c3f03c07b77aec1cbf355c7bba96
+git:
+  branch: task/SCWBS-015-next-action-command
+  base: origin/main
+  baseCommit: 2edff3f633f426d6808ff6618f1db0a0497b8b49
+  changedFilesBasis: branch-diff
+  headCommit: df14a8fa68e1c3f03c07b77aec1cbf355c7bba96
+changedFiles:
+  - contracts/evidence/SCWBS-015.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-015.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-01T13:50:06.178Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-01T13:50:10.388Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-01T13:50:14.480Z"
