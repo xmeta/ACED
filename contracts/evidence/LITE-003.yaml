@@ -1,0 +1,44 @@
+id: EVD-LITE-003
+type: evidence
+taskId: LITE-003
+commit: 9c63c1bbd21d12a0c8c641d7bc3cf4dc771ea309
+git:
+  branch: codex/lite-003-approval-completion-cli
+  base: origin/main
+  baseCommit: 52a1a6ff5dea9a0c95053b2b8e30320732ec9454
+  changedFilesBasis: branch-diff
+  headCommit: 9c63c1bbd21d12a0c8c641d7bc3cf4dc771ea309
+changedFiles:
+  - contracts/evidence/LITE-003.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/LITE-003.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - src/cli.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-01T22:07:18.151Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-01T22:07:21.947Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-01T22:07:26.370Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added approval approve and completion apply behavior tests.

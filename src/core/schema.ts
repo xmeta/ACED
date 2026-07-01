@@ -163,6 +163,7 @@ const approvalRecordSchema = {
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
     pullRequest: { type: "string" },
+    reason: { type: "string" },
     notes: stringArraySchema
   }
 };
@@ -426,7 +427,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["approvedBy", "approvedAt", "pullRequest"]) {
+  for (const key of ["approvedBy", "approvedAt", "pullRequest", "reason"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }

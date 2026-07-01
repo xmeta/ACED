@@ -16,7 +16,8 @@ import { readProfile, runProfileSet } from "../src/commands/profile.js";
 import { buildTaskRefreshPreview, runTaskRefresh } from "../src/commands/task-refresh.js";
 import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../src/commands/review-request.js";
 import { buildTrace } from "../src/commands/trace.js";
-import { buildApprovalRequestYaml, runApprovalRequest } from "../src/commands/approval-request.js";
+import { buildApprovalApproveYaml, buildApprovalRequestYaml, runApprovalApprove, runApprovalRequest } from "../src/commands/approval-request.js";
+import { buildCompletionPreview, runCompletionApply } from "../src/commands/completion.js";
 import { buildStatus } from "../src/commands/status.js";
 import { buildNextAction } from "../src/commands/next.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
@@ -1008,6 +1009,119 @@ describe("scwbs MVP", () => {
     expect(main(["approval", "request", "--task", "WBS-001-004", "--note=Awaiting human review"], root)).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("  - Awaiting human review");
+  });
+
+  test("approval approve writes a human approved record", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", force: false })).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("status: approved");
+    expect(actual).toContain("approvedBy: human");
+    expect(actual).toContain("approvedAt:");
+    expect(actual).toContain('pullRequest: "#42"');
+    expect(actual).toContain("reason: Evidence and PR reviewed");
+  });
+
+  test("approval approve updates requested records and protects existing approvals", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
+
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Reviewed", force: false })).toBe(0);
+    expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+    const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Second approval", force: false })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
+  });
+
+  test("approval approve CLI accepts inline multi-word reason syntax", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["approval", "approve", "--task", "WBS-001-004", "--pull-request", "#42", "--reason=Evidence and PR reviewed"], root)).toBe(0);
+    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(actual).toContain("reason: Evidence and PR reviewed");
+  });
+
+  test("approval approve helper can render deterministic YAML", () => {
+    expect(buildApprovalApproveYaml("WBS-001-004", {
+      pullRequest: "#42",
+      reason: "Reviewed",
+      approvedBy: "human",
+      approvedAt: "2026-07-02T00:00:00.000Z"
+    })).toContain('approvedAt: "2026-07-02T00:00:00.000Z"');
+  });
+
+  test("completion apply dry-run previews approved records and WBS changeset operations", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+
+    const preview = buildCompletionPreview(root, " WBS-001-004 ", "WBS-001-999", { reason: "Reviewed and accepted", allowRoot: false });
+    expect(preview).toContain("Completion apply dry-run:");
+    expect(preview).toContain("- WBS-001-004: 1.1 API Implementation -> completed");
+    expect(preview).toContain("approval: will write approved record");
+    expect(preview).toContain("changeset: contracts/changesets/WBS-001-999-complete-reviewed-work.json");
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
+  });
+
+  test("completion apply rejects root node completion by default", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ wbsNodeId: "node-root" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+
+    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+  });
+
+  test("completion apply writes approvals applies WBS changeset and rebuilds registry", () => {
+    const root = makeTempRepo();
+    mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
+    writeText(root, "wjs/tools/apply.ts", `
+const fs = require("node:fs");
+const [wbsPath, changeSetPath] = process.argv.slice(2);
+const wbs = JSON.parse(fs.readFileSync(wbsPath, "utf8"));
+const changeSet = JSON.parse(fs.readFileSync(changeSetPath, "utf8"));
+for (const operation of changeSet.operations) {
+  const node = wbs.nodes.find((item) => item.id === operation.nodeId);
+  if (node) node.status = operation.status;
+}
+fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
+`);
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+
+    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed and accepted", apply: true, allowRoot: false })).toBe(0);
+    expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+    expect(readFileSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"), "utf8")).toContain("\"nodeId\": \"node-api\"");
+    const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8"));
+    expect(wbs.nodes.find((node: { id: string; status: string }) => node.id === "node-api")?.status).toBe("completed");
+    const registry = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
+    expect(registry).toContain("id: APR-WBS-001-004");
+    expect(registry).toContain("type: approval");
   });
 
   test("doctor reports suggested fixes for stale contracts", () => {

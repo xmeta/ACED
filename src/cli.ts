@@ -3,9 +3,10 @@ import { pathToFileURL } from "node:url";
 import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
 import { runAiPacket } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
-import { runApprovalRequest } from "./commands/approval-request.js";
+import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
+import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
 import { runHealth } from "./commands/health.js";
@@ -38,6 +39,8 @@ function usage(): void {
   scwbs ai block --task <task-id> --reason <reason>
   scwbs ai next-task
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
+  scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
+  scwbs completion apply --tasks <task-id[,task-id...]> --task <completion-task-id> [--reason <text>] [--apply] [--allow-root]
   scwbs evidence collect --task <task-id> [--base <ref>] [--force]
   scwbs registry rebuild [--check] [--force]
   scwbs profile show
@@ -196,6 +199,25 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       pullRequest: valueAfter(argv, "--pull-request"),
       note: textAfter(argv, "--note"),
       force: argv.includes("--force")
+    });
+  }
+  if (command === "approval" && subcommand === "approve") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runApprovalApprove(root, taskId, {
+      pullRequest: valueAfter(argv, "--pull-request"),
+      reason: textAfter(argv, "--reason"),
+      force: argv.includes("--force")
+    });
+  }
+  if (command === "completion" && subcommand === "apply") {
+    return runCompletionApply(root, valueAfter(argv, "--tasks"), valueAfter(argv, "--task"), {
+      reason: textAfter(argv, "--reason"),
+      apply: argv.includes("--apply"),
+      allowRoot: argv.includes("--allow-root")
     });
   }
   if (command === "evidence" && subcommand === "collect") {

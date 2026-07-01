@@ -56,6 +56,9 @@ npm run scwbs -- review-queue
 npm run scwbs -- review route --task WBS-001-004
 npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --reason "Evidence and PR reviewed"
+npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted"
+npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted" --apply
 ```
 
 `review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata, shows approval status from `contracts/approvals/*.yaml`, warns when review metadata is missing, adds a `suggestedAction` per candidate, and includes a compact review-health summary.
@@ -74,7 +77,9 @@ notes:
   - Awaiting human gate review
 ```
 
-`approval request` creates a `requested` record without fabricating human approval. `--note` is available both as a quoted multi-word argument and as inline syntax such as `--note=Awaiting human review`.
+`approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+
+`completion apply` completes reviewed WBS nodes without hand-written YAML. By default it is a dry-run that prints the approvals and `changeNodeStatus` operations it would write. With `--apply`, it writes missing approved records, writes `contracts/changesets/<completion-task-id>-complete-reviewed-work.json`, applies the WBS changeset, and rebuilds the registry. It refuses root-node completion by default; use `--allow-root` only after explicit human decision.
 
 ## Lightweight Entry Points
 
