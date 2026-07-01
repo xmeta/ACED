@@ -36,7 +36,7 @@ Command:
   }
 
   const queue = buildReviewQueue(root);
-  const reviewTask = /^- (SCWBS-\d+|WBS-\d+-\d+)/m.exec(queue)?.[1];
+  const reviewTask = /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(queue)?.[1];
   if (reviewTask) {
     return `Next suggested action:
 

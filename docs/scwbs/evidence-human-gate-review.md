@@ -260,10 +260,13 @@ blocked化は、実装継続ではなく、承認待ち、情報不足、契約�
 * Task Queueに優先順位付きで割り当て済みのTask Contractが存在する
 * `scwbs ai next-task` が、planned状態、Human Gate対象パスなし、未完了dependsOnなしの候補を提示する
 
+`scwbs ai next-task` は新規実装候補の発見に限定する。`No available planned tasks` は「planned状態の実装候補がない」という意味であり、既存Task ContractのEvidence収集、Review作成、Approval記録が不要という意味ではない。既存契約の後続作業を確認する場合は `scwbs next` を実行する。
+
 AIは候補タスクを提示できるが、プロジェクトの優先順位を最終決定してはならない。
 
 ```bash
 npm run scwbs -- ai next-task
+npm run scwbs -- next
 ```
 
 ---

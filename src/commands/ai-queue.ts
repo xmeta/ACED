@@ -1,5 +1,6 @@
-import { listTasks, readTask } from "../core/contracts.js";
+import { evidenceExists, listTasks, readTask } from "../core/contracts.js";
 import { findNode, readWbs } from "../core/wbs.js";
+import { buildReviewQueue } from "./review-queue.js";
 
 type BlockChangeSet = {
   schemaVersion: "0.1.0";
@@ -61,7 +62,8 @@ export function runAiBlock(root: string, taskId: string, reason: string): number
 export function buildNextTask(root: string): string {
   const wbs = readWbs(root);
   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
-  const candidates = listTasks(root)
+  const tasks = listTasks(root);
+  const candidates = tasks
     .flatMap(({ task }) => {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];
       const node = findNode(wbs, task.wbsNodeId);
@@ -75,7 +77,12 @@ export function buildNextTask(root: string): string {
     .sort((a, b) => a.taskId.localeCompare(b.taskId));
 
   if (candidates.length === 0) {
-    return "No available planned tasks.\n";
+    const hasMissingEvidence = tasks.some((entry) => entry.task && !evidenceExists(root, entry.task.id));
+    const hasReviewCandidate = buildReviewQueue(root) !== "Review Queue:\n- None\n";
+    const followUp = hasMissingEvidence || hasReviewCandidate
+      ? "\nFollow-up work remains for existing contracts. Run `scwbs next` for Evidence or review guidance.\n"
+      : "";
+    return `No available planned tasks.${followUp}\n`;
   }
 
   const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
