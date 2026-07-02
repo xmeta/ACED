@@ -1,0 +1,30 @@
+id: EVD-SCWBS-039
+type: evidence
+taskId: SCWBS-039
+commit: efe5087c5adbf2ae4daa9e6b72734c9d70c0099c
+git:
+  branch: codex/scwbs-039-design-spec-audit
+  base: origin/main
+  baseCommit: c32edc2a920baadebf47dc8ab6e3cf537c490cba
+  changedFilesBasis: branch-diff
+  headCommit: efe5087c5adbf2ae4daa9e6b72734c9d70c0099c
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-039.yaml
+  - docs/design-spec-issues-2026-07-02.md
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T11:49:58.490Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T11:50:02.578Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T11:50:06.429Z"
