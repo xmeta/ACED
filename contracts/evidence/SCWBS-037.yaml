@@ -1,0 +1,40 @@
+id: EVD-SCWBS-037
+type: evidence
+taskId: SCWBS-037
+commit: ec39e10ba11f207af4b072b428321c4845227847
+git:
+  branch: codex/scwbs-037-evidence-health-backfill
+  base: origin/main
+  baseCommit: 05fe04b7703a2dd84e6a36fa2bdac36ff32de109
+  changedFilesBasis: branch-diff
+  headCommit: ec39e10ba11f207af4b072b428321c4845227847
+changedFiles:
+  - contracts/evidence/SCWBS-001.yaml
+  - contracts/evidence/SCWBS-004.yaml
+  - contracts/evidence/SCWBS-005.yaml
+  - contracts/evidence/SCWBS-006.yaml
+  - contracts/evidence/SCWBS-007.yaml
+  - contracts/evidence/SCWBS-008.yaml
+  - contracts/evidence/SCWBS-022.yaml
+  - contracts/evidence/SCWBS-023.yaml
+  - contracts/evidence/SCWBS-024.yaml
+  - contracts/evidence/SCWBS-025.yaml
+  - contracts/evidence/SCWBS-034.yaml
+  - contracts/tasks/SCWBS-023.yaml
+  - contracts/tasks/SCWBS-037.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T06:45:35.096Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T06:45:38.120Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T06:45:41.184Z"
