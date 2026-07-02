@@ -1,0 +1,29 @@
+id: SCWBS-044
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-SCWBS-GOVERNANCE
+branchName: codex/scwbs-044-review-health-blocker-label
+allowedPaths:
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Review Health blocker count describes all completion blockers, not only incomplete dependencies.
+  - Existing per-entry dependency warnings remain unchanged.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T00:00:00.000Z"

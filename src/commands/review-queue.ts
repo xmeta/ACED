@@ -138,7 +138,7 @@ export function buildReviewQueue(root: string): string {
   lines.push("Review Health:");
   lines.push(`- ${sortedEntries.length} review candidates`);
   lines.push(`- ${missingPullRequestCount} candidates missing pull request metadata`);
-  lines.push(`- ${blockedCount} candidates blocked by incomplete dependencies`);
+  lines.push(`- ${blockedCount} candidates blocked by completion prerequisites`);
   lines.push(`- ${readyCount} candidates ready for completion review`);
   lines.push("");
 
