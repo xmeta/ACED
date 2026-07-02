@@ -23,11 +23,11 @@ import { buildNextAction } from "../src/commands/next.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
-import { listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readTask } from "../src/core/contracts.js";
+import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
-import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
   test("init creates a valid minimal WJS document", () => {
@@ -67,6 +67,47 @@ describe("scwbs MVP", () => {
     expect(listSpecs(root).some((entry) => entry.path === "contracts/specs/SPEC-F001-API.yaml" && entry.issues.length === 0)).toBe(true);
   });
 
+  test("spec change proposals are first-class files with required metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", sampleSpecChange() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        {
+          id: "SPEC-F001-API",
+          type: "spec",
+          path: "contracts/specs/SPEC-F001-API.yaml",
+          status: "approved",
+          version: "1.0.0",
+          featureId: "F001",
+          relatedTask: "WBS-001-004"
+        },
+        {
+          id: "SCP-F001-API-001",
+          type: "spec-change",
+          path: "contracts/spec-changes/SCP-F001-API-001.yaml",
+          status: "proposed",
+          version: "1.1.0",
+          relatedTask: "WBS-001-004"
+        },
+        {
+          id: "TASK-WBS-001-004",
+          type: "task",
+          path: "contracts/tasks/WBS-001-004.yaml",
+          featureId: "F001"
+        }
+      ]
+    });
+
+    const { specChange, issues } = readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml");
+    expect(issues).toEqual([]);
+    expect(specChange?.type).toBe("spec-change-proposal");
+    expect(specChange?.status).toBe("proposed");
+    expect(listSpecChanges(root).some((entry) => entry.path === "contracts/spec-changes/SCP-F001-API-001.yaml" && entry.issues.length === 0)).toBe(true);
+    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("specChange."))).toBe(false);
+  });
+
   test("YAML contract reads run JSON Schema validation after parsing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -85,6 +126,7 @@ describe("scwbs MVP", () => {
     writeScwbsProject(root);
     writeYaml(root, "contracts/registry.yaml", { projectId: "test-wbs", contracts: [{ id: "TASK-WBS-001-004", type: "bad", path: "contracts/tasks/WBS-001-004.yaml" }] });
     writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", { ...sampleSpec(), status: "archived" });
+    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", { ...sampleSpecChange(), status: "waiting" });
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", { ...sampleEvidence(), checks: [{ name: "test", status: "unknown" }] });
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...sampleApproval(), status: "waiting" });
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -98,6 +140,7 @@ describe("scwbs MVP", () => {
 
     expect(readRegistry(root).issues.some((issue) => issue.code === "registry.schema")).toBe(true);
     expect(readSpec(root, "contracts/specs/SPEC-F001-API.yaml").issues.some((issue) => issue.code === "spec.schema")).toBe(true);
+    expect(readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml").issues.some((issue) => issue.code === "specChange.schema")).toBe(true);
     expect(readEvidence(root, "WBS-001-004").issues.some((issue) => issue.code === "evidence.schema")).toBe(true);
     expect(readApproval(root, "WBS-001-004").issues.some((issue) => issue.code === "approval.schema")).toBe(true);
     expect(readReview(root, "WBS-001-004").issues.some((issue) => issue.code === "review.schema")).toBe(true);
@@ -980,6 +1023,14 @@ describe("scwbs MVP", () => {
     });
     const issues = collectCheckIssues(root);
     expect(issues.some((issue) => issue.code === "spec.registry.missing")).toBe(true);
+  });
+
+  test("check errors when a spec change file is not indexed in the registry", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", sampleSpecChange() as unknown as Record<string, unknown>);
+    const issues = collectCheckIssues(root);
+    expect(issues.some((issue) => issue.code === "specChange.registry.missing")).toBe(true);
   });
 
   test("check errors when a task lock references a missing spec", () => {

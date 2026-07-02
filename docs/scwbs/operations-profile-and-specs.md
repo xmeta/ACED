@@ -38,8 +38,6 @@ Human Gateで責任ある判断を制御する。
 
 次段階の正式候補は以下である。
 
-* Spec Contractに `status`、`version`、`approvedBy`、`approvedAt` を持たせる
-* Spec Change Proposalの形式を定義する
 * Strict Profile向けにRisk Registerの形式を定義する
 
 ## 17. Subtree Phase
@@ -57,6 +55,46 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 
 Spec Contract files live under `contracts/specs/*.yaml`.
 Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
+
+## 19. Spec Change Proposal Files
+
+Spec Change Proposal files live under `contracts/spec-changes/*.yaml`.
+They describe proposed Level 1 or Level 2 changes before the approved Spec Contract is updated.
+
+Minimum form:
+
+```yaml
+id: SCP-SCWBS-001
+type: spec-change-proposal
+status: proposed
+targetSpec: SPEC-SCWBS-METHOD
+currentVersion: 0.1.0
+proposedVersion: 0.2.0
+taskId: SCWBS-041
+level: 2
+summary: Define a new contract artifact.
+rationale:
+  - The current approved spec does not define the changed behavior.
+affectedPaths:
+  - docs/scwbs/operations-profile-and-specs.md
+approval:
+  required: true
+  status: requested
+risks:
+  - Existing task locks may need refresh after approval.
+```
+
+`status` is one of:
+
+| Status | Meaning |
+|---|---|
+| `proposed` | Proposed and not yet approved |
+| `approved` | Human-approved and ready to drive Spec Contract updates |
+| `rejected` | Not accepted |
+| `superseded` | Replaced by another proposal |
+
+When `status: approved`, `approvedBy` and `approvedAt` are required.
+`scwbs check` validates Spec Change Proposal files and requires them to be indexed by `contracts/registry.yaml`.
 
 ### Approval Record 補足
 
