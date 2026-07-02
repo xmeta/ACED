@@ -1,0 +1,31 @@
+id: EVD-SCWBS-042
+type: evidence
+taskId: SCWBS-042
+commit: b832efb9d0c29bb3db38729d472a296c3b8bb528
+git:
+  branch: codex/scwbs-042-ai-next-task-evidence-filter
+  base: origin/main
+  baseCommit: 4270260bbb696d71bb7aec27639fbaff4eff76ad
+  changedFilesBasis: branch-diff
+  headCommit: b832efb9d0c29bb3db38729d472a296c3b8bb528
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-042.yaml
+  - src/commands/ai-queue.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T14:03:53.434Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T14:03:56.259Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T14:03:59.290Z"

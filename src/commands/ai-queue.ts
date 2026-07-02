@@ -66,6 +66,7 @@ export function buildNextTask(root: string): string {
   const candidates = tasks
     .flatMap(({ task }) => {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];
+      if (evidenceExists(root, task.id)) return [];
       const node = findNode(wbs, task.wbsNodeId);
       if (!node) return [];
       const status = node.status ?? "planned";
