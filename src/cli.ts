@@ -26,6 +26,7 @@ import { runTaskRefresh } from "./commands/task-refresh.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
 import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
+import type { Evidence } from "./core/types.js";
 
 function usage(): void {
   console.log(`Usage:
@@ -41,7 +42,7 @@ function usage(): void {
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
   scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
   scwbs completion apply --tasks <task-id[,task-id...]> --task <completion-task-id> [--reason <text>] [--apply] [--allow-root]
-  scwbs evidence collect --task <task-id> [--base <ref>] [--force]
+  scwbs evidence collect --task <task-id> [--base <ref>] [--pull-request <id>] [--test-assertions-added true|false] [--tests-disabled true|false] [--coverage-decreased true|false] [--test-quality-note <text>] [--force]
   scwbs registry rebuild [--check] [--force]
   scwbs profile show
   scwbs profile set <lean|standard|strict>
@@ -91,6 +92,35 @@ function numberAfter(args: string[], flag: string, fallback: number): number {
   if (value === undefined) return fallback;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function booleanAfter(args: string[], flag: string): boolean | undefined {
+  const value = valueAfter(args, flag);
+  if (value === undefined) return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
+  const assertionsAdded = booleanAfter(args, "--test-assertions-added");
+  const testsDisabled = booleanAfter(args, "--tests-disabled");
+  const coverageDecreased = booleanAfter(args, "--coverage-decreased");
+  const note = textAfter(args, "--test-quality-note");
+  if (
+    assertionsAdded === undefined
+    && testsDisabled === undefined
+    && coverageDecreased === undefined
+    && note === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
+    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
+    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
+    ...(note ? { notes: [note] } : {})
+  };
 }
 
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
@@ -226,7 +256,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runEvidenceCollect(root, taskId, { force: argv.includes("--force"), baseRef: valueAfter(argv, "--base") });
+    return runEvidenceCollect(root, taskId, {
+      force: argv.includes("--force"),
+      baseRef: valueAfter(argv, "--base"),
+      pullRequest: valueAfter(argv, "--pull-request"),
+      testQuality: testQualityAfter(argv)
+    });
   }
   if (command === "registry" && subcommand === "rebuild") {
     return runRegistryRebuild(root, { check: argv.includes("--check"), force: argv.includes("--force") });

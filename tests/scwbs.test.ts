@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../src/commands/check.js";
 import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../src/commands/check-diff.js";
-import { buildCollectedEvidence } from "../src/commands/evidence-collect.js";
+import { buildCollectedEvidence, runEvidenceCollect } from "../src/commands/evidence-collect.js";
 import { buildDoctorReport } from "../src/commands/doctor.js";
 import { buildStartArtifacts } from "../src/commands/start.js";
 import { buildReviewQueue } from "../src/commands/review-queue.js";
@@ -327,6 +327,100 @@ describe("scwbs MVP", () => {
     expect(evidence.git?.headCommit).toBe(headCommit(root));
     expect(evidence.git?.changedFilesBasis).toBe("branch-diff");
     expect(evidence.changedFiles).toContain("src/features/api/index.ts");
+  });
+
+  test("evidence collect records explicit pull request metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base", pullRequest: "#42" });
+    expect(evidence.git?.pullRequest).toBe("#42");
+  });
+
+  test("evidence collect preserves existing pull request metadata when refreshed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "feature",
+          base: "base",
+          baseCommit: "abc123",
+          changedFilesBasis: "branch-diff",
+          pullRequest: "#42",
+          headCommit: "def456"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    const { evidence } = readEvidence(root, "WBS-001-004");
+    expect(evidence?.git?.pullRequest).toBe("#42");
+  });
+
+  test("evidence collect records explicit test quality metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", {
+      baseRef: "base",
+      testQuality: {
+        assertionsAdded: true,
+        testsDisabled: false,
+        coverageDecreased: false,
+        notes: ["Added regression coverage."]
+      }
+    });
+    expect(evidence.testQuality).toEqual({
+      assertionsAdded: true,
+      testsDisabled: false,
+      coverageDecreased: false,
+      notes: ["Added regression coverage."]
+    });
+  });
+
+  test("evidence collect preserves existing test quality metadata when refreshed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        testQuality: {
+          assertionsAdded: true,
+          testsDisabled: false,
+          coverageDecreased: false,
+          notes: ["Existing test quality rationale."]
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    const { evidence } = readEvidence(root, "WBS-001-004");
+    expect(evidence?.testQuality).toEqual({
+      assertionsAdded: true,
+      testsDisabled: false,
+      coverageDecreased: false,
+      notes: ["Existing test quality rationale."]
+    });
   });
 
   test("evidence collect records bounded diagnostics for failed checks", () => {

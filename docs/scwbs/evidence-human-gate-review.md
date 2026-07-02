@@ -50,6 +50,10 @@ Evidenceは自己申告だけで完結させない。可能な限り、CIログ�
 
 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
 
+PR作成後は `--pull-request "#42"` を付けてEvidenceを再収集し、`git.pullRequest` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `git.pullRequest` は保持される。
+
+テスト差分を含む場合は、`--test-assertions-added true|false`、`--tests-disabled true|false`、`--coverage-decreased true|false`、`--test-quality-note <text>` で `testQuality` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `testQuality` は保持される。
+
 Evidenceの信頼度は以下に分ける。
 
 | Level | 意味 |
