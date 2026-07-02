@@ -1,0 +1,34 @@
+id: EVD-SCWBS-049
+type: evidence
+taskId: SCWBS-049
+commit: 2da8560b688ad2835a0ea41666d791bbc27dda5a
+git:
+  branch: codex/scwbs-049-pr-metadata-evidence-collect
+  base: origin/main
+  baseCommit: ba336b4a565b41155a7b3f0584c5b12cfd29b4d9
+  changedFilesBasis: branch-diff
+  headCommit: 2da8560b688ad2835a0ea41666d791bbc27dda5a
+changedFiles:
+  - contracts/tasks/SCWBS-049.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - src/cli.ts
+  - src/commands/evidence-collect.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T17:56:19.627Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T17:56:22.985Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T17:56:26.295Z"
