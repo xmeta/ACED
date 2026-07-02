@@ -37,7 +37,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Test quality | Diff-aware assertion and coverage inspection | `testQuality` is validated as metadata, but source diffs and coverage reports are not parsed yet |
 | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
 | Review independence | Separate independent review mode | Single-session review is still policy-driven, not enforced by the tool |
-| CI integration | GitHub Actions and PR feedback | The checks run locally but are not wired into the repo automation |
+| CI integration | PR feedback and CI evidence correlation | GitHub Actions run the local checks, but PR feedback and Evidence links to CI runs are not wired into the workflow yet |
 | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
 | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
 | Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
@@ -51,4 +51,4 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
 - Add a provenance-aware evidence verifier that can correlate Evidence with PR and CI metadata.
-- Wire the current checks into CI once the contract model stabilizes.
+- Add PR feedback and CI run metadata capture for Evidence once the contract model stabilizes.
