@@ -1,7 +1,7 @@
 import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listTasks, evidenceExists } from "../core/contracts.js";
+import { listTasks, evidenceExists, reviewExists } from "../core/contracts.js";
 
 function taskIdFromMessage(message: string): string | undefined {
   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
@@ -38,6 +38,17 @@ Command:
   const queue = buildReviewQueue(root);
   const reviewTask = /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(queue)?.[1];
   if (reviewTask) {
+    if (reviewExists(root, reviewTask)) {
+      return `Next suggested action:
+
+Human review for ${reviewTask}
+Reason:
+- Evidence and review metadata exist; human completion review is next
+
+Command:
+  scwbs review-queue
+`;
+    }
     return `Next suggested action:
 
 Review ${reviewTask}

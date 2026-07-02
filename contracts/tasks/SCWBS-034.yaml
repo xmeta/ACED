@@ -1,0 +1,38 @@
+id: SCWBS-034
+type: task-contract
+wbsNodeId: node-lightweight-next
+featureId: F-SCWBS-LIGHTWEIGHT-NEXT
+branchName: codex/scwbs-034-review-next-guidance
+allowedPaths:
+  - src/commands/next.ts
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+  - contracts/approvals/SCWBS-034.yaml
+  - contracts/tasks/SCWBS-034.yaml
+  - contracts/evidence/SCWBS-034.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - scwbs next does not ask for a duplicate review request when a review record already exists.
+  - review-queue distinguishes review-requested tasks from tasks still needing review request metadata.
+  - Tests cover the updated follow-up guidance.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:bc65bad71d7ff1826f8bdb7d5c49080775d77b9e5d39d4b6530d2a9507bca270"
+  wbsNodeId: node-lightweight-next
+  createdAt: "2026-07-02T04:48:40.971Z"

@@ -1,4 +1,4 @@
-import { readApproval, listTasks, readEvidence } from "../core/contracts.js";
+import { readApproval, listTasks, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 
@@ -12,6 +12,7 @@ type ReviewQueueEntry = {
   branchName?: string;
   pullRequest?: string;
   approvalStatus?: string;
+  reviewStatus?: string;
   suggestedAction: string;
 };
 
@@ -41,10 +42,13 @@ export function buildReviewQueue(root: string): string {
     const completionBlockedBy = incompleteDependencies(node.id, wbs);
     const { evidence, issues } = readEvidence(root, task.id);
     const { approval, issues: approvalIssues } = readApproval(root, task.id);
+    const { review, issues: reviewIssues } = readReview(root, task.id);
     const missingEvidenceOnly = issues.length === 1 && issues[0]?.code === "evidence.missing";
     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
     const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
     const hasApproval = Boolean(approval) && !missingApprovalOnly;
+    const hasReview = Boolean(review) && !missingReviewOnly;
 
     if (hasEvidence && !isDoneNode(node)) {
       reasons.push(
@@ -71,6 +75,9 @@ export function buildReviewQueue(root: string): string {
       if (hasEvidence && !evidence.git?.pullRequest && !approval?.pullRequest) {
         warnings.push("no pull request is recorded for this review candidate");
       }
+      if (hasEvidence && (evidence.git?.pullRequest || approval?.pullRequest) && !hasReview) {
+        warnings.push("no review request is recorded for this review candidate");
+      }
     }
 
     if (approval?.status === "requested") {
@@ -80,9 +87,14 @@ export function buildReviewQueue(root: string): string {
     }
 
     if (reasons.length > 0) {
-      const suggestedAction = completionBlockedBy.length === 0
-        ? "create or record PR, then human review for completion"
-        : "review evidence now, but defer completion until dependencies are completed";
+      const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
+      const suggestedAction = completionBlockedBy.length > 0
+        ? "review evidence now, but defer completion until dependencies are completed"
+        : !hasPullRequest
+          ? "create or record PR, then human review for completion"
+          : !hasReview
+            ? "request review for this task"
+            : "human review for completion";
       entries.push({
         taskId: task.id,
         nodeCode: node.code,
@@ -93,6 +105,7 @@ export function buildReviewQueue(root: string): string {
         branchName: evidence?.git?.branch ?? task.branchName,
         pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
         approvalStatus: approval?.status,
+        reviewStatus: review?.status,
         suggestedAction
       });
     }
@@ -127,6 +140,9 @@ export function buildReviewQueue(root: string): string {
     }
     if (item.approvalStatus) {
       lines.push(`  approvalStatus: ${item.approvalStatus}`);
+    }
+    if (item.reviewStatus) {
+      lines.push(`  reviewStatus: ${item.reviewStatus}`);
     }
     for (const reason of item.reasons) {
       lines.push(`  reason: ${reason}`);
