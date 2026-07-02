@@ -1,0 +1,30 @@
+id: SCWBS-045
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-SCWBS-GOVERNANCE
+branchName: codex/scwbs-045-next-respects-review-blockers
+allowedPaths:
+  - src/commands/next.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - next uses the Ready for completion review section before suggesting human completion review.
+  - next does not suggest human completion review when every review candidate is blocked.
+  - Existing missing Evidence and unblocked review guidance remains covered.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T00:00:00.000Z"

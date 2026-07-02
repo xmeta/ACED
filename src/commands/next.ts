@@ -7,6 +7,11 @@ function taskIdFromMessage(message: string): string | undefined {
   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
 }
 
+function taskIdFromSection(queue: string, heading: string): string | undefined {
+  const section = new RegExp(`${heading}:\\n([\\s\\S]*?)(?:\\n\\n|$)`).exec(queue)?.[1] ?? "";
+  return /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(section)?.[1];
+}
+
 export function buildNextAction(root: string): string {
   const stale = collectCheckIssues(root).find((issue) => issue.code.startsWith("task.contractLock"));
   if (stale) {
@@ -36,7 +41,7 @@ Command:
   }
 
   const queue = buildReviewQueue(root);
-  const reviewTask = /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(queue)?.[1];
+  const reviewTask = taskIdFromSection(queue, "Ready for completion review");
   if (reviewTask) {
     if (reviewExists(root, reviewTask)) {
       return `Next suggested action:
@@ -57,6 +62,18 @@ Reason:
 
 Command:
   scwbs review request --task ${reviewTask}
+`;
+  }
+  const blockedReviewTask = taskIdFromSection(queue, "Blocked review candidates");
+  if (blockedReviewTask) {
+    return `Next suggested action:
+
+Review blocked candidates
+Reason:
+- Review candidates exist, but completion is blocked by prerequisites
+
+Command:
+  scwbs review-queue
 `;
   }
 
