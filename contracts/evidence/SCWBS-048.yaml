@@ -1,0 +1,44 @@
+id: EVD-SCWBS-048
+type: evidence
+taskId: SCWBS-048
+commit: ee504c805f41276bb1f2981d43b4a39db4a0f4c9
+git:
+  branch: codex/scwbs-048-review-metadata-backfill
+  base: origin/main
+  baseCommit: 0d3a2f50f17cd219b068080eb30c9d7ecf888b6b
+  changedFilesBasis: branch-diff
+  pullRequest: "#50"
+  headCommit: ee504c805f41276bb1f2981d43b4a39db4a0f4c9
+changedFiles:
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-042.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-046.yaml
+  - contracts/evidence/SCWBS-048.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-041.yaml
+  - contracts/reviews/SCWBS-042.yaml
+  - contracts/reviews/SCWBS-043.yaml
+  - contracts/reviews/SCWBS-044.yaml
+  - contracts/reviews/SCWBS-045.yaml
+  - contracts/reviews/SCWBS-046.yaml
+  - contracts/reviews/SCWBS-048.yaml
+  - contracts/tasks/SCWBS-048.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T17:40:25.742Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T17:40:30.148Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T17:40:33.692Z"
