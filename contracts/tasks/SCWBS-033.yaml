@@ -1,0 +1,35 @@
+id: SCWBS-033
+type: task-contract
+wbsNodeId: node-ci-integration
+featureId: F-1-4
+branchName: codex/scwbs-033-record-scwbs-032-review
+allowedPaths:
+  - contracts/tasks/SCWBS-033.yaml
+  - contracts/evidence/SCWBS-033.yaml
+  - contracts/reviews/SCWBS-032.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-032 review request is recorded after PR
+  - Registry indexes the SCWBS-032 review record.
+  - SCWBS-033 Evidence records the follow-up contract changes.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:bc65bad71d7ff1826f8bdb7d5c49080775d77b9e5d39d4b6530d2a9507bca270"
+  wbsNodeId: node-ci-integration
+  createdAt: "2026-07-02T04:41:39.844Z"
