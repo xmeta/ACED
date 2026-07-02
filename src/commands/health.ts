@@ -1,5 +1,5 @@
 import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { baseBranchStatus, changedFilesSince, commitExists, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
+import { baseBranchStatus, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -38,10 +38,16 @@ function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string,
   }
 }
 
+function shouldCheckEvidenceHeadStaleness(currentBranchName: string | undefined, task: TaskContract, evidence: Evidence): boolean {
+  if (!currentBranchName) return false;
+  return currentBranchName === evidence.git?.branch || currentBranchName === task.branchName;
+}
+
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
   const currentHead = headCommit(root);
+  const currentBranchName = currentBranch(root);
   const { approval, issues: approvalIssues } = readApproval(root, task.id);
   const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
   const approvalPullRequest = approval?.pullRequest;
@@ -80,7 +86,11 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
   } else if (!commitExists(root, evidence.git.headCommit)) {
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
-  } else if (currentHead && evidenceHeadHasStaleImplementationChanges(root, task.id, evidence.git.headCommit, currentHead)) {
+  } else if (
+    currentHead
+    && shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)
+    && evidenceHeadHasStaleImplementationChanges(root, task.id, evidence.git.headCommit, currentHead)
+  ) {
     issues.push({ severity: "warn", code: "health.evidence.git.headCommit.stale", message: `${task.id} evidence git.headCommit ${evidence.git.headCommit} is behind implementation changes in current HEAD ${currentHead}` });
   }
   if (!evidence.git?.changedFilesBasis) {

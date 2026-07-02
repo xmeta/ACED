@@ -1,0 +1,36 @@
+id: SCWBS-036
+type: task-contract
+wbsNodeId: node-evidence-provenance-diff-basis
+featureId: F-SCWBS-LIGHTWEIGHT-EVIDENCE
+branchName: codex/scwbs-036-health-stale-cleanup
+allowedPaths:
+  - src/commands/health.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-036.yaml
+  - contracts/evidence/SCWBS-036.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - health does not flag historical Evidence as stale merely because main has moved forward.
+  - health still warns when Evidence is stale on its own task branch.
+  - Tests cover stale Evidence branch scoping.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:c3f98ebd3d580d4188f94096104a73db59adaab12fbdf78c1ef111d556c34bd9"
+  wbsNodeId: node-evidence-provenance-diff-basis
+  createdAt: "2026-07-02T06:20:29.429Z"

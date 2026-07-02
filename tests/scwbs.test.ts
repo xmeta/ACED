@@ -681,6 +681,7 @@ describe("scwbs MVP", () => {
     writeScwbsProject(root, "planned");
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["switch", "-c", "task/WBS-001-004-api-implementation"], { cwd: root, stdio: "ignore" });
     const oldHead = headCommit(root) ?? "";
     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
@@ -700,6 +701,32 @@ describe("scwbs MVP", () => {
     );
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(true);
+  });
+
+  test("health ignores historical stale evidence on other branches", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    const oldHead = headCommit(root) ?? "";
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "later-work"], { cwd: root, stdio: "ignore" });
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "base",
+          baseCommit: oldHead,
+          changedFilesBasis: "branch-diff",
+          headCommit: oldHead
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(false);
   });
 
   test("health accepts post-evidence metadata-only commits", () => {
