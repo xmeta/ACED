@@ -1,0 +1,31 @@
+id: EVD-SCWBS-045
+type: evidence
+taskId: SCWBS-045
+commit: d541daa873978f88e8d693f43e64f41a535f4c38
+git:
+  branch: codex/scwbs-045-next-respects-review-blockers
+  base: origin/main
+  baseCommit: 3b51f1aab0edc401a68bba0f3809082622d055b0
+  changedFilesBasis: branch-diff
+  headCommit: d541daa873978f88e8d693f43e64f41a535f4c38
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-045.yaml
+  - src/commands/next.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T14:27:09.397Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T14:27:12.936Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T14:27:16.961Z"
