@@ -41,7 +41,7 @@ function usage(): void {
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
   scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
   scwbs completion apply --tasks <task-id[,task-id...]> --task <completion-task-id> [--reason <text>] [--apply] [--allow-root]
-  scwbs evidence collect --task <task-id> [--base <ref>] [--force]
+  scwbs evidence collect --task <task-id> [--base <ref>] [--pull-request <id>] [--force]
   scwbs registry rebuild [--check] [--force]
   scwbs profile show
   scwbs profile set <lean|standard|strict>
@@ -226,7 +226,11 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runEvidenceCollect(root, taskId, { force: argv.includes("--force"), baseRef: valueAfter(argv, "--base") });
+    return runEvidenceCollect(root, taskId, {
+      force: argv.includes("--force"),
+      baseRef: valueAfter(argv, "--base"),
+      pullRequest: valueAfter(argv, "--pull-request")
+    });
   }
   if (command === "registry" && subcommand === "rebuild") {
     return runRegistryRebuild(root, { check: argv.includes("--check"), force: argv.includes("--force") });

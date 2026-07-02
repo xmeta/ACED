@@ -42,6 +42,7 @@ npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- task refresh --task WBS-001-004
 npm run scwbs -- evidence collect --task WBS-001-004
+npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
 npm run scwbs -- registry rebuild --check
 npm run scwbs -- profile show
 npm run scwbs -- profile set lean
@@ -78,6 +79,8 @@ notes:
 ```
 
 `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+
+After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
 
 `completion apply` completes reviewed WBS nodes without hand-written YAML. By default it is a dry-run that prints the approvals and `changeNodeStatus` operations it would write. With `--apply`, it writes missing approved records, writes `contracts/changesets/<completion-task-id>-complete-reviewed-work.json`, applies the WBS changeset, and rebuilds the registry. It refuses root-node completion by default; use `--allow-root` only after explicit human decision.
 
