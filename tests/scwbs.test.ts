@@ -639,6 +639,41 @@ describe("scwbs MVP", () => {
     expect(next).not.toContain("scwbs review request --task WBS-001-004");
   });
 
+  test("next does not suggest completion review when review candidates are blocked", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
+      id: "EVD-001-005",
+      taskId: "WBS-001-005"
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    const next = buildNextAction(root);
+    expect(next).toContain("Review blocked candidates");
+    expect(next).toContain("completion is blocked by prerequisites");
+    expect(next).not.toContain("Human review for WBS-001-004");
+  });
+
   test("health warns when evidence has only low-trust checks", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
