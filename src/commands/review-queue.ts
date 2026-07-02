@@ -1,6 +1,7 @@
 import { readApproval, listTasks, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import type { TaskContract } from "../core/types.js";
 
 type ReviewQueueEntry = {
   taskId: string;
@@ -9,12 +10,97 @@ type ReviewQueueEntry = {
   reasons: string[];
   warnings: string[];
   completionBlockedBy: string[];
+  completionTargets?: NodeCompletionTarget[];
   branchName?: string;
   pullRequest?: string;
   approvalStatus?: string;
   reviewStatus?: string;
   suggestedAction: string;
 };
+
+type NodeCompletionTarget = {
+  taskId: string;
+  nodeCode: string;
+  nodeName: string;
+  pullRequest?: string;
+  approvalStatus?: string;
+  reviewStatus?: string;
+};
+
+function completionTaskIds(task: TaskContract): string[] {
+  return [...new Set(task.completionTaskIds ?? [])];
+}
+
+function isNodeCompletionTask(task: TaskContract): boolean {
+  return task.completionScope === "node" && completionTaskIds(task).length > 0;
+}
+
+function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readWbs>, task: TaskContract): { blockers: string[]; targets: NodeCompletionTarget[] } {
+  const blockers: string[] = [];
+  const targets: NodeCompletionTarget[] = [];
+  const seen = new Set<string>();
+
+  for (const targetId of completionTaskIds(task)) {
+    if (targetId === task.id) {
+      blockers.push(`${task.id} completionTaskIds must not include itself`);
+      continue;
+    }
+    if (seen.has(targetId)) continue;
+    seen.add(targetId);
+
+    const taskEntry = listTasks(root).find((entry) => entry.task?.id === targetId);
+    const targetTask = taskEntry?.task;
+    if (!targetTask) {
+      blockers.push(`missing completion target task ${targetId}`);
+      continue;
+    }
+
+    const targetNode = findNode(wbs, targetTask.wbsNodeId);
+    if (!targetNode) {
+      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
+      continue;
+    }
+    if (targetNode.id !== task.wbsNodeId) {
+      blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+      continue;
+    }
+
+    const { evidence, issues } = readEvidence(root, targetTask.id);
+    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
+    const { review, issues: reviewIssues } = readReview(root, targetTask.id);
+    const missingEvidenceOnly = issues.length === 1 && issues[0]?.code === "evidence.missing";
+    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
+    const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
+    const hasApproval = Boolean(approval) && !missingApprovalOnly;
+    const hasReview = Boolean(review) && !missingReviewOnly;
+    const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
+
+    if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
+    if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
+    if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
+    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
+    if (touchesHumanGate && !hasApproval) {
+      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
+    }
+    if (approval?.status === "requested") {
+      blockers.push(`${targetTask.id} approval is still requested`);
+    } else if (approval?.status === "rejected") {
+      blockers.push(`${targetTask.id} approval was rejected`);
+    }
+
+    targets.push({
+      taskId: targetTask.id,
+      nodeCode: targetNode.code,
+      nodeName: targetNode.name,
+      pullRequest,
+      approvalStatus: approval?.status,
+      reviewStatus: review?.status
+    });
+  }
+
+  return { blockers, targets };
+}
 
 function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readWbs>): string[] {
   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
@@ -46,6 +132,7 @@ export function buildReviewQueue(root: string): string {
     const reasons: string[] = [];
     const warnings: string[] = [];
     const completionBlockedBy = incompleteDependencies(node.id, wbs);
+    const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
     const { evidence, issues } = readEvidence(root, task.id);
     const { approval, issues: approvalIssues } = readApproval(root, task.id);
     const { review, issues: reviewIssues } = readReview(root, task.id);
@@ -69,8 +156,13 @@ export function buildReviewQueue(root: string): string {
         warnings.push(`dependsOn node ${blockedBy} is not completed`);
       }
     }
-    if ((taskCountByNode.get(node.id) ?? 0) > 1) {
+    if (!isNodeCompletionTask(task) && (taskCountByNode.get(node.id) ?? 0) > 1) {
       completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
+    }
+    if (isNodeCompletionTask(task) && nodeCompletionTargets.blockers.length > 0) {
+      for (const blockedBy of nodeCompletionTargets.blockers) {
+        completionBlockedBy.push(blockedBy);
+      }
     }
 
     if (evidence) {
@@ -98,8 +190,11 @@ export function buildReviewQueue(root: string): string {
     if (reasons.length > 0) {
       const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
       const sharedNodeCompletionBlocked = completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
+      const nodeCompletionTaskBlocked = isNodeCompletionTask(task) && completionBlockedBy.length > 0;
       const suggestedAction = completionBlockedBy.length > 0
-        ? sharedNodeCompletionBlocked
+        ? nodeCompletionTaskBlocked
+          ? "review evidence now, but defer node completion until the completion targets are ready"
+          : sharedNodeCompletionBlocked
           ? "review evidence now, but defer WBS completion to a dedicated node-level completion task"
           : "review evidence now, but defer completion until dependencies are completed"
         : !hasPullRequest
@@ -114,6 +209,7 @@ export function buildReviewQueue(root: string): string {
         reasons,
         warnings,
         completionBlockedBy,
+        completionTargets: nodeCompletionTargets.targets,
         branchName: evidence?.git?.branch ?? task.branchName,
         pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
         approvalStatus: approval?.status,
@@ -164,6 +260,17 @@ export function buildReviewQueue(root: string): string {
     }
     for (const blockedBy of item.completionBlockedBy) {
       lines.push(`  completionBlockedBy: ${blockedBy}`);
+    }
+    if (item.completionTargets && item.completionTargets.length > 0) {
+      lines.push("  completionTargets:");
+      for (const target of item.completionTargets) {
+        const details = [
+          target.pullRequest ? `PR ${target.pullRequest}` : "no PR",
+          target.reviewStatus ? `review ${target.reviewStatus}` : "no review",
+          target.approvalStatus ? `approval ${target.approvalStatus}` : "no approval"
+        ].join(", ");
+        lines.push(`    - ${target.taskId}: ${target.nodeCode} ${target.nodeName} (${details})`);
+      }
     }
     lines.push(`  suggestedAction: ${item.suggestedAction}`);
   }

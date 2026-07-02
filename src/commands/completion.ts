@@ -1,10 +1,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+import { matchesAny } from "../core/glob.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
-import type { ApprovalRecord, WbsDocument, WbsNode } from "../core/types.js";
+import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
 import { buildApprovalApprove } from "./approval-request.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { runWbsApply } from "./wbs.js";
@@ -15,6 +16,14 @@ type CompletionPlanItem = {
   pullRequest?: string;
   approval: ApprovalRecord;
   writesApproval: boolean;
+  completionTargets?: Array<{
+    taskId: string;
+    nodeCode: string;
+    nodeName: string;
+    pullRequest?: string;
+    approvalStatus?: string;
+    reviewStatus?: string;
+  }>;
 };
 
 type CompletionChangeSet = {
@@ -50,9 +59,83 @@ function parseTaskIds(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function completionTaskIds(task: TaskContract): string[] {
+  return [...new Set(task.completionTaskIds ?? [])];
+}
+
+function isNodeCompletionTask(task: TaskContract): boolean {
+  return task.completionScope === "node" && completionTaskIds(task).length > 0;
+}
+
 function approvalFor(taskId: string, pullRequest: string | undefined, reason: string, existing: ApprovalRecord | undefined): CompletionPlanItem["approval"] {
   if (existing?.status === "approved") return existing;
   return buildApprovalApprove(taskId, { pullRequest, reason, approvedBy: "human" });
+}
+
+function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: TaskContract): { blockers: string[]; targets: NonNullable<CompletionPlanItem["completionTargets"]> } {
+  const blockers: string[] = [];
+  const targets: NonNullable<CompletionPlanItem["completionTargets"]> = [];
+  const seen = new Set<string>();
+
+  for (const targetId of completionTaskIds(task)) {
+    if (targetId === task.id) {
+      blockers.push(`${task.id} completionTaskIds must not include itself`);
+      continue;
+    }
+    if (seen.has(targetId)) continue;
+    seen.add(targetId);
+
+    const { task: targetTask, issues: targetTaskIssues } = readTask(root, targetId);
+    if (!targetTask) {
+      blockers.push(targetTaskIssues.map((issue) => issue.message).join("\n"));
+      continue;
+    }
+
+    const targetNode = findNode(wbs, targetTask.wbsNodeId);
+    if (!targetNode) {
+      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
+      continue;
+    }
+    if (targetNode.id !== task.wbsNodeId) {
+      blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+      continue;
+    }
+
+    const { evidence, issues: evidenceIssues } = readEvidence(root, targetTask.id);
+    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
+    const { review, issues: reviewIssues } = readReview(root, targetTask.id);
+    const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
+    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
+    const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
+    const hasApproval = Boolean(approval) && !missingApprovalOnly;
+    const hasReview = Boolean(review) && !missingReviewOnly;
+    const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
+
+    if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
+    if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
+    if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
+    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
+    if (touchesHumanGate && !hasApproval) {
+      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
+    }
+    if (approval?.status === "requested") {
+      blockers.push(`${targetTask.id} approval is still requested`);
+    } else if (approval?.status === "rejected") {
+      blockers.push(`${targetTask.id} approval was rejected`);
+    }
+
+    targets.push({
+      taskId: targetTask.id,
+      nodeCode: targetNode.code,
+      nodeName: targetNode.name,
+      pullRequest,
+      approvalStatus: approval?.status,
+      reviewStatus: review?.status
+    });
+  }
+
+  return { blockers, targets };
 }
 
 function buildCompletionChangeSet(wbs: WbsDocument, completionTaskId: string, reason: string, items: CompletionPlanItem[]): CompletionChangeSet {
@@ -113,12 +196,28 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
 
     const pullRequest = evidence.git?.pullRequest ?? approval?.pullRequest;
     if (!pullRequest) throw new Error(`${task.id} has no pull request metadata in Evidence or Approval`);
+
+    const { review, issues: reviewIssues } = readReview(root, task.id);
+    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
+    if (isNodeCompletionTask(task) && !review && !missingReviewOnly) {
+      throw new Error(reviewIssues.map((issue) => issue.message).join("\n"));
+    }
+    if (isNodeCompletionTask(task) && !review) {
+      throw new Error(`${task.id} is a node-level completion task and requires review metadata before completion`);
+    }
+
+    const completionTargets = isNodeCompletionTask(task) ? validateNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] };
+    if (isNodeCompletionTask(task) && completionTargets.blockers.length > 0) {
+      throw new Error(`${task.id} cannot complete shared WBS node ${node.id} until:\n- ${completionTargets.blockers.join("\n- ")}`);
+    }
+
     items.push({
       taskId: task.id,
       node,
       pullRequest,
       approval: approvalFor(task.id, pullRequest, reason, approval),
-      writesApproval: approval?.status !== "approved"
+      writesApproval: approval?.status !== "approved",
+      completionTargets: completionTargets.targets
     });
   }
 
@@ -133,6 +232,17 @@ export function buildCompletionPreview(root: string, taskIdsValue: string | unde
     lines.push(`- ${item.taskId}: ${item.node.code} ${item.node.name} -> completed`);
     lines.push(`  pullRequest: ${item.pullRequest}`);
     lines.push(`  approval: ${item.writesApproval ? "will write approved record" : "already approved"}`);
+    if (item.completionTargets && item.completionTargets.length > 0) {
+      lines.push("  completionTargets:");
+      for (const target of item.completionTargets) {
+        const details = [
+          target.pullRequest ? `PR ${target.pullRequest}` : "no PR",
+          target.reviewStatus ? `review ${target.reviewStatus}` : "no review",
+          target.approvalStatus ? `approval ${target.approvalStatus}` : "no approval"
+        ].join(", ");
+        lines.push(`    - ${target.taskId}: ${target.nodeCode} ${target.nodeName} (${details})`);
+      }
+    }
   }
   lines.push("");
   lines.push(`changeset: contracts/changesets/${completionTaskId}-complete-reviewed-work.json`);

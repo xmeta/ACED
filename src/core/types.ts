@@ -67,6 +67,8 @@ export type TaskContract = {
   id: string;
   type: "task-contract";
   mode?: "lite";
+  completionScope?: "node";
+  completionTaskIds?: string[];
   wbsNodeId: string;
   featureId: string;
   branchName?: string;

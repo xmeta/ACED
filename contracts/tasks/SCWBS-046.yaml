@@ -1,0 +1,33 @@
+id: SCWBS-046
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-1-10
+branchName: codex/scwbs-046-node-level-completion-task
+allowedPaths:
+  - src/commands/completion.ts
+  - src/commands/review-queue.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-046.yaml
+  - contracts/evidence/SCWBS-046.yaml
+  - contracts/approvals/SCWBS-046.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Dedicated node-level completion tasks can aggregate evidence, review, approval, and PR metadata from multiple task contracts on the same WBS node.
+  - Shared-node completion is blocked unless every referenced task satisfies the same prerequisites that a direct task completion would require.
+  - review-queue and completion apply preserve root-node and unrelated-node safety while keeping single-task completion behavior intact.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T14:46:06.088Z"
