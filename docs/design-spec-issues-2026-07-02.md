@@ -64,7 +64,7 @@ Strict profile is described as an option, but the repo cannot actually validate 
 
 Recommended follow-up:
 
-- Introduce an explicit project or subtree profile source of truth.
+- Connect the existing WBS profile metadata to `check`, `health`, Review, and Evidence requirements.
 - Define Risk Register and audit-log artifacts before advertising Strict as enforceable.
 - Make `check` or `health` profile-aware so Evidence trust requirements are not only prose.
 
