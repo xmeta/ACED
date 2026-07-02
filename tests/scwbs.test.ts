@@ -1273,6 +1273,45 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(issues.some((issue) => issue.code === "health.evidence.testQuality.missing")).toBe(false);
   });
 
+  test("health accepts explained test maintenance without new assertions", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["tests/features/api/api.test.ts"],
+        testQuality: {
+          assertionsAdded: false,
+          testsDisabled: false,
+          coverageDecreased: false,
+          notes: ["Only increased timeout for an existing git-heavy test."]
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(false);
+  });
+
+  test("health warns when test changes add no assertions without rationale", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["tests/features/api/api.test.ts"],
+        testQuality: {
+          assertionsAdded: false,
+          testsDisabled: false,
+          coverageDecreased: false
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(true);
+  });
+
   test("status summarizes WBS node status", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "blocked");

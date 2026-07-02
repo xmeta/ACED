@@ -43,6 +43,10 @@ function shouldCheckEvidenceHeadStaleness(currentBranchName: string | undefined,
   return currentBranchName === evidence.git?.branch || currentBranchName === task.branchName;
 }
 
+function hasTestQualityRationale(evidence: Evidence): boolean {
+  return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
+}
+
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
@@ -131,7 +135,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
         message: `${task.id} changes tests but evidence has no testQuality metadata`
       });
     } else {
-      if (evidence.testQuality.assertionsAdded === false) {
+      if (evidence.testQuality.assertionsAdded === false && !hasTestQualityRationale(evidence)) {
         issues.push({
           severity: "warn",
           code: "health.evidence.testQuality.assertions",
