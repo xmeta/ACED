@@ -564,6 +564,34 @@ describe("scwbs MVP", () => {
     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
   });
 
+  test("ai next-task excludes a planned task that already has evidence", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.nodes[0].status = "completed";
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      {
+        id: "rel-api-depends-on-root",
+        type: "dependsOn",
+        source: "node-api",
+        target: "node-root"
+      }
+    ];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        humanGateRequiredPaths: []
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    expect(buildNextTask(root)).toContain("No available planned tasks.");
+    expect(buildNextTask(root)).toContain("Run `scwbs next` for Evidence or review guidance.");
+  });
+
   test("ai next-task points to scwbs next when no planned task is available but evidence is missing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
