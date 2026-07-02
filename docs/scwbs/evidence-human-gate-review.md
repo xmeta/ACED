@@ -52,6 +52,8 @@ Evidenceは自己申告だけで完結させない。可能な限り、CIログ�
 
 PR作成後は `--pull-request "#42"` を付けてEvidenceを再収集し、`git.pullRequest` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `git.pullRequest` は保持される。
 
+テスト差分を含む場合は、`--test-assertions-added true|false`、`--tests-disabled true|false`、`--coverage-decreased true|false`、`--test-quality-note <text>` で `testQuality` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `testQuality` は保持される。
+
 Evidenceの信頼度は以下に分ける。
 
 | Level | 意味 |

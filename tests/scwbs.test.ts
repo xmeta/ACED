@@ -368,6 +368,61 @@ describe("scwbs MVP", () => {
     expect(evidence?.git?.pullRequest).toBe("#42");
   });
 
+  test("evidence collect records explicit test quality metadata", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", {
+      baseRef: "base",
+      testQuality: {
+        assertionsAdded: true,
+        testsDisabled: false,
+        coverageDecreased: false,
+        notes: ["Added regression coverage."]
+      }
+    });
+    expect(evidence.testQuality).toEqual({
+      assertionsAdded: true,
+      testsDisabled: false,
+      coverageDecreased: false,
+      notes: ["Added regression coverage."]
+    });
+  });
+
+  test("evidence collect preserves existing test quality metadata when refreshed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        testQuality: {
+          assertionsAdded: true,
+          testsDisabled: false,
+          coverageDecreased: false,
+          notes: ["Existing test quality rationale."]
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    const { evidence } = readEvidence(root, "WBS-001-004");
+    expect(evidence?.testQuality).toEqual({
+      assertionsAdded: true,
+      testsDisabled: false,
+      coverageDecreased: false,
+      notes: ["Existing test quality rationale."]
+    });
+  });
+
   test("evidence collect records bounded diagnostics for failed checks", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

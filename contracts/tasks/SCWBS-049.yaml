@@ -10,6 +10,12 @@ allowedPaths:
   - docs/scwbs/cli-reference.md
   - docs/scwbs/evidence-human-gate-review.md
   - docs/implementation-gaps.md
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-042.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-046.yaml
   - contracts/tasks/SCWBS-049.yaml
   - contracts/evidence/SCWBS-049.yaml
   - contracts/reviews/SCWBS-049.yaml
@@ -24,7 +30,9 @@ requiredChecks:
 doneCriteria:
   - evidence collect accepts explicit pull request metadata for Evidence git provenance.
   - evidence collect --force preserves existing Evidence git.pullRequest when no replacement is provided.
-  - Documentation describes the PR metadata capture step so publish workflows do not rely on manual YAML edits.
+  - evidence collect accepts explicit testQuality metadata and preserves existing testQuality on refresh.
+  - Existing SCWBS-041 through SCWBS-046 Evidence records have testQuality metadata backfilled.
+  - Documentation describes the PR and testQuality metadata capture steps so publish workflows do not rely on manual YAML edits.
 evidenceRequired:
   - test-result
   - typecheck-result
