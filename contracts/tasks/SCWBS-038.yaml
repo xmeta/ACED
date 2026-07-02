@@ -1,0 +1,30 @@
+id: SCWBS-038
+type: task-contract
+wbsNodeId: node-test-quality
+featureId: F-SCWBS-QUALITY
+branchName: codex/scwbs-038-test-quality-rationale-health
+allowedPaths:
+  - src/commands/health.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-038.yaml
+  - contracts/evidence/SCWBS-038.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - health accepts test-only maintenance Evidence when testQuality notes explain why no assertions were added.
+  - health still warns when tests changed with assertionsAdded false and no rationale.
+  - Existing disabled-test and coverage-decrease warnings are preserved.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:c3f98ebd3d580d4188f94096104a73db59adaab12fbdf78c1ef111d556c34bd9"
+  wbsNodeId: node-test-quality
+  createdAt: "2026-07-02T11:04:01.030Z"
