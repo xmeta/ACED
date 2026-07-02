@@ -1,0 +1,40 @@
+id: SCWBS-037
+type: task-contract
+wbsNodeId: node-evidence-provenance-diff-basis
+featureId: F-SCWBS-LIGHTWEIGHT-EVIDENCE
+branchName: codex/scwbs-037-evidence-health-backfill
+allowedPaths:
+  - contracts/tasks/SCWBS-023.yaml
+  - contracts/tasks/SCWBS-037.yaml
+  - contracts/evidence/SCWBS-001.yaml
+  - contracts/evidence/SCWBS-004.yaml
+  - contracts/evidence/SCWBS-005.yaml
+  - contracts/evidence/SCWBS-006.yaml
+  - contracts/evidence/SCWBS-007.yaml
+  - contracts/evidence/SCWBS-008.yaml
+  - contracts/evidence/SCWBS-022.yaml
+  - contracts/evidence/SCWBS-023.yaml
+  - contracts/evidence/SCWBS-024.yaml
+  - contracts/evidence/SCWBS-025.yaml
+  - contracts/evidence/SCWBS-034.yaml
+  - contracts/evidence/SCWBS-037.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Historical Evidence records include explicit changedFilesBasis metadata where the original collection basis was legacy/manual.
+  - Evidence records that changed tests include explicit testQuality metadata.
+  - SCWBS-023 allowedPaths reflect the historical files recorded in its Evidence.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:c3f98ebd3d580d4188f94096104a73db59adaab12fbdf78c1ef111d556c34bd9"
+  wbsNodeId: node-evidence-provenance-diff-basis
+  createdAt: "2026-07-02T06:43:34.629Z"
