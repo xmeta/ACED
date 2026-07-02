@@ -537,6 +537,37 @@ describe("scwbs MVP", () => {
     expect(buildNextAction(root)).toContain("Collect evidence for WBS-001-004");
   });
 
+  test("next does not request a duplicate review when review metadata exists", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    const next = buildNextAction(root);
+    expect(next).toContain("Human review for WBS-001-004");
+    expect(next).toContain("scwbs review-queue");
+    expect(next).not.toContain("scwbs review request --task WBS-001-004");
+  });
+
   test("health warns when evidence has only low-trust checks", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
@@ -1294,6 +1325,58 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(queue).toContain("pullRequest: #42");
     expect(queue).toContain("approvalStatus: requested");
     expect(queue).toContain("warning: human review approval has been requested but is not approved yet");
+  });
+
+  test("review queue asks for review request when PR metadata exists but review is missing", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("warning: no review request is recorded for this review candidate");
+    expect(queue).toContain("suggestedAction: request review for this task");
+  });
+
+  test("review queue shows review status when review metadata exists", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("reviewStatus: requested");
+    expect(queue).toContain("suggestedAction: human review for completion");
+    expect(queue).not.toContain("warning: no review request is recorded for this review candidate");
   });
 
   test("review queue warns when pull request metadata is missing", () => {
