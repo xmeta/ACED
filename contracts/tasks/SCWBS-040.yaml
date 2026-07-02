@@ -1,0 +1,33 @@
+id: SCWBS-040
+type: task-contract
+wbsNodeId: node-project
+featureId: F-SCWBS-GOVERNANCE
+branchName: codex/scwbs-040-governance-maintenance-node
+allowedPaths:
+  - contracts/changesets/SCWBS-040-governance-maintenance-node.json
+  - contracts/tasks/**
+  - contracts/evidence/SCWBS-040.yaml
+  - contracts/approvals/SCWBS-040.yaml
+  - contracts/registry.yaml
+  - contracts/wbs/project.wbs.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - WBS has a non-completed governance maintenance node.
+  - Root status and progressPercent are made consistent by explicit human decision.
+  - Task Contract locks are refreshed after the WBS revision changes.
+  - Follow-up governance tasks can target the new node.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-project
+  createdAt: "2026-07-02T13:41:25.269Z"

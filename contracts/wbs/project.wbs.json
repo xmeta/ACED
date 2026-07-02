@@ -11,7 +11,7 @@
       "code": "1",
       "name": "scwbs CLI project",
       "type": "deliverable",
-      "status": "completed",
+      "status": "inProgress",
       "progressPercent": 35,
       "outputs": [
         "artifact-cli",
@@ -479,6 +479,25 @@
         "meta-health",
         "conflict-mitigation"
       ]
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "Recurring audit, specification, and governance work has a non-completed WBS target.",
+        "Spec change, risk, review independence, and profile enforcement artifacts are defined before strict enforcement is claimed.",
+        "Maintenance tasks can be discovered by scwbs ai next-task without reusing completed nodes."
+      ],
+      "outputs": [
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [],
+      "id": "node-governance-maintenance",
+      "parentId": "node-project",
+      "code": "1.10",
+      "name": "Governance and specification maintenance",
+      "type": "workPackage"
     }
   ],
   "relations": [
@@ -541,6 +560,12 @@
       "type": "dependsOn",
       "source": "node-yaml-json-schema-validation",
       "target": "node-spec-contracts"
+    },
+    {
+      "id": "rel-governance-maintenance-depends-on-dogfood",
+      "type": "dependsOn",
+      "source": "node-governance-maintenance",
+      "target": "node-dogfood-contracts"
     }
   ],
   "resources": [
