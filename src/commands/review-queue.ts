@@ -30,8 +30,14 @@ function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readW
 export function buildReviewQueue(root: string): string {
   const wbs = readWbs(root);
   const entries: ReviewQueueEntry[] = [];
+  const tasks = listTasks(root);
+  const taskCountByNode = new Map<string, number>();
+  for (const entry of tasks) {
+    if (!entry.task) continue;
+    taskCountByNode.set(entry.task.wbsNodeId, (taskCountByNode.get(entry.task.wbsNodeId) ?? 0) + 1);
+  }
 
-  for (const entry of listTasks(root)) {
+  for (const entry of tasks) {
     const task = entry.task;
     if (!task) continue;
     const node = findNode(wbs, task.wbsNodeId);
@@ -63,6 +69,9 @@ export function buildReviewQueue(root: string): string {
         warnings.push(`dependsOn node ${blockedBy} is not completed`);
       }
     }
+    if ((taskCountByNode.get(node.id) ?? 0) > 1) {
+      completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
+    }
 
     if (evidence) {
       const touchesHumanGate = evidence.changedFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths));
@@ -88,8 +97,11 @@ export function buildReviewQueue(root: string): string {
 
     if (reasons.length > 0) {
       const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
+      const sharedNodeCompletionBlocked = completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
       const suggestedAction = completionBlockedBy.length > 0
-        ? "review evidence now, but defer completion until dependencies are completed"
+        ? sharedNodeCompletionBlocked
+          ? "review evidence now, but defer WBS completion to a dedicated node-level completion task"
+          : "review evidence now, but defer completion until dependencies are completed"
         : !hasPullRequest
           ? "create or record PR, then human review for completion"
           : !hasReview

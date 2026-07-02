@@ -1,0 +1,31 @@
+id: EVD-SCWBS-043
+type: evidence
+taskId: SCWBS-043
+commit: 9e06e3dcdff2270cb43a976e10e3fb45ed83b9b0
+git:
+  branch: codex/scwbs-043-review-queue-shared-node-completion
+  base: origin/main
+  baseCommit: 8d15b78ef9c6d13f4b6306783c0afbc94e486333
+  changedFilesBasis: branch-diff
+  headCommit: 9e06e3dcdff2270cb43a976e10e3fb45ed83b9b0
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-043.yaml
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-02T14:12:24.681Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-02T14:12:27.900Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-02T14:12:31.137Z"

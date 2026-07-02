@@ -1432,6 +1432,25 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(queue).toContain("suggestedAction: review evidence now, but defer completion until dependencies are completed");
   });
 
+  test("review queue defers completion for shared WBS nodes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
+      id: "EVD-001-005",
+      taskId: "WBS-001-005"
+    }) as unknown as Record<string, unknown>);
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("completionBlockedBy: node has multiple Task Contracts; completion requires a dedicated node-level completion task");
+    expect(queue).toContain("suggestedAction: review evidence now, but defer WBS completion to a dedicated node-level completion task");
+    expect(queue).toContain("Ready for completion review:\n- None");
+  });
+
   test("review queue shows pull request metadata when present", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "planned");

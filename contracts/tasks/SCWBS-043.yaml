@@ -1,0 +1,30 @@
+id: SCWBS-043
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-SCWBS-GOVERNANCE
+branchName: codex/scwbs-043-review-queue-shared-node-completion
+allowedPaths:
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - review-queue does not treat shared WBS nodes as directly ready for completion.
+  - review-queue explains that shared node completion requires a dedicated node-level completion task.
+  - Existing single-task review queue behavior is preserved.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T00:00:00.000Z"
