@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-040-governance-maintenance-node",
+  "author": "codex",
+  "reason": "Add a planned governance and specification maintenance node so recurring audit and specification work has a normal WBS target.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "updateNode",
+      "nodeId": "node-project",
+      "changes": {
+        "status": "inProgress"
+      }
+    },
+    {
+      "operationId": "op-002",
+      "operation": "addNode",
+      "node": {
+        "id": "node-governance-maintenance",
+        "parentId": "node-project",
+        "code": "1.10",
+        "name": "Governance and specification maintenance",
+        "type": "workPackage",
+        "status": "planned",
+        "outputs": [
+          "artifact-contracts",
+          "artifact-methodology"
+        ],
+        "acceptanceCriteria": [
+          "Recurring audit, specification, and governance work has a non-completed WBS target.",
+          "Spec change, risk, review independence, and profile enforcement artifacts are defined before strict enforcement is claimed.",
+          "Maintenance tasks can be discovered by scwbs ai next-task without reusing completed nodes."
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    },
+    {
+      "operationId": "op-003",
+      "operation": "addRelation",
+      "relation": {
+        "id": "rel-governance-maintenance-depends-on-dogfood",
+        "type": "dependsOn",
+        "source": "node-governance-maintenance",
+        "target": "node-dogfood-contracts"
+      }
+    }
+  ]
+}
