@@ -1,13 +1,15 @@
-id: SCWBS-033
+id: SCWBS-035
 type: task-contract
 wbsNodeId: node-ci-integration
 featureId: F-1-4
-branchName: codex/scwbs-033-record-scwbs-032-review
+branchName: codex/scwbs-035-complete-ci-integration
 allowedPaths:
-  - contracts/tasks/SCWBS-033.yaml
-  - contracts/evidence/SCWBS-033.yaml
-  - contracts/reviews/SCWBS-032.yaml
+  - contracts/approvals/SCWBS-035.yaml
+  - contracts/changesets/SCWBS-035-complete-ci-integration.json
+  - contracts/evidence/SCWBS-035.yaml
   - contracts/registry.yaml
+  - contracts/tasks/*.yaml
+  - contracts/wbs/project.wbs.json
 forbiddenPaths:
   - wjs/**
 humanGateRequiredPaths:
@@ -22,9 +24,9 @@ requiredChecks:
   - typecheck
   - build
 doneCriteria:
-  - SCWBS-032 review request is recorded after PR
-  - Registry indexes the SCWBS-032 review record.
-  - SCWBS-033 Evidence records the follow-up contract changes.
+  - Human-approved completion for SCWBS-032 and SCWBS-033 is recorded.
+  - node-ci-integration is marked completed through a WBS changeset.
+  - Registry and task locks are refreshed after the WBS status change.
 evidenceRequired:
   - test-result
   - typecheck-result
@@ -32,4 +34,4 @@ evidenceRequired:
 contractLock:
   wbsRevision: "sha256:c3f98ebd3d580d4188f94096104a73db59adaab12fbdf78c1ef111d556c34bd9"
   wbsNodeId: node-ci-integration
-  createdAt: "2026-07-02T05:39:46.653Z"
+  createdAt: "2026-07-02T05:39:54.832Z"
