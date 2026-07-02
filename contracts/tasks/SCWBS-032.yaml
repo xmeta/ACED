@@ -1,0 +1,38 @@
+id: SCWBS-032
+type: task-contract
+wbsNodeId: node-ci-integration
+featureId: F-1-4
+branchName: codex/scwbs-032-ci-integration-contract
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-032.yaml
+  - contracts/tasks/SCWBS-032.yaml
+  - contracts/evidence/SCWBS-032.yaml
+  - contracts/registry.yaml
+  - docs/**
+  - src/**
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - tsconfig.json
+  - vitest.config.ts
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - scwbs check and health run in CI.
+  - CI evidence can be referenced from Evidence files.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:bc65bad71d7ff1826f8bdb7d5c49080775d77b9e5d39d4b6530d2a9507bca270"
+  wbsNodeId: node-ci-integration
+  createdAt: "2026-07-02T03:09:03.768Z"
