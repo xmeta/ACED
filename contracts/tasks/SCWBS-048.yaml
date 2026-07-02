@@ -1,0 +1,43 @@
+id: SCWBS-048
+type: task-contract
+completionScope: node
+completionTaskIds:
+  - SCWBS-046
+wbsNodeId: node-governance-maintenance
+featureId: F-1-10
+branchName: codex/scwbs-048-review-metadata-backfill
+allowedPaths:
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-042.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-046.yaml
+  - contracts/reviews/SCWBS-041.yaml
+  - contracts/reviews/SCWBS-042.yaml
+  - contracts/reviews/SCWBS-043.yaml
+  - contracts/reviews/SCWBS-044.yaml
+  - contracts/reviews/SCWBS-045.yaml
+  - contracts/reviews/SCWBS-046.yaml
+  - contracts/tasks/SCWBS-048.yaml
+  - contracts/evidence/SCWBS-048.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-041 through SCWBS-046 have pull request metadata recorded in Evidence and corresponding review records.
+  - SCWBS-046 no longer reports missing PR metadata or missing review metadata for its completion targets.
+  - review-queue reflects the backfilled metadata and keeps the node-level completion path distinct from generic shared-node completion.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T17:22:51.646Z"
