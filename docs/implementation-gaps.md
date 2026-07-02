@@ -13,6 +13,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Optional Contract Lock metadata validation
 - Task Contract Lock generation from WBS and Spec content hashes
 - First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
+- First-class Spec Change Proposal files under `contracts/spec-changes/*.yaml` with required metadata validation
 - Evidence `testQuality` metadata validation
 - Base/head-aware Evidence changed file collection
 - AI blocked-task change-set generation
@@ -30,7 +31,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 |---|---|---|
 | Contract freshness | Lock refresh policy and commands | Approved Spec Contract artifacts now exist, but the CLI does not yet define when stale locks may be refreshed |
 | Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
-| Change control | Spec Change Proposal format and command | Spec gaps still rely on ad hoc human coordination |
+| Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
 | Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
 | Evidence diff basis | Richer PR metadata and CI correlation | `evidence collect` records branch-diff provenance, but PR number and CI run correlation are still optional metadata |
@@ -46,7 +47,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 ## Near-Term Follow-Ups
 
 - Define a lock refresh policy for stale Task Contracts.
-- Introduce a lightweight spec-change proposal artifact.
+- Add a command to create lightweight spec-change proposal artifacts.
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.

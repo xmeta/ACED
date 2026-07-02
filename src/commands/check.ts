@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listApprovals, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { approvalExists, evidenceExists, listApprovals, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { workingTreeChangedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
@@ -146,6 +146,23 @@ function validateIndexedSpecs(root: string, registry: Registry | undefined): Iss
   return issues;
 }
 
+function validateIndexedSpecChanges(root: string, registry: Registry | undefined): Issue[] {
+  const issues: Issue[] = [];
+  for (const entry of listSpecChanges(root)) {
+    issues.push(...entry.issues);
+    if (!entry.specChange) continue;
+    const registryContract = matchingRegistrySpecChangeByPath(registry, entry.path);
+    if (!registryContract) {
+      issues.push({
+        severity: "error",
+        code: "specChange.registry.missing",
+        message: `${entry.path} is not indexed by contracts/registry.yaml`
+      });
+    }
+  }
+  return issues;
+}
+
 export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
   const issues: Issue[] = [];
   const changesWbs = files.some((file) => file.replace(/\\/g, "/") === "contracts/wbs/project.wbs.json");
@@ -178,6 +195,7 @@ export function collectCheckIssues(root: string): Issue[] {
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
   issues.push(...validateIndexedSpecs(root, registry));
+  issues.push(...validateIndexedSpecChanges(root, registry));
   for (const entry of listApprovals(root)) {
     issues.push(...entry.issues);
   }

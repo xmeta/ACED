@@ -1,8 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
-import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
-import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecContract, TaskContract } from "./types.js";
+import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
@@ -33,6 +33,16 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
   const value = readYamlFile<unknown>(fullPath);
   const issues = [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)];
   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
+}
+
+export function readSpecChange(root: string, relativePath: string): { specChange?: SpecChangeProposal; issues: Issue[] } {
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) {
+    return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
+  }
+  const value = readYamlFile<unknown>(fullPath);
+  const issues = [...validateSpecChangeProposalSchema(value, relativePath), ...validateSpecChangeProposal(value, relativePath)];
+  return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
 }
 
 export function readEvidence(root: string, taskId: string): { evidence?: Evidence; issues: Issue[] } {
@@ -94,6 +104,19 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
     });
 }
 
+export function listSpecChanges(root: string): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultSpecChangesDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const path = `${defaultSpecChangesDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, path));
+      const issues = [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)];
+      return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues, path };
+    });
+}
+
 export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; issues: Issue[]; path: string }> {
   const dir = resolveFrom(root, defaultApprovalsDir);
   if (!existsSync(dir)) return [];
@@ -142,6 +165,10 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
 
 export function matchingRegistrySpecByPath(registry: Registry | undefined, specPath: string): RegistryContract | undefined {
   return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
+}
+
+export function matchingRegistrySpecChangeByPath(registry: Registry | undefined, specChangePath: string): RegistryContract | undefined {
+  return registry?.contracts.find((contract) => contract.type === "spec-change" && contract.path === specChangePath);
 }
 
 export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {

@@ -6,7 +6,7 @@ export type Issue = {
   message: string;
 };
 
-export type RegistryContractType = "requirement" | "spec" | "task" | "evidence" | "approval" | "review" | "adr";
+export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "adr";
 
 export type RegistryContract = {
   id: string;
@@ -26,6 +26,7 @@ export type Registry = {
 export type ApprovalStatus = "requested" | "approved" | "rejected";
 
 export type SpecContractStatus = "draft" | "approved" | "superseded";
+export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
 
 export type SpecContract = {
   id: string;
@@ -37,6 +38,27 @@ export type SpecContract = {
   summary?: string;
   sourcePaths?: string[];
   acceptanceCriteria: string[];
+  approvedBy?: string;
+  approvedAt?: string;
+};
+
+export type SpecChangeProposal = {
+  id: string;
+  type: "spec-change-proposal";
+  status: SpecChangeProposalStatus;
+  targetSpec: string;
+  currentVersion: string;
+  proposedVersion: string;
+  taskId: string;
+  level: 0 | 1 | 2;
+  summary: string;
+  rationale: string[];
+  affectedPaths: string[];
+  approval?: {
+    required?: boolean;
+    status?: ApprovalStatus;
+  };
+  risks?: string[];
   approvedBy?: string;
   approvedAt?: string;
 };

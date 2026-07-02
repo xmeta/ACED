@@ -1,5 +1,5 @@
 import { Ajv, type ErrorObject } from "ajv";
-import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecContract, TaskContract, WbsDocument } from "./types.js";
+import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,7 +34,7 @@ const registrySchema = {
         additionalProperties: true,
         properties: {
           id: { type: "string", minLength: 1 },
-          type: { type: "string", enum: ["requirement", "spec", "task", "evidence", "approval", "review", "adr"] },
+          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "adr"] },
           path: { type: "string", minLength: 1 },
           status: { type: "string" },
           version: { type: "string" },
@@ -60,6 +60,36 @@ const specContractSchema = {
     summary: { type: "string" },
     sourcePaths: stringArraySchema,
     acceptanceCriteria: stringArraySchema,
+    approvedBy: { type: "string" },
+    approvedAt: { type: "string" }
+  }
+};
+
+const specChangeProposalSchema = {
+  type: "object",
+  required: ["id", "type", "status", "targetSpec", "currentVersion", "proposedVersion", "taskId", "level", "summary", "rationale", "affectedPaths"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "spec-change-proposal" },
+    status: { type: "string", enum: ["proposed", "approved", "rejected", "superseded"] },
+    targetSpec: { type: "string", minLength: 1 },
+    currentVersion: { type: "string", minLength: 1 },
+    proposedVersion: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1 },
+    level: { type: "integer", enum: [0, 1, 2] },
+    summary: { type: "string", minLength: 1 },
+    rationale: stringArraySchema,
+    affectedPaths: stringArraySchema,
+    approval: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        required: { type: "boolean" },
+        status: { type: "string", enum: ["requested", "approved", "rejected"] }
+      }
+    },
+    risks: stringArraySchema,
     approvedBy: { type: "string" },
     approvedAt: { type: "string" }
   }
@@ -200,6 +230,7 @@ const reviewRecordSchema = {
 const schemaValidators = {
   registry: ajv.compile(registrySchema),
   spec: ajv.compile(specContractSchema),
+  specChange: ajv.compile(specChangeProposalSchema),
   task: ajv.compile(taskContractSchema),
   evidence: ajv.compile(evidenceSchema),
   approval: ajv.compile(approvalRecordSchema),
@@ -222,6 +253,10 @@ export function validateRegistrySchema(value: unknown, filePath = "registry"): I
 
 export function validateSpecContractSchema(value: unknown, filePath = "spec"): Issue[] {
   return schemaIssues("spec", value, filePath);
+}
+
+export function validateSpecChangeProposalSchema(value: unknown, filePath = "spec-change"): Issue[] {
+  return schemaIssues("specChange", value, filePath);
 }
 
 export function validateTaskContractSchema(value: unknown, filePath = "task"): Issue[] {
@@ -306,6 +341,64 @@ export function validateSpecContract(value: unknown, filePath = "spec"): Issue[]
 
 export function asSpecContract(value: unknown): SpecContract {
   return value as SpecContract;
+}
+
+export function validateSpecChangeProposal(value: unknown, filePath = "spec-change"): Issue[] {
+  const issues: Issue[] = [];
+  if (!isObject(value)) return [issue("specChange.invalid", `${filePath} must be an object`)];
+
+  for (const key of ["id", "type", "status", "targetSpec", "currentVersion", "proposedVersion", "taskId", "summary"]) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      issues.push(issue("specChange.field", `${filePath}.${key} must be a non-empty string`));
+    }
+  }
+  if (value.type !== "spec-change-proposal") {
+    issues.push(issue("specChange.type", `${filePath}.type must be spec-change-proposal`));
+  }
+  if (value.status !== undefined && !["proposed", "approved", "rejected", "superseded"].includes(String(value.status))) {
+    issues.push(issue("specChange.status", `${filePath}.status must be proposed, approved, rejected, or superseded`));
+  }
+  if (value.level !== 0 && value.level !== 1 && value.level !== 2) {
+    issues.push(issue("specChange.level", `${filePath}.level must be 0, 1, or 2`));
+  }
+  if (!isStringArray(value.rationale)) {
+    issues.push(issue("specChange.rationale", `${filePath}.rationale must be a string array`));
+  }
+  if (!isStringArray(value.affectedPaths)) {
+    issues.push(issue("specChange.affectedPaths", `${filePath}.affectedPaths must be a string array`));
+  }
+  if (value.risks !== undefined && !isStringArray(value.risks)) {
+    issues.push(issue("specChange.risks", `${filePath}.risks must be a string array when present`));
+  }
+  if (value.approval !== undefined) {
+    if (!isObject(value.approval)) {
+      issues.push(issue("specChange.approval", `${filePath}.approval must be an object when present`));
+    } else {
+      if (value.approval.required !== undefined && typeof value.approval.required !== "boolean") {
+        issues.push(issue("specChange.approval", `${filePath}.approval.required must be a boolean when present`));
+      }
+      if (value.approval.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.approval.status))) {
+        issues.push(issue("specChange.approval", `${filePath}.approval.status must be requested, approved, or rejected`));
+      }
+    }
+  }
+  for (const key of ["approvedBy", "approvedAt"]) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      issues.push(issue("specChange.field", `${filePath}.${key} must be a string when present`));
+    }
+  }
+  if (value.status === "approved") {
+    for (const key of ["approvedBy", "approvedAt"]) {
+      if (typeof value[key] !== "string" || value[key].length === 0) {
+        issues.push(issue("specChange.approval", `${filePath}.${key} must be present when status is approved`));
+      }
+    }
+  }
+  return issues;
+}
+
+export function asSpecChangeProposal(value: unknown): SpecChangeProposal {
+  return value as SpecChangeProposal;
 }
 
 export function validateTaskContract(value: unknown, filePath = "task"): Issue[] {

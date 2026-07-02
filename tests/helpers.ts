@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import type { ApprovalRecord, Evidence, SpecContract, TaskContract, WbsDocument } from "../src/core/types.js";
+import type { ApprovalRecord, Evidence, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "../src/core/types.js";
 import { stringifySimpleYaml } from "../src/core/yaml.js";
 
 export function makeTempRepo(): string {
@@ -106,6 +106,28 @@ export function sampleSpec(overrides: Partial<SpecContract> = {}): SpecContract 
     acceptanceCriteria: ["API tests pass"],
     approvedBy: "Product Owner",
     approvedAt: "2026-06-27T10:00:00+09:00",
+    ...overrides
+  };
+}
+
+export function sampleSpecChange(overrides: Partial<SpecChangeProposal> = {}): SpecChangeProposal {
+  return {
+    id: "SCP-F001-API-001",
+    type: "spec-change-proposal",
+    status: "proposed",
+    targetSpec: "SPEC-F001-API",
+    currentVersion: "1.0.0",
+    proposedVersion: "1.1.0",
+    taskId: "WBS-001-004",
+    level: 2,
+    summary: "Propose an API spec change.",
+    rationale: ["The current spec does not define the changed behavior."],
+    affectedPaths: ["contracts/specs/SPEC-F001-API.yaml"],
+    approval: {
+      required: true,
+      status: "requested"
+    },
+    risks: ["Existing tasks may need lock refresh."],
     ...overrides
   };
 }

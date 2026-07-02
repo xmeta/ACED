@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { listApprovals, listEvidence, listReviews, listSpecs, listTasks } from "../core/contracts.js";
+import { listApprovals, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
 import { defaultRegistryPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
@@ -10,6 +10,10 @@ export function buildRegistryYaml(root: string): string {
   for (const { spec, path } of listSpecs(root)) {
     if (!spec) continue;
     contracts.push({ id: spec.id, type: "spec", path, status: spec.status, version: spec.version, featureId: spec.featureId });
+  }
+  for (const { specChange, path } of listSpecChanges(root)) {
+    if (!specChange) continue;
+    contracts.push({ id: specChange.id, type: "spec-change", path, status: specChange.status, version: specChange.proposedVersion, relatedTask: specChange.taskId });
   }
   for (const { task, path } of listTasks(root)) {
     if (!task) continue;

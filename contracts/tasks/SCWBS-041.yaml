@@ -1,0 +1,36 @@
+id: SCWBS-041
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-SCWBS-GOVERNANCE
+branchName: codex/scwbs-041-spec-change-proposal
+allowedPaths:
+  - src/core/**
+  - src/commands/registry-rebuild.ts
+  - src/commands/check.ts
+  - tests/**
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/implementation-gaps.md
+  - contracts/spec-changes/**
+  - contracts/tasks/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Spec Change Proposal files are first-class contract artifacts under contracts/spec-changes.
+  - scwbs check validates Spec Change Proposal schema and required approval metadata.
+  - registry rebuild indexes Spec Change Proposal files.
+  - Documentation describes the artifact and its minimal workflow.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T00:00:00.000Z"
