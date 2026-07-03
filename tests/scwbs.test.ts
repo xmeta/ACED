@@ -30,6 +30,27 @@ import { main } from "../src/cli.js";
 import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
 
 describe("scwbs MVP", () => {
+  function writeFakeWjsApply(root: string): void {
+    mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
+    writeText(root, "wjs/tools/apply.ts", "// marker file for the WJS apply tool\n");
+    writeText(root, "wjs/tools/apply.cjs", `
+const fs = require("node:fs");
+const [wbsPath, changeSetPath] = process.argv.slice(2);
+const wbs = JSON.parse(fs.readFileSync(wbsPath, "utf8"));
+const changeSet = JSON.parse(fs.readFileSync(changeSetPath, "utf8"));
+for (const operation of changeSet.operations) {
+  const node = wbs.nodes.find((item) => item.id === operation.nodeId);
+  if (node) node.status = operation.status;
+}
+fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
+`);
+    writeJson(root, "wjs/package.json", {
+      scripts: {
+        apply: "node tools/apply.cjs"
+      }
+    });
+  }
+
   test("init creates a valid minimal WJS document", () => {
     const root = makeTempRepo();
     expect(runInit(root)).toBe(0);
@@ -1440,18 +1461,7 @@ describe("scwbs MVP", () => {
 
   test("completion apply writes approvals applies WBS changeset and rebuilds registry", () => {
     const root = makeTempRepo();
-    mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
-    writeText(root, "wjs/tools/apply.ts", `
-const fs = require("node:fs");
-const [wbsPath, changeSetPath] = process.argv.slice(2);
-const wbs = JSON.parse(fs.readFileSync(wbsPath, "utf8"));
-const changeSet = JSON.parse(fs.readFileSync(changeSetPath, "utf8"));
-for (const operation of changeSet.operations) {
-  const node = wbs.nodes.find((item) => item.id === operation.nodeId);
-  if (node) node.status = operation.status;
-}
-fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
-`);
+    writeFakeWjsApply(root);
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       git: {
@@ -1474,18 +1484,7 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("completion apply writes approvals for node-level completion tasks and completes the shared node", () => {
     const root = makeTempRepo();
-    mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
-    writeText(root, "wjs/tools/apply.ts", `
-const fs = require("node:fs");
-const [wbsPath, changeSetPath] = process.argv.slice(2);
-const wbs = JSON.parse(fs.readFileSync(wbsPath, "utf8"));
-const changeSet = JSON.parse(fs.readFileSync(changeSetPath, "utf8"));
-for (const operation of changeSet.operations) {
-  const node = wbs.nodes.find((item) => item.id === operation.nodeId);
-  if (node) node.status = operation.status;
-}
-fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
-`);
+    writeFakeWjsApply(root);
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
       id: "WBS-001-005",
@@ -2006,6 +2005,11 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
     const root = makeTempRepo();
     mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
     writeText(root, "wjs/tools/apply.ts", "console.log('dryRun: preview only (use --force to write)');");
+    writeJson(root, "wjs/package.json", {
+      scripts: {
+        apply: "node -e \"console.log('dryRun: preview only (use --force to write)')\""
+      }
+    });
     writeScwbsProject(root);
     writeJson(root, "change-set.json", {
       schemaVersion: "0.1.0",
