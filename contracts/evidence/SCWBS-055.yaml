@@ -1,0 +1,32 @@
+id: EVD-SCWBS-055
+type: evidence
+taskId: SCWBS-055
+commit: e4e6164c7a955a291837b3900c425cba8a0b1653
+git:
+  branch: codex/scwbs-055-wjs-bun-runner
+  base: origin/main
+  baseCommit: 086aab9702ff70cac6b18181fa18832067f6646b
+  changedFilesBasis: branch-diff
+  headCommit: e4e6164c7a955a291837b3900c425cba8a0b1653
+changedFiles:
+  - contracts/evidence/SCWBS-055.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-055.yaml
+  - contracts/tasks/SCWBS-055.yaml
+  - wjs
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-03T06:18:03.973Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-03T06:18:07.720Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-03T06:18:11.663Z"
