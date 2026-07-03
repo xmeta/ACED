@@ -35,14 +35,18 @@ describe("scwbs MVP", () => {
     writeText(root, "wjs/tools/apply.ts", "// marker file for the WJS apply tool\n");
     writeText(root, "wjs/tools/apply.cjs", `
 const fs = require("node:fs");
-const [wbsPath, changeSetPath] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const wbsPath = args[0];
+const changeSetPath = args[1];
+const outputIndex = args.indexOf("-o");
+const outputPath = outputIndex >= 0 ? args[outputIndex + 1] : wbsPath;
 const wbs = JSON.parse(fs.readFileSync(wbsPath, "utf8"));
 const changeSet = JSON.parse(fs.readFileSync(changeSetPath, "utf8"));
 for (const operation of changeSet.operations) {
   const node = wbs.nodes.find((item) => item.id === operation.nodeId);
   if (node) node.status = operation.status;
 }
-fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
+fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 `);
     writeJson(root, "wjs/package.json", {
       scripts: {
