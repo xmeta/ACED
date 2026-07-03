@@ -1,33 +1,34 @@
 id: EVD-SCWBS-061
 type: evidence
 taskId: SCWBS-061
-commit: 97ce1a3dc88f5fca7409db48cbb3bedb9834d947
+commit: f059dc1420419f5e85f9863eaeb1a6921e25c2ea
 git:
-  branch: codex/scwbs-061-completion-apply-output
+  branch: codex/scwbs-063-scwbs-061-testquality-backfill
   base: origin/main
-  baseCommit: a5a6f96bbf93a1e4e14abe9496e6db0783a9314b
+  baseCommit: f059dc1420419f5e85f9863eaeb1a6921e25c2ea
   changedFilesBasis: branch-diff
   pullRequest: "#65"
-  headCommit: 97ce1a3dc88f5fca7409db48cbb3bedb9834d947
+  headCommit: f059dc1420419f5e85f9863eaeb1a6921e25c2ea
 changedFiles:
-  - contracts/evidence/SCWBS-061.yaml
-  - contracts/registry.yaml
-  - contracts/tasks/SCWBS-061.yaml
-  - src/commands/completion.ts
-  - tests/scwbs.test.ts
 checks:
   - name: test
     status: passed
     source: local
     command: npm test
-    executedAt: "2026-07-03T14:25:25.741Z"
+    executedAt: "2026-07-03T14:54:03.094Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    executedAt: "2026-07-03T14:25:29.589Z"
+    executedAt: "2026-07-03T14:54:07.695Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    executedAt: "2026-07-03T14:25:33.727Z"
+    executedAt: "2026-07-03T14:54:12.613Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Completion apply output-path fix changed tests without weakening coverage or disabling assertions.
