@@ -1,17 +1,18 @@
 id: EVD-SCWBS-054
 type: evidence
 taskId: SCWBS-054
-commit: 9649a0f75ae30650257acf0065f6f476d69c2d06
+commit: 086aab9702ff70cac6b18181fa18832067f6646b
 git:
   branch: codex/scwbs-054-wjs-node-runner
-  base: origin/main
+  base: f900b3265b0182957bcc90aed21e0e942d064f0c
   baseCommit: f900b3265b0182957bcc90aed21e0e942d064f0c
   changedFilesBasis: branch-diff
   pullRequest: "#56"
-  headCommit: 9649a0f75ae30650257acf0065f6f476d69c2d06
+  headCommit: 086aab9702ff70cac6b18181fa18832067f6646b
 changedFiles:
   - contracts/evidence/SCWBS-054.yaml
   - contracts/registry.yaml
+  - contracts/reviews/SCWBS-054.yaml
   - contracts/tasks/SCWBS-054.yaml
   - src/commands/wbs.ts
   - src/core/wbs.ts
@@ -22,14 +23,20 @@ checks:
     status: passed
     source: local
     command: npm test
-    executedAt: "2026-07-03T05:50:35.171Z"
+    executedAt: "2026-07-03T11:30:56.264Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    executedAt: "2026-07-03T05:50:39.166Z"
+    executedAt: "2026-07-03T11:30:59.745Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    executedAt: "2026-07-03T05:50:44.500Z"
+    executedAt: "2026-07-03T11:31:03.585Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Runner compatibility backfill only; existing completion assertions still cover the behavior and no tests were weakened.
