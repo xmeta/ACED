@@ -1,0 +1,29 @@
+id: SCWBS-055
+type: task-contract
+wbsNodeId: node-project
+featureId: F-1
+branchName: codex/scwbs-055-wjs-bun-runner
+allowedPaths:
+  - wjs
+  - contracts/tasks/SCWBS-055.yaml
+  - contracts/evidence/SCWBS-055.yaml
+  - contracts/reviews/SCWBS-055.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - WJS TypeScript tool scripts prefer Bun when it is available.
+  - WJS tool scripts still work through npm script entry points from ACED.
+  - The updated WJS submodule commit is recorded in ACED Evidence.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b1594186678ecc0dd574a8cea4ec415cb7e5c8d02db746ab9a9cc9fd0aca846b"
+  wbsNodeId: node-project
+  createdAt: "2026-07-03T06:05:30.274Z"
