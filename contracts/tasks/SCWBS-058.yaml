@@ -1,0 +1,42 @@
+id: SCWBS-058
+type: task-contract
+completionScope: node
+completionTaskIds:
+  - LITE-001
+  - LITE-002
+  - LITE-003
+  - SCWBS-039
+  - SCWBS-040
+  - SCWBS-054
+  - SCWBS-055
+  - SCWBS-056
+  - SCWBS-057
+wbsNodeId: node-project
+featureId: F-1
+branchName: codex/scwbs-058-project-node-completion-task
+allowedPaths:
+  - contracts/reviews/SCWBS-057.yaml
+  - contracts/reviews/SCWBS-058.yaml
+  - contracts/tasks/SCWBS-058.yaml
+  - contracts/evidence/SCWBS-058.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - "SCWBS-057 has a review request record aligned with pull request
+  - SCWBS-058 is recorded as the dedicated node-level completion task for node-project.
+  - review-queue no longer reports the node-project review candidates as blocked only because a dedicated node-level completion task is missing.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b1594186678ecc0dd574a8cea4ec415cb7e5c8d02db746ab9a9cc9fd0aca846b"
+  wbsNodeId: node-project
+  createdAt: "2026-07-03T11:47:19.223Z"
