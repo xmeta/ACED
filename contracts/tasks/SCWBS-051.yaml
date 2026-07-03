@@ -1,0 +1,35 @@
+id: SCWBS-051
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-1-10
+branchName: codex/scwbs-051-approve-governance-review-targets
+allowedPaths:
+  - contracts/approvals/SCWBS-041.yaml
+  - contracts/approvals/SCWBS-042.yaml
+  - contracts/approvals/SCWBS-043.yaml
+  - contracts/approvals/SCWBS-044.yaml
+  - contracts/approvals/SCWBS-045.yaml
+  - contracts/approvals/SCWBS-046.yaml
+  - contracts/tasks/SCWBS-051.yaml
+  - contracts/evidence/SCWBS-051.yaml
+  - contracts/reviews/SCWBS-051.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-041 through SCWBS-045 have approved human review records tied to their PRs.
+  - "SCWBS-046 has an approved human review record tied to PR #48."
+  - review-queue no longer reports no approval for SCWBS-046 completion targets.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-02T18:39:35.923Z"
