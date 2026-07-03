@@ -1,0 +1,31 @@
+id: SCWBS-057
+type: task-contract
+wbsNodeId: node-project
+featureId: F-1
+branchName: codex/scwbs-057-project-review-backfill
+allowedPaths:
+  - contracts/reviews/LITE-003.yaml
+  - contracts/reviews/SCWBS-056.yaml
+  - contracts/tasks/SCWBS-057.yaml
+  - contracts/evidence/SCWBS-057.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - LITE-003 has a review request record aligned with its existing PR metadata.
+  - "SCWBS-056 has a review request record aligned with pull request #58."
+  - review-queue no longer warns that LITE-003 or SCWBS-056 is missing a review request.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b1594186678ecc0dd574a8cea4ec415cb7e5c8d02db746ab9a9cc9fd0aca846b"
+  wbsNodeId: node-project
+  createdAt: "2026-07-03T11:36:39.456Z"

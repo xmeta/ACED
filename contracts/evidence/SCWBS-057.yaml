@@ -1,0 +1,33 @@
+id: EVD-SCWBS-057
+type: evidence
+taskId: SCWBS-057
+commit: cc874105e21759a1992783ba938ad4efb9e391e4
+git:
+  branch: codex/scwbs-057-project-review-backfill
+  base: origin/main
+  baseCommit: 9addb395019250af02672cf5ab9513d2368ec409
+  changedFilesBasis: branch-diff
+  pullRequest: "#61"
+  headCommit: cc874105e21759a1992783ba938ad4efb9e391e4
+changedFiles:
+  - contracts/evidence/SCWBS-057.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/LITE-003.yaml
+  - contracts/reviews/SCWBS-056.yaml
+  - contracts/tasks/SCWBS-057.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-03T11:44:29.254Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-03T11:44:32.737Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-03T11:44:36.873Z"
