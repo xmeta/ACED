@@ -1,15 +1,14 @@
-id: SCWBS-060
+id: SCWBS-062
 type: task-contract
 wbsNodeId: node-project
 featureId: F-1
-branchName: codex/scwbs-060-apply-project-completion
+branchName: codex/scwbs-062-reapply-project-completion
 allowedPaths:
-  - contracts/approvals/SCWBS-058.yaml
   - contracts/changesets/SCWBS-058-complete-reviewed-work.json
   - contracts/wbs/project.wbs.json
   - contracts/tasks/*.yaml
-  - contracts/evidence/SCWBS-060.yaml
-  - contracts/reviews/SCWBS-060.yaml
+  - contracts/evidence/SCWBS-062.yaml
+  - contracts/reviews/SCWBS-062.yaml
   - contracts/registry.yaml
 forbiddenPaths:
   - wjs/**
@@ -19,8 +18,8 @@ requiredChecks:
   - typecheck
   - build
 doneCriteria:
-  - SCWBS-058 completion apply has a recorded changeset and approval for node-project.
-  - node-project is completed in contracts/wbs/project.wbs.json.
+  - SCWBS-058 completion apply updates node-project to completed in contracts/wbs/project.wbs.json.
+  - The recorded completion changeset remains aligned with the applied WBS status.
   - Task contract locks are refreshed after the WBS revision change.
 evidenceRequired:
   - test-result
@@ -29,4 +28,4 @@ evidenceRequired:
 contractLock:
   wbsRevision: "sha256:842e0d8128e7b04343a60480b5558fa7260194e7b1e02ea49773551e1aa128e4"
   wbsNodeId: node-project
-  createdAt: "2026-07-03T14:35:03.348Z"
+  createdAt: "2026-07-03T14:35:13.190Z"
