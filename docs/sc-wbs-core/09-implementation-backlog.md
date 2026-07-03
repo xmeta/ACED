@@ -4,6 +4,14 @@
 
 ## P0: 最初に実装するもの
 
+P0の判断基準:
+
+```text
+- AIに渡す文脈を小さくできる
+- 差分違反を機械的に止められる
+- 手書きYAMLを減らせる
+```
+
 ### CORE-001: `scwbs task new`
 
 目的:
@@ -89,6 +97,8 @@ AIが危険変更を短いコマンドで停止できるようにする。
 
 ## P1: 次に実装するもの
 
+P1は、Coreの薄い運用を壊さずに安全性と修復性を上げる項目である。
+
 ### CORE-101: `fixCommand` 標準化
 
 全エラーに修復候補を出す。
@@ -110,6 +120,8 @@ Standard以上では、承認なしの `humanGateRequiredPaths` 差分をError�
 AIがapprovedではなくrequested recordを作れるようにする。
 
 ## P2: 大きくなってから実装するもの
+
+P2は Full への拡張であり、Core の採用前提条件ではない。
 
 ### CORE-201: WBS-JSON optional化
 

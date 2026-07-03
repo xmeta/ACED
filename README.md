@@ -25,6 +25,13 @@ Start here:
 
 Core does not delete the existing methodology documents. The current detailed docs remain under `docs/scwbs/` and `docs/sc-wbs-development.md`.
 
+Core should be read as the recommended simplification direction:
+
+- Default AI context should be `Task Contract + tiny packet`, not full-methodology docs.
+- `check-diff` is the primary mechanical guardrail.
+- Evidence should stay machine-oriented, centered on commits, changed files, checks, and diff identity.
+- WBS-JSON, registry, review queue, and richer governance remain Full-mode capabilities that can be adopted later.
+
 ## Current CLI Status
 
 Some Core documents describe target shorthand commands such as `scwbs task new`, `scwbs packet --tiny`, `scwbs finish`, and `scwbs block`. Those are Core target specifications, not all current ACED CLI commands.
@@ -41,6 +48,13 @@ npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
 ```
 
 Detailed current command examples live in `docs/scwbs/cli-reference.md`.
+
+Practical reading order in the current repo:
+
+1. `AGENTS.md`
+2. The active `contracts/tasks/<task-id>.yaml`
+3. `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` only when the task needs more context
+4. `docs/sc-wbs-core/` when you are designing or implementing the guardrail system itself
 
 ## What This Project Contains
 

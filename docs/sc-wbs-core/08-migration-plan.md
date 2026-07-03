@@ -16,6 +16,14 @@ Step 6: check-diffをCoreルールに合わせて強化
 Step 7: Full/Strict文書を必要時参照に降格
 ```
 
+導入順は「全部を一度に入れる」ではなく、次の段階増築を前提にする。
+
+```text
+Phase 1: Task Contract + Packet + check-diff + Evidence + Human Gate
+Phase 2: 軽い索引として tasks/index.yaml
+Phase 3: WBS-JSON、Registry、Review Queue、Traceability
+```
+
 ## 既存仕様への主な変更
 
 ### 1. YAML直書きを通常運用から外す
@@ -85,6 +93,7 @@ EvidenceやBlockなどの生成物が `allowedPaths` と衝突しないように
 
 小規模・個人開発ではWBS-JSON必須にしない。
 タスク数や依存関係が増えてから導入する。
+Core の入口は「WBS管理ツール」より「AI作業ガードレールCLI」として設計する。
 
 ## 既存文書の扱い
 

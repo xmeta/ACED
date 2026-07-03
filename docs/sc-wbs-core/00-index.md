@@ -6,11 +6,13 @@
 
 この文書群は Core/Lite 方針の正本候補と target spec を含む。`scwbs task new`、`scwbs packet --tiny`、`scwbs finish`、`scwbs block` のような短縮コマンドは Core の目標形であり、現行 ACED CLI ではまだ同名で実装されていないものがある。
 
-このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読み、現行コマンドとして `npm run scwbs -- ai packet`、`npm run scwbs -- evidence collect`、`npm run scwbs -- check-diff` を使う。
+このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- evidence collect` と `npm run scwbs -- check-diff` に委ねる。
 
 ## この文書群の目的
 
 既存の SC-WBS は、WBS-JSON、Task Contract、Evidence、Human Gate、Review、Approval、Registry、Health などを扱う。これは大規模運用には有効だが、AIに読ませる文脈が大きくなりやすい。
+
+Core は「方法論を全部読む仕組み」ではなく、「AIに渡す文脈を削り、差分で逸脱を止めるガードレールCLI」として定義する。
 
 SC-WBS Core では、次の目的に絞る。
 
@@ -41,9 +43,12 @@ AIにこの文書群全体を読ませない。通常の実装AIには、以下�
 
 ```text
 AGENTS.md
+Task Contract
 scwbs packet --tiny の出力
 必要な対象ファイル
 ```
+
+現行 ACED では `packet --tiny` が未実装なため、当面は Task Contract を最小カードとして扱い、追加情報が必要になった場合だけ `ai packet` を補助的に使う。
 
 ツールを実装するAIには、必要に応じて `07-cli-core-spec.md` と `03-minimal-artifacts.md` を渡す。
 
@@ -55,3 +60,11 @@ SC-WBS Full = Core + WBS-JSON + Registry + Review Queue + Traceability + Risk Re
 ```
 
 Core は Full を否定しない。Core は最初に導入する最小カーネルであり、必要になった段階で Full の要素を追加する。
+
+## 導入段階
+
+```text
+Phase 1: Task Contract + Evidence + check-diff + Human Gate
+Phase 2: tasks/index.yaml などの軽い索引
+Phase 3: WBS-JSON + Registry + Review Queue などの Full 機能
+```

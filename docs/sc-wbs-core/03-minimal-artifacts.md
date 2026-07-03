@@ -27,6 +27,8 @@ contracts/
     WBS-001.yaml
 ```
 
+小規模では、`approvals/` や `blocks/` は必要時だけ生成すればよい。常に全ディレクトリを先に埋める必要はない。
+
 依存管理が必要になった場合:
 
 ```text
@@ -47,7 +49,7 @@ contracts/
 
 ## Task Contract Core
 
-Task Contract は、AIが実行してよい作業範囲を定義する。
+Task Contract は、AIが実行してよい作業範囲を定義する。Lite/Core では、まず `allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`stopIf`、`checks` を最優先で持てばよい。
 
 最小フィールド:
 
@@ -99,10 +101,11 @@ lock:
 - `forbiddenPaths` は常に `allowedPaths` より優先する。
 - `humanGateRequiredPaths` に触る差分は、承認なしではPR readyにしてはいけない。
 - `lock` は最初からWBS全体hashにしない。無関係な変更でstaleになりすぎるためである。
+- 小さい導入では、Task Contract 自身と対象Specだけを固定できれば十分である。
 
 ## Evidence Core
 
-Evidence は、作業がDone条件を満たしたことを示す機械証跡である。
+Evidence は、作業がDone条件を満たしたことを示す機械証跡である。長い完了報告より、commit、changedFiles、checks、diff identity を優先する。
 
 最小フィールド:
 

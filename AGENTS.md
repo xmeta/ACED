@@ -16,7 +16,9 @@ Done は自己申告ではなく Evidence / check-diff / required checks で判�
 
 ## 現行 ACED で使うコマンド
 
-Core 文書では将来の短縮形として `scwbs finish` や `scwbs packet --tiny` を定義している。現行実装で作業するときは、次の npm script 経由コマンドを使う。
+Core 文書では将来の短縮形として `scwbs finish` や `scwbs packet --tiny` を定義している。ただし、現行 ACED CLI ではまだ同名実装がそろっていない。
+
+このリポジトリで実作業を行うAIは、まず Task Contract を最小コンテキストとして読み、追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を補助的に使う。現行実装で使うコマンドは次の npm script 経由コマンドである。
 
 ```bash
 npm run scwbs -- next
@@ -44,8 +46,9 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明�
 1. 対象 Task Contract を読む。
 2. `branchName`、`allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`requiredChecks`、`doneCriteria` を確認する。
 3. 現在 branch が Task Contract の `branchName` と一致しているか確認する。
-4. 必要なら `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を優先コンテキストとして扱う。
-5. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
+4. まず Task Contract を優先コンテキストとして扱う。
+5. 追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
+6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
 
 ## 実装中の停止条件
 

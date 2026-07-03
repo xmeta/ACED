@@ -4,6 +4,8 @@ SC-WBS Core では、YAML/JSONを直接編集しない。人間とAIは短いコ
 
 この文書のコマンド例は Core の目標形を示す。現行 ACED CLI で作業する場合は、`AGENTS.md` に記載された `npm run scwbs -- ...` 形式の実装済みコマンドを使う。
 
+設計の主眼は「AIに多くを覚えさせること」ではなく、「短いカードで始めさせ、逸脱はツールで止めること」である。
+
 ## 通常の人間ワークフロー
 
 ### 1. タスクを作る
@@ -30,7 +32,7 @@ scwbs start WBS-001
 scwbs packet --tiny
 ```
 
-AIに渡すのは `packet --tiny` の出力を基本とする。
+AIに渡すのは `packet --tiny` の出力を基本とする。現行 ACED では `packet --tiny` が未実装なので、Task Contract を先に渡し、必要時だけ `ai packet` を補う。
 
 ### 3. AIが作業する
 
@@ -75,7 +77,7 @@ Approval は PR番号だけでなく、承認時点の `headCommit` と `diffHas
 
 ## AIが覚えるコマンド
 
-AIが覚えるべき通常コマンドは少なくする。
+AIが覚えるべき通常コマンドは少なくする。ここで重要なのは、ルールを長文で覚えさせることではなく、完了時に `check-diff` が逸脱を止めることである。
 
 ```bash
 scwbs next

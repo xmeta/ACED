@@ -7,6 +7,7 @@ AI Work Packet は、AIに実装を依頼するときの最小コンテキスト
 ```text
 AIに長い仕様書一式を渡さない。
 AIには、その作業に必要な小さい作業カードを渡す。
+Context が足りないときだけ段階的に増やす。
 ```
 
 ## Packet Level
@@ -52,7 +53,7 @@ whenBlocked:
   - scwbs block "<reason>"
 ```
 
-Tiny Packet には、AIが作業を始めるための最低限だけを含める。
+Tiny Packet には、AIが作業を始めるための最低限だけを含める。Task Contract 単体で足りる作業では、Task Contract 自体を Tiny Packet の代用として扱ってよい。
 
 ### Normal Packet
 
@@ -117,7 +118,7 @@ Deep Packet には、関連WBS、ADR、周辺仕様、依存タスクなどを�
 
 ## 不足コンテキストがある場合
 
-AIは、すぐに全文読み込みを要求してはいけない。まず不足している情報を短く特定する。
+AIは、すぐに全文読み込みを要求してはいけない。まず不足している情報を短く特定する。Spec全文より Spec Slice を優先する。
 
 例:
 

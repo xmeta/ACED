@@ -121,7 +121,22 @@ release
 - 最初からWBS管理を強制すると重い
 - Coreの価値はまずAI作業ガードレールにある
 
-## DEC-009: check-diffを最重要機能にする
+## DEC-009: Task Contractを最初の実行カードとして扱う
+
+採用:
+
+```text
+Tiny Packet が未実装でも、Task Contract を最初の実行カードとして使う。
+追加文脈が必要な場合だけ Packet を足す。
+```
+
+理由:
+
+- 現行実装でもすぐ運用に落とせる
+- AIに最初から relation depth 付きPacket全文を渡す必要がない
+- Tiny-first の考え方を現行CLIへ段階導入しやすい
+
+## DEC-010: check-diffを最重要機能にする
 
 採用:
 
@@ -134,7 +149,7 @@ AIにルールを完全理解させるより、差分検査で止める。
 - AIはミスをする
 - 機械的に検出できる違反はツールで止めるべき
 
-## DEC-010: AIはapproved recordを作らない
+## DEC-011: AIはapproved recordを作らない
 
 採用:
 

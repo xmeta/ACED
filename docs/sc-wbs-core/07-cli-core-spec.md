@@ -31,6 +31,8 @@ Human approval は自動生成しない。
 6. review required
 7. planned task
 
+Core では、`next` も「方法論の案内」より「今すぐ取るべき修復行動」の提示を優先する。
+
 出力例:
 
 ```text
@@ -87,7 +89,7 @@ scwbs packet --task WBS-001 --deep
 scwbs packet --task WBS-001 --include acceptanceCriteria
 ```
 
-既定は `--tiny` とする。
+既定は `--tiny` とする。Normal/Deep は不足コンテキストが明確な場合だけ明示的に使う。
 
 ### `scwbs finish`
 
@@ -128,6 +130,8 @@ scwbs finish --pr 42
 - Approval scope一致
 - WBS changeset再現性
 ```
+
+このコマンドは Core の最重要機能である。AIが全ルールを暗記していなくても、機械的に止められる違反はここで止める。
 
 ### `scwbs block "<reason>"`
 
