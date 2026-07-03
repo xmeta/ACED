@@ -1,0 +1,32 @@
+id: SCWBS-061
+type: task-contract
+wbsNodeId: node-lightweight-evidence-collect
+featureId: F-1
+branchName: codex/scwbs-061-completion-apply-output
+allowedPaths:
+  - src/commands/completion.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-061.yaml
+  - contracts/evidence/SCWBS-061.yaml
+  - contracts/reviews/SCWBS-061.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - completion apply persists the updated WBS document to contracts/wbs/project.wbs.json when --apply succeeds.
+  - Regression tests fail if completion apply only writes approvals and changesets without updating the WBS file.
+  - Existing completion apply behavior for approvals, changesets, and registry rebuild remains intact.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:11d59d7e3a1a950bdd4e4370243f524e5fab5b363255b9ebb1e3c5fd5bcbc7b2"
+  wbsNodeId: node-lightweight-evidence-collect
+  createdAt: "2026-07-03T14:07:15.000Z"

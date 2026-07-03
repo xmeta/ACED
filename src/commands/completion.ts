@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
-import { approvalPath, resolveFrom } from "../core/paths.js";
+import { approvalPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
@@ -278,7 +278,7 @@ export function runCompletionApply(root: string, taskIdsValue: string | undefine
     writeFileSync(resolveFrom(root, changeSetPath), `${JSON.stringify(changeSet, null, 2)}\n`, "utf8");
     console.log(`wrote ${changeSetPath}`);
 
-    const applyResult = runWbsApply(root, changeSetPath, { force: true });
+    const applyResult = runWbsApply(root, changeSetPath, { force: true, output: defaultWbsPath });
     if (applyResult !== 0) return applyResult;
     return runRegistryRebuild(root, { check: false, force: true });
   } catch (error) {

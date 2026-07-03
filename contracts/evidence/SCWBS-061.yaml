@@ -1,0 +1,33 @@
+id: EVD-SCWBS-061
+type: evidence
+taskId: SCWBS-061
+commit: 97ce1a3dc88f5fca7409db48cbb3bedb9834d947
+git:
+  branch: codex/scwbs-061-completion-apply-output
+  base: origin/main
+  baseCommit: a5a6f96bbf93a1e4e14abe9496e6db0783a9314b
+  changedFilesBasis: branch-diff
+  pullRequest: "#65"
+  headCommit: 97ce1a3dc88f5fca7409db48cbb3bedb9834d947
+changedFiles:
+  - contracts/evidence/SCWBS-061.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-061.yaml
+  - src/commands/completion.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-03T14:25:25.741Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-03T14:25:29.589Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-03T14:25:33.727Z"
