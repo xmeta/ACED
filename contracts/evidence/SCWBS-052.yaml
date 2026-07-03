@@ -1,0 +1,31 @@
+id: EVD-SCWBS-052
+type: evidence
+taskId: SCWBS-052
+commit: bd9d09032bbfdd69c7d5b94156e8aafac0d67f5e
+git:
+  branch: codex/scwbs-052-ready-governance-maintenance
+  base: origin/main
+  baseCommit: 2d3da22c9930657adb16e5460ff099296882ce1a
+  changedFilesBasis: branch-diff
+  headCommit: bd9d09032bbfdd69c7d5b94156e8aafac0d67f5e
+changedFiles:
+  - contracts/changesets/SCWBS-052-ready-governance-maintenance.json
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-052.yaml
+  - contracts/wbs/project.wbs.json
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-03T00:30:28.802Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-03T00:30:31.991Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-03T00:30:35.762Z"
