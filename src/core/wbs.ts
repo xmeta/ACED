@@ -96,12 +96,12 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
   const target = resolveFrom(root, relativePath);
   if (!existsSync(validator)) return validateWbsDocument(root, relativePath);
 
-  let result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
+  let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
     cwd: wjsRoot,
     encoding: "utf8"
   });
-  if (result.status !== 0 && result.stderr?.includes("ERR_NO_TYPESCRIPT")) {
-    result = spawnSync(process.execPath, ["tools/validate.ts", `--${kind}`, target], {
+  if (result.status !== 0 && /missing script: validate/i.test(result.stderr ?? "")) {
+    result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
       cwd: wjsRoot,
       encoding: "utf8"
     });

@@ -1,0 +1,32 @@
+id: SCWBS-054
+type: task-contract
+wbsNodeId: node-project
+featureId: F-1
+branchName: codex/scwbs-054-wjs-node-runner
+allowedPaths:
+  - wjs
+  - src/commands/wbs.ts
+  - src/core/wbs.ts
+  - tests/scwbs.test.ts
+  - contracts/tasks/SCWBS-054.yaml
+  - contracts/evidence/SCWBS-054.yaml
+  - contracts/reviews/SCWBS-054.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - ACED points at a WJS commit where TypeScript tools run without Node strip-types support.
+  - WJS apply and test commands pass on the updated submodule commit.
+  - scwbs wbs apply can execute through the updated WJS runner in this checkout.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:b1594186678ecc0dd574a8cea4ec415cb7e5c8d02db746ab9a9cc9fd0aca846b"
+  wbsNodeId: node-project
+  createdAt: "2026-07-03T05:37:26.129Z"
