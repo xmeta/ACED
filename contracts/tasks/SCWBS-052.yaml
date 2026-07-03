@@ -1,0 +1,31 @@
+id: SCWBS-052
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-1-10
+branchName: codex/scwbs-052-ready-governance-maintenance
+allowedPaths:
+  - contracts/changesets/SCWBS-052-ready-governance-maintenance.json
+  - contracts/wbs/project.wbs.json
+  - contracts/tasks/*.yaml
+  - contracts/evidence/SCWBS-052.yaml
+  - contracts/reviews/SCWBS-052.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - node-governance-maintenance is ready for reviewed node-level completion.
+  - The WBS update is represented by a WJS changeset and applied through scwbs wbs apply.
+  - SCWBS-046 completion apply can proceed after this task is merged.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:edca62b317eb6d1e6d7d65e1ccb338703e1c941d15e72b180b2a2a7dd320f7c8"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-03T00:32:00.175Z"
