@@ -1,0 +1,31 @@
+id: SCWBS-063
+type: task-contract
+wbsNodeId: node-lightweight-evidence-collect
+featureId: F-1
+branchName: codex/scwbs-063-scwbs-061-testquality-backfill
+allowedPaths:
+  - contracts/evidence/SCWBS-061.yaml
+  - contracts/tasks/SCWBS-063.yaml
+  - contracts/evidence/SCWBS-063.yaml
+  - contracts/reviews/SCWBS-063.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-061 evidence includes testQuality metadata aligned with its test-only diff.
+  - health no longer warns that SCWBS-061 is missing testQuality metadata.
+  - No files outside the backfill metadata scope are changed.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:842e0d8128e7b04343a60480b5558fa7260194e7b1e02ea49773551e1aa128e4"
+  wbsNodeId: node-lightweight-evidence-collect
+  createdAt: "2026-07-03T14:50:50.000Z"
