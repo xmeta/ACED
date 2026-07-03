@@ -1,0 +1,35 @@
+id: EVD-SCWBS-051
+type: evidence
+taskId: SCWBS-051
+commit: c3f4544f013ccb6aa4a2fb0a01236db2380ce51c
+git:
+  branch: codex/scwbs-051-approve-governance-review-targets
+  base: origin/main
+  baseCommit: b8eb210724b73902e67ba720a95f508881160f52
+  changedFilesBasis: branch-diff
+  headCommit: c3f4544f013ccb6aa4a2fb0a01236db2380ce51c
+changedFiles:
+  - contracts/approvals/SCWBS-041.yaml
+  - contracts/approvals/SCWBS-042.yaml
+  - contracts/approvals/SCWBS-043.yaml
+  - contracts/approvals/SCWBS-044.yaml
+  - contracts/approvals/SCWBS-045.yaml
+  - contracts/approvals/SCWBS-046.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-051.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-03T00:20:13.874Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-03T00:20:17.007Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-03T00:20:20.265Z"
