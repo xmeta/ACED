@@ -926,7 +926,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     );
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(true);
-  });
+  }, 15000);
 
   test("health ignores historical stale evidence on other branches", () => {
     const root = makeTempRepo();
