@@ -1,10 +1,26 @@
 # 00. SC-WBS Core Index
 
-このディレクトリは、SC-WBS を軽量な AI 作業ガードレールとして運用するための正本候補である。
+このディレクトリは、SC-WBS を軽量な AI 作業ガードレールとして運用するための Core 文書群である。
+
+## 文書の位置づけ
+
+この文書群は、現行 ACED CLI に導入済みの考え方と、Core の目標形をまとめた基準文書である。
+ただし、`docs/sc-wbs-core-revision/` がある場合、そこにある内容は次期改訂案として扱う。
+
+優先順位は次の通りである。
+
+```text
+1. 現行作業の実行ルール: AGENTS.md と対象 Task Contract
+2. 現行Coreの基準説明: docs/sc-wbs-core/
+3. 次期Core改訂案: docs/sc-wbs-core-revision/
+```
+
+`docs/sc-wbs-core-revision/` は、この文書群を即時に置き換えるものではない。
+改訂案の内容は、Task Contract、実装、Evidence、check-diff が揃った時点で現行Coreへ反映する。
 
 ## 現行実装との関係
 
-この文書群は Core/Lite 方針の正本候補と target spec を含む。`scwbs task new`、`scwbs packet --tiny`、`scwbs finish`、`scwbs block` のような短縮コマンドは Core の目標形であり、現行 ACED CLI ではまだ同名で実装されていないものがある。
+この文書群は Core/Lite 方針の現行基準説明と target spec を含む。`scwbs task new`、`scwbs packet --tiny`、`scwbs finish`、`scwbs block` のような短縮コマンドは Core の目標形であり、現行 ACED CLI ではまだ同名で実装されていないものがある。
 
 このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- evidence collect` と `npm run scwbs -- check-diff` に委ねる。
 
@@ -36,6 +52,12 @@ SC-WBS Core では、次の目的に絞る。
 | `08-migration-plan.md` | 既存SC-WBSからCoreへ反映する手順 |
 | `09-implementation-backlog.md` | 実装タスク候補と優先順位 |
 | `10-decisions.md` | これまでの議論から採用した設計判断 |
+
+## Core 改訂作業の入口
+
+SC-WBS Core 改訂の進捗確認は、リポジトリルートの `CHECKLIST.md` を入口にする。
+詳細な改訂文書群は `docs/sc-wbs-core-revision/` に置き、進捗の詳細チェックリストは `docs/sc-wbs-core-revision/10-progress-checklist.md` を正とする。
+旧Core文書と改訂文書が異なる場合は、改訂文書を「未反映の設計案」として扱い、現行作業では `AGENTS.md` の実装済みコマンドを優先する。
 
 ## AIに読ませる範囲
 
