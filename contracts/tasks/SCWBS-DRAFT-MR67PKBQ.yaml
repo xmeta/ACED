@@ -1,0 +1,33 @@
+id: SCWBS-DRAFT-MR67PKBQ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR67PKBQ
+branchName: codex/scwbs-core-revision-checklist-entrypoint
+allowedPaths:
+  - CHECKLIST.md
+  - docs/sc-wbs-core/00-index.md
+  - docs/sc-wbs-core-revision/**
+  - contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR67PKBQ.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - CHECKLIST.md points to the SC-WBS Core revision progress checklist.
+  - The SC-WBS Core index points readers to CHECKLIST.md and the revision document set.
+  - The revision document index identifies CHECKLIST.md as the short progress entrypoint.
+  - The current Core documents and revision documents define precedence so they do not appear to be competing sources of truth.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:842e0d8128e7b04343a60480b5558fa7260194e7b1e02ea49773551e1aa128e4"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-04T10:30:00.000Z"
