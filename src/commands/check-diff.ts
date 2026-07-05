@@ -1,4 +1,4 @@
-import { approvalExists, readEvidence, readTask } from "../core/contracts.js";
+import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -19,8 +19,13 @@ function requiresMetaFileGuard(file: string): boolean {
   return matchesAny(file, SENSITIVE_META_PATHS);
 }
 
+function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
+  return readApproval(root, taskId).approval?.status === "approved";
+}
+
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
+  const hasHumanGateApproval = task.humanGateRequiredPaths.length > 0 ? hasApprovedHumanGateApproval(root, task.id) : false;
   for (const issue of collectWbsChangesetGateIssues(files)) {
     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }
@@ -44,8 +49,12 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     if (requiresMetaFileGuard(file) && !explicitlyAllowed && !humanGateRequired) {
       issues.push({ severity: "error", code: "diff.metaFile", message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}` });
     }
-    if (humanGateRequired && !approvalExists(root, task.id)) {
-      issues.push({ severity: "warn", code: "diff.humanGate", message: `${file} requires human gate approval for ${task.id}` });
+    if (humanGateRequired && !hasHumanGateApproval) {
+      issues.push({
+        severity: "error",
+        code: "diff.humanGate",
+        message: `${file} requires approved human gate approval for ${task.id}; fixCommand: npm run scwbs -- approval request --task ${task.id}`
+      });
     }
   }
   return issues;

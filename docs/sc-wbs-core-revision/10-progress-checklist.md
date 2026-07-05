@@ -169,7 +169,7 @@ scwbs check-diff
 - [x] M2-015: `--pr <number>` をEvidenceに記録できる
 - [x] M2-016: `allowedPaths` 外変更をErrorにできる
 - [x] M2-017: `forbiddenPaths` 変更をErrorにできる
-- [ ] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
+- [x] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
 - [ ] M2-019: `managedContractPaths` を例外として扱える
 - [x] M2-020: Evidence、Block、Approvalなどの生成ファイルを過剰にErrorにしない
 - [x] M2-021: メタファイル変更を安全側で検出できる
@@ -181,7 +181,7 @@ scwbs check-diff
 - [x] allowedPaths内変更はPassする
 - [x] allowedPaths外変更はErrorになる
 - [x] forbiddenPaths変更はErrorになる
-- [ ] humanGateRequiredPaths変更はApprovalなしでErrorになる
+- [x] humanGateRequiredPaths変更はApprovalなしでErrorになる
 - [ ] managedContractPathsは必要なものだけPassする
 - [x] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
 - [x] diffHashが同じ差分で安定する
