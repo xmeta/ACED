@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -22,6 +22,8 @@ import { buildStatus } from "../src/commands/status.js";
 import { buildNextAction } from "../src/commands/next.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
+import { buildCoreTaskNew, runTaskNew } from "../src/commands/task-new.js";
+import { runFinish } from "../src/commands/finish.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
@@ -1260,6 +1262,102 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(runTaskGenerate(root, "node-api", "WBS-001-999", { force: true })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-999.yaml"), "utf8")).not.toBe(before);
   });
+
+  test("task new writes a core draft task from title and path options", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runTaskNew(root, "Core Alias Work", {
+      paths: "src/**,tests/**",
+      forbid: "wjs/**",
+      gate: ".github/**",
+      checks: "test,typecheck"
+    })).toBe(0);
+
+    const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+    const taskFile = taskFileName ? `contracts/tasks/${taskFileName}` : undefined;
+    expect(taskFile).toBeTruthy();
+    const actual = readFileSync(path.join(root, taskFile ?? ""), "utf8");
+    expect(actual).toContain("branchName: task/SCWBS-DRAFT-");
+    expect(actual).toContain("allowedPaths:");
+    expect(actual).toContain("  - src/**");
+    expect(actual).toContain("requiredChecks:");
+    expect(actual).toContain("  - typecheck");
+  });
+
+  test("task new builds safe branch names and default checks", () => {
+    const task = buildCoreTaskNew("Fix Core CLI!");
+
+    expect(task.id).toMatch(/^SCWBS-DRAFT-/);
+    expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
+    expect(task.allowedPaths).toEqual(["src/**", "tests/**", "docs/**", "contracts/**"]);
+    expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+  });
+
+  test("core packet tiny stays short and prints finish and block commands", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["packet", "--task", "WBS-001-004", "--tiny"], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+
+    const packet = output.join("");
+    expect(packet.split("\n").length).toBeLessThanOrEqual(50);
+    expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
+    expect(packet).toContain('npm run scwbs -- block "reason" --task WBS-001-004');
+    expect(packet).not.toContain("Context Filter");
+  });
+
+  test("core command aliases route to existing approval and block commands", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["request-approval", "--task", "WBS-001-004", "--pr", "#42", "--note", "Needs review"], root)).toBe(0);
+    expect(readApproval(root, "WBS-001-004").approval?.status).toBe("requested");
+    expect(main(["approve", "--task", "WBS-001-004", "--pr", "#42", "--reason=Reviewed"], root)).toBe(0);
+    expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+    expect(main(["block", "Human Gate required", "--task", "WBS-001-004"], root)).toBe(0);
+  });
+
+  test("finish without task id or task branch fails with a fix command", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(main(["finish"], root)).toBe(2);
+  });
+
+  test("finish stops after required check failures", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", {
+      scripts: {
+        test: "node -e \"process.exit(9)\""
+      }
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName: "master",
+      allowedPaths: ["src/**", "contracts/**"],
+      humanGateRequiredPaths: [],
+      requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/feature.ts", "export const value = 1;\n");
+
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+    const { evidence } = readEvidence(root, "WBS-001-004");
+    expect(evidence?.checks[0]).toMatchObject({ name: "test", status: "failed" });
+  }, 30000);
 
   test("approval request writes a requested approval record", () => {
     const root = makeTempRepo();

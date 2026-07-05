@@ -48,6 +48,7 @@ AIに渡す情報: Tiny Packet
 | `08-migration-plan.md` | 既存SC-WBSからCoreへ反映する手順 |
 | `09-ai-agent-guidelines.md` | AIエージェントに読ませる短い運用指示 |
 | `10-progress-checklist.md` | 実装計画の進捗確認チェックリスト |
+| `11-cli-compatibility-map.md` | 既存CLIとCore短縮コマンドの対応表 |
 
 ## 読み分け
 

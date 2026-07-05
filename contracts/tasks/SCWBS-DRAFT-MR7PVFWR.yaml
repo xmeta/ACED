@@ -1,0 +1,31 @@
+id: SCWBS-DRAFT-MR7PVFWR
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR7PVFWR
+branchName: task/SCWBS-DRAFT-MR7PVFWR-sc-wbs-core-revision-implementation
+allowedPaths:
+  - README.md
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Implement the first safe SC-WBS Core revision slice needed to advance the progress checklist.
+  - Keep existing npm-run scwbs command compatibility intact.
+  - Update the progress checklist only for items backed by implementation, tests, and documentation.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
