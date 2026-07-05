@@ -1,0 +1,44 @@
+id: EVD-SCWBS-CORE-M1
+type: evidence
+taskId: SCWBS-CORE-M1
+commit: 8d587c38e67f6037a5cb04f66455bc5becb3f9b8
+git:
+  branch: task/SCWBS-CORE-M1-core-task-lifecycle-completion
+  base: origin/main
+  baseCommit: 00ba8c1994bb46948195a95ef433fcf1c746e971
+  changedFilesBasis: branch-diff
+  headCommit: 8d587c38e67f6037a5cb04f66455bc5becb3f9b8
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-CORE-M1.yaml
+  - docs/sc-wbs-core-revision/10-progress-checklist.md
+  - docs/sc-wbs-core-revision/11-cli-compatibility-map.md
+  - src/cli.ts
+  - src/commands/next.ts
+  - src/commands/start.ts
+  - src/commands/task-new.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T13:25:30.391Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T13:25:33.264Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T13:25:36.328Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added M1 regression coverage for task new stopIf/index, start pre-flight branch mismatch, and next failed-check priority.
