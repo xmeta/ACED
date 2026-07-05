@@ -64,6 +64,10 @@ function hasTestQualityRationale(evidence: Evidence): boolean {
   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
 }
 
+function isManagedContractPath(task: TaskContract, file: string): boolean {
+  return matchesAny(file, task.managedContractPaths ?? []);
+}
+
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
@@ -148,7 +152,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   }
 
   for (const file of evidence.changedFiles) {
-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
+    const managed = isManagedContractPath(task, file);
+    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
     }
     if (matchesAny(file, task.forbiddenPaths)) {

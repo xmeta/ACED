@@ -920,6 +920,29 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(runHealth(root)).toBe(1);
   });
 
+  test("health treats managed contract paths as allowed path exceptions", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        allowedPaths: ["src/**"],
+        managedContractPaths: ["contracts/changesets/WBS-001-004-link-wbs-node.json"]
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["contracts/changesets/WBS-001-004-link-wbs-node.json"]
+      }) as unknown as Record<string, unknown>
+    );
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths")).toBe(false);
+  });
+
   test("health warns when evidence commit is missing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
