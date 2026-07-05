@@ -1,0 +1,46 @@
+id: EVD-SCWBS-CORE-M1
+type: evidence
+taskId: SCWBS-CORE-M1
+commit: 97756b3d7e4d8414161d81600f541a1d2bf738c6
+git:
+  branch: task/SCWBS-CORE-M1-core-task-lifecycle-completion
+  base: origin/main
+  baseCommit: 00ba8c1994bb46948195a95ef433fcf1c746e971
+  changedFilesBasis: branch-diff
+  pullRequest: "#74"
+  headCommit: 97756b3d7e4d8414161d81600f541a1d2bf738c6
+changedFiles:
+  - contracts/evidence/SCWBS-CORE-M1.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-CORE-M1.yaml
+  - docs/sc-wbs-core-revision/10-progress-checklist.md
+  - docs/sc-wbs-core-revision/11-cli-compatibility-map.md
+  - src/cli.ts
+  - src/commands/next.ts
+  - src/commands/start.ts
+  - src/commands/task-new.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T13:31:32.990Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T13:31:35.872Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T13:31:39.076Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added M1 regression coverage for task new stopIf/index, start pre-flight branch mismatch, and next failed-check priority.

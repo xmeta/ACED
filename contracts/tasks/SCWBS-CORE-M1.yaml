@@ -1,0 +1,37 @@
+id: SCWBS-CORE-M1
+type: task-contract
+wbsNodeId: node-core-task-lifecycle-completion
+featureId: F-1-10-1-1
+branchName: task/SCWBS-CORE-M1-core-task-lifecycle-completion
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/tasks/SCWBS-CORE-M1.yaml
+  - contracts/evidence/SCWBS-CORE-M1.yaml
+  - contracts/reviews/SCWBS-CORE-M1.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - M1-006 - task new can generate stopIf from --stop.
+  - M1-007 - missing arguments can be completed interactively or by a safe non-interactive fallback.
+  - M1-011 - WBS-less operation updates contracts/tasks/index.yaml.
+  - M1-012 - WBS-backed operation does not edit WBS directly and generates a changeset draft when needed.
+  - M1-013 - scwbs start <task-id> displays pre-flight information.
+  - M1-014 - start displays branch, lock, path constraints, checks, and stopIf.
+  - M1-020 - next prioritizes blocked, missing evidence, failed check, and planned task states.
+  - M1 test checks - taskId collision, start branch mismatch, and next priority ordering are covered.
+  - M1 completion checks - new tasks can be created without hand-written YAML, Tiny Packet stays short, and existing Task Contracts remain usable.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

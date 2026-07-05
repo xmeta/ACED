@@ -35,7 +35,7 @@
 | Core コマンド | 現行対応 | 状態 |
 |---|---|---|
 | `task new "title"` | 新規 alias。title と path/check options から draft Task Contract を生成する。 | 実装済み |
-| `start <task-id>` | 現行 `start <goal>` は draft artifacts 生成。pre-flight 表示は未実装。 | 部分実装 |
+| `start <task-id>` | 既存Task Contract IDではbranch、lock、path制約、checks、stopIfをpre-flight表示する。自然言語goalでは従来どおりdraft artifactsを生成する。 | 実装済み |
 | `packet --task <id> --tiny` | 新規 alias。50行以内の Tiny Packet を出力する。 | 実装済み |
 | `finish --task <id>` | 新規 alias。`evidence collect --force` の後に `check-diff` を実行する。 | 実装済み |
 | `block "reason" --task <id>` | `ai block --task <id> --reason <reason>` の alias。 | 実装済み |

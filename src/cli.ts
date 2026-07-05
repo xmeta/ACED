@@ -51,7 +51,7 @@ function usage(): void {
   scwbs review request --task <task-id> [--pull-request <id>] [--force]
   scwbs review route --task <task-id>
   scwbs next
-  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--checks <name,name>]
+  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--stop <reason,reason>] [--checks <name,name>]
   scwbs start <goal>
   scwbs packet --task <task-id> --tiny
   scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
@@ -404,6 +404,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       paths: valueAfter(argv, "--paths"),
       forbid: valueAfter(argv, "--forbid"),
       gate: valueAfter(argv, "--gate"),
+      stop: valueAfter(argv, "--stop"),
       checks: valueAfter(argv, "--checks")
     });
   }

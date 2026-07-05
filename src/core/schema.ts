@@ -109,6 +109,7 @@ const taskContractSchema = {
     allowedPaths: stringArraySchema,
     forbiddenPaths: stringArraySchema,
     humanGateRequiredPaths: stringArraySchema,
+    stopIf: stringArraySchema,
     requiredChecks: stringArraySchema,
     doneCriteria: stringArraySchema,
     evidenceRequired: stringArraySchema,
@@ -423,6 +424,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
     if (!isStringArray(value[key])) {
       issues.push(issue("task.array", `${filePath}.${key} must be a string array`));
     }
+  }
+  if (value.stopIf !== undefined && !isStringArray(value.stopIf)) {
+    issues.push(issue("task.array", `${filePath}.stopIf must be a string array when present`));
   }
   if (value.contractLock !== undefined) {
     if (!isObject(value.contractLock)) {
