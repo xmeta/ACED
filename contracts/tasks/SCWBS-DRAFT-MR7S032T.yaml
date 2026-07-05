@@ -1,0 +1,29 @@
+id: SCWBS-DRAFT-MR7S032T
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR7S032T
+branchName: task/SCWBS-DRAFT-MR7S032T-record-core-revision-metadata-backfill-review-re
+allowedPaths:
+  - contracts/reviews/SCWBS-DRAFT-MR7RFNZS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR7S032T.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR7S032T.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Record Core revision metadata backfill review request
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

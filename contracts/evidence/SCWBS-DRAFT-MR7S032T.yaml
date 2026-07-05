@@ -1,0 +1,38 @@
+id: EVD-SCWBS-DRAFT-MR7S032T
+type: evidence
+taskId: SCWBS-DRAFT-MR7S032T
+commit: d60e72eb5302e9a8b5b8bb712f5c5baa9bc6c3a6
+git:
+  branch: task/SCWBS-DRAFT-MR7S032T-record-core-revision-metadata-backfill-review-re
+  base: origin/main
+  baseCommit: 733c0bad780d540050b18600d6518c8d7efd1a4e
+  changedFilesBasis: branch-diff
+  pullRequest: "#73"
+  headCommit: d60e72eb5302e9a8b5b8bb712f5c5baa9bc6c3a6
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MR7S032T.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR7RFNZS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T12:42:02.465Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T12:42:05.083Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T12:42:07.844Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Metadata-only review request backfill; no production or test code changed.
