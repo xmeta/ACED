@@ -1059,6 +1059,56 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(issues.some((issue) => issue.code === "health.evidence.diffHash.stale")).toBe(false);
   }, 30000);
 
+  test("health ignores missing diffHash on historical evidence from other branches", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    const oldHead = headCommit(root) ?? "";
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "base",
+          baseCommit: oldHead,
+          changedFilesBasis: "branch-diff",
+          subjectHeadCommit: oldHead,
+          headCommit: oldHead
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.diffHash.missing")).toBe(false);
+  });
+
+  test("health warns when active branch evidence has no diffHash", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    execFileSync("git", ["switch", "-c", "task/WBS-001-004-api-implementation"], { cwd: root, stdio: "ignore" });
+    const evidenceHead = headCommit(root) ?? "";
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "base",
+          baseCommit: evidenceHead,
+          changedFilesBasis: "branch-diff",
+          subjectHeadCommit: evidenceHead,
+          headCommit: evidenceHead
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.diffHash.missing")).toBe(true);
+  });
+
   test("health accepts approval pull request metadata when evidence pull request is missing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "planned");

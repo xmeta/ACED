@@ -1,0 +1,35 @@
+id: SCWBS-CORE-M2-HEALTH
+type: task-contract
+wbsNodeId: node-core-evidence-diff-guard-completion
+featureId: F-1-10-1-2
+branchName: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-core-evidence-diff-guard-completion
+  createdAt: "2026-07-05T14:15:00.000Z"
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+  - contracts/evidence/SCWBS-CORE-M2-HEALTH.yaml
+  - contracts/reviews/SCWBS-CORE-M2-HEALTH.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Historical Evidence without diffHash does not flood health on unrelated branches.
+  - Active task branches still warn when current Evidence has no diffHash.
+  - Health output after the M2 metadata migration remains focused on actionable current-branch issues.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
