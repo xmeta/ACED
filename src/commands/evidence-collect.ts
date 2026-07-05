@@ -11,6 +11,15 @@ const maxCheckOutputSummaryLength = 1000;
 
 type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
 
+function postEvidenceMetadataFiles(taskId: string): string[] {
+  return [
+    `contracts/evidence/${taskId}.yaml`,
+    `contracts/approvals/${taskId}.yaml`,
+    `contracts/reviews/${taskId}.yaml`,
+    "contracts/registry.yaml"
+  ];
+}
+
 function commandForCheck(check: string): string[] {
   if (check === "test") return ["npm", "test"];
   if (check === "typecheck") return ["npm", "run", "typecheck"];
@@ -58,7 +67,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const baseRef = options.baseRef ?? "origin/main";
   const head = headCommit(root);
   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
-  const diffHash = branchDiffHash(root, baseRef);
+  const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
