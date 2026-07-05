@@ -1,0 +1,37 @@
+id: SCWBS-CORE-M2
+type: task-contract
+wbsNodeId: node-core-evidence-diff-guard-completion
+featureId: F-1-10-1-2
+branchName: task/SCWBS-CORE-M2-evidence-diff-guard
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-core-evidence-diff-guard-completion
+  createdAt: "2026-07-05T13:45:00.000Z"
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/tasks/SCWBS-CORE-M2.yaml
+  - contracts/evidence/SCWBS-CORE-M2.yaml
+  - contracts/reviews/SCWBS-CORE-M2.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - M2-009 - Evidence records subjectHeadCommit.
+  - M2-011 - diffHash is generated from the subject diff.
+  - M2-012 - Evidence file commits do not make subject evidence stale.
+  - M2 test checks - subjectHeadCommit self-stale handling and stable diffHash are covered.
+  - M2 completion checks - Evidence commit design avoids self-reference loops for metadata-only follow-up commits.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

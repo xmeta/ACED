@@ -96,11 +96,16 @@ export type Evidence = {
   type: "evidence";
   taskId: string;
   commit?: string;
+  subjectHeadCommit?: string;
+  evidenceCommit?: string;
+  diffHash?: string;
   git?: {
     branch?: string;
     base?: string;
     baseCommit?: string;
     changedFilesBasis?: "working-tree" | "branch-diff" | string;
+    subjectHeadCommit?: string;
+    diffHash?: string;
     headCommit?: string;
     pullRequest?: string;
   };
