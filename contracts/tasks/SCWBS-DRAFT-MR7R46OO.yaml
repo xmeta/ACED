@@ -1,0 +1,28 @@
+id: SCWBS-DRAFT-MR7R46OO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR7R46OO
+branchName: task/SCWBS-DRAFT-MR7R46OO-backfill-core-revision-pr-metadata
+allowedPaths:
+  - contracts/evidence/SCWBS-DRAFT-MR7PVFWR.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR7R46OO.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Backfill Core revision PR metadata
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
