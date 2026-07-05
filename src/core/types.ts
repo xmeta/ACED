@@ -82,6 +82,7 @@ export type TaskContract = {
   allowedPaths: string[];
   forbiddenPaths: string[];
   humanGateRequiredPaths: string[];
+  stopIf?: string[];
   requiredChecks: string[];
   doneCriteria: string[];
   evidenceRequired: string[];

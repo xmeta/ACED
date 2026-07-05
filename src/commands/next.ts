@@ -1,7 +1,7 @@
 import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listTasks, evidenceExists, reviewExists } from "../core/contracts.js";
+import { listTasks, evidenceExists, readEvidence, reviewExists } from "../core/contracts.js";
 
 function taskIdFromMessage(message: string): string | undefined {
   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
@@ -37,6 +37,24 @@ Reason:
 
 Command:
   scwbs evidence collect --task ${missingEvidence.task.id}
+`;
+  }
+
+  const failedCheck = listTasks(root).flatMap((entry) => {
+    if (!entry.task) return [];
+    const { evidence } = readEvidence(root, entry.task.id);
+    const failed = evidence?.checks.find((check) => check.status === "failed");
+    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
+  })[0];
+  if (failedCheck) {
+    return `Next suggested action:
+
+Fix failed check for ${failedCheck.task.id}
+Reason:
+- Evidence check failed: ${failedCheck.checkName}
+
+Command:
+  scwbs finish --task ${failedCheck.task.id}
 `;
   }
 

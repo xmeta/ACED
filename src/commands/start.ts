@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { readTask } from "../core/contracts.js";
+import { currentBranch } from "../core/git.js";
 import { resolveFrom, specPath, taskPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 
@@ -64,6 +66,32 @@ export function buildStartArtifacts(goal: string): Record<string, string> {
 
 export function runStart(root: string, goal: string): number {
   try {
+    const { task } = readTask(root, goal);
+    if (task) {
+      const branch = currentBranch(root) ?? "(unknown)";
+      const branchStatus = task.branchName === branch ? "ok" : "mismatch";
+      const lines = [
+        `Task: ${task.id}`,
+        `Branch: ${branch}`,
+        `Expected branch: ${task.branchName ?? "(none)"}`,
+        `Branch status: ${branchStatus}`,
+        `WBS node: ${task.wbsNodeId}`,
+        `Contract lock: ${task.contractLock?.wbsRevision ?? "(none)"}`,
+        "Allowed paths:",
+        ...task.allowedPaths.map((item) => `- ${item}`),
+        "Forbidden paths:",
+        ...task.forbiddenPaths.map((item) => `- ${item}`),
+        "Human gate paths:",
+        ...task.humanGateRequiredPaths.map((item) => `- ${item}`),
+        "Stop if:",
+        ...((task.stopIf ?? []).length > 0 ? (task.stopIf ?? []).map((item) => `- ${item}`) : ["- (none)"]),
+        "Checks:",
+        ...task.requiredChecks.map((item) => `- ${item}`)
+      ];
+      process.stdout.write(`${lines.join("\n")}\n`);
+      return branchStatus === "ok" ? 0 : 1;
+    }
+
     const artifacts = buildStartArtifacts(goal);
     for (const [relativePath, content] of Object.entries(artifacts)) {
       const fullPath = resolveFrom(root, relativePath);

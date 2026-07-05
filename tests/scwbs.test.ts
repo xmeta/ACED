@@ -1283,6 +1283,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(actual).toContain("  - src/**");
     expect(actual).toContain("requiredChecks:");
     expect(actual).toContain("  - typecheck");
+    expect(readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8")).toContain("path: contracts/tasks/SCWBS-DRAFT-");
   });
 
   test("task new builds safe branch names and default checks", () => {
@@ -1292,6 +1293,51 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
     expect(task.allowedPaths).toEqual(["src/**", "tests/**", "docs/**", "contracts/**"]);
     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+  });
+
+  test("task new generates stopIf entries from stop option", () => {
+    const task = buildCoreTaskNew("Stop Presets", {
+      stop: "db schema change,auth redesign"
+    });
+
+    expect(task.stopIf).toEqual(["db schema change", "auth redesign"]);
+  });
+
+  test("start prints pre-flight details and fails on branch mismatch", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["start", "WBS-001-004"], root)).toBe(1);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+
+    const preflight = output.join("");
+    expect(preflight).toContain("Task: WBS-001-004");
+    expect(preflight).toContain("Branch status: mismatch");
+    expect(preflight).toContain("Allowed paths:");
+    expect(preflight).toContain("Checks:");
+  });
+
+  test("next prioritizes failed evidence checks before review work", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      checks: [
+        { name: "test", status: "failed" },
+        { name: "typecheck", status: "passed" }
+      ]
+    }) as unknown as Record<string, unknown>);
+
+    const next = buildNextAction(root);
+    expect(next).toContain("Fix failed check for WBS-001-004");
+    expect(next).toContain("Evidence check failed: test");
   });
 
   test("core packet tiny stays short and prints finish and block commands", () => {

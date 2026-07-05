@@ -102,21 +102,21 @@ scwbs next
 - [x] M1-003: `--forbid` から `forbiddenPaths` を生成できる
 - [x] M1-004: `--gate` から `humanGateRequiredPaths` を生成できる
 - [x] M1-005: `--checks` から `requiredChecks` を生成できる
-- [ ] M1-006: `--stop` から `stopIf` を生成できる
+- [x] M1-006: `--stop` から `stopIf` を生成できる
 - [ ] M1-007: 引数不足時に対話式で補完できる
 - [x] M1-008: 既存taskと衝突しないtaskIdを採番できる
 - [x] M1-009: titleから安全なbranch名を生成できる
 - [x] M1-010: 既存Task Contractを暗黙に上書きしない
-- [ ] M1-011: WBSなし運用では `contracts/tasks/index.yaml` を更新できる
+- [x] M1-011: WBSなし運用では `contracts/tasks/index.yaml` を更新できる
 - [ ] M1-012: WBSあり運用では直接WBSを書き換えず、必要ならchangeset draftを生成できる
-- [ ] M1-013: `scwbs start <task-id>` でpre-flightを表示できる
-- [ ] M1-014: `start` がbranch、lock、path制約、checks、stopIfを表示できる
+- [x] M1-013: `scwbs start <task-id>` でpre-flightを表示できる
+- [x] M1-014: `start` がbranch、lock、path制約、checks、stopIfを表示できる
 - [x] M1-015: `scwbs packet --task <task-id> --tiny` を実装した
 - [x] M1-016: Tiny Packetが原則50行以内に収まる
 - [x] M1-017: Tiny Packetにスキーマ説明や長文仕様を含めない
 - [x] M1-018: Tiny Packetに `finish` と `block` の次コマンドを表示する
 - [x] M1-019: `scwbs next` が次の作業候補を表示できる
-- [ ] M1-020: `next` が blocked / missing evidence / failed check / planned task を優先順に扱える
+- [x] M1-020: `next` が blocked / missing evidence / failed check / planned task を優先順に扱える
 
 ## M1 テストチェック
 
@@ -124,14 +124,14 @@ scwbs next
 - [ ] taskId衝突時のテストがある
 - [x] 既存Task Contractを上書きしないテストがある
 - [x] Tiny Packetの最大行数に関するテストがある
-- [ ] `start` のbranch不一致検出テストがある
-- [ ] `next` の優先順位テストがある
+- [x] `start` のbranch不一致検出テストがある
+- [x] `next` の優先順位テストがある
 
 ## M1 完了条件
 
-- [ ] 新規タスクをYAML手書きなしで作れる
-- [ ] AIに渡すTiny Packetが短く、作業に必要な情報だけを含む
-- [ ] 既存Task Contractを読み込んで利用できる
+- [x] 新規タスクをYAML手書きなしで作れる
+- [x] AIに渡すTiny Packetが短く、作業に必要な情報だけを含む
+- [x] 既存Task Contractを読み込んで利用できる
 
 ---
 

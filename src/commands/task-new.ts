@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { taskPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
@@ -28,6 +28,7 @@ export function buildCoreTaskNew(title: string, options: {
   forbid?: string;
   gate?: string;
   checks?: string;
+  stop?: string;
 } = {}): TaskContract {
   const id = `SCWBS-DRAFT-${stamp()}`;
   const safeTitle = slug(title);
@@ -40,10 +41,28 @@ export function buildCoreTaskNew(title: string, options: {
     allowedPaths: splitList(options.paths, ["src/**", "tests/**", "docs/**", "contracts/**"]),
     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
     humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
+    stopIf: splitList(options.stop, []),
     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
     doneCriteria: [`Complete: ${title}`],
     evidenceRequired: ["test-result", "typecheck-result", "build-result"]
   };
+}
+
+function appendTaskIndex(root: string, task: TaskContract): void {
+  const relativePath = "contracts/tasks/index.yaml";
+  const fullPath = resolveFrom(root, relativePath);
+  mkdirSync(path.dirname(fullPath), { recursive: true });
+  const existing = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "tasks:\n";
+  const prefix = existing.endsWith("\n") ? existing : `${existing}\n`;
+  if (new RegExp(`\\bid: ${task.id}\\b`).test(existing)) return;
+  const entry = [
+    `  - id: ${task.id}`,
+    `    path: ${taskPath(task.id)}`,
+    `    branchName: ${task.branchName ?? ""}`,
+    `    wbsNodeId: ${task.wbsNodeId}`,
+    ""
+  ].join("\n");
+  writeFileSync(fullPath, `${prefix}${entry}`, "utf8");
 }
 
 export function runTaskNew(root: string, title: string, options: {
@@ -51,6 +70,7 @@ export function runTaskNew(root: string, title: string, options: {
   forbid?: string;
   gate?: string;
   checks?: string;
+  stop?: string;
 } = {}): number {
   try {
     const task = buildCoreTaskNew(title, options);
@@ -63,6 +83,7 @@ export function runTaskNew(root: string, title: string, options: {
     mkdirSync(path.dirname(fullPath), { recursive: true });
     const yaml = stringifySimpleYaml(task as unknown as Record<string, unknown>);
     writeFileSync(fullPath, yaml, "utf8");
+    appendTaskIndex(root, task);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {
