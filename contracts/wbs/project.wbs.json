@@ -481,7 +481,7 @@
       ]
     },
     {
-      "status": "completed",
+      "status": "inProgress",
       "assignees": [],
       "acceptanceCriteria": [
         "Recurring audit, specification, and governance work has a non-completed WBS target.",
@@ -497,6 +497,249 @@
       "parentId": "node-project",
       "code": "1.10",
       "name": "Governance and specification maintenance",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "All unchecked items in docs/sc-wbs-core-revision/10-progress-checklist.md are represented by child WBS nodes or child node acceptance criteria.",
+        "Progress checklist completion remains backed by implementation, tests, documentation, Evidence, and check-diff."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "sc-wbs-core-revision"
+      ],
+      "id": "node-scwbs-core-revision-backlog",
+      "parentId": "node-governance-maintenance",
+      "code": "1.10.1",
+      "name": "SC-WBS Core revision backlog",
+      "type": "deliverable"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "M1-006: task new can generate stopIf from --stop.",
+        "M1-007: missing arguments can be completed interactively or by a safe non-interactive fallback.",
+        "M1-011: WBS-less operation updates contracts/tasks/index.yaml.",
+        "M1-012: WBS-backed operation does not edit WBS directly and generates a changeset draft when needed.",
+        "M1-013: scwbs start <task-id> displays pre-flight information.",
+        "M1-014: start displays branch, lock, path constraints, checks, and stopIf.",
+        "M1-020: next prioritizes blocked, missing evidence, failed check, and planned task states.",
+        "M1 test checks: taskId collision, start branch mismatch, and next priority ordering are covered.",
+        "M1 completion checks: new tasks can be created without hand-written YAML, Tiny Packet stays short, and existing Task Contracts remain usable."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "milestone:M1"
+      ],
+      "id": "node-core-task-lifecycle-completion",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.1",
+      "name": "Core Task Lifecycle completion",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "M2-003: Check Catalog is explicitly defined.",
+        "M2-009: Evidence records subjectHeadCommit.",
+        "M2-011: diffHash is generated from the subject diff.",
+        "M2-012: Evidence file commits do not make subject evidence stale.",
+        "M2-018: humanGateRequiredPaths changes without approval are errors.",
+        "M2-019: managedContractPaths are modeled as controlled exceptions.",
+        "M2-022: all errors include fixCommand.",
+        "M2-023: scwbs fix runs only safe automatic repairs.",
+        "M2 test checks: human gate approval error, managedContractPaths, subjectHeadCommit stale handling, and stable diffHash are covered.",
+        "M2 completion checks: Evidence commit design avoids self-reference loops and AI out-of-scope changes are mechanically blocked."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts"
+      ],
+      "tags": [
+        "milestone:M2"
+      ],
+      "id": "node-core-evidence-diff-guard-completion",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.2",
+      "name": "Finish Evidence and Diff Guard completion",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "M3-001: scwbs block \"理由\" is implemented.",
+        "M3-002: block reason is saved in a Block record.",
+        "M3-003: stop presets classify db, auth, permission, security, and breaking-api concerns.",
+        "M3-004: block output shows the needed human decision.",
+        "M3-005: block output tells the AI not to continue implementation.",
+        "M3-006: request-approval generates only requested records.",
+        "M3-007: approve is rejected in AI execution mode.",
+        "M3-008: approve is explicitly designed as a human operation.",
+        "M3-009: Approval records headCommit.",
+        "M3-010: Approval records diffHash.",
+        "M3-011: Approval records approvedBy and approvedAt.",
+        "M3-012: PR-number-only Approval is not treated as completion approval.",
+        "M3-013: changed diffs after approval are errors.",
+        "M3-014: Human Gate passes only when approval scope matches.",
+        "M3-015: completed status cannot be applied without approval.",
+        "M3-016: pre-implementation gate and completion gate are distinct.",
+        "M3 test checks: block, stop preset classification, AI-mode approve rejection, approval scope match/mismatch, and post-approval commit drift are covered.",
+        "M3 completion checks: AI stops dangerous work, Human approval is not auto-generated, and Approval is tied to commit/diff."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "milestone:M3"
+      ],
+      "id": "node-core-human-gate-approval-scope",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.3",
+      "name": "Human Gate and Approval Scope",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "M4-001: contracts/tasks/index.yaml is defined for WBS-less operation.",
+        "M4-002: tasks index manages status and dependsOn.",
+        "M4-003: task new, start, and finish work without a WBS.",
+        "M4-004: existing WBS behavior is preferred when WBS exists.",
+        "M4-005: WBS candidates can be generated from tasks index.",
+        "M4-006: WBS changes are generated as changesets instead of direct edits.",
+        "M4-007: base WBS plus changesets equals HEAD WBS can be verified.",
+        "M4-008: a changeset existing by itself does not pass validation.",
+        "M4-009: WBS root completion is rejected by default.",
+        "M4-010: migration from WBS-less to WBS-backed operation is documented.",
+        "M4 test checks: WBS-less E2E, WBS compatibility, changeset reproducibility, and direct WBS edit detection are covered.",
+        "M4 completion checks: Core works without WBS, remains compatible with Full SC-WBS projects, and WBS changes are reproducible from changesets.",
+        "v0.5: WBS-less operation, WBS-backed compatibility, tasks-index WBS candidates, and changeset reproducibility are complete."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "milestone:M4"
+      ],
+      "id": "node-core-wbs-optional-integration",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.4",
+      "name": "WBS Optional and Full Integration",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "M5-001: minimal Review record data model is defined.",
+        "M5-002: review request can be generated from CLI.",
+        "M5-003: Review result is tied to commit/diff.",
+        "M5-004: completed status is blocked when review is incomplete.",
+        "M5-005: block can generate a Spec Change Proposal draft.",
+        "M5-006: Level 1 and Level 2 are distinguished in CLI behavior.",
+        "M5-007: registry validation is enabled only when registry exists.",
+        "M5-008: Lean, Core, Standard, and Strict differences are machine-checkable.",
+        "M5-009: Strict Risk Register is not mandatory for Core.",
+        "M5-010: Tiny Packet does not grow when Full features are enabled.",
+        "M5 test checks: Review record generation, review scope mismatch, Spec Change Proposal draft generation, profile validation, and Tiny Packet size with Full features are covered.",
+        "M5 completion checks: Core stays lightweight while Review, Spec Change, and Registry features activate only when needed."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "milestone:M5"
+      ],
+      "id": "node-core-review-spec-full-enhancement",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.5",
+      "name": "Review Spec Change and Full Enhancement",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "v0.1 remaining: scwbs start is usable, work can start without YAML hand editing, and README includes the shortest usage path.",
+        "v0.2 remaining: managedContractPaths are supported, fixCommand appears where required, and CI-friendly JSON output exists.",
+        "v0.3 remaining: subjectHeadCommit, diffHash, and post-hoc PR number attachment are supported.",
+        "v0.4 remaining: block, request-approval, approve, approval headCommit/diffHash scope, post-approval diff detection, and AI approve rejection are supported."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "release-readiness"
+      ],
+      "id": "node-core-release-readiness",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.6",
+      "name": "Core release readiness checklist",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "AI allowed actions are backed by scoped implementation, tests, finish, block, and explicit context requests.",
+        "AI forbidden actions are enforced or documented: no guessed YAML/JSON edits, no allowedPaths violations, no forbiddenPaths edits, no Human approval generation, no uncontrolled completed status, no full WBS regeneration, and no unapproved spec changes.",
+        "Milestone review checks are enforced: checked items have tests, CLI help and docs are updated, compatibility is preserved, AI context stays short, fixCommand exists where needed, approval is not auto-generated, and dangerous operations fail safe."
+      ],
+      "outputs": [
+        "artifact-methodology"
+      ],
+      "tags": [
+        "ai-guardrails"
+      ],
+      "id": "node-core-ai-operating-rules",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.7",
+      "name": "AI operating rules and milestone review",
+      "type": "workPackage"
+    },
+    {
+      "status": "planned",
+      "assignees": [],
+      "acceptanceCriteria": [
+        "MVP remaining: Evidence has subjectHeadCommit and diffHash.",
+        "MVP remaining: approve ties approval to diffHash.",
+        "MVP remaining: changed diffs after approval require re-approval.",
+        "MVP remaining: AI-facing documentation is short.",
+        "MVP remaining: existing SC-WBS Full specification coexists with Core."
+      ],
+      "outputs": [
+        "artifact-cli",
+        "artifact-contracts",
+        "artifact-methodology"
+      ],
+      "tags": [
+        "mvp"
+      ],
+      "id": "node-core-mvp-closeout",
+      "parentId": "node-scwbs-core-revision-backlog",
+      "code": "1.10.1.8",
+      "name": "SC-WBS Core MVP closeout",
       "type": "workPackage"
     }
   ],
