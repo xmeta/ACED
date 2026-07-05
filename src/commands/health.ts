@@ -128,9 +128,10 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
     }
     const actualDiffHash = evidenceDiffHash(evidence);
-    if (!actualDiffHash) {
+    const shouldCheckCurrentBranchEvidence = shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence);
+    if (!actualDiffHash && shouldCheckCurrentBranchEvidence) {
       issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
-    } else if (shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)) {
+    } else if (actualDiffHash && shouldCheckCurrentBranchEvidence) {
       const expectedFiles = branchChangedFiles(root, evidence.git.base);
       const expectedDiffHash = branchDiffHash(root, evidence.git.base, postEvidenceMetadataFiles(task.id));
       const actualFiles = [...evidence.changedFiles].sort();
