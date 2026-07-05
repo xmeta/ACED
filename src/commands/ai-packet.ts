@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { readTask } from "../core/contracts.js";
+import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { AiPacketFormat, WbsDocument, WbsNode } from "../core/types.js";
 
@@ -44,6 +46,48 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1, f
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
+  }
+  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+    return `# AI Work Packet
+
+## Role
+Implementation Agent
+
+## Task
+${task.id} ${task.doneCriteria[0] ?? ""}
+
+## WBS Node
+- Node ID: ${task.wbsNodeId}
+- Status: WBS document not present; use Task Contract and tasks index as ground truth.
+- Feature: ${task.featureId}
+
+## Scope
+${task.doneCriteria.length === 0 ? "- Not specified" : task.doneCriteria.map((item) => `- ${item}`).join("\n")}
+
+## Allowed Paths
+${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+
+## Forbidden Paths
+${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+
+## Human Gate Required Paths
+${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+
+## Required Checks
+${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+
+## Context Filter
+- Relation depth: ${Math.max(0, relationDepth)}
+- Included WBS nodes: 0
+- Rule: WBS-less packet uses the Task Contract only.
+
+## Stop Conditions
+- DBスキーマ変更が必要
+- 認証・権限変更が必要
+- API契約の破壊的変更が必要
+- Business Ruleが不足している
+- allowedPaths外の変更が必要
+`;
   }
   const wbs = readWbs(root);
   const node = findNode(wbs, task.wbsNodeId);
@@ -132,6 +176,26 @@ export function buildTinyPacket(root: string, taskId: string): string {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
+  }
+  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+    return `# Tiny Packet
+Task: ${task.id}
+Node: ${task.wbsNodeId}
+Branch: ${task.branchName ?? "(none)"}
+Goal:
+${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
+Allowed:
+${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Forbidden:
+${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Human Gate:
+${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Checks:
+${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+Next:
+- npm run scwbs -- finish --task ${task.id}
+- npm run scwbs -- block "reason" --task ${task.id}
+`;
   }
   const wbs = readWbs(root);
   const node = findNode(wbs, task.wbsNodeId);

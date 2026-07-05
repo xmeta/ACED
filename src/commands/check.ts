@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listApprovals, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { approvalExists, evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { workingTreeChangedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
@@ -131,6 +131,7 @@ function validateRegistryContracts(root: string, registry: Registry | undefined)
 
 function validateIndexedSpecs(root: string, registry: Registry | undefined): Issue[] {
   const issues: Issue[] = [];
+  if (!registry) return issues;
   for (const entry of listSpecs(root)) {
     issues.push(...entry.issues);
     if (!entry.spec) continue;
@@ -148,6 +149,7 @@ function validateIndexedSpecs(root: string, registry: Registry | undefined): Iss
 
 function validateIndexedSpecChanges(root: string, registry: Registry | undefined): Issue[] {
   const issues: Issue[] = [];
+  if (!registry) return issues;
   for (const entry of listSpecChanges(root)) {
     issues.push(...entry.issues);
     if (!entry.specChange) continue;
@@ -180,23 +182,32 @@ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
 
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
-  issues.push(...runWjsValidate(root));
-  if (issues.some((item) => item.code === "wjs.validate")) return issues;
-  issues.push(...validateWbsDocument(root));
-
-  let wbs: WbsDocument | undefined;
-  try {
-    wbs = readWbs(root);
-  } catch (error) {
-    issues.push({ severity: "error", code: "wbs.read", message: error instanceof Error ? error.message : String(error) });
+  const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
+  if (hasWbs) {
+    issues.push(...runWjsValidate(root));
+    if (issues.some((item) => item.code === "wjs.validate")) return issues;
+    issues.push(...validateWbsDocument(root));
   }
 
-  const { registry, issues: registryIssues } = readRegistry(root);
+  let wbs: WbsDocument | undefined;
+  if (hasWbs) {
+    try {
+      wbs = readWbs(root);
+    } catch (error) {
+      issues.push({ severity: "error", code: "wbs.read", message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  const hasRegistry = existsSync(resolveFrom(root, "contracts/registry.yaml"));
+  const { registry, issues: registryIssues } = hasRegistry ? readRegistry(root) : { registry: undefined, issues: [] };
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
   issues.push(...validateIndexedSpecs(root, registry));
   issues.push(...validateIndexedSpecChanges(root, registry));
   for (const entry of listApprovals(root)) {
+    issues.push(...entry.issues);
+  }
+  for (const entry of listBlocks(root)) {
     issues.push(...entry.issues);
   }
 

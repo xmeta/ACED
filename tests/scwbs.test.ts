@@ -9,7 +9,7 @@ import { buildCollectedEvidence, runEvidenceCollect } from "../src/commands/evid
 import { buildDoctorReport } from "../src/commands/doctor.js";
 import { buildStartArtifacts } from "../src/commands/start.js";
 import { buildReviewQueue } from "../src/commands/review-queue.js";
-import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
+import { buildBlockChangeSet, buildNextTask, runAiBlock } from "../src/commands/ai-queue.js";
 import { collectHealthIssues, runHealth } from "../src/commands/health.js";
 import { buildAiPacket } from "../src/commands/ai-packet.js";
 import { readProfile, runProfileSet } from "../src/commands/profile.js";
@@ -22,12 +22,12 @@ import { buildStatus } from "../src/commands/status.js";
 import { buildNextAction } from "../src/commands/next.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
-import { buildCoreTaskNew, runTaskNew } from "../src/commands/task-new.js";
+import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../src/commands/task-new.js";
 import { runFinish } from "../src/commands/finish.js";
 import { runFix } from "../src/commands/fix.js";
 import { resolveCheckCommand, isKnownCheck } from "../src/core/check-catalog.js";
-import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
-import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
+import { buildWbsCandidatesFromTaskIndex, runWbsValidate, runWbsApply, verifyWbsChangesets } from "../src/commands/wbs.js";
+import { listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
@@ -266,10 +266,16 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("check-diff accepts human-gated sensitive meta files with approved approval", () => {
     const root = makeTempRepo();
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234"
+    }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
       status: "approved",
       approvedBy: "Human Reviewer",
-      approvedAt: "2026-07-05T14:30:00.000Z"
+      approvedAt: "2026-07-05T14:30:00.000Z",
+      headCommit: "abc1234",
+      diffHash: "diff1234"
     }) as unknown as Record<string, unknown>);
     const task = sampleTask({
       allowedPaths: [],
@@ -278,6 +284,27 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
     expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(false);
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff rejects human-gate approvals that do not match evidence diff scope", () => {
+    const root = makeTempRepo();
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234"
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-05T14:30:00.000Z",
+      headCommit: "abc1234",
+      diffHash: "old-diff"
+    }) as unknown as Record<string, unknown>);
+    const task = sampleTask({
+      allowedPaths: [],
+      humanGateRequiredPaths: ["tsconfig.json"]
+    });
+    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
+    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
   });
 
   test("check-diff treats managedContractPaths as exempt from allowedPaths and the meta-file guard (M2-019)", () => {
@@ -308,6 +335,28 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     const errors = issues.filter((issue) => issue.severity === "error");
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.every((issue) => typeof issue.fixCommand === "string" && issue.fixCommand.length > 0)).toBe(true);
+  });
+
+  test("check-diff can emit CI-friendly JSON output", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName: "master" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => {
+      output.push(String(message));
+    };
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(0);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
   });
 
   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
@@ -1464,7 +1513,10 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(actual).toContain("  - src/**");
     expect(actual).toContain("requiredChecks:");
     expect(actual).toContain("  - typecheck");
-    expect(readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8")).toContain("path: contracts/tasks/SCWBS-DRAFT-");
+    const index = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");
+    expect(index).toContain("path: contracts/tasks/SCWBS-DRAFT-");
+    expect(index).toContain("status: planned");
+    expect(index).toContain("dependsOn: []");
   });
 
   test("task new builds safe branch names and default checks", () => {
@@ -1474,6 +1526,13 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
     expect(task.allowedPaths).toEqual(["src/**", "tests/**", "docs/**", "contracts/**"]);
     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+  });
+
+  test("task new retries draft task id collisions", () => {
+    const root = makeTempRepo();
+    writeYaml(root, "contracts/tasks/SCWBS-DRAFT-ABC.yaml", sampleTask({ id: "SCWBS-DRAFT-ABC" }) as unknown as Record<string, unknown>);
+
+    expect(nextDraftTaskId(root, "ABC")).toBe("SCWBS-DRAFT-ABC-2");
   });
 
   test("task new generates stopIf entries from stop option", () => {
@@ -1506,6 +1565,17 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(changesetFile).toBeTruthy();
     const changeset = JSON.parse(readFileSync(path.join(root, `contracts/changesets/${changesetFile}`), "utf8"));
     expect(changeset.operations[0].nodeId).toBe("node-project");
+  });
+
+  test("WBS-less task flow passes check and can generate WBS candidates", () => {
+    const root = makeTempRepo();
+
+    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test" })).toBe(0);
+    expect(collectCheckIssues(root)).toEqual([]);
+    const candidates = buildWbsCandidatesFromTaskIndex(root);
+    expect(candidates).toContain('"changeSetId": "changeset-wbs-candidates"');
+    expect(candidates).toContain('"operation": "addNode"');
+    expect(buildNextTask(root)).toContain("Planned task candidates:");
   });
 
   test("start prints pre-flight details and fails on branch mismatch", () => {
@@ -1577,6 +1647,23 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(main(["approve", "--task", "WBS-001-004", "--pr", "#42", "--reason=Reviewed"], root)).toBe(0);
     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
     expect(main(["block", "Human Gate required", "--task", "WBS-001-004"], root)).toBe(0);
+    expect(readBlock(root, "WBS-001-004").block?.category).toBe("human-gate");
+  });
+
+  test("block writes a stop record and can draft a spec change proposal", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runAiBlock(root, "WBS-001-004", "DB schema change is required", { specChange: true })).toBe(0);
+    const { block } = readBlock(root, "WBS-001-004");
+    expect(block).toMatchObject({
+      type: "block",
+      taskId: "WBS-001-004",
+      status: "blocked",
+      level: 2,
+      category: "db"
+    });
+    expect(readSpecChange(root, "contracts/spec-changes/SCP-WBS-001-004-block.yaml").specChange?.level).toBe(2);
   });
 
   test("finish without task id or task branch fails with a fix command", () => {
@@ -1654,14 +1741,28 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
   test("approval approve writes a human approved record", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234"
+    }) as unknown as Record<string, unknown>);
 
     expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", force: false })).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("status: approved");
     expect(actual).toContain("approvedBy: human");
     expect(actual).toContain("approvedAt:");
+    expect(actual).toContain("headCommit: abc1234");
+    expect(actual).toContain("diffHash: diff1234");
     expect(actual).toContain('pullRequest: "#42"');
     expect(actual).toContain("reason: Evidence and PR reviewed");
+  });
+
+  test("approval approve rejects AI execution mode", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "AI should not approve", actor: "ai", force: false })).toBe(1);
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
   test("approval approve updates requested records and protects existing approvals", () => {
@@ -1958,6 +2059,8 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
       root,
       "contracts/evidence/WBS-001-004.yaml",
       sampleEvidence({
+        subjectHeadCommit: "abc1234",
+        diffHash: "diff1234",
         changedFiles: [
           "src/features/api/index.ts",
           "contracts/tasks/WBS-001-004.yaml"
@@ -1973,6 +2076,8 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(review).toContain("requestedReviewers:");
     expect(review).toContain("role: code-owner");
     expect(review).toContain("role: methodology-owner");
+    expect(review).toContain("headCommit: abc1234");
+    expect(review).toContain("diffHash: diff1234");
   });
 
   test("health warns when changed test files lack test quality metadata", () => {
@@ -2372,6 +2477,33 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     });
     const output = "contracts/wbs/out.json";
     expect(runWbsApply(root, "change-set.json", { force: false, output })).toBe(0);
+  });
+
+  test("wbs verify-changesets requires changesets to reproduce head WBS", () => {
+    const root = makeTempRepo();
+    const base = sampleWbs("planned");
+    const head = sampleWbs("planned");
+    const node = head.nodes.find((item) => item.id === "node-api");
+    if (node) node.status = "blocked";
+    writeJson(root, "base.wbs.json", base);
+    writeJson(root, "head.wbs.json", head);
+    writeJson(root, "change-set.json", {
+      schemaVersion: "0.1.0",
+      targetWbsId: "test-wbs",
+      changeSetId: "changeset-block",
+      operations: [
+        { operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }
+      ]
+    });
+    writeJson(root, "empty-change-set.json", {
+      schemaVersion: "0.1.0",
+      targetWbsId: "test-wbs",
+      changeSetId: "changeset-empty",
+      operations: []
+    });
+
+    expect(verifyWbsChangesets(root, "base.wbs.json", "head.wbs.json", ["change-set.json"])).toBe(true);
+    expect(verifyWbsChangesets(root, "base.wbs.json", "head.wbs.json", ["empty-change-set.json"])).toBe(false);
   });
 
   test("check command succeeds when task and evidence are consistent", () => {

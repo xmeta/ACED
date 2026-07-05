@@ -1,8 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
-import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
-import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
+import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
@@ -76,6 +76,17 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
   const value = readYamlFile<unknown>(fullPath);
   const issues = [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)];
   return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
+}
+
+export function readBlock(root: string, taskId: string): { block?: BlockRecord; issues: Issue[] } {
+  const relativePath = blockPath(taskId);
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) {
+    return { issues: [{ severity: "error", code: "block.missing", message: `${relativePath} does not exist` }] };
+  }
+  const value = readYamlFile<unknown>(fullPath);
+  const issues = [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)];
+  return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues };
 }
 
 export function listTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
@@ -153,6 +164,19 @@ export function listReviews(root: string): Array<{ review?: ReviewRecord; issues
       const value = readYamlFile<unknown>(resolveFrom(root, path));
       const issues = [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)];
       return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues, path };
+    });
+}
+
+export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultBlocksDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const path = `${defaultBlocksDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, path));
+      const issues = [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)];
+      return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues, path };
     });
 }
 

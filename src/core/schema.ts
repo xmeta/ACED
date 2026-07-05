@@ -1,5 +1,5 @@
 import { Ajv, type ErrorObject } from "ajv";
-import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
+import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,7 +34,7 @@ const registrySchema = {
         additionalProperties: true,
         properties: {
           id: { type: "string", minLength: 1 },
-          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "adr"] },
+          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
           path: { type: "string", minLength: 1 },
           status: { type: "string" },
           version: { type: "string" },
@@ -200,9 +200,28 @@ const approvalRecordSchema = {
     status: { type: "string", enum: ["requested", "approved", "rejected"] },
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
+    headCommit: { type: "string" },
+    diffHash: { type: "string" },
     pullRequest: { type: "string" },
     reason: { type: "string" },
     notes: stringArraySchema
+  }
+};
+
+const blockRecordSchema = {
+  type: "object",
+  required: ["id", "type", "taskId", "status", "level", "category", "reason", "requiredHumanDecision", "createdAt"],
+  additionalProperties: true,
+  properties: {
+    id: { type: "string", minLength: 1 },
+    type: { const: "block" },
+    taskId: { type: "string", minLength: 1 },
+    status: { const: "blocked" },
+    level: { type: "integer", enum: [1, 2] },
+    category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
+    reason: { type: "string", minLength: 1 },
+    requiredHumanDecision: { type: "string", minLength: 1 },
+    createdAt: { type: "string" }
   }
 };
 
@@ -216,6 +235,8 @@ const reviewRecordSchema = {
     taskId: { type: "string", minLength: 1 },
     status: { type: "string", enum: ["requested", "approved", "changes-requested"] },
     reviewProfile: { type: "string", minLength: 1 },
+    headCommit: { type: "string" },
+    diffHash: { type: "string" },
     pullRequest: { type: "string" },
     groundTruth: stringArraySchema,
     requestedReviewers: {
@@ -242,6 +263,7 @@ const schemaValidators = {
   task: ajv.compile(taskContractSchema),
   evidence: ajv.compile(evidenceSchema),
   approval: ajv.compile(approvalRecordSchema),
+  block: ajv.compile(blockRecordSchema),
   review: ajv.compile(reviewRecordSchema)
 };
 
@@ -277,6 +299,10 @@ export function validateEvidenceSchema(value: unknown, filePath = "evidence"): I
 
 export function validateApprovalRecordSchema(value: unknown, filePath = "approval"): Issue[] {
   return schemaIssues("approval", value, filePath);
+}
+
+export function validateBlockRecordSchema(value: unknown, filePath = "block"): Issue[] {
+  return schemaIssues("block", value, filePath);
 }
 
 export function validateReviewRecordSchema(value: unknown, filePath = "review"): Issue[] {
@@ -536,7 +562,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["approvedBy", "approvedAt", "pullRequest", "reason"]) {
+  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }
@@ -558,6 +584,33 @@ export function asApprovalRecord(value: unknown): ApprovalRecord {
   return value as ApprovalRecord;
 }
 
+export function validateBlockRecord(value: unknown, filePath = "block"): Issue[] {
+  const issues: Issue[] = [];
+  if (!isObject(value)) return [issue("block.invalid", `${filePath} must be an object`)];
+  for (const key of ["id", "type", "taskId", "status", "category", "reason", "requiredHumanDecision", "createdAt"]) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      issues.push(issue("block.field", `${filePath}.${key} must be a non-empty string`));
+    }
+  }
+  if (value.type !== "block") {
+    issues.push(issue("block.type", `${filePath}.type must be block`));
+  }
+  if (value.status !== "blocked") {
+    issues.push(issue("block.status", `${filePath}.status must be blocked`));
+  }
+  if (value.level !== 1 && value.level !== 2) {
+    issues.push(issue("block.level", `${filePath}.level must be 1 or 2`));
+  }
+  if (value.category !== undefined && !["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"].includes(String(value.category))) {
+    issues.push(issue("block.category", `${filePath}.category is not a known stop category`));
+  }
+  return issues;
+}
+
+export function asBlockRecord(value: unknown): BlockRecord {
+  return value as BlockRecord;
+}
+
 export function validateReviewRecord(value: unknown, filePath = "review"): Issue[] {
   const issues: Issue[] = [];
   if (!isObject(value)) return [issue("review.invalid", `${filePath} must be an object`)];
@@ -572,8 +625,10 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
   if (value.status !== undefined && !["requested", "approved", "changes-requested"].includes(String(value.status))) {
     issues.push(issue("review.status", `${filePath}.status must be requested, approved, or changes-requested`));
   }
-  if (value.pullRequest !== undefined && typeof value.pullRequest !== "string") {
-    issues.push(issue("review.field", `${filePath}.pullRequest must be a string when present`));
+  for (const key of ["headCommit", "diffHash", "pullRequest"]) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      issues.push(issue("review.field", `${filePath}.${key} must be a string when present`));
+    }
   }
   if (!isStringArray(value.groundTruth)) {
     issues.push(issue("review.groundTruth", `${filePath}.groundTruth must be a string array`));

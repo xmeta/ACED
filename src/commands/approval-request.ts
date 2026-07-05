@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readApproval } from "../core/contracts.js";
+import { readApproval, readEvidence } from "../core/contracts.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { ApprovalRecord } from "../core/types.js";
@@ -20,7 +20,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string }): ApprovalRecord {
+export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): ApprovalRecord {
   return {
     id: `APR-${taskId}`,
     type: "approval",
@@ -28,13 +28,23 @@ export function buildApprovalApprove(taskId: string, options: { pullRequest?: st
     status: "approved",
     approvedBy: options.approvedBy ?? "human",
     approvedAt: options.approvedAt ?? new Date().toISOString(),
+    ...(options.headCommit ? { headCommit: options.headCommit } : {}),
+    ...(options.diffHash ? { diffHash: options.diffHash } : {}),
     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
     ...(options.reason ? { reason: options.reason } : {})
   };
 }
 
-export function buildApprovalApproveYaml(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string }): string {
+export function buildApprovalApproveYaml(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): string {
   return stringifySimpleYaml(buildApprovalApprove(taskId, options) as unknown as Record<string, unknown>);
+}
+
+function evidenceSubject(root: string, taskId: string): { headCommit?: string; diffHash?: string } {
+  const { evidence } = readEvidence(root, taskId);
+  return {
+    headCommit: evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit,
+    diffHash: evidence?.diffHash ?? evidence?.git?.diffHash
+  };
 }
 
 export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
@@ -57,8 +67,12 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
   }
 }
 
-export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean }): number {
+export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string }): number {
   try {
+    if ((options.actor ?? process.env.SCWBS_AGENT_MODE) === "ai") {
+      console.error("AI execution mode cannot approve human gates; request human approval instead");
+      return 1;
+    }
     const relativePath = approvalPath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     const { approval, issues } = readApproval(root, taskId);
@@ -78,7 +92,8 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     const yaml = buildApprovalApproveYaml(taskId, {
       pullRequest: options.pullRequest ?? approval?.pullRequest,
       reason: options.reason,
-      approvedBy: options.approvedBy
+      approvedBy: options.approvedBy,
+      ...evidenceSubject(root, taskId)
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
