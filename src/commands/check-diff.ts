@@ -1,7 +1,7 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
-import { hasErrors, printIssues } from "../core/report.js";
+import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
@@ -23,6 +23,16 @@ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
   return readApproval(root, taskId).approval?.status === "approved";
 }
 
+/**
+ * M2-019: managedContractPaths are CLI-generated contract files (Evidence,
+ * Approval, Review, registry.yaml, the task's own contract file, etc). They
+ * are exempt from allowedPaths and the sensitive meta-file guard, but never
+ * from forbiddenPaths or humanGateRequiredPaths, which always take priority.
+ */
+function isManagedContractPath(task: TaskContract, file: string): boolean {
+  return matchesAny(file, task.managedContractPaths ?? []);
+}
+
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
   const hasHumanGateApproval = task.humanGateRequiredPaths.length > 0 ? hasApprovedHumanGateApproval(root, task.id) : false;
@@ -38,22 +48,39 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     })));
   }
   for (const file of files) {
-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
-      issues.push({ severity: "error", code: "diff.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
+    const managed = isManagedContractPath(task, file);
+    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
+      issues.push({
+        severity: "error",
+        code: "diff.allowedPaths",
+        message: `${file} is outside allowedPaths for ${task.id}`,
+        fixCommand: `Move this change out of the diff, or add ${file} to allowedPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if it is CLI-generated`
+      });
     }
     if (matchesAny(file, task.forbiddenPaths)) {
-      issues.push({ severity: "error", code: "diff.forbiddenPaths", message: `${file} is forbidden by ${task.id}` });
+      issues.push({
+        severity: "error",
+        code: "diff.forbiddenPaths",
+        message: `${file} is forbidden by ${task.id}`,
+        fixCommand: `Revert changes to ${file}; forbiddenPaths always takes priority over allowedPaths/managedContractPaths`
+      });
     }
     const explicitlyAllowed = matchesAny(file, task.allowedPaths);
     const humanGateRequired = matchesAny(file, task.humanGateRequiredPaths);
-    if (requiresMetaFileGuard(file) && !explicitlyAllowed && !humanGateRequired) {
-      issues.push({ severity: "error", code: "diff.metaFile", message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}` });
+    if (requiresMetaFileGuard(file) && !explicitlyAllowed && !humanGateRequired && !managed) {
+      issues.push({
+        severity: "error",
+        code: "diff.metaFile",
+        message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}`,
+        fixCommand: `Add ${file} to allowedPaths/humanGateRequiredPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
+      });
     }
     if (humanGateRequired && !hasHumanGateApproval) {
       issues.push({
         severity: "error",
         code: "diff.humanGate",
-        message: `${file} requires approved human gate approval for ${task.id}; fixCommand: npm run scwbs -- approval request --task ${task.id}`
+        message: `${file} requires approved human gate approval for ${task.id}`,
+        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
       });
     }
   }
@@ -66,7 +93,8 @@ export function collectBranchIssues(task: TaskContract, branch: string | undefin
   return [{
     severity: "error",
     code: "diff.branchName",
-    message: `current branch ${branch} does not match ${task.id} branchName ${task.branchName}`
+    message: `current branch ${branch} does not match ${task.id} branchName ${task.branchName}`,
+    fixCommand: `git checkout -b ${task.branchName}`
   }];
 }
 
@@ -76,7 +104,8 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
     return issues.map((issue) => ({
       ...issue,
       code: `diff.${issue.code}`,
-      message: `${issue.message}; run npm run scwbs -- evidence collect --task ${task.id} before opening a PR`
+      message: issue.message,
+      fixCommand: `npm run scwbs -- evidence collect --task ${task.id} before opening a PR`
     }));
   }
   return issues.map((issue) => ({
@@ -88,7 +117,7 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
 export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string } = {}): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
-    printIssues(issues);
+    printIssues(withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`));
     return 1;
   }
   const baseRef = options.baseRef ?? "origin/main";
@@ -99,15 +128,16 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     printIssues([{
       severity: "error",
       code: "diff.git.base",
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
+      fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
     }]);
     return 1;
   }
-  const diffIssues = [
+  const diffIssues = withDefaultFixCommand([
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task),
     ...collectDiffIssues(root, task, files)
-  ];
+  ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
   if (diffIssues.length === 0) {
     console.log(`PASS check-diff ${taskId}`);
     return 0;

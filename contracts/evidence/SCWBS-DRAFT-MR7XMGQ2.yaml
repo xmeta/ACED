@@ -1,0 +1,49 @@
+id: EVD-SCWBS-DRAFT-MR7XMGQ2
+type: evidence
+taskId: SCWBS-DRAFT-MR7XMGQ2
+commit: ea135f46ea46df1ff46f19cb5a3a541743b1de3c
+subjectHeadCommit: ea135f46ea46df1ff46f19cb5a3a541743b1de3c
+diffHash: "sha256:85d460430cb83a943b5332223a0b78daf77c11966c2e9e5177a4daf239ee7fba"
+git:
+  branch: task/SCWBS-DRAFT-MR7XMGQ2-m2-check-catalog-managedcontractpaths-fixcommand
+  base: origin/main
+  baseCommit: ca3f9da0f1d1d1bf6463c67ddb0e9c32d17f2545
+  changedFilesBasis: branch-diff
+  pullRequest: "#78"
+  subjectHeadCommit: ea135f46ea46df1ff46f19cb5a3a541743b1de3c
+  diffHash: "sha256:85d460430cb83a943b5332223a0b78daf77c11966c2e9e5177a4daf239ee7fba"
+  headCommit: ea135f46ea46df1ff46f19cb5a3a541743b1de3c
+changedFiles:
+  - contracts/changesets/SCWBS-DRAFT-MR7XMGQ2-link-wbs-node.json
+  - contracts/evidence/SCWBS-DRAFT-MR7XMGQ2.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core-revision/10-progress-checklist.md
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/fix.ts
+  - src/commands/task-new.ts
+  - src/core/check-catalog.ts
+  - src/core/contracts.ts
+  - src/core/report.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T18:27:32.852Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T18:27:35.777Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T18:27:38.777Z"

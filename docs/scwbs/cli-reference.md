@@ -13,11 +13,14 @@ npm run scwbs -- --help
 ```bash
 npm run scwbs -- init --profile lean --agent codex --lang ja
 npm run scwbs -- check
+npm run scwbs -- fix
 npm run scwbs -- doctor
 npm run scwbs -- health
 npm run scwbs -- check-diff --task WBS-001-004
 npm run scwbs -- status
 ```
+
+`scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation; those always come with a `fixCommand` hint from `check` / `check-diff` / `finish` instead.
 
 ## AI Workflow
 

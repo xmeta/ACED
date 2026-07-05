@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
+import { resolveCheckCommand } from "../core/check-catalog.js";
 import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
@@ -21,10 +22,7 @@ function postEvidenceMetadataFiles(taskId: string): string[] {
 }
 
 function commandForCheck(check: string): string[] {
-  if (check === "test") return ["npm", "test"];
-  if (check === "typecheck") return ["npm", "run", "typecheck"];
-  if (check === "build") return ["npm", "run", "build"];
-  return ["npm", "run", check];
+  return resolveCheckCommand(check);
 }
 
 function summarizeCheckOutput(output: string | null | undefined): string | undefined {
