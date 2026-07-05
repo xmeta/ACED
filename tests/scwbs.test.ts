@@ -250,14 +250,31 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
   });
 
-  test("check-diff warns on human-gated sensitive meta files without adding a meta-file error", () => {
+  test("check-diff errors on human-gated sensitive meta files without approved approval", () => {
     const root = makeTempRepo();
     const task = sampleTask({
       allowedPaths: [],
       humanGateRequiredPaths: ["tsconfig.json"]
     });
     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
-    expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
+    expect(issues.find((issue) => issue.code === "diff.humanGate")?.message).toContain("fixCommand: npm run scwbs -- approval request --task WBS-001-004");
+    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff accepts human-gated sensitive meta files with approved approval", () => {
+    const root = makeTempRepo();
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-05T14:30:00.000Z"
+    }) as unknown as Record<string, unknown>);
+    const task = sampleTask({
+      allowedPaths: [],
+      humanGateRequiredPaths: ["tsconfig.json"]
+    });
+    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
+    expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(false);
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
   });
 

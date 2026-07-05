@@ -1,0 +1,44 @@
+id: EVD-SCWBS-CORE-M2-GATE
+type: evidence
+taskId: SCWBS-CORE-M2-GATE
+commit: 2d8f2c3ccff3a53626abfc109e575adcaa199a40
+subjectHeadCommit: 2d8f2c3ccff3a53626abfc109e575adcaa199a40
+diffHash: "sha256:34d6328a1528aa4afae12330d0cb50fbba59d33954550af91d8c54c3325f02f7"
+git:
+  branch: task/SCWBS-CORE-M2-GATE-human-gate-diff-error
+  base: origin/main
+  baseCommit: bd80a309f99f91dc94bba41d9d3cf7d41cbda893
+  changedFilesBasis: branch-diff
+  pullRequest: "#77"
+  subjectHeadCommit: 2d8f2c3ccff3a53626abfc109e575adcaa199a40
+  diffHash: "sha256:34d6328a1528aa4afae12330d0cb50fbba59d33954550af91d8c54c3325f02f7"
+  headCommit: 2d8f2c3ccff3a53626abfc109e575adcaa199a40
+changedFiles:
+  - contracts/evidence/SCWBS-CORE-M2-GATE.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+  - docs/sc-wbs-core-revision/10-progress-checklist.md
+  - src/commands/check-diff.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T14:38:09.011Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T14:38:12.449Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T14:38:15.993Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for human-gated paths failing check-diff without approved approval and passing with approved approval.
