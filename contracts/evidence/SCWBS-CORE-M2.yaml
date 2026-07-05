@@ -1,0 +1,46 @@
+id: EVD-SCWBS-CORE-M2
+type: evidence
+taskId: SCWBS-CORE-M2
+commit: 6c5a9f85b29d52c6a8cceaee50dae8227a4a47e9
+subjectHeadCommit: 6c5a9f85b29d52c6a8cceaee50dae8227a4a47e9
+diffHash: "sha256:3679bbc8f8503041106fe0e61f3e15b56027dba075e1e9a34af2720daf17c119"
+git:
+  branch: task/SCWBS-CORE-M2-evidence-diff-guard
+  base: origin/main
+  baseCommit: df0f03c86e10693f93248e29a4cb37e06a7dbcc8
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 6c5a9f85b29d52c6a8cceaee50dae8227a4a47e9
+  diffHash: "sha256:3679bbc8f8503041106fe0e61f3e15b56027dba075e1e9a34af2720daf17c119"
+  headCommit: 6c5a9f85b29d52c6a8cceaee50dae8227a4a47e9
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-CORE-M2.yaml
+  - docs/sc-wbs-core-revision/10-progress-checklist.md
+  - src/commands/evidence-collect.ts
+  - src/commands/health.ts
+  - src/core/git.ts
+  - src/core/schema.ts
+  - src/core/types.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T14:01:34.444Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T14:01:37.307Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T14:01:40.311Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added M2 regression coverage for subjectHeadCommit, stable diffHash, and metadata-only post-evidence commits.
