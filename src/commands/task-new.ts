@@ -17,6 +17,15 @@ function stamp(): string {
   return Date.now().toString(36).toUpperCase();
 }
 
+export function nextDraftTaskId(root: string, baseStamp = stamp()): string {
+  const baseId = `SCWBS-DRAFT-${baseStamp}`;
+  for (let index = 1; index < 1000; index += 1) {
+    const candidate = index === 1 ? baseId : `${baseId}-${index}`;
+    if (!existsSync(resolveFrom(root, taskPath(candidate)))) return candidate;
+  }
+  throw new Error(`Could not allocate a draft task id for ${baseId}`);
+}
+
 function splitList(value: string | undefined, fallback: string[]): string[] {
   if (!value) return fallback;
   const items = value.split(",").map((item) => item.trim()).filter(Boolean);
@@ -57,8 +66,9 @@ export function buildCoreTaskNew(title: string, options: {
   checks?: string;
   stop?: string;
   wbsNode?: string;
+  id?: string;
 } = {}): { task: TaskContract; fallback: TaskNewFallback } {
-  const id = `SCWBS-DRAFT-${stamp()}`;
+  const id = options.id ?? `SCWBS-DRAFT-${stamp()}`;
   const { title: resolvedTitle, fallback } = resolveTaskTitle(title, id);
   const safeTitle = slug(resolvedTitle);
   const task: TaskContract = {
@@ -72,7 +82,7 @@ export function buildCoreTaskNew(title: string, options: {
     humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
     stopIf: splitList(options.stop, []),
     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
-    doneCriteria: [`Complete: ${resolvedTitle}`],
+    doneCriteria: [`Complete ${resolvedTitle}`],
     evidenceRequired: ["test-result", "typecheck-result", "build-result"]
   };
   return { task, fallback };
@@ -121,6 +131,8 @@ function appendTaskIndex(root: string, task: TaskContract): void {
     `    path: ${taskPath(task.id)}`,
     `    branchName: ${task.branchName ?? ""}`,
     `    wbsNodeId: ${task.wbsNodeId}`,
+    "    status: planned",
+    "    dependsOn: []",
     ""
   ].join("\n");
   writeFileSync(fullPath, `${prefix}${entry}`, "utf8");
@@ -135,7 +147,7 @@ export function runTaskNew(root: string, title: string, options: {
   wbsNode?: string;
 } = {}): number {
   try {
-    const { task, fallback } = buildCoreTaskNew(title, options);
+    const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
     const relativePath = taskPath(task.id);
     const fullPath = resolveFrom(root, relativePath);
     if (existsSync(fullPath)) {

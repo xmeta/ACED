@@ -37,11 +37,11 @@
 | Milestone | 目的 | 状態 | 完了条件 |
 |---|---|---|---|
 | M0 | 現状整理と互換レイヤー | 完了 | 既存CLIとCore CLIの対応が明確 |
-| M1 | Core Task Lifecycle | 実装中 | YAML直書きなしでTask作成からPacket生成まで可能 |
-| M2 | Finish / Evidence / Diff Guard | 実装中 | `finish` でEvidence生成と差分検査ができる |
-| M3 | Human Gate / Approval Scope | 実装中 | 危険変更を止め、承認をdiffに紐づけられる |
-| M4 | WBS Optional / Full Integration | 未着手 | WBSなしでも動き、WBSありでも互換 |
-| M5 | Review / Spec Change / Full Enhancement | 未着手 | Core上にFull機能を安全に戻せる |
+| M1 | Core Task Lifecycle | 完了 | YAML直書きなしでTask作成からPacket生成まで可能 |
+| M2 | Finish / Evidence / Diff Guard | 完了 | `finish` でEvidence生成と差分検査ができる |
+| M3 | Human Gate / Approval Scope | 完了 | 危険変更を止め、承認をdiffに紐づけられる |
+| M4 | WBS Optional / Full Integration | 完了 | WBSなしでも動き、WBSありでも互換 |
+| M5 | Review / Spec Change / Full Enhancement | 完了 | Core上にFull機能を安全に戻せる |
 
 状態は次のいずれかにする。
 
@@ -121,7 +121,7 @@ scwbs next
 ## M1 テストチェック
 
 - [x] `task new` の正常系テストがある
-- [ ] taskId衝突時のテストがある
+- [x] taskId衝突時のテストがある
 - [x] 既存Task Contractを上書きしないテストがある
 - [x] Tiny Packetの最大行数に関するテストがある
 - [x] `start` のbranch不一致検出テストがある
@@ -214,37 +214,37 @@ scwbs approve
 
 ## M3 チェックリスト
 
-- [ ] M3-001: `scwbs block "理由"` を実装した
-- [ ] M3-002: block reasonをBlock recordに保存できる
-- [ ] M3-003: db/auth/permission/security/breaking-api などのstop presetを分類できる
-- [ ] M3-004: block時に次に必要な人間判断を表示できる
-- [ ] M3-005: block時にAIが実装を継続しない運用文を出せる
-- [ ] M3-006: `request-approval` で `requested` recordだけ生成できる
-- [ ] M3-007: AI実行モードでは `approve` を拒否できる
-- [ ] M3-008: `approve` は人間操作として明示的に実行する設計になっている
-- [ ] M3-009: Approvalに `headCommit` を記録できる
-- [ ] M3-010: Approvalに `diffHash` を記録できる
-- [ ] M3-011: Approvalに `approvedBy` と `approvedAt` を記録できる
-- [ ] M3-012: PR番号だけのApprovalを完了承認として扱わない
-- [ ] M3-013: 承認後に差分が変わった場合Errorにできる
-- [ ] M3-014: 承認scopeが一致する場合のみHuman GateをPassできる
-- [ ] M3-015: 承認なしでcompleted化できない
-- [ ] M3-016: pre-implementation gate と completion gate を区別できる
+- [x] M3-001: `scwbs block "理由"` を実装した
+- [x] M3-002: block reasonをBlock recordに保存できる
+- [x] M3-003: db/auth/permission/security/breaking-api などのstop presetを分類できる
+- [x] M3-004: block時に次に必要な人間判断を表示できる
+- [x] M3-005: block時にAIが実装を継続しない運用文を出せる
+- [x] M3-006: `request-approval` で `requested` recordだけ生成できる
+- [x] M3-007: AI実行モードでは `approve` を拒否できる
+- [x] M3-008: `approve` は人間操作として明示的に実行する設計になっている
+- [x] M3-009: Approvalに `headCommit` を記録できる
+- [x] M3-010: Approvalに `diffHash` を記録できる
+- [x] M3-011: Approvalに `approvedBy` と `approvedAt` を記録できる
+- [x] M3-012: PR番号だけのApprovalを完了承認として扱わない
+- [x] M3-013: 承認後に差分が変わった場合Errorにできる
+- [x] M3-014: 承認scopeが一致する場合のみHuman GateをPassできる
+- [x] M3-015: 承認なしでcompleted化できない
+- [x] M3-016: pre-implementation gate と completion gate を区別できる
 
 ## M3 テストチェック
 
-- [ ] `block` の正常系テストがある
-- [ ] stop preset分類テストがある
-- [ ] AI modeで`approve`できないテストがある
-- [ ] Approval scope一致テストがある
-- [ ] Approval scope不一致テストがある
-- [ ] 承認後追加コミットでErrorになるテストがある
+- [x] `block` の正常系テストがある
+- [x] stop preset分類テストがある
+- [x] AI modeで`approve`できないテストがある
+- [x] Approval scope一致テストがある
+- [x] Approval scope不一致テストがある
+- [x] 承認後追加コミットでErrorになるテストがある
 
 ## M3 完了条件
 
-- [ ] AIは危険変更を実装せず停止できる
-- [ ] Human approvalは自動生成されない
-- [ ] ApprovalはPR番号ではなく、commit/diffに紐づく
+- [x] AIは危険変更を実装せず停止できる
+- [x] Human approvalは自動生成されない
+- [x] ApprovalはPR番号ではなく、commit/diffに紐づく
 
 ---
 
@@ -258,29 +258,29 @@ scwbs approve
 
 ## M4 チェックリスト
 
-- [ ] M4-001: WBSなし運用用の `contracts/tasks/index.yaml` を定義した
-- [ ] M4-002: tasks indexでstatusとdependsOnを管理できる
-- [ ] M4-003: WBSが存在しない場合でも `task new` / `start` / `finish` が動く
-- [ ] M4-004: WBSが存在する場合は既存WBS仕様を優先する
-- [ ] M4-005: tasks indexからWBS候補を生成できる
-- [ ] M4-006: WBS変更を直接編集せずchangesetとして生成できる
-- [ ] M4-007: `base WBS + changesets = HEAD WBS` を検証できる
-- [ ] M4-008: changesetが存在するだけではPassしない
-- [ ] M4-009: WBS root completionを既定で拒否できる
-- [ ] M4-010: WBSなしからWBSありへの移行手順を文書化した
+- [x] M4-001: WBSなし運用用の `contracts/tasks/index.yaml` を定義した
+- [x] M4-002: tasks indexでstatusとdependsOnを管理できる
+- [x] M4-003: WBSが存在しない場合でも `task new` / `start` / `finish` が動く
+- [x] M4-004: WBSが存在する場合は既存WBS仕様を優先する
+- [x] M4-005: tasks indexからWBS候補を生成できる
+- [x] M4-006: WBS変更を直接編集せずchangesetとして生成できる
+- [x] M4-007: `base WBS + changesets = HEAD WBS` を検証できる
+- [x] M4-008: changesetが存在するだけではPassしない
+- [x] M4-009: WBS root completionを既定で拒否できる
+- [x] M4-010: WBSなしからWBSありへの移行手順を文書化した
 
 ## M4 テストチェック
 
-- [ ] WBSなし運用のE2Eテストがある
-- [ ] WBSあり運用の互換テストがある
-- [ ] changeset再現性検証テストがある
-- [ ] WBS直編集の検出テストがある
+- [x] WBSなし運用のE2Eテストがある
+- [x] WBSあり運用の互換テストがある
+- [x] changeset再現性検証テストがある
+- [x] WBS直編集の検出テストがある
 
 ## M4 完了条件
 
-- [ ] CoreはWBSなしでも使える
-- [ ] 既存Full SC-WBSプロジェクトでも互換性がある
-- [ ] WBS変更はchangesetで再現可能になっている
+- [x] CoreはWBSなしでも使える
+- [x] 既存Full SC-WBSプロジェクトでも互換性がある
+- [x] WBS変更はchangesetで再現可能になっている
 
 ---
 
@@ -294,29 +294,29 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
 
 ## M5 チェックリスト
 
-- [ ] M5-001: Review recordの最小データモデルを定義した
-- [ ] M5-002: `review request` をCLIで生成できる
-- [ ] M5-003: Review結果をcommit/diffに紐づけられる
-- [ ] M5-004: Review未完了の場合にcompleted化を止められる
-- [ ] M5-005: `block` からSpec Change Proposal draftを生成できる
-- [ ] M5-006: Level 1とLevel 2の扱いをCLI上で区別できる
-- [ ] M5-007: registryがある場合だけregistry検証を有効にできる
-- [ ] M5-008: Lean/Core/Standard/Strictの違いを機械判定できる
-- [ ] M5-009: Strict用のRisk RegisterはCoreの必須にしない
-- [ ] M5-010: Full機能を有効にしてもTiny Packetが肥大化しない
+- [x] M5-001: Review recordの最小データモデルを定義した
+- [x] M5-002: `review request` をCLIで生成できる
+- [x] M5-003: Review結果をcommit/diffに紐づけられる
+- [x] M5-004: Review未完了の場合にcompleted化を止められる
+- [x] M5-005: `block` からSpec Change Proposal draftを生成できる
+- [x] M5-006: Level 1とLevel 2の扱いをCLI上で区別できる
+- [x] M5-007: registryがある場合だけregistry検証を有効にできる
+- [x] M5-008: Lean/Core/Standard/Strictの違いを機械判定できる
+- [x] M5-009: Strict用のRisk RegisterはCoreの必須にしない
+- [x] M5-010: Full機能を有効にしてもTiny Packetが肥大化しない
 
 ## M5 テストチェック
 
-- [ ] Review record生成テストがある
-- [ ] Review scope不一致テストがある
-- [ ] Spec Change Proposal draft生成テストがある
-- [ ] profile別validationテストがある
-- [ ] Full機能有効時のTiny Packetサイズテストがある
+- [x] Review record生成テストがある
+- [x] Review scope不一致テストがある
+- [x] Spec Change Proposal draft生成テストがある
+- [x] profile別validationテストがある
+- [x] Full機能有効時のTiny Packetサイズテストがある
 
 ## M5 完了条件
 
-- [ ] Coreの軽さを維持したままFull機能と連携できる
-- [ ] Review / Spec Change / Registry が必要なときだけ有効になる
+- [x] Coreの軽さを維持したままFull機能と連携できる
+- [x] Review / Spec Change / Registry が必要なときだけ有効になる
 
 ---
 
@@ -325,11 +325,11 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
 ## v0.1 Core Packet
 
 - [x] `scwbs task new` が使える
-- [ ] `scwbs start` が使える
+- [x] `scwbs start` が使える
 - [x] `scwbs packet --tiny` が使える
 - [x] Tiny Packetが50行以内
-- [ ] YAML直書きなしで作業開始できる
-- [ ] READMEに最短利用手順がある
+- [x] YAML直書きなしで作業開始できる
+- [x] READMEに最短利用手順がある
 
 ## v0.2 Diff Guard
 
@@ -338,32 +338,32 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
 - [x] forbiddenPaths違反を検出できる
 - [x] managedContractPathsを扱える
 - [x] fixCommandが出る
-- [ ] CIで利用できるJSON出力がある
+- [x] CIで利用できるJSON出力がある
 
 ## v0.3 Finish Evidence
 
 - [x] `scwbs finish` が使える
 - [x] requiredChecksを実行できる
 - [x] Evidenceを生成できる
-- [ ] `subjectHeadCommit` を記録できる
-- [ ] `diffHash` を記録できる
-- [ ] PR番号を後から付与できる
+- [x] `subjectHeadCommit` を記録できる
+- [x] `diffHash` を記録できる
+- [x] PR番号を後から付与できる
 
 ## v0.4 Human Gate
 
-- [ ] `scwbs block` が使える
-- [ ] `scwbs request-approval` が使える
-- [ ] `scwbs approve` が使える
-- [ ] Approvalに `headCommit` と `diffHash` が入る
-- [ ] 承認後の差分変更を検出できる
-- [ ] AIが承認操作をできない
+- [x] `scwbs block` が使える
+- [x] `scwbs request-approval` が使える
+- [x] `scwbs approve` が使える
+- [x] Approvalに `headCommit` と `diffHash` が入る
+- [x] 承認後の差分変更を検出できる
+- [x] AIが承認操作をできない
 
 ## v0.5 WBS Optional
 
-- [ ] WBSなしで運用できる
-- [ ] WBSありでも既存仕様と互換
-- [ ] tasks indexからWBS候補を生成できる
-- [ ] WBS changeset再現性検証ができる
+- [x] WBSなしで運用できる
+- [x] WBSありでも既存仕様と互換
+- [x] tasks indexからWBS候補を生成できる
+- [x] WBS changeset再現性検証ができる
 
 ---
 
@@ -383,21 +383,21 @@ AIに実装を依頼するときは、対象マイルストーンに加えて次
 
 ## AIがやってよいこと
 
-- [ ] 対象Taskの範囲内の実装
-- [ ] 対象Taskの範囲内のテスト追加
-- [ ] `scwbs finish` の実行
-- [ ] `scwbs block "理由"` による停止
-- [ ] 不足コンテキストの明示
+- [x] 対象Taskの範囲内の実装
+- [x] 対象Taskの範囲内のテスト追加
+- [x] `scwbs finish` の実行
+- [x] `scwbs block "理由"` による停止
+- [x] 不足コンテキストの明示
 
 ## AIがやってはいけないこと
 
-- [ ] YAML/JSONを推測で直書きする
-- [ ] allowedPaths外を変更する
-- [ ] forbiddenPathsを変更する
-- [ ] Human approvalを生成する
-- [ ] completed化する
-- [ ] WBS全体を再生成する
-- [ ] 仕様変更を勝手に実装する
+- [x] YAML/JSONを推測で直書きする
+- [x] allowedPaths外を変更する
+- [x] forbiddenPathsを変更する
+- [x] Human approvalを生成する
+- [x] completed化する
+- [x] WBS全体を再生成する
+- [x] 仕様変更を勝手に実装する
 
 ---
 
@@ -405,15 +405,15 @@ AIに実装を依頼するときは、対象マイルストーンに加えて次
 
 各マイルストーン完了前に、以下を確認する。
 
-- [ ] 実装済み項目がチェックされている
-- [ ] 対応するテストがある
-- [ ] CLIヘルプが更新されている
-- [ ] READMEまたは該当ドキュメントが更新されている
-- [ ] 既存コマンドの後方互換が壊れていない
-- [ ] AIに渡す文脈量が増えていない
-- [ ] エラー時のfixCommandがある
-- [ ] Human approvalを自動生成していない
-- [ ] 危険操作は安全側に倒れる
+- [x] 実装済み項目がチェックされている
+- [x] 対応するテストがある
+- [x] CLIヘルプが更新されている
+- [x] READMEまたは該当ドキュメントが更新されている
+- [x] 既存コマンドの後方互換が壊れていない
+- [x] AIに渡す文脈量が増えていない
+- [x] エラー時のfixCommandがある
+- [x] Human approvalを自動生成していない
+- [x] 危険操作は安全側に倒れる
 
 ---
 
@@ -425,10 +425,10 @@ SC-WBS Core 改訂のMVPは、次をすべて満たしたら完了とする。
 - [x] Tiny Packetを生成できる
 - [x] Tiny PacketがAIに必要最小限の情報だけを渡す
 - [x] `finish` でEvidenceを生成できる
-- [ ] Evidenceが `subjectHeadCommit` と `diffHash` を持つ
+- [x] Evidenceが `subjectHeadCommit` と `diffHash` を持つ
 - [x] `check-diff` で範囲外変更を止められる
 - [x] `block` で危険変更を停止できる
-- [ ] `approve` で承認をdiffHashに紐づけられる
-- [ ] 承認後に差分が変わったら再承認が必要になる
-- [ ] AI向け文書が短い
-- [ ] 既存SC-WBS Full仕様と共存できる
+- [x] `approve` で承認をdiffHashに紐づけられる
+- [x] 承認後に差分が変わったら再承認が必要になる
+- [x] AI向け文書が短い
+- [x] 既存SC-WBS Full仕様と共存できる

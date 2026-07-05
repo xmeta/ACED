@@ -1,5 +1,10 @@
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { evidenceExists, listTasks, readTask } from "../core/contracts.js";
+import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
+import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
+import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
 import { buildReviewQueue } from "./review-queue.js";
 
 type BlockChangeSet = {
@@ -28,6 +33,68 @@ function loadTaskAndNode(root: string, taskId: string) {
   return { task, wbs, node };
 }
 
+export function classifyBlockReason(reason: string): Pick<BlockRecord, "category" | "level" | "requiredHumanDecision"> {
+  const lowered = reason.toLowerCase();
+  if (/db|database|schema|migration/.test(lowered)) {
+    return { category: "db", level: 2, requiredHumanDecision: "Decide database schema or migration scope before implementation continues." };
+  }
+  if (/auth|authentication|authorization|permission|権限|認証/.test(lowered)) {
+    return { category: /permission|権限/.test(lowered) ? "permission" : "auth", level: 2, requiredHumanDecision: "Decide authentication or permission design before implementation continues." };
+  }
+  if (/security|secret|personal|pii|個人情報|セキュリティ/.test(lowered)) {
+    return { category: "security", level: 2, requiredHumanDecision: "Decide security or privacy handling before implementation continues." };
+  }
+  if (/breaking|api|破壊/.test(lowered)) {
+    return { category: "breaking-api", level: 2, requiredHumanDecision: "Decide API compatibility and rollout policy before implementation continues." };
+  }
+  if (/business|rule|業務/.test(lowered)) {
+    return { category: "business-rule", level: 2, requiredHumanDecision: "Decide the missing business rule before implementation continues." };
+  }
+  if (/external|service|billing|release|課金|外部|リリース/.test(lowered)) {
+    return { category: "external-service", level: 2, requiredHumanDecision: "Decide external service, billing, or release impact before implementation continues." };
+  }
+  if (/human gate|human-gate|gate|人間|human/.test(lowered)) {
+    return { category: "human-gate", level: 1, requiredHumanDecision: "Complete the required human gate decision before implementation continues." };
+  }
+  return { category: "unknown", level: 1, requiredHumanDecision: "Clarify the blocking decision before implementation continues." };
+}
+
+export function buildBlockRecord(taskId: string, reason: string, now = new Date().toISOString()): BlockRecord {
+  const classified = classifyBlockReason(reason);
+  return {
+    id: `BLK-${taskId}`,
+    type: "block",
+    taskId,
+    status: "blocked",
+    ...classified,
+    reason,
+    createdAt: now
+  };
+}
+
+export function buildBlockRecordYaml(taskId: string, reason: string, now?: string): string {
+  return stringifySimpleYaml(buildBlockRecord(taskId, reason, now) as unknown as Record<string, unknown>);
+}
+
+export function buildBlockSpecChange(taskId: string, reason: string): SpecChangeProposal {
+  const classified = classifyBlockReason(reason);
+  return {
+    id: `SCP-${taskId}-block`,
+    type: "spec-change-proposal",
+    status: "proposed",
+    targetSpec: "TBD",
+    currentVersion: "TBD",
+    proposedVersion: "TBD",
+    taskId,
+    level: classified.level,
+    summary: `Resolve block for ${taskId}`,
+    rationale: [reason, classified.requiredHumanDecision],
+    affectedPaths: [],
+    approval: { required: classified.level === 2, status: "requested" },
+    risks: ["Implementation must remain stopped until this proposal is resolved."]
+  };
+}
+
 export function buildBlockChangeSet(root: string, taskId: string, reason: string): string {
   const { task, wbs, node } = loadTaskAndNode(root, taskId);
   const changeSet: BlockChangeSet = {
@@ -49,9 +116,30 @@ export function buildBlockChangeSet(root: string, taskId: string, reason: string
   return `${JSON.stringify(changeSet, null, 2)}\n`;
 }
 
-export function runAiBlock(root: string, taskId: string, reason: string): number {
+export function runAiBlock(root: string, taskId: string, reason: string, options: { specChange?: boolean } = {}): number {
   try {
-    process.stdout.write(buildBlockChangeSet(root, taskId, reason));
+    const taskResult = readTask(root, taskId);
+    if (!taskResult.task) throw new Error(taskResult.issues.map((issue) => issue.message).join("\n"));
+    const relativePath = blockPath(taskId);
+    const fullPath = resolveFrom(root, relativePath);
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    const yaml = buildBlockRecordYaml(taskId, reason);
+    writeFileSync(fullPath, yaml, "utf8");
+    process.stdout.write(yaml);
+    if (options.specChange) {
+      const specChange = buildBlockSpecChange(taskId, reason);
+      const specChangeRelativePath = specChangePath(specChange.id);
+      const specChangeFullPath = resolveFrom(root, specChangeRelativePath);
+      mkdirSync(path.dirname(specChangeFullPath), { recursive: true });
+      writeFileSync(specChangeFullPath, stringifySimpleYaml(specChange as unknown as Record<string, unknown>), "utf8");
+      process.stdout.write(`\nSpec Change Proposal: ${specChangeRelativePath}\n`);
+    }
+    process.stdout.write(`\nHuman decision required: ${buildBlockRecord(taskId, reason).requiredHumanDecision}\n`);
+    process.stdout.write("AI must stop implementation until the block is resolved.\n");
+    if (existsSync(resolveFrom(root, defaultWbsPath))) {
+      process.stdout.write("\nWBS block change-set preview:\n");
+      process.stdout.write(buildBlockChangeSet(root, taskId, reason));
+    }
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
@@ -60,6 +148,14 @@ export function runAiBlock(root: string, taskId: string, reason: string): number
 }
 
 export function buildNextTask(root: string): string {
+  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+    const candidates = listTasks(root)
+      .flatMap(({ task }) => task && !evidenceExists(root, task.id) ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
+      .sort((a, b) => a.taskId.localeCompare(b.taskId));
+    if (candidates.length === 0) return "No available planned tasks.\n";
+    const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
+    return `${lines.join("\n")}\n`;
+  }
   const wbs = readWbs(root);
   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
   const tasks = listTasks(root);

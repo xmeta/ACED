@@ -44,6 +44,7 @@ npm run scwbs -- start <goal>
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 npm run scwbs -- evidence collect --task <task-id>
 npm run scwbs -- check-diff --task <task-id>
+npm run scwbs -- check-diff --task <task-id> --json
 npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
 ```
 
@@ -56,10 +57,23 @@ npm run scwbs -- finish --task <task-id>
 npm run scwbs -- block "Human Gate required" --task <task-id>
 npm run scwbs -- request-approval --task <task-id> --pr "#123"
 npm run scwbs -- approve --task <task-id> --pr "#123" --reason "Reviewed"
+npm run scwbs -- wbs candidates
+npm run scwbs -- wbs verify-changesets --base base.wbs.json --head head.wbs.json --changeset change-set.json
 ```
 
 Detailed current command examples live in `docs/scwbs/cli-reference.md`.
 The Core compatibility map lives in `docs/sc-wbs-core-revision/11-cli-compatibility-map.md`.
+
+Shortest Core flow:
+
+```bash
+npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
+npm run scwbs -- start <task-id>
+npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- finish --task <task-id>
+```
+
+When a project starts without `contracts/wbs/project.wbs.json`, tasks remain discoverable through `contracts/tasks/index.yaml`. Later, generate reviewable WBS candidates with `npm run scwbs -- wbs candidates`; WBS changes should be represented as changesets and can be checked with `wbs verify-changesets`.
 
 Practical reading order in the current repo:
 
@@ -113,6 +127,7 @@ Implemented in v0.1:
 - Contract, Evidence, WBS, diff, and health validation
 - AI work packets, review queues, approval requests, and lightweight orchestration helpers
 - WJS-backed WBS validation, semantic operation application, and change-set checks
+- WBS-less task index operation, WBS candidate generation, and WBS changeset reproduction checks
 - Branch-per-task safeguards and Evidence git metadata
 - Text-first dashboard, trace, next-action, profile, registry, and draft-generation commands
 
@@ -120,4 +135,4 @@ Not included yet:
 
 - Web UI beyond the initial text dashboard / `serve` stub
 - SQLite index
-- Full Core migration items that still require dedicated contracts, especially WBS optional mode and diff-scoped approval validation
+- Full Core migration items that still require dedicated contracts beyond the Core guardrail path

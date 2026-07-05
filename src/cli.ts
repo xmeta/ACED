@@ -28,7 +28,7 @@ import { runTaskNew } from "./commands/task-new.js";
 import { runTaskRefresh } from "./commands/task-refresh.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
-import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
+import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
 import type { Evidence } from "./core/types.js";
 
 function usage(): void {
@@ -38,10 +38,10 @@ function usage(): void {
   scwbs fix
   scwbs doctor
   scwbs health
-  scwbs check-diff --task <task-id> [--base <ref>]
+  scwbs check-diff --task <task-id> [--base <ref>] [--json]
   scwbs ai packet --task <task-id> [--relation-depth <n>]
   scwbs ai run --task <task-id> [--agent codex]
-  scwbs ai block --task <task-id> --reason <reason>
+  scwbs ai block --task <task-id> --reason <reason> [--spec-change]
   scwbs ai next-task
   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
   scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
@@ -57,7 +57,7 @@ function usage(): void {
   scwbs start <goal>
   scwbs packet --task <task-id> --tiny
   scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
-  scwbs block "reason" --task <task-id>
+  scwbs block "reason" --task <task-id> [--spec-change]
   scwbs request-approval --task <task-id> [--pr <number>] [--note <text>]
   scwbs approve --task <task-id> [--pr <number>] [--reason <text>]
   scwbs plan --spec <spec-id>
@@ -72,6 +72,8 @@ function usage(): void {
   scwbs status
   scwbs review-queue
   scwbs wbs validate
+  scwbs wbs candidates
+  scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json>
   scwbs wbs apply <change-set.json> [--force] [--output <file>]
 `);
 }
@@ -110,6 +112,16 @@ function booleanAfter(args: string[], flag: string): boolean | undefined {
   if (value === "true") return true;
   if (value === "false") return false;
   return undefined;
+}
+
+function valuesAfter(args: string[], flag: string): string[] {
+  const values: string[] = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === flag && args[index + 1]) values.push(args[index + 1]);
+    if (arg?.startsWith(`${flag}=`)) values.push(arg.slice(flag.length + 1));
+  }
+  return values;
 }
 
 function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
@@ -194,7 +206,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing block reason");
       return 2;
     }
-    return runAiBlock(root, taskId, reason);
+    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
   }
   if (command === "request-approval") {
     const taskId = valueAfter(argv, "--task");
@@ -217,6 +229,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runApprovalApprove(root, taskId, {
       pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
       reason: textAfter(argv, "--reason"),
+      actor: valueAfter(argv, "--actor"),
       force: argv.includes("--force")
     });
   }
@@ -260,7 +273,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base") });
+    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base"), json: argv.includes("--json") });
   }
   if (command === "ai" && subcommand === "packet") {
     const taskId = valueAfter(argv, "--task");
@@ -294,7 +307,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --reason <reason>");
       return 2;
     }
-    return runAiBlock(root, taskId, reason);
+    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
   }
   if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
   if (command === "approval" && subcommand === "request") {
@@ -318,6 +331,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runApprovalApprove(root, taskId, {
       pullRequest: valueAfter(argv, "--pull-request"),
       reason: textAfter(argv, "--reason"),
+      actor: valueAfter(argv, "--actor"),
       force: argv.includes("--force")
     });
   }
@@ -427,6 +441,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     return runTaskRefresh(root, taskId, { apply: argv.includes("--apply") });
   }
   if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
+  if (command === "wbs" && subcommand === "candidates") return runWbsCandidates(root);
+  if (command === "wbs" && subcommand === "verify-changesets") {
+    return runWbsVerifyChangesets(root, {
+      base: valueAfter(argv, "--base"),
+      head: valueAfter(argv, "--head"),
+      changeSets: valuesAfter(argv, "--changeset")
+    });
+  }
   if (command === "wbs" && subcommand === "apply") {
     if (!third) {
       console.error("Missing change-set.json");

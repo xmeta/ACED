@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import type { Profile } from "../core/types.js";
 import { readWbs } from "../core/wbs.js";
@@ -12,6 +12,7 @@ function normalizeProfile(value: string): Profile | undefined {
 }
 
 export function readProfile(root: string): Profile {
+  if (!existsSync(resolveFrom(root, defaultWbsPath))) return "Standard";
   const wbs = readWbs(root);
   const scwbs = wbs.extensions?.scwbs;
   const profile = typeof scwbs === "object" && scwbs !== null ? (scwbs as Record<string, unknown>).profile : undefined;

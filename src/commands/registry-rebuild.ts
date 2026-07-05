@@ -1,11 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { listApprovals, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
-import { defaultRegistryPath, resolveFrom } from "../core/paths.js";
+import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+import { defaultRegistryPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
 
 export function buildRegistryYaml(root: string): string {
-  const wbs = readWbs(root);
+  const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
   const contracts: Record<string, unknown>[] = [];
   for (const { spec, path } of listSpecs(root)) {
     if (!spec) continue;
@@ -27,12 +27,16 @@ export function buildRegistryYaml(root: string): string {
     if (!approval) continue;
     contracts.push({ id: approval.id, type: "approval", path, status: approval.status, relatedTask: approval.taskId });
   }
+  for (const { block, path } of listBlocks(root)) {
+    if (!block) continue;
+    contracts.push({ id: block.id, type: "block", path, status: block.status, relatedTask: block.taskId });
+  }
   for (const { review, path } of listReviews(root)) {
     if (!review) continue;
     contracts.push({ id: review.id, type: "review", path, status: review.status, relatedTask: review.taskId });
   }
   contracts.sort((a, b) => String(a.path).localeCompare(String(b.path)));
-  return stringifySimpleYaml({ projectId: wbs.id, contracts });
+  return stringifySimpleYaml({ projectId, contracts });
 }
 
 export function runRegistryRebuild(root: string, options: { check: boolean; force: boolean }): number {

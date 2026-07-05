@@ -7,7 +7,7 @@ export type Issue = {
   fixCommand?: string;
 };
 
-export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "adr";
+export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
 
 export type RegistryContract = {
   id: string;
@@ -149,9 +149,23 @@ export type ApprovalRecord = {
   status: ApprovalStatus;
   approvedBy?: string;
   approvedAt?: string;
+  headCommit?: string;
+  diffHash?: string;
   pullRequest?: string;
   reason?: string;
   notes?: string[];
+};
+
+export type BlockRecord = {
+  id: string;
+  type: "block";
+  taskId: string;
+  status: "blocked";
+  level: 1 | 2;
+  category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
+  reason: string;
+  requiredHumanDecision: string;
+  createdAt: string;
 };
 
 export type ReviewRecord = {
@@ -160,6 +174,8 @@ export type ReviewRecord = {
   taskId: string;
   status: "requested" | "approved" | "changes-requested";
   reviewProfile: "self-review" | "independent-ai-review" | "human-review" | string;
+  headCommit?: string;
+  diffHash?: string;
   pullRequest?: string;
   groundTruth: string[];
   requestedReviewers?: Array<{

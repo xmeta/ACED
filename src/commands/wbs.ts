@@ -1,9 +1,10 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import { runWjsValidate } from "../core/wbs.js";
+import type { WbsDocument } from "../core/types.js";
 
 export function runWbsValidate(root: string): number {
   const issues = runWjsValidate(root);
@@ -40,4 +41,109 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   return result.status ?? 1;
+}
+
+function normalizeJson(value: unknown): string {
+  return JSON.stringify(value, null, 2);
+}
+
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]));
+  }
+  return value;
+}
+
+export function applyWbsChangesets(base: WbsDocument, changeSets: Array<Record<string, unknown>>): WbsDocument {
+  const next = JSON.parse(JSON.stringify(base)) as WbsDocument;
+  for (const changeSet of changeSets) {
+    const operations = Array.isArray(changeSet.operations) ? changeSet.operations : [];
+    for (const rawOperation of operations) {
+      if (!rawOperation || typeof rawOperation !== "object") continue;
+      const operation = rawOperation as Record<string, unknown>;
+      if (operation.operation === "changeNodeStatus" && typeof operation.nodeId === "string" && typeof operation.status === "string") {
+        const node = next.nodes.find((item) => item.id === operation.nodeId);
+        if (node) node.status = operation.status as WbsDocument["nodes"][number]["status"];
+      }
+      if (operation.operation === "addNode" && typeof operation.nodeId === "string") {
+        if (next.nodes.some((item) => item.id === operation.nodeId)) continue;
+        next.nodes.push({
+          id: operation.nodeId,
+          parentId: typeof operation.parentId === "string" ? operation.parentId : next.rootId,
+          code: typeof operation.code === "string" ? operation.code : operation.nodeId,
+          name: typeof operation.name === "string" ? operation.name : operation.nodeId,
+          type: operation.type === "summary" || operation.type === "deliverable" || operation.type === "activity" || operation.type === "milestone" ? operation.type : "workPackage",
+          status: operation.status === "draft" || operation.status === "ready" || operation.status === "inProgress" || operation.status === "blocked" || operation.status === "completed" || operation.status === "cancelled" ? operation.status : "planned"
+        });
+      }
+      if (operation.operation === "addNodeOutput" && typeof operation.nodeId === "string" && typeof operation.artifactId === "string") {
+        const node = next.nodes.find((item) => item.id === operation.nodeId);
+        if (node) node.outputs = [...new Set([...(node.outputs ?? []), operation.artifactId])];
+      }
+    }
+  }
+  return next;
+}
+
+export function verifyWbsChangesets(root: string, basePath: string, headPath: string, changeSetPaths: string[]): boolean {
+  const base = JSON.parse(readFileSync(resolveFrom(root, basePath), "utf8")) as WbsDocument;
+  const head = JSON.parse(readFileSync(resolveFrom(root, headPath), "utf8")) as WbsDocument;
+  const changeSets = changeSetPaths.map((file) => JSON.parse(readFileSync(resolveFrom(root, file), "utf8")) as Record<string, unknown>);
+  return normalizeJson(canonical(applyWbsChangesets(base, changeSets))) === normalizeJson(canonical(head));
+}
+
+export function runWbsVerifyChangesets(root: string, options: { base?: string; head?: string; changeSets: string[] }): number {
+  if (!options.base || !options.head || options.changeSets.length === 0) {
+    console.error("Usage: scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json> [--changeset <change-set.json>...]");
+    return 2;
+  }
+  try {
+    if (verifyWbsChangesets(root, options.base, options.head, options.changeSets)) {
+      console.log("PASS wbs verify-changesets");
+      return 0;
+    }
+    console.error("WBS changesets do not reproduce the head WBS");
+    return 1;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function buildWbsCandidatesFromTaskIndex(root: string): string {
+  const indexPath = resolveFrom(root, "contracts/tasks/index.yaml");
+  if (!existsSync(indexPath)) {
+    return `${JSON.stringify({ schemaVersion: "0.1.0", targetWbsId: "scwbs", changeSetId: "changeset-wbs-candidates", author: "scwbs-cli", reason: "No task index exists.", dryRun: true, operations: [] }, null, 2)}\n`;
+  }
+  const text = readFileSync(indexPath, "utf8");
+  const ids = [...text.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]?.trim()).filter((value): value is string => Boolean(value));
+  const operations = ids.map((id, index) => ({
+    operationId: `op-${String(index + 1).padStart(3, "0")}`,
+    operation: "addNode",
+    nodeId: `node-${id.toLowerCase()}`,
+    parentId: "root",
+    name: id,
+    type: "workPackage",
+    status: "planned"
+  }));
+  return `${JSON.stringify({
+    schemaVersion: "0.1.0",
+    targetWbsId: "scwbs",
+    changeSetId: "changeset-wbs-candidates",
+    author: "scwbs-cli",
+    reason: "Candidate WBS nodes generated from contracts/tasks/index.yaml. Review before applying.",
+    dryRun: true,
+    operations
+  }, null, 2)}\n`;
+}
+
+export function runWbsCandidates(root: string): number {
+  try {
+    process.stdout.write(buildWbsCandidatesFromTaskIndex(root));
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }

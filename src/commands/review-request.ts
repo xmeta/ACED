@@ -47,13 +47,24 @@ export function buildReviewRouteReport(root: string, taskId: string): string {
   return lines.join("\n");
 }
 
-export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[] }): ReviewRecord {
+function evidenceSubject(evidence: Evidence | undefined): { headCommit?: string; diffHash?: string } {
+  const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+  return {
+    ...(headCommit ? { headCommit } : {}),
+    ...(diffHash ? { diffHash } : {})
+  };
+}
+
+export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): ReviewRecord {
+  const subject = evidenceSubject(options.evidence);
   return {
     id: `RVW-${taskId}`,
     type: "review",
     taskId,
     status: "requested",
     reviewProfile: "independent-ai-review",
+    ...subject,
     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
     groundTruth: [
       taskPath(taskId),
@@ -63,7 +74,7 @@ export function buildReviewRequest(taskId: string, options: { pullRequest?: stri
   };
 }
 
-export function buildReviewRequestYaml(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[] }): string {
+export function buildReviewRequestYaml(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): string {
   return stringifySimpleYaml(buildReviewRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
@@ -91,6 +102,7 @@ export function runReviewRequest(root: string, taskId: string, options: { pullRe
     mkdirSync(path.dirname(fullPath), { recursive: true });
     const yaml = buildReviewRequestYaml(taskId, {
       ...options,
+      evidence,
       requestedReviewers: routeReviewers(task, evidence)
     });
     writeFileSync(fullPath, yaml, "utf8");

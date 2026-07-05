@@ -20,7 +20,13 @@ function requiresMetaFileGuard(file: string): boolean {
 }
 
 function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
-  return readApproval(root, taskId).approval?.status === "approved";
+  const approval = readApproval(root, taskId).approval;
+  if (approval?.status !== "approved") return false;
+  const evidence = readEvidence(root, taskId).evidence;
+  const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+  const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+  if (!approval.headCommit || !approval.diffHash || !evidenceHead || !evidenceDiffHash) return false;
+  return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
 }
 
 /**
@@ -114,10 +120,12 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
   }));
 }
 
-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string } = {}): number {
+export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean } = {}): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
-    printIssues(withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`));
+    const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
+    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
+    else printIssues(taskIssues);
     return 1;
   }
   const baseRef = options.baseRef ?? "origin/main";
@@ -125,12 +133,14 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   try {
     files = branchChangedFiles(root, baseRef);
   } catch (error) {
-    printIssues([{
+    const baseIssues = [{
       severity: "error",
       code: "diff.git.base",
       message: error instanceof Error ? error.message : String(error),
       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
-    }]);
+    }] as Issue[];
+    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues }, null, 2));
+    else printIssues(baseIssues);
     return 1;
   }
   const diffIssues = withDefaultFixCommand([
@@ -139,9 +149,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     ...collectDiffIssues(root, task, files)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
   if (diffIssues.length === 0) {
-    console.log(`PASS check-diff ${taskId}`);
+    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [] }, null, 2));
+    else console.log(`PASS check-diff ${taskId}`);
     return 0;
   }
-  printIssues(diffIssues);
+  if (options.json) console.log(JSON.stringify({ status: hasErrors(diffIssues) ? "fail" : "warn", taskId, issues: diffIssues }, null, 2));
+  else printIssues(diffIssues);
   return hasErrors(diffIssues) ? 1 : 0;
 }
