@@ -1,0 +1,38 @@
+id: EVD-SCWBS-DRAFT-MR7RR147
+type: evidence
+taskId: SCWBS-DRAFT-MR7RR147
+commit: 82ca554d38d6440ba8ed71a05666ba849edda605
+git:
+  branch: task/SCWBS-DRAFT-MR7RR147-normalize-core-revision-review-pr-metadata
+  base: origin/main
+  baseCommit: 9128277c56c3bb93f643039b108f0aabb55ec558
+  changedFilesBasis: branch-diff
+  headCommit: 82ca554d38d6440ba8ed71a05666ba849edda605
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR67PKBQ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR7PVFWR.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR7R46OO.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-05T12:32:28.831Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-05T12:32:32.353Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-05T12:32:35.222Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Metadata-only normalization; no production or test code changed.
