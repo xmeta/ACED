@@ -160,10 +160,10 @@ scwbs check-diff
 - [x] M2-006: check失敗時にEvidenceを成功扱いにしない
 - [x] M2-007: `base...HEAD` のchangedFilesを収集できる
 - [x] M2-008: `--base <ref>` を指定できる
-- [ ] M2-009: `subjectHeadCommit` をEvidenceに記録できる
+- [x] M2-009: `subjectHeadCommit` をEvidenceに記録できる
 - [x] M2-010: `baseCommit` をEvidenceに記録できる
-- [ ] M2-011: `diffHash` を生成できる
-- [ ] M2-012: Evidenceファイル自身のコミットでstale判定にならない
+- [x] M2-011: `diffHash` を生成できる
+- [x] M2-012: Evidenceファイル自身のコミットでstale判定にならない
 - [x] M2-013: `changedFiles` をEvidenceに記録できる
 - [x] M2-014: `checks` のstatus、command、executedAtを記録できる
 - [x] M2-015: `--pr <number>` をEvidenceに記録できる
@@ -183,15 +183,15 @@ scwbs check-diff
 - [x] forbiddenPaths変更はErrorになる
 - [ ] humanGateRequiredPaths変更はApprovalなしでErrorになる
 - [ ] managedContractPathsは必要なものだけPassする
-- [ ] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
-- [ ] diffHashが同じ差分で安定する
+- [x] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
+- [x] diffHashが同じ差分で安定する
 - [x] check失敗時にfinishが失敗する
 - [x] fixCommandが出る
 
 ## M2 完了条件
 
 - [x] `scwbs finish` だけで checks -> Evidence -> check-diff まで実行できる
-- [ ] Evidenceのcommit設計が自己参照ループを起こさない
+- [x] Evidenceのcommit設計が自己参照ループを起こさない
 - [ ] AIの範囲外変更を機械的に止められる
 
 ---

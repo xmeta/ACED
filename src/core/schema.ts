@@ -136,6 +136,9 @@ const evidenceSchema = {
     type: { const: "evidence" },
     taskId: { type: "string", minLength: 1 },
     commit: { type: "string" },
+    subjectHeadCommit: { type: "string" },
+    evidenceCommit: { type: "string" },
+    diffHash: { type: "string" },
     changedFiles: stringArraySchema,
     git: {
       type: "object",
@@ -143,6 +146,10 @@ const evidenceSchema = {
       properties: {
         branch: { type: "string" },
         base: { type: "string" },
+        baseCommit: { type: "string" },
+        changedFilesBasis: { type: "string" },
+        subjectHeadCommit: { type: "string" },
+        diffHash: { type: "string" },
         headCommit: { type: "string" },
         pullRequest: { type: "string" }
       }
@@ -457,6 +464,11 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
   if (value.type !== "evidence") {
     issues.push(issue("evidence.type", `${filePath}.type must be evidence`));
   }
+  for (const key of ["commit", "subjectHeadCommit", "evidenceCommit", "diffHash"]) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      issues.push(issue("evidence.field", `${filePath}.${key} must be a string when present`));
+    }
+  }
   if (!isStringArray(value.changedFiles)) {
     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
   }
@@ -464,7 +476,7 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
     if (!isObject(value.git)) {
       issues.push(issue("evidence.git", `${filePath}.git must be an object when present`));
     } else {
-      for (const key of ["branch", "base", "baseCommit", "changedFilesBasis", "headCommit", "pullRequest"]) {
+      for (const key of ["branch", "base", "baseCommit", "changedFilesBasis", "subjectHeadCommit", "diffHash", "headCommit", "pullRequest"]) {
         if (value.git[key] !== undefined && typeof value.git[key] !== "string") {
           issues.push(issue("evidence.git", `${filePath}.git.${key} must be a string when present`));
         }

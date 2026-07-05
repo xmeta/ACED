@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
-import { branchChangedFiles, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
+import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
@@ -58,6 +58,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const baseRef = options.baseRef ?? "origin/main";
   const head = headCommit(root);
   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
+  const diffHash = branchDiffHash(root, baseRef);
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
@@ -66,12 +67,16 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     type: "evidence",
     taskId,
     ...(head ? { commit: head } : {}),
+    ...(head ? { subjectHeadCommit: head } : {}),
+    diffHash,
     git: {
       ...(currentBranch(root) ? { branch: currentBranch(root) } : {}),
       base: baseRef,
       ...(baseCommit ? { baseCommit } : {}),
       changedFilesBasis: "branch-diff",
       ...(pullRequest ? { pullRequest } : {}),
+      ...(head ? { subjectHeadCommit: head } : {}),
+      diffHash,
       ...(head ? { headCommit: head } : {})
     },
     changedFiles: branchChangedFiles(root, baseRef),

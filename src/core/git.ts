@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 const TEXT_FILE_PATTERN = /\.(cjs|js|json|md|ts|tsx|yaml|yml)$/;
 
@@ -34,6 +35,22 @@ export function workingTreeChangedFiles(root: string): string[] {
 
 export function branchChangedFiles(root: string, baseRef = "origin/main"): string[] {
   return gitLines(root, ["diff", "--name-only", `${baseRef}...HEAD`], "git diff failed");
+}
+
+export function branchDiffHash(root: string, baseRef = "origin/main", excludeFiles: string[] = []): string {
+  const pathspecs = excludeFiles.length > 0
+    ? ["--", ".", ...excludeFiles.map((file) => `:(exclude)${file}`)]
+    : [];
+  const result = spawnSync("git", ["diff", "--binary", "--no-ext-diff", `${baseRef}...HEAD`, ...pathspecs], {
+    cwd: root,
+    encoding: "buffer"
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr?.toString("utf8") || "git diff failed");
+  }
+  const hash = createHash("sha256");
+  hash.update(result.stdout);
+  return `sha256:${hash.digest("hex")}`;
 }
 
 export function changedFilesSince(root: string, ref: string): string[] {
