@@ -34,9 +34,9 @@ Core should be read as the recommended simplification direction:
 
 ## Current CLI Status
 
-Some Core documents describe target shorthand commands such as `scwbs task new`, `scwbs packet --tiny`, `scwbs finish`, and `scwbs block`. Those are Core target specifications, not all current ACED CLI commands.
+Core shorthand commands are being introduced as compatibility aliases. The long-form commands remain supported.
 
-Use the current npm script commands in this repository:
+Current long-form commands:
 
 ```bash
 npm run scwbs -- next
@@ -47,7 +47,19 @@ npm run scwbs -- check-diff --task <task-id>
 npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
 ```
 
+Current Core aliases:
+
+```bash
+npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
+npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- finish --task <task-id>
+npm run scwbs -- block "Human Gate required" --task <task-id>
+npm run scwbs -- request-approval --task <task-id> --pr "#123"
+npm run scwbs -- approve --task <task-id> --pr "#123" --reason "Reviewed"
+```
+
 Detailed current command examples live in `docs/scwbs/cli-reference.md`.
+The Core compatibility map lives in `docs/sc-wbs-core-revision/11-cli-compatibility-map.md`.
 
 Practical reading order in the current repo:
 
@@ -108,4 +120,4 @@ Not included yet:
 
 - Web UI beyond the initial text dashboard / `serve` stub
 - SQLite index
-- Core shorthand commands listed as future target specs in `docs/sc-wbs-core/`
+- Full Core migration items that still require dedicated contracts, especially WBS optional mode and diff-scoped approval validation

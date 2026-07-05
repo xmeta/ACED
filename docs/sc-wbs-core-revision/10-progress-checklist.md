@@ -36,10 +36,10 @@
 
 | Milestone | 目的 | 状態 | 完了条件 |
 |---|---|---|---|
-| M0 | 現状整理と互換レイヤー | 未着手 | 既存CLIとCore CLIの対応が明確 |
-| M1 | Core Task Lifecycle | 未着手 | YAML直書きなしでTask作成からPacket生成まで可能 |
-| M2 | Finish / Evidence / Diff Guard | 未着手 | `finish` でEvidence生成と差分検査ができる |
-| M3 | Human Gate / Approval Scope | 未着手 | 危険変更を止め、承認をdiffに紐づけられる |
+| M0 | 現状整理と互換レイヤー | 完了 | 既存CLIとCore CLIの対応が明確 |
+| M1 | Core Task Lifecycle | 実装中 | YAML直書きなしでTask作成からPacket生成まで可能 |
+| M2 | Finish / Evidence / Diff Guard | 実装中 | `finish` でEvidence生成と差分検査ができる |
+| M3 | Human Gate / Approval Scope | 実装中 | 危険変更を止め、承認をdiffに紐づけられる |
 | M4 | WBS Optional / Full Integration | 未着手 | WBSなしでも動き、WBSありでも互換 |
 | M5 | Review / Spec Change / Full Enhancement | 未着手 | Core上にFull機能を安全に戻せる |
 
@@ -61,20 +61,20 @@
 
 ## M0 チェックリスト
 
-- [ ] M0-001: 既存CLIコマンドを一覧化した
-- [ ] M0-002: 既存CLIの入力、出力、生成ファイルを整理した
-- [ ] M0-003: Core CLIとの対応表を作成した
-- [ ] M0-004: 既存コマンドをdeprecatedにするか、aliasにするかを決めた
-- [ ] M0-005: `npm run scwbs -- ...` の後方互換を維持する方針を決めた
-- [ ] M0-006: `scwbs ...` 直実行時の解決方法を決めた
-- [ ] M0-007: 既存のTask Contract / Evidence / Approvalを読み込めることを確認した
-- [ ] M0-008: 破壊的変更を含まない移行方針をREADMEに追記した
+- [x] M0-001: 既存CLIコマンドを一覧化した
+- [x] M0-002: 既存CLIの入力、出力、生成ファイルを整理した
+- [x] M0-003: Core CLIとの対応表を作成した
+- [x] M0-004: 既存コマンドをdeprecatedにするか、aliasにするかを決めた
+- [x] M0-005: `npm run scwbs -- ...` の後方互換を維持する方針を決めた
+- [x] M0-006: `scwbs ...` 直実行時の解決方法を決めた
+- [x] M0-007: 既存のTask Contract / Evidence / Approvalを読み込めることを確認した
+- [x] M0-008: 破壊的変更を含まない移行方針をREADMEに追記した
 
 ## M0 完了条件
 
-- [ ] 既存ユーザーが従来コマンドを使い続けられる
-- [ ] Core CLIの入口が明確になっている
-- [ ] 既存仕様とCore仕様の関係が説明されている
+- [x] 既存ユーザーが従来コマンドを使い続けられる
+- [x] Core CLIの入口が明確になっている
+- [x] 既存仕様とCore仕様の関係が説明されている
 
 ---
 
@@ -97,33 +97,33 @@ scwbs next
 
 ## M1 チェックリスト
 
-- [ ] M1-001: `scwbs task new "作業名"` を実装した
-- [ ] M1-002: `--paths` から `allowedPaths` を生成できる
-- [ ] M1-003: `--forbid` から `forbiddenPaths` を生成できる
-- [ ] M1-004: `--gate` から `humanGateRequiredPaths` を生成できる
-- [ ] M1-005: `--checks` から `requiredChecks` を生成できる
+- [x] M1-001: `scwbs task new "作業名"` を実装した
+- [x] M1-002: `--paths` から `allowedPaths` を生成できる
+- [x] M1-003: `--forbid` から `forbiddenPaths` を生成できる
+- [x] M1-004: `--gate` から `humanGateRequiredPaths` を生成できる
+- [x] M1-005: `--checks` から `requiredChecks` を生成できる
 - [ ] M1-006: `--stop` から `stopIf` を生成できる
 - [ ] M1-007: 引数不足時に対話式で補完できる
-- [ ] M1-008: 既存taskと衝突しないtaskIdを採番できる
-- [ ] M1-009: titleから安全なbranch名を生成できる
-- [ ] M1-010: 既存Task Contractを暗黙に上書きしない
+- [x] M1-008: 既存taskと衝突しないtaskIdを採番できる
+- [x] M1-009: titleから安全なbranch名を生成できる
+- [x] M1-010: 既存Task Contractを暗黙に上書きしない
 - [ ] M1-011: WBSなし運用では `contracts/tasks/index.yaml` を更新できる
 - [ ] M1-012: WBSあり運用では直接WBSを書き換えず、必要ならchangeset draftを生成できる
 - [ ] M1-013: `scwbs start <task-id>` でpre-flightを表示できる
 - [ ] M1-014: `start` がbranch、lock、path制約、checks、stopIfを表示できる
-- [ ] M1-015: `scwbs packet --task <task-id> --tiny` を実装した
-- [ ] M1-016: Tiny Packetが原則50行以内に収まる
-- [ ] M1-017: Tiny Packetにスキーマ説明や長文仕様を含めない
-- [ ] M1-018: Tiny Packetに `finish` と `block` の次コマンドを表示する
-- [ ] M1-019: `scwbs next` が次の作業候補を表示できる
+- [x] M1-015: `scwbs packet --task <task-id> --tiny` を実装した
+- [x] M1-016: Tiny Packetが原則50行以内に収まる
+- [x] M1-017: Tiny Packetにスキーマ説明や長文仕様を含めない
+- [x] M1-018: Tiny Packetに `finish` と `block` の次コマンドを表示する
+- [x] M1-019: `scwbs next` が次の作業候補を表示できる
 - [ ] M1-020: `next` が blocked / missing evidence / failed check / planned task を優先順に扱える
 
 ## M1 テストチェック
 
-- [ ] `task new` の正常系テストがある
+- [x] `task new` の正常系テストがある
 - [ ] taskId衝突時のテストがある
-- [ ] 既存Task Contractを上書きしないテストがある
-- [ ] Tiny Packetの最大行数に関するテストがある
+- [x] 既存Task Contractを上書きしないテストがある
+- [x] Tiny Packetの最大行数に関するテストがある
 - [ ] `start` のbranch不一致検出テストがある
 - [ ] `next` の優先順位テストがある
 
@@ -152,45 +152,45 @@ scwbs check-diff
 
 ## M2 チェックリスト
 
-- [ ] M2-001: branch名または引数からtaskIdを推定できる
-- [ ] M2-002: taskId推定に失敗した場合、安全に停止しfixCommandを出す
+- [x] M2-001: branch名または引数からtaskIdを推定できる
+- [x] M2-002: taskId推定に失敗した場合、安全に停止しfixCommandを出す
 - [ ] M2-003: Check Catalogを定義した
-- [ ] M2-004: `requiredChecks` をCheck Catalogに解決できる
-- [ ] M2-005: `finish` がrequiredChecksを実行できる
-- [ ] M2-006: check失敗時にEvidenceを成功扱いにしない
-- [ ] M2-007: `base...HEAD` のchangedFilesを収集できる
-- [ ] M2-008: `--base <ref>` を指定できる
+- [x] M2-004: `requiredChecks` をCheck Catalogに解決できる
+- [x] M2-005: `finish` がrequiredChecksを実行できる
+- [x] M2-006: check失敗時にEvidenceを成功扱いにしない
+- [x] M2-007: `base...HEAD` のchangedFilesを収集できる
+- [x] M2-008: `--base <ref>` を指定できる
 - [ ] M2-009: `subjectHeadCommit` をEvidenceに記録できる
-- [ ] M2-010: `baseCommit` をEvidenceに記録できる
+- [x] M2-010: `baseCommit` をEvidenceに記録できる
 - [ ] M2-011: `diffHash` を生成できる
 - [ ] M2-012: Evidenceファイル自身のコミットでstale判定にならない
-- [ ] M2-013: `changedFiles` をEvidenceに記録できる
-- [ ] M2-014: `checks` のstatus、command、executedAtを記録できる
-- [ ] M2-015: `--pr <number>` をEvidenceに記録できる
-- [ ] M2-016: `allowedPaths` 外変更をErrorにできる
-- [ ] M2-017: `forbiddenPaths` 変更をErrorにできる
+- [x] M2-013: `changedFiles` をEvidenceに記録できる
+- [x] M2-014: `checks` のstatus、command、executedAtを記録できる
+- [x] M2-015: `--pr <number>` をEvidenceに記録できる
+- [x] M2-016: `allowedPaths` 外変更をErrorにできる
+- [x] M2-017: `forbiddenPaths` 変更をErrorにできる
 - [ ] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
 - [ ] M2-019: `managedContractPaths` を例外として扱える
-- [ ] M2-020: Evidence、Block、Approvalなどの生成ファイルを過剰にErrorにしない
-- [ ] M2-021: メタファイル変更を安全側で検出できる
+- [x] M2-020: Evidence、Block、Approvalなどの生成ファイルを過剰にErrorにしない
+- [x] M2-021: メタファイル変更を安全側で検出できる
 - [ ] M2-022: すべてのErrorにfixCommandを表示できる
 - [ ] M2-023: `scwbs fix` で安全な自動修復だけ実行できる
 
 ## M2 テストチェック
 
-- [ ] allowedPaths内変更はPassする
-- [ ] allowedPaths外変更はErrorになる
-- [ ] forbiddenPaths変更はErrorになる
+- [x] allowedPaths内変更はPassする
+- [x] allowedPaths外変更はErrorになる
+- [x] forbiddenPaths変更はErrorになる
 - [ ] humanGateRequiredPaths変更はApprovalなしでErrorになる
 - [ ] managedContractPathsは必要なものだけPassする
 - [ ] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
 - [ ] diffHashが同じ差分で安定する
-- [ ] check失敗時にfinishが失敗する
-- [ ] fixCommandが出る
+- [x] check失敗時にfinishが失敗する
+- [x] fixCommandが出る
 
 ## M2 完了条件
 
-- [ ] `scwbs finish` だけで checks -> Evidence -> check-diff まで実行できる
+- [x] `scwbs finish` だけで checks -> Evidence -> check-diff まで実行できる
 - [ ] Evidenceのcommit設計が自己参照ループを起こさない
 - [ ] AIの範囲外変更を機械的に止められる
 
@@ -324,27 +324,27 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
 
 ## v0.1 Core Packet
 
-- [ ] `scwbs task new` が使える
+- [x] `scwbs task new` が使える
 - [ ] `scwbs start` が使える
-- [ ] `scwbs packet --tiny` が使える
-- [ ] Tiny Packetが50行以内
+- [x] `scwbs packet --tiny` が使える
+- [x] Tiny Packetが50行以内
 - [ ] YAML直書きなしで作業開始できる
 - [ ] READMEに最短利用手順がある
 
 ## v0.2 Diff Guard
 
-- [ ] `scwbs check-diff` が使える
-- [ ] allowedPaths違反を検出できる
-- [ ] forbiddenPaths違反を検出できる
+- [x] `scwbs check-diff` が使える
+- [x] allowedPaths違反を検出できる
+- [x] forbiddenPaths違反を検出できる
 - [ ] managedContractPathsを扱える
 - [ ] fixCommandが出る
 - [ ] CIで利用できるJSON出力がある
 
 ## v0.3 Finish Evidence
 
-- [ ] `scwbs finish` が使える
-- [ ] requiredChecksを実行できる
-- [ ] Evidenceを生成できる
+- [x] `scwbs finish` が使える
+- [x] requiredChecksを実行できる
+- [x] Evidenceを生成できる
 - [ ] `subjectHeadCommit` を記録できる
 - [ ] `diffHash` を記録できる
 - [ ] PR番号を後から付与できる
@@ -421,13 +421,13 @@ AIに実装を依頼するときは、対象マイルストーンに加えて次
 
 SC-WBS Core 改訂のMVPは、次をすべて満たしたら完了とする。
 
-- [ ] YAML直書きなしでTaskを作れる
-- [ ] Tiny Packetを生成できる
-- [ ] Tiny PacketがAIに必要最小限の情報だけを渡す
-- [ ] `finish` でEvidenceを生成できる
+- [x] YAML直書きなしでTaskを作れる
+- [x] Tiny Packetを生成できる
+- [x] Tiny PacketがAIに必要最小限の情報だけを渡す
+- [x] `finish` でEvidenceを生成できる
 - [ ] Evidenceが `subjectHeadCommit` と `diffHash` を持つ
-- [ ] `check-diff` で範囲外変更を止められる
-- [ ] `block` で危険変更を停止できる
+- [x] `check-diff` で範囲外変更を止められる
+- [x] `block` で危険変更を停止できる
 - [ ] `approve` で承認をdiffHashに紐づけられる
 - [ ] 承認後に差分が変わったら再承認が必要になる
 - [ ] AI向け文書が短い

@@ -128,6 +128,35 @@ ${artifacts.map((artifact) => `- ${artifact.id}: ${artifact.name}${artifact.uri 
 `;
 }
 
+export function buildTinyPacket(root: string, taskId: string): string {
+  const { task, issues } = readTask(root, taskId);
+  if (!task) {
+    throw new Error(issues.map((issue) => issue.message).join("\n"));
+  }
+  const wbs = readWbs(root);
+  const node = findNode(wbs, task.wbsNodeId);
+  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+
+  return `# Tiny Packet
+Task: ${task.id}
+Node: ${node.name}
+Branch: ${task.branchName ?? "(none)"}
+Goal:
+${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
+Allowed:
+${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Forbidden:
+${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Human Gate:
+${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Checks:
+${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+Next:
+- npm run scwbs -- finish --task ${task.id}
+- npm run scwbs -- block "reason" --task ${task.id}
+`;
+}
+
 export function runAiPacket(root: string, taskId: string, relationDepth = 1, format: AiPacketFormat = "default"): number {
   try {
     process.stdout.write(buildAiPacket(root, taskId, relationDepth, format));

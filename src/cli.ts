@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
 import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
-import { runAiPacket } from "./commands/ai-packet.js";
+import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
@@ -9,6 +9,7 @@ import { runCheckDiff } from "./commands/check-diff.js";
 import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
+import { runFinish } from "./commands/finish.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runLiteTask, runPromote } from "./commands/lite.js";
@@ -22,6 +23,7 @@ import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
 import { runTaskGenerate } from "./commands/task-generate.js";
 import { runTaskLock } from "./commands/task-lock.js";
+import { runTaskNew } from "./commands/task-new.js";
 import { runTaskRefresh } from "./commands/task-refresh.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
@@ -49,7 +51,13 @@ function usage(): void {
   scwbs review request --task <task-id> [--pull-request <id>] [--force]
   scwbs review route --task <task-id>
   scwbs next
+  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--checks <name,name>]
   scwbs start <goal>
+  scwbs packet --task <task-id> --tiny
+  scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
+  scwbs block "reason" --task <task-id>
+  scwbs request-approval --task <task-id> [--pr <number>] [--note <text>]
+  scwbs approve --task <task-id> [--pr <number>] [--reason <text>]
   scwbs plan --spec <spec-id>
   scwbs lite task <title>
   scwbs promote --task <task-id>
@@ -142,6 +150,73 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   if (command === "status") return runStatus(root);
   if (command === "review-queue") return runReviewQueue(root);
   if (command === "next") return runNext(root);
+  if (command === "finish") {
+    return runFinish(root, {
+      taskId: valueAfter(argv, "--task"),
+      baseRef: valueAfter(argv, "--base"),
+      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+      force: true
+    });
+  }
+  if (command === "packet") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    if (argv.includes("--tiny")) {
+      try {
+        process.stdout.write(buildTinyPacket(root, taskId));
+        return 0;
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        return 1;
+      }
+    }
+    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 0), "default");
+  }
+  if (command === "block") {
+    const taskId = valueAfter(argv, "--task");
+    const reasonParts: string[] = [];
+    for (const arg of argv.slice(1)) {
+      if (arg.startsWith("--")) break;
+      reasonParts.push(arg);
+    }
+    const reason = reasonParts.join(" ").trim() || valueAfter(argv, "--reason");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    if (!reason) {
+      console.error("Missing block reason");
+      return 2;
+    }
+    return runAiBlock(root, taskId, reason);
+  }
+  if (command === "request-approval") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runApprovalRequest(root, taskId, {
+      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+      note: textAfter(argv, "--note"),
+      force: argv.includes("--force")
+    });
+  }
+  if (command === "approve") {
+    const taskId = valueAfter(argv, "--task");
+    if (!taskId) {
+      console.error("Missing --task <task-id>");
+      return 2;
+    }
+    return runApprovalApprove(root, taskId, {
+      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+      reason: textAfter(argv, "--reason"),
+      force: argv.includes("--force")
+    });
+  }
   if (command === "ui") return runUi(root);
   if (command === "serve") return runServe();
   if (command === "start") {
@@ -313,6 +388,24 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       return 2;
     }
     return runTaskGenerate(root, nodeId, taskId, { force: argv.includes("--force") });
+  }
+  if (command === "task" && subcommand === "new") {
+    const titleParts: string[] = [];
+    for (const arg of argv.slice(2)) {
+      if (arg.startsWith("--")) break;
+      titleParts.push(arg);
+    }
+    const title = titleParts.join(" ").trim();
+    if (!title) {
+      console.error("Missing task title");
+      return 2;
+    }
+    return runTaskNew(root, title, {
+      paths: valueAfter(argv, "--paths"),
+      forbid: valueAfter(argv, "--forbid"),
+      gate: valueAfter(argv, "--gate"),
+      checks: valueAfter(argv, "--checks")
+    });
   }
   if (command === "task" && subcommand === "lock") {
     const taskId = valueAfter(argv, "--task");
