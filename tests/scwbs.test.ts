@@ -24,6 +24,8 @@ import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-genera
 import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
 import { buildCoreTaskNew, runTaskNew } from "../src/commands/task-new.js";
 import { runFinish } from "../src/commands/finish.js";
+import { runFix } from "../src/commands/fix.js";
+import { resolveCheckCommand, isKnownCheck } from "../src/core/check-catalog.js";
 import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
 import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
@@ -258,7 +260,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     });
     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
     expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
-    expect(issues.find((issue) => issue.code === "diff.humanGate")?.message).toContain("fixCommand: npm run scwbs -- approval request --task WBS-001-004");
+    expect(issues.find((issue) => issue.code === "diff.humanGate")?.fixCommand).toContain("npm run scwbs -- approval request --task WBS-001-004");
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
   });
 
@@ -276,6 +278,36 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
     expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(false);
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff treats managedContractPaths as exempt from allowedPaths and the meta-file guard (M2-019)", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({
+      allowedPaths: ["src/**"],
+      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml", "package.json"]
+    });
+    const issues = collectDiffIssues(root, task, ["contracts/evidence/WBS-001-004.yaml", "package.json"]);
+    expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(false);
+    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test("check-diff never exempts forbiddenPaths via managedContractPaths (M2-019)", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({
+      forbiddenPaths: ["src/auth/**"],
+      managedContractPaths: ["src/auth/**"]
+    });
+    const issues = collectDiffIssues(root, task, ["src/auth/session.ts"]);
+    expect(issues.some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
+  });
+
+  test("check-diff issues always carry a fixCommand (M2-022)", () => {
+    const root = makeTempRepo();
+    const task = sampleTask();
+    const issues = collectDiffIssues(root, task, ["src/unrelated/handler.ts"]);
+    const errors = issues.filter((issue) => issue.severity === "error");
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.every((issue) => typeof issue.fixCommand === "string" && issue.fixCommand.length > 0)).toBe(true);
   });
 
   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
@@ -1413,7 +1445,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
   });
 
   test("task new builds safe branch names and default checks", () => {
-    const task = buildCoreTaskNew("Fix Core CLI!");
+    const { task } = buildCoreTaskNew("Fix Core CLI!");
 
     expect(task.id).toMatch(/^SCWBS-DRAFT-/);
     expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
@@ -1422,11 +1454,35 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
   });
 
   test("task new generates stopIf entries from stop option", () => {
-    const task = buildCoreTaskNew("Stop Presets", {
+    const { task } = buildCoreTaskNew("Stop Presets", {
       stop: "db schema change,auth redesign"
     });
 
     expect(task.stopIf).toEqual(["db schema change", "auth redesign"]);
+  });
+
+  test("task new falls back to a safe placeholder title when title is missing (M1-007)", () => {
+    const { task, fallback } = buildCoreTaskNew("");
+
+    expect(fallback.usedFallbackTitle).toBe(true);
+    expect(fallback.fallbackNote).toContain(task.id);
+    expect(task.doneCriteria[0]).toContain("untitled task");
+  });
+
+  test("task new with --wbs-node writes a changeset draft instead of editing the WBS (M1-012)", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+
+    const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+    expect(wbsAfter).toBe(wbsBefore);
+
+    const changesetFile = readdirSync(path.join(root, "contracts/changesets")).find((file) => file.includes("link-wbs-node"));
+    expect(changesetFile).toBeTruthy();
+    const changeset = JSON.parse(readFileSync(path.join(root, `contracts/changesets/${changesetFile}`), "utf8"));
+    expect(changeset.operations[0].nodeId).toBe("node-project");
   });
 
   test("start prints pre-flight details and fails on branch mismatch", () => {
@@ -2300,5 +2356,31 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     writeScwbsProject(root, "completed");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
     expect(runCheck(root)).toBe(0);
+  });
+
+  test("check ignores contracts/tasks/index.yaml (it is a task index, not a Task Contract)", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    writeText(root, "contracts/tasks/index.yaml", "tasks:\n  - id: SCWBS-DRAFT-ABC\n    path: contracts/tasks/SCWBS-DRAFT-ABC.yaml\n    branchName: task/SCWBS-DRAFT-ABC-example\n    wbsNodeId: node-governance-maintenance\n");
+    expect(runCheck(root)).toBe(0);
+  });
+
+  test("check catalog resolves known checks to explicit commands (M2-003)", () => {
+    expect(resolveCheckCommand("test")).toEqual(["npm", "test"]);
+    expect(resolveCheckCommand("typecheck")).toEqual(["npm", "run", "typecheck"]);
+    expect(resolveCheckCommand("build")).toEqual(["npm", "run", "build"]);
+    expect(isKnownCheck("test")).toBe(true);
+    expect(isKnownCheck("lint")).toBe(false);
+    expect(resolveCheckCommand("lint")).toEqual(["npm", "run", "lint"]);
+  });
+
+  test("scwbs fix regenerates registry.yaml and nothing else (M2-023)", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/registry.yaml", { projectId: "stale", contracts: [] } as unknown as Record<string, unknown>);
+    expect(runFix(root)).toBe(0);
+    const registry = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
+    expect(registry).not.toContain("projectId: stale");
   });
 });

@@ -103,12 +103,12 @@ scwbs next
 - [x] M1-004: `--gate` から `humanGateRequiredPaths` を生成できる
 - [x] M1-005: `--checks` から `requiredChecks` を生成できる
 - [x] M1-006: `--stop` から `stopIf` を生成できる
-- [ ] M1-007: 引数不足時に対話式で補完できる
+- [x] M1-007: 引数不足時に対話式で補完できる
 - [x] M1-008: 既存taskと衝突しないtaskIdを採番できる
 - [x] M1-009: titleから安全なbranch名を生成できる
 - [x] M1-010: 既存Task Contractを暗黙に上書きしない
 - [x] M1-011: WBSなし運用では `contracts/tasks/index.yaml` を更新できる
-- [ ] M1-012: WBSあり運用では直接WBSを書き換えず、必要ならchangeset draftを生成できる
+- [x] M1-012: WBSあり運用では直接WBSを書き換えず、必要ならchangeset draftを生成できる
 - [x] M1-013: `scwbs start <task-id>` でpre-flightを表示できる
 - [x] M1-014: `start` がbranch、lock、path制約、checks、stopIfを表示できる
 - [x] M1-015: `scwbs packet --task <task-id> --tiny` を実装した
@@ -154,7 +154,7 @@ scwbs check-diff
 
 - [x] M2-001: branch名または引数からtaskIdを推定できる
 - [x] M2-002: taskId推定に失敗した場合、安全に停止しfixCommandを出す
-- [ ] M2-003: Check Catalogを定義した
+- [x] M2-003: Check Catalogを定義した
 - [x] M2-004: `requiredChecks` をCheck Catalogに解決できる
 - [x] M2-005: `finish` がrequiredChecksを実行できる
 - [x] M2-006: check失敗時にEvidenceを成功扱いにしない
@@ -170,11 +170,11 @@ scwbs check-diff
 - [x] M2-016: `allowedPaths` 外変更をErrorにできる
 - [x] M2-017: `forbiddenPaths` 変更をErrorにできる
 - [x] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
-- [ ] M2-019: `managedContractPaths` を例外として扱える
+- [x] M2-019: `managedContractPaths` を例外として扱える
 - [x] M2-020: Evidence、Block、Approvalなどの生成ファイルを過剰にErrorにしない
 - [x] M2-021: メタファイル変更を安全側で検出できる
-- [ ] M2-022: すべてのErrorにfixCommandを表示できる
-- [ ] M2-023: `scwbs fix` で安全な自動修復だけ実行できる
+- [x] M2-022: すべてのErrorにfixCommandを表示できる
+- [x] M2-023: `scwbs fix` で安全な自動修復だけ実行できる
 
 ## M2 テストチェック
 
@@ -182,7 +182,7 @@ scwbs check-diff
 - [x] allowedPaths外変更はErrorになる
 - [x] forbiddenPaths変更はErrorになる
 - [x] humanGateRequiredPaths変更はApprovalなしでErrorになる
-- [ ] managedContractPathsは必要なものだけPassする
+- [x] managedContractPathsは必要なものだけPassする
 - [x] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
 - [x] diffHashが同じ差分で安定する
 - [x] check失敗時にfinishが失敗する
@@ -192,7 +192,7 @@ scwbs check-diff
 
 - [x] `scwbs finish` だけで checks -> Evidence -> check-diff まで実行できる
 - [x] Evidenceのcommit設計が自己参照ループを起こさない
-- [ ] AIの範囲外変更を機械的に止められる
+- [x] AIの範囲外変更を機械的に止められる
 
 ---
 
@@ -336,8 +336,8 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
 - [x] `scwbs check-diff` が使える
 - [x] allowedPaths違反を検出できる
 - [x] forbiddenPaths違反を検出できる
-- [ ] managedContractPathsを扱える
-- [ ] fixCommandが出る
+- [x] managedContractPathsを扱える
+- [x] fixCommandが出る
 - [ ] CIで利用できるJSON出力がある
 
 ## v0.3 Finish Evidence

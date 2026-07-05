@@ -1,0 +1,36 @@
+id: SCWBS-DRAFT-MR7XMGQ2
+type: task-contract
+wbsNodeId: node-core-evidence-diff-guard-completion
+featureId: F-MR7XMGQ2
+branchName: task/SCWBS-DRAFT-MR7XMGQ2-m2-check-catalog-managedcontractpaths-fixcommand
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/reviews/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+stopIf:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - "M2-003 - a Check Catalog maps check names to executable commands."
+  - "M2-019 - managedContractPaths is treated as an exception to allowedPaths/meta-file guard for CLI-generated contract files only."
+  - "M2-022 - every check-diff/finish error includes a fixCommand."
+  - "M2-023 - `scwbs fix` runs only safe, well-defined automatic fixes."
+  - "M2 test checks - managedContractPaths passes only intended paths, and fixCommand is present on all errors."
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/changesets/SCWBS-DRAFT-MR7XMGQ2-link-wbs-node.json

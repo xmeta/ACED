@@ -10,6 +10,7 @@ import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
 import { runFinish } from "./commands/finish.js";
+import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runLiteTask, runPromote } from "./commands/lite.js";
@@ -34,6 +35,7 @@ function usage(): void {
   console.log(`Usage:
   scwbs init [--profile lean|standard|strict] [--agent codex] [--lang ja|en]
   scwbs check
+  scwbs fix
   scwbs doctor
   scwbs health
   scwbs check-diff --task <task-id> [--base <ref>]
@@ -51,7 +53,7 @@ function usage(): void {
   scwbs review request --task <task-id> [--pull-request <id>] [--force]
   scwbs review route --task <task-id>
   scwbs next
-  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--stop <reason,reason>] [--checks <name,name>]
+  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--stop <reason,reason>] [--checks <name,name>] [--wbs-node <node-id>]
   scwbs start <goal>
   scwbs packet --task <task-id> --tiny
   scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
@@ -145,6 +147,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     lang: valueAfter(argv, "--lang")
   });
   if (command === "check") return runCheck(root);
+  if (command === "fix") return runFix(root);
   if (command === "doctor") return runDoctor(root);
   if (command === "health") return runHealth(root);
   if (command === "status") return runStatus(root);
@@ -396,16 +399,15 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       titleParts.push(arg);
     }
     const title = titleParts.join(" ").trim();
-    if (!title) {
-      console.error("Missing task title");
-      return 2;
-    }
+    // M1-007: missing title no longer hard-fails; runTaskNew falls back to a
+    // safe placeholder title and prints a notice instead.
     return runTaskNew(root, title, {
       paths: valueAfter(argv, "--paths"),
       forbid: valueAfter(argv, "--forbid"),
       gate: valueAfter(argv, "--gate"),
       stop: valueAfter(argv, "--stop"),
-      checks: valueAfter(argv, "--checks")
+      checks: valueAfter(argv, "--checks"),
+      wbsNode: valueAfter(argv, "--wbs-node")
     });
   }
   if (command === "task" && subcommand === "lock") {

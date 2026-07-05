@@ -82,7 +82,7 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
   const dir = resolveFrom(root, defaultTasksDir);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .filter((file) => (file.endsWith(".yaml") || file.endsWith(".yml")) && file !== "index.yaml")
     .map((file) => {
       const path = `${defaultTasksDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
