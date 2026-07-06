@@ -32,6 +32,7 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
 
   const wbs = asWbsDocument(document);
   const nodeIds = new Set<string>();
+  const nodeCodes = new Set<string>();
   let rootCount = 0;
 
   for (const node of wbs.nodes) {
@@ -39,6 +40,29 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
       issues.push({ severity: "error", code: "wbs.node.duplicate", message: `duplicate node id: ${node.id}` });
     }
     nodeIds.add(node.id);
+
+    if (node.code) {
+      if (nodeCodes.has(node.code)) {
+        issues.push({ severity: "error", code: "wbs.code.duplicate", message: `duplicate WBS code: ${node.code}` });
+      }
+      nodeCodes.add(node.code);
+    }
+
+    if (node.status === "completed" && node.progressPercent !== undefined && node.progressPercent < 100) {
+      issues.push({
+        severity: "error",
+        code: "wbs.status.progress.mismatch",
+        message: `node ${node.id} status is completed but progressPercent is ${node.progressPercent}%`
+      });
+    }
+    if (node.status !== "completed" && node.progressPercent === 100) {
+      issues.push({
+        severity: "error",
+        code: "wbs.status.progress.mismatch",
+        message: `node ${node.id} progressPercent is 100% but status is ${node.status}`
+      });
+    }
+
     if (node.parentId === null) rootCount += 1;
   }
 
@@ -53,8 +77,19 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
     issues.push({ severity: "error", code: "wbs.root", message: `root node ${rootNode.id} must match rootId ${wbs.rootId}` });
   }
   for (const node of wbs.nodes) {
-    if (node.parentId !== null && !nodeIds.has(node.parentId)) {
-      issues.push({ severity: "error", code: "wbs.parent", message: `node ${node.id} parentId does not exist: ${node.parentId}` });
+    if (node.parentId !== null) {
+      if (!nodeIds.has(node.parentId)) {
+        issues.push({ severity: "error", code: "wbs.parent", message: `node ${node.id} parentId does not exist: ${node.parentId}` });
+      } else {
+        const parent = wbs.nodes.find((n) => n.id === node.parentId);
+        if (parent && parent.status === "completed" && node.status !== "completed") {
+          issues.push({
+            severity: "error",
+            code: "wbs.hierarchy.incomplete_child",
+            message: `parent node ${parent.id} is completed but child node ${node.id} is ${node.status}`
+          });
+        }
+      }
     }
   }
 

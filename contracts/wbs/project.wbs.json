@@ -11,7 +11,7 @@
       "code": "1",
       "name": "scwbs CLI project",
       "type": "deliverable",
-      "status": "completed",
+      "status": "inProgress",
       "progressPercent": 35,
       "outputs": [
         "artifact-cli",
@@ -30,7 +30,7 @@
       "name": "Dogfood SC-WBS contracts",
       "type": "workPackage",
       "status": "completed",
-      "progressPercent": 90,
+      "progressPercent": 100,
       "outputs": [
         "artifact-contracts"
       ],
@@ -205,6 +205,72 @@
     {
       "status": "completed",
       "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-diagnostics",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.1",
+      "name": "Diagnostics",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-task-lifecycle",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.2",
+      "name": "Task lifecycle",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-evidence-provenance",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.3",
+      "name": "Evidence and provenance",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-review",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.4",
+      "name": "Review and routing",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-ai",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.5",
+      "name": "AI interface",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
+      "outputs": [],
+      "tags": [],
+      "id": "node-lightweight-ui",
+      "parentId": "node-lightweight-orchestration",
+      "code": "1.9.6",
+      "name": "UI",
+      "type": "summary"
+    },
+    {
+      "status": "completed",
+      "assignees": [],
       "acceptanceCriteria": [
         "doctor summarizes check and health issues.",
         "doctor prints actionable suggested fixes."
@@ -212,8 +278,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-doctor",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.1",
+      "parentId": "node-lightweight-diagnostics",
+      "code": "1.9.1.1",
       "name": "Doctor command",
       "type": "workPackage"
     },
@@ -227,8 +293,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-evidence-collect",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.2",
+      "parentId": "node-lightweight-evidence-provenance",
+      "code": "1.9.3.1",
       "name": "Evidence collect command",
       "type": "workPackage"
     },
@@ -249,8 +315,8 @@
         "provenance"
       ],
       "id": "node-evidence-provenance-diff-basis",
-      "parentId": "node-lightweight-evidence-collect",
-      "code": "1.9.2.1",
+      "parentId": "node-lightweight-evidence-provenance",
+      "code": "1.9.3.2",
       "name": "Evidence provenance and diff basis",
       "type": "workPackage"
     },
@@ -264,8 +330,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-task-refresh",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.3",
+      "parentId": "node-lightweight-task-lifecycle",
+      "code": "1.9.2.1",
       "name": "Task refresh command",
       "type": "workPackage"
     },
@@ -279,8 +345,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-registry-profile",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.4",
+      "parentId": "node-lightweight-task-lifecycle",
+      "code": "1.9.2.5",
       "name": "Registry rebuild and profile commands",
       "type": "workPackage"
     },
@@ -294,8 +360,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-ai-run",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.5",
+      "parentId": "node-lightweight-ai",
+      "code": "1.9.5.1",
       "name": "AI run dry-run orchestrator",
       "type": "workPackage"
     },
@@ -309,8 +375,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-review-request",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.6",
+      "parentId": "node-lightweight-review",
+      "code": "1.9.4.1",
       "name": "Review request command",
       "type": "workPackage"
     },
@@ -324,8 +390,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-next",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.7",
+      "parentId": "node-lightweight-diagnostics",
+      "code": "1.9.1.2",
       "name": "Next action command",
       "type": "workPackage"
     },
@@ -339,8 +405,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-ai-packet-format",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.8",
+      "parentId": "node-lightweight-ai",
+      "code": "1.9.5.2",
       "name": "AI packet format option",
       "type": "workPackage"
     },
@@ -354,8 +420,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-start-plan",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.9",
+      "parentId": "node-lightweight-task-lifecycle",
+      "code": "1.9.2.2",
       "name": "Start and plan commands",
       "type": "workPackage"
     },
@@ -369,8 +435,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-lite-promote",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.10",
+      "parentId": "node-lightweight-task-lifecycle",
+      "code": "1.9.2.3",
       "name": "Lite task and promote commands",
       "type": "workPackage"
     },
@@ -384,8 +450,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-trace",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.11",
+      "parentId": "node-lightweight-ai",
+      "code": "1.9.5.3",
       "name": "Trace command",
       "type": "workPackage"
     },
@@ -399,8 +465,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-ui-serve",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.12",
+      "parentId": "node-lightweight-ui",
+      "code": "1.9.6.1",
       "name": "UI dashboard and serve stub",
       "type": "workPackage"
     },
@@ -414,8 +480,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-branch-guard",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.13",
+      "parentId": "node-lightweight-task-lifecycle",
+      "code": "1.9.2.4",
       "name": "Task branch guard",
       "type": "workPackage"
     },
@@ -430,8 +496,8 @@
       "outputs": [],
       "tags": [],
       "id": "node-lightweight-review-routing",
-      "parentId": "node-lightweight-orchestration",
-      "code": "1.9.14",
+      "parentId": "node-lightweight-review",
+      "code": "1.9.4.2",
       "name": "Review routing command",
       "type": "workPackage"
     },
@@ -495,7 +561,7 @@
       "tags": [],
       "id": "node-governance-maintenance",
       "parentId": "node-project",
-      "code": "1.10",
+      "code": "1.12",
       "name": "Governance and specification maintenance",
       "type": "workPackage"
     },
@@ -516,7 +582,7 @@
       ],
       "id": "node-scwbs-core-revision-backlog",
       "parentId": "node-governance-maintenance",
-      "code": "1.10.1",
+      "code": "1.12.1",
       "name": "SC-WBS Core revision backlog",
       "type": "deliverable"
     },
@@ -544,7 +610,7 @@
       ],
       "id": "node-core-task-lifecycle-completion",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.1",
+      "code": "1.12.1.1",
       "name": "Core Task Lifecycle completion",
       "type": "workPackage"
     },
@@ -572,7 +638,7 @@
       ],
       "id": "node-core-evidence-diff-guard-completion",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.2",
+      "code": "1.12.1.2",
       "name": "Finish Evidence and Diff Guard completion",
       "type": "workPackage"
     },
@@ -609,7 +675,7 @@
       ],
       "id": "node-core-human-gate-approval-scope",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.3",
+      "code": "1.12.1.3",
       "name": "Human Gate and Approval Scope",
       "type": "workPackage"
     },
@@ -641,7 +707,7 @@
       ],
       "id": "node-core-wbs-optional-integration",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.4",
+      "code": "1.12.1.4",
       "name": "WBS Optional and Full Integration",
       "type": "workPackage"
     },
@@ -672,7 +738,7 @@
       ],
       "id": "node-core-review-spec-full-enhancement",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.5",
+      "code": "1.12.1.5",
       "name": "Review Spec Change and Full Enhancement",
       "type": "workPackage"
     },
@@ -694,7 +760,7 @@
       ],
       "id": "node-core-release-readiness",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.6",
+      "code": "1.12.1.6",
       "name": "Core release readiness checklist",
       "type": "workPackage"
     },
@@ -714,7 +780,7 @@
       ],
       "id": "node-core-ai-operating-rules",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.7",
+      "code": "1.12.1.7",
       "name": "AI operating rules and milestone review",
       "type": "workPackage"
     },
@@ -738,7 +804,7 @@
       ],
       "id": "node-core-mvp-closeout",
       "parentId": "node-scwbs-core-revision-backlog",
-      "code": "1.10.1.8",
+      "code": "1.12.1.8",
       "name": "SC-WBS Core MVP closeout",
       "type": "workPackage"
     }
@@ -809,6 +875,36 @@
       "type": "dependsOn",
       "source": "node-governance-maintenance",
       "target": "node-dogfood-contracts"
+    },
+    {
+      "id": "rel-core-evidence-depends-on-lifecycle",
+      "type": "dependsOn",
+      "source": "node-core-evidence-diff-guard-completion",
+      "target": "node-core-task-lifecycle-completion"
+    },
+    {
+      "id": "rel-core-human-gate-depends-on-evidence",
+      "type": "dependsOn",
+      "source": "node-core-human-gate-approval-scope",
+      "target": "node-core-evidence-diff-guard-completion"
+    },
+    {
+      "id": "rel-core-wbs-optional-depends-on-human-gate",
+      "type": "dependsOn",
+      "source": "node-core-wbs-optional-integration",
+      "target": "node-core-human-gate-approval-scope"
+    },
+    {
+      "id": "rel-core-review-spec-depends-on-wbs-optional",
+      "type": "dependsOn",
+      "source": "node-core-review-spec-full-enhancement",
+      "target": "node-core-wbs-optional-integration"
+    },
+    {
+      "id": "rel-core-release-depends-on-review-spec",
+      "type": "dependsOn",
+      "source": "node-core-release-readiness",
+      "target": "node-core-review-spec-full-enhancement"
     }
   ],
   "resources": [

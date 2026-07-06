@@ -84,6 +84,51 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(issues.some((issue) => issue.code.startsWith("wbs."))).toBe(true);
   });
 
+  test("WBS document duplicate code validation", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.nodes.push({
+      id: "node-duplicate-code",
+      parentId: wbs.rootId,
+      code: wbs.nodes[0].code,
+      name: "Duplicate Code Node",
+      type: "workPackage",
+      status: "planned"
+    });
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    const issues = validateWbsDocument(root);
+    expect(issues.some((issue) => issue.code === "wbs.code.duplicate")).toBe(true);
+  });
+
+  test("WBS document status and progress mismatch validation", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.nodes[0].status = "completed";
+    wbs.nodes[0].progressPercent = 50;
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    let issues = validateWbsDocument(root);
+    expect(issues.some((issue) => issue.code === "wbs.status.progress.mismatch")).toBe(true);
+
+    wbs.nodes[0].status = "inProgress";
+    wbs.nodes[0].progressPercent = 100;
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    issues = validateWbsDocument(root);
+    expect(issues.some((issue) => issue.code === "wbs.status.progress.mismatch")).toBe(true);
+  });
+
+  test("WBS document parent completed with incomplete child validation", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    const parentNode = wbs.nodes.find(n => n.id === wbs.rootId);
+    if (parentNode) {
+      parentNode.status = "completed";
+      parentNode.progressPercent = 100;
+    }
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    const issues = validateWbsDocument(root);
+    expect(issues.some((issue) => issue.code === "wbs.hierarchy.incomplete_child")).toBe(true);
+  });
+
   test("spec contracts are first-class files with required metadata", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
