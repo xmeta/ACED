@@ -65,6 +65,23 @@ Evidence生成、checks実行、check-diffを1コマンドにまとめる。
 - check-diff実行
 - fixCommand表示
 
+### CORE-003a: metadata-only finish workflow
+
+目的:
+
+```text
+Task Contract / Evidence / Review / Registry だけを更新する小規模作業で、
+Evidence収集や検証を何度も繰り返さずに完了できるようにする。
+```
+
+必須:
+
+- `finish` が PR 番号を受け取り、Evidence の `git.pullRequest` を最終更新できる
+- Review request と registry rebuild を finish 後処理としてまとめられる
+- metadata-only 作業では required checks の重複実行を避ける実行計画を表示できる
+- 最終状態では Evidence、Review、Registry、check-diff が通常タスクと同じ保証を持つ
+- Evidence 自身や Review record の追加で `subjectHeadCommit` / `diffHash` が不要に揺れない
+
 ### CORE-004: Evidenceの `subjectHeadCommit` / `diffHash`
 
 目的:

@@ -1,0 +1,39 @@
+id: SCWBS-DRAFT-MR8H6KXW
+type: task-contract
+wbsNodeId: node-core-evidence-diff-guard-completion
+featureId: F-MR8H6KXW
+branchName: task/SCWBS-DRAFT-MR8H6KXW-plan-metadata-only-finish-workflow-optimization
+allowedPaths:
+  - contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+  - contracts/specs/SPEC-LITE-MR8H6KXW.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8H6KXW.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR8H6KXW.yaml
+  - contracts/registry.yaml
+  - contracts/changesets/SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow.json
+  - docs/sc-wbs-core/09-implementation-backlog.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - WBS changeset captures a scoped plan for metadata-only finish workflow optimization.
+  - Core implementation backlog describes the minimal command behavior and acceptance checks.
+  - Evidence and check-diff prove this planning task stayed within contract scope.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-core-evidence-diff-guard-completion
+  specVersion: 0.1.0
+  specRevision: "sha256:90d9452c86c633cf1a19dedc50502fb92ba21a354404177087ef8aa2d5454d14"
+  createdAt: "2026-07-06T00:35:09.936Z"

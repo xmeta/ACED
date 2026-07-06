@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow",
+  "author": "codex",
+  "reason": "Add a scoped M2 acceptance criterion for reducing metadata-only finish workflow overhead while preserving Evidence, Review, Registry, and check-diff guarantees.",
+  "dryRun": false,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "updateNode",
+      "nodeId": "node-core-evidence-diff-guard-completion",
+      "changes": {
+        "acceptanceCriteria": [
+          "M2-003: Check Catalog is explicitly defined.",
+          "M2-009: Evidence records subjectHeadCommit.",
+          "M2-011: diffHash is generated from the subject diff.",
+          "M2-012: Evidence file commits do not make subject evidence stale.",
+          "M2-018: humanGateRequiredPaths changes without approval are errors.",
+          "M2-019: managedContractPaths are modeled as controlled exceptions.",
+          "M2-022: all errors include fixCommand.",
+          "M2-023: scwbs fix runs only safe automatic repairs.",
+          "M2-024: metadata-only finish workflow avoids repeated Evidence, review request, registry rebuild, and check-diff work while preserving final Evidence and review metadata.",
+          "M2 test checks: human gate approval error, managedContractPaths, subjectHeadCommit stale handling, and stable diffHash are covered.",
+          "M2 completion checks: Evidence commit design avoids self-reference loops and AI out-of-scope changes are mechanically blocked."
+        ]
+      }
+    }
+  ]
+}
