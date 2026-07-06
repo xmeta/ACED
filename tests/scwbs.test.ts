@@ -851,7 +851,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("next does not request a duplicate review when review metadata exists", () => {
     const root = makeTempRepo();
-    writeScwbsProject(root, "planned");
+    writeScwbsProject(root, "ready");
     writeYaml(
       root,
       "contracts/evidence/WBS-001-004.yaml",
@@ -2163,7 +2163,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("review queue lists tasks with evidence awaiting review", () => {
     const root = makeTempRepo();
-    writeScwbsProject(root, "planned");
+    writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
     const queue = buildReviewQueue(root);
     expect(queue).toContain("Review Queue:");
@@ -2171,6 +2171,38 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(queue).toContain("branch: task/WBS-001-004-api-implementation");
     expect(queue).toContain("evidence exists and the WBS node is ready for human review");
     expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
+  });
+
+  test("review queue blocks completion review when the WBS node is not ready", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        git: {
+          branch: "task/WBS-001-004-api-implementation",
+          base: "main",
+          headCommit: "abc1234",
+          pullRequest: "#42"
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("completionBlockedBy: WBS node status is planned; completion requires ready");
+    expect(queue).toContain("- 0 candidates ready for completion review");
+    expect(queue).toContain("Ready for completion review:\n- None");
+    expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
   });
 
   test("review queue reports incomplete dependencies that block completion", () => {
@@ -2341,7 +2373,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("review queue asks for review request when PR metadata exists but review is missing", () => {
     const root = makeTempRepo();
-    writeScwbsProject(root, "planned");
+    writeScwbsProject(root, "ready");
     writeYaml(
       root,
       "contracts/evidence/WBS-001-004.yaml",
@@ -2362,7 +2394,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
 
   test("review queue shows review status when review metadata exists", () => {
     const root = makeTempRepo();
-    writeScwbsProject(root, "planned");
+    writeScwbsProject(root, "ready");
     writeYaml(
       root,
       "contracts/evidence/WBS-001-004.yaml",

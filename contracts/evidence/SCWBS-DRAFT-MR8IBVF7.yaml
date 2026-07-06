@@ -1,0 +1,39 @@
+id: EVD-SCWBS-DRAFT-MR8IBVF7
+type: evidence
+taskId: SCWBS-DRAFT-MR8IBVF7
+commit: 449883976648a2449ee5856eb9225c981808a14a
+subjectHeadCommit: 449883976648a2449ee5856eb9225c981808a14a
+diffHash: "sha256:c036590ed2984756ace0e647b22f93526291e50236f5a379acbcd3dc7617ffa4"
+git:
+  branch: task/SCWBS-DRAFT-MR8IBVF7-fix-review-queue-completion-readiness-to-require
+  base: origin/main
+  baseCommit: e3c9f7dd42f91ca1b179f273d0a7bb53a2ca7a84
+  changedFilesBasis: branch-diff
+  pullRequest: "#83"
+  subjectHeadCommit: 449883976648a2449ee5856eb9225c981808a14a
+  diffHash: "sha256:c036590ed2984756ace0e647b22f93526291e50236f5a379acbcd3dc7617ffa4"
+  headCommit: 449883976648a2449ee5856eb9225c981808a14a
+changedFiles:
+  - contracts/changesets/start-MR8IBVF7.json
+  - contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MR8IBVF7.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-06T01:12:45.595Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-06T01:12:48.548Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-06T01:12:51.968Z"

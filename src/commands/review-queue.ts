@@ -113,6 +113,10 @@ function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readW
     });
 }
 
+function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): string | undefined {
+  return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
+}
+
 export function buildReviewQueue(root: string): string {
   const wbs = readWbs(root);
   const entries: ReviewQueueEntry[] = [];
@@ -132,6 +136,7 @@ export function buildReviewQueue(root: string): string {
     const reasons: string[] = [];
     const warnings: string[] = [];
     const completionBlockedBy = incompleteDependencies(node.id, wbs);
+    const readinessBlocker = nodeReadinessBlocker(node);
     const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
     const { evidence, issues } = readEvidence(root, task.id);
     const { approval, issues: approvalIssues } = readApproval(root, task.id);
@@ -145,7 +150,7 @@ export function buildReviewQueue(root: string): string {
 
     if (hasEvidence && !isDoneNode(node)) {
       reasons.push(
-        completionBlockedBy.length === 0
+        !readinessBlocker && completionBlockedBy.length === 0
           ? "evidence exists and the WBS node is ready for human review"
           : "evidence exists and the WBS node is not completed"
       );
@@ -155,6 +160,10 @@ export function buildReviewQueue(root: string): string {
       for (const blockedBy of completionBlockedBy) {
         warnings.push(`dependsOn node ${blockedBy} is not completed`);
       }
+    }
+    if (readinessBlocker) {
+      completionBlockedBy.push(readinessBlocker);
+      warnings.push(readinessBlocker);
     }
     if (!isNodeCompletionTask(task) && (taskCountByNode.get(node.id) ?? 0) > 1) {
       completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
