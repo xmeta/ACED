@@ -28,6 +28,7 @@ import { runFix } from "../src/commands/fix.js";
 import { resolveCheckCommand, isKnownCheck } from "../src/core/check-catalog.js";
 import { buildWbsCandidatesFromTaskIndex, runWbsValidate, runWbsApply, verifyWbsChangesets } from "../src/commands/wbs.js";
 import { listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
+import { parseSimpleYaml, stringifySimpleYaml } from "../src/core/yaml.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
 import { validateWbsDocument } from "../src/core/wbs.js";
 import { main } from "../src/cli.js";
@@ -705,6 +706,26 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(changeSet.targetWbsId).toBe("scwbs");
     expect(changeSet.operations[0].operation).toBe("addNode");
     expect(changeSet.operations[0].node.parentId).toBe("node-project");
+  });
+
+  test("yaml parser preserves quoted strings with colons", () => {
+    const parsed = parseSimpleYaml(stringifySimpleYaml({
+      doneCriteria: ["Plan and implement: Replace YAML parser"]
+    }));
+
+    expect(parsed.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+  });
+
+  test("start artifacts can be read back as valid task contracts", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(main(["start", "Replace YAML parser"], root)).toBe(0);
+
+    const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+    expect(taskFileName).toBeTruthy();
+    const taskId = taskFileName!.replace(/\.yaml$/, "");
+    const { task } = readTask(root, taskId);
+    expect(task?.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
   });
 
   test("ai packet includes WBS node, task contract, and stop conditions", () => {
