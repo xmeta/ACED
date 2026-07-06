@@ -1,0 +1,40 @@
+id: SCWBS-DRAFT-MR8VSYBM
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR8VSYBM
+branchName: task/SCWBS-DRAFT-MR8VSYBM-backfill-missing-contractlock-metadata-for-healt
+allowedPaths:
+  - contracts/specs/SPEC-LITE-MR8VSYBM.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8VSYBM.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-CORE-M1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - contractLock metadata is added for SCWBS-CORE-M1.
+  - contractLock metadata is added for SCWBS-DRAFT-MR7R46OO, SCWBS-DRAFT-MR7RFNZS, SCWBS-DRAFT-MR7RR147, and SCWBS-DRAFT-MR7S032T.
+  - scwbs health no longer reports contractLock.missing warnings for those tasks.
+  - Evidence and check-diff prove the metadata-only task stayed within contract scope.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-06T07:12:15.055Z"
