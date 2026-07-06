@@ -1,0 +1,42 @@
+id: EVD-SCWBS-DRAFT-MR8GC6KT
+type: evidence
+taskId: SCWBS-DRAFT-MR8GC6KT
+commit: 3207364243bb05c30e62326b836f686f4552d9d4
+subjectHeadCommit: 3207364243bb05c30e62326b836f686f4552d9d4
+diffHash: "sha256:93d6c47ba2fa4b4a18aaa38b0824fc610faf96e9b21bb27e1559c8245545ad37"
+git:
+  branch: task/SCWBS-DRAFT-MR8GC6KT-backfill-scwbs-draft-mr87t1d4-health-metadata
+  base: origin/main
+  baseCommit: 4bea8987a9a26d83caab291b64fb6265ecd08283
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 3207364243bb05c30e62326b836f686f4552d9d4
+  diffHash: "sha256:93d6c47ba2fa4b4a18aaa38b0824fc610faf96e9b21bb27e1559c8245545ad37"
+  headCommit: 3207364243bb05c30e62326b836f686f4552d9d4
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MR87T1D4.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MR8GC6KT.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-06T00:07:15.895Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-06T00:07:19.703Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-06T00:07:23.772Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Metadata-only health backfill; no test code changed.
