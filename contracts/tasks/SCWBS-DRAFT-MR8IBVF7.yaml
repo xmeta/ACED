@@ -1,0 +1,33 @@
+id: SCWBS-DRAFT-MR8IBVF7
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR8IBVF7
+branchName: task/SCWBS-DRAFT-MR8IBVF7-fix-review-queue-completion-readiness-to-require
+allowedPaths:
+  - src/commands/review-queue.ts
+  - tests/scwbs.test.ts
+  - contracts/specs/SPEC-LITE-MR8IBVF7.yaml
+  - contracts/changesets/start-MR8IBVF7.json
+  - contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - review-queue does not list completion candidates as ready when their WBS node is not ready.
+  - next no longer recommends human completion review for candidates that completion apply would reject because the node is planned or inProgress.
+  - The regression covers a reviewed candidate on a non-ready WBS node.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
