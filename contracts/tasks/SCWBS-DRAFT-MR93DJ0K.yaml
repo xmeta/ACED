@@ -1,0 +1,26 @@
+id: SCWBS-DRAFT-MR93DJ0K
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR93DJ0K
+branchName: task/SCWBS-DRAFT-MR93DJ0K-doc-refactor-remove-stale-audit-handoff-docs-and
+allowedPaths:
+  - docs/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - "Complete Doc refactor| remove stale audit/handoff docs and fix duplicate links"
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

@@ -28,11 +28,10 @@ This file is intentionally short. Detailed methodology and tool operations are s
 
 - `docs/scwbs/README.md` - split-document index.
 - `docs/scwbs/overview.md` - basic policy, source-of-truth rules, flow, and bootstrap contract.
-- `docs/scwbs/wbs-json.md` - WBS-JSON operation policy.
+- `docs/scwbs/wbs-json.md` - WBS-JSON operation policy & WBS operation workflow and `scwbs wbs apply` usage.
 - `docs/scwbs/task-contract.md` - Task Contract and lock rules.
 - `docs/scwbs/ai-work-packet.md` - AI Work Packet rules.
 - `docs/scwbs/contract-enforcement.md` - `check-diff`, path constraints, the tool-only WBS gate, health checks, and branch workflow.
-- `docs/scwbs/wbs-json.md` - WBS operation workflow and `scwbs wbs apply` usage.
 - `docs/scwbs/evidence-human-gate-review.md` - Evidence, Human Gate, Review, DoD, and status management.
 - `docs/scwbs/operations-profile-and-specs.md` - profiles, principles, subtree phase, and Spec Contract files.
 - `docs/scwbs/cli-reference.md` - command examples.
