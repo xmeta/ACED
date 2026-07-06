@@ -1,0 +1,36 @@
+id: SCWBS-DRAFT-MR8URHAZ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR8URHAZ
+branchName: task/SCWBS-DRAFT-MR8URHAZ-design-blocked-review-completion-handoff-plan
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - A handoff plan documents the current blocked review candidate groups and the completion sequence.
+  - The plan identifies which follow-up tasks are safe to delegate to a lower-cost agent and which require the lead model.
+  - Evidence and check-diff prove this planning task stayed within contract scope.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: "sha256:4670070b63124fdf76637f2363817e8c82ccd21a223675d9b36df8dff41ef73e"
+  createdAt: "2026-07-06T06:49:28.055Z"
