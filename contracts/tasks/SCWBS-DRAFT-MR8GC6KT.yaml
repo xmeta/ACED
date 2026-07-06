@@ -1,0 +1,37 @@
+id: SCWBS-DRAFT-MR8GC6KT
+type: task-contract
+wbsNodeId: node-core-mvp-closeout
+featureId: F-MR8GC6KT
+branchName: task/SCWBS-DRAFT-MR8GC6KT-backfill-scwbs-draft-mr87t1d4-health-metadata
+allowedPaths:
+  - contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR87T1D4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+  - contracts/specs/SPEC-LITE-MR8GC6KT.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8GC6KT.yaml
+  - contracts/reviews/SCWBS-DRAFT-MR8GC6KT.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Clear SCWBS-DRAFT-MR87T1D4 contractLock and testQuality health warnings
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-core-mvp-closeout
+  specVersion: 0.1.0
+  specRevision: "sha256:660214dc0ac6976640c4a7a102651d9dcfb0ca002364f6576b633d929869c0c1"
+  createdAt: "2026-07-06T00:02:24.728Z"
