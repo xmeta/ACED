@@ -1,8 +1,14 @@
-﻿# SC-WBS Development References
+# SC-WBS Development References
 
-SC-WBS details are split here so agents can read only the files needed for the current task.
+SC-WBS details are split here so humans and agents can read only the files
+needed for the current task.
 
-Start with `../sc-wbs-development.md` for the short methodology hub.
+## Entry Points
+
+- `getting-started.md` - first-use walkthrough for humans in this repository.
+- `ai-agent-guide.md` - minimum-context rules for implementation and review AI.
+- `cli-reference.md` - detailed command examples.
+- `../sc-wbs-development.md` - short methodology hub.
 
 ## Methodology
 

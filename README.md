@@ -4,101 +4,24 @@
 
 > AI-Collaborative Spec Contract and WBS Driven Development
 
-The repository dogfoods SC-WBS through Task Contracts under `contracts/`. The bundled `wjs` submodule remains the canonical WBS-JSON implementation.
+The tool keeps AI-assisted work inside an explicit Task Contract. It records
+Evidence, checks changed files against the contract, and routes risky changes
+back to Human Gate instead of letting an AI guess.
 
-## SC-WBS Core Documentation Pack
+## Start Here
 
-This branch introduces `docs/sc-wbs-core/` as the lightweight, command-first Core documentation pack. Core narrows the default AI workflow to:
-
-```text
-Task Contract + Packet + Diff Guard + Evidence + Human Gate
-```
-
-Start here:
-
-| Reader | First document |
+| Reader | Read this first |
 |---|---|
-| Human / PM | `docs/sc-wbs-core/00-index.md` |
-| Implementation AI | `AGENTS.md` and the task packet |
-| CLI implementation AI | `docs/sc-wbs-core/07-cli-core-spec.md` and `docs/sc-wbs-core/03-minimal-artifacts.md` |
-| Migration work | `docs/sc-wbs-core/08-migration-plan.md` |
+| New human user | `docs/scwbs/getting-started.md` |
+| AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
+| AI reviewer | `docs/scwbs/ai-agent-guide.md` |
+| CLI/reference user | `docs/scwbs/cli-reference.md` |
+| SC-WBS Core designer | `docs/sc-wbs-core/00-index.md` |
 
-Core does not delete the existing methodology documents. The current detailed docs remain under `docs/scwbs/` and `docs/sc-wbs-development.md`.
+Do not start by reading every file under `docs/`. The intended workflow is
+small context first, deeper docs only when needed.
 
-Core should be read as the recommended simplification direction:
-
-- Default AI context should be `Task Contract + tiny packet`, not full-methodology docs.
-- `check-diff` is the primary mechanical guardrail.
-- Evidence should stay machine-oriented, centered on commits, changed files, checks, and diff identity.
-- WBS-JSON, registry, review queue, and richer governance remain Full-mode capabilities that can be adopted later.
-
-## Current CLI Status
-
-Core shorthand commands are being introduced as compatibility aliases. The long-form commands remain supported.
-
-Current long-form commands:
-
-```bash
-npm run scwbs -- next
-npm run scwbs -- start <goal>
-npm run scwbs -- ai packet --task <task-id> --relation-depth 1
-npm run scwbs -- evidence collect --task <task-id>
-npm run scwbs -- check-diff --task <task-id>
-npm run scwbs -- check-diff --task <task-id> --json
-npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
-```
-
-Current Core aliases:
-
-```bash
-npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
-npm run scwbs -- packet --task <task-id> --tiny
-npm run scwbs -- finish --task <task-id>
-npm run scwbs -- block "Human Gate required" --task <task-id>
-npm run scwbs -- request-approval --task <task-id> --pr "#123"
-npm run scwbs -- approve --task <task-id> --pr "#123" --reason "Reviewed"
-npm run scwbs -- wbs candidates
-npm run scwbs -- wbs verify-changesets --base base.wbs.json --head head.wbs.json --changeset change-set.json
-```
-
-Detailed current command examples live in `docs/scwbs/cli-reference.md`.
-The Core compatibility map lives in `docs/sc-wbs-core-revision/11-cli-compatibility-map.md`.
-
-Shortest Core flow:
-
-```bash
-npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
-npm run scwbs -- start <task-id>
-npm run scwbs -- packet --task <task-id> --tiny
-npm run scwbs -- finish --task <task-id>
-```
-
-When a project starts without `contracts/wbs/project.wbs.json`, tasks remain discoverable through `contracts/tasks/index.yaml`. Later, generate reviewable WBS candidates with `npm run scwbs -- wbs candidates`; WBS changes should be represented as changesets and can be checked with `wbs verify-changesets`.
-
-Practical reading order in the current repo:
-
-1. `AGENTS.md`
-2. The active `contracts/tasks/<task-id>.yaml`
-3. `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` only when the task needs more context
-4. `docs/sc-wbs-core/` when you are designing or implementing the guardrail system itself
-
-## What This Project Contains
-
-```text
-.
-├── src/                     # scwbs CLI source
-├── tests/                   # Vitest coverage for the CLI
-├── contracts/               # SC-WBS contracts for this repository
-├── docs/
-│   ├── sc-wbs-core/         # lightweight Core documentation pack
-│   ├── scwbs/               # current detailed SC-WBS docs
-│   └── sc-wbs-development.md
-├── wjs/                     # WBS-JSON submodule
-├── package.json
-└── tsconfig.json
-```
-
-## Development
+## Quick Start For This Repository
 
 Install dependencies:
 
@@ -106,33 +29,125 @@ Install dependencies:
 npm install
 ```
 
-Run checks:
+Inspect the next suggested action:
+
+```bash
+npm run scwbs -- next
+```
+
+Create a small task:
+
+```bash
+npm run scwbs -- task new "Update docs" --paths "docs/**"
+```
+
+Switch to the branch printed by the Task Contract, then start the task:
+
+```bash
+git switch -c <branchName>
+npm run scwbs -- start <task-id>
+```
+
+Give an AI the smallest useful context:
+
+```bash
+npm run scwbs -- packet --task <task-id> --tiny
+```
+
+Finish with machine checks instead of a handwritten Done claim:
 
 ```bash
 npm test
 npm run typecheck
 npm run build
+npm run scwbs -- check
+npm run scwbs -- evidence collect --task <task-id>
+npm run scwbs -- check-diff --task <task-id>
+npm run scwbs -- registry rebuild --check
 ```
 
-Run the CLI during development:
+For a walkthrough with decision points, use
+`docs/scwbs/getting-started.md`.
+
+## What AI Agents Must Not Do
+
+- Do not work without a Task Contract.
+- Do not change files outside `allowedPaths`.
+- Do not change `forbiddenPaths`.
+- Do not treat implementation notes or chat as Ground Truth.
+- Do not approve Human Gate decisions on behalf of a human.
+- Do not call a task Done until Evidence and `check-diff` pass.
+
+The current repository-specific rules are in `AGENTS.md`.
+
+## Current Command Surface
+
+Run all CLI commands through the npm script while working in this repository:
 
 ```bash
 npm run scwbs -- --help
 ```
 
+Common commands:
+
+```bash
+npm run scwbs -- next
+npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
+npm run scwbs -- start <task-id>
+npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+npm run scwbs -- evidence collect --task <task-id>
+npm run scwbs -- check-diff --task <task-id>
+npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
+```
+
+Detailed examples live in `docs/scwbs/cli-reference.md`.
+
+## Repository Layout
+
+```text
+.
+├── src/                     # scwbs CLI source
+├── tests/                   # Vitest coverage for the CLI
+├── contracts/               # SC-WBS contracts for this repository
+├── docs/
+│   ├── scwbs/               # current user and tool docs
+│   ├── sc-wbs-core/         # lightweight Core documentation pack
+│   └── sc-wbs-core-revision/ # draft revision notes, not current rules
+├── wjs/                     # WBS-JSON submodule
+├── package.json
+└── tsconfig.json
+```
+
+## Source Of Truth
+
+- Current execution rules: `AGENTS.md` and the active Task Contract.
+- Task scope: `contracts/tasks/<task-id>.yaml`.
+- Completion evidence: `contracts/evidence/<task-id>.yaml`.
+- Current command examples: `docs/scwbs/cli-reference.md`.
+- Core target design: `docs/sc-wbs-core/`.
+- Draft future design: `docs/sc-wbs-core-revision/`.
+
+When these disagree during real work, prefer `AGENTS.md` and the active Task
+Contract.
+
 ## MVP Scope
 
 Implemented in v0.1:
 
-- Contract, Evidence, WBS, diff, and health validation
-- AI work packets, review queues, approval requests, and lightweight orchestration helpers
-- WJS-backed WBS validation, semantic operation application, and change-set checks
-- WBS-less task index operation, WBS candidate generation, and WBS changeset reproduction checks
-- Branch-per-task safeguards and Evidence git metadata
-- Text-first dashboard, trace, next-action, profile, registry, and draft-generation commands
+- Contract, Evidence, WBS, diff, and health validation.
+- AI work packets, review queues, approval requests, and lightweight
+  orchestration helpers.
+- WJS-backed WBS validation, semantic operation application, and changeset
+  checks.
+- WBS-less task index operation, WBS candidate generation, and WBS changeset
+  reproduction checks.
+- Branch-per-task safeguards and Evidence git metadata.
+- Text-first dashboard, trace, next-action, profile, registry, and
+  draft-generation commands.
 
 Not included yet:
 
-- Web UI beyond the initial text dashboard / `serve` stub
-- SQLite index
-- Full Core migration items that still require dedicated contracts beyond the Core guardrail path
+- Web UI beyond the initial text dashboard / `serve` stub.
+- SQLite index.
+- Fully external installer experience.
