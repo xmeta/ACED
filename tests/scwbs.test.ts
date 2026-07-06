@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -726,6 +726,17 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     const taskId = taskFileName!.replace(/\.yaml$/, "");
     const { task } = readTask(root, taskId);
     expect(task?.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+  });
+
+  test("help flags do not run mutating commands", () => {
+    const root = makeTempRepo();
+
+    expect(main(["start", "--help"], root)).toBe(0);
+    expect(main(["task", "new", "--help"], root)).toBe(0);
+
+    expect(existsSync(path.join(root, "contracts/specs"))).toBe(false);
+    expect(existsSync(path.join(root, "contracts/tasks"))).toBe(false);
+    expect(existsSync(path.join(root, "contracts/changesets"))).toBe(false);
   });
 
   test("ai packet includes WBS node, task contract, and stop conditions", () => {

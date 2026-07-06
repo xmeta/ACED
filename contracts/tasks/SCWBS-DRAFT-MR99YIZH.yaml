@@ -1,0 +1,31 @@
+id: SCWBS-DRAFT-MR99YIZH
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR99YIZH
+branchName: task/SCWBS-DRAFT-MR99YIZH-fix-help-flags-for-mutating-commands
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Fix help flags for mutating commands
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

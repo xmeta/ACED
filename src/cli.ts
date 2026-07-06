@@ -148,7 +148,7 @@ function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
   const [command, subcommand, third] = argv;
 
-  if (!command || command === "--help" || command === "-h") {
+  if (!command || argv.includes("--help") || argv.includes("-h")) {
     usage();
     return 0;
   }
