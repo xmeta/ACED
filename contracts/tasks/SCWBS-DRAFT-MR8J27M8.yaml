@@ -1,0 +1,37 @@
+id: SCWBS-DRAFT-MR8J27M8
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR8J27M8
+branchName: task/SCWBS-DRAFT-MR8J27M8-backfill-scwbs-draft-mr8ibvf7-health-metadata
+allowedPaths:
+  - contracts/specs/SPEC-LITE-MR8J27M8.yaml
+  - contracts/changesets/start-MR8J27M8.json
+  - contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8J27M8.yaml
+  - contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+  - contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - SCWBS-DRAFT-MR8IBVF7 has contractLock metadata for its current WBS node.
+  - SCWBS-DRAFT-MR8IBVF7 Evidence has testQuality metadata for its test changes.
+  - scwbs health no longer reports warnings for SCWBS-DRAFT-MR8IBVF7.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-06T01:15:35.349Z"
