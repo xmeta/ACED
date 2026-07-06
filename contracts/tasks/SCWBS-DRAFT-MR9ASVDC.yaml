@@ -1,0 +1,30 @@
+id: SCWBS-DRAFT-MR9ASVDC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MR9ASVDC
+branchName: task/SCWBS-DRAFT-MR9ASVDC-improve-beginner-and-ai-documentation
+allowedPaths:
+  - README.md
+  - docs/**
+  - contracts/tasks/**
+  - contracts/evidence/**
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Improve beginner and AI documentation
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

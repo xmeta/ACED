@@ -4,6 +4,10 @@ SC-WBS Development is AI-Collaborative Spec Contract and WBS Driven Development.
 
 This file is intentionally short. Detailed methodology and tool operations are split under `docs/scwbs/` so agents can read only the context needed for a task.
 
+For first-time usage, start with `docs/scwbs/getting-started.md`.
+For AI implementation or review work, start with `docs/scwbs/ai-agent-guide.md`
+and the active Task Contract.
+
 ## Canonical Sources
 
 - WBS source of truth: `contracts/wbs/project.wbs.json`
@@ -26,6 +30,8 @@ This file is intentionally short. Detailed methodology and tool operations are s
 
 ## Detailed References
 
+- `docs/scwbs/getting-started.md` - first-use walkthrough for humans.
+- `docs/scwbs/ai-agent-guide.md` - minimum-context rules for implementation and review AI.
 - `docs/scwbs/README.md` - split-document index.
 - `docs/scwbs/overview.md` - basic policy, source-of-truth rules, flow, and bootstrap contract.
 - `docs/scwbs/wbs-json.md` - WBS-JSON operation policy & WBS operation workflow and `scwbs wbs apply` usage.
