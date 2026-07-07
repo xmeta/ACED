@@ -1,0 +1,29 @@
+id: SCWBS-DRAFT-MRAU2ILG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAU2ILG
+branchName: task/SCWBS-DRAFT-MRAU2ILG-packet-agents-md-packet-readme-packetlevel
+allowedPaths:
+  - AGENTS.md
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Plan and implement: packet: AGENTS.md の packet 表記と README の不整合、PacketLevel 型未使用の解消'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
