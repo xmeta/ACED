@@ -151,10 +151,17 @@ Switch to the branch printed by the Task Contract:
 git switch -c <branchName>
 ```
 
+Tests are split into two groups:
+
+- `tests/unit/` – fast, lightweight tests used by the default `npm test` command.
+- `tests/integration/` – heavier tests that create temporary Git repositories.
+
 Run the full local verification set:
 
 ```bash
-npm test
+npm test                    # unit tests only (fast)
+npm run test:integration    # integration tests (heavier)
+npm run test:all            # all tests
 npm run typecheck
 npm run build
 npm run scwbs -- check
@@ -207,7 +214,10 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
 ```text
 .
 ├── src/                     # scwbs CLI source
-├── tests/                   # Vitest coverage for the CLI
+├── tests/
+│   ├── unit/                # fast unit tests (npm test)
+│   ├── integration/         # heavier integration tests (npm run test:integration)
+│   └── helpers.ts           # shared test utilities
 ├── contracts/               # SC-WBS contracts for this repository
 ├── docs/
 │   ├── scwbs/               # current user and tool docs

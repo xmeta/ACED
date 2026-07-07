@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { runInit } from "../src/commands/init.js";
-import { validateWbsDocument } from "../src/core/wbs.js";
-import { type WbsDocument } from "../src/core/types.js";
-import { makeTempRepo, sampleWbs, writeJson } from "./helpers.js";
+import { runInit } from "../../src/commands/init.js";
+import { validateWbsDocument } from "../../src/core/wbs.js";
+import { type WbsDocument } from "../../src/core/types.js";
+import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
 
 describe("init + WBS validation", () => {
   test("init creates a valid minimal WJS document", () => {
