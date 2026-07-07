@@ -28,8 +28,8 @@ export type DoctorFixStep = {
 
 const FIX_RECIPES: Record<string, DoctorFixStep> = {
   "root.node_modules": { command: "npm", args: ["install"], cwd: "." },
-  "wjs.node_modules": { command: "npm", args: ["install", "--prefix", "wjs"], cwd: "." },
-  "wjs.esbuild": { command: "npm", args: ["install", "--prefix", "wjs"], cwd: "." }
+  "wjs.node_modules": { command: "npm", args: ["install"], cwd: "." },
+  "wjs.esbuild": { command: "npm", args: ["install"], cwd: "." }
 };
 
 function runShellVersion(command: string, args: string[]): string {
@@ -83,21 +83,24 @@ export function collectEnvironmentDiagnostics(root: string): DoctorDiagnostic[] 
   });
 
   const wjsNm = resolveFrom(root, "wjs/node_modules");
+  const rootEsbuild = resolveFrom(root, "node_modules/@esbuild");
+  const wjsDepsOk = existsSync(wjsNm) || existsSync(rootEsbuild);
   diagnostics.push({
     id: "wjs.node_modules",
     label: "wjs dependencies installed",
-    status: existsSync(wjsNm) ? "pass" : "fail",
-    message: existsSync(wjsNm) ? "wjs/node_modules present" : "wjs/node_modules is missing",
-    fix: "Run: npm install --prefix wjs"
+    status: wjsDepsOk ? "pass" : "fail",
+    message: wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
+    fix: "Run: npm install"
   });
 
   const esbuildPkg = resolveFrom(root, "wjs/node_modules/@esbuild");
+  const esbuildOk = existsSync(esbuildPkg) || existsSync(rootEsbuild);
   diagnostics.push({
     id: "wjs.esbuild",
     label: "wjs esbuild resolved",
-    status: existsSync(esbuildPkg) ? "pass" : "fail",
-    message: existsSync(esbuildPkg) ? "@esbuild present" : "@esbuild missing under wjs/node_modules",
-    fix: "Run: npm install --prefix wjs"
+    status: esbuildOk ? "pass" : "fail",
+    message: esbuildOk ? "esbuild present" : "esbuild missing",
+    fix: "Run: npm install"
   });
 
   const registryPath = resolveFrom(root, "contracts/registry.yaml");
