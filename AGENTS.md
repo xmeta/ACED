@@ -49,6 +49,8 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明�
 
 Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
 
+CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
+
 ## 作業開始時
 
 1. 対象 Task Contract を読む。
