@@ -1,0 +1,32 @@
+id: SCWBS-DRAFT-MRAAQJKB
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAAQJKB
+branchName: task/SCWBS-DRAFT-MRAAQJKB-clarify-docs-source-of-truth-navigation-for-gith
+allowedPaths:
+  - AGENTS.md
+  - README.md
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Clarify docs source-of-truth navigation for GitHub issue #110.
+  - Align README setup/Core workflow documentation with current CLI for GitHub issue #105.
+  - Align AGENTS.md command guidance with current CLI aliases for GitHub issue #99.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

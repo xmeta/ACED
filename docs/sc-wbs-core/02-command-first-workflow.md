@@ -32,7 +32,7 @@ scwbs start WBS-001
 scwbs packet --tiny
 ```
 
-AIに渡すのは `packet --tiny` の出力を基本とする。現行 ACED では `packet --tiny` が未実装なので、Task Contract を先に渡し、必要時だけ `ai packet` を補う。
+AIに渡すのは `packet --tiny` の出力を基本とする。現行 ACED では `packet --tiny` が実装済みである。Task Contract を先に読み、必要時だけ `ai packet` を補う。
 
 ### 3. AIが作業する
 

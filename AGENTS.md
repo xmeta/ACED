@@ -16,17 +16,23 @@ Done は自己申告ではなく Evidence / check-diff / required checks で判�
 
 ## 現行 ACED で使うコマンド
 
-Core 文書では将来の短縮形として `scwbs finish` や `scwbs packet --tiny` を定義している。ただし、現行 ACED CLI ではまだ同名実装がそろっていない。
+現行 ACED CLI では Core alias と詳細コマンドの両方を使える。実作業では必ず npm script 経由で実行する。
 
-このリポジトリで実作業を行うAIは、まず Task Contract を最小コンテキストとして読み、追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を補助的に使う。現行実装で使うコマンドは次の npm script 経由コマンドである。
+AI が使ってよい最小フロー:
 
 ```bash
 npm run scwbs -- next
 npm run scwbs -- start <goal>
-npm run scwbs -- ai packet --task <task-id> --relation-depth 1
-npm run scwbs -- evidence collect --task <task-id>
+npm run scwbs -- packet --task <task-id> --tiny
 npm run scwbs -- check-diff --task <task-id>
-npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
+npm run scwbs -- finish --task <task-id>
+npm run scwbs -- block "Human Gate required" --task <task-id>
+```
+
+追加文脈が必要な場合だけ、詳細 packet を補助的に使う。
+
+```bash
+npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 ```
 
 通常の検証:
@@ -41,18 +47,20 @@ npm run scwbs -- registry rebuild --check
 
 YAML/JSONを直接編集してはならない。ただし、ユーザーが明示的に「スキーマや仕様の実装」または「Task Contract / Evidence / registry の更新」を依頼した場合は、その契約範囲内でのみ編集してよい。
 
+Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
+
 ## 作業開始時
 
 1. 対象 Task Contract を読む。
 2. `branchName`、`allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`requiredChecks`、`doneCriteria` を確認する。
 3. 現在 branch が Task Contract の `branchName` と一致しているか確認する。
 4. まず Task Contract を優先コンテキストとして扱う。
-5. 追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
+5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id> --tiny` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
 6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
 
 ## 実装中の停止条件
 
-次のいずれかに該当する場合、実装を続けず `npm run scwbs -- ai block --task <task-id> --reason "<reason>"` を使う。
+次のいずれかに該当する場合、実装を続けず `npm run scwbs -- block "<reason>" --task <task-id>` を使う。
 
 - DBスキーマ変更が必要
 - migration追加が必要
@@ -70,11 +78,11 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明�
 作業後は手書きの完了報告だけで終えず、現行 CLI で Evidence と差分検査を通す。
 
 ```bash
-npm run scwbs -- evidence collect --task <task-id>
+npm run scwbs -- finish --task <task-id>
 npm run scwbs -- check-diff --task <task-id>
 ```
 
-Evidence 生成後に追加コミットや差分変更をした場合は、Evidence を再生成する。勝手に Approval を approved にしてはいけない。
+`finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。勝手に Approval を approved にしてはいけない。
 
 ## レビュー時
 
