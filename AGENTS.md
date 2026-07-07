@@ -24,7 +24,6 @@ AI が使ってよい最小フロー:
 npm run scwbs -- next
 npm run scwbs -- start <goal>
 npm run scwbs -- packet --task <task-id> --tiny
-npm run scwbs -- check-diff --task <task-id>
 npm run scwbs -- finish --task <task-id>
 npm run scwbs -- block "Human Gate required" --task <task-id>
 ```
@@ -77,12 +76,18 @@ CI が通るまでマージしてはいけない。merge 前に CI status を確
 
 ## 完了時
 
-作業後は手書きの完了報告だけで終えず、現行 CLI で Evidence と差分検査を通す。
+作業後は手書きの完了報告だけで終えず、`finish` で Evidence 収集・差分検査・registry チェックを一括実行する。
 
 ```bash
 npm run scwbs -- finish --task <task-id>
-npm run scwbs -- check-diff --task <task-id>
 ```
+
+`finish` は以下の処理を自動で行う。
+- requiredChecks 実行
+- Evidence 更新
+- check-diff（allowedPaths/forbiddenPaths/humanGatePaths 検査）
+- registry 整合性チェック
+- Human Gate 検出と次アクション表示
 
 `finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。勝手に Approval を approved にしてはいけない。
 

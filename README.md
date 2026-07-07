@@ -83,12 +83,13 @@ npm run scwbs -- packet --task <task-id> --standard
 npm run scwbs -- packet --task <task-id> --full
 ```
 
-Finish with machine checks, Evidence, and diff validation:
+Finish with required checks, Evidence, diff validation, and registry check in a single command:
 
 ```bash
 npm run scwbs -- finish --task <task-id>
-npm run scwbs -- check-diff --task <task-id>
 ```
+
+`finish` runs everything automatically: required checks, Evidence collection, diff guard, and registry consistency check. It also detects Human Gate paths and shows the next action for human reviewers.
 
 If a stop condition is hit, block instead of guessing:
 
@@ -172,8 +173,7 @@ npm run test:all            # all tests
 npm run typecheck
 npm run build
 npm run scwbs -- check
-npm run scwbs -- evidence collect --task <task-id>
-npm run scwbs -- check-diff --task <task-id>
+npm run scwbs -- finish --task <task-id>
 npm run scwbs -- registry rebuild --check
 ```
 
@@ -209,9 +209,7 @@ npm run scwbs -- packet --task <task-id>           # tiny (default)
 npm run scwbs -- packet --task <task-id> --standard
 npm run scwbs -- packet --task <task-id> --full
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
-npm run scwbs -- evidence collect --task <task-id>
-npm run scwbs -- check-diff --task <task-id>
-npm run scwbs -- finish --task <task-id>
+npm run scwbs -- finish --task <task-id>           # standard completion command
 npm run scwbs -- block "Human Gate required" --task <task-id>
 npm run scwbs -- request-approval --task <task-id> --pr <number>
 ```
