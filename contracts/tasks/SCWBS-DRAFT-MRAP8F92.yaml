@@ -1,0 +1,30 @@
+id: SCWBS-DRAFT-MRAP8F92
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAP8F92
+branchName: task/SCWBS-DRAFT-MRAP8F92-refactor-migrate-cli-args-parser-to-commander
+allowedPaths:
+  - src/cli.ts
+  - src/core/args.ts
+  - package.json
+  - package-lock.json
+  - tests/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete refactor: migrate CLI args parser to commander'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
