@@ -23,7 +23,7 @@ AI が使ってよい最小フロー:
 ```bash
 npm run scwbs -- next
 npm run scwbs -- start <goal>
-npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- packet --task <task-id>
 npm run scwbs -- finish --task <task-id>
 npm run scwbs -- block "Human Gate required" --task <task-id>
 ```
@@ -56,7 +56,7 @@ CI が通るまでマージしてはいけない。merge 前に CI status を確
 2. `branchName`、`allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`requiredChecks`、`doneCriteria` を確認する。
 3. 現在 branch が Task Contract の `branchName` と一致しているか確認する。
 4. まず Task Contract を優先コンテキストとして扱う。
-5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id> --tiny` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
+5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id>` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
 6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
 
 ## 実装中の停止条件
