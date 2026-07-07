@@ -12,101 +12,79 @@ Context が足りないときだけ段階的に増やす。
 
 ## Packet Level
 
-### Tiny Packet
+3段階のPacket Levelを用意する。
 
-既定は Tiny Packet とする。
+### Tiny Packet (`--tiny`)
 
-```yaml
-taskId: WBS-001
-title: staff search API implementation
-goal: staff search APIを実装する
+既定は Tiny Packet とする。タスクID、Objective、Paths、Checks、Next のみを含む。
 
-allowedPaths:
-  - src/features/staff-search/**
-  - tests/features/staff-search/**
-
-forbiddenPaths:
-  - src/auth/**
-  - src/database/**
-  - migrations/**
-  - package.json
-
-humanGateRequiredPaths:
-  - src/security/**
-  - src/permissions/**
-  - openapi/**
-
-stopIf:
-  - DB schema change needed
-  - auth/permission change needed
-  - API breaking change needed
-  - business rule unclear
-  - allowedPaths insufficient
-
-checks:
-  - npm test
-  - npm run typecheck
-
-whenDone:
-  - scwbs finish
-whenBlocked:
-  - scwbs block "<reason>"
+```text
+# Tiny Packet
+Task: WBS-001-004
+Node: API Implementation
+Objective:
+- staff search APIを実装する
+Allowed:
+- src/features/staff-search/**
+Forbidden:
+- src/database/**
+Human Gate:
+- src/security/**
+Checks:
+- npm test
+- npm run typecheck
+Next:
+- npm run scwbs -- finish --task WBS-001-004
+- npm run scwbs -- block "reason" --task WBS-001-004
 ```
 
-Tiny Packet には、AIが作業を始めるための最低限だけを含める。Task Contract 単体で足りる作業では、Task Contract 自体を Tiny Packet の代用として扱ってよい。
+Tiny Packet には、AIが作業を始めるための最低限だけを含める。
+以下の情報は含めない：
+- 長い方法論説明
+- 詳細な背景文書
+- 過去のレビュー全文
+- 不要なWBS全体
+- 関連性の低いdocs
 
-### Normal Packet
+### Standard Packet (`--standard`)
 
 AIが追加コンテキストを必要とした場合だけ使う。
 
-```yaml
-acceptanceCriteria:
-  - 権限のないユーザーは検索できない
-  - 名前・資格・稼働状況で検索できる
-  - 空結果は正常レスポンスとして返す
-
-specSlice:
-  feature: staff-search
-  inputs:
-    - name
-    - qualification
-    - availability
-  outputs:
-    - staffId
-    - displayName
-    - qualifications
-  errors:
-    - 401 unauthorized
-    - 403 forbidden
-
-relatedFiles:
-  - docs/specs/staff-search.md#api
+```bash
+scwbs packet --task WBS-001 --standard
 ```
 
-### Deep Packet
+Standard Packet には、Tiny Packet の内容に加えて以下を含める：
+- WBS Node の詳細（Code、Type、Status、Feature）
+- Subtree Phase
+- Depends On
+- Context Filter（relation depth 0）
+- Related Relations
+- Output Artifacts
+- Stop Conditions（日本語の7条件）
+
+### Full Packet (`--full`)
 
 設計判断、影響範囲調査、レビューなどに限って使う。
 
 ```bash
-scwbs packet --task WBS-001 --deep
+scwbs packet --task WBS-001 --full
 ```
 
-Deep Packet には、関連WBS、ADR、周辺仕様、依存タスクなどを含めてよい。
+Full Packet には、Standard Packet の内容に加えて relation depth 1 の関連WBSノードを含める。
 ただし、実装AIの通常作業では使わない。
 
 ## Packetに必ず全文で含めるもの
 
 次は要約してはいけない。
 
-- `goal`
+- `objective`
 - `allowedPaths`
 - `forbiddenPaths`
 - `humanGateRequiredPaths`
-- `stopIf`
-- `checks`
-- `whenDone`
-- `whenBlocked`
-- Acceptance Criteria。ただし長い場合は該当タスク分だけの Spec Slice にする。
+- `requiredChecks`
+- `acceptance criteria`
+- `explicit instructions`（Next: finish / block）
 
 ## Packetで要約してよいもの
 
@@ -128,7 +106,7 @@ AIは、すぐに全文読み込みを要求してはいけない。まず不足
 - 権限エラー時のHTTP status
 
 推奨:
-scwbs packet --task WBS-001 --include acceptanceCriteria
+scwbs packet --task WBS-001 --standard
 ```
 
 ## 実装AIに渡す標準プロンプト

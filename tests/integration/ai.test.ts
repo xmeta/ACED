@@ -299,6 +299,73 @@ describe("AI commands", () => {
     expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
     expect(packet).toContain('npm run scwbs -- block "reason" --task WBS-001-004');
     expect(packet).not.toContain("Context Filter");
+    expect(packet).toContain("Objective:");
+    expect(packet).not.toContain("Goal:");
+  });
+
+  test("core packet standard outputs full packet with relation depth 0", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["packet", "--task", "WBS-001-004", "--standard"], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+
+    const packet = output.join("");
+    expect(packet).toContain("# AI Work Packet");
+    expect(packet).toContain("Allowed Paths");
+    expect(packet).toContain("Stop Conditions");
+  });
+
+  test("core packet full outputs deep packet with relation depth 1", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["packet", "--task", "WBS-001-004", "--full"], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+
+    const packet = output.join("");
+    expect(packet).toContain("# AI Work Packet");
+    expect(packet).toContain("Relation depth: 1");
+  });
+
+  test("core packet defaults to tiny when no size flag given", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["packet", "--task", "WBS-001-004"], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+
+    const packet = output.join("");
+    expect(packet).toContain("# Tiny Packet");
+    expect(packet).toContain("Objective:");
+    expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
   });
 
   test("core command aliases route to existing approval and block commands", () => {

@@ -1,0 +1,32 @@
+id: SCWBS-DRAFT-MRALKALX
+type: task-contract
+wbsNodeId: node-packet-tiny-standard-full-3-tiny
+featureId: F-MRALKALX
+branchName: task/SCWBS-DRAFT-MRALKALX-packet-tiny-standard-full-3-tiny
+allowedPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - packet --tiny から Branch行削除、Goal→Objective リネーム
+  - packet コマンドに --standard/--full 追加、デフォルト --tiny 化
+  - 3段階のPacket Levelの動作確認テスト追加
+  - 関連ドキュメント更新（README, 04-ai-work-packet, 07-cli-core-spec）
+  - typecheck/test/build が PASS すること
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

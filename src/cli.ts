@@ -55,7 +55,7 @@ function usage(): void {
   scwbs next
   scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--stop <reason,reason>] [--checks <name,name>] [--wbs-node <node-id>]
   scwbs start <goal>
-  scwbs packet --task <task-id> --tiny
+  scwbs packet --task <task-id> [--tiny|--standard|--full]
   scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
   scwbs block "reason" --task <task-id> [--spec-change]
   scwbs request-approval --task <task-id> [--pr <number>] [--note <text>]
@@ -112,16 +112,20 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       console.error("Missing --task <task-id>");
       return 2;
     }
-    if (argv.includes("--tiny")) {
-      try {
-        process.stdout.write(buildTinyPacket(root, taskId));
-        return 0;
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error));
-        return 1;
-      }
+    if (argv.includes("--full") || argv.includes("--deep")) {
+      return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1), "default");
     }
-    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 0), "default");
+    if (argv.includes("--standard") || argv.includes("--normal")) {
+      return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 0), "default");
+    }
+    // --tiny is the default
+    try {
+      process.stdout.write(buildTinyPacket(root, taskId));
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
   }
   if (command === "block") {
     const taskId = valueAfter(argv, "--task");
