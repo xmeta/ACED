@@ -1,0 +1,34 @@
+id: SCWBS-DRAFT-MRARHNVE
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRARHNVE
+branchName: task/SCWBS-DRAFT-MRARHNVE-finish-ai
+allowedPaths:
+  - src/commands/finish.ts
+  - README.md
+  - AGENTS.md
+  - docs/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete finish をAI作業の標準完了コマンドとして一本化する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml
+  - contracts/tasks/index.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRARHNVE.yaml
+  - contracts/registry.yaml
