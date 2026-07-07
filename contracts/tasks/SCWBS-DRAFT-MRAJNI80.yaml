@@ -1,0 +1,29 @@
+id: SCWBS-DRAFT-MRAJNI80
+type: task-contract
+wbsNodeId: node-project
+featureId: F-MRAJNI80
+branchName: task/ISSUE-102-split-tests
+allowedPaths:
+  - tests/**
+  - package.json
+  - vitest.config.ts
+  - README.md
+forbiddenPaths:
+  - src/**
+  - wjs/**
+  - contracts/wbs/**
+humanGateRequiredPaths: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - npm test completes in under 5 seconds
+  - Integration tests are split into tests/integration/
+  - Unit tests are in tests/unit/
+  - npm run test:all runs all tests
+  - README documents the test split boundary
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

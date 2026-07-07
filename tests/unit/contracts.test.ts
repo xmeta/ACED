@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { collectCheckIssues } from "../src/commands/check.js";
-import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "./helpers.js";
-import type { WbsDocument } from "../src/core/types.js";
+import { collectCheckIssues } from "../../src/commands/check.js";
+import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
+import type { WbsDocument } from "../../src/core/types.js";
 
 describe("contracts / schema", () => {
   test("spec contracts are first-class files with required metadata", () => {

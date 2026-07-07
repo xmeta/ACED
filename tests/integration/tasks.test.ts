@@ -2,15 +2,15 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { collectCheckIssues, runCheck } from "../src/commands/check.js";
+import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
 
-import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
-import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../src/commands/task-new.js";
-import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
-import { buildTaskRefreshPreview, runTaskRefresh } from "../src/commands/task-refresh.js";
-import { buildWbsCandidatesFromTaskIndex } from "../src/commands/wbs.js";
-import { buildNextTask } from "../src/commands/ai-queue.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "./helpers.js";
+import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
+import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
+import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
+import { buildTaskRefreshPreview, runTaskRefresh } from "../../src/commands/task-refresh.js";
+import { buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
+import { buildNextTask } from "../../src/commands/ai-queue.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("task management", () => {
   test("check errors when contract lock wbs node id is stale", () => {
