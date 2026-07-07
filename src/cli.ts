@@ -32,10 +32,17 @@ import { runServe, runUi } from "./commands/ui.js";
 import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
 import type { Evidence } from "./core/types.js";
 
+function parseBool(val: unknown): boolean | undefined {
+  if (val === undefined || val === "") return undefined;
+  if (val === true || val === "true") return true;
+  if (val === false || val === "false") return false;
+  return undefined;
+}
+
 function parseTestQuality(opts: Record<string, unknown>): Evidence["testQuality"] | undefined {
-  const assertionsAdded = opts.testAssertionsAdded as boolean | undefined;
-  const testsDisabled = opts.testsDisabled as boolean | undefined;
-  const coverageDecreased = opts.coverageDecreased as boolean | undefined;
+  const assertionsAdded = parseBool(opts.testAssertionsAdded);
+  const testsDisabled = parseBool(opts.testsDisabled);
+  const coverageDecreased = parseBool(opts.coverageDecreased);
   const note = opts.testQualityNote as string | undefined;
   if (assertionsAdded === undefined && testsDisabled === undefined && coverageDecreased === undefined && note === undefined) {
     return undefined;
