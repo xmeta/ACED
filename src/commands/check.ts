@@ -175,7 +175,8 @@ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
     issues.push({
       severity: "error",
       code: "wbs.changeset.required",
-      message: "contracts/wbs/project.wbs.json was modified without a corresponding contracts/changesets/*.json; run scwbs wbs apply instead of editing the WBS directly"
+      message: "WBS direct edit detected: contracts/wbs/project.wbs.json was modified directly. Create a changeset under contracts/changesets/ and apply it via `npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json` instead of editing the WBS canonical file by hand.",
+      fixCommand: "Create a changeset under contracts/changesets/ then run: npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json"
     });
   }
   return issues;

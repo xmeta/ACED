@@ -40,6 +40,9 @@ describe("misc", () => {
 
     const issues = collectCheckIssues(root);
     expect(issues.some((issue) => issue.code === "wbs.changeset.required")).toBe(true);
+    const wbsIssue = issues.find((issue) => issue.code === "wbs.changeset.required");
+    expect(wbsIssue?.message).toContain("WBS direct edit detected");
+    expect(wbsIssue?.fixCommand).toContain("wbs apply contracts/changesets/");
 
     writeJson(root, "contracts/changesets/SCWBS-023-wbs-tool-only.json", {
       schemaVersion: "0.1.0",

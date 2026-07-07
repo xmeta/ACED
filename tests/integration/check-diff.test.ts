@@ -160,7 +160,11 @@ describe("check-diff", () => {
   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
     const root = makeTempRepo();
     const task = sampleTask({ allowedPaths: ["contracts/**"] });
-    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(true);
+    const issues = collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]);
+    expect(issues.some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(true);
+    const wbsIssue = issues.find((issue) => issue.code === "diff.wbs.changeset.required");
+    expect(wbsIssue?.fixCommand).toContain("wbs apply contracts/changesets/");
+    expect(wbsIssue?.message).toContain("WBS direct edit detected");
     expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json", "contracts/changesets/change.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(false);
   });
 
