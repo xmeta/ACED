@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { Profile } from "./types.js";
 
 export const defaultWbsPath = "contracts/wbs/project.wbs.json";
 export const defaultRegistryPath = "contracts/registry.yaml";
@@ -9,6 +10,24 @@ export const defaultEvidenceDir = "contracts/evidence";
 export const defaultApprovalsDir = "contracts/approvals";
 export const defaultReviewsDir = "contracts/reviews";
 export const defaultBlocksDir = "contracts/blocks";
+export const defaultChangesetsDir = "contracts/changesets";
+
+export function profileRequiredDirs(profile: Profile): string[] {
+  const dirs: string[] = [
+    defaultTasksDir,
+    defaultEvidenceDir,
+    defaultApprovalsDir,
+    defaultChangesetsDir,
+    "contracts/wbs",
+  ];
+  if (profile === "Standard" || profile === "Strict") {
+    dirs.push(defaultReviewsDir);
+  }
+  if (profile === "Strict") {
+    dirs.push(defaultSpecsDir, defaultSpecChangesDir);
+  }
+  return dirs;
+}
 
 export function resolveFrom(root: string, relativePath: string): string {
   return path.resolve(root, relativePath);

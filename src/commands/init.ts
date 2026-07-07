@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultTasksDir, defaultWbsPath, resolveFrom } from "../core/paths.js";
+import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
 
@@ -57,7 +57,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
     return 2;
   }
 
-  for (const dir of [defaultTasksDir, defaultEvidenceDir, defaultApprovalsDir, "contracts/wbs"]) {
+  for (const dir of profileRequiredDirs(profile)) {
     mkdirSync(resolveFrom(root, dir), { recursive: true });
   }
 

@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
 import { readTask } from "../core/contracts.js";
-import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.js";
+import { readProfile } from "./profile.js";
 import { findNode, readWbs } from "../core/wbs.js";
-import type { AiPacketFormat, WbsDocument, WbsNode } from "../core/types.js";
+import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
 
 function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): Set<string> {
   const selected = new Set<string>([node.id]);
@@ -47,6 +48,10 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1, f
   if (!task) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
+
+  const profile: Profile = readProfile(root);
+  const artifactDirs = profileRequiredDirs(profile);
+
   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
     return `# AI Work Packet
 
@@ -55,6 +60,10 @@ Implementation Agent
 
 ## Task
 ${task.id} ${task.doneCriteria[0] ?? ""}
+
+## Profile
+- Profile: ${profile}
+- Active artifact directories: ${artifactDirs.join(", ")}
 
 ## WBS Node
 - Node ID: ${task.wbsNodeId}
@@ -77,6 +86,8 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
 
 ## Context Filter
+- Profile: ${profile}
+- Active artifact directories: ${artifactDirs.join(", ")}
 - Relation depth: ${Math.max(0, relationDepth)}
 - Included WBS nodes: 0
 - Rule: WBS-less packet uses the Task Contract only.
@@ -128,6 +139,10 @@ ${task.id} ${node.name}
 - Status: ${node.status ?? "planned"}
 - Feature: ${task.featureId}
 
+## Profile
+- Profile: ${profile}
+- Active artifact directories: ${artifactDirs.join(", ")}
+
 ## Subtree Phase
 - Phase: ${subtreePhase(wbs, node)}
 
@@ -151,6 +166,8 @@ ${formatHint}
 ${dependsOn.map((item) => `- ${item}`).join("\n") || "- None"}
 
 ## Context Filter
+- Profile: ${profile}
+- Active artifact directories: ${artifactDirs.join(", ")}
 - Relation depth: ${Math.max(0, relationDepth)}
 - Included WBS nodes: ${selectedNodes.size}
 - Rule: include the target task first, then only nearby parent, sibling, dependency, and blocker context unless a larger depth is explicitly requested.
@@ -177,10 +194,15 @@ export function buildTinyPacket(root: string, taskId: string): string {
   if (!task) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
+  const profile: Profile = readProfile(root);
+  const artifactDirs = profileRequiredDirs(profile);
+
   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
     return `# Tiny Packet
 Task: ${task.id}
 Node: ${task.wbsNodeId}
+Profile: ${profile}
+Artifact dirs: ${artifactDirs.join(", ")}
 Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
@@ -203,6 +225,8 @@ Next:
   return `# Tiny Packet
 Task: ${task.id}
 Node: ${node.name}
+Profile: ${profile}
+Artifact dirs: ${artifactDirs.join(", ")}
 Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
