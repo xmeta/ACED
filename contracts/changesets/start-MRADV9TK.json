@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-doctor-environment-diagnostics",
+  "author": "scwbs",
+  "reason": "Add environment diagnostics and --fix support to scwbs doctor (Issue #98)",
+  "dryRun": true,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "addNode",
+      "node": {
+        "id": "node-doctor-environment-diagnostics",
+        "parentId": "node-lightweight-doctor",
+        "code": "1.9.1.1.1",
+        "name": "Doctor environment diagnostics",
+        "type": "workPackage",
+        "status": "ready",
+        "outputs": [
+          "artifact-cli"
+        ],
+        "acceptanceCriteria": [
+          "doctor detects Node.js / npm versions, root node_modules, wjs/node_modules, git, contracts/registry.yaml, contracts/wbs/project.wbs.json, and wjs/schema/wbs-json.schema.json presence",
+          "doctor reports suggested fix commands for each detected FAIL",
+          "doctor --fix runs only safe repairs (npm install, npm install --prefix wjs) and refuses destructive operations",
+          "README documents doctor usage including the --fix flag"
+        ]
+      },
+      "position": {
+        "mode": "last"
+      }
+    }
+  ]
+}

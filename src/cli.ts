@@ -36,7 +36,7 @@ function usage(): void {
   scwbs init [--profile lean|standard|strict] [--agent codex] [--lang ja|en]
   scwbs check
   scwbs fix
-  scwbs doctor
+  scwbs doctor [--fix]
   scwbs health
   scwbs check-diff --task <task-id> [--base <ref>] [--json]
   scwbs ai packet --task <task-id> [--relation-depth <n>]
@@ -160,7 +160,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   });
   if (command === "check") return runCheck(root);
   if (command === "fix") return runFix(root);
-  if (command === "doctor") return runDoctor(root);
+  if (command === "doctor") return runDoctor(root, { fix: argv.includes("--fix") });
   if (command === "health") return runHealth(root);
   if (command === "status") return runStatus(root);
   if (command === "review-queue") return runReviewQueue(root);

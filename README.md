@@ -50,9 +50,22 @@ Use `doctor` for setup diagnostics and `check` for contract/registry health:
 
 ```bash
 npm run scwbs -- doctor
+npm run scwbs -- doctor --fix
 npm run scwbs -- check
 npm run scwbs -- registry rebuild --check
 ```
+
+`doctor` reports PASS / FAIL for Node.js, npm, the root `node_modules`,
+`wjs/node_modules`, `git`, `contracts/registry.yaml`,
+`contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
+plus any check / health issues. Each FAIL prints a suggested fix command.
+
+`doctor --fix` only runs safe repairs (for example `npm install` and
+`npm install --prefix wjs`). It refuses destructive operations; for
+anything risky, follow the printed suggested fix command instead.
+
+Run `doctor` before `check` whenever setup may be incomplete so failures
+are diagnosed explicitly instead of surfacing as opaque errors.
 
 ## 4. AI Minimum Flow
 
