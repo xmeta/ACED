@@ -26,7 +26,7 @@ Status: current Core reference.
 
 この文書群は Core/Lite 方針の現行基準説明と target spec を含む。現行 ACED CLI では `task new`、`packet --tiny`、`finish`、`block`、`request-approval`、`approve` などの Core alias が実装されている。実作業では必ず `npm run scwbs -- <command>` の形で実行する。
 
-このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- evidence collect` と `npm run scwbs -- check-diff` に委ねる。
+このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- finish` に委ねる。
 
 ## この文書群の目的
 
