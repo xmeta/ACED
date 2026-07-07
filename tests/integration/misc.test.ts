@@ -217,7 +217,7 @@ describe("misc", () => {
     writeText(root, "node_modules/.keep", "");
     const report = buildDoctorReport(root);
     expect(report).toContain("[FAIL] wjs dependencies installed");
-    expect(report).toContain("Fix: Run: npm install --prefix wjs");
+    expect(report).toContain("Fix: Run: npm install");
   });
 
   test("doctor --fix runs safe recipes and refuses destructive repairs", () => {

@@ -34,7 +34,6 @@ Install dependencies:
 
 ```bash
 npm install
-npm install --prefix wjs
 ```
 
 Check the local installation:
@@ -60,9 +59,7 @@ npm run scwbs -- registry rebuild --check
 `contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
 plus any check / health issues. Each FAIL prints a suggested fix command.
 
-`doctor --fix` only runs safe repairs (for example `npm install` and
-`npm install --prefix wjs`). It refuses destructive operations; for
-anything risky, follow the printed suggested fix command instead.
+`doctor --fix` only runs safe repairs (for example `npm install`). It refuses destructive operations; for anything risky, follow the printed suggested fix command instead.
 
 Run `doctor` before `check` whenever setup may be incomplete so failures
 are diagnosed explicitly instead of surfacing as opaque errors.

@@ -1,0 +1,35 @@
+id: SCWBS-DRAFT-MRAWFMMQ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAWFMMQ
+branchName: task/SCWBS-DRAFT-MRAWFMMQ-adopt-npm-workspaces-for-wjs-to-fix-issue-97
+allowedPaths:
+  - package.json
+  - src/commands/doctor.ts
+  - README.md
+  - docs/scwbs/getting-started.md
+  - tests/integration/misc.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRAWFMMQ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRAWFMMQ.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Adopt npm workspaces for wjs to fix ISSUE #97'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
