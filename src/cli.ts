@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
+import { valueAfter, textAfter, numberAfter, booleanAfter, valuesAfter, testQualityAfter } from "./core/args.js";
 import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
 import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
@@ -29,7 +30,6 @@ import { runTaskRefresh } from "./commands/task-refresh.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
 import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
-import type { Evidence } from "./core/types.js";
 
 function usage(): void {
   console.log(`Usage:
@@ -76,73 +76,6 @@ function usage(): void {
   scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json>
   scwbs wbs apply <change-set.json> [--force] [--output <file>]
 `);
-}
-
-function valueAfter(args: string[], flag: string): string | undefined {
-  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
-  if (inline) return inline.slice(flag.length + 1);
-  const index = args.indexOf(flag);
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
-function textAfter(args: string[], flag: string): string | undefined {
-  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
-  if (inline) return inline.slice(flag.length + 1);
-  const index = args.indexOf(flag);
-  if (index < 0) return undefined;
-  const parts: string[] = [];
-  for (let i = index + 1; i < args.length; i += 1) {
-    const part = args[i];
-    if (!part || part.startsWith("--")) break;
-    parts.push(part);
-  }
-  return parts.length > 0 ? parts.join(" ") : undefined;
-}
-
-function numberAfter(args: string[], flag: string, fallback: number): number {
-  const value = valueAfter(args, flag);
-  if (value === undefined) return fallback;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
-function booleanAfter(args: string[], flag: string): boolean | undefined {
-  const value = valueAfter(args, flag);
-  if (value === undefined) return undefined;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return undefined;
-}
-
-function valuesAfter(args: string[], flag: string): string[] {
-  const values: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === flag && args[index + 1]) values.push(args[index + 1]);
-    if (arg?.startsWith(`${flag}=`)) values.push(arg.slice(flag.length + 1));
-  }
-  return values;
-}
-
-function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
-  const assertionsAdded = booleanAfter(args, "--test-assertions-added");
-  const testsDisabled = booleanAfter(args, "--tests-disabled");
-  const coverageDecreased = booleanAfter(args, "--coverage-decreased");
-  const note = textAfter(args, "--test-quality-note");
-  if (
-    assertionsAdded === undefined
-    && testsDisabled === undefined
-    && coverageDecreased === undefined
-    && note === undefined
-  ) {
-    return undefined;
-  }
-  return {
-    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
-    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
-    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
-    ...(note ? { notes: [note] } : {})
-  };
 }
 
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
@@ -413,8 +346,6 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       titleParts.push(arg);
     }
     const title = titleParts.join(" ").trim();
-    // M1-007: missing title no longer hard-fails; runTaskNew falls back to a
-    // safe placeholder title and prints a notice instead.
     return runTaskNew(root, title, {
       paths: valueAfter(argv, "--paths"),
       forbid: valueAfter(argv, "--forbid"),

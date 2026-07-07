@@ -1,5 +1,6 @@
 import { readApproval, listTasks, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
+import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
 
@@ -26,14 +27,6 @@ type NodeCompletionTarget = {
   approvalStatus?: string;
   reviewStatus?: string;
 };
-
-function completionTaskIds(task: TaskContract): string[] {
-  return [...new Set(task.completionTaskIds ?? [])];
-}
-
-function isNodeCompletionTask(task: TaskContract): boolean {
-  return task.completionScope === "node" && completionTaskIds(task).length > 0;
-}
 
 function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readWbs>, task: TaskContract): { blockers: string[]; targets: NodeCompletionTarget[] } {
   const blockers: string[] = [];
@@ -100,17 +93,6 @@ function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readW
   }
 
   return { blockers, targets };
-}
-
-function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readWbs>): string[] {
-  const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
-  return (wbs.relations ?? [])
-    .filter((relation) => relation.type === "dependsOn" && relation.source === rootNodeId)
-    .flatMap((relation) => {
-      const node = nodesById.get(relation.target);
-      if (!node || isDoneNode(node)) return [];
-      return [`${node.code} ${node.name}`];
-    });
 }
 
 function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): string | undefined {

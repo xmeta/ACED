@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
+import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
 import { approvalPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
@@ -41,31 +42,7 @@ type CompletionChangeSet = {
   }>;
 };
 
-function incompleteDependencies(nodeId: string, wbs: WbsDocument): string[] {
-  const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
-  return (wbs.relations ?? [])
-    .filter((relation) => relation.type === "dependsOn" && relation.source === nodeId)
-    .flatMap((relation) => {
-      const node = nodesById.get(relation.target);
-      if (!node || isDoneNode(node)) return [];
-      return [`${node.code} ${node.name}`];
-    });
-}
 
-function parseTaskIds(value: string | undefined): string[] {
-  return (value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function completionTaskIds(task: TaskContract): string[] {
-  return [...new Set(task.completionTaskIds ?? [])];
-}
-
-function isNodeCompletionTask(task: TaskContract): boolean {
-  return task.completionScope === "node" && completionTaskIds(task).length > 0;
-}
 
 function approvalFor(taskId: string, pullRequest: string | undefined, reason: string, existing: ApprovalRecord | undefined): CompletionPlanItem["approval"] {
   if (existing?.status === "approved") return existing;

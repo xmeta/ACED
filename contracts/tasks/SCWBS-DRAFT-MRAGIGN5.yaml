@@ -1,0 +1,40 @@
+id: SCWBS-DRAFT-MRAGIGN5
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAGIGN5
+branchName: task/SCWBS-DRAFT-MRAGIGN5-refactor-bloated-source-files-into-smaller-modul
+allowedPaths:
+  - src/cli.ts
+  - src/core/args.ts
+  - src/core/node-utils.ts
+  - src/core/schema.ts
+  - src/core/schema/
+  - src/commands/completion.ts
+  - src/commands/review-queue.ts
+  - src/core/schema/
+forbiddenPaths:
+  - wjs/**
+  - contracts/**
+  - tests/**
+  - dist/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - typecheck
+  - build
+  - test
+doneCriteria:
+  - Complete Refactor bloated source files into smaller modules
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-07T09:39:51.989Z"
