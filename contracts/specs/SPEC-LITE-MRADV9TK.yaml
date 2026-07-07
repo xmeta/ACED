@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRADV9TK
+type: spec-contract
+featureId: F-MRADV9TK
+title: "scwbs doctor environment diagnostics and --fix"
+status: approved
+version: 0.1.0
+approvedBy: codex
+approvedAt: "2026-07-07T18:30:00Z"
+summary: "Extend scwbs doctor with environment diagnostics (Node.js, npm, node_modules, wjs dependencies, git, contract / schema files, key commands) and a safe --fix flag."
+problem: "Setup issues currently surface inside scwbs check, producing opaque failures for first-time users and AI agents."
+acceptanceCriteria:
+  - doctor reports PASS / FAIL for Node.js version, npm version, root node_modules, wjs/node_modules, git availability, contracts/registry.yaml, contracts/wbs/project.wbs.json, and wjs/schema/wbs-json.schema.json
+  - doctor prints a suggested fix command for each detected FAIL
+  - doctor --fix only runs safe repairs (npm install, npm install --prefix wjs) and refuses destructive operations
+  - README documents doctor usage including the --fix flag
+  - existing doctor (check + health summary) behavior continues to pass

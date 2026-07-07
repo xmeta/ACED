@@ -2111,6 +2111,69 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(report).toContain("scwbs task refresh --task <task-id>");
   });
 
+  test("doctor reports environment diagnostics with PASS lines for a healthy repo", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    mkdirSync(path.join(root, "node_modules"), { recursive: true });
+    writeText(root, "node_modules/.keep", "");
+    mkdirSync(path.join(root, "wjs/node_modules"), { recursive: true });
+    writeText(root, "wjs/node_modules/.keep", "");
+    mkdirSync(path.join(root, "wjs/node_modules/@esbuild"), { recursive: true });
+    writeText(root, "wjs/node_modules/@esbuild/.keep", "");
+    writeText(root, "wjs/schema/wbs-json.schema.json", "{}");
+    const report = buildDoctorReport(root);
+    expect(report).toContain("Environment diagnostics:");
+    expect(report).toContain("Node.js");
+    expect(report).toContain("root dependencies installed");
+    expect(report).toContain("wjs dependencies installed");
+    expect(report).toContain("contracts/registry.yaml exists");
+    expect(report).toContain("contracts/wbs/project.wbs.json exists");
+    expect(report).toContain("wjs/schema/wbs-json.schema.json exists");
+    expect(report).toContain("[PASS] Node.js");
+    expect(report).toContain("[PASS] root dependencies installed");
+    expect(report).toContain("[PASS] wjs dependencies installed");
+    expect(report).toContain("[PASS] contracts/registry.yaml exists");
+    expect(report).toContain("[PASS] contracts/wbs/project.wbs.json exists");
+    expect(report).toContain("[PASS] wjs/schema/wbs-json.schema.json exists");
+  });
+
+  test("doctor flags missing root node_modules and prints a suggested fix", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const report = buildDoctorReport(root);
+    expect(report).toContain("[FAIL] root dependencies installed");
+    expect(report).toContain("Fix: Run: npm install");
+  });
+
+  test("doctor flags missing wjs/node_modules with the correct suggested fix", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    mkdirSync(path.join(root, "node_modules"), { recursive: true });
+    writeText(root, "node_modules/.keep", "");
+    const report = buildDoctorReport(root);
+    expect(report).toContain("[FAIL] wjs dependencies installed");
+    expect(report).toContain("Fix: Run: npm install --prefix wjs");
+  });
+
+  test("doctor --fix runs safe recipes and refuses destructive repairs", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", { name: "temp-doctor", private: true, version: "0.0.0" });
+    writeJson(root, "wjs/package.json", { name: "temp-wjs", private: true, version: "0.0.0" });
+    const report = buildDoctorReport(root, { fix: true });
+    expect(report).toContain("--fix execution:");
+    expect(report).toContain("[OK] root dependencies installed");
+    expect(report).toContain("[OK] wjs dependencies installed");
+    expect(report).toContain("npm install");
+  });
+
+  test("doctor omits --fix plan when --fix flag is not set", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const report = buildDoctorReport(root);
+    expect(report).not.toContain("--fix execution:");
+  });
+
   test("profile set updates the WBS profile", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
