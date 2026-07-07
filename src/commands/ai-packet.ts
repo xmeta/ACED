@@ -181,8 +181,7 @@ export function buildTinyPacket(root: string, taskId: string): string {
     return `# Tiny Packet
 Task: ${task.id}
 Node: ${task.wbsNodeId}
-Branch: ${task.branchName ?? "(none)"}
-Goal:
+Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
 ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
@@ -204,8 +203,7 @@ Next:
   return `# Tiny Packet
 Task: ${task.id}
 Node: ${node.name}
-Branch: ${task.branchName ?? "(none)"}
-Goal:
+Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
 ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}

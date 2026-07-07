@@ -76,20 +76,20 @@ contracts/tasks/<task-id>.yaml
 - Tiny Packet生成案内
 ```
 
-### `scwbs packet --tiny`
+### `scwbs packet`
 
-現在taskのTiny Packetを出力する。
+現在taskのPacketを出力する。既定は `--tiny`。
 
-オプション:
+3段階のレベル:
 
 ```bash
-scwbs packet --task WBS-001 --tiny
-scwbs packet --task WBS-001 --normal
-scwbs packet --task WBS-001 --deep
-scwbs packet --task WBS-001 --include acceptanceCriteria
+scwbs packet --task WBS-001              # 既定: --tiny
+scwbs packet --task WBS-001 --tiny       # 最小: Task ID, Objective, Paths, Checks, Next
+scwbs packet --task WBS-001 --standard   # 標準: Tiny + WBS Node詳細, Stop Conditions
+scwbs packet --task WBS-001 --full       # 詳細: Standard + relation depth 1
 ```
 
-既定は `--tiny` とする。Normal/Deep は不足コンテキストが明確な場合だけ明示的に使う。
+互換性のためのエイリアス: `--standard` = `--normal`、`--full` = `--deep`。
 
 ### `scwbs finish`
 

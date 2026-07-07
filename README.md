@@ -70,10 +70,17 @@ are diagnosed explicitly instead of surfacing as opaque errors.
 ## 4. AI Minimum Flow
 
 AI agents should start from the active Task Contract and avoid broad docs
-scans. Use the tiny packet only when more context is needed:
+scans. Use the tiny packet by default (`--tiny` is the default):
 
 ```bash
-npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- packet --task <task-id>
+```
+
+Use `--standard` or `--full` only when more context is needed:
+
+```bash
+npm run scwbs -- packet --task <task-id> --standard
+npm run scwbs -- packet --task <task-id> --full
 ```
 
 Finish with machine checks, Evidence, and diff validation:
@@ -198,7 +205,9 @@ Common commands:
 npm run scwbs -- next
 npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
 npm run scwbs -- start <task-id>
-npm run scwbs -- packet --task <task-id> --tiny
+npm run scwbs -- packet --task <task-id>           # tiny (default)
+npm run scwbs -- packet --task <task-id> --standard
+npm run scwbs -- packet --task <task-id> --full
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 npm run scwbs -- evidence collect --task <task-id>
 npm run scwbs -- check-diff --task <task-id>

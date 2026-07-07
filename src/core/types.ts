@@ -194,6 +194,8 @@ export type Language = "ja" | "en";
 
 export type AiPacketFormat = "default" | "compact" | "codex" | "claude" | "cursor";
 
+export type PacketLevel = "tiny" | "standard" | "full";
+
 export type WbsNode = {
   id: string;
   parentId: string | null;
