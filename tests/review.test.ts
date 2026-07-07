@@ -2,10 +2,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildReviewQueue } from "../../src/commands/review-queue.js";
-import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../../src/commands/review-request.js";
-import { buildTrace } from "../../src/commands/trace.js";
-import { buildNextAction } from "../../src/commands/next.js";
+import { buildReviewQueue } from "../src/commands/review-queue.js";
+import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../src/commands/review-request.js";
+import { buildTrace } from "../src/commands/trace.js";
+import { buildNextAction } from "../src/commands/next.js";
 import {
   makeTempRepo,
   sampleTask,
@@ -15,7 +15,7 @@ import {
   writeScwbsProject,
   writeJson,
   writeYaml
-} from "../helpers.js";
+} from "./helpers.js";
 
 describe("review queue + review request", () => {
   test("review request writes a review record and trace shows missing links", () => {

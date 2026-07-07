@@ -2,10 +2,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
-import { branchDiffHash, headCommit } from "../../src/core/git.js";
-import { readEvidence } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { buildCollectedEvidence, runEvidenceCollect } from "../src/commands/evidence-collect.js";
+import { branchDiffHash, headCommit } from "../src/core/git.js";
+import { readEvidence } from "../src/core/contracts.js";
+import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "./helpers.js";
 
 describe("evidence collect", () => {
   test("evidence collect records branch diff provenance from the requested base", () => {

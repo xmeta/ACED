@@ -2,9 +2,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
-import { readApproval } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { buildCompletionPreview, runCompletionApply } from "../src/commands/completion.js";
+import { readApproval } from "../src/core/contracts.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "./helpers.js";
 
 describe("completion apply", () => {
   function writeFakeWjsApply(root: string): void {

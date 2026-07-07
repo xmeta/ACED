@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildApprovalApproveYaml, buildApprovalRequestYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
-import { main } from "../../src/cli.js";
-import { readApproval } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
+import { buildApprovalApproveYaml, buildApprovalRequestYaml, runApprovalApprove, runApprovalRequest } from "../src/commands/approval-request.js";
+import { main } from "../src/cli.js";
+import { readApproval } from "../src/core/contracts.js";
+import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "./helpers.js";
 
 describe("approval", () => {
   test("approval request writes a requested approval record", () => {

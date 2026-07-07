@@ -2,12 +2,12 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildAiPacket } from "../../src/commands/ai-packet.js";
-import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
-import { buildNextAction } from "../../src/commands/next.js";
-import { main } from "../../src/cli.js";
-import { readApproval, readBlock } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { buildAiPacket } from "../src/commands/ai-packet.js";
+import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
+import { buildNextAction } from "../src/commands/next.js";
+import { main } from "../src/cli.js";
+import { readApproval, readBlock } from "../src/core/contracts.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "./helpers.js";
 
 describe("AI commands", () => {
   test("ai packet includes WBS node, task contract, and stop conditions", () => {
