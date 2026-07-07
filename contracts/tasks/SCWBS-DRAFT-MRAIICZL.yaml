@@ -1,0 +1,27 @@
+id: SCWBS-DRAFT-MRAIICZL
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRAIICZL
+branchName: task/SCWBS-DRAFT-MRAIICZL-agents-md-governance-rules-and-wjs-submodule-upd
+allowedPaths:
+  - AGENTS.md
+  - wjs
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete AGENTS.md governance rules and wjs submodule update
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
