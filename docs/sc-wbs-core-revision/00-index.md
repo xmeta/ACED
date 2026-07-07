@@ -1,6 +1,11 @@
 # 00. SC-WBS Core Revision Index
 
+Status: proposal.
+
 この文書群は、SC-WBS を軽量で効果の大きいツールへ改訂するための設計書である。
+
+このディレクトリは現行の実行ルールではない。実作業では root `AGENTS.md`、
+対象 Task Contract、`docs/README.md`、`docs/sc-wbs-core/00-index.md` を先に読む。
 
 進捗確認の短い入口は、リポジトリルートの `CHECKLIST.md` とする。
 実装状況を更新する場合は、詳細版の `10-progress-checklist.md` を確認してからチェックを付ける。

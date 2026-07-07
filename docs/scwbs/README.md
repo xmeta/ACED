@@ -1,7 +1,13 @@
 # SC-WBS Development References
 
+Status: legacy/detail reference.
+
 SC-WBS details are split here so humans and agents can read only the files
 needed for the current task.
+
+For current work in this repository, start with `../../README.md`,
+`../../AGENTS.md`, and the active Task Contract. Use this directory when those
+entrypoints or the task require detailed SC-WBS method or CLI reference.
 
 ## Entry Points
 

@@ -1,5 +1,7 @@
 # 00. SC-WBS Core Index
 
+Status: current Core reference.
+
 このディレクトリは、SC-WBS を軽量な AI 作業ガードレールとして運用するための Core 文書群である。
 
 ## 文書の位置づけ
@@ -11,8 +13,10 @@
 
 ```text
 1. 現行作業の実行ルール: AGENTS.md と対象 Task Contract
-2. 現行Coreの基準説明: docs/sc-wbs-core/
-3. 次期Core改訂案: docs/sc-wbs-core-revision/
+2. 文書入口と正本関係: README.md と docs/README.md
+3. 現行Coreの基準説明: docs/sc-wbs-core/
+4. 詳細・legacy参照: docs/scwbs/
+5. 次期Core改訂案: docs/sc-wbs-core-revision/
 ```
 
 `docs/sc-wbs-core-revision/` は、この文書群を即時に置き換えるものではない。
@@ -20,7 +24,7 @@
 
 ## 現行実装との関係
 
-この文書群は Core/Lite 方針の現行基準説明と target spec を含む。`scwbs task new`、`scwbs packet --tiny`、`scwbs finish`、`scwbs block` のような短縮コマンドは Core の目標形であり、現行 ACED CLI ではまだ同名で実装されていないものがある。
+この文書群は Core/Lite 方針の現行基準説明と target spec を含む。現行 ACED CLI では `task new`、`packet --tiny`、`finish`、`block`、`request-approval`、`approve` などの Core alias が実装されている。実作業では必ず `npm run scwbs -- <command>` の形で実行する。
 
 このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- evidence collect` と `npm run scwbs -- check-diff` に委ねる。
 
@@ -70,7 +74,7 @@ scwbs packet --tiny の出力
 必要な対象ファイル
 ```
 
-現行 ACED では `packet --tiny` が未実装なため、当面は Task Contract を最小カードとして扱い、追加情報が必要になった場合だけ `ai packet` を補助的に使う。
+現行 ACED では `packet --tiny` を最小カードとして使える。追加情報が必要になった場合だけ `ai packet` を補助的に使う。
 
 ツールを実装するAIには、必要に応じて `07-cli-core-spec.md` と `03-minimal-artifacts.md` を渡す。
 

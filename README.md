@@ -13,6 +13,7 @@ back to Human Gate instead of letting an AI guess.
 | Reader | Read this first |
 |---|---|
 | New human user | `docs/scwbs/getting-started.md` |
+| Docs navigator | `docs/README.md` |
 | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
 | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
 | CLI/reference user | `docs/scwbs/cli-reference.md` |
@@ -21,19 +22,109 @@ back to Human Gate instead of letting an AI guess.
 Do not start by reading every file under `docs/`. The intended workflow is
 small context first, deeper docs only when needed.
 
-## Quick Start For This Repository
+## 1. What This Tool Is
+
+`scwbs` is a guardrail CLI for AI-assisted work. It gives each change an
+explicit Task Contract, checks the changed files against that contract, records
+Evidence, and sends risky work back to Human Gate.
+
+## 2. Minimal Setup
 
 Install dependencies:
 
 ```bash
 npm install
+npm install --prefix wjs
 ```
 
-Inspect the next suggested action:
+Check the local installation:
 
 ```bash
-npm run scwbs -- next
+npm run scwbs -- doctor
+npm run scwbs -- check
 ```
+
+## 3. Doctor And Check
+
+Use `doctor` for setup diagnostics and `check` for contract/registry health:
+
+```bash
+npm run scwbs -- doctor
+npm run scwbs -- check
+npm run scwbs -- registry rebuild --check
+```
+
+## 4. AI Minimum Flow
+
+AI agents should start from the active Task Contract and avoid broad docs
+scans. Use the tiny packet only when more context is needed:
+
+```bash
+npm run scwbs -- packet --task <task-id> --tiny
+```
+
+Finish with machine checks, Evidence, and diff validation:
+
+```bash
+npm run scwbs -- finish --task <task-id>
+npm run scwbs -- check-diff --task <task-id>
+```
+
+If a stop condition is hit, block instead of guessing:
+
+```bash
+npm run scwbs -- block "Human Gate required" --task <task-id>
+```
+
+## 5. Human Reviewer Flow
+
+Humans review the PR, Evidence, and current diff before approving. AI agents
+must not run approval commands on behalf of a human.
+
+```bash
+npm run scwbs -- review-queue
+npm run scwbs -- approve --task <task-id> --pr <number> --reason "Evidence and PR reviewed"
+```
+
+The detailed command is also available:
+
+```bash
+npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --reason "Evidence and PR reviewed"
+```
+
+## 6. Core Artifacts
+
+- Task Contract: `contracts/tasks/<task-id>.yaml`
+- Evidence: `contracts/evidence/<task-id>.yaml`
+- Approval: `contracts/approvals/<task-id>.yaml`
+- Block: `contracts/blocks/<task-id>.yaml`
+- Registry: `contracts/registry.yaml`
+
+## 7. Profiles
+
+Profiles tune validation strictness:
+
+```bash
+npm run scwbs -- profile show
+npm run scwbs -- profile set lean
+npm run scwbs -- profile set standard
+npm run scwbs -- profile set strict
+```
+
+Use `lean` for small local dogfood tasks, `standard` for normal repository
+work, and `strict` when broader governance checks are required.
+
+## 8. Common Errors
+
+- Outside `allowedPaths`: stop, narrow the change, or update the Task Contract
+  before editing.
+- Under `forbiddenPaths`: stop and block; forbidden paths override allowed
+  paths.
+- Human Gate required: stop and use `block`.
+- Stale Evidence: rerun `finish` after the final diff is in place.
+- Stale Approval scope: a human must re-review and approve the current diff.
+
+## 9. Developer Commands
 
 Create a small task:
 
@@ -41,20 +132,13 @@ Create a small task:
 npm run scwbs -- task new "Update docs" --paths "docs/**"
 ```
 
-Switch to the branch printed by the Task Contract, then start the task:
+Switch to the branch printed by the Task Contract:
 
 ```bash
 git switch -c <branchName>
-npm run scwbs -- start <task-id>
 ```
 
-Give an AI the smallest useful context:
-
-```bash
-npm run scwbs -- packet --task <task-id> --tiny
-```
-
-Finish with machine checks instead of a handwritten Done claim:
+Run the full local verification set:
 
 ```bash
 npm test
@@ -98,7 +182,9 @@ npm run scwbs -- packet --task <task-id> --tiny
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 npm run scwbs -- evidence collect --task <task-id>
 npm run scwbs -- check-diff --task <task-id>
-npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
+npm run scwbs -- finish --task <task-id>
+npm run scwbs -- block "Human Gate required" --task <task-id>
+npm run scwbs -- request-approval --task <task-id> --pr <number>
 ```
 
 Detailed examples live in `docs/scwbs/cli-reference.md`.
@@ -121,12 +207,15 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
 
 ## Source Of Truth
 
+Status: current repository entrypoint.
+
 - Current execution rules: `AGENTS.md` and the active Task Contract.
 - Task scope: `contracts/tasks/<task-id>.yaml`.
 - Completion evidence: `contracts/evidence/<task-id>.yaml`.
-- Current command examples: `docs/scwbs/cli-reference.md`.
-- Core target design: `docs/sc-wbs-core/`.
-- Draft future design: `docs/sc-wbs-core-revision/`.
+- Documentation map: `docs/README.md`.
+- Current Core reference: `docs/sc-wbs-core/00-index.md`.
+- Legacy/detail reference: `docs/scwbs/`.
+- Proposal/design notes: `docs/sc-wbs-core-revision/`.
 
 When these disagree during real work, prefer `AGENTS.md` and the active Task
 Contract.
