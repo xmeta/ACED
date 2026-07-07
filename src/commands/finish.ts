@@ -4,6 +4,8 @@ import { matchesAny } from "../core/glob.js";
 import { runCheckDiff } from "./check-diff.js";
 import { runEvidenceCollect } from "./evidence-collect.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
+import { readProfile } from "./profile.js";
+import type { Profile } from "../core/types.js";
 
 function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   const match = branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/);
@@ -64,6 +66,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
   }
   console.log("PASS registry check");
 
+  const profile: Profile = readProfile(root);
+
   const humanGateFiles = task.humanGateRequiredPaths.filter((pattern) => {
     const files = evidence?.changedFiles ?? [];
     return files.some((file) => matchesAny(file, [pattern]));
@@ -71,6 +75,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
 
   const approval = readApproval(root, taskId).approval;
   const needsHumanGate = humanGateFiles.length > 0 && !hasApprovedHumanGateApproval(root, taskId);
+
+  console.log(`Profile: ${profile}`);
 
   if (needsHumanGate) {
     console.log("");

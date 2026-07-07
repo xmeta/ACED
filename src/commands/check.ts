@@ -3,8 +3,9 @@ import { approvalExists, evidenceExists, listApprovals, listBlocks, listSpecChan
 import { workingTreeChangedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import type { Evidence, Issue, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
+import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
@@ -180,8 +181,18 @@ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
   return issues;
 }
 
+function skipSpecValidation(profile: Profile): boolean {
+  return profile === "Lean";
+}
+
+function skipReviewValidation(profile: Profile): boolean {
+  return profile === "Lean";
+}
+
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
+  const profile: Profile = readProfile(root);
+
   const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
   if (hasWbs) {
     issues.push(...runWjsValidate(root));
@@ -202,8 +213,10 @@ export function collectCheckIssues(root: string): Issue[] {
   const { registry, issues: registryIssues } = hasRegistry ? readRegistry(root) : { registry: undefined, issues: [] };
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
-  issues.push(...validateIndexedSpecs(root, registry));
-  issues.push(...validateIndexedSpecChanges(root, registry));
+  if (!skipSpecValidation(profile)) {
+    issues.push(...validateIndexedSpecs(root, registry));
+    issues.push(...validateIndexedSpecChanges(root, registry));
+  }
   for (const entry of listApprovals(root)) {
     issues.push(...entry.issues);
   }
@@ -215,7 +228,7 @@ export function collectCheckIssues(root: string): Issue[] {
     issues.push(...entry.issues);
     if (!wbs || !entry.task) continue;
     const { spec, path: specPath, issues: specIssues } = resolveSpecForTask(root, registry, entry.task);
-    if (spec && spec.status !== "approved") {
+    if (!skipSpecValidation(profile) && spec && spec.status !== "approved") {
       specIssues.push({ severity: "error", code: "task.spec.status", message: `${entry.task.id} references non-approved spec ${spec.id}` });
     }
     issues.push(...validateTaskAgainstWbs(root, specIssues, wbs, entry.task, spec, specPath));

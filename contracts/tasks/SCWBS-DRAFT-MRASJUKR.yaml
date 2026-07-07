@@ -1,0 +1,43 @@
+id: SCWBS-DRAFT-MRASJUKR
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRASJUKR
+branchName: task/SCWBS-DRAFT-MRASJUKR-implement-profile-driven-artifact-management-lea
+allowedPaths:
+  - src/commands/init.ts
+  - src/commands/profile.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/ai-packet.ts
+  - src/commands/task-new.ts
+  - src/commands/finish.ts
+  - src/core/types.ts
+  - src/core/paths.ts
+  - src/core/contracts.ts
+  - src/core/wbs.ts
+  - src/cli.ts
+  - docs/scwbs/operations-profile-and-specs.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - dist/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - typecheck
+  - build
+  - test
+doneCriteria:
+  - Core運用時の最小アーティファクトが明文化されている
+  - lean / standard / strict の違いがREADMEに記載されている
+  - 軽微なタスクでは不要なファイルを生成しない
+  - AI向けPacketに不要なアーティファクトが含まれない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
