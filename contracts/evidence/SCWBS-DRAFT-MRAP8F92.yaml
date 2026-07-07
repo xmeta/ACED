@@ -1,0 +1,45 @@
+id: EVD-SCWBS-DRAFT-MRAP8F92
+type: evidence
+taskId: SCWBS-DRAFT-MRAP8F92
+commit: 9631ff9342417dfb92519d26736e3e40a9e963e5
+subjectHeadCommit: 9631ff9342417dfb92519d26736e3e40a9e963e5
+diffHash: sha256:b81012eb7367c9c3d5b2ca33db517f7288a447d881d63438f7fca71a8f38ddac
+git:
+  branch: task/SCWBS-DRAFT-MRAP8F92-refactor-migrate-cli-args-parser-to-commander
+  base: origin/main
+  baseCommit: fc295d6693c8314cdfa2dbf85dcda0c4bb282633
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 9631ff9342417dfb92519d26736e3e40a9e963e5
+  diffHash: sha256:b81012eb7367c9c3d5b2ca33db517f7288a447d881d63438f7fca71a8f38ddac
+  headCommit: 9631ff9342417dfb92519d26736e3e40a9e963e5
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MRAP8F92.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRAP8F92.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
+  - package-lock.json
+  - package.json
+  - src/cli.ts
+  - src/core/args.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-07T13:55:47.995Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-07T13:55:50.769Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-07T13:55:53.948Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'CLI-only refactor: no test logic changed, only CLI dispatch layer migrated to commander'
