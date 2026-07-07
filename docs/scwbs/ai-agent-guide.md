@@ -153,6 +153,11 @@ running and can interfere with each other if run in parallel.
   contract or registry updates.
 - Do not mark Approval as `approved`.
 - Do not complete WBS nodes directly.
+- Do not edit `contracts/wbs/project.wbs.json` directly. The canonical WBS is
+  updated only through a changeset under `contracts/changesets/` applied with
+  `npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json`.
+  `scwbs check` and `scwbs check-diff` fail with `wbs.changeset.required` when
+  the WBS is edited without a corresponding changeset.
 - Do not use future Core shorthand from draft docs when the current CLI docs
   specify a different command.
 - Do not ignore `review-queue` just because `next` suggests a planned task.

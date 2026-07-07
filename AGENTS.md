@@ -46,6 +46,8 @@ npm run scwbs -- registry rebuild --check
 
 YAML/JSONを直接編集してはならない。ただし、ユーザーが明示的に「スキーマや仕様の実装」または「Task Contract / Evidence / registry の更新」を依頼した場合は、その契約範囲内でのみ編集してよい。
 
+WBS正本 (`contracts/wbs/project.wbs.json`) は直接編集してはならない。変更は必ず `contracts/changesets/*.json` 経由で行い、`npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json` で適用する。`scwbs check` / `scwbs check-diff` は対応する changeset がないWBS直接編集を `wbs.changeset.required` で fail させる。
+
 Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
 
 CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
