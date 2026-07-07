@@ -1,0 +1,50 @@
+id: EVD-SCWBS-DRAFT-MRAJNI80
+type: evidence
+taskId: SCWBS-DRAFT-MRAJNI80
+commit: 62ad771bc516859cd7395206c2e7e798a682c1e9
+subjectHeadCommit: 62ad771bc516859cd7395206c2e7e798a682c1e9
+diffHash: sha256:f40af45a107eca712261718a008315d09fdec2f203de052eec5b87349be3d8d8
+git:
+  branch: task/ISSUE-102-split-tests
+  base: origin/main
+  baseCommit: bbce8514fab6ba027e45fe736b53f5a7419aadbf
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 62ad771bc516859cd7395206c2e7e798a682c1e9
+  diffHash: sha256:f40af45a107eca712261718a008315d09fdec2f203de052eec5b87349be3d8d8
+  headCommit: 62ad771bc516859cd7395206c2e7e798a682c1e9
+changedFiles:
+  - README.md
+  - contracts/changesets/start-MRAJNI80.json
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRAJNI80.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRAJNI80.yaml
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - tests/integration/ai.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/review.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/init.test.ts
+  - vitest.config.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-07T11:08:23.132Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-07T11:08:26.049Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-07T11:08:29.135Z"
