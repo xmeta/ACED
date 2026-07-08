@@ -7,6 +7,40 @@ import { runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
 import type { Profile } from "../core/types.js";
 
+export type FinishJsonOutput = {
+  status: "pass";
+  taskId: string;
+  requiresHumanApproval: boolean;
+  changedFiles: string[];
+  violations: unknown[];
+  requiredChecks: Array<{ name: string; status: string; source?: string; command?: string; executedAt?: string }>;
+  evidencePath: string;
+  approvalStatus: string;
+  nextAction: string;
+};
+
+function captureStdout<T>(fn: () => T): { result: T; output: string } {
+  const chunks: string[] = [];
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: unknown) => {
+    chunks.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    const result = fn();
+    return { result, output: chunks.join("") };
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+}
+
+function runSilentIfJson<T>(json: boolean, fn: () => T): { result: T; output: string } {
+  if (!json) {
+    return { result: fn(), output: "" };
+  }
+  return captureStdout(fn);
+}
+
 function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   const match = branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/);
   return match?.[1];
@@ -36,11 +70,13 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     return 1;
   }
 
-  const evidenceExit = runEvidenceCollect(root, taskId, {
-    force: options.force ?? true,
-    baseRef: options.baseRef,
-    pullRequest: options.pullRequest
-  });
+  const { result: evidenceExit } = runSilentIfJson(options.json ?? false, () =>
+    runEvidenceCollect(root, taskId, {
+      force: options.force ?? true,
+      baseRef: options.baseRef,
+      pullRequest: options.pullRequest
+    })
+  );
   if (evidenceExit !== 0) return evidenceExit;
   if (options.json) {
     console.error("PASS required checks");
@@ -60,21 +96,9 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     return 1;
   }
 
-  let checkDiffOutput = "";
-  let diffExit: number;
-  if (options.json) {
-    const output: string[] = [];
-    const originalLog = console.log;
-    console.log = (message?: unknown) => { output.push(String(message)); };
-    try {
-      diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true });
-    } finally {
-      console.log = originalLog;
-    }
-    checkDiffOutput = output.join("\n");
-  } else {
-    diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
-  }
+  const { result: diffExit, output: checkDiffOutput } = runSilentIfJson(options.json ?? false, () =>
+    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: options.json ?? false })
+  );
   if (diffExit !== 0) return diffExit;
   if (options.json) {
     console.error("PASS diff guard");
@@ -82,9 +106,16 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("PASS diff guard");
   }
 
-  const registryExit = runRegistryRebuild(root, { check: true, force: false });
+  const { result: registryExit } = runSilentIfJson(options.json ?? false, () =>
+    runRegistryRebuild(root, { check: true, force: false })
+  );
   if (registryExit !== 0) {
-    console.log("fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish");
+    const fixCommand = "fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish";
+    if (options.json) {
+      console.error(fixCommand);
+    } else {
+      console.log(fixCommand);
+    }
     return registryExit;
   }
   if (options.json) {
@@ -151,7 +182,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     } catch {
       checkDiffResult = {};
     }
-    console.log(JSON.stringify({
+    const output: FinishJsonOutput = {
       status: "pass",
       taskId,
       requiresHumanApproval: needsHumanGate,
@@ -161,7 +192,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       evidencePath: `contracts/evidence/${taskId}.yaml`,
       approvalStatus: approval?.status ?? "",
       nextAction
-    }, null, 2));
+    };
+    console.log(JSON.stringify(output, null, 2));
   }
 
   return 0;

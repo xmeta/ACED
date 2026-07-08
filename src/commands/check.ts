@@ -250,13 +250,19 @@ export type CheckOptions = {
   json?: boolean;
 };
 
+export type CheckJsonOutput = {
+  status: "pass" | "fail" | "warn";
+  issues: Issue[];
+};
+
 export function runCheck(root: string, options: CheckOptions = {}): number {
   const issues = collectCheckIssues(root);
   if (options.json) {
-    console.log(JSON.stringify({
+    const output: CheckJsonOutput = {
       status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
       issues
-    }, null, 2));
+    };
+    console.log(JSON.stringify(output, null, 2));
     return hasErrors(issues) ? 1 : 0;
   }
   if (issues.length === 0) {
