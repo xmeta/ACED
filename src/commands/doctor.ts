@@ -18,6 +18,7 @@ export type DoctorDiagnostic = {
 
 export type DoctorOptions = {
   fix?: boolean;
+  json?: boolean;
 };
 
 export type DoctorFixStep = {
@@ -227,6 +228,22 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
 
 export function runDoctor(root: string, options: DoctorOptions = {}): number {
   try {
+    if (options.json) {
+      const diagnostics = collectEnvironmentDiagnostics(root);
+      const contractIssues = [
+        ...collectCheckIssues(root).map((issue) => ({ source: "check", issue })),
+        ...collectHealthIssues(root).map((issue) => ({ source: "health", issue }))
+      ];
+      const envHasFailure = diagnostics.some((d) => d.status === "fail");
+      const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
+      console.log(JSON.stringify({
+        status: envHasFailure || hasContractErrors ? "fail" : "pass",
+        diagnostics,
+        contractIssues,
+        fixResults: options.fix ? applyDoctorFixes(root, diagnostics) : undefined
+      }, null, 2));
+      return envHasFailure || hasContractErrors ? 1 : 0;
+    }
     process.stdout.write(buildDoctorReport(root, options));
     return 0;
   } catch (error) {

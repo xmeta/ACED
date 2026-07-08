@@ -1,0 +1,33 @@
+id: SCWBS-DRAFT-MRB0ZML9
+type: task-contract
+wbsNodeId: node-ci-integration
+featureId: F-MRB0ZML9
+branchName: task/SCWBS-DRAFT-MRB0ZML9-add-json-output-to-check-doctor-and-finish-comma
+allowedPaths:
+  - src/commands/check.ts
+  - src/commands/doctor.ts
+  - src/commands/finish.ts
+  - src/cli.ts
+  - tests/integration/check.test.ts
+  - tests/integration/doctor.test.ts
+  - tests/integration/finish.test.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Add JSON output to check, doctor, and finish commands
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

@@ -22,7 +22,7 @@ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
   return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
 }
 
-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean } = {}): number {
+export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
     console.error("Missing --task <task-id> and current branch does not contain a task id");
@@ -55,7 +55,21 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     return 1;
   }
 
-  const diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
+  let checkDiffOutput = "";
+  let diffExit: number;
+  if (options.json) {
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => { output.push(String(message)); };
+    try {
+      diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true });
+    } finally {
+      console.log = originalLog;
+    }
+    checkDiffOutput = output.join("\n");
+  } else {
+    diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
+  }
   if (diffExit !== 0) return diffExit;
   console.log("PASS diff guard");
 
@@ -78,6 +92,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
 
   console.log(`Profile: ${profile}`);
 
+  let nextAction = "";
   if (needsHumanGate) {
     console.log("");
     console.log("Human approval required:");
@@ -88,16 +103,39 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("Next action:");
     console.log("  Human reviewer must run:");
     console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
   } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
     console.log("");
     console.log("Next action:");
     console.log("  Human reviewer must review and approve:");
     console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
   } else {
     console.log("");
     console.log("Next action:");
     console.log("  Open a pull request and merge:");
     console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
+    nextAction = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+  }
+
+  if (options.json) {
+    let checkDiffResult: { status?: string; issues?: unknown[] } = {};
+    try {
+      checkDiffResult = JSON.parse(checkDiffOutput || "{}");
+    } catch {
+      checkDiffResult = {};
+    }
+    console.log(JSON.stringify({
+      status: "pass",
+      taskId,
+      requiresHumanApproval: needsHumanGate,
+      changedFiles: evidence?.changedFiles ?? [],
+      violations: checkDiffResult.issues ?? [],
+      requiredChecks: evidence?.checks ?? [],
+      evidencePath: `contracts/evidence/${taskId}.yaml`,
+      approvalStatus: approval?.status ?? "",
+      nextAction
+    }, null, 2));
   }
 
   return 0;

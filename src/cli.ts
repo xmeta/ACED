@@ -79,7 +79,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("check")
     .description("Check repository contracts")
-    .action(() => { exitCode = runCheck(root); });
+    .option("--json", "output as JSON")
+    .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
 
   program
     .command("fix")
@@ -90,7 +91,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("doctor")
     .description("Diagnose and optionally fix repository issues")
     .option("--fix", "apply auto-fixes")
-    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false }); });
+    .option("--json", "output as JSON")
+    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, json: opts.json ?? false }); });
 
   program
     .command("health")
@@ -129,12 +131,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--base <ref>", "base reference")
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
+    .option("--json", "output as JSON")
     .action((opts) => {
       exitCode = runFinish(root, {
         taskId: opts.task,
         baseRef: opts.base,
         pullRequest: opts.pr ?? opts.pullRequest,
-        force: true
+        force: true,
+        json: opts.json ?? false
       });
     });
 
