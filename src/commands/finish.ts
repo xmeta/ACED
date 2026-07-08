@@ -42,8 +42,13 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     pullRequest: options.pullRequest
   });
   if (evidenceExit !== 0) return evidenceExit;
-  console.log("PASS required checks");
-  console.log("PASS evidence collected");
+  if (options.json) {
+    console.error("PASS required checks");
+    console.error("PASS evidence collected");
+  } else {
+    console.log("PASS required checks");
+    console.log("PASS evidence collected");
+  }
 
   const { evidence } = readEvidence(root, taskId);
   const failedChecks = evidence?.checks.filter((check) => check.status !== "passed") ?? [];
@@ -71,14 +76,22 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
   }
   if (diffExit !== 0) return diffExit;
-  console.log("PASS diff guard");
+  if (options.json) {
+    console.error("PASS diff guard");
+  } else {
+    console.log("PASS diff guard");
+  }
 
   const registryExit = runRegistryRebuild(root, { check: true, force: false });
   if (registryExit !== 0) {
     console.log("fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish");
     return registryExit;
   }
-  console.log("PASS registry check");
+  if (options.json) {
+    console.error("PASS registry check");
+  } else {
+    console.log("PASS registry check");
+  }
 
   const profile: Profile = readProfile(root);
 
@@ -90,32 +103,45 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
   const approval = readApproval(root, taskId).approval;
   const needsHumanGate = humanGateFiles.length > 0 && !hasApprovedHumanGateApproval(root, taskId);
 
-  console.log(`Profile: ${profile}`);
-
   let nextAction = "";
-  if (needsHumanGate) {
-    console.log("");
-    console.log("Human approval required:");
-    for (const file of humanGateFiles) {
-      console.log(`  - ${file}`);
+  if (options.json) {
+    console.error(`Profile: ${profile}`);
+    if (needsHumanGate) {
+      console.error("");
+      console.error("Human approval required:");
+      for (const file of humanGateFiles) {
+        console.error(`  - ${file}`);
+      }
     }
-    console.log("");
-    console.log("Next action:");
-    console.log("  Human reviewer must run:");
-    console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
-    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
-  } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
-    console.log("");
-    console.log("Next action:");
-    console.log("  Human reviewer must review and approve:");
-    console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
-    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
+    nextAction = needsHumanGate || (approval?.status === "requested" && humanGateFiles.length === 0)
+      ? `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`
+      : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
   } else {
-    console.log("");
-    console.log("Next action:");
-    console.log("  Open a pull request and merge:");
-    console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
-    nextAction = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+    console.log(`Profile: ${profile}`);
+    if (needsHumanGate) {
+      console.log("");
+      console.log("Human approval required:");
+      for (const file of humanGateFiles) {
+        console.log(`  - ${file}`);
+      }
+      console.log("");
+      console.log("Next action:");
+      console.log("  Human reviewer must run:");
+      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
+    } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
+      console.log("");
+      console.log("Next action:");
+      console.log("  Human reviewer must review and approve:");
+      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
+    } else {
+      console.log("");
+      console.log("Next action:");
+      console.log("  Open a pull request and merge:");
+      console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
+      nextAction = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+    }
   }
 
   if (options.json) {
