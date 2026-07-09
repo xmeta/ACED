@@ -18,6 +18,14 @@ export type DoctorDiagnostic = {
 
 export type DoctorOptions = {
   fix?: boolean;
+  json?: boolean;
+};
+
+export type DoctorJsonOutput = {
+  status: "pass" | "fail";
+  diagnostics: DoctorDiagnostic[];
+  contractIssues: Array<{ source: "check" | "health"; issue: Issue }>;
+  fixResults?: Array<{ id: string; status: "ok" | "fail"; message: string }>;
 };
 
 export type DoctorFixStep = {
@@ -176,8 +184,8 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
   const envHasFailure = diagnostics.some((d) => d.status === "fail");
 
   const contractIssues = [
-    ...collectCheckIssues(root).map((issue) => ({ source: "check", issue })),
-    ...collectHealthIssues(root).map((issue) => ({ source: "health", issue }))
+    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
+    ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
   ];
 
   const lines: string[] = ["SC-WBS Doctor", ""];
@@ -227,6 +235,23 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
 
 export function runDoctor(root: string, options: DoctorOptions = {}): number {
   try {
+    if (options.json) {
+      const diagnostics = collectEnvironmentDiagnostics(root);
+      const contractIssues = [
+        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
+        ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+      ];
+      const envHasFailure = diagnostics.some((d) => d.status === "fail");
+      const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
+      const output: DoctorJsonOutput = {
+        status: envHasFailure || hasContractErrors ? "fail" : "pass",
+        diagnostics,
+        contractIssues,
+        fixResults: options.fix ? applyDoctorFixes(root, diagnostics) : undefined
+      };
+      console.log(JSON.stringify(output, null, 2));
+      return envHasFailure || hasContractErrors ? 1 : 0;
+    }
     process.stdout.write(buildDoctorReport(root, options));
     return 0;
   } catch (error) {

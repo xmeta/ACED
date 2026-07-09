@@ -246,8 +246,25 @@ export function collectCheckIssues(root: string): Issue[] {
   return issues;
 }
 
-export function runCheck(root: string): number {
+export type CheckOptions = {
+  json?: boolean;
+};
+
+export type CheckJsonOutput = {
+  status: "pass" | "fail" | "warn";
+  issues: Issue[];
+};
+
+export function runCheck(root: string, options: CheckOptions = {}): number {
   const issues = collectCheckIssues(root);
+  if (options.json) {
+    const output: CheckJsonOutput = {
+      status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
+      issues
+    };
+    console.log(JSON.stringify(output, null, 2));
+    return hasErrors(issues) ? 1 : 0;
+  }
   if (issues.length === 0) {
     console.log("PASS scwbs check");
     return 0;
