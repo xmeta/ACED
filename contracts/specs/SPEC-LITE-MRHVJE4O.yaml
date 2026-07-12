@@ -6,4 +6,7 @@ status: draft
 version: 0.1.0
 summary: "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI"
 acceptanceCriteria:
-  - 'Define acceptance criteria for: Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI'
+  - "A clean checkout succeeds with npm ci."
+  - "The root lockfile records the wjs workspace and all required workspace dependencies, including wbs-json-spec and esbuild platform packages."
+  - "Running npm ci leaves no Git diff."
+  - "CI installs dependencies with npm ci rather than npm install."
