@@ -2,6 +2,18 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
+## Block lifecycle
+
+Blockは `contracts/blocks/<task-id>.yaml` に置くライフサイクル記録であり、使い捨ての停止マーカーではない。現在状態は `blocked` または `resolved` で、`history` に各停止・解決イベントの時刻、理由、実行者を保持する。
+
+AIは `ai block` でBlockを作成または再有効化できるが、activeな間は作業を停止し、解決操作を実行してはならない。必要な判断を行った人間だけが次を実行する。
+
+```bash
+npm run scwbs -- block resolve --task <task-id> --reason "<判断内容と結果>"
+```
+
+解決理由は空にできない。解決後も `createdAt` を保持し、`resolvedAt`、`resolvedBy: human`、`resolution` を記録する。active Blockは `ai next-task` の候補から除外され、`review-queue` の完了条件をblockする。resolved Blockはregistryに監査可能な形で残るが、両queueをblockしない。
+
 ## 6. Task Contract
 
 Task Contractは、AIが実装する1作業単位に対する契約である。

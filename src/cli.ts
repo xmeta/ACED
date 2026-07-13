@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command, CommanderError } from "commander";
 import { pathToFileURL } from "node:url";
-import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
+import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
 import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
@@ -178,7 +178,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("block")
-    .description("Block a task")
+    .description("Block a task, or resolve an active Block with the human-only `block resolve` form")
     .argument("[reason...]", "block reason")
     .option("--task <id>", "task id")
     .option("--reason <text>", "block reason (alternative)")
@@ -190,13 +190,16 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         exitCode = 2;
         return;
       }
-      const reason = reasonParts.join(" ").trim() || (opts.reason as string) || "";
+      const resolveRequested = reasonParts.length === 1 && reasonParts[0] === "resolve" && typeof opts.reason === "string";
+      const reason = (resolveRequested ? reasonParts.slice(1) : reasonParts).join(" ").trim() || (opts.reason as string) || "";
       if (!reason) {
-        console.error("Missing block reason");
+        console.error(resolveRequested ? "Missing resolution reason" : "Missing block reason");
         exitCode = 2;
         return;
       }
-      exitCode = runAiBlock(root, taskId, reason, { specChange: opts.specChange ?? false });
+      exitCode = resolveRequested
+        ? runHumanBlockResolve(root, taskId, reason)
+        : runAiBlock(root, taskId, reason, { specChange: opts.specChange ?? false });
     });
 
   program

@@ -10,7 +10,8 @@ import { readProfile, runProfileSet } from "../../src/commands/profile.js";
 import { buildStatus } from "../../src/commands/status.js";
 import { runFinish } from "../../src/commands/finish.js";
 import { runFix } from "../../src/commands/fix.js";
-import { runAiBlock } from "../../src/commands/ai-queue.js";
+import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
 import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
 import { readBlock, readEvidence, readSpecChange, readTask } from "../../src/core/contracts.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
@@ -132,6 +133,88 @@ describe("misc", () => {
       category: "db"
     });
     expect(readSpecChange(root, "contracts/spec-changes/SCP-WBS-001-004-block.yaml").specChange?.level).toBe(2);
+  });
+
+  test("a human can resolve a Block without deletion and reblocking preserves lifecycle history", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
+    const createdAt = readBlock(root, "WBS-001-004").block?.createdAt;
+    expect(runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })).toBe(0);
+    const resolved = readBlock(root, "WBS-001-004").block;
+    expect(resolved).toMatchObject({
+      status: "resolved",
+      createdAt,
+      resolvedAt: "2026-07-13T01:00:00.000Z",
+      resolvedBy: "human",
+      resolution: "Human decision recorded"
+    });
+    expect(resolved?.history?.map((entry) => entry.status)).toEqual(["blocked", "resolved"]);
+    expect(buildRegistryYaml(root)).toContain("status: resolved");
+
+    expect(runAiBlock(root, "WBS-001-004", "A new decision is required")).toBe(0);
+    const reblocked = readBlock(root, "WBS-001-004").block;
+    expect(reblocked?.status).toBe("blocked");
+    expect(reblocked?.history?.map((entry) => entry.status)).toEqual(["blocked", "resolved", "blocked"]);
+    expect(reblocked?.history?.[1]).toMatchObject({
+      at: "2026-07-13T01:00:00.000Z",
+      reason: "Human decision recorded",
+      by: "human"
+    });
+  });
+
+  test("Block resolution requires an existing active Block and a non-empty reason", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(1);
+    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
+    expect(runHumanBlockResolve(root, "WBS-001-004", "   ")).toBe(1);
+    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(0);
+    expect(runHumanBlockResolve(root, "WBS-001-004", "Second decision")).toBe(1);
+  });
+
+  test("AI execution mode cannot create a human Block resolution", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
+    expect(runHumanBlockResolve(root, "WBS-001-004", "AI should not resolve", { actor: "ai" })).toBe(1);
+    expect(readBlock(root, "WBS-001-004").block?.status).toBe("blocked");
+  });
+
+  test("reblocking refuses to overwrite an invalid existing Block", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", { type: "block", status: "broken" });
+    expect(runAiBlock(root, "WBS-001-004", "New reason")).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8")).toContain("status: broken");
+  });
+
+  test("reblocking a legacy resolved Block reconstructs its resolution history", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
+      id: "BLK-WBS-001-004",
+      type: "block",
+      taskId: "WBS-001-004",
+      status: "resolved",
+      level: 1,
+      category: "human-gate",
+      reason: "Original block",
+      requiredHumanDecision: "Decide",
+      createdAt: "2026-07-12T01:00:00.000Z",
+      resolvedAt: "2026-07-12T02:00:00.000Z",
+      resolvedBy: "human",
+      resolution: "Decision recorded"
+    });
+
+    expect(runAiBlock(root, "WBS-001-004", "New block")).toBe(0);
+    expect(readBlock(root, "WBS-001-004").block?.history).toEqual([
+      { status: "blocked", at: "2026-07-12T01:00:00.000Z", reason: "Original block", by: "ai-agent" },
+      { status: "resolved", at: "2026-07-12T02:00:00.000Z", reason: "Decision recorded", by: "human" },
+      expect.objectContaining({ status: "blocked", reason: "New block", by: "ai-agent" })
+    ]);
   });
 
   test("finish without task id or task branch fails with a fix command", () => {

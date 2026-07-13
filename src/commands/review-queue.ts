@@ -1,4 +1,4 @@
-import { readApproval, listTasks, readEvidence, readReview } from "../core/contracts.js";
+import { readApproval, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
@@ -118,6 +118,10 @@ export function buildReviewQueue(root: string): string {
     const reasons: string[] = [];
     const warnings: string[] = [];
     const completionBlockedBy = incompleteDependencies(node.id, wbs);
+    const { block } = readBlock(root, task.id);
+    if (block?.status === "blocked") {
+      completionBlockedBy.push(`active Block: ${block.reason}`);
+    }
     const readinessBlocker = nodeReadinessBlocker(node);
     const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
     const { evidence, issues } = readEvidence(root, task.id);

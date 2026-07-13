@@ -6,6 +6,7 @@ import { buildReviewQueue } from "../../src/commands/review-queue.js";
 import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../../src/commands/review-request.js";
 import { buildTrace } from "../../src/commands/trace.js";
 import { buildNextAction } from "../../src/commands/next.js";
+import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import {
   makeTempRepo,
   sampleTask,
@@ -98,6 +99,17 @@ describe("review queue + review request", () => {
     expect(queue).toContain("- 0 candidates ready for completion review");
     expect(queue).toContain("Ready for completion review:\n- None");
     expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
+  });
+
+  test("review queue blocks on active Blocks and ignores resolved Blocks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
+    expect(buildReviewQueue(root)).toContain("completionBlockedBy: active Block: Human Gate required");
+    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(0);
+    expect(buildReviewQueue(root)).not.toContain("completionBlockedBy: active Block");
   });
 
   test("review queue reports incomplete dependencies that block completion", () => {

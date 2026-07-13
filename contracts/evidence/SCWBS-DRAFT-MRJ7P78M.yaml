@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRJ7P78M
+type: evidence
+taskId: SCWBS-DRAFT-MRJ7P78M
+commit: c07cd2b50f0435127aa121a9dd77e1fceadf3c90
+subjectHeadCommit: c07cd2b50f0435127aa121a9dd77e1fceadf3c90
+diffHash: sha256:b2acb912e101dfc19165601f4074baf9442104cd0acaa33868c0ee314093fb9f
+git:
+  branch: task/SCWBS-DRAFT-MRJ7P78M-issue-155-block-resolve-lifecycle-and-cli
+  base: origin/main
+  baseCommit: 74ac293c98c715ed285b32a5fc4d90a4b7bff7de
+  changedFilesBasis: branch-diff
+  pullRequest: "#163"
+  subjectHeadCommit: c07cd2b50f0435127aa121a9dd77e1fceadf3c90
+  diffHash: sha256:b2acb912e101dfc19165601f4074baf9442104cd0acaa33868c0ee314093fb9f
+  headCommit: c07cd2b50f0435127aa121a9dd77e1fceadf3c90
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRJ7P78M.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/ai-queue.ts
+  - src/commands/next.ts
+  - src/commands/review-queue.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/review.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:f6eb868e91d1578ce3f6243b847dd53b38961ec0f1ed5b574915a1d6d2e0155d
+    executedAt: "2026-07-13T13:02:31.713Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:9f64a6fb26c83adaa2d4512d322379a864ebaab825d74bc6cddc7ad81fe9d7a2
+    executedAt: "2026-07-13T13:06:50.275Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3f9882b2081625e6a9b721a510de7f6eab0fece361704d892de71767f25554e1
+    executedAt: "2026-07-13T13:06:52.859Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:8c7c903e5db4134b1c81b81ad44b3060650512d88a31458d5d43a1a3cb247a28
+    executedAt: "2026-07-13T13:06:55.979Z"
