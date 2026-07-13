@@ -1,0 +1,36 @@
+id: SCWBS-DRAFT-MRJM0BOB
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJM0BOB
+branchName: task/SCWBS-DRAFT-MRJM0BOB-task-contract-schema-completionscope-completiont
+managedContractPaths:
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/changesets/start-MRJM0BOB.json
+allowedPaths:
+  - src/core/schema/contracts.ts
+  - src/commands/check.ts
+  - tests/unit/contracts.test.ts
+  - tests/integration/check.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml
+  - contracts/specs/SPEC-LITE-MRJM0BOB.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'completionScope, completionTaskIds, managedContractPaths validated in AJV schema and semantic validator'
+  - 'Cross-contract checks detect self-reference, duplicates, non-existent task IDs, and managedContractPaths/forbiddenPaths overlap'
+  - 'Unit and integration tests cover valid and invalid fixtures'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

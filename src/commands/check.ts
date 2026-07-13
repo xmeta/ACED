@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { workingTreeChangedFiles } from "../core/git.js";
+import { matchesAny } from "../core/glob.js";
 import { fileSha256 } from "../core/hash.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { readCheckCoveragePolicy } from "../core/check-coverage.js";
@@ -209,6 +210,45 @@ function skipReviewValidation(profile: Profile): boolean {
   return profile === "Lean";
 }
 
+function validateCompletionTaskIds(root: string): Issue[] {
+  const issues: Issue[] = [];
+  const tasks = listTasks(root);
+  const allTaskIds = new Set(tasks.filter((entry) => entry.task).map((entry) => entry.task!.id));
+
+  for (const entry of tasks) {
+    if (!entry.task) continue;
+    const task = entry.task;
+
+    if (task.completionTaskIds) {
+      for (const id of task.completionTaskIds) {
+        if (!allTaskIds.has(id)) {
+          issues.push({
+            severity: "error",
+            code: "task.completionTaskIds.missing",
+            message: `${task.id} completionTaskIds references non-existent task: ${id}`
+          });
+        }
+      }
+    }
+
+    if (task.managedContractPaths && task.forbiddenPaths) {
+      for (const managedPath of task.managedContractPaths) {
+        for (const forbiddenPath of task.forbiddenPaths) {
+          if (matchesAny(managedPath, [forbiddenPath]) || matchesAny(forbiddenPath, [managedPath])) {
+            issues.push({
+              severity: "warn",
+              code: "task.managedContractPaths.forbiddenConflict",
+              message: `${task.id} managedContractPaths "${managedPath}" overlaps forbiddenPaths "${forbiddenPath}"`
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   const profile: Profile = readProfile(root);
@@ -254,6 +294,8 @@ export function collectCheckIssues(root: string): Issue[] {
     }
     issues.push(...validateTaskAgainstWbs(root, specIssues, wbs, entry.task, spec, specPath));
   }
+
+  issues.push(...validateCompletionTaskIds(root));
 
   let changed: string[] = [];
   try {

@@ -55,6 +55,12 @@ const taskContractSchema = {
   type: "object",
   required: ["id", "type", "wbsNodeId", "featureId", "allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "doneCriteria", "evidenceRequired"],
   additionalProperties: true,
+  allOf: [
+    {
+      if: { properties: { completionScope: { const: "node" } }, required: ["completionScope"] },
+      then: { required: ["completionTaskIds"] }
+    }
+  ],
   properties: {
     id: { type: "string", minLength: 1 },
     type: { const: "task-contract" },
@@ -62,6 +68,9 @@ const taskContractSchema = {
     wbsNodeId: { type: "string", minLength: 1 },
     featureId: { type: "string", minLength: 1 },
     branchName: { type: "string", minLength: 1 },
+    completionScope: { type: "string", enum: ["node"] },
+    completionTaskIds: stringArraySchema,
+    managedContractPaths: stringArraySchema,
     allowedPaths: stringArraySchema,
     forbiddenPaths: stringArraySchema,
     humanGateRequiredPaths: stringArraySchema,
@@ -315,6 +324,27 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
         issues.push(issue("task.contractLock", `${filePath}.contractLock.lockVersion must be 2 when scoped WBS revisions are present`));
       }
     }
+  }
+  if (value.completionScope !== undefined && value.completionScope !== "node") {
+    issues.push(issue("task.completionScope", `${filePath}.completionScope must be "node" when present`));
+  }
+  if (value.completionTaskIds !== undefined) {
+    if (!isStringArray(value.completionTaskIds)) {
+      issues.push(issue("task.completionTaskIds", `${filePath}.completionTaskIds must be a string array when present`));
+    } else {
+      if (new Set(value.completionTaskIds).size !== value.completionTaskIds.length) {
+        issues.push(issue("task.completionTaskIds.duplicate", `${filePath}.completionTaskIds must not contain duplicates`));
+      }
+      if (typeof value.id === "string" && value.completionTaskIds.includes(value.id)) {
+        issues.push(issue("task.completionTaskIds.selfReference", `${filePath}.completionTaskIds must not include itself`));
+      }
+    }
+  }
+  if (value.managedContractPaths !== undefined && !isStringArray(value.managedContractPaths)) {
+    issues.push(issue("task.managedContractPaths", `${filePath}.managedContractPaths must be a string array when present`));
+  }
+  if (value.completionScope === "node" && (!isStringArray(value.completionTaskIds) || value.completionTaskIds.length === 0)) {
+    issues.push(issue("task.completionTaskIds.required", `${filePath}.completionTaskIds is required when completionScope is "node"`));
   }
   return issues;
 }
