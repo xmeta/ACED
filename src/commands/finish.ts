@@ -1,6 +1,6 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { currentBranch } from "../core/git.js";
-import { matchesAny } from "../core/glob.js";
+import { validateHumanGateApproval } from "../core/human-gate.js";
 import { runCheckDiff } from "./check-diff.js";
 import { runEvidenceCollect } from "./evidence-collect.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
@@ -44,16 +44,6 @@ function runSilentIfJson<T>(json: boolean, fn: () => T): { result: T; output: st
 function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   const match = branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/);
   return match?.[1];
-}
-
-function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
-  const approval = readApproval(root, taskId).approval;
-  if (approval?.status !== "approved") return false;
-  const evidence = readEvidence(root, taskId).evidence;
-  const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
-  const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
-  if (!approval.headCommit || !approval.diffHash || !evidenceHead || !evidenceDiffHash) return false;
-  return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
 }
 
 export function buildHumanApprovalCommand(taskId: string): string {
@@ -130,13 +120,10 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
 
   const profile: Profile = readProfile(root);
 
-  const humanGateFiles = task.humanGateRequiredPaths.filter((pattern) => {
-    const files = evidence?.changedFiles ?? [];
-    return files.some((file) => matchesAny(file, [pattern]));
-  });
-
   const approval = readApproval(root, taskId).approval;
-  const needsHumanGate = humanGateFiles.length > 0 && !hasApprovedHumanGateApproval(root, taskId);
+  const humanGate = validateHumanGateApproval(task, evidence, approval);
+  const humanGateFiles = humanGate.requiredFiles;
+  const needsHumanGate = humanGate.required && !humanGate.approved;
 
   let nextAction = "";
   if (options.json) {
@@ -148,7 +135,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
         console.error(`  - ${file}`);
       }
     }
-    nextAction = needsHumanGate || (approval?.status === "requested" && humanGateFiles.length === 0)
+    nextAction = needsHumanGate
       ? buildHumanApprovalCommand(taskId)
       : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
   } else {
@@ -162,12 +149,6 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       console.log("");
       console.log("Next action:");
       console.log("  Human reviewer must run:");
-      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
-      nextAction = buildHumanApprovalCommand(taskId);
-    } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
-      console.log("");
-      console.log("Next action:");
-      console.log("  Human reviewer must review and approve:");
       console.log(`  ${buildHumanApprovalCommand(taskId)}`);
       nextAction = buildHumanApprovalCommand(taskId);
     } else {

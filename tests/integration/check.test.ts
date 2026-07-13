@@ -40,4 +40,43 @@ describe("check", () => {
     expect(parsed).toMatchObject({ status: expect.stringMatching(/fail|warn/), issues: expect.any(Array) });
     expect(parsed.issues.length).toBeGreaterThan(0);
   });
+
+  test("completed tasks without Human Gate file changes do not require Approval", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["src/feature.ts"]
+    }) as unknown as Record<string, unknown>);
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheck(root, { json: true })).toBe(0);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", issues: [] });
+  });
+
+  test("completed tasks with Human Gate file changes reject requested Approval", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["src/security/key.ts"]
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "requested" }) as unknown as Record<string, unknown>);
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheck(root, { json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "approval.status", severity: "error" })
+    ]));
+  });
 });
