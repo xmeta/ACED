@@ -69,8 +69,13 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
 
 export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string }): number {
   try {
-    if ((options.actor ?? process.env.SCWBS_AGENT_MODE) === "ai") {
+    const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
+    if (resolvedActor === "ai") {
       console.error("AI execution mode cannot approve human gates; request human approval instead");
+      return 1;
+    }
+    if (resolvedActor !== "human") {
+      console.error("approval approve requires explicit human confirmation; pass --actor human");
       return 1;
     }
     const relativePath = approvalPath(taskId);

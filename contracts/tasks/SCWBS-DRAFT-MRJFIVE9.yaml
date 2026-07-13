@@ -1,0 +1,39 @@
+id: SCWBS-DRAFT-MRJFIVE9
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJFIVE9
+branchName: task/SCWBS-DRAFT-MRJFIVE9-issue-101-approval-approve-must-require-explicit
+allowedPaths:
+  - src/commands/approval-request.ts
+  - src/commands/finish.ts
+  - src/core/human-gate.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/ai.test.ts
+  - README.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - approval approve fails when --actor is unspecified (no default to human)
+  - approval approve fails when actor is ai (existing behavior preserved)
+  - approval approve succeeds only when --actor human is explicitly passed
+  - finish and human-gate suggested commands include --actor human
+  - README and CLI reference document the --actor human requirement
+  - existing tests updated and new rejection test added
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

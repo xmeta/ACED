@@ -90,7 +90,7 @@ npm run scwbs -- review-queue
 npm run scwbs -- review route --task WBS-001-004
 npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
-npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --reason "Evidence and PR reviewed"
+npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
 npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted"
 npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted" --apply
 ```

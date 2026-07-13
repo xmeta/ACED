@@ -447,7 +447,7 @@ describe("AI commands", () => {
 
     expect(main(["request-approval", "--task", "WBS-001-004", "--pr", "#42", "--note", "Needs review"], root)).toBe(0);
     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("requested");
-    expect(main(["approve", "--task", "WBS-001-004", "--pr", "#42", "--reason=Reviewed"], root)).toBe(0);
+    expect(main(["approve", "--task", "WBS-001-004", "--pr", "#42", "--actor", "human", "--reason=Reviewed"], root)).toBe(0);
     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
     expect(main(["block", "Human Gate required", "--task", "WBS-001-004"], root)).toBe(0);
     expect(readBlock(root, "WBS-001-004").block?.category).toBe("human-gate");
