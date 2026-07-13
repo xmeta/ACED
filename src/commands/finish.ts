@@ -56,6 +56,10 @@ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
   return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
 }
 
+export function buildHumanApprovalCommand(taskId: string): string {
+  return `npm run scwbs -- approval approve --task ${taskId} --reason "Evidence and diff reviewed"`;
+}
+
 export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
@@ -145,7 +149,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       }
     }
     nextAction = needsHumanGate || (approval?.status === "requested" && humanGateFiles.length === 0)
-      ? `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`
+      ? buildHumanApprovalCommand(taskId)
       : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
   } else {
     console.log(`Profile: ${profile}`);
@@ -158,14 +162,14 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       console.log("");
       console.log("Next action:");
       console.log("  Human reviewer must run:");
-      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
-      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
+      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
+      nextAction = buildHumanApprovalCommand(taskId);
     } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
       console.log("");
       console.log("Next action:");
       console.log("  Human reviewer must review and approve:");
-      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
-      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
+      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
+      nextAction = buildHumanApprovalCommand(taskId);
     } else {
       console.log("");
       console.log("Next action:");
