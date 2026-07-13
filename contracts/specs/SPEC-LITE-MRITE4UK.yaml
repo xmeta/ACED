@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRITE4UK
+type: spec-contract
+featureId: F-MRITE4UK
+title: "Fix Issue #131: require integration and WJS tests in CI"
+status: approved
+version: 0.1.0
+approvedBy: human
+approvedAt: "2026-07-13T06:06:51.497Z"
+summary: "Require the root unit and integration suites plus the WJS suite to run as mandatory, distinguishable pull-request checks."
+acceptanceCriteria:
+  - "Every pull request runs the root unit suite and reports all 14 tests."
+  - "Every pull request runs the root integration suite and reports all 144 tests."
+  - "Every pull request runs the WJS test suite."
+  - "Any unit, integration, or WJS test failure fails its pull-request check."
+  - "CI logs identify each test group, its count, and its result."
