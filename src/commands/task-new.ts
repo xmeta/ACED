@@ -88,37 +88,6 @@ export function buildCoreTaskNew(title: string, options: {
   return { task, fallback };
 }
 
-/**
- * M1-012: when a task is meant to be tracked under an existing WBS node,
- * `task new` must not write to the WBS document directly. Instead it emits a
- * changeset draft (the same format `wbs apply` consumes) so a human/CI step
- * can review and apply it explicitly.
- */
-function writeWbsLinkChangeset(root: string, task: TaskContract, wbsNodeId: string): string {
-  const changesetId = `changeset-${task.id}-link-wbs-node`;
-  const relativePath = `contracts/changesets/${task.id}-link-wbs-node.json`;
-  const fullPath = resolveFrom(root, relativePath);
-  const changeset = {
-    schemaVersion: "0.1.0",
-    targetWbsId: "scwbs",
-    changeSetId: changesetId,
-    author: "scwbs-cli",
-    reason: `Link task ${task.id} to WBS node ${wbsNodeId} (draft only; review before applying).`,
-    dryRun: false,
-    operations: [
-      {
-        operationId: "op-001",
-        operation: "addNodeOutput",
-        nodeId: wbsNodeId,
-        artifactId: `artifact-${task.id.toLowerCase()}`
-      }
-    ]
-  };
-  mkdirSync(path.dirname(fullPath), { recursive: true });
-  writeFileSync(fullPath, `${JSON.stringify(changeset, null, 2)}\n`, "utf8");
-  return relativePath;
-}
-
 function appendTaskIndex(root: string, task: TaskContract): void {
   const relativePath = "contracts/tasks/index.yaml";
   const fullPath = resolveFrom(root, relativePath);
@@ -161,13 +130,9 @@ export function runTaskNew(root: string, title: string, options: {
     // M1-011: WBS-less operation keeps tasks discoverable via the index.
     appendTaskIndex(root, task);
 
-    // M1-012: WBS-backed operation never edits the WBS directly; it only
-    // proposes a changeset draft for later review via `wbs apply`.
-    if (options.wbsNode) {
-      const changesetPath = writeWbsLinkChangeset(root, task, options.wbsNode);
-      process.stdout.write(`Draft changeset written (not applied): ${changesetPath}\n`);
-      process.stdout.write(`Review and apply with: scwbs wbs apply contracts/wbs/project.wbs.json ${changesetPath} --force\n`);
-    }
+    // M1-012: WBS-backed operation never edits the WBS directly. The Task
+    // Contract's wbsNodeId field is the canonical association; no changeset
+    // is emitted.
 
     if (fallback.usedFallbackTitle && fallback.fallbackNote) {
       process.stdout.write(`Notice: ${fallback.fallbackNote}\n`);
