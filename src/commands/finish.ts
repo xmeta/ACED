@@ -121,7 +121,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
   const profile: Profile = readProfile(root);
 
   const approval = readApproval(root, taskId).approval;
-  const humanGate = validateHumanGateApproval(task, evidence, approval);
+  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence?.changedFiles, root);
   const humanGateFiles = humanGate.requiredFiles;
   const needsHumanGate = humanGate.required && !humanGate.approved;
 

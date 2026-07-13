@@ -1,6 +1,22 @@
+import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
 import { validateHumanGateApproval } from "../../src/core/human-gate.js";
-import { sampleApproval, sampleEvidence, sampleTask } from "../helpers.js";
+import { headCommit } from "../../src/core/git.js";
+import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeText } from "../helpers.js";
+
+function commitAll(root: string, message: string): string {
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
+  return headCommit(root)!;
+}
+
+function addTaskMetadata(root: string, taskId: string): string {
+  writeText(root, `contracts/evidence/${taskId}.yaml`, "metadata\n");
+  writeText(root, `contracts/approvals/${taskId}.yaml`, "metadata\n");
+  writeText(root, `contracts/reviews/${taskId}.yaml`, "metadata\n");
+  writeText(root, "contracts/registry.yaml", "metadata\n");
+  return commitAll(root, "metadata");
+}
 
 describe("Human Gate approval scope", () => {
   const task = sampleTask({ humanGateRequiredPaths: ["package.json", ".github/**"] });
@@ -120,4 +136,102 @@ describe("Human Gate approval scope", () => {
     );
     expect(result).toMatchObject({ required: true, approved: true, issues: [] });
   });
+
+  test("preserves Approval across metadata-only descendant commits", () => {
+    const root = makeTempRepo();
+    writeText(root, "README.md", "base\n");
+    commitAll(root, "base");
+    writeText(root, "package.json", "{}\n");
+    const approvedHead = commitAll(root, "implementation");
+    const subjectHead = addTaskMetadata(root, task.id);
+    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
+    const scopedApproval = sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-13T00:00:00.000Z",
+      headCommit: approvedHead,
+      diffHash: "same-diff"
+    });
+
+    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root))
+      .toMatchObject({ required: true, approved: true, issues: [] });
+
+    const unscopedEvidence = { ...scopedEvidence, diffHash: undefined, git: undefined };
+    const unscopedApproval = { ...scopedApproval, diffHash: undefined };
+    expect(validateHumanGateApproval(task, unscopedEvidence, unscopedApproval, unscopedEvidence.changedFiles, root).issues)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
+  });
+
+  test.each([
+    ["Gate", "package.json"],
+    ["implementation", "src/feature.ts"],
+    ["test", "tests/feature.test.ts"],
+    ["dependency", "package-lock.json"],
+    ["submodule", "wjs/nested-change.txt"]
+  ])("invalidates Approval after %s changes", (_kind, changedPath) => {
+    const root = makeTempRepo();
+    writeText(root, "README.md", "base\n");
+    commitAll(root, "base");
+    writeText(root, "package.json", "{}\n");
+    const approvedHead = commitAll(root, "implementation");
+    addTaskMetadata(root, task.id);
+    writeText(root, changedPath, "changed\n");
+    const subjectHead = commitAll(root, "non-metadata change");
+    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
+    const scopedApproval = sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-13T00:00:00.000Z",
+      headCommit: approvedHead,
+      diffHash: "same-diff"
+    });
+
+    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
+  });
+
+  test("rejects Approval heads that are not ancestors of Evidence", () => {
+    const root = makeTempRepo();
+    writeText(root, "README.md", "base\n");
+    commitAll(root, "base");
+    writeText(root, "package.json", "{}\n");
+    const approvedHead = commitAll(root, "approved branch");
+    execFileSync("git", ["switch", "-c", "other", "HEAD~1"], { cwd: root, stdio: "ignore" });
+    const subjectHead = addTaskMetadata(root, task.id);
+    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
+    const scopedApproval = sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-13T00:00:00.000Z",
+      headCommit: approvedHead,
+      diffHash: "same-diff"
+    });
+
+    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
+  });
+
+  test("invalidates Approval when implementation changed and was later reverted", () => {
+    const root = makeTempRepo();
+    writeText(root, "README.md", "base\n");
+    commitAll(root, "base");
+    writeText(root, "package.json", "{}\n");
+    const approvedHead = commitAll(root, "implementation");
+    addTaskMetadata(root, task.id);
+    writeText(root, "src/feature.ts", "changed\n");
+    commitAll(root, "temporary implementation change");
+    execFileSync("git", ["rm", "src/feature.ts"], { cwd: root, stdio: "ignore" });
+    const subjectHead = commitAll(root, "revert implementation change");
+    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
+    const scopedApproval = sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-13T00:00:00.000Z",
+      headCommit: approvedHead,
+      diffHash: "same-diff"
+    });
+
+    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
+  }, 15000);
 });

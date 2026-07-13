@@ -32,7 +32,7 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
 
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
-  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files);
+  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files, root);
   for (const issue of collectWbsChangesetGateIssues(files)) {
     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }

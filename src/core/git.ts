@@ -57,6 +57,18 @@ export function changedFilesSince(root: string, ref: string): string[] {
   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
 }
 
+export function changedFilesBetween(root: string, fromRef: string, toRef: string): string[] {
+  return Array.from(new Set(gitLines(root, ["log", "--format=", "--name-only", `${fromRef}..${toRef}`], "git log failed")));
+}
+
+export function isCommitAncestor(root: string, ancestorRef: string, descendantRef: string): boolean {
+  const result = spawnSync("git", ["merge-base", "--is-ancestor", ancestorRef, descendantRef], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return result.status === 0;
+}
+
 export function resolveCommit(root: string, ref: string): string | undefined {
   const result = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], {
     cwd: root,

@@ -1,4 +1,5 @@
 import { matchesAny } from "./glob.js";
+import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import type { ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
 
 export type HumanGateValidation = {
@@ -16,11 +17,20 @@ function evidenceDiffHash(evidence: Evidence): string | undefined {
   return evidence.diffHash ?? evidence.git?.diffHash;
 }
 
+function isApprovalMetadataFile(taskId: string, file: string): boolean {
+  const normalized = file.replace(/\\/g, "/");
+  return normalized === `contracts/evidence/${taskId}.yaml`
+    || normalized === `contracts/approvals/${taskId}.yaml`
+    || normalized === `contracts/reviews/${taskId}.yaml`
+    || normalized === "contracts/registry.yaml";
+}
+
 export function validateHumanGateApproval(
   task: TaskContract,
   evidence: Evidence | undefined,
   approval: ApprovalRecord | undefined,
-  changedFiles: string[] = evidence?.changedFiles ?? []
+  changedFiles: string[] = evidence?.changedFiles ?? [],
+  root?: string
 ): HumanGateValidation {
   const requiredFiles = changedFiles.filter((file) => matchesAny(file, task.humanGateRequiredPaths));
   if (requiredFiles.length === 0) {
@@ -68,12 +78,26 @@ export function validateHumanGateApproval(
       fixCommand: approvalCommand
     });
   } else if (approval.headCommit && subjectHead && approval.headCommit !== subjectHead) {
-    issues.push({
-      severity: "error",
-      code: "approval.scope.headCommit",
-      message: `${task.id} approved headCommit does not match Evidence subjectHeadCommit`,
-      fixCommand: approvalCommand
-    });
+    let metadataOnlyDescendant = false;
+    const matchingAuditableDiff = !legacyUnscoped
+      && Boolean(approval.diffHash)
+      && approval.diffHash === subjectDiffHash;
+    if (root && matchingAuditableDiff && isCommitAncestor(root, approval.headCommit, subjectHead)) {
+      try {
+        const interveningFiles = changedFilesBetween(root, approval.headCommit, subjectHead);
+        metadataOnlyDescendant = interveningFiles.every((file) => isApprovalMetadataFile(task.id, file));
+      } catch {
+        metadataOnlyDescendant = false;
+      }
+    }
+    if (!metadataOnlyDescendant) {
+      issues.push({
+        severity: "error",
+        code: "approval.scope.headCommit",
+        message: `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`,
+        fixCommand: approvalCommand
+      });
+    }
   }
   if ((!approval.diffHash || !subjectDiffHash) && !legacyUnscoped) {
     issues.push({
