@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRJ5YJ65
+type: evidence
+taskId: SCWBS-DRAFT-MRJ5YJ65
+commit: 819c74f68fb8993353a10458f63fec53f73f68b5
+subjectHeadCommit: 819c74f68fb8993353a10458f63fec53f73f68b5
+diffHash: sha256:6b5573b71fca9dc9f8f9faf1fec549370eaf3117b20e4d881ef9bdba6c5dfefb
+git:
+  branch: task/SCWBS-DRAFT-MRJ5YJ65-issue-151-finish-evidence-registry-sync-and-safe
+  base: origin/main
+  baseCommit: 606755b413eb9c6f8e3ad7420cddf2b1f9c262ae
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 819c74f68fb8993353a10458f63fec53f73f68b5
+  diffHash: sha256:6b5573b71fca9dc9f8f9faf1fec549370eaf3117b20e4d881ef9bdba6c5dfefb
+  headCommit: 819c74f68fb8993353a10458f63fec53f73f68b5
+changedFiles:
+  - contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+  - contracts/tasks/index.yaml
+  - src/cli.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - src/core/check-cache.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:065370f912054dfeb8a3953c6f5492425417bd9b43807daca21cccfd42961411
+    executedAt: "2026-07-13T12:14:22.898Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:431edbd46651160f2ceed6ad9d509852014990ca4a5579a49843e352d7aacf7c
+    executedAt: "2026-07-13T12:18:26.609Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:f3a54840d76a0e48cd484236e08afd4c38582b1b6029a9d8b78620375b493f64
+    executedAt: "2026-07-13T12:18:29.209Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:73f1bcc21ffb2dffcd8630105a078e6375ffa19dae58633185bd975d3ed1b01c
+    executedAt: "2026-07-13T12:18:31.931Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - finish one-run registry synchronization, safe check reuse, invalidation, rerun, failure resume, and dirty submodule regressions added
