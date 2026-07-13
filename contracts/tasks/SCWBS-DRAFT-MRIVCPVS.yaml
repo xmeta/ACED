@@ -1,0 +1,33 @@
+id: SCWBS-DRAFT-MRIVCPVS
+type: task-contract
+wbsNodeId: node-project
+featureId: F-MRIVCPVS
+branchName: task/SCWBS-DRAFT-MRIVCPVS-issue-132-wjs-run-ts-nested-import-apply-cli-run
+allowedPaths:
+  - package.json
+  - wjs
+  - wjs/tools/run-ts.mjs
+  - wjs/tests/apply/cli-runner.test.ts
+  - contracts/**
+forbiddenPaths: []
+humanGateRequiredPaths:
+  - package.json
+requiredChecks:
+  - test
+  - test:wjs
+  - typecheck
+  - build
+doneCriteria:
+  - WJS run-ts preserves nested tool imports when emitting temporary JavaScript.
+  - npm test -w wjs passes without Bun.
+  - npm run apply succeeds for a representative WBS changeset.
+  - The root scwbs wbs apply command succeeds through the WJS runner.
+  - A regression test covers nested imports used by the apply CLI runner.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-project
+  createdAt: "2026-07-13T07:03:58.088Z"
