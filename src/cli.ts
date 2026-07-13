@@ -19,7 +19,7 @@ import { runNext } from "./commands/next.js";
 import { runPlan } from "./commands/plan.js";
 import { runProfileSet, runProfileShow } from "./commands/profile.js";
 import { runRegistryRebuild } from "./commands/registry-rebuild.js";
-import { runReviewRequest, runReviewRoute } from "./commands/review-request.js";
+import { runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest, runReviewRoute } from "./commands/review-request.js";
 import { runReviewQueue } from "./commands/review-queue.js";
 import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
@@ -537,6 +537,53 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         return;
       }
       exitCode = runReviewRoute(root, opts.task);
+    });
+
+  review
+    .command("approve")
+    .description("Approve a review")
+    .option("--task <id>", "task id")
+    .option("--actor <text>", "review actor (must be human)")
+    .option("--findings <text>", "review findings")
+    .option("--force", "force approve")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runReviewApprove(root, opts.task, { reviewedBy: opts.actor, findings: opts.findings, force: opts.force ?? false });
+    });
+
+  review
+    .command("changes-requested")
+    .description("Request changes for a review")
+    .option("--task <id>", "task id")
+    .option("--actor <text>", "review actor (must be human)")
+    .option("--findings <text>", "review findings")
+    .option("--force", "force changes-requested")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runReviewChangesRequested(root, opts.task, { reviewedBy: opts.actor, findings: opts.findings, force: opts.force ?? false });
+    });
+
+  review
+    .command("close")
+    .description("Close a review")
+    .option("--task <id>", "task id")
+    .option("--actor <text>", "review actor (must be human)")
+    .option("--force", "force close")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runReviewClose(root, opts.task, { reviewedBy: opts.actor, force: opts.force ?? false });
     });
 
   const lite = program.command("lite");

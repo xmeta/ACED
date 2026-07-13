@@ -1,0 +1,40 @@
+id: SCWBS-DRAFT-MRJNPICQ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJNPICQ
+branchName: task/SCWBS-DRAFT-MRJNPICQ-review-record-review-queue
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/cli.ts
+  - src/commands/review-request.ts
+  - src/commands/review-queue.ts
+  - src/commands/next.ts
+  - tests/integration/review.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml
+  - contracts/specs/SPEC-LITE-MRJNPICQ.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Review can transition from requested to approved, changes-requested, or closed via CLI commands'
+  - 'Terminal-state reviews are excluded from the active review queue'
+  - 'next suggests actionable review transition commands and falls through to planned tasks when reviews are blocked'
+  - 'Unit and integration tests cover all new commands and queue filtering'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/changesets/start-MRJNPICQ.json

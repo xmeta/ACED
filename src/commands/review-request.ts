@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readEvidence, readTask } from "../core/contracts.js";
+import { readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
@@ -78,6 +78,98 @@ export function buildReviewRequestYaml(taskId: string, options: { pullRequest?: 
   return stringifySimpleYaml(buildReviewRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
+function readExistingReview(root: string, taskId: string): ReviewRecord {
+  const { review, issues } = readReview(root, taskId);
+  const missingReviewOnly = issues.length === 1 && issues[0]?.code === "review.missing";
+  if (!missingReviewOnly && !review) {
+    throw new Error(issues.map((issue) => issue.message).join("\n"));
+  }
+  if (!review) {
+    throw new Error(`contracts/reviews/${taskId}.yaml does not exist; request a review first`);
+  }
+  return review;
+}
+
+function reviewSubject(review: ReviewRecord): { headCommit?: string; diffHash?: string; pullRequest?: string } {
+  return {
+    ...(review.headCommit ? { headCommit: review.headCommit } : {}),
+    ...(review.diffHash ? { diffHash: review.diffHash } : {}),
+    ...(review.pullRequest ? { pullRequest: review.pullRequest } : {})
+  };
+}
+
+function parseFindings(findings: string | undefined): string[] | undefined {
+  if (!findings) return undefined;
+  const split = findings.split(",").map((item) => item.trim()).filter(Boolean);
+  return split.length > 0 ? split : [findings.trim()];
+}
+
+export function buildReviewApprove(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): ReviewRecord {
+  const review = options.review;
+  return {
+    id: `RVW-${taskId}`,
+    type: "review",
+    taskId,
+    status: "approved",
+    reviewProfile: review?.reviewProfile ?? "independent-ai-review",
+    ...(review ? reviewSubject(review) : {}),
+    groundTruth: review?.groundTruth ?? [taskPath(taskId), evidencePath(taskId)],
+    ...(review?.requestedReviewers && review.requestedReviewers.length > 0 ? { requestedReviewers: review.requestedReviewers } : {}),
+    ...(review?.notes && review.notes.length > 0 ? { notes: review.notes } : {}),
+    reviewedBy: options.reviewedBy ?? "human",
+    reviewedAt: options.reviewedAt ?? new Date().toISOString(),
+    ...(options.findings && options.findings.length > 0 ? { findings: options.findings } : {})
+  };
+}
+
+export function buildReviewApproveYaml(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): string {
+  return stringifySimpleYaml(buildReviewApprove(taskId, options) as unknown as Record<string, unknown>);
+}
+
+export function buildReviewChangesRequested(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): ReviewRecord {
+  const review = options.review;
+  return {
+    id: `RVW-${taskId}`,
+    type: "review",
+    taskId,
+    status: "changes-requested",
+    reviewProfile: review?.reviewProfile ?? "independent-ai-review",
+    ...(review ? reviewSubject(review) : {}),
+    groundTruth: review?.groundTruth ?? [taskPath(taskId), evidencePath(taskId)],
+    ...(review?.requestedReviewers && review.requestedReviewers.length > 0 ? { requestedReviewers: review.requestedReviewers } : {}),
+    ...(review?.notes && review.notes.length > 0 ? { notes: review.notes } : {}),
+    reviewedBy: options.reviewedBy ?? "human",
+    reviewedAt: options.reviewedAt ?? new Date().toISOString(),
+    ...(options.findings && options.findings.length > 0 ? { findings: options.findings } : {})
+  };
+}
+
+export function buildReviewChangesRequestedYaml(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): string {
+  return stringifySimpleYaml(buildReviewChangesRequested(taskId, options) as unknown as Record<string, unknown>);
+}
+
+export function buildReviewClose(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): ReviewRecord {
+  const review = options.review;
+  return {
+    id: `RVW-${taskId}`,
+    type: "review",
+    taskId,
+    status: "closed",
+    reviewProfile: review?.reviewProfile ?? "independent-ai-review",
+    ...(review ? reviewSubject(review) : {}),
+    groundTruth: review?.groundTruth ?? [taskPath(taskId), evidencePath(taskId)],
+    ...(review?.requestedReviewers && review.requestedReviewers.length > 0 ? { requestedReviewers: review.requestedReviewers } : {}),
+    ...(review?.notes && review.notes.length > 0 ? { notes: review.notes } : {}),
+    reviewedBy: options.reviewedBy ?? "human",
+    reviewedAt: options.reviewedAt ?? new Date().toISOString(),
+    ...(options.findings && options.findings.length > 0 ? { findings: options.findings } : {})
+  };
+}
+
+export function buildReviewCloseYaml(taskId: string, options: { reviewedBy?: string; reviewedAt?: string; findings?: string[]; review?: ReviewRecord }): string {
+  return stringifySimpleYaml(buildReviewClose(taskId, options) as unknown as Record<string, unknown>);
+}
+
 export function runReviewRoute(root: string, taskId: string): number {
   try {
     console.log(buildReviewRouteReport(root, taskId));
@@ -105,6 +197,110 @@ export function runReviewRequest(root: string, taskId: string, options: { pullRe
       evidence,
       requestedReviewers: routeReviewers(task, evidence)
     });
+    writeFileSync(fullPath, yaml, "utf8");
+    process.stdout.write(yaml);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+function resolveReviewActor(options: { reviewedBy?: string; actor?: string }): { actor?: string; error?: string } {
+  const resolvedActor = options.actor ?? options.reviewedBy ?? process.env.SCWBS_AGENT_MODE;
+  if (resolvedActor === "ai") {
+    return { error: "AI execution mode cannot approve human gates; request human review instead" };
+  }
+  if (resolvedActor !== "human") {
+    return { error: "review transition requires explicit human confirmation; pass --actor human" };
+  }
+  return { actor: resolvedActor };
+}
+
+export function runReviewApprove(root: string, taskId: string, options: { reviewedBy?: string; findings?: string; force: boolean; actor?: string }): number {
+  try {
+    const { error: actorError } = resolveReviewActor(options);
+    if (actorError) {
+      console.error(actorError);
+      return 1;
+    }
+    const relativePath = reviewPath(taskId);
+    const fullPath = resolveFrom(root, relativePath);
+    const review = readExistingReview(root, taskId);
+    if (review.status === "approved" && !options.force) {
+      console.error(`${relativePath} is already approved; rerun with --force to overwrite`);
+      return 1;
+    }
+    if (review.status === "closed" && !options.force) {
+      console.error(`${relativePath} is closed; rerun with --force to approve anyway`);
+      return 1;
+    }
+
+    const yaml = buildReviewApproveYaml(taskId, {
+      review,
+      reviewedBy: options.reviewedBy,
+      findings: parseFindings(options.findings)
+    });
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, yaml, "utf8");
+    process.stdout.write(yaml);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function runReviewChangesRequested(root: string, taskId: string, options: { reviewedBy?: string; findings?: string; force: boolean; actor?: string }): number {
+  try {
+    const { error: actorError } = resolveReviewActor(options);
+    if (actorError) {
+      console.error(actorError);
+      return 1;
+    }
+    const relativePath = reviewPath(taskId);
+    const fullPath = resolveFrom(root, relativePath);
+    const review = readExistingReview(root, taskId);
+    if ((review.status === "approved" || review.status === "closed") && !options.force) {
+      console.error(`${relativePath} is ${review.status}; rerun with --force to request changes anyway`);
+      return 1;
+    }
+
+    const yaml = buildReviewChangesRequestedYaml(taskId, {
+      review,
+      reviewedBy: options.reviewedBy,
+      findings: parseFindings(options.findings)
+    });
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, yaml, "utf8");
+    process.stdout.write(yaml);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function runReviewClose(root: string, taskId: string, options: { reviewedBy?: string; force: boolean; actor?: string }): number {
+  try {
+    const { error: actorError } = resolveReviewActor(options);
+    if (actorError) {
+      console.error(actorError);
+      return 1;
+    }
+    const relativePath = reviewPath(taskId);
+    const fullPath = resolveFrom(root, relativePath);
+    const review = readExistingReview(root, taskId);
+    if ((review.status === "approved" || review.status === "changes-requested") && !options.force) {
+      console.error(`${relativePath} is ${review.status}; rerun with --force to close anyway`);
+      return 1;
+    }
+
+    const yaml = buildReviewCloseYaml(taskId, {
+      review,
+      reviewedBy: options.reviewedBy
+    });
+    mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
     process.stdout.write(yaml);
     return 0;
