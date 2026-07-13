@@ -62,11 +62,12 @@ contracts/tasks/<task-id>.yaml
 
 既存ファイルを上書きしない。上書きには明示的な `--force` を必要とする。
 
-### `scwbs start <task-id>`
+### `scwbs start <goal>`
 
-作業開始のpre-flightを行う。
+作業開始のpre-flight、または新規Taskの開始を行う。
+引数に既存のtask-idを指定した場合はpre-flightを、新規のgoal文字列を指定した場合はspec/task/changesetドラフトを生成する。
 
-処理:
+処理（既存task-idの場合）:
 
 ```text
 - branch確認または作成
@@ -74,6 +75,14 @@ contracts/tasks/<task-id>.yaml
 - allowedPaths / forbiddenPaths表示
 - Stop Conditions表示
 - Tiny Packet生成案内
+```
+
+処理（新規goalの場合）:
+
+```text
+- spec/task/changesetドラフト生成
+- branch名の提示
+- 次アクションの表示
 ```
 
 ### `scwbs packet`

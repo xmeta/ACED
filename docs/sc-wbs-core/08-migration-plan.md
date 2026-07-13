@@ -103,7 +103,7 @@ Core の入口は「WBS管理ツール」より「AI作業ガードレールCLI�
 | `task-contract.md` | command-firstとCore最小形式を追記 |
 | `ai-work-packet.md` | Tiny/Normal/Deep Packetへ更新 |
 | `contract-enforcement.md` | check-diffのCoreルールを反映 |
-| `evidence-human-gate-review.md` | subjectHeadCommit/diffHash/gateTypeを反映 |
+| `evidence-human-gate-review.md` | subjectHeadCommit/diffHashを反映 |
 | `operations-profile-and-specs.md` | Core/Full/Strictの関係を明記 |
 | `cli-reference.md` | Core短縮コマンドを先頭に追加 |
 | `wbs-json.md` | Coreではoptional、Fullではrequiredと明記 |

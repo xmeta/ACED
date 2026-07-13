@@ -69,10 +69,9 @@ git:
 採用:
 
 ```yaml
-scope:
-  pullRequest: "#42"
-  headCommit: abc1234
-  diffHash: sha256:...
+pullRequest: "#42"
+headCommit: abc1234
+diffHash: sha256:...
 ```
 
 理由:

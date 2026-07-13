@@ -1,0 +1,32 @@
+id: SCWBS-DRAFT-MRJRH1OC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJRH1OC
+branchName: task/SCWBS-DRAFT-MRJRH1OC-core-approval-block-start-completion
+allowedPaths:
+  - docs/sc-wbs-core/**
+  - README.md
+  - tests/unit/core-docs-samples.test.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Approval/Blockの全YAML例が現行schema (src/core/schema/records.ts) を通る
+  - startとcompletionの説明が実装と一致する
+  - サンプル検証テストが tests/unit/core-docs-samples.test.ts に追加される
+  - README.md の Source Of Truth に schema/version が明記される
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml
+  - contracts/specs/SPEC-LITE-MRJRH1OC.yaml
+  - contracts/registry.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRJRH1OC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRJRH1OC.yaml

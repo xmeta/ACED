@@ -50,7 +50,7 @@ SC-WBS Core では、次の目的に絞る。
 | `02-command-first-workflow.md` | 人間/AIが使う短いコマンド中心の運用 |
 | `03-minimal-artifacts.md` | 内部生成物としての Task/Evidence/Approval/Block |
 | `04-ai-work-packet.md` | Tiny/Normal/Deep Packet とコンテキスト制御 |
-| `05-diff-evidence-approval.md` | diffHash、subjectHeadCommit、承認scopeのルール |
+| `05-diff-evidence-approval.md` | diffHash、subjectHeadCommit、承認スコープ（headCommit/diffHash）のルール |
 | `06-human-gate.md` | Stop Conditions と Gate 種別 |
 | `07-cli-core-spec.md` | Core CLI のコマンド仕様 |
 | `08-migration-plan.md` | 既存SC-WBSからCoreへ反映する手順 |

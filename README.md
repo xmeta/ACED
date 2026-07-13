@@ -203,7 +203,7 @@ Common commands:
 ```bash
 npm run scwbs -- next
 npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
-npm run scwbs -- start <task-id>
+npm run scwbs -- start <goal>
 npm run scwbs -- packet --task <task-id>           # tiny (default)
 npm run scwbs -- packet --task <task-id> --standard
 npm run scwbs -- packet --task <task-id> --full
@@ -245,6 +245,10 @@ Status: current repository entrypoint.
 - Current Core reference: `docs/sc-wbs-core/00-index.md`.
 - Legacy/detail reference: `docs/scwbs/`.
 - Proposal/design notes: `docs/sc-wbs-core-revision/`.
+- Canonical artifact schemas: `src/core/schema/records.ts` (AJV JSON Schema).
+  - `ApprovalRecord`: flat structure with top-level `pullRequest`, `headCommit`, `diffHash` (no nested `scope`).
+  - `BlockRecord`: requires `level`, `category`, `requiredHumanDecision`, `createdAt`; optional `history[]`.
+  - Schema version follows `schemaVersion` in `contracts/wbs/project.wbs.json`.
 
 When these disagree during real work, prefer `AGENTS.md` and the active Task
 Contract.
