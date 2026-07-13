@@ -56,7 +56,9 @@ evidenceRequired:
   - typecheck-result
   - lint-result
 contractLock:
-  wbsRevision: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  lockVersion: "2"
+  wbsScopeRevision: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  wbsGlobalRevision: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
   wbsNodeId: node-api-implementation
   specVersion: 1.2.0
   specRevision: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
@@ -64,8 +66,9 @@ contractLock:
 ```
 
 `wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
-Task Contractは、生成時点のWBS content hashとSpec versionを `contractLock` として記録する。
-AI Work Packet生成時および `scwbs check` では、`contractLock` と現在のWBS-JSON、Spec Contractの鮮度を比較する。
+Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。
+
+AI Work Packet生成時および `scwbs check` では、これらのrevisionと現在のWBS-JSON、Spec Contractの鮮度を比較する。旧 `wbsRevision` whole-file lockは読み取り互換を維持するが、`task refresh --affected` ではmigration対象として表示する。`task refresh --task <id> --apply` で個別移行し、全更新が意図される場合だけ `task refresh --all --apply` を使う。
 WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
 staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
 Task Contractのlockを生成するには以下を実行する。

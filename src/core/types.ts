@@ -74,7 +74,10 @@ export type TaskContract = {
   featureId: string;
   branchName?: string;
   contractLock?: {
+    lockVersion?: "2";
     wbsRevision?: string;
+    wbsScopeRevision?: string;
+    wbsGlobalRevision?: string;
     wbsNodeId?: string;
     specVersion?: string;
     specRevision?: string;

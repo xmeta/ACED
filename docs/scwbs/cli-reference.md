@@ -56,6 +56,10 @@ AI agents must not run `block resolve`. The command updates the existing record 
 npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- task refresh --task WBS-001-004
+npm run scwbs -- task refresh --task WBS-001-004 --apply
+npm run scwbs -- task refresh --affected
+npm run scwbs -- task refresh --all
+npm run scwbs -- task refresh --all --apply
 npm run scwbs -- evidence collect --task WBS-001-004
 npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
 npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage" --force
@@ -65,6 +69,10 @@ npm run scwbs -- profile set lean
 ```
 
 Generated contract commands must refuse to overwrite existing files unless an explicit `--force` option is documented and supplied.
+
+`task lock` writes a version 2 lock split into a scoped revision and a global revision. The scoped revision covers the referenced WBS node, its ancestors, its transitive `dependsOn` subgraph, and artifacts produced or consumed by those nodes. Unrelated sibling nodes are intentionally excluded. The global revision covers the WBS identity, root identity, schema version, and root `extensions.scwbs` policy.
+
+`task refresh --affected` is preview-only and lists Task Contracts whose scoped WBS, global policy, or Spec lock changed. `task refresh --all` previews every Task Contract; add `--apply` only for an explicit bulk migration or refresh. Existing `wbsRevision` whole-file locks remain readable and are reported by `--affected` as legacy locks. Migrate one with `task refresh --task <id> --apply`, or migrate all explicitly with `task refresh --all --apply`.
 
 ## Review And Approval
 

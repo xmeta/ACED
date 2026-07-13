@@ -9,6 +9,7 @@ import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
+import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
   if (!evidence) return [];
@@ -51,12 +52,29 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
     });
   }
 
-  const wbsRevision = fileSha256(root, defaultWbsPath);
-  if (task.contractLock.wbsRevision && task.contractLock.wbsRevision !== wbsRevision) {
+  const wbs = readWbs(root);
+  if (task.contractLock.lockVersion === "2") {
+    const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
+    if (task.contractLock.wbsScopeRevision !== scopeRevision) {
+      issues.push({
+        severity: "error",
+        code: "task.contractLock.wbsScopeRevision",
+        message: `${task.id} contractLock.wbsScopeRevision is stale: ${task.contractLock.wbsScopeRevision} != ${scopeRevision}`
+      });
+    }
+    const globalRevision = wbsGlobalRevision(wbs);
+    if (task.contractLock.wbsGlobalRevision !== globalRevision) {
+      issues.push({
+        severity: "error",
+        code: "task.contractLock.wbsGlobalRevision",
+        message: `${task.id} contractLock.wbsGlobalRevision is stale: ${task.contractLock.wbsGlobalRevision} != ${globalRevision}`
+      });
+    }
+  } else if (task.contractLock.wbsRevision && task.contractLock.wbsRevision !== fileSha256(root, defaultWbsPath)) {
     issues.push({
       severity: "error",
       code: "task.contractLock.wbsRevision",
-      message: `${task.id} contractLock.wbsRevision is stale: ${task.contractLock.wbsRevision} != ${wbsRevision}`
+      message: `${task.id} legacy contractLock.wbsRevision is stale; migrate with scwbs task refresh --task ${task.id} --apply`
     });
   }
 

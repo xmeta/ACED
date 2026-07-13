@@ -7,9 +7,10 @@ import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
 import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
 import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
-import { buildTaskRefreshPreview, runTaskRefresh } from "../../src/commands/task-refresh.js";
+import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh, taskRefreshReasons } from "../../src/commands/task-refresh.js";
 import { buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
 import { buildNextTask } from "../../src/commands/ai-queue.js";
+import { main } from "../../src/cli.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("task management", () => {
@@ -38,8 +39,160 @@ describe("task management", () => {
     expect(locked.contractLock?.wbsNodeId).toBe("node-api");
     expect(locked.contractLock?.specVersion).toBe("1.0.0");
     expect(locked.contractLock?.specRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(locked.contractLock?.wbsRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(locked.contractLock?.lockVersion).toBe("2");
+    expect(locked.contractLock?.wbsScopeRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(locked.contractLock?.wbsGlobalRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(locked.contractLock?.wbsRevision).toBeUndefined();
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+  });
+
+  test("version 2 lock ignores unrelated siblings but detects referenced node and ancestor changes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+
+    const siblingWbs = sampleWbs();
+    siblingWbs.nodes.push({
+      id: "node-unrelated",
+      parentId: "node-root",
+      code: "1.2",
+      name: "Unrelated sibling",
+      type: "workPackage",
+      status: "planned"
+    });
+    writeJson(root, "contracts/wbs/project.wbs.json", siblingWbs);
+    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toEqual([]);
+
+    siblingWbs.nodes.find((node) => node.id === "node-api")!.name = "Changed API node";
+    writeJson(root, "contracts/wbs/project.wbs.json", siblingWbs);
+    expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsScopeRevision")).toBe(true);
+
+    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    const ancestorWbs = sampleWbs();
+    ancestorWbs.nodes.find((node) => node.id === "node-root")!.name = "Changed ancestor";
+    writeJson(root, "contracts/wbs/project.wbs.json", ancestorWbs);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("node, ancestor, dependency, or artifact scope changed");
+  });
+
+  test("version 2 lock detects dependency subgraph changes", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.nodes.push(
+      { id: "node-dependency", parentId: "node-root", code: "1.2", name: "Dependency", type: "workPackage", status: "completed" },
+      { id: "node-transitive", parentId: "node-root", code: "1.3", name: "Transitive dependency", type: "workPackage", status: "completed" }
+    );
+    wbs.relations = [
+      ...(wbs.relations ?? []),
+      { id: "rel-api-dependency", type: "dependsOn", source: "node-api", target: "node-dependency" },
+      { id: "rel-dependency-transitive", type: "dependsOn", source: "node-dependency", target: "node-transitive" }
+    ];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+
+    wbs.nodes.find((node) => node.id === "node-transitive")!.name = "Changed transitive dependency";
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsScopeRevision")).toBe(true);
+  });
+
+  test("version 2 lock detects related artifact and artifact relation changes", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.artifacts = [...(wbs.artifacts ?? []), { id: "artifact-input", name: "Input", type: "document" }];
+    wbs.relations = [...(wbs.relations ?? []), { id: "rel-api-consumes-input", type: "consumes", source: "node-api", target: "artifact-input" }];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+
+    wbs.artifacts.find((artifact) => artifact.id === "artifact-input")!.name = "Changed input";
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("node, ancestor, dependency, or artifact scope changed");
+
+    wbs.artifacts.find((artifact) => artifact.id === "artifact-input")!.name = "Input";
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    wbs.relations.find((relation) => relation.id === "rel-api-consumes-input")!.description = "Changed artifact relation";
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("node, ancestor, dependency, or artifact scope changed");
+  });
+
+  test("version 2 lock detects WBS schema and global SC-WBS policy changes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    const wbs = sampleWbs();
+    wbs.extensions = { scwbs: { profile: "Strict" } };
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsGlobalRevision")).toBe(true);
+
+    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    const schemaWbs = sampleWbs();
+    schemaWbs.schemaVersion = "0.2.0";
+    writeJson(root, "contracts/wbs/project.wbs.json", schemaWbs);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("WBS schema or global SC-WBS policy changed");
+  });
+
+  test("task refresh affected previews changes and migrates legacy whole-WBS locks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      contractLock: {
+        wbsRevision: "sha256:legacy",
+        wbsNodeId: "node-api",
+        createdAt: "2026-06-27T00:00:00.000Z"
+      }
+    }) as unknown as Record<string, unknown>);
+
+    const before = readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8");
+    expect(buildAffectedTaskRefreshReport(root)).toContain("WBS-001-004: legacy whole-WBS lock requires migration");
+    expect(main(["task", "refresh", "--affected"], root)).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toBe(before);
+    expect(runTaskRefresh(root, "WBS-001-004", { apply: true })).toBe(0);
+    expect(buildAffectedTaskRefreshReport(root)).toBe("Affected Task Contracts:\n- None\n");
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toContain('lockVersion: "2"');
+  });
+
+  test("task refresh affected lists only version 2 locks whose scope changed", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.nodes.push({ id: "node-unrelated", parentId: "node-root", code: "1.2", name: "Unrelated", type: "workPackage", status: "planned" });
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", featureId: "F002", wbsNodeId: "node-unrelated", branchName: "task/WBS-001-005" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", buildLockedTask(root, "WBS-001-005") as unknown as Record<string, unknown>);
+
+    wbs.nodes.find((node) => node.id === "node-api")!.name = "Changed API";
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    const report = buildAffectedTaskRefreshReport(root);
+    expect(report).toContain("WBS-001-004: node, ancestor, dependency, or artifact scope changed");
+    expect(report).not.toContain("WBS-001-005");
+  });
+
+  test("task refresh all previews and explicitly applies every Task lock", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", branchName: "task/WBS-001-005" }) as unknown as Record<string, unknown>);
+
+    expect(buildAffectedTaskRefreshReport(root, true)).toContain("All Task Contracts:");
+    expect(runTaskRefresh(root, undefined, { all: true, apply: false })).toBe(0);
+    expect(runTaskRefresh(root, undefined, { all: true, apply: true })).toBe(0);
+    expect(buildLockedTask(root, "WBS-001-004").contractLock?.lockVersion).toBe("2");
+    expect(buildLockedTask(root, "WBS-001-005").contractLock?.lockVersion).toBe("2");
+    expect(buildAffectedTaskRefreshReport(root)).toBe("Affected Task Contracts:\n- None\n");
+  });
+
+  test("task refresh previews report invalid Task Contracts and fail", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/BROKEN-001.yaml", { id: "BROKEN-001", type: "task-contract" });
+    const report = buildAffectedTaskRefreshReport(root);
+    expect(report).toContain("contracts/tasks/BROKEN-001.yaml: invalid Task Contract");
+    expect(runTaskRefresh(root, undefined, { affected: true, apply: false })).toBe(1);
+    expect(runTaskRefresh(root, undefined, { all: true, apply: false })).toBe(1);
   });
 
   test("task refresh previews lock changes and apply writes safe lock fields", () => {

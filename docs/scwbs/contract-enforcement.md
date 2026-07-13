@@ -15,7 +15,7 @@ npm run scwbs -- check
 * WBS-JSONが不正
 * registryの参照先が存在しない
 * Task Contractの `wbsNodeId` がWBS nodeに存在しない
-* Task Contractの `contractLock` が現在のWBS revisionまたはSpec versionと整合していない
+* Task Contractの `contractLock` が現在のWBS scope revision、global schema/policy revision、またはSpec versionと整合していない
 * WBS nodeの `outputs` が存在しないartifactを指している
 * Done相当nodeにEvidenceがない
 * EvidenceにrequiredChecksがない

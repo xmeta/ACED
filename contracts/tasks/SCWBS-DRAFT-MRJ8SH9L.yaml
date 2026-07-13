@@ -1,0 +1,53 @@
+id: SCWBS-DRAFT-MRJ8SH9L
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ8SH9L
+branchName: task/SCWBS-DRAFT-MRJ8SH9L-issue-156-contractlock-node-dependency-aware-loc
+allowedPaths:
+  - src/cli.ts
+  - src/commands/check.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-refresh.ts
+  - src/core/wbs-lock.ts
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - tests/integration/tasks.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/contract-enforcement.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Unrelated sibling node additions do not stale version 2 Task locks.
+  - Changes to the referenced node ancestors or dependency subgraph stale the affected Task lock.
+  - WBS schema version or global SC-WBS policy changes stale all version 2 Task locks.
+  - task refresh --affected previews the affected Task IDs without changing files.
+  - task refresh --all supports explicit preview and apply for all Task locks.
+  - Legacy whole-WBS hash locks have a documented migration path through task refresh.
+  - Integration tests cover sibling node additions dependency changes global changes affected preview and legacy migration.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T13:23:46.756Z"

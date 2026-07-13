@@ -603,14 +603,17 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("refresh")
     .description("Refresh a task")
     .option("--task <id>", "task id")
+    .option("--affected", "preview Task Contracts affected by current WBS or Spec changes")
+    .option("--all", "preview or refresh every Task Contract")
     .option("--apply", "apply changes")
     .action((opts) => {
-      if (!opts.task) {
-        console.error("Missing --task <task-id>");
+      const selectors = [Boolean(opts.task), Boolean(opts.affected), Boolean(opts.all)].filter(Boolean).length;
+      if (selectors !== 1) {
+        console.error("Specify exactly one of --task <task-id>, --affected, or --all");
         exitCode = 2;
         return;
       }
-      exitCode = runTaskRefresh(root, opts.task, { apply: opts.apply ?? false });
+      exitCode = runTaskRefresh(root, opts.task, { apply: opts.apply ?? false, affected: opts.affected ?? false, all: opts.all ?? false });
     });
 
   const wbs = program.command("wbs");
