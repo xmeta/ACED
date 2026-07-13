@@ -68,6 +68,15 @@ npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
 
+`registry rebuild --force` の既定出力は、registry全体ではなく `added` / `updated` / `removed` / `path` の固定長サマリである。成功時の出力が不要なら `--quiet`、versioned summaryが必要なら `--json`、サマリに続けて全YAMLを確認する場合は `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら4つの出力modeは同時指定できない。JSONの正式なshapeは [`schemas/registry-rebuild-summary.schema.json`](schemas/registry-rebuild-summary.schema.json) で定義する。既定の `--check` は従来どおり、同期済みなら `PASS registry rebuild --check` とexit 0、未同期なら既存errorとexit 1を返す。
+
+```bash
+npm run scwbs -- registry rebuild --force --quiet
+npm run scwbs -- registry rebuild --force --json
+npm run scwbs -- registry rebuild --force --verbose
+npm run scwbs -- registry rebuild --force --output -
+```
+
 Generated contract commands must refuse to overwrite existing files unless an explicit `--force` option is documented and supplied.
 
 `task lock` writes a version 2 lock split into a scoped revision and a global revision. The scoped revision covers the referenced WBS node, its ancestors, its transitive `dependsOn` subgraph, and artifacts produced or consumed by those nodes. Unrelated sibling nodes are intentionally excluded. The global revision covers the WBS identity, root identity, schema version, and root `extensions.scwbs` policy.

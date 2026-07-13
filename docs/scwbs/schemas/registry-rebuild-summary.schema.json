@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/registry-rebuild-summary.schema.json",
+  "title": "SC-WBS registry rebuild summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "added", "updated", "removed", "path"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["rebuilt", "synchronized", "out-of-sync"] },
+    "added": { "type": "integer", "minimum": 0 },
+    "updated": { "type": "integer", "minimum": 0 },
+    "removed": { "type": "integer", "minimum": 0 },
+    "path": { "const": "contracts/registry.yaml" }
+  }
+}

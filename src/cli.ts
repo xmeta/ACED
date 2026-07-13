@@ -473,8 +473,19 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Rebuild registry")
     .option("--check", "check only")
     .option("--force", "force rebuild")
+    .option("--quiet", "suppress successful output")
+    .option("--json", "print a versioned JSON summary")
+    .option("--verbose", "print the summary and full registry YAML")
+    .option("--output <target>", "print full registry YAML; target must be -")
     .action((opts) => {
-      exitCode = runRegistryRebuild(root, { check: opts.check ?? false, force: opts.force ?? false });
+      exitCode = runRegistryRebuild(root, {
+        check: opts.check ?? false,
+        force: opts.force ?? false,
+        quiet: opts.quiet ?? false,
+        json: opts.json ?? false,
+        verbose: opts.verbose ?? false,
+        output: opts.output
+      });
     });
 
   const profile = program.command("profile");
