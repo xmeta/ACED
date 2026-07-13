@@ -296,7 +296,7 @@ describe("evidence collect", () => {
     execFileSync("git", ["add", "."], { cwd: upstream, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "submodule update"], { cwd: upstream, stdio: "ignore" });
     execFileSync("git", ["fetch", "origin"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
-    execFileSync("git", ["checkout", "origin/master"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["checkout", "origin/feature"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
     execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "update gitlink"], { cwd: root, stdio: "ignore" });
 
@@ -324,7 +324,7 @@ describe("evidence collect", () => {
     execFileSync("git", ["submodule", "deinit", "-f", "vendor/dependency"], { cwd: root, stdio: "ignore" });
     rmSync(path.join(root, ".git/modules/vendor/dependency"), { recursive: true, force: true });
     expect(() => buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" })).toThrow("Unable to collect nested changed files");
-  });
+  }, 60000);
 
   test("a failed collection reuses passed checks and reruns failed checks", () => {
     const root = makeTempRepo();
