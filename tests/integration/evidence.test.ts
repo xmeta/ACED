@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
@@ -267,6 +267,64 @@ describe("evidence collect", () => {
     expect(readFileSync(marker, "utf8")).toBe("6");
     expect(existsSync(marker)).toBe(true);
   }, 60000);
+
+  test("evidence collect records nested submodule provenance and dependent PR metadata", () => {
+    const root = makeTempRepo();
+    const upstream = makeTempRepo();
+    writeText(upstream, "version.txt", "one\n");
+    execFileSync("git", ["add", "."], { cwd: upstream, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "submodule base"], { cwd: upstream, stdio: "ignore" });
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      requiredChecks: [],
+      allowedPaths: ["vendor/dependency", "vendor/dependency/version.txt"],
+      submoduleDependencies: [{
+        path: "vendor/dependency",
+        repository: upstream,
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/master",
+        checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
+      }]
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", upstream, "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    execFileSync("git", ["checkout", "-b", "feature"], { cwd: upstream, stdio: "ignore" });
+    writeText(upstream, "version.txt", "two\n");
+    execFileSync("git", ["add", "."], { cwd: upstream, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "submodule update"], { cwd: upstream, stdio: "ignore" });
+    execFileSync("git", ["fetch", "origin"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["checkout", "origin/master"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "update gitlink"], { cwd: root, stdio: "ignore" });
+
+    const featureEvidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(featureEvidence.submodules?.[0]?.upstreamReachable).toBe(false);
+
+    execFileSync("git", ["checkout", "master"], { cwd: upstream, stdio: "ignore" });
+    execFileSync("git", ["merge", "--ff-only", "feature"], { cwd: upstream, stdio: "ignore" });
+    execFileSync("git", ["fetch", "origin", "master"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(evidence.changedFiles).toContain("vendor/dependency");
+    expect(evidence.submodules).toHaveLength(1);
+    expect(evidence.submodules?.[0]).toMatchObject({
+      path: "vendor/dependency",
+      repository: upstream,
+      changedFiles: ["version.txt"],
+      pullRequest: "#4",
+      upstreamRef: "refs/remotes/origin/master",
+      upstreamReachable: true,
+      checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
+    });
+    expect(evidence.submodules?.[0]?.baseCommit).toMatch(/^[0-9a-f]{40}$/);
+    expect(evidence.submodules?.[0]?.headCommit).toMatch(/^[0-9a-f]{40}$/);
+
+    execFileSync("git", ["submodule", "deinit", "-f", "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    rmSync(path.join(root, ".git/modules/vendor/dependency"), { recursive: true, force: true });
+    expect(() => buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" })).toThrow("Unable to collect nested changed files");
+  });
 
   test("a failed collection reuses passed checks and reruns failed checks", () => {
     const root = makeTempRepo();

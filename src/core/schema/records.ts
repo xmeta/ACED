@@ -15,6 +15,37 @@ const evidenceSchema = {
     evidenceCommit: { type: "string" },
     diffHash: { type: "string" },
     changedFiles: stringArraySchema,
+    submodules: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["path", "repository", "baseCommit", "headCommit", "changedFiles", "upstreamRef", "upstreamReachable"],
+        additionalProperties: true,
+        properties: {
+          path: { type: "string", minLength: 1 },
+          repository: { type: "string", minLength: 1 },
+          baseCommit: { type: "string", minLength: 1 },
+          headCommit: { type: "string", minLength: 1 },
+          changedFiles: stringArraySchema,
+          pullRequest: { type: "string", minLength: 1 },
+          upstreamRef: { type: "string", minLength: 1 },
+          upstreamReachable: { type: "boolean" },
+          checks: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["name", "status"],
+              additionalProperties: true,
+              properties: {
+                name: { type: "string", minLength: 1 },
+                status: { type: "string", minLength: 1 },
+                url: { type: "string", minLength: 1 }
+              }
+            }
+          }
+        }
+      }
+    },
     git: {
       type: "object",
       additionalProperties: true,
@@ -189,6 +220,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
   }
   if (!isStringArray(value.changedFiles)) {
     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+  }
+  if (value.submodules !== undefined && !Array.isArray(value.submodules)) {
+    issues.push(issue("evidence.submodules", `${filePath}.submodules must be an array when present`));
   }
   if (value.git !== undefined) {
     if (!isObject(value.git)) {

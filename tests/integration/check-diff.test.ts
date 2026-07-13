@@ -14,6 +14,49 @@ describe("check-diff", () => {
     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
   });
 
+  test("check-diff validates nested submodule paths and upstream provenance", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const task = sampleTask({
+      allowedPaths: ["vendor/dependency", "vendor/dependency/secret.txt", "vendor/dependency/security/**"],
+      forbiddenPaths: ["vendor/dependency/secret.txt"],
+      humanGateRequiredPaths: ["vendor/dependency/security/**"],
+      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency", pullRequest: "#4" }]
+    });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["vendor/dependency"],
+      submodules: [{
+        path: "vendor/dependency",
+        repository: "example/dependency",
+        baseCommit: "a".repeat(40),
+        headCommit: "b".repeat(40),
+        changedFiles: ["secret.txt", "security/key.txt", "outside.txt"],
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        upstreamReachable: false,
+        checks: [{ name: "upstream-ci", status: "failed" }]
+      }]
+    }) as unknown as Record<string, unknown>);
+
+    const issues = collectDiffIssues(root, task, ["vendor/dependency"]);
+    expect(issues.some((issue) => issue.code === "diff.forbiddenPaths" && issue.message.includes("vendor/dependency/secret.txt"))).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.allowedPaths" && issue.message.includes("vendor/dependency/outside.txt"))).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("vendor/dependency/security/key.txt"))).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamReachable")).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.submodule.check")).toBe(true);
+  });
+
+  test("check-diff requires nested Evidence for configured changed gitlinks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const task = sampleTask({
+      allowedPaths: ["vendor/dependency"],
+      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency" }]
+    });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["vendor/dependency"] }) as unknown as Record<string, unknown>);
+    expect(collectDiffIssues(root, task, ["vendor/dependency"]).some((issue) => issue.code === "diff.submodule.evidence.missing")).toBe(true);
+  });
+
   test("check-diff enforces broad path policies with multiple required checks", () => {
     const root = makeTempRepo();
     writeYaml(root, "contracts/check-coverage.yaml", {

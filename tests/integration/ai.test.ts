@@ -21,6 +21,18 @@ describe("AI commands", () => {
     expect(packet).toContain("Human Gate対象変更はLevel 0またはLevel 1に見えても停止する");
   });
 
+  test("ai packet shows submodule dependent PR merge order", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency", pullRequest: "#4" }]
+    }) as unknown as Record<string, unknown>);
+    const packet = buildAiPacket(root, "WBS-001-004");
+    expect(packet).toContain("## Submodule Dependencies");
+    expect(packet).toContain("dependentPullRequest: #4");
+    expect(packet).toContain("mergeOrder: #4 before parent PR");
+  });
+
   test("ai packet reports a direct subtree phase on the target node", () => {
     const root = makeTempRepo();
     const wbs = sampleWbs("planned");

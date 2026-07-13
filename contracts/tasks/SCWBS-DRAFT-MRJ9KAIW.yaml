@@ -1,0 +1,55 @@
+id: SCWBS-DRAFT-MRJ9KAIW
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ9KAIW
+branchName: task/SCWBS-DRAFT-MRJ9KAIW-issue-154-submodule-nested-evidence-pr-provenanc
+allowedPaths:
+  - src/commands/ai-packet.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/review-queue.ts
+  - src/core/submodule-provenance.ts
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/review.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - docs/scwbs/task-contract.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Evidence records changed submodule path repository base and head commits and nested changed files.
+  - Nested submodule files are validated against Task allowedPaths forbiddenPaths and humanGateRequiredPaths.
+  - Task Contract can declare upstream repository dependent pull request and submodule checks for Evidence collection.
+  - check-diff fails when a changed submodule head is not reachable from a configured upstream remote ref.
+  - Packet and review queue display dependent pull request merge order and reachability.
+  - Integration tests cover collection nested path enforcement reachability and queue output.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T13:35:36.747Z"

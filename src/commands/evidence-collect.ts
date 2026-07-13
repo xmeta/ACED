@@ -8,6 +8,7 @@ import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBas
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 
 const maxCheckOutputSummaryLength = 1000;
 
@@ -85,6 +86,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     );
     return !options.rerunChecks && cacheSubject?.reusable && reusable ? reusable : runCheck(root, check, cacheKey);
   });
+  const submodules = collectSubmoduleProvenance(root, baseRef, task);
   return {
     id: `EVD-${taskId}`,
     type: "evidence",
@@ -103,6 +105,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       ...(head ? { headCommit: head } : {})
     },
     changedFiles: branchChangedFiles(root, baseRef),
+    ...(submodules.length > 0 ? { submodules } : {}),
     checks,
     ...(testQuality ? { testQuality } : {})
   };

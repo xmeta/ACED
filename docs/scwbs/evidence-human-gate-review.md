@@ -28,6 +28,19 @@ git:
   pullRequest: "#42"
 changedFiles:
   - src/features/staff-search/api.ts
+submodules:
+  - path: vendor/dependency
+    repository: example/dependency
+    baseCommit: 1111111111111111111111111111111111111111
+    headCommit: 2222222222222222222222222222222222222222
+    changedFiles:
+      - src/feature.ts
+    pullRequest: "#42"
+    upstreamRef: refs/remotes/origin/main
+    upstreamReachable: true
+    checks:
+      - name: upstream-ci
+        status: passed
 checks:
   - name: test
     status: passed
@@ -49,6 +62,8 @@ notes:
 Evidenceは自己申告だけで完結させない。可能な限り、CIログ、テスト結果、コミットID、差分、レビュー結果と結びつける。
 
 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
+
+branch diffにsubmodule gitlink変更がある場合、`evidence collect` はold/new commit、nested changed files、repository、merge target refへのhead到達可否を `submodules` に収集する。Task Contractの `submoduleDependencies` に依存PR、`upstreamRef`、submodule側checkを記録しておくと、それらもEvidenceへ関連付けられる。nested diffを収集できない場合は空差分として扱わず収集を失敗させる。`check-diff` はnested pathの契約違反、merge targetへ未到達のhead、未通過checkをerrorにする。依存PRを先にmergeし、そのheadが指定したmerge target refのancestorになってからparent PRをmergeする。
 
 PR作成後は `--pull-request "#42"` を付けてEvidenceを再収集し、`git.pullRequest` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `git.pullRequest` は保持される。
 
