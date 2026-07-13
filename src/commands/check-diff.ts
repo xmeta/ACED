@@ -157,12 +157,54 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     ...collectEvidenceGateIssues(root, task),
     ...collectDiffIssues(root, task, files)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+
+  const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
+  const requiresHumanApproval = humanGateIssues.length > 0;
+
+  let nextAction = "";
+  let humanGateFiles: string[] = [];
+  let diffHash = "(not recorded)";
+  if (requiresHumanApproval) {
+    const { evidence } = readEvidence(root, taskId);
+    diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
+    const gate = validateHumanGateApproval(task, evidence, readApproval(root, taskId).approval, files, root);
+    humanGateFiles = gate.requiredFiles;
+    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+  }
+
   if (diffIssues.length === 0) {
-    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [] }, null, 2));
+    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], requiresHumanApproval: false, nextAction: "" }, null, 2));
     else console.log(`PASS check-diff ${taskId}`);
     return 0;
   }
-  if (options.json) console.log(JSON.stringify({ status: hasErrors(diffIssues) ? "fail" : "warn", taskId, issues: diffIssues }, null, 2));
-  else printIssues(diffIssues);
+
+  if (options.json) {
+    console.log(JSON.stringify({
+      status: hasErrors(diffIssues) ? "fail" : "warn",
+      taskId,
+      issues: diffIssues,
+      ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
+    }, null, 2));
+  } else {
+    printIssues(diffIssues);
+    if (requiresHumanApproval) {
+      console.log("");
+      console.log("Human approval required.");
+      console.log("");
+      console.log("Changed human-gated paths:");
+      for (const file of humanGateFiles) {
+        console.log(`  - ${file}`);
+      }
+      console.log("");
+      console.log("Current diff hash:");
+      console.log(`  ${diffHash}`);
+      console.log("");
+      console.log("Next action for human reviewer:");
+      console.log(`  ${nextAction}`);
+      console.log("");
+      console.log("AI agents must stop here.");
+      console.log("Do not approve this task yourself.");
+    }
+  }
   return hasErrors(diffIssues) ? 1 : 0;
 }
