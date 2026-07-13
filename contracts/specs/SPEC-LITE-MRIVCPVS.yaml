@@ -1,0 +1,14 @@
+id: SPEC-LITE-MRIVCPVS
+type: spec-contract
+featureId: F-MRIVCPVS
+title: "Issue #132 WJS run-tsのnested import変換を修正しapply CLI runnerを復旧する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-07-13T16:03:36+09:00"
+version: 0.1.0
+summary: "Issue #132 WJS run-tsのnested import変換を修正しapply CLI runnerを復旧する"
+acceptanceCriteria:
+  - npm test -w wjs completes with all tests passing when Bun is disabled.
+  - npm run apply -- <wbs> <changeset> produces the expected output.
+  - npm run scwbs -- wbs apply <changeset> succeeds from the ACED root.
+  - The apply CLI runner regression test exercises a nested import under tools/apply.
