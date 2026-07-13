@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
@@ -414,7 +414,7 @@ describe("task management", () => {
     expect(task.doneCriteria[0]).toContain("untitled task");
   });
 
-  test("task new with --wbs-node writes a changeset draft instead of editing the WBS (M1-012)", () => {
+  test("task new with --wbs-node records wbsNodeId without writing a WBS changeset", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
@@ -424,10 +424,31 @@ describe("task management", () => {
     const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
     expect(wbsAfter).toBe(wbsBefore);
 
-    const changesetFile = readdirSync(path.join(root, "contracts/changesets")).find((file) => file.includes("link-wbs-node"));
-    expect(changesetFile).toBeTruthy();
-    const changeset = JSON.parse(readFileSync(path.join(root, `contracts/changesets/${changesetFile}`), "utf8"));
-    expect(changeset.operations[0].nodeId).toBe("node-project");
+    const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+    const taskFile = taskFileName ? `contracts/tasks/${taskFileName}` : undefined;
+    expect(taskFile).toBeTruthy();
+    const taskYaml = readFileSync(path.join(root, taskFile ?? ""), "utf8");
+    expect(taskYaml).toContain("wbsNodeId: node-project");
+
+    const changesetDir = path.join(root, "contracts/changesets");
+    const changesetFiles = existsSync(changesetDir) ? readdirSync(changesetDir).filter((file) => file.includes("link-wbs-node")) : [];
+    expect(changesetFiles.length).toBe(0);
+  });
+
+  test("task new with --wbs-node is idempotent and does not duplicate WBS changesets", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+
+    const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+    expect(wbsAfter).toBe(wbsBefore);
+
+    const changesetDir = path.join(root, "contracts/changesets");
+    const changesetFiles = existsSync(changesetDir) ? readdirSync(changesetDir).filter((file) => file.includes("link-wbs-node")) : [];
+    expect(changesetFiles.length).toBe(0);
   });
 
   test("WBS-less task flow passes check and can generate WBS candidates", () => {

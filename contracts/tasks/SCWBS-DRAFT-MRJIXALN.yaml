@@ -1,0 +1,32 @@
+id: SCWBS-DRAFT-MRJIXALN
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJIXALN
+branchName: task/SCWBS-DRAFT-MRJIXALN-issue-135-task-new-wbs-node-must-not-generate-un
+allowedPaths:
+  - src/commands/task-new.ts
+  - tests/integration/tasks.test.ts
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - task new --wbs-node が未定義artifact参照のchangesetを生成しない
+  - Task ContractのwbsNodeIdフィールドが関連付け正本となる
+  - 同一taskの再実行が冪等である
+  - 生成changesetがschema validationを通る（changesetを生成しない場合は自動満たす）
+  - テストが変更を検証する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
