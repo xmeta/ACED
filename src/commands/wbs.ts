@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import { runWjsValidate } from "../core/wbs.js";
-import type { WbsDocument } from "../core/types.js";
+import { readWbs, runWjsValidate } from "../core/wbs.js";
+import type { WbsDocument, WbsNode } from "../core/types.js";
 
 export function runWbsValidate(root: string): number {
   const issues = runWjsValidate(root);
@@ -66,15 +66,18 @@ export function applyWbsChangesets(base: WbsDocument, changeSets: Array<Record<s
         const node = next.nodes.find((item) => item.id === operation.nodeId);
         if (node) node.status = operation.status as WbsDocument["nodes"][number]["status"];
       }
-      if (operation.operation === "addNode" && typeof operation.nodeId === "string") {
-        if (next.nodes.some((item) => item.id === operation.nodeId)) continue;
+      if (operation.operation === "addNode") {
+        const node = operation.node as Record<string, unknown> | undefined;
+        const nodeId = typeof node?.id === "string" ? node.id : (typeof operation.nodeId === "string" ? operation.nodeId : "");
+        if (!nodeId) continue;
+        if (next.nodes.some((item) => item.id === nodeId)) continue;
         next.nodes.push({
-          id: operation.nodeId,
-          parentId: typeof operation.parentId === "string" ? operation.parentId : next.rootId,
-          code: typeof operation.code === "string" ? operation.code : operation.nodeId,
-          name: typeof operation.name === "string" ? operation.name : operation.nodeId,
-          type: operation.type === "summary" || operation.type === "deliverable" || operation.type === "activity" || operation.type === "milestone" ? operation.type : "workPackage",
-          status: operation.status === "draft" || operation.status === "ready" || operation.status === "inProgress" || operation.status === "blocked" || operation.status === "completed" || operation.status === "cancelled" ? operation.status : "planned"
+          id: nodeId,
+          parentId: typeof node?.parentId === "string" ? node.parentId : (typeof operation.parentId === "string" ? operation.parentId : next.rootId),
+          code: typeof node?.code === "string" ? node.code : (typeof operation.code === "string" ? operation.code : nodeId),
+          name: typeof node?.name === "string" ? node.name : (typeof operation.name === "string" ? operation.name : nodeId),
+          type: (node?.type === "summary" || node?.type === "deliverable" || node?.type === "activity" || node?.type === "milestone" ? node.type : (operation.type === "summary" || operation.type === "deliverable" || operation.type === "activity" || operation.type === "milestone" ? operation.type : "workPackage")) as WbsNode["type"],
+          status: (node?.status === "draft" || node?.status === "ready" || node?.status === "inProgress" || node?.status === "blocked" || node?.status === "completed" || node?.status === "cancelled" ? node.status : (operation.status === "draft" || operation.status === "ready" || operation.status === "inProgress" || operation.status === "blocked" || operation.status === "completed" || operation.status === "cancelled" ? operation.status : "planned")) as WbsNode["status"]
         });
       }
       if (operation.operation === "addNodeOutput" && typeof operation.nodeId === "string" && typeof operation.artifactId === "string") {
@@ -118,14 +121,20 @@ export function buildWbsCandidatesFromTaskIndex(root: string): string {
   }
   const text = readFileSync(indexPath, "utf8");
   const ids = [...text.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]?.trim()).filter((value): value is string => Boolean(value));
+  const wbs = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root) : null;
+  const rootId = wbs?.rootId ?? "node-project";
   const operations = ids.map((id, index) => ({
     operationId: `op-${String(index + 1).padStart(3, "0")}`,
     operation: "addNode",
-    nodeId: `node-${id.toLowerCase()}`,
-    parentId: "root",
-    name: id,
-    type: "workPackage",
-    status: "planned"
+    node: {
+      id: `node-${id.toLowerCase()}`,
+      parentId: rootId,
+      code: id.toLowerCase().replace(/-/g, "."),
+      name: id,
+      type: "workPackage",
+      status: "planned"
+    },
+    position: { mode: "last" }
   }));
   return `${JSON.stringify({
     schemaVersion: "0.1.0",

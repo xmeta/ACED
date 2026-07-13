@@ -1,0 +1,32 @@
+id: SCWBS-DRAFT-MRJH8CER
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJH8CER
+branchName: task/SCWBS-DRAFT-MRJH8CER-issue-134-wbs-candidates-addnode-changeset-must-
+allowedPaths:
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - wbs candidates の出力がWJS operations schema validationを通る
+  - addNode operation が node オブジェクト内に属性を持つ
+  - 親node IDは実WBSのrootIdを使用する
+  - applyWbsChangesets が node オブジェクト形式を正しく処理する
+  - テストが文字列比較ではなくschema validationを検証する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

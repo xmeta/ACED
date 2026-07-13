@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
 
@@ -8,8 +9,9 @@ import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-gen
 import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
 import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
 import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh, taskRefreshReasons } from "../../src/commands/task-refresh.js";
-import { buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
+import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
 import { buildNextTask } from "../../src/commands/ai-queue.js";
+import { validateJsonWithSchema } from "../../wjs/tools/validate.js";
 import { main } from "../../src/cli.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
@@ -434,8 +436,67 @@ describe("task management", () => {
     expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test" })).toBe(0);
     expect(collectCheckIssues(root)).toEqual([]);
     const candidates = buildWbsCandidatesFromTaskIndex(root);
-    expect(candidates).toContain('"changeSetId": "changeset-wbs-candidates"');
-    expect(candidates).toContain('"operation": "addNode"');
+    const parsed = JSON.parse(candidates);
+    // Validate against WJS operations schema (validator resolves schemas relative to wjs/)
+    const wjsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../wjs");
+    const originalCwd = process.cwd();
+    let errors: string[];
+    try {
+      process.chdir(wjsDir);
+      errors = validateJsonWithSchema(parsed, "operations");
+    } finally {
+      process.chdir(originalCwd);
+    }
+    expect(errors).toEqual([]);
+    // Verify node object structure
+    expect(parsed.operations[0].operation).toBe("addNode");
+    expect(parsed.operations[0].node).toBeDefined();
+    expect(parsed.operations[0].node.id).toBeDefined();
+    expect(parsed.operations[0].node.parentId).toBe("node-project");
+    expect(parsed.operations[0].node.code).toBeDefined();
+    expect(parsed.operations[0].position).toEqual({ mode: "last" });
     expect(buildNextTask(root)).toContain("Planned task candidates:");
+  });
+});
+
+describe("WBS-less task flow", () => {
+  test("applyWbsChangesets processes addNode operations with nested node object format", () => {
+    const baseWbs = sampleWbs();
+    const beforeCount = baseWbs.nodes.length;
+
+    const changeset = {
+      schemaVersion: "0.1.0",
+      targetWbsId: "scwbs",
+      changeSetId: "changeset-test-addnode",
+      author: "test",
+      reason: "Test addNode with node object",
+      dryRun: false,
+      operations: [
+        {
+          operationId: "op-001",
+          operation: "addNode",
+          node: {
+            id: "node-test-candidate",
+            parentId: "node-project",
+            code: "test.candidate",
+            name: "Test Candidate",
+            type: "workPackage",
+            status: "planned"
+          },
+          position: { mode: "last" }
+        }
+      ]
+    };
+
+    const result = applyWbsChangesets(baseWbs, [changeset]);
+    const added = result.nodes.find((node) => node.id === "node-test-candidate");
+
+    expect(added).toBeDefined();
+    expect(added!.parentId).toBe("node-project");
+    expect(added!.code).toBe("test.candidate");
+    expect(added!.name).toBe("Test Candidate");
+    expect(added!.type).toBe("workPackage");
+    expect(added!.status).toBe("planned");
+    expect(result.nodes.length).toBe(beforeCount + 1);
   });
 });
