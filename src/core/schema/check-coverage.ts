@@ -11,8 +11,8 @@ export function validateCheckCoveragePolicy(value: unknown, filePath: string): I
       return;
     }
     if (typeof rule.id !== "string" || rule.id.length === 0) issues.push(issue("checkCoverage.rule.id", `${filePath}.rules[${index}].id must be a non-empty string`));
-    if (!isStringArray(rule.paths) || rule.paths.length === 0) issues.push(issue("checkCoverage.rule.paths", `${filePath}.rules[${index}].paths must be a non-empty string array`));
-    if (!isStringArray(rule.requires) || rule.requires.length === 0) issues.push(issue("checkCoverage.rule.requires", `${filePath}.rules[${index}].requires must be a non-empty string array`));
+    if (!isStringArray(rule.paths) || rule.paths.length === 0 || rule.paths.some((item) => item.trim().length === 0)) issues.push(issue("checkCoverage.rule.paths", `${filePath}.rules[${index}].paths must contain non-blank strings`));
+    if (!isStringArray(rule.requires) || rule.requires.length === 0 || rule.requires.some((item) => item.trim().length === 0)) issues.push(issue("checkCoverage.rule.requires", `${filePath}.rules[${index}].requires must contain non-blank strings`));
   });
   return issues;
 }

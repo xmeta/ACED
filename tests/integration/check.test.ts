@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { runCheck } from "../../src/commands/check.js";
 import { makeTempRepo, sampleApproval, sampleEvidence, writeScwbsProject, writeYaml } from "../helpers.js";
+import { readTask } from "../../src/core/contracts.js";
 
 describe("check", () => {
   test("check --json outputs pass status with empty issues for a healthy repo", () => {
@@ -55,6 +56,39 @@ describe("check", () => {
     }
     expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "checkCoverage.rules" })
+    ]));
+  });
+
+  test("check coverage policy rejects blank path and check entries", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", { rules: [{ id: "blank", paths: ["   "], requires: [""] }] });
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheck(root, { json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "checkCoverage.rule.paths" }),
+      expect.objectContaining({ code: "checkCoverage.rule.requires" })
+    ]));
+  });
+
+  test("Task Contract rejects blank check coverage waiver reason", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const { task } = readTask(root, "WBS-001-004");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...task,
+      checkCoverageWaivers: [{ check: "test:integration", reason: "   " }]
+    } as unknown as Record<string, unknown>);
+    const result = readTask(root, "WBS-001-004");
+    expect(result.task).toBeUndefined();
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "task.checkCoverageWaiver" })
     ]));
   });
 

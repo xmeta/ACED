@@ -6,6 +6,32 @@ import { defaultCheckCoveragePath, resolveFrom } from "./paths.js";
 import { asCheckCoveragePolicy, validateCheckCoveragePolicy } from "./schema/check-coverage.js";
 import type { CheckCoveragePolicy, Issue, TaskContract } from "./types.js";
 import { readYamlFile } from "./yaml.js";
+import { branchDiffHash, changedFilesBetween, headCommit, isCommitAncestor } from "./git.js";
+
+function coverageMetadataFiles(taskId: string): string[] {
+  return [
+    `contracts/evidence/${taskId}.yaml`,
+    `contracts/approvals/${taskId}.yaml`,
+    `contracts/reviews/${taskId}.yaml`,
+    "contracts/registry.yaml"
+  ];
+}
+
+function evidenceIsCurrent(root: string, task: TaskContract, evidence: NonNullable<ReturnType<typeof readEvidence>["evidence"]>): boolean {
+  const evidenceHead = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+  const evidenceDiffHash = evidence.diffHash ?? evidence.git?.diffHash;
+  const currentHead = headCommit(root);
+  if (!evidenceHead || !evidenceDiffHash || !currentHead) return false;
+  try {
+    const currentDiffHash = branchDiffHash(root, evidence.git?.base ?? "origin/main", coverageMetadataFiles(task.id));
+    if (currentDiffHash !== evidenceDiffHash) return false;
+    if (evidenceHead === currentHead) return true;
+    return isCommitAncestor(root, evidenceHead, currentHead)
+      && changedFilesBetween(root, evidenceHead, currentHead).every((file) => coverageMetadataFiles(task.id).includes(file.replace(/\\/g, "/")));
+  } catch {
+    return false;
+  }
+}
 
 export function readCheckCoveragePolicy(root: string): { policy: CheckCoveragePolicy; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultCheckCoveragePath);
@@ -88,7 +114,8 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
     const approval = readApproval(root, task.id).approval;
     const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
     const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
-    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && approval?.headCommit && approval.diffHash);
+    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && approval?.headCommit && approval.diffHash)
+      && Boolean(evidence && evidenceIsCurrent(root, task, evidence));
     const gate = validateHumanGateApproval(
       syntheticGateTask,
       evidence,

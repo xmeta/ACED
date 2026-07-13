@@ -38,16 +38,28 @@ describe("check-diff", () => {
     });
     expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
 
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z"
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/commands/finish.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+    const subjectHead = headCommit(root)!;
+    const subjectDiffHash = branchDiffHash(root, "base", [
+      "contracts/evidence/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"
+    ]);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash }
     }) as unknown as Record<string, unknown>);
-    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
-
-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ subjectHeadCommit: "abc1234", diffHash: "diff1234" }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: "abc1234", diffHash: "diff1234"
+      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
     }) as unknown as Record<string, unknown>);
     expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(false);
+
+    writeText(root, "src/commands/finish.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "implementation changed after approval"], { cwd: root, stdio: "ignore" });
+    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
   });
 
   test("check-diff flags current branch mismatches", () => {

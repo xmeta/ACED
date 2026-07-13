@@ -257,7 +257,7 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
       issues.push(issue("task.checkCoverageWaivers", `${filePath}.checkCoverageWaivers must be an array when present`));
     } else {
       value.checkCoverageWaivers.forEach((waiver, index) => {
-        if (!isObject(waiver) || typeof waiver.check !== "string" || waiver.check.length === 0 || typeof waiver.reason !== "string" || waiver.reason.length === 0) {
+        if (!isObject(waiver) || typeof waiver.check !== "string" || waiver.check.trim().length === 0 || typeof waiver.reason !== "string" || waiver.reason.trim().length === 0) {
           issues.push(issue("task.checkCoverageWaiver", `${filePath}.checkCoverageWaivers[${index}] must include non-empty check and reason`));
         }
       });
