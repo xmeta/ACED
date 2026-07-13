@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { evidenceExists, listTasks, readTask } from "../core/contracts.js";
+import { evidenceExists, listTasks, readBlock, readTask } from "../core/contracts.js";
 import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
@@ -68,12 +68,49 @@ export function buildBlockRecord(taskId: string, reason: string, now = new Date(
     status: "blocked",
     ...classified,
     reason,
-    createdAt: now
+    createdAt: now,
+    history: [{ status: "blocked", at: now, reason, by: "ai-agent" }]
   };
 }
 
-export function buildBlockRecordYaml(taskId: string, reason: string, now?: string): string {
-  return stringifySimpleYaml(buildBlockRecord(taskId, reason, now) as unknown as Record<string, unknown>);
+function blockHistory(block: BlockRecord): NonNullable<BlockRecord["history"]> {
+  return block.history ?? [{ status: "blocked", at: block.createdAt, reason: block.reason, by: "ai-agent" }];
+}
+
+export function buildBlockRecordYaml(taskId: string, reason: string, now?: string, previous?: BlockRecord): string {
+  const block = buildBlockRecord(taskId, reason, now);
+  if (previous) block.history = [...blockHistory(previous), ...block.history!];
+  return stringifySimpleYaml(block as unknown as Record<string, unknown>);
+}
+
+export function runHumanBlockResolve(root: string, taskId: string, reason: string, options: { now?: string; actor?: string } = {}): number {
+  try {
+    if ((options.actor ?? process.env.SCWBS_AGENT_MODE) === "ai") {
+      console.error("AI execution mode cannot resolve Blocks; request a human decision instead");
+      return 1;
+    }
+    const resolution = reason.trim();
+    if (!resolution) throw new Error("Resolution reason must be a non-empty string");
+    const { block, issues } = readBlock(root, taskId);
+    if (!block) throw new Error(issues.map((item) => item.message).join("\n"));
+    if (block.status === "resolved") throw new Error(`${taskId} block is already resolved`);
+    const resolvedAt = options.now ?? new Date().toISOString();
+    const resolved: BlockRecord = {
+      ...block,
+      status: "resolved",
+      resolvedAt,
+      resolvedBy: "human",
+      resolution,
+      history: [...blockHistory(block), { status: "resolved", at: resolvedAt, reason: resolution, by: "human" }]
+    };
+    const yaml = stringifySimpleYaml(resolved as unknown as Record<string, unknown>);
+    writeFileSync(resolveFrom(root, blockPath(taskId)), yaml, "utf8");
+    process.stdout.write(yaml);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
 
 export function buildBlockSpecChange(taskId: string, reason: string): SpecChangeProposal {
@@ -123,7 +160,13 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
     const relativePath = blockPath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     mkdirSync(path.dirname(fullPath), { recursive: true });
-    const yaml = buildBlockRecordYaml(taskId, reason);
+    const previousResult = readBlock(root, taskId);
+    const missingBlockOnly = previousResult.issues.length === 1 && previousResult.issues[0]?.code === "block.missing";
+    if (!missingBlockOnly && !previousResult.block) {
+      throw new Error(previousResult.issues.map((item) => item.message).join("\n"));
+    }
+    const previous = previousResult.block;
+    const yaml = buildBlockRecordYaml(taskId, reason, undefined, previous);
     writeFileSync(fullPath, yaml, "utf8");
     process.stdout.write(yaml);
     if (options.specChange) {
@@ -150,7 +193,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
 export function buildNextTask(root: string): string {
   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
     const candidates = listTasks(root)
-      .flatMap(({ task }) => task && !evidenceExists(root, task.id) ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
+      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
       .sort((a, b) => a.taskId.localeCompare(b.taskId));
     if (candidates.length === 0) return "No available planned tasks.\n";
     const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
@@ -163,6 +206,7 @@ export function buildNextTask(root: string): string {
     .flatMap(({ task }) => {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];
       if (evidenceExists(root, task.id)) return [];
+      if (readBlock(root, task.id).block?.status === "blocked") return [];
       const node = findNode(wbs, task.wbsNodeId);
       if (!node) return [];
       const status = node.status ?? "planned";

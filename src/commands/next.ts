@@ -1,7 +1,11 @@
 import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listTasks, evidenceExists, readEvidence, reviewExists } from "../core/contracts.js";
+import { listTasks, evidenceExists, readBlock, readEvidence, reviewExists } from "../core/contracts.js";
+
+function hasActiveBlock(root: string, taskId: string): boolean {
+  return readBlock(root, taskId).block?.status === "blocked";
+}
 
 function taskIdFromMessage(message: string): string | undefined {
   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
@@ -13,7 +17,11 @@ function taskIdFromSection(queue: string, heading: string): string | undefined {
 }
 
 export function buildNextAction(root: string): string {
-  const stale = collectCheckIssues(root).find((issue) => issue.code.startsWith("task.contractLock"));
+  const stale = collectCheckIssues(root).find((issue) => {
+    if (!issue.code.startsWith("task.contractLock")) return false;
+    const taskId = taskIdFromMessage(issue.message);
+    return !taskId || !hasActiveBlock(root, taskId);
+  });
   if (stale) {
     const taskId = taskIdFromMessage(stale.message) ?? "<task-id>";
     return `Next suggested action:
@@ -27,7 +35,7 @@ Command:
 `;
   }
 
-  const missingEvidence = listTasks(root).find((entry) => entry.task && !evidenceExists(root, entry.task.id));
+  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
   if (missingEvidence?.task) {
     return `Next suggested action:
 
@@ -42,6 +50,7 @@ Command:
 
   const failedCheck = listTasks(root).flatMap((entry) => {
     if (!entry.task) return [];
+    if (hasActiveBlock(root, entry.task.id)) return [];
     const { evidence } = readEvidence(root, entry.task.id);
     const failed = evidence?.checks.find((check) => check.status === "failed");
     return failed ? [{ task: entry.task, checkName: failed.name }] : [];
@@ -83,7 +92,7 @@ Command:
 `;
   }
   const blockedReviewTask = taskIdFromSection(queue, "Blocked review candidates");
-  if (blockedReviewTask) {
+  if (blockedReviewTask && !hasActiveBlock(root, blockedReviewTask)) {
     return `Next suggested action:
 
 Review blocked candidates

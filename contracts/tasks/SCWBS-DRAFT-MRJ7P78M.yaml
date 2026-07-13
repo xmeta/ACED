@@ -1,0 +1,53 @@
+id: SCWBS-DRAFT-MRJ7P78M
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ7P78M
+branchName: task/SCWBS-DRAFT-MRJ7P78M-issue-155-block-resolve-lifecycle-and-cli
+allowedPaths:
+  - src/cli.ts
+  - src/commands/ai-queue.ts
+  - src/commands/review-queue.ts
+  - src/commands/next.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/review.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The implementation would let AI create a human resolution record
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - A human can resolve a Block without deleting its record and must provide a non-empty reason.
+  - Block records preserve created and resolved lifecycle history including timestamps and human resolver identity.
+  - The AI block command cannot resolve a Block and project instructions identify resolve as human-only.
+  - Resolved Blocks do not block next or review queue while active Blocks do.
+  - Registry distinguishes blocked and resolved statuses.
+  - Reblocking a resolved Task preserves prior lifecycle history.
+  - Integration tests cover block creation resolution registry behavior queue behavior and reblocking.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T12:55:09.697Z"

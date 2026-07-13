@@ -38,6 +38,18 @@ npm run scwbs -- next
 
 `scwbs next` is the local follow-up command. It prioritizes stale task locks, missing Evidence, and review queue work before falling back to planned-task candidates.
 
+### Block lifecycle
+
+`ai block` and the Core alias `block "<reason>"` create an active Block record. Active Blocks are excluded from `ai next-task` and appear as completion prerequisites in `review-queue`.
+
+Resolving a Block is an explicit human action. After making the required decision, a human runs:
+
+```bash
+npm run scwbs -- block resolve --task WBS-001-004 --reason "Human decision and outcome"
+```
+
+AI agents must not run `block resolve`. The command updates the existing record to `status: resolved`; it does not delete it. The record retains creation and resolution events in `history`, and the registry exposes the current status. A later `ai block` call reactivates the same record while preserving the earlier lifecycle history. Resolved Blocks no longer exclude a task from `ai next-task` and no longer block `review-queue` completion.
+
 ## Contracts
 
 ```bash

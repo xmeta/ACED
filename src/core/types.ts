@@ -166,12 +166,21 @@ export type BlockRecord = {
   id: string;
   type: "block";
   taskId: string;
-  status: "blocked";
+  status: "blocked" | "resolved";
   level: 1 | 2;
   category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
   reason: string;
   requiredHumanDecision: string;
   createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: "human";
+  resolution?: string;
+  history?: Array<{
+    status: "blocked" | "resolved";
+    at: string;
+    reason: string;
+    by: "ai-agent" | "human";
+  }>;
 };
 
 export type ReviewRecord = {

@@ -92,12 +92,29 @@ const blockRecordSchema = {
     id: { type: "string", minLength: 1 },
     type: { const: "block" },
     taskId: { type: "string", minLength: 1 },
-    status: { const: "blocked" },
+    status: { type: "string", enum: ["blocked", "resolved"] },
     level: { type: "integer", enum: [1, 2] },
     category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
     reason: { type: "string", minLength: 1 },
     requiredHumanDecision: { type: "string", minLength: 1 },
-    createdAt: { type: "string" }
+    createdAt: { type: "string", minLength: 1 },
+    resolvedAt: { type: "string", minLength: 1 },
+    resolvedBy: { const: "human" },
+    resolution: { type: "string", minLength: 1 },
+    history: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["status", "at", "reason", "by"],
+        additionalProperties: false,
+        properties: {
+          status: { type: "string", enum: ["blocked", "resolved"] },
+          at: { type: "string", minLength: 1 },
+          reason: { type: "string", minLength: 1 },
+          by: { type: "string", enum: ["ai-agent", "human"] }
+        }
+      }
+    }
   }
 };
 
@@ -282,14 +299,47 @@ export function validateBlockRecord(value: unknown, filePath = "block"): Issue[]
   if (value.type !== "block") {
     issues.push(issue("block.type", `${filePath}.type must be block`));
   }
-  if (value.status !== "blocked") {
-    issues.push(issue("block.status", `${filePath}.status must be blocked`));
+  if (value.status !== "blocked" && value.status !== "resolved") {
+    issues.push(issue("block.status", `${filePath}.status must be blocked or resolved`));
   }
   if (value.level !== 1 && value.level !== 2) {
     issues.push(issue("block.level", `${filePath}.level must be 1 or 2`));
   }
   if (value.category !== undefined && !["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"].includes(String(value.category))) {
     issues.push(issue("block.category", `${filePath}.category is not a known stop category`));
+  }
+  if (value.status === "resolved") {
+    for (const key of ["resolvedAt", "resolvedBy", "resolution"]) {
+      if (typeof value[key] !== "string" || value[key].trim().length === 0) {
+        issues.push(issue("block.resolution", `${filePath}.${key} must be present when status is resolved`));
+      }
+    }
+    if (value.resolvedBy !== "human") {
+      issues.push(issue("block.resolution", `${filePath}.resolvedBy must be human`));
+    }
+  }
+  if (value.history !== undefined) {
+    if (!Array.isArray(value.history)) {
+      issues.push(issue("block.history", `${filePath}.history must be an array when present`));
+    } else {
+      value.history.forEach((entry, index) => {
+        if (!isObject(entry)) {
+          issues.push(issue("block.history", `${filePath}.history[${index}] must be an object`));
+          return;
+        }
+        if (entry.status !== "blocked" && entry.status !== "resolved") {
+          issues.push(issue("block.history", `${filePath}.history[${index}].status must be blocked or resolved`));
+        }
+        if (entry.by !== "ai-agent" && entry.by !== "human") {
+          issues.push(issue("block.history", `${filePath}.history[${index}].by must be ai-agent or human`));
+        }
+        for (const key of ["at", "reason"]) {
+          if (typeof entry[key] !== "string" || entry[key].trim().length === 0) {
+            issues.push(issue("block.history", `${filePath}.history[${index}].${key} must be a non-empty string`));
+          }
+        }
+      });
+    }
   }
   return issues;
 }
