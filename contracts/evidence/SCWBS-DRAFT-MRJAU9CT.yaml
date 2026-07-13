@@ -1,0 +1,54 @@
+id: EVD-SCWBS-DRAFT-MRJAU9CT
+type: evidence
+taskId: SCWBS-DRAFT-MRJAU9CT
+commit: b776aee8cf9c189af89bcca74dafe9920a8166c9
+subjectHeadCommit: b776aee8cf9c189af89bcca74dafe9920a8166c9
+diffHash: sha256:0d3d5036b07746f59540f1f3cfb6f0a5b6113c2bf9b153cc30c31f9bef504620
+git:
+  branch: task/SCWBS-DRAFT-MRJAU9CT-issue-157-registry-rebuild-default-summary-quiet
+  base: origin/main
+  baseCommit: bc81895cf33ef76cbc21e3922891bda2d80effa1
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: b776aee8cf9c189af89bcca74dafe9920a8166c9
+  diffHash: sha256:0d3d5036b07746f59540f1f3cfb6f0a5b6113c2bf9b153cc30c31f9bef504620
+  headCommit: b776aee8cf9c189af89bcca74dafe9920a8166c9
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/registry-rebuild-summary.schema.json
+  - src/cli.ts
+  - src/commands/registry-rebuild.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:54f38dcda7dc13a1f2943515eee84b57dfa35a17c81f53a6cb089c1562421332
+    executedAt: "2026-07-13T14:18:59.046Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:21beb8b754d42b9cfc5e9db0ecc37b4f3cd724d52061dbefb39753c0faeb8fd3
+    executedAt: "2026-07-13T14:22:54.701Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:a5116219f149188fef55ab8825d7d8e80a366a565b6ead5a316f609d84e55418
+    executedAt: "2026-07-13T14:22:57.600Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:02458bb56c8f42276c7f150c1e298cb0cf8ad9c7db5d8040d4359267f2561ffa
+    executedAt: "2026-07-13T14:23:00.637Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - registry summary counts, output modes, check compatibility, 1001-entry bounded JSON, and JSON Schema validation tests added
