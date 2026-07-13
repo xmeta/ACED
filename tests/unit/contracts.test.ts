@@ -131,4 +131,96 @@ describe("contracts / schema", () => {
     const issues = collectCheckIssues(root);
     expect(issues.some((issue) => issue.code === "evidence.check.missing")).toBe(true);
   });
+
+  test("completionScope must be 'node' when present", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionScope: "full"
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+  });
+
+  test("completionTaskIds must be a string array when present", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionTaskIds: "not-an-array"
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+  });
+
+  test("managedContractPaths must be a string array when present", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      managedContractPaths: 123
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+  });
+
+  test("valid completionScope 'node' with completionTaskIds passes schema validation", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-005"]
+    });
+
+    const { issues } = readTask(root, "WBS-001-004");
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(false);
+  });
+
+  test("completionScope 'node' without completionTaskIds fails", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionScope: "node"
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.completionTaskIds.required")).toBe(true);
+    expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+  });
+
+  test("completionTaskIds with duplicates fails semantic validation", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionTaskIds: ["WBS-001-005", "WBS-001-005"]
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.completionTaskIds.duplicate")).toBe(true);
+  });
+
+  test("completionTaskIds with self-reference fails", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      completionTaskIds: ["WBS-001-004"]
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.completionTaskIds.selfReference")).toBe(true);
+  });
 });
