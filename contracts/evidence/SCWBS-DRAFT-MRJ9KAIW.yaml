@@ -1,0 +1,66 @@
+id: EVD-SCWBS-DRAFT-MRJ9KAIW
+type: evidence
+taskId: SCWBS-DRAFT-MRJ9KAIW
+commit: 7372c6491384d56648e08776df689cbaa129d7cc
+subjectHeadCommit: 7372c6491384d56648e08776df689cbaa129d7cc
+diffHash: sha256:55d9937707b7607845a518693022f51a746bb1ae8c96e3e4cbf5dd463d3bdad4
+git:
+  branch: task/SCWBS-DRAFT-MRJ9KAIW-issue-154-submodule-nested-evidence-pr-provenanc
+  base: origin/main
+  baseCommit: 777b4e967914d32dfbbf4aaa352a46ecd02b81d6
+  changedFilesBasis: branch-diff
+  pullRequest: "#165"
+  subjectHeadCommit: 7372c6491384d56648e08776df689cbaa129d7cc
+  diffHash: sha256:55d9937707b7607845a518693022f51a746bb1ae8c96e3e4cbf5dd463d3bdad4
+  headCommit: 7372c6491384d56648e08776df689cbaa129d7cc
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRJ9KAIW.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - docs/scwbs/task-contract.md
+  - src/commands/ai-packet.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/review-queue.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/submodule-provenance.ts
+  - src/core/types.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/review.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:17d871210cc2a7c1cba25bc98474b2da1f9fc9f46b82531a56e2633bf330210e
+    executedAt: "2026-07-13T14:01:25.219Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:64ba40df4cf67c0ac23ca6fdb723448eb6d1c60151002e7cc1e2171c73cd5392
+    executedAt: "2026-07-13T14:05:33.445Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9364f3e7a0b23fe5f9a3e35f11a435539d73bc7faa516f3a736517f6d9eaaac4
+    executedAt: "2026-07-13T14:05:36.221Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:831409fb2c499c6148acb7b3fbffa5a88c02d2c123547e86d584c9ebf7d45b6e
+    executedAt: "2026-07-13T14:05:39.548Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - submodule provenance, merge-target reachability, nested path guards, packet and review queue integration tests added

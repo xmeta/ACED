@@ -69,6 +69,27 @@ describe("review queue + review request", () => {
     expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
   });
 
+  test("review queue shows submodule merge order and blocks unreachable heads", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      submodules: [{
+        path: "vendor/dependency",
+        repository: "example/dependency",
+        baseCommit: "a".repeat(40),
+        headCommit: "b".repeat(40),
+        changedFiles: ["version.txt"],
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        upstreamReachable: false,
+        checks: [{ name: "upstream-ci", status: "passed" }]
+      }]
+    }) as unknown as Record<string, unknown>);
+    const queue = buildReviewQueue(root);
+    expect(queue).toContain("merge dependent PR #4 before parent PR");
+    expect(queue).toContain("completionBlockedBy: submodule vendor/dependency head is not upstream-reachable");
+  });
+
   test("review queue blocks completion review when the WBS node is not ready", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "planned");

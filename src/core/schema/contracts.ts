@@ -79,6 +79,33 @@ const taskContractSchema = {
         }
       }
     },
+    submoduleDependencies: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["path"],
+        additionalProperties: true,
+        properties: {
+          path: { type: "string", minLength: 1 },
+          repository: { type: "string", minLength: 1 },
+          pullRequest: { type: "string", minLength: 1 },
+          upstreamRef: { type: "string", minLength: 1 },
+          checks: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["name", "status"],
+              additionalProperties: true,
+              properties: {
+                name: { type: "string", minLength: 1 },
+                status: { type: "string", minLength: 1 },
+                url: { type: "string", minLength: 1 }
+              }
+            }
+          }
+        }
+      }
+    },
     doneCriteria: stringArraySchema,
     evidenceRequired: stringArraySchema,
     contractLock: {
@@ -265,6 +292,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
         }
       });
     }
+  }
+  if (value.submoduleDependencies !== undefined && !Array.isArray(value.submoduleDependencies)) {
+    issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
   }
   if (value.contractLock !== undefined) {
     if (!isObject(value.contractLock)) {

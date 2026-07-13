@@ -134,6 +134,14 @@ export function buildReviewQueue(root: string): string {
     const hasApproval = Boolean(approval) && !missingApprovalOnly;
     const hasReview = Boolean(review) && !missingReviewOnly;
 
+    for (const submodule of evidence?.submodules ?? []) {
+      warnings.push(`submodule ${submodule.path}: ${submodule.baseCommit} -> ${submodule.headCommit}; merge dependent PR ${submodule.pullRequest ?? "not recorded"} before parent PR; upstream target ${submodule.upstreamRef}`);
+      if (!submodule.upstreamReachable) completionBlockedBy.push(`submodule ${submodule.path} head is not upstream-reachable`);
+      for (const check of submodule.checks ?? []) {
+        if (check.status !== "passed") completionBlockedBy.push(`submodule ${submodule.path} check ${check.name} is ${check.status}`);
+      }
+    }
+
     if (hasEvidence && !isDoneNode(node)) {
       reasons.push(
         !readinessBlocker && completionBlockedBy.length === 0

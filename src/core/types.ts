@@ -89,6 +89,17 @@ export type TaskContract = {
   stopIf?: string[];
   requiredChecks: string[];
   checkCoverageWaivers?: Array<{ check: string; reason: string }>;
+  submoduleDependencies?: Array<{
+    path: string;
+    repository?: string;
+    pullRequest?: string;
+    upstreamRef?: string;
+    checks?: Array<{
+      name: string;
+      status: string;
+      url?: string;
+    }>;
+  }>;
   doneCriteria: string[];
   evidenceRequired: string[];
   /**
@@ -128,6 +139,21 @@ export type Evidence = {
     pullRequest?: string;
   };
   changedFiles: string[];
+  submodules?: Array<{
+    path: string;
+    repository: string;
+    baseCommit: string;
+    headCommit: string;
+    changedFiles: string[];
+    pullRequest?: string;
+    upstreamRef: string;
+    upstreamReachable: boolean;
+    checks?: Array<{
+      name: string;
+      status: string;
+      url?: string;
+    }>;
+  }>;
   checks: Array<{
     name: string;
     status: EvidenceCheckStatus;

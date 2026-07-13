@@ -1,11 +1,33 @@
 import { existsSync } from "node:fs";
-import { readTask } from "../core/contracts.js";
+import { readEvidence, readTask } from "../core/contracts.js";
 import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
 import type { TaskContract } from "../core/types.js";
 import { checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+
+function submodulePacket(root: string, task: TaskContract): string {
+  const evidence = readEvidence(root, task.id).evidence;
+  const entries = evidence?.submodules ?? (task.submoduleDependencies ?? []).map((item) => ({
+    ...item,
+    baseCommit: "pending collection",
+    headCommit: "pending collection",
+    changedFiles: [],
+    upstreamRef: item.upstreamRef ?? "refs/remotes/origin/HEAD",
+    upstreamReachable: false
+  }));
+  if (entries.length === 0) return "## Submodule Dependencies\n- None";
+  return `## Submodule Dependencies\n${entries.map((item) => [
+    `- ${item.path} | ${item.repository}`,
+    `  dependentPullRequest: ${item.pullRequest ?? "not recorded"}`,
+    `  mergeOrder: ${item.pullRequest ? `${item.pullRequest} before parent PR` : "record upstream PR before parent merge"}`,
+    `  upstreamReachable: ${item.upstreamReachable}`,
+    `  upstreamRef: ${item.upstreamRef}`,
+    `  commits: ${item.baseCommit} -> ${item.headCommit}`,
+    ...((item.checks ?? []).map((check) => `  check: ${check.name} = ${check.status}`))
+  ].join("\n")).join("\n")}`;
+}
 
 function checkCoveragePacket(root: string, task: TaskContract): string {
   const { policy, issues } = readCheckCoveragePolicy(root);
@@ -100,6 +122,8 @@ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
 
 ${checkCoveragePacket(root, task)}
 
+${submodulePacket(root, task)}
+
 ## Context Filter
 - Profile: ${profile}
 - Active artifact directories: ${artifactDirs.join(", ")}
@@ -176,6 +200,7 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 ## Required Checks
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
 ${checkCoveragePacket(root, task)}
+${submodulePacket(root, task)}
 ${formatHint}
 
 ## Depends On

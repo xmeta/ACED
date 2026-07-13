@@ -48,6 +48,15 @@ requiredChecks:
   - test
   - typecheck
   - lint
+submoduleDependencies:
+  - path: vendor/dependency
+    repository: example/dependency
+    pullRequest: "#42"
+    upstreamRef: refs/remotes/origin/main
+    checks:
+      - name: upstream-ci
+        status: passed
+        url: https://example.com/dependency/actions/runs/123
 doneCriteria:
   - Spec Contractを満たしている
   - 正常系と異常系のテストが通る
@@ -79,6 +88,8 @@ npm run scwbs -- task lock --task WBS-001-004
 
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+
+submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
 
 ## Required check coverage
 

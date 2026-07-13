@@ -33,8 +33,24 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
 
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
-  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files, root);
-  for (const issue of collectWbsChangesetGateIssues(files)) {
+  const evidence = readEvidence(root, task.id).evidence;
+  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+  const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
+  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
+  for (const dependency of task.submoduleDependencies ?? []) {
+    if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
+      issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
+    }
+  }
+  for (const submodule of evidence?.submodules ?? []) {
+    if (!submodule.upstreamReachable) {
+      issues.push({ severity: "error", code: "diff.submodule.upstreamReachable", message: `${submodule.path} head ${submodule.headCommit} is not reachable from upstream target ${submodule.upstreamRef}` });
+    }
+    for (const check of submodule.checks ?? []) {
+      if (check.status !== "passed") issues.push({ severity: "error", code: "diff.submodule.check", message: `${submodule.path} check ${check.name} is ${check.status}` });
+    }
+  }
+  for (const issue of collectWbsChangesetGateIssues(effectiveFiles)) {
     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }
   const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
@@ -45,7 +61,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
       message: `${changeSet}: ${issue.message}`
     })));
   }
-  for (const file of files) {
+  for (const file of effectiveFiles) {
     const managed = isManagedContractPath(task, file);
     if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
       issues.push({
@@ -79,7 +95,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     code: "diff.humanGate",
     message: `${issue.message} (${issue.code})`
   })));
-  issues.push(...collectCheckCoverageIssues(root, task, files).map((issue) => ({
+  issues.push(...collectCheckCoverageIssues(root, task, effectiveFiles).map((issue) => ({
     ...issue,
     code: `diff.${issue.code}`
   })));
