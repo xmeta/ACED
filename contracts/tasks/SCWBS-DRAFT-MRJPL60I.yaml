@@ -1,0 +1,37 @@
+id: SCWBS-DRAFT-MRJPL60I
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJPL60I
+branchName: task/SCWBS-DRAFT-MRJPL60I-human-gate
+allowedPaths:
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/check-diff.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml
+  - contracts/specs/SPEC-LITE-MRJPL60I.yaml
+managedContractPaths:
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/changesets/start-MRJPL60I.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Human Gate detection shows next action with changed paths and diff hash'
+  - 'AI agents must stop message is displayed when human gate is required'
+  - 'check-diff JSON output includes requiresHumanApproval and nextAction'
+  - 'Tests cover both check-diff and finish human gate output'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result

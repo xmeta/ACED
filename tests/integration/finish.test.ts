@@ -6,6 +6,55 @@ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml,
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
 import path from "node:path";
 
+function prepareFinishRepoWithHumanGate(): string {
+  const root = makeTempRepo();
+  writeScwbsProject(root);
+  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+    branchName: "master",
+    allowedPaths: ["src/**", "contracts/**"],
+    humanGateRequiredPaths: ["src/security/**"],
+    requiredChecks: ["test"]
+  }) as unknown as Record<string, unknown>);
+  writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["branch", "base"], { cwd: root });
+  writeText(root, "src/security/secret.ts", "export const secret = 1;\n");
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "human gate change"], { cwd: root, stdio: "ignore" });
+  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+    changedFiles: ["src/security/secret.ts"],
+    diffHash: "test-diff-hash",
+    git: { diffHash: "test-diff-hash" }
+  }) as unknown as Record<string, unknown>);
+  writeYaml(root, "contracts/registry.yaml", {
+    projectId: "test-wbs",
+    contracts: [
+      {
+        id: "EVD-WBS-001-004",
+        type: "evidence",
+        path: "contracts/evidence/WBS-001-004.yaml",
+        relatedTask: "WBS-001-004"
+      },
+      {
+        id: "SPEC-F001-API",
+        type: "spec",
+        path: "contracts/specs/SPEC-F001-API.yaml",
+        status: "approved",
+        version: "1.0.0",
+        featureId: "F001"
+      },
+      {
+        id: "TASK-WBS-001-004",
+        type: "task",
+        path: "contracts/tasks/WBS-001-004.yaml",
+        featureId: "F001"
+      }
+    ]
+  });
+  return root;
+}
+
 function prepareFinishRepo(requestedApproval = false): string {
   const root = makeTempRepo();
   writeScwbsProject(root);
@@ -119,6 +168,31 @@ describe("finish", () => {
     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
+  }, 30000);
+
+  test("finish displays diff hash and AI stop message when Human Gate files changed", () => {
+    const root = prepareFinishRepoWithHumanGate();
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => {
+      output.push(String(message));
+    };
+    try {
+      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+
+    const text = output.join("\n");
+    expect(text).toContain("Human approval required.");
+    expect(text).toContain("Changed human-gated paths:");
+    expect(text).toContain("  - src/security/secret.ts");
+    expect(text).toContain("Current diff hash:");
+    expect(text).toContain("Next action for human reviewer:");
+    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004"));
+    expect(text).toContain("AI agents must stop here.");
+    expect(text).toContain("Do not approve this task yourself.");
   }, 30000);
 
   test("finish synchronizes Approval status and can force valid checks to rerun", () => {

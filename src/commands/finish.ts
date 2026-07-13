@@ -17,6 +17,8 @@ export type FinishJsonOutput = {
   evidencePath: string;
   approvalStatus: string;
   nextAction: string;
+  humanGateFiles?: string[];
+  diffHash?: string;
 };
 
 function captureStdout<T>(fn: () => T): { result: T; output: string } {
@@ -94,6 +96,59 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
   const { result: diffExit, output: checkDiffOutput } = runSilentIfJson(options.json ?? false, () =>
     runCheckDiff(root, taskId, { baseRef: options.baseRef, json: options.json ?? false })
   );
+
+  const profile: Profile = readProfile(root);
+  const approval = readApproval(root, taskId).approval;
+  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence?.changedFiles, root);
+  const humanGateFiles = humanGate.requiredFiles;
+  const needsHumanGate = humanGate.required && !humanGate.approved;
+  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
+
+  const approvalCommand = buildHumanApprovalCommand(taskId);
+  const prCommand = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+  let nextAction = needsHumanGate ? approvalCommand : prCommand;
+
+  if (options.json) {
+    console.error(`Profile: ${profile}`);
+    if (needsHumanGate) {
+      console.error("");
+      console.error("Human approval required.");
+      console.error("");
+      console.error("Changed human-gated paths:");
+      for (const file of humanGateFiles) {
+        console.error(`  - ${file}`);
+      }
+      console.error("");
+      console.error("Current diff hash:");
+      console.error(`  ${diffHash}`);
+      console.error("");
+      console.error("Next action for human reviewer:");
+      console.error(`  ${approvalCommand}`);
+      console.error("");
+      console.error("AI agents must stop here.");
+      console.error("Do not approve this task yourself.");
+    }
+  } else {
+    if (needsHumanGate) {
+      console.log("");
+      console.log("Human approval required.");
+      console.log("");
+      console.log("Changed human-gated paths:");
+      for (const file of humanGateFiles) {
+        console.log(`  - ${file}`);
+      }
+      console.log("");
+      console.log("Current diff hash:");
+      console.log(`  ${diffHash}`);
+      console.log("");
+      console.log("Next action for human reviewer:");
+      console.log(`  ${approvalCommand}`);
+      console.log("");
+      console.log("AI agents must stop here.");
+      console.log("Do not approve this task yourself.");
+    }
+  }
+
   if (diffExit !== 0) return diffExit;
   if (options.json) {
     console.error("PASS diff guard");
@@ -120,46 +175,12 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("PASS registry check");
   }
 
-  const profile: Profile = readProfile(root);
-
-  const approval = readApproval(root, taskId).approval;
-  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence?.changedFiles, root);
-  const humanGateFiles = humanGate.requiredFiles;
-  const needsHumanGate = humanGate.required && !humanGate.approved;
-
-  let nextAction = "";
-  if (options.json) {
-    console.error(`Profile: ${profile}`);
-    if (needsHumanGate) {
-      console.error("");
-      console.error("Human approval required:");
-      for (const file of humanGateFiles) {
-        console.error(`  - ${file}`);
-      }
-    }
-    nextAction = needsHumanGate
-      ? buildHumanApprovalCommand(taskId)
-      : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
-  } else {
+  if (!options.json && !needsHumanGate) {
     console.log(`Profile: ${profile}`);
-    if (needsHumanGate) {
-      console.log("");
-      console.log("Human approval required:");
-      for (const file of humanGateFiles) {
-        console.log(`  - ${file}`);
-      }
-      console.log("");
-      console.log("Next action:");
-      console.log("  Human reviewer must run:");
-      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
-      nextAction = buildHumanApprovalCommand(taskId);
-    } else {
-      console.log("");
-      console.log("Next action:");
-      console.log("  Open a pull request and merge:");
-      console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
-      nextAction = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
-    }
+    console.log("");
+    console.log("Next action:");
+    console.log("  Open a pull request and merge:");
+    console.log(`  ${prCommand}`);
   }
 
   if (options.json) {
@@ -178,7 +199,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       requiredChecks: evidence?.checks ?? [],
       evidencePath: `contracts/evidence/${taskId}.yaml`,
       approvalStatus: approval?.status ?? "",
-      nextAction
+      nextAction,
+      ...(needsHumanGate ? { humanGateFiles, diffHash } : {})
     };
     console.log(JSON.stringify(output, null, 2));
   }

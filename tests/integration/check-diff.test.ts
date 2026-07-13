@@ -310,6 +310,87 @@ describe("check-diff", () => {
     expect(filesAddedOnBothSides(root)).toContain("contracts/tasks/SCWBS-030.yaml");
   }, 30000);
 
+  test("check-diff text output shows diff hash and AI stop message for human gate", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName: "master",
+      allowedPaths: ["src/**"],
+      humanGateRequiredPaths: ["src/security/**"],
+      requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/security/secret.ts", "export const secret = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "human gate change"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["src/security/secret.ts"],
+      diffHash: "test-diff-hash",
+      git: { diffHash: "test-diff-hash" }
+    }) as unknown as Record<string, unknown>);
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => {
+      output.push(String(message));
+    };
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+
+    const text = output.join("\n");
+    expect(text).toContain("Human approval required.");
+    expect(text).toContain("Changed human-gated paths:");
+    expect(text).toContain("  - src/security/secret.ts");
+    expect(text).toContain("Current diff hash:");
+    expect(text).toContain("Next action for human reviewer:");
+    expect(text).toContain("AI agents must stop here.");
+    expect(text).toContain("Do not approve this task yourself.");
+  }, 30000);
+
+  test("check-diff JSON output includes requiresHumanApproval and nextAction", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName: "master",
+      allowedPaths: ["src/**"],
+      humanGateRequiredPaths: ["src/security/**"],
+      requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/security/secret.ts", "export const secret = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "human gate change"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["src/security/secret.ts"],
+      diffHash: "test-diff-hash",
+      git: { diffHash: "test-diff-hash" }
+    }) as unknown as Record<string, unknown>);
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => {
+      output.push(String(message));
+    };
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+
+    const result = JSON.parse(output.join("\n"));
+    expect(result.requiresHumanApproval).toBe(true);
+    expect(result.nextAction).toBe(`npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`);
+  }, 30000);
+
   test("check-diff uses branch diff files from the requested base", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
