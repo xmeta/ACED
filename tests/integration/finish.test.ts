@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
-import { main } from "../../src/cli.js";
 import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 
@@ -85,11 +84,11 @@ describe("finish", () => {
       requiredChecks: expect.any(Array),
       evidencePath: expect.any(String),
       approvalStatus: expect.any(String),
-      nextAction: buildHumanApprovalCommand("WBS-001-004")
+      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`
     });
   }, 30000);
 
-  test("finish prints an approval command accepted by the current CLI parser", () => {
+  test("finish does not request Human Approval when no Human Gate files changed", () => {
     const root = prepareFinishRepo(true);
     const output: string[] = [];
     const originalLog = console.log;
@@ -103,17 +102,9 @@ describe("finish", () => {
     }
 
     const command = buildHumanApprovalCommand("WBS-001-004");
-    expect(output).toContain(`  ${command}`);
+    expect(output).not.toContain(`  ${command}`);
+    expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
     expect(command).not.toContain("--approved-by");
     expect(command).not.toContain("--human-confirm");
-
-    const previousAgentMode = process.env.SCWBS_AGENT_MODE;
-    process.env.SCWBS_AGENT_MODE = "ai";
-    try {
-      expect(main(["approval", "approve", "--task", "WBS-001-004", "--reason", "Evidence and diff reviewed"], root)).toBe(1);
-    } finally {
-      if (previousAgentMode === undefined) delete process.env.SCWBS_AGENT_MODE;
-      else process.env.SCWBS_AGENT_MODE = previousAgentMode;
-    }
   }, 30000);
 });

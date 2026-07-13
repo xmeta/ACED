@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
-import { approvalExists, evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
 import { workingTreeChangedFiles } from "../core/git.js";
 import { fileSha256 } from "../core/hash.js";
+import { validateHumanGateApproval } from "../core/human-gate.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -105,10 +106,9 @@ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocum
     const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
     issues.push(...evidenceIssues);
     issues.push(...validateRequiredChecks(task, evidence));
-  }
-
-  if (task.humanGateRequiredPaths.length > 0 && done && !approvalExists(root, task.id)) {
-    issues.push({ severity: "warn", code: "approval.missing", message: `${task.id} touches human gate paths but no approval record was found` });
+    if (done && evidence) {
+      issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval).issues);
+    }
   }
 
   return issues;

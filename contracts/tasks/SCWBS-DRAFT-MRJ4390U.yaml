@@ -1,0 +1,49 @@
+id: SCWBS-DRAFT-MRJ4390U
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ4390U
+branchName: task/SCWBS-DRAFT-MRJ4390U-issue-129-unify-human-gate-validation-across-che
+allowedPaths:
+  - src/core/human-gate.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/human-gate.test.ts
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The validator requires changing Approval record schema or provenance semantics.
+  - The fix requires changes outside allowedPaths.
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Completed tasks with no Evidence changedFiles matching humanGateRequiredPaths do not require Approval.
+  - Missing, requested, and rejected Approval records are errors when Human Gate files changed.
+  - Approved records with headCommit or diffHash outside the Evidence scope are errors.
+  - Unscoped Approval is accepted only for explicitly legacy-recorded Evidence.
+  - check, check-diff, and finish use the same Human Gate scope validator.
+  - The SCWBS-DRAFT-MRB0ZML9 false-positive approval.missing warning is removed.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T11:01:28.328Z"

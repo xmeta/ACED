@@ -1,6 +1,7 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
+import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
@@ -19,16 +20,6 @@ function requiresMetaFileGuard(file: string): boolean {
   return matchesAny(file, SENSITIVE_META_PATHS);
 }
 
-function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
-  const approval = readApproval(root, taskId).approval;
-  if (approval?.status !== "approved") return false;
-  const evidence = readEvidence(root, taskId).evidence;
-  const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
-  const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
-  if (!approval.headCommit || !approval.diffHash || !evidenceHead || !evidenceDiffHash) return false;
-  return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
-}
-
 /**
  * M2-019: managedContractPaths are CLI-generated contract files (Evidence,
  * Approval, Review, registry.yaml, the task's own contract file, etc). They
@@ -41,7 +32,7 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
 
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
-  const hasHumanGateApproval = task.humanGateRequiredPaths.length > 0 ? hasApprovedHumanGateApproval(root, task.id) : false;
+  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files);
   for (const issue of collectWbsChangesetGateIssues(files)) {
     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }
@@ -81,15 +72,12 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
         fixCommand: `Add ${file} to allowedPaths/humanGateRequiredPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
       });
     }
-    if (humanGateRequired && !hasHumanGateApproval) {
-      issues.push({
-        severity: "error",
-        code: "diff.humanGate",
-        message: `${file} requires approved human gate approval for ${task.id}`,
-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
-      });
-    }
   }
+  issues.push(...gate.issues.map((issue) => ({
+    ...issue,
+    code: "diff.humanGate",
+    message: `${issue.message} (${issue.code})`
+  })));
   return issues;
 }
 
