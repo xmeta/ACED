@@ -85,7 +85,10 @@ const taskContractSchema = {
       type: "object",
       additionalProperties: true,
       properties: {
+        lockVersion: { const: "2" },
         wbsRevision: { type: "string" },
+        wbsScopeRevision: { type: "string" },
+        wbsGlobalRevision: { type: "string" },
         wbsNodeId: { type: "string" },
         specVersion: { type: "string" },
         specRevision: { type: "string" },
@@ -267,10 +270,19 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
     if (!isObject(value.contractLock)) {
       issues.push(issue("task.contractLock", `${filePath}.contractLock must be an object when present`));
     } else {
-      for (const key of ["wbsRevision", "wbsNodeId", "specVersion", "specRevision", "createdAt"]) {
+      for (const key of ["lockVersion", "wbsRevision", "wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId", "specVersion", "specRevision", "createdAt"]) {
         if (value.contractLock[key] !== undefined && typeof value.contractLock[key] !== "string") {
           issues.push(issue("task.contractLock", `${filePath}.contractLock.${key} must be a string when present`));
         }
+      }
+      if (value.contractLock.lockVersion === "2") {
+        for (const key of ["wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId"]) {
+          if (typeof value.contractLock[key] !== "string" || value.contractLock[key].length === 0) {
+            issues.push(issue("task.contractLock", `${filePath}.contractLock.${key} must be present for lockVersion 2`));
+          }
+        }
+      } else if (value.contractLock.wbsScopeRevision !== undefined || value.contractLock.wbsGlobalRevision !== undefined) {
+        issues.push(issue("task.contractLock", `${filePath}.contractLock.lockVersion must be 2 when scoped WBS revisions are present`));
       }
     }
   }
