@@ -63,14 +63,12 @@ diffHash: baseCommitからsubjectHeadCommitまでの正規化差分hash
 
 Approval は、承認時点の差分に対する人間判断である。
 
-Approval 最小scope:
+Approval 最小構成:
 
 ```yaml
-scope:
-  pullRequest: "#42"
-  headCommit: abc1234
-  diffHash: sha256:...
-  gateType: completion
+pullRequest: "#42"
+headCommit: abc1234
+diffHash: sha256:...
 ```
 
 `scwbs approve` は、承認時点で `headCommit` と `diffHash` を保存する。
@@ -78,8 +76,8 @@ scope:
 `scwbs check-diff` または `scwbs finish --pr` は、次の場合に承認を無効扱いにする。
 
 ```text
-- PRの現在HEADが approval.scope.headCommit と異なる
-- 現在diffHashが approval.scope.diffHash と異なる
+- PRの現在HEADが approval.headCommit と異なる
+- 現在diffHashが approval.diffHash と異なる
 - Approval作成後に humanGateRequiredPaths の差分が変わった
 ```
 
@@ -91,7 +89,7 @@ scope:
 
 ```text
 - 既存の approved Approval を検証する
-- Approval scope と現在PR差分の一致を確認する
+- Approval の headCommit/diffHash と現在PR差分の一致を確認する
 - WBS状態変更のdry-runを表示する
 - 明示的な --apply で状態変更を適用する
 ```

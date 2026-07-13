@@ -164,11 +164,9 @@ status: approved
 approvedBy: human
 approvedAt: 2026-07-03T10:00:00+09:00
 reason: レビュー済み
-scope:
-  pullRequest: "#42"
-  headCommit: abc1234
-  diffHash: sha256:...
-  gateType: completion
+pullRequest: "#42"
+headCommit: abc1234
+diffHash: sha256:...
 ```
 
 Approval は PR番号だけに紐づけてはいけない。PRに追加コミットされた場合、承認時点の `headCommit` / `diffHash` と一致しなくなるため、再承認が必要である。
@@ -182,13 +180,16 @@ id: BLK-WBS-001
 type: block
 taskId: WBS-001
 status: blocked
+level: 2
+category: db
 reason: DB schema change is required
-detectedBy: ai
+requiredHumanDecision: staff_availability table を追加してよいか
 createdAt: 2026-07-03T10:00:00+09:00
-requestedDecision:
-  - staff_availability table を追加してよいか
-suggestedCommand:
-  - scwbs request-approval WBS-001 --reason "DB schema change is required"
+history:
+  - status: blocked
+    at: 2026-07-03T10:00:00+09:00
+    reason: DB schema change is required
+    by: ai-agent
 ```
 
 AIは危険変更を推測で進めるのではなく、Blockを作る。

@@ -100,8 +100,8 @@ Evidenceファイル自体のコミットでstaleになる問題を避ける。
 
 必須:
 
-- approval.scope.headCommit
-- approval.scope.diffHash
+- approval.headCommit
+- approval.diffHash
 - 現在PR差分との一致検証
 
 ### CORE-006: `scwbs block "<reason>"`
