@@ -157,7 +157,7 @@ const reviewRecordSchema = {
     id: { type: "string", minLength: 1 },
     type: { const: "review" },
     taskId: { type: "string", minLength: 1 },
-    status: { type: "string", enum: ["requested", "approved", "changes-requested"] },
+    status: { type: "string", enum: ["requested", "approved", "changes-requested", "closed"] },
     reviewProfile: { type: "string", minLength: 1 },
     headCommit: { type: "string" },
     diffHash: { type: "string" },
@@ -176,7 +176,10 @@ const reviewRecordSchema = {
         }
       }
     },
-    notes: stringArraySchema
+    notes: stringArraySchema,
+    reviewedBy: { type: "string" },
+    reviewedAt: { type: "string" },
+    findings: stringArraySchema
   }
 };
 
@@ -399,10 +402,10 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
   if (value.type !== "review") {
     issues.push(issue("review.type", `${filePath}.type must be review`));
   }
-  if (value.status !== undefined && !["requested", "approved", "changes-requested"].includes(String(value.status))) {
-    issues.push(issue("review.status", `${filePath}.status must be requested, approved, or changes-requested`));
+  if (value.status !== undefined && !["requested", "approved", "changes-requested", "closed"].includes(String(value.status))) {
+    issues.push(issue("review.status", `${filePath}.status must be requested, approved, changes-requested, or closed`));
   }
-  for (const key of ["headCommit", "diffHash", "pullRequest"]) {
+  for (const key of ["headCommit", "diffHash", "pullRequest", "reviewedBy", "reviewedAt"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("review.field", `${filePath}.${key} must be a string when present`));
     }
@@ -432,6 +435,9 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
   }
   if (value.notes !== undefined && !isStringArray(value.notes)) {
     issues.push(issue("review.notes", `${filePath}.notes must be a string array when present`));
+  }
+  if (value.findings !== undefined && !isStringArray(value.findings)) {
+    issues.push(issue("review.findings", `${filePath}.findings must be a string array when present`));
   }
   return issues;
 }

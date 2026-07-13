@@ -216,7 +216,7 @@ export type ReviewRecord = {
   id: string;
   type: "review";
   taskId: string;
-  status: "requested" | "approved" | "changes-requested";
+  status: "requested" | "approved" | "changes-requested" | "closed";
   reviewProfile: "self-review" | "independent-ai-review" | "human-review" | string;
   headCommit?: string;
   diffHash?: string;
@@ -228,6 +228,9 @@ export type ReviewRecord = {
     reason: string;
   }>;
   notes?: string[];
+  reviewedBy?: string;
+  reviewedAt?: string;
+  findings?: string[];
 };
 
 export type Profile = "Lean" | "Standard" | "Strict";

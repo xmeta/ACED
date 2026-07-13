@@ -133,6 +133,7 @@ export function buildReviewQueue(root: string): string {
     const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
     const hasApproval = Boolean(approval) && !missingApprovalOnly;
     const hasReview = Boolean(review) && !missingReviewOnly;
+    const isTerminalReview = Boolean(review) && hasReview && (review!.status === "approved" || review!.status === "changes-requested" || review!.status === "closed");
 
     for (const submodule of evidence?.submodules ?? []) {
       warnings.push(`submodule ${submodule.path}: ${submodule.baseCommit} -> ${submodule.headCommit}; merge dependent PR ${submodule.pullRequest ?? "not recorded"} before parent PR; upstream target ${submodule.upstreamRef}`);
@@ -142,7 +143,7 @@ export function buildReviewQueue(root: string): string {
       }
     }
 
-    if (hasEvidence && !isDoneNode(node)) {
+    if (hasEvidence && !isDoneNode(node) && !isTerminalReview) {
       reasons.push(
         !readinessBlocker && completionBlockedBy.length === 0
           ? "evidence exists and the WBS node is ready for human review"

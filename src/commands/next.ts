@@ -1,7 +1,7 @@
 import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listTasks, evidenceExists, readBlock, readEvidence, reviewExists } from "../core/contracts.js";
+import { listTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
 
 function hasActiveBlock(root: string, taskId: string): boolean {
   return readBlock(root, taskId).block?.status === "blocked";
@@ -35,19 +35,6 @@ Command:
 `;
   }
 
-  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
-  if (missingEvidence?.task) {
-    return `Next suggested action:
-
-Collect evidence for ${missingEvidence.task.id}
-Reason:
-- Task has no Evidence file yet
-
-Command:
-  scwbs evidence collect --task ${missingEvidence.task.id}
-`;
-  }
-
   const failedCheck = listTasks(root).flatMap((entry) => {
     if (!entry.task) return [];
     if (hasActiveBlock(root, entry.task.id)) return [];
@@ -68,9 +55,57 @@ Command:
   }
 
   const queue = buildReviewQueue(root);
+  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
+  if (blockedReviewTask) {
+    const plannedTasks = buildNextTask(root).trim();
+    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) {
+      return `Next suggested action:
+
+${plannedTasks}
+`;
+    }
+    return `Next suggested action:
+
+Review blocked candidates
+Reason:
+- Review candidates exist, but completion is blocked by prerequisites
+
+Command:
+  scwbs review-queue
+`;
+  }
+
+  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+  if (missingEvidence?.task) {
+    return `Next suggested action:
+
+Collect evidence for ${missingEvidence.task.id}
+Reason:
+- Task has no Evidence file yet
+
+Command:
+  scwbs evidence collect --task ${missingEvidence.task.id}
+`;
+  }
+
   const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
   if (reviewTask) {
     if (reviewExists(root, reviewTask)) {
+      const { review } = readReview(root, reviewTask);
+      if (review?.status === "requested") {
+        return `Next suggested action:
+
+Human review for ${reviewTask}
+Reason:
+- Evidence and review metadata exist; review decision is next
+
+Command:
+  scwbs review approve --task ${reviewTask} --actor human
+
+Queue context:
+  scwbs review-queue
+`;
+      }
       return `Next suggested action:
 
 Human review for ${reviewTask}
@@ -89,18 +124,6 @@ Reason:
 
 Command:
   scwbs review request --task ${reviewTask}
-`;
-  }
-  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
-  if (blockedReviewTask) {
-    return `Next suggested action:
-
-Review blocked candidates
-Reason:
-- Review candidates exist, but completion is blocked by prerequisites
-
-Command:
-  scwbs review-queue
 `;
   }
 

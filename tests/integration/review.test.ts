@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildReviewQueue } from "../../src/commands/review-queue.js";
-import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../../src/commands/review-request.js";
-import { buildTrace } from "../../src/commands/trace.js";
 import { buildNextAction } from "../../src/commands/next.js";
+import { buildReviewRequestYaml, buildReviewRouteReport, runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest } from "../../src/commands/review-request.js";
+import { buildTrace } from "../../src/commands/trace.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import {
   makeTempRepo,
@@ -388,6 +388,316 @@ describe("review queue + review request", () => {
     writeScwbsProject(root, "planned");
     const queue = buildReviewQueue(root);
     expect(queue).toBe("Review Queue:\n- None\n");
+  });
+
+  test("review approve transitions a requested review to approved", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", findings: "looks good", force: false })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("status: approved");
+    expect(review).toContain("reviewedBy: human");
+    expect(review).toContain("reviewedAt:");
+    expect(review).toContain("findings:");
+  });
+
+  test("review changes-requested transitions a requested review to changes-requested", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "human", findings: "fix typo", force: false })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("status: changes-requested");
+    expect(review).toContain("reviewedBy: human");
+    expect(review).toContain("reviewedAt:");
+  });
+
+  test("review close transitions a requested review to closed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("status: closed");
+    expect(review).toContain("reviewedBy: human");
+    expect(review).toContain("reviewedAt:");
+  });
+
+  test("review approve rejects AI actors and missing actors", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "ai", force: false })).toBe(1);
+
+    const savedMode = process.env.SCWBS_AGENT_MODE;
+    delete process.env.SCWBS_AGENT_MODE;
+    try {
+      expect(runReviewApprove(root, "WBS-001-004", { force: false })).toBe(1);
+    } finally {
+      if (savedMode === undefined) {
+        delete process.env.SCWBS_AGENT_MODE;
+      } else {
+        process.env.SCWBS_AGENT_MODE = savedMode;
+      }
+    }
+  });
+
+  test("review changes-requested rejects AI actors and missing actors", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "ai", force: false })).toBe(1);
+
+    const savedMode = process.env.SCWBS_AGENT_MODE;
+    delete process.env.SCWBS_AGENT_MODE;
+    try {
+      expect(runReviewChangesRequested(root, "WBS-001-004", { force: false })).toBe(1);
+    } finally {
+      if (savedMode === undefined) {
+        delete process.env.SCWBS_AGENT_MODE;
+      } else {
+        process.env.SCWBS_AGENT_MODE = savedMode;
+      }
+    }
+  });
+
+  test("review close rejects AI actors and missing actors", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "ai", force: false })).toBe(1);
+
+    const savedMode = process.env.SCWBS_AGENT_MODE;
+    delete process.env.SCWBS_AGENT_MODE;
+    try {
+      expect(runReviewClose(root, "WBS-001-004", { force: false })).toBe(1);
+    } finally {
+      if (savedMode === undefined) {
+        delete process.env.SCWBS_AGENT_MODE;
+      } else {
+        process.env.SCWBS_AGENT_MODE = savedMode;
+      }
+    }
+  });
+
+  test("terminal-state reviews are excluded from the active review queue", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "approved",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    const queue = buildReviewQueue(root);
+    expect(queue).not.toContain("WBS-001-004");
+    expect(queue).toBe("Review Queue:\n- None\n");
+  });
+
+  test("next suggests review approve for ready reviews in requested status", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    const next = buildNextAction(root);
+    expect(next).toContain("scwbs review approve --task WBS-001-004 --actor human");
+  });
+
+  test("next does not suggest review approve for terminal-state reviews", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "approved",
+      reviewProfile: "independent-ai-review",
+      reviewedBy: "human",
+      reviewedAt: "2026-01-01T00:00:00Z",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    const next = buildNextAction(root);
+    expect(next).not.toContain("scwbs review approve");
+  });
+
+  test("next falls through to planned tasks when blocked reviews exist", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    const next = buildNextAction(root);
+    expect(next).not.toContain("scwbs review-queue");
+    expect(next).toContain("Planned task candidates:");
+    expect(next).toContain("WBS-001-005");
+  });
+
+  test("force overwrite allows transitioning from a terminal review state", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "approved",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
+    expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("status: closed");
+  });
+
+  test("review changes-requested rejects approved review without force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "approved",
+      reviewProfile: "independent-ai-review",
+      reviewedBy: "human",
+      reviewedAt: "2026-01-01T00:00:00Z",
+      pullRequest: "#42",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
+    expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(0);
+    const review = readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8");
+    expect(review).toContain("status: changes-requested");
+  });
+
+  test("approve on non-existent review fails", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
+  });
+
+  test("approve on already-closed review fails without force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "closed",
+      reviewProfile: "independent-ai-review",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml"]
+    });
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(0);
   });
 
   test("review queue includes review health summary sections", () => {
