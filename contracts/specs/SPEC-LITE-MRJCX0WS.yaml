@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRJCX0WS
+type: spec-contract
+featureId: F-MRJCX0WS
+title: "Issue #128: completion apply must not generate Human Approval records; require existing approved Approval and validate headCommit/diffHash against Evidence; reject on missing/requested/rejected/scope-mismatch; write WBS changeset only after all validations pass; use atomic write where possible"
+status: approved
+approvedBy: delegated-human
+approvedAt: "2026-07-14T00:00:00Z"
+version: 0.1.0
+summary: "Issue #128: completion apply must not generate Human Approval records; require existing approved Approval and validate headCommit/diffHash against Evidence; reject on missing/requested/rejected/scope-mismatch; write WBS changeset only after all validations pass; use atomic write where possible"
+acceptanceCriteria:
+  - Approval がないタスクで completion apply --apply が失敗する
+  - requested / rejected / scope不一致の Approval で失敗する
+  - 有効な approved Approval がある場合だけWBSをcompletedへ更新できる
+  - completion apply 実行後も Approval ファイルの内容は変更されない
+  - WBS適用失敗時に新しい承認・完了状態が残らない

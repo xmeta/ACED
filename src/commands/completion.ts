@@ -3,11 +3,9 @@ import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
-import { approvalPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
-import { stringifySimpleYaml } from "../core/yaml.js";
-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+import { findNode, readWbs } from "../core/wbs.js";
 import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
-import { buildApprovalApprove } from "./approval-request.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { runWbsApply } from "./wbs.js";
 
@@ -16,7 +14,6 @@ type CompletionPlanItem = {
   node: WbsNode;
   pullRequest?: string;
   approval: ApprovalRecord;
-  writesApproval: boolean;
   completionTargets?: Array<{
     taskId: string;
     nodeCode: string;
@@ -43,11 +40,6 @@ type CompletionChangeSet = {
 };
 
 
-
-function approvalFor(taskId: string, pullRequest: string | undefined, reason: string, existing: ApprovalRecord | undefined): CompletionPlanItem["approval"] {
-  if (existing?.status === "approved") return existing;
-  return buildApprovalApprove(taskId, { pullRequest, reason, approvedBy: "human" });
-}
 
 function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: TaskContract): { blockers: string[]; targets: NonNullable<CompletionPlanItem["completionTargets"]> } {
   const blockers: string[] = [];
@@ -168,10 +160,23 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
 
     const { approval, issues: approvalIssues } = readApproval(root, task.id);
     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
-    if (!missingApprovalOnly && !approval) throw new Error(approvalIssues.map((issue) => issue.message).join("\n"));
-    if (approval?.status === "rejected") throw new Error(`${approvalPath(task.id)} is rejected`);
+    if (missingApprovalOnly || !approval) {
+      throw new Error(`${task.id} has no approval record; run \`scwbs approval approve --task ${task.id}\` first`);
+    }
+    if (approval.status === "requested") throw new Error(`${task.id} approval is still requested; approve it first`);
+    if (approval.status === "rejected") throw new Error(`${task.id} approval is rejected`);
+    if (approval.status !== "approved") throw new Error(`${task.id} approval status is ${approval.status}; only approved records can complete`);
 
-    const pullRequest = evidence.git?.pullRequest ?? approval?.pullRequest;
+    const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
+    const evidenceDiffHash = evidence.git?.diffHash ?? evidence.diffHash;
+    if (approval.headCommit !== undefined && evidenceHeadCommit !== undefined && approval.headCommit !== evidenceHeadCommit) {
+      throw new Error(`${task.id} approval headCommit does not match Evidence`);
+    }
+    if (approval.diffHash !== undefined && evidenceDiffHash !== undefined && approval.diffHash !== evidenceDiffHash) {
+      throw new Error(`${task.id} approval diffHash does not match Evidence`);
+    }
+
+    const pullRequest = evidence.git?.pullRequest ?? approval.pullRequest;
     if (!pullRequest) throw new Error(`${task.id} has no pull request metadata in Evidence or Approval`);
 
     const { review, issues: reviewIssues } = readReview(root, task.id);
@@ -192,8 +197,7 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
       taskId: task.id,
       node,
       pullRequest,
-      approval: approvalFor(task.id, pullRequest, reason, approval),
-      writesApproval: approval?.status !== "approved",
+      approval,
       completionTargets: completionTargets.targets
     });
   }
@@ -208,7 +212,7 @@ export function buildCompletionPreview(root: string, taskIdsValue: string | unde
   for (const item of items) {
     lines.push(`- ${item.taskId}: ${item.node.code} ${item.node.name} -> completed`);
     lines.push(`  pullRequest: ${item.pullRequest}`);
-    lines.push(`  approval: ${item.writesApproval ? "will write approved record" : "already approved"}`);
+    lines.push("  approval: approved record validated");
     if (item.completionTargets && item.completionTargets.length > 0) {
       lines.push("  completionTargets:");
       for (const target of item.completionTargets) {
@@ -224,7 +228,7 @@ export function buildCompletionPreview(root: string, taskIdsValue: string | unde
   lines.push("");
   lines.push(`changeset: contracts/changesets/${completionTaskId}-complete-reviewed-work.json`);
   lines.push(`operations: ${changeSet.operations.length}`);
-  lines.push("rerun with --apply to write approvals, apply the WBS changeset, and rebuild the registry");
+  lines.push("rerun with --apply to apply the WBS changeset and rebuild the registry");
   return `${lines.join("\n")}\n`;
 }
 
@@ -238,15 +242,6 @@ export function runCompletionApply(root: string, taskIdsValue: string | undefine
     if (!options.apply) {
       process.stdout.write(buildCompletionPreview(root, taskIdsValue, completionTaskId, options));
       return 0;
-    }
-
-    for (const item of plan.items) {
-      if (!item.writesApproval) continue;
-      const relativePath = approvalPath(item.taskId);
-      const fullPath = resolveFrom(root, relativePath);
-      mkdirSync(path.dirname(fullPath), { recursive: true });
-      writeFileSync(fullPath, stringifySimpleYaml(item.approval as unknown as Record<string, unknown>), "utf8");
-      console.log(`wrote ${relativePath}`);
     }
 
     const changeSetPath = `contracts/changesets/${completionTaskId}-complete-reviewed-work.json`;
