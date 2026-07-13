@@ -1,0 +1,14 @@
+id: SPEC-LITE-MRHVJE4O
+type: spec-contract
+featureId: F-MRHVJE4O
+title: "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI"
+status: approved
+approvedBy: human
+approvedAt: "2026-07-13T12:13:00+09:00"
+version: 0.1.0
+summary: "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI"
+acceptanceCriteria:
+  - "A clean checkout succeeds with npm ci."
+  - "The root lockfile records the wjs workspace and all required workspace dependencies, including wbs-json-spec and esbuild platform packages."
+  - "Running npm ci leaves no Git diff."
+  - "CI installs dependencies with npm ci rather than npm install."

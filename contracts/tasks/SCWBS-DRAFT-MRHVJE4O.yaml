@@ -1,0 +1,37 @@
+id: SCWBS-DRAFT-MRHVJE4O
+type: task-contract
+wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+featureId: F-MRHVJE4O
+branchName: task/SCWBS-DRAFT-MRHVJE4O-fix-issue-130-synchronize-package-lock-json-with
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - .github/workflows/scwbs.yml
+  - src/**
+  - tests/**
+  - docs/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Plan and implement: Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+  specVersion: 0.1.0
+  specRevision: sha256:91a171045ae1ab093c552685ed5939945a96ed11d40296b23c889ad658ab4162
+  createdAt: "2026-07-13T03:17:53.761Z"
