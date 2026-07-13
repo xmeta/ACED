@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRJ8SH9L
+type: evidence
+taskId: SCWBS-DRAFT-MRJ8SH9L
+commit: 8cdf77eea4dcc880c510e8e2737eb0b30b824156
+subjectHeadCommit: 8cdf77eea4dcc880c510e8e2737eb0b30b824156
+diffHash: sha256:704883e6710467cee434990a231b39c45536cbe72211e61d454722ffdd9e5e46
+git:
+  branch: task/SCWBS-DRAFT-MRJ8SH9L-issue-156-contractlock-node-dependency-aware-loc
+  base: origin/main
+  baseCommit: 99884045b6849096cc9d8510d3a874cbe69e7502
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 8cdf77eea4dcc880c510e8e2737eb0b30b824156
+  diffHash: sha256:704883e6710467cee434990a231b39c45536cbe72211e61d454722ffdd9e5e46
+  headCommit: 8cdf77eea4dcc880c510e8e2737eb0b30b824156
+changedFiles:
+  - contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/contract-enforcement.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/check.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-refresh.ts
+  - src/core/schema/contracts.ts
+  - src/core/types.ts
+  - src/core/wbs-lock.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c69c98d6191ebf83778b6dadc12bdbaa6a1f2ea51404f934782207d41898fe36
+    executedAt: "2026-07-13T13:24:26.286Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:941fe73c9afde6dc3459752a0835d9678fdaef069596c6676f3a2f51c07bab6d
+    executedAt: "2026-07-13T13:28:20.626Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:fd77a5b18dd799b0d57f447b395be077e875df0c69f70bc3ab733d3761b56586
+    executedAt: "2026-07-13T13:28:23.217Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:965ec3096cba0ec9d83c8708ec172892b308ea366ca39ab1e721832d7e101c8a
+    executedAt: "2026-07-13T13:28:26.715Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added scoped lock, migration, affected preview, dependency, artifact, and invalid-contract regressions
