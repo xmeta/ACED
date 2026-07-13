@@ -56,7 +56,7 @@ describe("approval", () => {
       diffHash: "diff1234"
     }) as unknown as Record<string, unknown>);
 
-    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", force: false })).toBe(0);
+    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false })).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("status: approved");
     expect(actual).toContain("approvedBy: human");
@@ -75,15 +75,24 @@ describe("approval", () => {
     expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
+  test("approval approve rejects when actor is not explicitly human", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    // Ensure SCWBS_AGENT_MODE is not set in the test environment
+    delete process.env.SCWBS_AGENT_MODE;
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "No actor specified", force: false })).toBe(1);
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
+  });
+
   test("approval approve updates requested records and protects existing approvals", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
 
-    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Reviewed", force: false })).toBe(0);
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Reviewed", actor: "human", force: false })).toBe(0);
     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
     const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
-    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Second approval", force: false })).toBe(1);
+    expect(runApprovalApprove(root, "WBS-001-004", { reason: "Second approval", actor: "human", force: false })).toBe(1);
     expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
   });
 
@@ -91,7 +100,7 @@ describe("approval", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
 
-    expect(main(["approval", "approve", "--task", "WBS-001-004", "--pull-request", "#42", "--reason=Evidence and PR reviewed"], root)).toBe(0);
+    expect(main(["approval", "approve", "--task", "WBS-001-004", "--actor", "human", "--pull-request", "#42", "--reason=Evidence and PR reviewed"], root)).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("reason: Evidence and PR reviewed");
   });

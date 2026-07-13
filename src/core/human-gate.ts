@@ -37,7 +37,7 @@ export function validateHumanGateApproval(
     return { required: false, requiredFiles, approved: true, issues: [] };
   }
 
-  const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --reason "Evidence and diff reviewed"`;
+  const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
   if (!approval) {
     return {
       required: true,

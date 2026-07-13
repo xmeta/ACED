@@ -47,7 +47,7 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
 }
 
 export function buildHumanApprovalCommand(taskId: string): string {
-  return `npm run scwbs -- approval approve --task ${taskId} --reason "Evidence and diff reviewed"`;
+  return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
 }
 
 export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean } = {}): number {
