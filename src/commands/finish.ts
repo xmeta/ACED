@@ -101,10 +101,15 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("PASS diff guard");
   }
 
-  const { result: registryWriteExit } = runSilentIfJson(options.json ?? false, () =>
+  const { result: registryWriteExit } = captureStdout(() =>
     runRegistryRebuild(root, { check: false, force: true })
   );
   if (registryWriteExit !== 0) return registryWriteExit;
+  if (options.json) {
+    console.error("PASS registry synchronized");
+  } else {
+    console.log("PASS registry synchronized");
+  }
   const { result: registryExit } = runSilentIfJson(options.json ?? false, () =>
     runRegistryRebuild(root, { check: true, force: false })
   );

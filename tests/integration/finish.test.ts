@@ -105,6 +105,7 @@ describe("finish", () => {
     }
 
     const command = buildHumanApprovalCommand("WBS-001-004");
+    expect(output).toContain("PASS registry synchronized");
     expect(output).not.toContain(`  ${command}`);
     expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
     expect(command).not.toContain("--approved-by");
