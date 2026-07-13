@@ -1,0 +1,25 @@
+id: SCWBS-DRAFT-MRIO2DZN
+type: task-contract
+wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+featureId: F-MRIO2DZN
+branchName: codex/issue-130-workspace-installation-verification
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - tests/**
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - .github/**
+  - package-lock.json
+stopIf: []
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Verify npm workspace installation for Issue #130'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
