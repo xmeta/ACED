@@ -67,6 +67,18 @@ const taskContractSchema = {
     humanGateRequiredPaths: stringArraySchema,
     stopIf: stringArraySchema,
     requiredChecks: stringArraySchema,
+    checkCoverageWaivers: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["check", "reason"],
+        additionalProperties: true,
+        properties: {
+          check: { type: "string", minLength: 1 },
+          reason: { type: "string", minLength: 1 }
+        }
+      }
+    },
     doneCriteria: stringArraySchema,
     evidenceRequired: stringArraySchema,
     contractLock: {
@@ -239,6 +251,17 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.stopIf !== undefined && !isStringArray(value.stopIf)) {
     issues.push(issue("task.array", `${filePath}.stopIf must be a string array when present`));
+  }
+  if (value.checkCoverageWaivers !== undefined) {
+    if (!Array.isArray(value.checkCoverageWaivers)) {
+      issues.push(issue("task.checkCoverageWaivers", `${filePath}.checkCoverageWaivers must be an array when present`));
+    } else {
+      value.checkCoverageWaivers.forEach((waiver, index) => {
+        if (!isObject(waiver) || typeof waiver.check !== "string" || waiver.check.length === 0 || typeof waiver.reason !== "string" || waiver.reason.length === 0) {
+          issues.push(issue("task.checkCoverageWaiver", `${filePath}.checkCoverageWaivers[${index}] must include non-empty check and reason`));
+        }
+      });
+    }
   }
   if (value.contractLock !== undefined) {
     if (!isObject(value.contractLock)) {

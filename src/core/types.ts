@@ -85,6 +85,7 @@ export type TaskContract = {
   humanGateRequiredPaths: string[];
   stopIf?: string[];
   requiredChecks: string[];
+  checkCoverageWaivers?: Array<{ check: string; reason: string }>;
   doneCriteria: string[];
   evidenceRequired: string[];
   /**
@@ -96,6 +97,10 @@ export type TaskContract = {
    * humanGateRequiredPaths, which always take priority.
    */
   managedContractPaths?: string[];
+};
+
+export type CheckCoveragePolicy = {
+  rules: Array<{ id: string; paths: string[]; requires: string[] }>;
 };
 
 export type EvidenceCheckStatus = "passed" | "failed" | "skipped";

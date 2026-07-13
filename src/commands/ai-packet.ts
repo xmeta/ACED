@@ -4,6 +4,19 @@ import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.
 import { readProfile } from "./profile.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
+import type { TaskContract } from "../core/types.js";
+import { checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+
+function checkCoveragePacket(root: string, task: TaskContract): string {
+  const { policy, issues } = readCheckCoveragePolicy(root);
+  if (issues.length > 0) return `## Check Coverage\n- Policy error: ${issues.map((issue) => issue.message).join("; ")}`;
+  const summary = checkCoverageSummaryForAllowedPaths(policy, task);
+  return `## Check Coverage
+Required by allowed paths:
+${summary.required.map((item) => `- ${item}`).join("\n") || "- None"}
+Missing from Task Contract:
+${summary.missing.map((item) => `- ${item}`).join("\n") || "- None"}`;
+}
 
 function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): Set<string> {
   const selected = new Set<string>([node.id]);
@@ -85,6 +98,8 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 ## Required Checks
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
 
+${checkCoveragePacket(root, task)}
+
 ## Context Filter
 - Profile: ${profile}
 - Active artifact directories: ${artifactDirs.join(", ")}
@@ -160,6 +175,7 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 
 ## Required Checks
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+${checkCoveragePacket(root, task)}
 ${formatHint}
 
 ## Depends On
@@ -213,6 +229,10 @@ Human Gate:
 ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 Checks:
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+Coverage required:
+${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
+Coverage missing:
+${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
 Next:
 - npm run scwbs -- finish --task ${task.id}
 - npm run scwbs -- block "reason" --task ${task.id}
@@ -237,6 +257,10 @@ Human Gate:
 ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 Checks:
 ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+Coverage required:
+${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
+Coverage missing:
+${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
 Next:
 - npm run scwbs -- finish --task ${task.id}
 - npm run scwbs -- block "reason" --task ${task.id}

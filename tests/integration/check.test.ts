@@ -41,6 +41,23 @@ describe("check", () => {
     expect(parsed.issues.length).toBeGreaterThan(0);
   });
 
+  test("check rejects malformed repository check coverage policy", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", { rules: "invalid" } as unknown as Record<string, unknown>);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheck(root, { json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "checkCoverage.rules" })
+    ]));
+  });
+
   test("completed tasks without Human Gate file changes do not require Approval", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");

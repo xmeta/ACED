@@ -65,6 +65,32 @@ npm run scwbs -- task lock --task WBS-001-004
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 
+## Required check coverage
+
+リポジトリ固有のpath-to-check規則は `contracts/check-coverage.yaml` に置く。
+
+```yaml
+rules:
+  - id: wjs-tests
+    paths: [wjs, wjs/**]
+    requires: [test:wjs]
+  - id: integration-tests
+    paths: [src/commands/**, tests/integration/**]
+    requires: [test:integration]
+```
+
+`check-diff` と `finish` は実変更pathに必要なcheckがTask Contractの `requiredChecks` に無い場合に失敗する。packetは `allowedPaths` から予測した必要checkと不足checkを表示する。
+
+例外が必要な場合はTask Contractへ理由付きwaiverを明記する。
+
+```yaml
+checkCoverageWaivers:
+  - check: test:integration
+    reason: External integration environment is temporarily unavailable.
+```
+
+waiverは現在のEvidence scopeに対するHuman Approvalがなければ有効にならない。AIはApprovalをapprovedにしてはならない。
+
 AIはTask Contractの範囲外を変更してはならない。範囲外変更が必要な場合は、実装を止めてSpec Change ProposalまたはHuman Gateを要求する。
 
 Task Contractの推奨粒度は以下である。
@@ -86,4 +112,3 @@ npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
 生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
 
 ---
-

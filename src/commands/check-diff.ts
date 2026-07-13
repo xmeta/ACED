@@ -2,6 +2,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
+import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
@@ -77,6 +78,10 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     ...issue,
     code: "diff.humanGate",
     message: `${issue.message} (${issue.code})`
+  })));
+  issues.push(...collectCheckCoverageIssues(root, task, files).map((issue) => ({
+    ...issue,
+    code: `diff.${issue.code}`
   })));
   return issues;
 }
