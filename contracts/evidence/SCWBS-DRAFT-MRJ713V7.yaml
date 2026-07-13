@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRJ713V7
+type: evidence
+taskId: SCWBS-DRAFT-MRJ713V7
+commit: 57a00da66506f528c6ee76e50a839ce67b1f3e1b
+subjectHeadCommit: 57a00da66506f528c6ee76e50a839ce67b1f3e1b
+diffHash: sha256:e3de4c515226ca0f450c9d1deca0e4ec4759e09c48ecb676c651884416b7ca37
+git:
+  branch: task/SCWBS-DRAFT-MRJ713V7-issue-153-required-check-coverage-policy-validat
+  base: origin/main
+  baseCommit: 1d4ffd0007aaac972b4f83956432976cf33d05d7
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 57a00da66506f528c6ee76e50a839ce67b1f3e1b
+  diffHash: sha256:e3de4c515226ca0f450c9d1deca0e4ec4759e09c48ecb676c651884416b7ca37
+  headCommit: 57a00da66506f528c6ee76e50a839ce67b1f3e1b
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/task-contract.md
+  - src/commands/ai-packet.ts
+  - src/commands/check-diff.ts
+  - src/commands/check.ts
+  - src/core/check-coverage.ts
+  - src/core/paths.ts
+  - src/core/schema/check-coverage.ts
+  - src/core/schema/contracts.ts
+  - src/core/types.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b10d34d8dc84b9af31224fca8898e785d8a1135ae4d57d71fe21f877da9ab953
+    executedAt: "2026-07-13T12:34:49.418Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:ade86c403449fc7fd9c012339db28b98b9349611fbb5a1ca154c4ac8eb6fc4cd
+    executedAt: "2026-07-13T12:38:16.942Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:d29a9d243340ab3aa2fa261722c6392f2d8da0b33097ba4e221fbe35ba8395a0
+    executedAt: "2026-07-13T12:38:19.679Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:bcfe2376e6f08f3b0db4823d4ec56bcf242eb689124d3c0efd5f95115c1085ca
+    executedAt: "2026-07-13T12:38:22.365Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - path-to-check policy, broad and multi-check coverage, packet output, waiver scope freshness, and blank-value regressions added
