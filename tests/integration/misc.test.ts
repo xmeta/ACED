@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
@@ -11,7 +12,7 @@ import { buildStatus } from "../../src/commands/status.js";
 import { runFinish } from "../../src/commands/finish.js";
 import { runFix } from "../../src/commands/fix.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
-import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
 import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
 import { readBlock, readEvidence, readSpecChange, readTask } from "../../src/core/contracts.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
@@ -21,7 +22,134 @@ import { main } from "../../src/cli.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 import type { WbsDocument } from "../../src/core/types.js";
 
+function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWrite = process.stdout.write;
+  console.log = (...args: unknown[]) => stdout.push(args.map(String).join(" "));
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    return { result: action(), stdout: stdout.join("\n"), stderr: stderr.join("\n") };
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    process.stdout.write = originalWrite;
+  }
+}
+
 describe("misc", () => {
+  test("registry rebuild defaults to a bounded diff summary", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runRegistryRebuild(root, { check: false, force: true, quiet: true })).toBe(0);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+
+    const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true }));
+    expect(output.result).toBe(0);
+    expect(output.stdout).toBe([
+      "PASS registry rebuilt",
+      "added: 1",
+      "updated: 0",
+      "removed: 0",
+      "path: contracts/registry.yaml"
+    ].join("\n"));
+    expect(output.stdout).not.toContain("contracts:");
+
+    const identitySummary = buildRegistryRebuildSummary(
+      stringifySimpleYaml({ projectId: "test", contracts: [
+        { id: "TASK-A", type: "task", path: "contracts/tasks/old.yaml" },
+        { id: "TASK-B", type: "task", path: "contracts/tasks/shared.yaml" }
+      ] }),
+      stringifySimpleYaml({ projectId: "test", contracts: [
+        { id: "TASK-A", type: "task", path: "contracts/tasks/new.yaml" },
+        { id: "TASK-C", type: "task", path: "contracts/tasks/shared.yaml" }
+      ] }),
+      "rebuilt"
+    );
+    expect(identitySummary).toMatchObject({ added: 1, updated: 1, removed: 1 });
+  });
+
+  test("registry rebuild supports quiet json verbose output and help", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    const quiet = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, quiet: true }));
+    expect(quiet).toMatchObject({ result: 0, stdout: "", stderr: "" });
+
+    const json = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, json: true }));
+    const jsonSummary = JSON.parse(json.stdout);
+    expect(jsonSummary).toEqual({
+      schemaVersion: "1.0.0",
+      status: "rebuilt",
+      added: 0,
+      updated: 0,
+      removed: 0,
+      path: "contracts/registry.yaml"
+    });
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/registry-rebuild-summary.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(jsonSummary)).toBe(true);
+
+    const verbose = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, verbose: true }));
+    expect(verbose.stdout).toContain("PASS registry rebuilt");
+    expect(verbose.stdout).toContain("projectId:");
+    expect(verbose.stdout).toContain("contracts:");
+
+    const yaml = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, output: "-" }));
+    expect(yaml.stdout).toMatch(/^projectId:/);
+    expect(yaml.stdout).not.toContain("PASS registry rebuilt");
+
+    const help = captureOutput(() => main(["registry", "rebuild", "--help"], root));
+    expect(help.result).toBe(0);
+    expect(help.stdout).toContain("--quiet");
+    expect(help.stdout).toContain("--json");
+    expect(help.stdout).toContain("--verbose");
+    expect(help.stdout).toContain("--output <target>");
+
+    const conflict = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, quiet: true, json: true }));
+    expect(conflict).toMatchObject({ result: 2, stderr: "Choose one of --quiet, --json, --verbose, or --output -" });
+  });
+
+  test("registry rebuild JSON summary stays bounded with more than 1000 prior entries", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: Array.from({ length: 1001 }, (_, index) => ({
+        id: `OLD-${index}`,
+        type: "evidence",
+        path: `contracts/evidence/OLD-${index}.yaml`,
+        relatedTask: `OLD-${index}`
+      }))
+    });
+
+    const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, json: true }));
+    expect(output.result).toBe(0);
+    expect(JSON.parse(output.stdout)).toMatchObject({ removed: 1001 });
+    expect(output.stdout.length).toBeLessThan(200);
+  });
+
+  test("registry rebuild check keeps default messages and exit codes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    runRegistryRebuild(root, { check: false, force: true, quiet: true });
+    expect(captureOutput(() => runRegistryRebuild(root, { check: true, force: false }))).toMatchObject({
+      result: 0,
+      stdout: "PASS registry rebuild --check",
+      stderr: ""
+    });
+    writeText(root, "contracts/registry.yaml", "projectId: stale\ncontracts: []\n");
+    expect(captureOutput(() => runRegistryRebuild(root, { check: true, force: false }))).toMatchObject({
+      result: 1,
+      stderr: "contracts/registry.yaml is out of sync; run scwbs registry rebuild --force"
+    });
+  });
+
   test("check rejects direct WBS edits without a corresponding changeset", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
