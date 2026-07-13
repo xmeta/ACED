@@ -110,6 +110,8 @@ The detailed command is also available:
 npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --reason "Evidence and PR reviewed"
 ```
 
+`finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
+
 ## 6. Core Artifacts
 
 - Task Contract: `contracts/tasks/<task-id>.yaml`

@@ -84,6 +84,8 @@ notes:
 
 `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
 
+When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
+
 After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
 
 When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.

@@ -1,0 +1,51 @@
+id: EVD-SCWBS-DRAFT-MRJ3EC8T
+type: evidence
+taskId: SCWBS-DRAFT-MRJ3EC8T
+commit: 69eb89d2129ce2ba2fbc4b35abd7c43e056eacd1
+subjectHeadCommit: 69eb89d2129ce2ba2fbc4b35abd7c43e056eacd1
+diffHash: sha256:28d4f6f3e4dd268a74beb66a53b5e57931ed4e952a0f81f63128236b1654a9be
+git:
+  branch: task/SCWBS-DRAFT-MRJ3EC8T-issue-133-finish-human-gate-next-action-cli-mism
+  base: origin/main
+  baseCommit: 2ae4b141a5674b88c268de9e2b08d43caa19d93f
+  changedFilesBasis: branch-diff
+  pullRequest: "158"
+  subjectHeadCommit: 69eb89d2129ce2ba2fbc4b35abd7c43e056eacd1
+  diffHash: sha256:28d4f6f3e4dd268a74beb66a53b5e57931ed4e952a0f81f63128236b1654a9be
+  headCommit: 69eb89d2129ce2ba2fbc4b35abd7c43e056eacd1
+changedFiles:
+  - README.md
+  - contracts/evidence/SCWBS-DRAFT-MRJ3EC8T.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    executedAt: "2026-07-13T10:54:57.712Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    executedAt: "2026-07-13T10:57:43.955Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    executedAt: "2026-07-13T10:57:47.068Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    executedAt: "2026-07-13T10:57:49.998Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - finish text and JSON nextAction regression coverage added; no tests disabled and no coverage decrease

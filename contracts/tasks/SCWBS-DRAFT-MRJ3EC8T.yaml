@@ -1,0 +1,43 @@
+id: SCWBS-DRAFT-MRJ3EC8T
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ3EC8T
+branchName: task/SCWBS-DRAFT-MRJ3EC8T-issue-133-finish-human-gate-next-action-cli-mism
+allowedPaths:
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+  - README.md
+  - docs/scwbs/cli-reference.md
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires adding new approval options or changing Human Approval provenance semantics.
+  - The fix requires changes outside allowedPaths.
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - finish prints a Human Gate approval command composed only of options accepted by approval approve.
+  - finish --json returns the same executable command in nextAction.
+  - Human-readable and JSON regression tests reject the removed approved-by and human-confirm options.
+  - README and CLI reference document the same current approval approve command shape.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T10:42:20.283Z"
