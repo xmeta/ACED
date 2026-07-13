@@ -1,0 +1,36 @@
+id: SCWBS-DRAFT-MRITE4UK
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRITE4UK
+branchName: task/SCWBS-DRAFT-MRITE4UK-fix-issue-131-require-integration-and-wjs-tests-
+allowedPaths:
+  - package.json
+  - .github/workflows/scwbs.yml
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - test:wjs
+  - typecheck
+  - build
+doneCriteria:
+  - PR CI runs the root unit suite and reports all 14 tests.
+  - PR CI runs the root integration suite and reports all 144 tests.
+  - PR CI runs the WJS test suite and reports its test count and result.
+  - A failure in unit, integration, or WJS tests fails the corresponding PR check.
+  - CI logs clearly distinguish unit, integration, WJS, static, and contract validation results.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:698c9ffe726a8c8a88912c31712e690b300f481e14cf6b4cfca77dd60d8996ca
+  createdAt: "2026-07-13T06:16:24.694Z"

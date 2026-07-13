@@ -12,9 +12,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
+    "test:integration": "vitest run tests/integration --maxWorkers=1 --testTimeout=10000",
     "test:wjs": "npm test -w wjs",
-    "test:all": "vitest run",
+    "test:all": "npm run test && npm run test:integration && npm run test:wjs",
     "scwbs": "tsc -p tsconfig.json && node dist/cli.js"
   },
   "devDependencies": {
