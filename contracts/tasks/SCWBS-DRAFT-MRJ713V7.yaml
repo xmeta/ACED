@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRJ713V7
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ713V7
+branchName: task/SCWBS-DRAFT-MRJ713V7-issue-153-required-check-coverage-policy-validat
+allowedPaths:
+  - src/core/check-coverage.ts
+  - src/core/types.ts
+  - src/core/paths.ts
+  - src/core/schema/check-coverage.ts
+  - src/core/schema/contracts.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/ai-packet.ts
+  - tests/helpers.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/ai.test.ts
+  - docs/scwbs/task-contract.md
+  - contracts/check-coverage.yaml
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The waiver flow cannot preserve human-only approval
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Repository check coverage policy maps broad path patterns to one or more required checks.
+  - WJS changes without test:wjs and command or integration test changes without test:integration fail check-diff.
+  - Missing and required checks are displayed in tiny and standard packets.
+  - Repository policy is extensible without changing CLI code and malformed policy fails scwbs check.
+  - An explicit waiver records affected checks and a non-empty reason in the Task Contract.
+  - A waiver cannot pass check-diff without a human-approved Approval scoped to current Evidence.
+  - Integration tests cover broad paths multiple checks missing coverage packet output and the Human Gate waiver flow.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T12:23:42.175Z"

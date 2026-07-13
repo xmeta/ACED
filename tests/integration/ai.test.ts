@@ -325,6 +325,22 @@ describe("AI commands", () => {
     expect(packet).toContain("Stop Conditions");
   });
 
+  test("packet displays policy-required and missing checks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      rules: [{ id: "integration", paths: ["src/commands/**"], requires: ["test:integration"] }]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/**"], requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+
+    const packet = buildAiPacket(root, "WBS-001-004", 0);
+    expect(packet).toContain("## Check Coverage");
+    expect(packet).toContain("Required by allowed paths:\n- test:integration");
+    expect(packet).toContain("Missing from Task Contract:\n- test:integration");
+  });
+
   test("core packet full outputs deep packet with relation depth 1", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

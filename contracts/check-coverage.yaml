@@ -1,0 +1,13 @@
+rules:
+  - id: wjs-tests
+    paths:
+      - wjs
+      - wjs/**
+    requires:
+      - test:wjs
+  - id: integration-tests
+    paths:
+      - src/commands/**
+      - tests/integration/**
+    requires:
+      - test:integration

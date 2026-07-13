@@ -14,6 +14,54 @@ describe("check-diff", () => {
     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
   });
 
+  test("check-diff enforces broad path policies with multiple required checks", () => {
+    const root = makeTempRepo();
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      rules: [{ id: "broad", paths: ["wjs", "wjs/**", "src/commands/**"], requires: ["test:wjs", "test:integration"] }]
+    });
+    const task = sampleTask({ requiredChecks: ["test"] });
+    const issues = collectDiffIssues(root, task, ["wjs", "src/commands/finish.ts"]);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.checkCoverage.missing", message: expect.stringContaining("test:wjs") }),
+      expect.objectContaining({ code: "diff.checkCoverage.missing", message: expect.stringContaining("test:integration") })
+    ]));
+  });
+
+  test("check coverage waiver requires a reason and Human Approval scoped to Evidence", () => {
+    const root = makeTempRepo();
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      rules: [{ id: "integration", paths: ["src/commands/**"], requires: ["test:integration"] }]
+    });
+    const task = sampleTask({
+      requiredChecks: ["test"],
+      checkCoverageWaivers: [{ check: "test:integration", reason: "External integration environment is unavailable" }]
+    });
+    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
+
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/commands/finish.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+    const subjectHead = headCommit(root)!;
+    const subjectDiffHash = branchDiffHash(root, "base", [
+      "contracts/evidence/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"
+    ]);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
+    }) as unknown as Record<string, unknown>);
+    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(false);
+
+    writeText(root, "src/commands/finish.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "implementation changed after approval"], { cwd: root, stdio: "ignore" });
+    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
+  });
+
   test("check-diff flags current branch mismatches", () => {
     const task = sampleTask({ branchName: "task/WBS-001-004-api-implementation" });
     expect(collectBranchIssues(task, "task/WBS-001-004-api-implementation")).toEqual([]);

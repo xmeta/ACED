@@ -11,6 +11,7 @@ export const defaultApprovalsDir = "contracts/approvals";
 export const defaultReviewsDir = "contracts/reviews";
 export const defaultBlocksDir = "contracts/blocks";
 export const defaultChangesetsDir = "contracts/changesets";
+export const defaultCheckCoveragePath = "contracts/check-coverage.yaml";
 
 export function profileRequiredDirs(profile: Profile): string[] {
   const dirs: string[] = [
