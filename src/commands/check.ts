@@ -107,7 +107,7 @@ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocum
     issues.push(...evidenceIssues);
     issues.push(...validateRequiredChecks(task, evidence));
     if (done && evidence) {
-      issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval).issues);
+      issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, evidence.changedFiles, root).issues);
     }
   }
 

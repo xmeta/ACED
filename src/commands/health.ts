@@ -1,6 +1,7 @@
-import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
+import { listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
+import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
@@ -73,10 +74,9 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   const node = findNode(wbs, task.wbsNodeId);
   const currentHead = headCommit(root);
   const currentBranchName = currentBranch(root);
-  const { approval, issues: approvalIssues } = readApproval(root, task.id);
-  const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+  const { approval } = readApproval(root, task.id);
   const approvalPullRequest = approval?.pullRequest;
-  const hasApproval = Boolean(approval) && !missingApprovalOnly;
+  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
 
   if (node && isDoneNode(node) && strongestEvidenceLevel(evidence) === "C") {
     issues.push({
@@ -159,10 +159,12 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     if (matchesAny(file, task.forbiddenPaths)) {
       issues.push({ severity: "error", code: "health.evidence.changedFiles.forbiddenPaths", message: `${file} is forbidden by ${task.id}` });
     }
-    if (matchesAny(file, task.humanGateRequiredPaths) && !hasApproval) {
-      issues.push({ severity: "warn", code: "health.evidence.changedFiles.humanGate", message: `${file} requires human gate approval for ${task.id}` });
-    }
   }
+  issues.push(...humanGate.issues.map((issue) => ({
+    ...issue,
+    severity: "warn" as const,
+    code: `health.${issue.code}`
+  })));
 
   const changedTests = evidence.changedFiles.some((file) => /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/.test(file));
   if (changedTests) {

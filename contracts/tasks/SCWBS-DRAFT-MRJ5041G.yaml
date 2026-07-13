@@ -1,0 +1,51 @@
+id: SCWBS-DRAFT-MRJ5041G
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ5041G
+branchName: task/SCWBS-DRAFT-MRJ5041G-issue-152-preserve-human-approval-across-metadat
+allowedPaths:
+  - src/core/human-gate.ts
+  - src/core/git.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/health.test.ts
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changing Approval provenance or identity semantics.
+  - The fix requires changes outside allowedPaths.
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Matching diffHash Approval remains valid when its head is an ancestor and intervening changes are task Evidence Approval Review or registry metadata only.
+  - Gate implementation test dependency or submodule changes always invalidate Approval.
+  - Non-ancestor Approval heads are invalid.
+  - check check-diff finish and health use the same metadata-aware Approval scope validator.
+  - Approval headCommit and diffHash continue to audit the originally reviewed scope.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T11:26:56.396Z"
