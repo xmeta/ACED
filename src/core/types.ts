@@ -127,6 +127,7 @@ export type Evidence = {
     runId?: string;
     url?: string;
     command?: string;
+    cacheKey?: string;
     exitStatus?: number;
     stdoutSummary?: string;
     stderrSummary?: string;

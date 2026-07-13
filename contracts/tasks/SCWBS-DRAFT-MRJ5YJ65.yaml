@@ -1,0 +1,52 @@
+id: SCWBS-DRAFT-MRJ5YJ65
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRJ5YJ65
+branchName: task/SCWBS-DRAFT-MRJ5YJ65-issue-151-finish-evidence-registry-sync-and-safe
+allowedPaths:
+  - src/cli.ts
+  - src/commands/finish.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/check-cache.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/helpers.ts
+  - contracts/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The fix requires changing Evidence or Approval provenance semantics
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - A first finish run creates Evidence, rebuilds managed registry metadata, and ends with registry check passing.
+  - Approval status metadata changes are reflected in the registry by the next finish run.
+  - Passed checks are reused only when subject diff, resolved command, dependency lockfiles, and submodule commits are unchanged.
+  - Implementation, check command, lockfile, or submodule changes force required checks to run again.
+  - The --rerun-checks option forces every required check to run again.
+  - A failed finish reuses still-valid passed checks, and an interrupted finish safely converges on the next run.
+  - Integration tests cover Evidence creation, Approval update, registry synchronization, safe reuse, and invalidation.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-13T11:59:35.116Z"

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
+import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
 import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
@@ -33,7 +34,7 @@ function summarizeCheckOutput(output: string | null | undefined): string | undef
   return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
 }
 
-function runCheck(root: string, check: string): Evidence["checks"][number] {
+function runCheck(root: string, check: string, cacheKey: string): Evidence["checks"][number] {
   const command = commandForCheck(check);
   const result = spawnSync(command[0] ?? "npm", command.slice(1), {
     cwd: root,
@@ -46,6 +47,7 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
     status,
     source: "local",
     command: command.join(" "),
+    cacheKey,
     executedAt: new Date().toISOString()
   };
   if (status === "passed") return record;
@@ -59,7 +61,7 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
   };
 }
 
-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions } = {}): Evidence {
+export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): Evidence {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const baseRef = options.baseRef ?? "origin/main";
@@ -69,6 +71,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+  const cacheSubject = task.requiredChecks.length > 0
+    ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+    : undefined;
+  const checks = task.requiredChecks.map((check) => {
+    const command = commandForCheck(check);
+    const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
+    const reusable = existingEvidence?.checks.find((candidate) =>
+      candidate.name === check
+      && candidate.status === "passed"
+      && candidate.command === command.join(" ")
+      && candidate.cacheKey === cacheKey
+    );
+    return !options.rerunChecks && cacheSubject?.reusable && reusable ? reusable : runCheck(root, check, cacheKey);
+  });
   return {
     id: `EVD-${taskId}`,
     type: "evidence",
@@ -87,16 +103,16 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       ...(head ? { headCommit: head } : {})
     },
     changedFiles: branchChangedFiles(root, baseRef),
-    checks: task.requiredChecks.map((check) => runCheck(root, check)),
+    checks,
     ...(testQuality ? { testQuality } : {})
   };
 }
 
-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions } = {}): string {
+export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): string {
   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions }): number {
+export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean }): number {
   try {
     const relativePath = evidencePath(taskId);
     const fullPath = resolveFrom(root, relativePath);
@@ -108,7 +124,8 @@ export function runEvidenceCollect(root: string, taskId: string, options: { forc
     const yaml = buildCollectedEvidenceYaml(root, taskId, {
       baseRef: options.baseRef,
       pullRequest: options.pullRequest,
-      testQuality: options.testQuality
+      testQuality: options.testQuality,
+      rerunChecks: options.rerunChecks
     });
     writeFileSync(fullPath, yaml, "utf8");
     process.stdout.write(yaml);

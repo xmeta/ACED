@@ -1,7 +1,10 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync, unlinkSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
+import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+import path from "node:path";
 
 function prepareFinishRepo(requestedApproval = false): string {
   const root = makeTempRepo();
@@ -102,9 +105,36 @@ describe("finish", () => {
     }
 
     const command = buildHumanApprovalCommand("WBS-001-004");
+    expect(output).toContain("PASS registry synchronized");
     expect(output).not.toContain(`  ${command}`);
     expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
     expect(command).not.toContain("--approved-by");
     expect(command).not.toContain("--human-confirm");
+  }, 30000);
+
+  test("a first finish creates Evidence and synchronizes registry in one run", () => {
+    const root = prepareFinishRepo();
+    unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
+
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
+  }, 30000);
+
+  test("finish synchronizes Approval status and can force valid checks to rerun", () => {
+    const root = prepareFinishRepo(true);
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+    const firstExecutedAt = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8").match(/executedAt: (.+)/)?.[1];
+
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "approved"
+    });
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toContain("status: approved");
+    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain(`executedAt: ${firstExecutedAt}`);
+
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", rerunChecks: true })).toBe(0);
+    const rerunExecutedAt = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8").match(/executedAt: (.+)/)?.[1];
+    expect(rerunExecutedAt).not.toBe(firstExecutedAt);
   }, 30000);
 });
