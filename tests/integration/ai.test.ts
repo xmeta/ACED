@@ -174,6 +174,21 @@ describe("AI commands", () => {
     expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
     expect(buildNextAction(root)).not.toContain("Collect evidence for WBS-001-004");
     expect(buildNextAction(root)).not.toContain("Review blocked candidates");
+    expect(buildNextAction(root)).not.toContain("Run `scwbs next`");
+  });
+
+  test("top-level next skips an active Block and still finds a later review candidate", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      branchName: "task/WBS-001-005-follow-up",
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
+    expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
+    expect(buildNextAction(root)).toContain("Review blocked candidates");
   });
 
   test("the legacy positional reason resolve remains a normal block reason", () => {

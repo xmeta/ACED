@@ -74,7 +74,19 @@ export function buildBlockRecord(taskId: string, reason: string, now = new Date(
 }
 
 function blockHistory(block: BlockRecord): NonNullable<BlockRecord["history"]> {
-  return block.history ?? [{ status: "blocked", at: block.createdAt, reason: block.reason, by: "ai-agent" }];
+  const history = block.history ?? [{ status: "blocked", at: block.createdAt, reason: block.reason, by: "ai-agent" }];
+  if (block.status === "resolved" && history.at(-1)?.status !== "resolved") {
+    return [
+      ...history,
+      {
+        status: "resolved",
+        at: block.resolvedAt!,
+        reason: block.resolution!,
+        by: "human"
+      }
+    ];
+  }
+  return history;
 }
 
 export function buildBlockRecordYaml(taskId: string, reason: string, now?: string, previous?: BlockRecord): string {
@@ -218,8 +230,9 @@ export function buildNextTask(root: string): string {
     .sort((a, b) => a.taskId.localeCompare(b.taskId));
 
   if (candidates.length === 0) {
-    const hasMissingEvidence = tasks.some((entry) => entry.task && !evidenceExists(root, entry.task.id));
-    const hasReviewCandidate = buildReviewQueue(root) !== "Review Queue:\n- None\n";
+    const hasMissingEvidence = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && !evidenceExists(root, entry.task.id));
+    const reviewQueue = buildReviewQueue(root);
+    const hasReviewCandidate = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && reviewQueue.includes(`- ${entry.task.id} |`));
     const followUp = hasMissingEvidence || hasReviewCandidate
       ? "\nFollow-up work remains for existing contracts. Run `scwbs next` for Evidence or review guidance.\n"
       : "";

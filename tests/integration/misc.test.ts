@@ -191,6 +191,32 @@ describe("misc", () => {
     expect(readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8")).toContain("status: broken");
   });
 
+  test("reblocking a legacy resolved Block reconstructs its resolution history", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
+      id: "BLK-WBS-001-004",
+      type: "block",
+      taskId: "WBS-001-004",
+      status: "resolved",
+      level: 1,
+      category: "human-gate",
+      reason: "Original block",
+      requiredHumanDecision: "Decide",
+      createdAt: "2026-07-12T01:00:00.000Z",
+      resolvedAt: "2026-07-12T02:00:00.000Z",
+      resolvedBy: "human",
+      resolution: "Decision recorded"
+    });
+
+    expect(runAiBlock(root, "WBS-001-004", "New block")).toBe(0);
+    expect(readBlock(root, "WBS-001-004").block?.history).toEqual([
+      { status: "blocked", at: "2026-07-12T01:00:00.000Z", reason: "Original block", by: "ai-agent" },
+      { status: "resolved", at: "2026-07-12T02:00:00.000Z", reason: "Decision recorded", by: "human" },
+      expect.objectContaining({ status: "blocked", reason: "New block", by: "ai-agent" })
+    ]);
+  });
+
   test("finish without task id or task branch fails with a fix command", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
