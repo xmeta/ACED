@@ -50,7 +50,7 @@ export function buildHumanApprovalCommand(taskId: string): string {
   return `npm run scwbs -- approval approve --task ${taskId} --reason "Evidence and diff reviewed"`;
 }
 
-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
+export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean } = {}): number {
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
     console.error("Missing --task <task-id> and current branch does not contain a task id");
@@ -68,7 +68,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     runEvidenceCollect(root, taskId, {
       force: options.force ?? true,
       baseRef: options.baseRef,
-      pullRequest: options.pullRequest
+      pullRequest: options.pullRequest,
+      rerunChecks: options.rerunChecks
     })
   );
   if (evidenceExit !== 0) return evidenceExit;
@@ -100,18 +101,14 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("PASS diff guard");
   }
 
+  const { result: registryWriteExit } = runSilentIfJson(options.json ?? false, () =>
+    runRegistryRebuild(root, { check: false, force: true })
+  );
+  if (registryWriteExit !== 0) return registryWriteExit;
   const { result: registryExit } = runSilentIfJson(options.json ?? false, () =>
     runRegistryRebuild(root, { check: true, force: false })
   );
-  if (registryExit !== 0) {
-    const fixCommand = "fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish";
-    if (options.json) {
-      console.error(fixCommand);
-    } else {
-      console.log(fixCommand);
-    }
-    return registryExit;
-  }
+  if (registryExit !== 0) return registryExit;
   if (options.json) {
     console.error("PASS registry check");
   } else {

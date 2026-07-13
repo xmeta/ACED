@@ -42,6 +42,7 @@ const evidenceSchema = {
           runId: { type: "string" },
           url: { type: "string" },
           command: { type: "string" },
+          cacheKey: { type: "string" },
           exitStatus: { type: "number" },
           stdoutSummary: { type: "string" },
           stderrSummary: { type: "string" },
@@ -191,7 +192,7 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
         issues.push(issue("evidence.check", `${filePath}.checks[${index}] must include name and status`));
         return;
       }
-      for (const key of ["source", "runId", "url", "command", "stdoutSummary", "stderrSummary", "executedAt", "verifiedBy"]) {
+      for (const key of ["source", "runId", "url", "command", "cacheKey", "stdoutSummary", "stderrSummary", "executedAt", "verifiedBy"]) {
         if (check[key] !== undefined && typeof check[key] !== "string") {
           issues.push(issue("evidence.check", `${filePath}.checks[${index}].${key} must be a string when present`));
         }

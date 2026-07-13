@@ -131,6 +131,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--base <ref>", "base reference")
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
+    .option("--rerun-checks", "rerun required checks even when cached results are valid")
     .option("--json", "output as JSON")
     .action((opts) => {
       exitCode = runFinish(root, {
@@ -138,7 +139,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         baseRef: opts.base,
         pullRequest: opts.pr ?? opts.pullRequest,
         force: true,
-        json: opts.json ?? false
+        json: opts.json ?? false,
+        rerunChecks: opts.rerunChecks ?? false
       });
     });
 
@@ -446,6 +448,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--tests-disabled <bool>", "tests disabled")
     .option("--coverage-decreased <bool>", "coverage decreased")
     .option("--test-quality-note <text>", "test quality note")
+    .option("--rerun-checks", "rerun required checks even when cached results are valid")
     .action((opts) => {
       if (!opts.task) {
         console.error("Missing --task <task-id>");
@@ -456,7 +459,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         force: opts.force ?? false,
         baseRef: opts.base,
         pullRequest: opts.pullRequest,
-        testQuality: parseTestQuality(opts)
+        testQuality: parseTestQuality(opts),
+        rerunChecks: opts.rerunChecks ?? false
       });
     });
 
