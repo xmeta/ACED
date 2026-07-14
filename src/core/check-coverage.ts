@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence } from "./contracts.js";
 import { matchesAny } from "./glob.js";
@@ -106,11 +106,33 @@ function implementationFilesUnder(root: string, relativeDirectory: string): stri
   return files;
 }
 
-export function collectCheckCoveragePolicyIssues(root: string): Issue[] {
-  const { policy, issues } = readCheckCoveragePolicy(root);
-  if (issues.length > 0) return issues;
-  const implementationFiles = (policy.implementationRoots ?? []).flatMap((directory) => implementationFilesUnder(root, directory));
-  const report = checkCoverageReport(policy, implementationFiles);
+function implementationRootIssues(root: string, directories: string[]): { directories: string[]; issues: Issue[] } {
+  const validDirectories: string[] = [];
+  const issues: Issue[] = [];
+  for (const directory of directories) {
+    const normalized = normalizePath(directory).replace(/\/$/, "");
+    const fullPath = resolveFrom(root, directory);
+    const unsafe = path.isAbsolute(directory) || /^[A-Za-z]:\//.test(normalized) || normalized.split("/").includes("..");
+    if (unsafe || !existsSync(fullPath) || !statSync(fullPath).isDirectory()) {
+      issues.push({
+        severity: "error",
+        code: "checkCoverage.implementationRoot",
+        message: `${directory} must be an existing repository-relative directory in ${defaultCheckCoveragePath}`,
+        fixCommand: `Use an existing repository-relative source directory in ${defaultCheckCoveragePath}.implementationRoots`
+      });
+      continue;
+    }
+    validDirectories.push(directory);
+  }
+  return { directories: validDirectories, issues };
+}
+
+export function collectCheckCoveragePolicyIssues(root: string, policy?: CheckCoveragePolicy): Issue[] {
+  const activePolicy = policy ?? readCheckCoveragePolicy(root).policy;
+  const roots = implementationRootIssues(root, activePolicy.implementationRoots ?? []);
+  if (roots.issues.length > 0) return roots.issues;
+  const implementationFiles = roots.directories.flatMap((directory) => implementationFilesUnder(root, directory));
+  const report = checkCoverageReport(activePolicy, implementationFiles);
   return report.unclassifiedFiles.map((file) => ({
     severity: "error",
     code: "checkCoverage.unclassified",

@@ -252,8 +252,9 @@ function validateCompletionTaskIds(root: string): Issue[] {
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   const profile: Profile = readProfile(root);
-  issues.push(...readCheckCoveragePolicy(root).issues);
-  issues.push(...collectCheckCoveragePolicyIssues(root));
+  const coverage = readCheckCoveragePolicy(root);
+  issues.push(...coverage.issues);
+  if (coverage.issues.length === 0) issues.push(...collectCheckCoveragePolicyIssues(root, coverage.policy));
 
   const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
   if (hasWbs) {

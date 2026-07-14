@@ -54,9 +54,11 @@ describe("check", () => {
     } finally {
       console.log = originalLog;
     }
-    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+    const issues = JSON.parse(output.join("\n")).issues;
+    expect(issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "checkCoverage.rules" })
     ]));
+    expect(issues.filter((issue: { code: string }) => issue.code === "checkCoverage.rules")).toHaveLength(1);
   });
 
   test("check coverage policy rejects blank path and check entries", () => {
@@ -115,6 +117,24 @@ describe("check", () => {
     });
     expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "checkCoverage.rule.classification" })
+    ]));
+  });
+
+  test("implementation inventory roots must be repository-relative directories", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/core/git.ts"],
+      rules: [{
+        id: "core-git",
+        classification: "behavior-critical",
+        rationale: "Git behavior requires integration coverage.",
+        paths: ["src/core/git.ts"],
+        requires: ["test:integration"]
+      }]
+    });
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "checkCoverage.implementationRoot" })
     ]));
   });
 
