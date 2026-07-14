@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MRKH9ITY
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKH9ITY
+branchName: task/SCWBS-DRAFT-MRKH9ITY-issue-190-integration-suite
+allowedPaths:
+  - package.json
+  - vitest.config.ts
+  - scripts/integration-test-run.mjs
+  - tests/helpers.ts
+  - tests/integration/**
+  - tests/unit/integration-test-run.test.ts
+  - docs/scwbs/integration-testing.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - integration test file/test別の再現可能なduration reportを取得できる
+  - serial必須理由を分類しparallel-safe testsを2以上のworkerで安定実行できる
+  - stdout/stderr・cwd・git fixtureを扱うtestの競合回帰を防ぐ
+  - full integrationをbaseline比50%以上短縮または90秒以内にする
+  - CI full integration gateとcoverageを維持しflaky retryを使わない
+  - slowest-Nと総時間をbounded summaryで表示する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
+  - contracts/specs/SPEC-LITE-MRKH9ITY.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKH9ITY.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKH9ITY.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKH9ITY.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKH9ITY.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:bc086763cce1e2dc79cf636f7cc80095fb6ad599ffad13382bb2c6eb7db068e0
+  createdAt: "2026-07-14T10:02:09.285Z"

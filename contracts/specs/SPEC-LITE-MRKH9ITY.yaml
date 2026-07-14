@@ -1,0 +1,19 @@
+id: SPEC-LITE-MRKH9ITY
+type: spec-contract
+featureId: F-MRKH9ITY
+title: "Issue #190 integration suiteを計測・分離しローカル実行時間を短縮する"
+status: approved
+version: 0.1.0
+summary: "Issue #190 integration suiteを計測・分離しローカル実行時間を短縮する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T18:58:00+09:00"
+acceptanceCriteria:
+  - integration test file/test別の再現可能なduration reportを取得できる
+  - serial必須理由を分類・文書化する
+  - parallel-safe testsは2以上のworkerで安定して実行できる
+  - stdout/stderr・cwd・git fixtureを扱うtestに競合回帰テストがある
+  - full integrationのローカルbaselineと改善後時間を記録する
+  - 代表環境でローカルfull integrationを90秒以内またはbaseline比50%以上短縮する
+  - CI full integration gateとtest coverageを維持する
+  - flaky retryで見かけの高速化をしない
+  - slowest-Nと総時間をbounded summaryで表示する
