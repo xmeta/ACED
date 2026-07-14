@@ -1,0 +1,17 @@
+id: SPEC-LITE-MRKHLDDX
+type: spec-contract
+featureId: F-MRKHLDDX
+title: "Issue #175 test:integrationの成功ログを抑制しAI向けサマリを既定化する"
+status: approved
+version: 0.1.0
+summary: "Issue #175 test:integrationの成功ログを抑制しAI向けサマリを既定化する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T19:06:00+09:00"
+acceptanceCriteria:
+  - 全integration成功時の既定出力がtest件数やCLI成功出力に比例しない
+  - 成功時はsuite/test counts、duration、最終statusを短いsummaryで確認できる
+  - 失敗時はfailed test名、原因、再実行コマンド、bounded stdout/stderrを確認できる
+  - stdout/stderrを検証する既存test assertionを維持する
+  - test:integration:verboseで必要時に全ログを取得できる
+  - CI integration jobが新しい既定modeでgreenになる
+  - 代表suiteのline数またはbyte数上限を自動検証する
