@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MRKMGEV8
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKMGEV8
+branchName: task/SCWBS-DRAFT-MRKMGEV8-issue-181-required-checks-coverage-core-classifi
+allowedPaths:
+  - src/core/check-coverage.ts
+  - src/core/schema/check-coverage.ts
+  - src/core/types.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/ai-packet.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/human-gate.test.ts
+  - docs/scwbs/task-contract.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The waiver flow cannot preserve human-only approval
+  - The behavior-critical versus unit-only classification requires an unresolved product decision
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Behavior-critical Git, Evidence, Approval, Human Gate, Registry, and Contract Lock core paths require test:integration.
+  - Behavior-critical and unit-only implementation paths have explicit policy classifications and rationales without applying integration checks to pure type definitions.
+  - scwbs check JSON output enumerates policy-unclassified implementation paths and fails when a new core or command module is unclassified.
+  - check-diff rejects an actual changed implementation path that is policy-unclassified while preserving the existing Human Approval and current Evidence scope waiver requirement.
+  - Packets show required and missing checks for both allowed-path predictions and the current branch diff.
+  - Regression coverage covers src/core/git.ts and src/core/human-gate.ts behavior as part of the policy enforcement flow.
+  - Documentation explains classifications, unclassified-path reporting, and the unchanged waiver boundary.
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKMGEV8.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKMGEV8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKMGEV8.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKMGEV8.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-14T12:23:41.577Z"

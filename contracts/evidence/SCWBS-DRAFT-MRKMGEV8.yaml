@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRKMGEV8
+type: evidence
+taskId: SCWBS-DRAFT-MRKMGEV8
+commit: 08cc1f6144901037d85dd6bbd7fdeb85424a9104
+subjectHeadCommit: 08cc1f6144901037d85dd6bbd7fdeb85424a9104
+diffHash: sha256:a8a46e0ae5acd45b04484101b22f68d1c2c4e4ff321483de2a823fff9a0a0c08
+git:
+  branch: task/SCWBS-DRAFT-MRKMGEV8-issue-181-required-checks-coverage-core-classifi
+  base: origin/main
+  baseCommit: 614d149588bdf46d0e8bc9cc313d812472355aec
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 08cc1f6144901037d85dd6bbd7fdeb85424a9104
+  diffHash: sha256:a8a46e0ae5acd45b04484101b22f68d1c2c4e4ff321483de2a823fff9a0a0c08
+  headCommit: 08cc1f6144901037d85dd6bbd7fdeb85424a9104
+  pullRequest: "#205"
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/task-contract.md
+  - src/commands/ai-packet.ts
+  - src/commands/check.ts
+  - src/core/check-coverage.ts
+  - src/core/schema/check-coverage.ts
+  - src/core/types.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:cfbc6a561e617299fb8f4324189004187e233ca218ee006975531ab2f38fdfc7
+    executedAt: "2026-07-14T12:45:57.668Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5272801407c17050bcf553654e30654ba5f7c344968df75701f31ab3ba02695f
+    executedAt: "2026-07-14T12:47:54.830Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:595de0b10fd2de7582d66a7ffdd18f453847cc3b51e87dd0973c8b2950cacdb1
+    executedAt: "2026-07-14T12:47:57.842Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:9730b71fa138de43a152a8ef0a272082b78fa2c8cc62d037a6d1999d6334d429
+    executedAt: "2026-07-14T12:48:00.865Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added coverage-policy regressions for core classification, unclassified paths, safe inventory roots, and allowed-path plus branch-diff packet reporting.

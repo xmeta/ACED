@@ -1,13 +1,94 @@
+implementationRoots:
+  - src/commands
+  - src/core
 rules:
   - id: wjs-tests
+    classification: behavior-critical
+    rationale: WJS changes are validated by the dedicated WJS suite.
     paths:
       - wjs
       - wjs/**
     requires:
       - test:wjs
-  - id: integration-tests
+  - id: integration-test-suite
+    classification: behavior-critical
+    rationale: Integration tests exercise CLI workflows and must run when their assertions change.
     paths:
-      - src/commands/**
       - tests/integration/**
     requires:
       - test:integration
+  - id: command-workflow-integration
+    classification: behavior-critical
+    rationale: Every CLI command can alter or validate repository workflow state, so each command requires integration coverage.
+    paths:
+      - src/commands/ai-packet.ts
+      - src/commands/ai-queue.ts
+      - src/commands/ai-run.ts
+      - src/commands/approval-request.ts
+      - src/commands/check-diff.ts
+      - src/commands/check.ts
+      - src/commands/completion.ts
+      - src/commands/doctor.ts
+      - src/commands/evidence-annotate.ts
+      - src/commands/evidence-collect.ts
+      - src/commands/finish.ts
+      - src/commands/fix.ts
+      - src/commands/health.ts
+      - src/commands/init.ts
+      - src/commands/lite.ts
+      - src/commands/next.ts
+      - src/commands/plan.ts
+      - src/commands/profile.ts
+      - src/commands/registry-rebuild.ts
+      - src/commands/review-queue.ts
+      - src/commands/review-request.ts
+      - src/commands/start.ts
+      - src/commands/status.ts
+      - src/commands/task-generate.ts
+      - src/commands/task-lock.ts
+      - src/commands/task-new.ts
+      - src/commands/task-refresh.ts
+      - src/commands/trace.ts
+      - src/commands/ui.ts
+      - src/commands/wbs.ts
+    requires:
+      - test:integration
+  - id: core-workflow-safety-integration
+    classification: behavior-critical
+    rationale: These modules implement Git, Evidence, Approval, Human Gate, Registry, Contract Lock, parsing, path, and WBS enforcement used across CLI workflows.
+    paths:
+      - src/core/check-cache.ts
+      - src/core/check-catalog.ts
+      - src/core/check-coverage.ts
+      - src/core/contracts.ts
+      - src/core/git.ts
+      - src/core/glob.ts
+      - src/core/hash.ts
+      - src/core/human-gate.ts
+      - src/core/json.ts
+      - src/core/managed-contract-paths.ts
+      - src/core/node-utils.ts
+      - src/core/paths.ts
+      - src/core/report.ts
+      - src/core/required-check-run.ts
+      - src/core/schema.ts
+      - src/core/schema/check-coverage.ts
+      - src/core/schema/contracts.ts
+      - src/core/schema/index.ts
+      - src/core/schema/records.ts
+      - src/core/schema/registries.ts
+      - src/core/schema/shared.ts
+      - src/core/schema/wbs.ts
+      - src/core/submodule-provenance.ts
+      - src/core/wbs-lock.ts
+      - src/core/wbs.ts
+      - src/core/yaml.ts
+    requires:
+      - test:integration
+  - id: core-types-unit-only
+    classification: unit-only
+    rationale: Shared TypeScript declarations have no runtime behavior and retain the baseline unit test requirement without forcing the integration suite.
+    paths:
+      - src/core/types.ts
+    requires:
+      - test

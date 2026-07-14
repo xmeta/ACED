@@ -96,16 +96,28 @@ submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、up
 リポジトリ固有のpath-to-check規則は `contracts/check-coverage.yaml` に置く。
 
 ```yaml
+implementationRoots: [src/commands, src/core]
 rules:
   - id: wjs-tests
+    classification: behavior-critical
+    rationale: WJS changes use the dedicated WJS suite.
     paths: [wjs, wjs/**]
     requires: [test:wjs]
-  - id: integration-tests
-    paths: [src/commands/**, tests/integration/**]
+  - id: core-types-unit-only
+    classification: unit-only
+    rationale: Shared declarations have no runtime behavior.
+    paths: [src/core/types.ts]
+    requires: [test]
+  - id: core-workflow-safety-integration
+    classification: behavior-critical
+    rationale: Git, Evidence, Approval, Human Gate, Registry, and Contract Lock enforcement need workflow regression coverage.
+    paths: [src/core/git.ts, src/core/human-gate.ts]
     requires: [test:integration]
 ```
 
-`check-diff` と `finish` は実変更pathに必要なcheckがTask Contractの `requiredChecks` に無い場合に失敗する。packetは `allowedPaths` から予測した必要checkと不足checkを表示する。
+`implementationRoots` を設定したpolicyでは、root配下の各実装ファイルは明示的なruleへ分類する。新しいcommand/core moduleが未分類なら、`npm run scwbs -- check -- --json` は `checkCoverage.unclassified` をpathごとに列挙して失敗する。`classification` と `rationale` は、behavior-criticalなworkflow実装とunit-onlyで十分な純粋型定義を区別する。広い `src/core/**` / `src/commands/**` ruleは、新規moduleの未分類検出を回避してしまうため使わない。
+
+`check-diff` と `finish` は実変更pathに必要なcheckがTask Contractの `requiredChecks` に無い場合に失敗する。実変更が未分類ならwaiverでは通らず、先にpolicy分類が必要になる。packetは `allowedPaths` からの予測と `origin/main` からの実差分の両方について、必要check・不足check・未分類implementation pathを表示する。
 
 例外が必要な場合はTask Contractへ理由付きwaiverを明記する。
 
