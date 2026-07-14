@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MRKQ6SWA
+type: task-contract
+wbsNodeId: node-core-evidence-diff-guard-completion
+featureId: F-MRKQ6SWA
+branchName: task/SCWBS-DRAFT-MRKQ6SWA-issue-184-fail-closed-on-uncommitted-working-tre
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKQ6SWA.yaml
+allowedPaths:
+  - src/core/git.ts
+  - src/core/managed-contract-paths.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/contract-enforcement.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The fix requires weakening branch-diff Evidence or Human Gate semantics
+  - The metadata exception cannot be limited to task-scoped CLI output
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - check-diff、evidence collect、finishはtask-scoped CLI metadata以外のdirty working treeをrequired checksより前に拒否する
+  - staged、unstaged、untracked、dirty submoduleを区別して検出し、plain/JSON出力へpathとfixCommandを含める
+  - allowedPaths外またはHuman Gate対象の未コミット変更をEvidence subjectやApproval scopeから漏らさない
+  - check cache subjectとEvidence subjectは同じ実装file setを参照する
+  - Evidence、Approval、Review、Registryだけを許すmetadata例外はtask IDとcommand phaseに限定する
+  - integration regression testsがtracked、staged、unstaged、untracked、submodule dirty、metadata例外を検証する
+  - contract enforcement文書がcommit-firstと限定metadata例外を説明する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:4cdf2cbaabdac28c25efb928468d4418426987cc06d21730a9138c2bca87a2b3
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-core-evidence-diff-guard-completion
+  createdAt: "2026-07-14T14:07:50.897Z"
