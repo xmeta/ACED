@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRKHSGIO
+type: evidence
+taskId: SCWBS-DRAFT-MRKHSGIO
+commit: faf3e8d6e109748be37491ea3cea616beb9fe5e9
+subjectHeadCommit: faf3e8d6e109748be37491ea3cea616beb9fe5e9
+diffHash: sha256:5549988f53944a7c82ce9647f0d9f244b47bb48216414add18b31a2392b443ec
+git:
+  branch: task/SCWBS-DRAFT-MRKHSGIO-issue-145-health-json-aggregation-shallow-clone-
+  base: origin/main
+  baseCommit: 36a4e68332c1ec50d428865701bdd6d34049f934
+  changedFilesBasis: branch-diff
+  pullRequest: "197"
+  subjectHeadCommit: faf3e8d6e109748be37491ea3cea616beb9fe5e9
+  diffHash: sha256:5549988f53944a7c82ce9647f0d9f244b47bb48216414add18b31a2392b443ec
+  headCommit: faf3e8d6e109748be37491ea3cea616beb9fe5e9
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/specs/SPEC-LITE-MRKHSGIO.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/doctor.ts
+  - src/commands/health.ts
+  - src/core/git.ts
+  - tests/integration/doctor.test.ts
+  - tests/integration/health.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ea02f8c14e32c9892e0cbd675b82d7bf18884292841ec249aaa53786a1efb2b1
+    executedAt: "2026-07-14T10:21:32.007Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:31addb2dc809ab563f7e9a1f2813bc03ef426dac73d12b80c38dbb43390f2e3a
+    executedAt: "2026-07-14T10:26:33.724Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:69167990120ff4c33810d7b21369702dcd603ab643490331d6c01be06e13540b
+    executedAt: "2026-07-14T10:26:36.703Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6fccfa7eb70f0e877c9ff16a0f4f182bcbcb9648cd6391ddf6b6ead543a3cb58
+    executedAt: "2026-07-14T10:26:39.933Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added JSON schema, aggregation budget, priority ordering, shallow clone, CRLF repair, and CLI regression coverage

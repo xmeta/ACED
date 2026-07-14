@@ -1,14 +1,103 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+import { buildHealthJsonOutput, buildHealthText, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+import type { Issue } from "../../src/core/types.js";
+import { main } from "../../src/cli.js";
 import { headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
 import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("health", () => {
+  test("health JSON keeps every issue in a versioned schema", () => {
+    const root = makeTempRepo();
+    const issues: Issue[] = Array.from({ length: 100 }, (_, index) => ({
+      severity: "warn",
+      code: "health.example.repeated",
+      message: `example ${index + 1}`
+    }));
+    const report = buildHealthJsonOutput(root, issues);
+    expect(report).toMatchObject({
+      version: "scwbs.health.v1",
+      status: "warn",
+      repository: { shallow: false, commitReachability: "evaluated" },
+      summary: {
+        total: 100,
+        errors: 0,
+        warnings: 100,
+        byCode: [{ code: "health.example.repeated", severity: "warn", count: 100 }]
+      }
+    });
+    expect(report.issues).toHaveLength(100);
+  });
+
+  test("health CLI accepts --json", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(main(["health", "--json"], root)).toBe(0);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n"))).toMatchObject({
+      version: "scwbs.health.v1",
+      status: "warn",
+      issues: expect.any(Array)
+    });
+  });
+
+  test("health default output aggregates repeated issues within a fixed budget", () => {
+    const root = makeTempRepo();
+    const issues: Issue[] = Array.from({ length: 100 }, (_, index) => ({
+      severity: "warn",
+      code: "health.example.repeated",
+      message: `example ${index + 1}`
+    }));
+    const output = buildHealthText(root, issues);
+    expect(output).toContain("health.example.repeated (count=100)");
+    expect(output).toContain("98 more omitted");
+    expect(output.split("\n").filter(Boolean).length).toBeLessThanOrEqual(6);
+    expect(Buffer.byteLength(output)).toBeLessThanOrEqual(500);
+    expect(buildHealthText(root, issues, { verbose: true }).split("\n").filter(Boolean)).toHaveLength(101);
+  });
+
+  test("health prioritizes errors, Human Gate, and actionable warnings", () => {
+    const root = makeTempRepo();
+    const output = buildHealthText(root, [
+      { severity: "warn", code: "health.z.general", message: "general" },
+      { severity: "warn", code: "health.approval.status", message: "approval" },
+      { severity: "error", code: "health.failure", message: "failure", fixCommand: "fix failure" },
+      { severity: "warn", code: "health.actionable", message: "action", fixCommand: "fix action" }
+    ]);
+    expect(output.indexOf("health.failure")).toBeLessThan(output.indexOf("health.approval.status"));
+    expect(output.indexOf("health.approval.status")).toBeLessThan(output.indexOf("health.actionable"));
+    expect(output).toContain("fixCommand: fix action");
+  });
+
+  test("health marks commit reachability not-evaluated in a shallow clone", () => {
+    const source = makeTempRepo();
+    writeScwbsProject(source, "completed");
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: source, stdio: "ignore" });
+    writeText(source, "README.md", "latest\n");
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "latest"], { cwd: source, stdio: "ignore" });
+    const clone = mkdtempSync(path.join(os.tmpdir(), "scwbs-shallow-"));
+    execFileSync("git", ["clone", "--depth", "1", `file://${source}`, clone], { stdio: "ignore" });
+
+    const issues = collectHealthIssues(clone);
+    const report = buildHealthJsonOutput(clone, issues);
+    expect(report.repository).toEqual({ shallow: true, commitReachability: "not-evaluated" });
+    expect(issues.some((issue) => issue.code.endsWith(".unknown"))).toBe(false);
+    expect(buildHealthText(clone, issues)).toContain("commit reachability=not-evaluated");
+  });
+
   test("health warns when evidence has only low-trust checks", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
@@ -349,7 +438,10 @@ describe("health", () => {
     writeText(root, "README.md", "title\r\n");
     execFileSync("git", ["add", "README.md"], { cwd: root });
     const issues = collectHealthIssues(root);
-    expect(issues.some((issue) => issue.code === "health.workingTree.crlf" && issue.message.includes("README.md"))).toBe(true);
+    const issue = issues.find((item) => item.code === "health.workingTree.crlf" && item.message.includes("README.md"));
+    expect(issue).toBeDefined();
+    expect(issue?.fixCommand).toContain(".gitattributes");
+    expect(issue?.fixCommand).toContain("git add --renormalize README.md");
   });
 
   test("health warns when current branch is behind base and contract paths collide", () => {

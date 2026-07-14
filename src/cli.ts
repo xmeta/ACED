@@ -98,7 +98,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("health")
     .description("Check repository health")
-    .action(() => { exitCode = runHealth(root); });
+    .option("--json", "output a versioned JSON report")
+    .option("--verbose", "show every health issue")
+    .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false }); });
 
   program
     .command("status")
