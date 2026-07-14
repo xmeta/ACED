@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run tests/unit",
-    "test:integration": "node scripts/integration-test-run.mjs",
+    "test:integration": "node scripts/integration-test-output.mjs",
+    "test:integration:verbose": "node scripts/integration-test-output.mjs --verbose",
     "test:wjs": "npm test -w wjs",
     "test:all": "npm run test && npm run test:integration && npm run test:wjs",
     "scwbs": "node scripts/scwbs-run.mjs"
