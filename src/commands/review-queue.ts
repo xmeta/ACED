@@ -19,6 +19,26 @@ type ReviewQueueEntry = {
   suggestedAction: string;
 };
 
+export type ReviewQueueOptions = {
+  verbose?: boolean;
+  json?: boolean;
+  limit?: number;
+};
+
+export type ReviewQueueSummary = {
+  schemaVersion: "1.0.0";
+  health: {
+    candidates: number;
+    missingPullRequest: number;
+    blocked: number;
+    ready: number;
+  };
+  blockerCounts: Array<{ code: string; count: number }>;
+  candidates: ReviewQueueEntry[];
+  omitted: number;
+  limit: number | null;
+};
+
 type NodeCompletionTarget = {
   taskId: string;
   nodeCode: string;
@@ -99,7 +119,7 @@ function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): s
   return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
 }
 
-export function buildReviewQueue(root: string): string {
+function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
   const wbs = readWbs(root);
   const entries: ReviewQueueEntry[] = [];
   const tasks = listTasks(root);
@@ -223,13 +243,110 @@ export function buildReviewQueue(root: string): string {
     }
   }
 
+  return entries.sort((a, b) => a.taskId.localeCompare(b.taskId));
+}
+
+function blockerCode(blocker: string): string {
+  if (blocker.startsWith("active Block:")) return "active-block";
+  if (blocker.startsWith("WBS node status is")) return "node-not-ready";
+  if (blocker.includes("multiple Task Contracts")) return "shared-node-completion-task-required";
+  if (blocker.includes("missing completion target task")) return "completion-target-missing";
+  if (blocker.includes("references missing WBS node")) return "wbs-node-missing";
+  if (blocker.includes("targets WBS node")) return "completion-target-node-mismatch";
+  if (blocker.includes("is missing evidence")) return "evidence-missing";
+  if (blocker.includes("is missing pull request metadata")) return "pull-request-missing";
+  if (blocker.includes("is missing review metadata")) return "review-missing";
+  if (blocker.includes("changed human gate paths")) return "human-approval-missing";
+  if (blocker.includes("approval is still requested")) return "human-approval-requested";
+  if (blocker.includes("approval was rejected")) return "human-approval-rejected";
+  if (blocker.startsWith("submodule ")) return "submodule-not-ready";
+  return "dependency-not-completed";
+}
+
+function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    for (const blocker of entry.completionBlockedBy) {
+      const code = blockerCode(blocker);
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+  }
+  const missingPullRequestCount = entries.filter((entry) => !entry.pullRequest).length;
+  if (missingPullRequestCount > 0) counts.set("pull-request-missing", (counts.get("pull-request-missing") ?? 0) + missingPullRequestCount);
+  return [...counts.entries()]
+    .map(([code, count]) => ({ code, count }))
+    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+}
+
+function prioritizeEntries(entries: ReviewQueueEntry[]): ReviewQueueEntry[] {
+  return [...entries].sort((a, b) => {
+    const readyDifference = Number(a.completionBlockedBy.length > 0) - Number(b.completionBlockedBy.length > 0);
+    if (readyDifference !== 0) return readyDifference;
+    const pullRequestDifference = Number(!a.pullRequest) - Number(!b.pullRequest);
+    return pullRequestDifference || a.taskId.localeCompare(b.taskId);
+  });
+}
+
+function candidateNextCommand(entry: ReviewQueueEntry): string {
+  if (!entry.pullRequest) return `scwbs evidence collect --task ${entry.taskId} --pull-request <number>`;
+  if (!entry.reviewStatus) return `scwbs review request --task ${entry.taskId}`;
+  if (entry.reviewStatus === "requested" && entry.completionBlockedBy.length === 0) {
+    return `scwbs review approve --task ${entry.taskId} --actor human`;
+  }
+  return "scwbs review-queue --verbose";
+}
+
+export function buildReviewQueueSummary(root: string, limit?: number): ReviewQueueSummary {
+  const entries = collectReviewQueueEntries(root);
+  const prioritized = prioritizeEntries(entries);
+  const selected = limit === undefined ? prioritized : prioritized.slice(0, limit);
+  const blocked = entries.filter((entry) => entry.completionBlockedBy.length > 0).length;
+  return {
+    schemaVersion: "1.0.0",
+    health: {
+      candidates: entries.length,
+      missingPullRequest: entries.filter((entry) => !entry.pullRequest).length,
+      blocked,
+      ready: entries.length - blocked
+    },
+    blockerCounts: blockerCounts(entries),
+    candidates: selected,
+    omitted: entries.length - selected.length,
+    limit: limit ?? null
+  };
+}
+
+function formatReviewQueueSummary(summary: ReviewQueueSummary): string {
+  const lines = ["Review Queue:", "", "Review Health:"];
+  lines.push(`- ${summary.health.candidates} review candidates`);
+  lines.push(`- ${summary.health.missingPullRequest} candidates missing pull request metadata`);
+  lines.push(`- ${summary.health.blocked} candidates blocked by completion prerequisites`);
+  lines.push(`- ${summary.health.ready} candidates ready for completion review`);
+  lines.push("", "Major blockers:");
+  if (summary.blockerCounts.length === 0) lines.push("- None");
+  else for (const blocker of summary.blockerCounts.slice(0, 5)) lines.push(`- ${blocker.code}: ${blocker.count}`);
+  lines.push("", `Top candidates (limit ${summary.limit ?? summary.candidates.length}):`);
+  if (summary.candidates.length === 0) lines.push("- None");
+  else {
+    for (const entry of summary.candidates) {
+      const state = entry.completionBlockedBy.length === 0 ? "ready" : "blocked";
+      lines.push(`- ${entry.taskId} | ${state} | ${entry.suggestedAction}`);
+      lines.push(`  next: ${candidateNextCommand(entry)}`);
+    }
+  }
+  lines.push(`- ${summary.omitted} additional candidates omitted`);
+  lines.push("", "Next command:", "  scwbs review-queue --verbose");
+  return `${lines.join("\n")}\n`;
+}
+
+export function buildReviewQueue(root: string): string {
+  const sortedEntries = collectReviewQueueEntries(root);
   const lines = ["Review Queue:"];
-  if (entries.length === 0) {
+  if (sortedEntries.length === 0) {
     lines.push("- None");
     return `${lines.join("\n")}\n`;
   }
 
-  const sortedEntries = entries.sort((a, b) => a.taskId.localeCompare(b.taskId));
   const missingPullRequestCount = sortedEntries.filter((item) => !item.pullRequest).length;
   const blockedCount = sortedEntries.filter((item) => item.completionBlockedBy.length > 0).length;
   const readyCount = sortedEntries.length - blockedCount;
@@ -313,9 +430,23 @@ export function buildReviewQueue(root: string): string {
   return `${lines.join("\n")}\n`;
 }
 
-export function runReviewQueue(root: string): number {
+export function runReviewQueue(root: string, options: ReviewQueueOptions = {}): number {
   try {
-    process.stdout.write(buildReviewQueue(root));
+    if (options.json && options.verbose) {
+      console.error("Choose one of --json or --verbose");
+      return 2;
+    }
+    if (options.limit !== undefined && (!Number.isInteger(options.limit) || options.limit < 1)) {
+      console.error("--limit must be a positive integer");
+      return 2;
+    }
+    if (options.verbose) {
+      process.stdout.write(buildReviewQueue(root));
+      return 0;
+    }
+    const summary = buildReviewQueueSummary(root, options.limit ?? (options.json ? undefined : 5));
+    if (options.json) console.log(JSON.stringify(summary));
+    else process.stdout.write(formatReviewQueueSummary(summary));
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

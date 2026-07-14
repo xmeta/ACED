@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/review-queue-summary.schema.json",
+  "title": "SC-WBS review queue summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "health", "blockerCounts", "candidates", "omitted", "limit"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidates", "missingPullRequest", "blocked", "ready"],
+      "properties": {
+        "candidates": { "type": "integer", "minimum": 0 },
+        "missingPullRequest": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "ready": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "blockerCounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "count"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "omitted": { "type": "integer", "minimum": 0 },
+    "limit": { "type": ["integer", "null"], "minimum": 1 }
+  }
+}

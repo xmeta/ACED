@@ -66,31 +66,35 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     return 1;
   }
 
-  const { result: evidenceExit } = runSilentIfJson(options.json ?? false, () =>
-    runEvidenceCollect(root, taskId, {
-      force: options.force ?? true,
-      baseRef: options.baseRef,
-      pullRequest: options.pullRequest,
-      rerunChecks: options.rerunChecks
-    })
-  );
+  const evidenceExit = runEvidenceCollect(root, taskId, {
+    force: options.force ?? true,
+    baseRef: options.baseRef,
+    pullRequest: options.pullRequest,
+    rerunChecks: options.rerunChecks,
+    quiet: true
+  });
   if (evidenceExit !== 0) return evidenceExit;
-  if (options.json) {
-    console.error("PASS required checks");
-    console.error("PASS evidence collected");
-  } else {
-    console.log("PASS required checks");
-    console.log("PASS evidence collected");
-  }
 
   const { evidence } = readEvidence(root, taskId);
+  if (options.json) {
+    console.error("PASS evidence collected");
+  } else {
+    console.log("PASS evidence collected");
+  }
   const failedChecks = evidence?.checks.filter((check) => check.status !== "passed") ?? [];
   if (failedChecks.length > 0) {
     for (const check of failedChecks) {
       console.error(`Check failed: ${check.name} (${check.command})`);
+      if (check.stdoutSummary) console.error(`stdout:\n${check.stdoutSummary}`);
+      if (check.stderrSummary) console.error(`stderr:\n${check.stderrSummary}`);
     }
     console.error("fixCommand: fix the failing checks, then run npm run scwbs -- finish --task <task-id>");
     return 1;
+  }
+  if (options.json) {
+    console.error("PASS required checks");
+  } else {
+    console.log("PASS required checks");
   }
 
   const { result: diffExit, output: checkDiffOutput } = runSilentIfJson(options.json ?? false, () =>

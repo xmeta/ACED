@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { buildReviewQueue } from "../../src/commands/review-queue.js";
+import { buildReviewQueue, runReviewQueue } from "../../src/commands/review-queue.js";
 import { buildNextAction } from "../../src/commands/next.js";
 import { buildReviewRequestYaml, buildReviewRouteReport, runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest } from "../../src/commands/review-request.js";
 import { buildTrace } from "../../src/commands/trace.js";
@@ -18,7 +19,92 @@ import {
   writeYaml
 } from "../helpers.js";
 
+function captureReviewQueue(root: string, options: { verbose?: boolean; json?: boolean; limit?: number } = {}): { result: number; stdout: string; stderr: string } {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWrite = process.stdout.write;
+  console.log = (...args: unknown[]) => stdout.push(`${args.map(String).join(" ")}\n`);
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    return { result: runReviewQueue(root, options), stdout: stdout.join(""), stderr: stderr.join("\n") };
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    process.stdout.write = originalWrite;
+  }
+}
+
+function prepareLargeReviewQueue(count = 120): string {
+  const root = makeTempRepo();
+  writeScwbsProject(root, "ready");
+  for (let index = 0; index < count; index += 1) {
+    const taskId = `WBS-QUEUE-${String(index).padStart(3, "0")}`;
+    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
+      id: taskId,
+      branchName: `task/${taskId.toLowerCase()}`,
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, `contracts/evidence/${taskId}.yaml`, sampleEvidence({
+      id: `EVD-${taskId}`,
+      taskId,
+      git: { branch: `task/${taskId.toLowerCase()}`, base: "main", headCommit: `head-${index}` }
+    }) as unknown as Record<string, unknown>);
+  }
+  return root;
+}
+
 describe("review queue + review request", () => {
+  test("review queue default output stays bounded for more than 100 candidates", () => {
+    const root = prepareLargeReviewQueue();
+    const output = captureReviewQueue(root, { limit: 5 });
+
+    expect(output).toMatchObject({ result: 0, stderr: "" });
+    expect(output.stdout).toContain("120 review candidates");
+    expect(output.stdout).toContain("115 additional candidates omitted");
+    expect(output.stdout).toContain("scwbs review-queue --verbose");
+    expect(output.stdout.split("\n").length).toBeLessThanOrEqual(80);
+    expect(Buffer.byteLength(output.stdout, "utf8")).toBeLessThanOrEqual(8192);
+  }, 30000);
+
+  test("review queue supports verbose and versioned JSON output", () => {
+    const root = prepareLargeReviewQueue(12);
+    const bounded = captureReviewQueue(root, { limit: 3 });
+    const verbose = captureReviewQueue(root, { verbose: true });
+    expect(verbose.result).toBe(0);
+    expect(verbose.stdout).toContain("WBS-QUEUE-011");
+    expect(verbose.stdout.length).toBeGreaterThan(bounded.stdout.length);
+
+    const jsonOutput = captureReviewQueue(root, { json: true, limit: 3 });
+    const json = JSON.parse(jsonOutput.stdout);
+    expect(json).toMatchObject({
+      schemaVersion: "1.0.0",
+      health: { candidates: 12, missingPullRequest: 12, blocked: 12, ready: 0 },
+      omitted: 9,
+      limit: 3
+    });
+    expect(json.candidates).toHaveLength(3);
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/review-queue-summary.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+  });
+
+  test("review queue rejects conflicting modes and invalid limits", () => {
+    const root = prepareLargeReviewQueue(1);
+    expect(captureReviewQueue(root, { json: true, verbose: true })).toMatchObject({
+      result: 2,
+      stderr: "Choose one of --json or --verbose"
+    });
+    expect(captureReviewQueue(root, { limit: 0 })).toMatchObject({
+      result: 2,
+      stderr: "--limit must be a positive integer"
+    });
+  });
+
   test("review request writes a review record and trace shows missing links", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

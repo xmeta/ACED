@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
 import { branchDiffHash, headCommit } from "../../src/core/git.js";
@@ -8,7 +9,83 @@ import { readEvidence } from "../../src/core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
+function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalError = console.error;
+  const originalWrite = process.stdout.write;
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    return { result: action(), stdout: stdout.join(""), stderr: stderr.join("\n") };
+  } finally {
+    console.error = originalError;
+    process.stdout.write = originalWrite;
+  }
+}
+
+function prepareEvidenceOutputRepo(): string {
+  const root = makeTempRepo();
+  writeScwbsProject(root);
+  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["branch", "base"], { cwd: root });
+  return root;
+}
+
 describe("evidence collect", () => {
+  test("evidence collect defaults to a bounded success summary", () => {
+    const root = prepareEvidenceOutputRepo();
+    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { force: true, baseRef: "base" }));
+
+    expect(output).toMatchObject({ result: 0, stderr: "" });
+    expect(output.stdout.trim().split("\n")).toEqual([
+      "PASS evidence collected",
+      "path: contracts/evidence/WBS-001-004.yaml",
+      "checks: 0 passed, 0 failed",
+      "changedFiles: 0",
+      "pullRequest: (not recorded)"
+    ]);
+    expect(output.stdout).not.toContain("id: EVD-");
+  });
+
+  test("evidence collect supports versioned JSON verbose and YAML-only output", () => {
+    const root = prepareEvidenceOutputRepo();
+
+    const jsonOutput = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
+      force: true, baseRef: "base", pullRequest: "#42", json: true
+    }));
+    const json = JSON.parse(jsonOutput.stdout);
+    expect(json).toEqual({
+      schemaVersion: "1.0.0",
+      status: "pass",
+      taskId: "WBS-001-004",
+      path: "contracts/evidence/WBS-001-004.yaml",
+      checks: { total: 0, passed: 0, failed: 0 },
+      changedFiles: 0,
+      pullRequest: "#42"
+    });
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/evidence-collect-summary.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+
+    const verbose = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
+      force: true, baseRef: "base", verbose: true
+    }));
+    expect(verbose.stdout).toContain("PASS evidence collected");
+    expect(verbose.stdout).toContain("id: EVD-WBS-001-004");
+    expect(verbose.stdout.length).toBeGreaterThan(jsonOutput.stdout.length);
+
+    const yaml = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
+      force: true, baseRef: "base", output: "-"
+    }));
+    expect(yaml.stdout).toMatch(/^id: EVD-WBS-001-004/m);
+    expect(yaml.stdout).not.toContain("PASS evidence collected");
+  }, 30000);
+
   test("evidence collect records branch diff provenance from the requested base", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

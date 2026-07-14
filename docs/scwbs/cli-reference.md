@@ -63,6 +63,9 @@ npm run scwbs -- task refresh --all --apply
 npm run scwbs -- evidence collect --task WBS-001-004
 npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
 npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage" --force
+npm run scwbs -- evidence collect --task WBS-001-004 --json --force
+npm run scwbs -- evidence collect --task WBS-001-004 --verbose --force
+npm run scwbs -- evidence collect --task WBS-001-004 --output - --force
 npm run scwbs -- registry rebuild --check
 npm run scwbs -- profile show
 npm run scwbs -- profile set lean
@@ -87,6 +90,9 @@ Generated contract commands must refuse to overwrite existing files unless an ex
 
 ```bash
 npm run scwbs -- review-queue
+npm run scwbs -- review-queue --limit 10
+npm run scwbs -- review-queue --json
+npm run scwbs -- review-queue --verbose
 npm run scwbs -- review route --task WBS-001-004
 npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
 npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
@@ -95,7 +101,7 @@ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reaso
 npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted" --apply
 ```
 
-`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata, shows approval status from `contracts/approvals/*.yaml`, warns when review metadata is missing, adds a `suggestedAction` per candidate, and includes a compact review-health summary.
+`review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
 
 `review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers`.
 
@@ -116,6 +122,8 @@ notes:
 When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
 
 After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+
+`evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
 
 For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
 

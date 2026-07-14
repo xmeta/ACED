@@ -107,7 +107,16 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("review-queue")
     .description("Show review queue")
-    .action(() => { exitCode = runReviewQueue(root); });
+    .option("--verbose", "show every candidate with full review details")
+    .option("--json", "print a versioned JSON summary")
+    .option("--limit <count>", "limit candidates in summary or JSON output")
+    .action((opts) => {
+      exitCode = runReviewQueue(root, {
+        verbose: opts.verbose ?? false,
+        json: opts.json ?? false,
+        limit: opts.limit === undefined ? undefined : Number(opts.limit)
+      });
+    });
 
   program
     .command("next")
@@ -452,6 +461,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--coverage-decreased <bool>", "coverage decreased")
     .option("--test-quality-note <text>", "test quality note")
     .option("--rerun-checks", "rerun required checks even when cached results are valid")
+    .option("--json", "print a versioned JSON summary")
+    .option("--verbose", "print the summary and full Evidence YAML")
+    .option("--output <target>", "print full Evidence YAML; target must be -")
     .action((opts) => {
       if (!opts.task) {
         console.error("Missing --task <task-id>");
@@ -463,7 +475,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         baseRef: opts.base,
         pullRequest: opts.pullRequest,
         testQuality: parseTestQuality(opts),
-        rerunChecks: opts.rerunChecks ?? false
+        rerunChecks: opts.rerunChecks ?? false,
+        json: opts.json ?? false,
+        verbose: opts.verbose ?? false,
+        output: opts.output
       });
     });
 
