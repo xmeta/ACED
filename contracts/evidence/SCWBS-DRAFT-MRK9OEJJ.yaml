@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRK9OEJJ
+type: evidence
+taskId: SCWBS-DRAFT-MRK9OEJJ
+commit: 84b25100c2375e9fec1cdf4b542ddcd86eb90db7
+subjectHeadCommit: 84b25100c2375e9fec1cdf4b542ddcd86eb90db7
+diffHash: sha256:7c11f9ad672af92df4ba1c46f9f3642068540afd153c5980e64a901007b353cc
+git:
+  branch: task/SCWBS-DRAFT-MRK9OEJJ-issue-191-finish-task-health-readiness-merge
+  base: origin/main
+  baseCommit: 1ed1cc207efd6228a3ca4e59571487673cc5afe8
+  changedFilesBasis: branch-diff
+  pullRequest: "192"
+  subjectHeadCommit: 84b25100c2375e9fec1cdf4b542ddcd86eb90db7
+  diffHash: sha256:7c11f9ad672af92df4ba1c46f9f3642068540afd153c5980e64a901007b353cc
+  headCommit: 84b25100c2375e9fec1cdf4b542ddcd86eb90db7
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRK9OEJJ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - src/cli.ts
+  - src/commands/evidence-annotate.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c914b549a56111ccb753ee27af63075796a7a474261b60875f7be3e12ea1c648
+    executedAt: "2026-07-14T06:53:59.809Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:95ab48b6f2ed547c1bfe6744b636dd0471f0fa7bb536987d5746dcebe26029f1
+    executedAt: "2026-07-14T06:58:18.269Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:6c539ab906e4316b23aeb061fc11a967e58c63b9d3a0ad6c1f50aab14ea61fc1
+    executedAt: "2026-07-14T06:58:20.824Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a7650adeb702e1a0f279c1f5bde1b097e82a05125b2748af8cc89c2907588195
+    executedAt: "2026-07-14T06:58:23.511Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for task-scoped readiness, metadata-only Review ancestry, metadata-only Evidence annotation, post-merge provenance protection, and locked failure fixtures
