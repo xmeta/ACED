@@ -1,10 +1,35 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { runDoctor } from "../../src/commands/doctor.js";
+import { buildDoctorReport, runDoctor } from "../../src/commands/doctor.js";
 import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
 
 describe("doctor", () => {
+  test("doctor shows the issue-specific CRLF repair command", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "README.md", "title\r\n");
+    execFileSync("git", ["add", "README.md"], { cwd: root });
+    const report = buildDoctorReport(root);
+    expect(report).toContain(".gitattributes");
+    expect(report).toContain("git add --renormalize README.md");
+  });
+
+  test("doctor aggregates repeated CRLF diagnostics within a fixed budget", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    for (let index = 0; index < 100; index += 1) {
+      writeText(root, `docs/example-${index}.md`, "title\r\n");
+    }
+    execFileSync("git", ["add", "docs"], { cwd: root });
+    const report = buildDoctorReport(root);
+    expect(report).toContain("health.workingTree.crlf (health, count=100)");
+    expect(report).toContain("98 more omitted");
+    expect(report.split("\n").filter((line) => line.includes("contains CRLF"))).toHaveLength(2);
+    expect(Buffer.byteLength(report)).toBeLessThan(4000);
+  });
+
   test("doctor --json outputs pass status for a healthy repo", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

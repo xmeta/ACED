@@ -1,0 +1,17 @@
+id: SPEC-LITE-MRKHSGIO
+type: spec-contract
+featureId: F-MRKHSGIO
+title: "Issue #145 health/doctor JSON aggregation shallow clone diagnostics"
+status: approved
+version: 0.1.0
+summary: "health diagnosticsをAI/CI向けに構造化・集約し、shallow cloneとCRLFのactionabilityを改善する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T19:14:00+09:00"
+acceptanceCriteria:
+  - health --jsonはversion、status、summary、issuesを機械可読形式で返す
+  - 同種100件でも既定text出力はcode別count、代表例、omitted countへ集約される
+  - health --verboseは全issueを表示する
+  - error、Human Gate、具体的fixCommandを持つissueを優先表示する
+  - shallow cloneで検証不能なcommit reachabilityはnot-evaluatedとして扱う
+  - CRLF診断は.gitattributes修復を示す問題種別固有fixCommandを持つ
+  - JSON出力は集約前の全issueを保持する

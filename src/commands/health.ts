@@ -1,13 +1,35 @@
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor } from "../core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
-import { hasErrors, printIssues } from "../core/report.js";
+import { hasErrors } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 
 type EvidenceLevel = "A" | "B" | "C";
+
+export type HealthOptions = {
+  json?: boolean;
+  verbose?: boolean;
+  representativeLimit?: number;
+};
+
+export type HealthJsonOutput = {
+  version: "scwbs.health.v1";
+  status: "pass" | "warn" | "fail";
+  repository: {
+    shallow: boolean;
+    commitReachability: "evaluated" | "not-evaluated";
+  };
+  summary: {
+    total: number;
+    errors: number;
+    warnings: number;
+    byCode: Array<{ code: string; severity: Issue["severity"]; count: number }>;
+  };
+  issues: Issue[];
+};
 
 function evidenceCheckLevel(check: Evidence["checks"][number]): EvidenceLevel {
   if (check.source === "ci" && (check.runId || check.url)) return "A";
@@ -70,7 +92,7 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
   return matchesAny(file, task.managedContractPaths ?? []);
 }
 
-function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
+function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
   const currentHead = headCommit(root);
@@ -101,7 +123,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
 
   if (!evidence.commit) {
     issues.push({ severity: "warn", code: "health.evidence.commit.missing", message: `${task.id} evidence has no commit` });
-  } else if (!commitExists(root, evidence.commit)) {
+  } else if (checkCommitReachability && !commitExists(root, evidence.commit)) {
     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
   }
 
@@ -111,9 +133,11 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   const subjectHead = evidenceSubjectHead(evidence);
   if (!subjectHead) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
-  } else if (!commitExists(root, subjectHead)) {
+  } else if (checkCommitReachability && !commitExists(root, subjectHead)) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
   } else if (
+    checkCommitReachability
+    &&
     currentHead
     && shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)
     && evidenceHeadHasStaleImplementationChanges(root, task.id, subjectHead, currentHead)
@@ -129,11 +153,11 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     }
     if (!evidence.git.baseCommit) {
       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.missing", message: `${task.id} branch-diff evidence has no git.baseCommit` });
-    } else if (!commitExists(root, evidence.git.baseCommit)) {
+    } else if (checkCommitReachability && !commitExists(root, evidence.git.baseCommit)) {
       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
     }
     const actualDiffHash = evidenceDiffHash(evidence);
-    const shouldCheckCurrentBranchEvidence = shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence);
+    const shouldCheckCurrentBranchEvidence = checkCommitReachability && shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence);
     if (!actualDiffHash && shouldCheckCurrentBranchEvidence) {
       issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
     } else if (actualDiffHash && shouldCheckCurrentBranchEvidence) {
@@ -209,7 +233,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   return issues;
 }
 
-function validateReviewScope(root: string, task: TaskContract, evidence: Evidence): Issue[] {
+function validateReviewScope(root: string, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
   const { review, issues } = readReview(root, task.id);
   const missingOnly = issues.length === 1 && issues[0]?.code === "review.missing";
   const pullRequest = evidence.git?.pullRequest;
@@ -221,7 +245,7 @@ function validateReviewScope(root: string, task: TaskContract, evidence: Evidenc
   const subjectHead = evidenceSubjectHead(evidence);
   const diffHash = evidenceDiffHash(evidence);
   const fixCommand = `npm run scwbs -- review request --task ${task.id}${pullRequest ? ` --pull-request ${pullRequest}` : ""} --force`;
-  if (review.headCommit && subjectHead && review.headCommit !== subjectHead) {
+  if (checkCommitReachability && review.headCommit && subjectHead && review.headCommit !== subjectHead) {
     let metadataOnlyDescendant = false;
     if (review.diffHash && review.diffHash === diffHash && isCommitAncestor(root, review.headCommit, subjectHead)) {
       try {
@@ -275,8 +299,9 @@ export function collectTaskHealthIssues(root: string, taskId: string): Issue[] {
     return issues;
   }
   issues.push(...evidenceIssues.map((issue) => ({ ...issue, code: `health.${issue.code}` })));
-  issues.push(...validateEvidenceTrust(root, wbs, task, evidence));
-  issues.push(...validateReviewScope(root, task, evidence));
+  const checkCommitReachability = !isShallowRepository(root);
+  issues.push(...validateEvidenceTrust(root, wbs, task, evidence, checkCommitReachability));
+  issues.push(...validateReviewScope(root, task, evidence, checkCommitReachability));
   return issues;
 }
 
@@ -315,7 +340,12 @@ function validateRepositoryHealth(root: string): Issue[] {
     });
   }
   for (const file of filesWithCrlf(root)) {
-    issues.push({ severity: "warn", code: "health.workingTree.crlf", message: `${file} contains CRLF line endings` });
+    issues.push({
+      severity: "warn",
+      code: "health.workingTree.crlf",
+      message: `${file} contains CRLF line endings`,
+      fixCommand: `Configure .gitattributes for LF text files, then run: git add --renormalize ${file}`
+    });
   }
   for (const submodulePath of dirtySubmodulePaths(root)) {
     issues.push({ severity: "warn", code: "health.submodule.dirty", message: `${submodulePath} submodule has uncommitted changes or CRLF-normalized files` });
@@ -326,6 +356,7 @@ function validateRepositoryHealth(root: string): Issue[] {
 export function collectHealthIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   let wbs: WbsDocument | undefined;
+  const checkCommitReachability = !isShallowRepository(root);
 
   try {
     issues.push(...validateRepositoryHealth(root));
@@ -359,18 +390,96 @@ export function collectHealthIssues(root: string): Issue[] {
     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
     if (missingEvidenceOnly) continue;
     issues.push(...evidenceIssues);
-    if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence));
+    if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence, checkCommitReachability));
   }
 
   return issues;
 }
 
-export function runHealth(root: string): number {
-  const issues = collectHealthIssues(root);
-  if (issues.length === 0) {
-    console.log("PASS scwbs health");
-    return 0;
+function issuePriority(issue: Issue): number {
+  if (issue.severity === "error") return 0;
+  if (/humanGate|approval/i.test(issue.code)) return 1;
+  if (issue.fixCommand) return 2;
+  return 3;
+}
+
+export function sortHealthIssues(issues: Issue[]): Issue[] {
+  return [...issues].sort((left, right) =>
+    issuePriority(left) - issuePriority(right)
+    || left.code.localeCompare(right.code)
+    || left.message.localeCompare(right.message)
+  );
+}
+
+export function buildHealthJsonOutput(root: string, issues = collectHealthIssues(root)): HealthJsonOutput {
+  const sorted = sortHealthIssues(issues);
+  const byCode = new Map<string, { code: string; severity: Issue["severity"]; count: number }>();
+  for (const issue of sorted) {
+    const existing = byCode.get(issue.code);
+    if (existing) existing.count += 1;
+    else byCode.set(issue.code, { code: issue.code, severity: issue.severity, count: 1 });
   }
-  printIssues(issues);
+  const errors = sorted.filter((issue) => issue.severity === "error").length;
+  const shallow = isShallowRepository(root);
+  return {
+    version: "scwbs.health.v1",
+    status: errors > 0 ? "fail" : sorted.length > 0 ? "warn" : "pass",
+    repository: {
+      shallow,
+      commitReachability: shallow ? "not-evaluated" : "evaluated"
+    },
+    summary: {
+      total: sorted.length,
+      errors,
+      warnings: sorted.length - errors,
+      byCode: [...byCode.values()]
+    },
+    issues: sorted
+  };
+}
+
+export function buildHealthText(root: string, issues = collectHealthIssues(root), options: HealthOptions = {}): string {
+  const report = buildHealthJsonOutput(root, issues);
+  if (report.status === "pass") return "PASS scwbs health\n";
+  const lines = [
+    `SC-WBS Health: ${report.status.toUpperCase()} (${report.summary.total} issues: ${report.summary.errors} errors, ${report.summary.warnings} warnings)`
+  ];
+  if (report.repository.shallow) {
+    lines.push("Repository: shallow clone; commit reachability=not-evaluated");
+  }
+  if (options.verbose) {
+    for (const issue of report.issues) {
+      lines.push(`${issue.severity === "error" ? "ERROR" : "WARN"} ${issue.code}: ${issue.message}`);
+      if (issue.fixCommand) lines.push(`  fixCommand: ${issue.fixCommand}`);
+    }
+    return `${lines.join("\n")}\n`;
+  }
+
+  const representativeLimit = Math.max(1, options.representativeLimit ?? 2);
+  for (const group of report.summary.byCode) {
+    const matching = report.issues.filter((issue) => issue.code === group.code);
+    const prefix = group.severity === "error" ? "ERROR" : "WARN";
+    if (matching.length === 1) {
+      const issue = matching[0]!;
+      lines.push(`${prefix} ${issue.code}: ${issue.message}`);
+      if (issue.fixCommand) lines.push(`  fixCommand: ${issue.fixCommand}`);
+      continue;
+    }
+    lines.push(`${prefix} ${group.code} (count=${matching.length})`);
+    for (const issue of matching.slice(0, representativeLimit)) {
+      lines.push(`  - ${issue.message}`);
+    }
+    const fixCommand = matching.find((issue) => issue.fixCommand)?.fixCommand;
+    if (fixCommand) lines.push(`  fixCommand: ${fixCommand}`);
+    const omitted = matching.length - representativeLimit;
+    if (omitted > 0) lines.push(`  ... ${omitted} more omitted; rerun with --verbose`);
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export function runHealth(root: string, options: HealthOptions = {}): number {
+  const issues = collectHealthIssues(root);
+  if (options.json) console.log(JSON.stringify(buildHealthJsonOutput(root, issues), null, 2));
+  else process.stdout.write(buildHealthText(root, issues, options));
   return hasErrors(issues) ? 1 : 0;
 }

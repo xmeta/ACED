@@ -170,6 +170,7 @@ export function applyDoctorFixes(root: string, diagnostics: DoctorDiagnostic[]):
 }
 
 function suggestedFix(issue: Issue): string {
+  if (issue.fixCommand) return issue.fixCommand;
   if (issue.code.startsWith("task.contractLock")) return "scwbs task refresh --task <task-id>";
   if (issue.code === "health.task.contractLock.missing") return "scwbs task lock --task <task-id>";
   if (issue.code === "evidence.missing") return "scwbs evidence collect --task <task-id>";
@@ -177,6 +178,29 @@ function suggestedFix(issue: Issue): string {
   if (issue.code.includes("approval") || issue.code.includes("humanGate")) return "scwbs approval request --task <task-id>";
   if (issue.code.startsWith("health.evidence.git")) return "scwbs evidence collect --task <task-id> --force";
   return "Inspect the reported contract and rerun scwbs check";
+}
+
+type DoctorContractIssue = { source: "check" | "health"; issue: Issue };
+
+function doctorIssuePriority(issue: Issue): number {
+  if (issue.severity === "error") return 0;
+  if (/humanGate|approval/i.test(issue.code)) return 1;
+  if (issue.fixCommand) return 2;
+  return 3;
+}
+
+function groupDoctorContractIssues(contractIssues: DoctorContractIssue[]): DoctorContractIssue[][] {
+  const groups = new Map<string, DoctorContractIssue[]>();
+  for (const item of contractIssues) {
+    const key = `${item.source}:${item.issue.severity}:${item.issue.code}`;
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  return [...groups.values()].sort((left, right) =>
+    doctorIssuePriority(left[0]!.issue) - doctorIssuePriority(right[0]!.issue)
+    || left[0]!.issue.code.localeCompare(right[0]!.issue.code)
+  );
 }
 
 export function buildDoctorReport(root: string, options: DoctorOptions = {}): string {
@@ -204,10 +228,14 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
     lines.push("Contract and health: OK");
   } else {
     lines.push("Contract and health issues:");
-    for (const { source, issue } of contractIssues) {
+    for (const group of groupDoctorContractIssues(contractIssues)) {
+      const { source, issue } = group[0]!;
       const level = issue.severity === "error" ? "High" : "Medium";
-      lines.push(`  [${level}] ${issue.code} (${source})`);
+      const count = group.length > 1 ? `, count=${group.length}` : "";
+      lines.push(`  [${level}] ${issue.code} (${source}${count})`);
       lines.push(`        Reason: ${issue.message}`);
+      if (group[1]) lines.push(`        Representative: ${group[1].issue.message}`);
+      if (group.length > 2) lines.push(`        ... ${group.length - 2} more omitted; run scwbs health --verbose for all health issues`);
       lines.push(`        Suggested fix: ${suggestedFix(issue)}`);
     }
   }

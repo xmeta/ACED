@@ -132,6 +132,14 @@ export function headCommit(root: string): string | undefined {
   return resolveCommit(root, "HEAD");
 }
 
+export function isShallowRepository(root: string): boolean {
+  const result = spawnSync("git", ["rev-parse", "--is-shallow-repository"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return result.status === 0 && result.stdout.trim() === "true";
+}
+
 export function commitExists(root: string, commit: string): boolean {
   const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{commit}`], {
     cwd: root,

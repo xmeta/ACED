@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRKHSGIO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKHSGIO
+branchName: task/SCWBS-DRAFT-MRKHSGIO-issue-145-health-json-aggregation-shallow-clone-
+allowedPaths:
+  - src/commands/health.ts
+  - src/commands/doctor.ts
+  - src/core/git.ts
+  - src/cli.ts
+  - tests/integration/health.test.ts
+  - tests/integration/doctor.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf: []
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - health JSON schemaをversioned形式で定義し全issueデータを保持する
+  - 既定text出力は同一codeをcount・代表例・omitted countへ集約する
+  - verbose modeは全issueを表示する
+  - severityとactionability順でerrorとHuman Gateを先頭にする
+  - shallow cloneではcommit reachabilityをnot-evaluatedとして誤警告を避ける
+  - doctorのCRLF fixCommandを問題種別に対応させる
+  - 同種100件の既定出力を一定line・byte budget内にする
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/specs/SPEC-LITE-MRKHSGIO.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKHSGIO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKHSGIO.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a21c5bd5008ce2e06b9c283f3a6246c33166f23c6224e3b885f9630ebe6c0f35
+  createdAt: "2026-07-14T10:13:25.347Z"
