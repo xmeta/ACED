@@ -1,5 +1,5 @@
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -222,7 +222,18 @@ function validateReviewScope(root: string, task: TaskContract, evidence: Evidenc
   const diffHash = evidenceDiffHash(evidence);
   const fixCommand = `npm run scwbs -- review request --task ${task.id}${pullRequest ? ` --pull-request ${pullRequest}` : ""} --force`;
   if (review.headCommit && subjectHead && review.headCommit !== subjectHead) {
-    readiness.push({ severity: "warn", code: "health.review.scope.headCommit", message: `${task.id} review headCommit does not match Evidence subjectHeadCommit`, fixCommand });
+    let metadataOnlyDescendant = false;
+    if (review.diffHash && review.diffHash === diffHash && isCommitAncestor(root, review.headCommit, subjectHead)) {
+      try {
+        metadataOnlyDescendant = changedFilesBetween(root, review.headCommit, subjectHead)
+          .every((file) => isPostEvidenceMetadataFile(task.id, file));
+      } catch {
+        metadataOnlyDescendant = false;
+      }
+    }
+    if (!metadataOnlyDescendant) {
+      readiness.push({ severity: "warn", code: "health.review.scope.headCommit", message: `${task.id} review headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`, fixCommand });
+    }
   }
   if (review.diffHash && diffHash && review.diffHash !== diffHash) {
     readiness.push({ severity: "warn", code: "health.review.scope.diffHash", message: `${task.id} review diffHash does not match Evidence diffHash`, fixCommand });
