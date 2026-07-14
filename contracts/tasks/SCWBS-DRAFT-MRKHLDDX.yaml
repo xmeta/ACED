@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MRKHLDDX
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKHLDDX
+branchName: task/SCWBS-DRAFT-MRKHLDDX-issue-175-test-integration-ai
+allowedPaths:
+  - package.json
+  - vitest.config.ts
+  - scripts/integration-test-output.mjs
+  - tests/helpers.ts
+  - tests/integration/**
+  - tests/unit/integration-test-output.test.ts
+  - docs/scwbs/integration-testing.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 全integration成功時の既定出力がtest件数やCLI成功出力に比例しない
+  - 成功時はsuite/test counts、duration、最終statusを短いsummaryで確認できる
+  - 失敗時はfailed test名、原因、再実行コマンド、bounded stdout/stderrを確認できる
+  - stdout/stderrを検証する既存test assertionを維持する
+  - verbose modeで必要時に全ログを取得できる
+  - 代表suiteのline数またはbyte数上限を自動検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+  - contracts/specs/SPEC-LITE-MRKHLDDX.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKHLDDX.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKHLDDX.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKHLDDX.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:795d942336d89cf2d2ed18f747efd02b0ad87250a3302b0c679a86885084d317
+  createdAt: "2026-07-14T10:07:35.545Z"
