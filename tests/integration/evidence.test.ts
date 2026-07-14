@@ -513,6 +513,8 @@ describe("evidence collect", () => {
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(1);
     expect(readFileSync(marker, "utf8")).toBe("4");
 
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["config", "user.name", "Test User"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
     execFileSync("git", ["add", "version.txt"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "commit nested change"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
     execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
