@@ -130,6 +130,12 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
 
 `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、Evidence・diff・registry検証後に対象Taskだけのhealth readinessを確認する。contractLock、tests変更時のtestQuality、PR metadata、Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。repository全体のlegacy warningはこの判定へ含めない。`finish --json` の正式なshapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
 
+### Command and required-check single-flight
+
+`npm run scwbs -- ...` はGit common directory内のcommand lockを取得してからTypeScript buildとCLIを実行する。worktreeをまたぐ並列呼び出しも同じlockを共有し、2本目はactive PID、command、開始時刻、current check、経過時間をstderrへbounded表示して待機する。read-only commandを含む全commandをbuildからCLI終了まで直列化するのが既定policyであり、共有`dist/`の書き換え中に別commandを実行しない。PIDが存在しないstale lockは次回実行が安全に回収する。
+
+`finish` と `evidence collect` のrequired checksは、さらにrepository-level single-flight lockを使う。各checkの開始・完了、cache hitをstderrへ1行で表示し、30秒以上継続するcheckは30秒ごとにtask ID、check index/name、PID、開始時刻、経過時間をheartbeatとして出す。成功ログ量はcheck自身の出力量に比例せず、JSON modeでもstdoutは単一のversioned JSONのまま維持される。同一subjectで待機後に再実行されたcommandは既存のcheck cacheを再利用し、required checkを重複実行しない。
+
 For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
 
 When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.

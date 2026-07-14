@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRKB0YFI
+type: evidence
+taskId: SCWBS-DRAFT-MRKB0YFI
+commit: b8ad4712b8dd87ec17b5c2850fe03cd73032c25b
+subjectHeadCommit: b8ad4712b8dd87ec17b5c2850fe03cd73032c25b
+diffHash: sha256:59a4d8f23350cadc9d537073e0baf45d58aae83bef41a9c9229c425cf4d14996
+git:
+  branch: task/SCWBS-DRAFT-MRKB0YFI-issue-189-requiredchecks-heartbeat-single-flight
+  base: origin/main
+  baseCommit: 9d666ada01cc670b1b84853f50caf0e2e403b1c1
+  changedFilesBasis: branch-diff
+  pullRequest: "194"
+  subjectHeadCommit: b8ad4712b8dd87ec17b5c2850fe03cd73032c25b
+  diffHash: sha256:59a4d8f23350cadc9d537073e0baf45d58aae83bef41a9c9229c425cf4d14996
+  headCommit: b8ad4712b8dd87ec17b5c2850fe03cd73032c25b
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MRKB0YFI.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKB0YFI.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKB0YFI.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKB0YFI.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
+  - docs/scwbs/cli-reference.md
+  - package.json
+  - scripts/scwbs-run.mjs
+  - src/commands/evidence-collect.ts
+  - src/core/required-check-run.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:0344b1f383440eda02a13b7b96d4b63efa95f7dddb3ef4f4273b2f0fa4271ff5
+    executedAt: "2026-07-14T09:45:14.725Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:39d8270d5c4b3fbeeb4ca0ae312e24939a5c2d7fac2c91b851c051852758eaad
+    executedAt: "2026-07-14T09:49:54.333Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c262c6b8395431c12efce160c530d434fed051229d82fe872844b4ac37203ac3
+    executedAt: "2026-07-14T09:49:57.050Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b354d8a271aa4842dcdf45be952911606fce59d9037ead15a2a373dfd1f831a8
+    executedAt: "2026-07-14T09:49:59.854Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for command serialization, required-check single-flight, active run diagnostics, stale lock recovery, and bounded heartbeat output
