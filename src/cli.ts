@@ -10,6 +10,7 @@ import { runCheckDiff } from "./commands/check-diff.js";
 import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
+import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
 import { runFinish } from "./commands/finish.js";
 import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
@@ -141,6 +142,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
     .option("--rerun-checks", "rerun required checks even when cached results are valid")
+    .option("--test-assertions-added <bool>", "test assertions added")
+    .option("--tests-disabled <bool>", "tests disabled")
+    .option("--coverage-decreased <bool>", "coverage decreased")
+    .option("--test-quality-note <text>", "test quality note")
     .option("--json", "output as JSON")
     .action((opts) => {
       exitCode = runFinish(root, {
@@ -149,7 +154,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         pullRequest: opts.pr ?? opts.pullRequest,
         force: true,
         json: opts.json ?? false,
-        rerunChecks: opts.rerunChecks ?? false
+        rerunChecks: opts.rerunChecks ?? false,
+        testQuality: parseTestQuality(opts)
       });
     });
 
@@ -479,6 +485,27 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         json: opts.json ?? false,
         verbose: opts.verbose ?? false,
         output: opts.output
+      });
+    });
+
+  evidence
+    .command("annotate")
+    .description("Update Evidence metadata without changing subject provenance or checks")
+    .option("--task <id>", "task id")
+    .option("--pull-request <id>", "pull request id")
+    .option("--test-assertions-added <bool>", "test assertions added")
+    .option("--tests-disabled <bool>", "tests disabled")
+    .option("--coverage-decreased <bool>", "coverage decreased")
+    .option("--test-quality-note <text>", "test quality note")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runEvidenceAnnotate(root, opts.task, {
+        pullRequest: opts.pullRequest,
+        testQuality: parseTestQuality(opts)
       });
     });
 

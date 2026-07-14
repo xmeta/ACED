@@ -66,6 +66,7 @@ npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added tru
 npm run scwbs -- evidence collect --task WBS-001-004 --json --force
 npm run scwbs -- evidence collect --task WBS-001-004 --verbose --force
 npm run scwbs -- evidence collect --task WBS-001-004 --output - --force
+npm run scwbs -- evidence annotate --task WBS-001-004 --pull-request "#42" --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage"
 npm run scwbs -- registry rebuild --check
 npm run scwbs -- profile show
 npm run scwbs -- profile set lean
@@ -124,6 +125,10 @@ When `finish` requires Human Approval, its text output and JSON `nextAction` use
 After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
 
 `evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
+
+`evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+
+`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、Evidence・diff・registry検証後に対象Taskだけのhealth readinessを確認する。contractLock、tests変更時のtestQuality、PR metadata、Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。repository全体のlegacy warningはこの判定へ含めない。`finish --json` の正式なshapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
 
 For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
 

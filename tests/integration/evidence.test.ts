@@ -4,6 +4,7 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
 import { branchDiffHash, headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
@@ -148,6 +149,7 @@ describe("evidence collect", () => {
       root,
       "contracts/evidence/WBS-001-004.yaml",
       sampleEvidence({
+        changedFiles: [],
         git: {
           branch: "feature",
           base: "base",
@@ -220,6 +222,69 @@ describe("evidence collect", () => {
       coverageDecreased: false,
       notes: ["Existing test quality rationale."]
     });
+  });
+
+  test("evidence annotate preserves subject provenance and checks", () => {
+    const root = prepareEvidenceOutputRepo();
+    const original = sampleEvidence({
+      commit: "subject-commit",
+      subjectHeadCommit: "subject-head",
+      diffHash: "sha256:subject",
+      git: {
+        branch: "feature",
+        base: "base",
+        baseCommit: "base-commit",
+        changedFilesBasis: "branch-diff",
+        subjectHeadCommit: "subject-head",
+        headCommit: "subject-head",
+        diffHash: "sha256:subject"
+      },
+      checks: [{ name: "test", status: "passed", source: "local", command: "npm test", executedAt: "2026-07-14T00:00:00Z" }]
+    });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", original as unknown as Record<string, unknown>);
+
+    expect(runEvidenceAnnotate(root, "WBS-001-004", {
+      pullRequest: "#42",
+      testQuality: { assertionsAdded: true, testsDisabled: false, coverageDecreased: false, notes: ["Regression coverage"] }
+    })).toBe(0);
+    const { evidence } = readEvidence(root, "WBS-001-004");
+    expect(evidence).toMatchObject({
+      commit: original.commit,
+      subjectHeadCommit: original.subjectHeadCommit,
+      diffHash: original.diffHash,
+      changedFiles: original.changedFiles,
+      checks: original.checks,
+      git: { ...original.git, pullRequest: "#42" },
+      testQuality: { assertionsAdded: true, testsDisabled: false, coverageDecreased: false, notes: ["Regression coverage"] }
+    });
+  });
+
+  test("evidence collect refuses to replace implementation provenance with an empty post-merge diff", () => {
+    const root = prepareEvidenceOutputRepo();
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName: "feature",
+      requiredChecks: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "previous-subject",
+      diffHash: "sha256:previous",
+      changedFiles: ["src/features/api/index.ts"],
+      git: {
+        branch: "feature",
+        base: "base",
+        baseCommit: "previous-base",
+        changedFilesBasis: "branch-diff",
+        subjectHeadCommit: "previous-subject",
+        headCommit: "previous-subject",
+        diffHash: "sha256:previous",
+        pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+
+    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { force: true, baseRef: "base" }));
+    expect(output.result).toBe(1);
+    expect(output.stderr).toContain("Refusing to replace WBS-001-004 implementation provenance with an empty diff");
+    expect(readEvidence(root, "WBS-001-004").evidence?.diffHash).toBe("sha256:previous");
   });
 
   test("evidence collect records bounded diagnostics for failed checks", () => {

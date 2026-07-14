@@ -4,7 +4,9 @@ import { describe, expect, test } from "vitest";
 import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+import { runTaskLock } from "../../src/commands/task-lock.js";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 
 function prepareFinishRepoWithHumanGate(): string {
   const root = makeTempRepo();
@@ -15,6 +17,7 @@ function prepareFinishRepoWithHumanGate(): string {
     humanGateRequiredPaths: ["src/security/**"],
     requiredChecks: ["test"]
   }) as unknown as Record<string, unknown>);
+  expect(runTaskLock(root, "WBS-001-004")).toBe(0);
   writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
   execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
   execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
@@ -64,11 +67,14 @@ function prepareFinishRepo(requestedApproval = false): string {
     humanGateRequiredPaths: [],
     requiredChecks: ["test"]
   }) as unknown as Record<string, unknown>);
+  expect(runTaskLock(root, "WBS-001-004")).toBe(0);
   writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
   execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
   execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
   execFileSync("git", ["branch", "base"], { cwd: root });
-  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+    git: { branch: "master", base: "base", changedFilesBasis: "branch-diff", pullRequest: "#42" }
+  }) as unknown as Record<string, unknown>);
   if (requestedApproval) {
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
       id: "APR-WBS-001-004",
@@ -127,7 +133,9 @@ describe("finish", () => {
     } finally {
       console.log = originalLog;
     }
-    expect(JSON.parse(output[output.length - 1])).toMatchObject({
+    const json = JSON.parse(output[output.length - 1]);
+    expect(json).toMatchObject({
+      schemaVersion: "1.0.0",
       status: "pass",
       taskId: "WBS-001-004",
       requiresHumanApproval: expect.any(Boolean),
@@ -136,9 +144,51 @@ describe("finish", () => {
       requiredChecks: expect.any(Array),
       evidencePath: expect.any(String),
       approvalStatus: expect.any(String),
-      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`
+      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      readinessWarnings: [],
+      fixCommands: []
     });
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
   }, 30000);
+
+  test("finish blocks merge readiness when pull request metadata is missing", () => {
+    const root = prepareFinishRepo();
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
+    }) as unknown as Record<string, unknown>);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    const json = JSON.parse(output[output.length - 1]);
+    expect(json).toMatchObject({
+      schemaVersion: "1.0.0",
+      status: "blocked",
+      readinessWarnings: [{ code: "health.evidence.git.pullRequest.missing" }]
+    });
+    expect(json.fixCommands[0]).toContain("evidence annotate --task WBS-001-004 --pull-request");
+  }, 30000);
+
+  test("finish rejects a missing contract lock before required checks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
+    const stderr: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+    try {
+      expect(runFinish(root, { taskId: "WBS-001-004", json: true })).toBe(1);
+    } finally {
+      console.error = originalError;
+    }
+    expect(stderr.join("\n")).toContain("health.task.contractLock.missing");
+    expect(readFileSync(path.join(root, "package.json"), "utf8")).toContain("process.exit(9)");
+  });
 
   test("finish does not request Human Approval when no Human Gate files changed", () => {
     const root = prepareFinishRepo(true);
@@ -194,11 +244,11 @@ describe("finish", () => {
     expect(stderr.join("\n")).toContain("actionable stderr detail");
   }, 30000);
 
-  test("a first finish creates Evidence and synchronizes registry in one run", () => {
+  test("a first finish creates Evidence and synchronizes registry before blocking on missing PR metadata", () => {
     const root = prepareFinishRepo();
     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
 
-    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
   }, 30000);

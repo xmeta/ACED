@@ -1,10 +1,11 @@
-import { listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
+import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import { taskRefreshReasons } from "./task-refresh.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -148,7 +149,12 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     }
   }
   if (node && !isDoneNode(node) && !evidence.git?.pullRequest && !approvalPullRequest) {
-    issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.git.pullRequest.missing",
+      message: `${task.id} is awaiting review but evidence has no git.pullRequest`,
+      fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --pull-request <pr-number>`
+    });
   }
 
   for (const file of evidence.changedFiles) {
@@ -172,7 +178,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
       issues.push({
         severity: "warn",
         code: "health.evidence.testQuality.missing",
-        message: `${task.id} changes tests but evidence has no testQuality metadata`
+        message: `${task.id} changes tests but evidence has no testQuality metadata`,
+        fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Describe regression coverage"`
       });
     } else {
       if (evidence.testQuality.assertionsAdded === false && !hasTestQualityRationale(evidence)) {
@@ -199,6 +206,77 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     }
   }
 
+  return issues;
+}
+
+function validateReviewScope(root: string, task: TaskContract, evidence: Evidence): Issue[] {
+  const { review, issues } = readReview(root, task.id);
+  const missingOnly = issues.length === 1 && issues[0]?.code === "review.missing";
+  const pullRequest = evidence.git?.pullRequest;
+  if (!review) {
+    return missingOnly ? [] : issues.map((issue) => ({ ...issue, code: `health.${issue.code}` }));
+  }
+
+  const readiness: Issue[] = [];
+  const subjectHead = evidenceSubjectHead(evidence);
+  const diffHash = evidenceDiffHash(evidence);
+  const fixCommand = `npm run scwbs -- review request --task ${task.id}${pullRequest ? ` --pull-request ${pullRequest}` : ""} --force`;
+  if (review.headCommit && subjectHead && review.headCommit !== subjectHead) {
+    let metadataOnlyDescendant = false;
+    if (review.diffHash && review.diffHash === diffHash && isCommitAncestor(root, review.headCommit, subjectHead)) {
+      try {
+        metadataOnlyDescendant = changedFilesBetween(root, review.headCommit, subjectHead)
+          .every((file) => isPostEvidenceMetadataFile(task.id, file));
+      } catch {
+        metadataOnlyDescendant = false;
+      }
+    }
+    if (!metadataOnlyDescendant) {
+      readiness.push({ severity: "warn", code: "health.review.scope.headCommit", message: `${task.id} review headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`, fixCommand });
+    }
+  }
+  if (review.diffHash && diffHash && review.diffHash !== diffHash) {
+    readiness.push({ severity: "warn", code: "health.review.scope.diffHash", message: `${task.id} review diffHash does not match Evidence diffHash`, fixCommand });
+  }
+  if (review.pullRequest && pullRequest && review.pullRequest !== pullRequest) {
+    readiness.push({ severity: "warn", code: "health.review.scope.pullRequest", message: `${task.id} review pullRequest does not match Evidence pullRequest`, fixCommand });
+  }
+  if (review.status === "changes-requested") {
+    readiness.push({ severity: "warn", code: "health.review.status", message: `${task.id} review has requested changes`, fixCommand });
+  }
+  return readiness;
+}
+
+export function collectTaskHealthIssues(root: string, taskId: string): Issue[] {
+  const { task, issues: taskIssues } = readTask(root, taskId);
+  if (!task) return taskIssues;
+  const issues: Issue[] = [];
+  const refreshReasons = taskRefreshReasons(root, taskId);
+  if (!task.contractLock) {
+    issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${task.id} has no contractLock`, fixCommand: `npm run scwbs -- task lock --task ${task.id}` });
+  } else if (refreshReasons.length > 0) {
+    issues.push({ severity: "warn", code: "health.task.contractLock.stale", message: `${task.id} contractLock is stale: ${refreshReasons.join("; ")}`, fixCommand: `npm run scwbs -- task refresh --task ${task.id} --apply` });
+  }
+
+  let wbs: WbsDocument;
+  try {
+    wbs = readWbs(root);
+  } catch (error) {
+    issues.push({ severity: "error", code: "health.wbs.read", message: error instanceof Error ? error.message : String(error) });
+    return issues;
+  }
+  const { evidence, issues: evidenceIssues } = readEvidence(root, taskId);
+  if (!evidence) {
+    issues.push(...evidenceIssues.map((issue) => ({
+      ...issue,
+      code: `health.${issue.code}`,
+      fixCommand: `npm run scwbs -- evidence collect --task ${task.id} --force`
+    })));
+    return issues;
+  }
+  issues.push(...evidenceIssues.map((issue) => ({ ...issue, code: `health.${issue.code}` })));
+  issues.push(...validateEvidenceTrust(root, wbs, task, evidence));
+  issues.push(...validateReviewScope(root, task, evidence));
   return issues;
 }
 

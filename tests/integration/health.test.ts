@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { collectHealthIssues, runHealth } from "../../src/commands/health.js";
+import { collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
 import { headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
@@ -471,5 +471,42 @@ describe("health", () => {
     );
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(true);
+  });
+
+  test("task-scoped health excludes warnings from other tasks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005" }) as unknown as Record<string, unknown>);
+
+    const issues = collectTaskHealthIssues(root, "WBS-001-004");
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.every((issue) => !issue.message.includes("WBS-001-005"))).toBe(true);
+  });
+
+  test("task-scoped health detects Review scope drift and returns a fix command", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "evidence-head",
+      diffHash: "sha256:evidence",
+      git: { pullRequest: "#42", subjectHeadCommit: "evidence-head", diffHash: "sha256:evidence" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      headCommit: "stale-head",
+      diffHash: "sha256:stale",
+      pullRequest: "#41",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+
+    const issues = collectTaskHealthIssues(root, "WBS-001-004");
+    expect(issues.some((issue) => issue.code === "health.review.scope.headCommit")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.review.scope.diffHash")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.review.scope.pullRequest")).toBe(true);
+    expect(issues.find((issue) => issue.code === "health.review.scope.diffHash")?.fixCommand).toContain("review request --task WBS-001-004");
   });
 });
