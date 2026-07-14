@@ -89,6 +89,23 @@ npm run scwbs -- task lock --task WBS-001-004
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 
+## Authority baseline
+
+`check-diff` はworktree側のTask Contractだけを権限根拠にしない。`origin/main` とHEADのmerge-baseにある契約をbaselineとし、次のauthority fieldsを比較する。
+
+- `allowedPaths`
+- `forbiddenPaths`
+- `humanGateRequiredPaths`
+- `requiredChecks`
+- `managedContractPaths`
+- `checkCoverageWaivers`
+
+同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。
+
+base側に契約がない新規Taskでは、契約・index・registryなど宣言済み `managedContractPaths` だけを含む最初のcommitをtrust rootとして使う。この初回契約はversion 2 lock、自身のmanaged path、標準Human Gate、`wjs/**` boundary、baseline checksを持ち、repository-wide既定globやcreation-time waiverを含めてはならない。契約が未commit、実装と同じcommit、または初回commit後にauthority fieldsが書き換えられた場合は拒否する。
+
+authority比較が必要なbranchでbase refやmerge-baseを解決できない場合、およびshallow cloneではfail-closedになる。履歴を取得してから再実行する。
+
 submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
 
 ## Required check coverage
