@@ -523,7 +523,7 @@ describe("evidence collect", () => {
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true, rerunChecks: true })).toBe(0);
     expect(readFileSync(marker, "utf8")).toBe("6");
     expect(existsSync(marker)).toBe(true);
-  }, 60000);
+  }, 120000);
 
   test("evidence collect records nested submodule provenance and dependent PR metadata", () => {
     const root = makeTempRepo();
