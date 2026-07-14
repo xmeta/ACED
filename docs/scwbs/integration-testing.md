@@ -22,4 +22,12 @@ npm run test:integration -- --report /tmp/scwbs-integration-duration.json
 
 Use `--slowest 0..20` to change each bounded list and `--workers N` (`2 <= N <= 4`) or `SCWBS_INTEGRATION_WORKERS=N` to reproduce a worker setting.
 
+On failure, the default mode prints at most five failed test names, a bounded one-line cause, a copyable single-test rerun command, and bounded stdout/stderr with their original byte counts. Full Vitest and CLI output is available only when explicitly requested:
+
+```bash
+npm run test:integration:verbose
+```
+
+The unit regression suite fixes the representative successful output budget at 11 lines / 2,048 bytes and the representative failure diagnostics at 10 lines / 6,000 bytes. This prevents successful CLI output and large failure payloads from growing AI or CI logs without a reviewable test change.
+
 The pre-change local baseline recorded for Issue #190 was 276.02–277.33 seconds with one worker. The final four-worker validation completed all 257 tests in 116.99 seconds, a 57.6% reduction from the 276.02-second baseline. GitHub Actions continues to call the same `test:integration` script, so the full integration coverage gate is unchanged.
