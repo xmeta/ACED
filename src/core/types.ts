@@ -115,8 +115,17 @@ export type TaskContract = {
   managedContractPaths?: string[];
 };
 
+export type CheckCoverageClassification = "behavior-critical" | "unit-only";
+
 export type CheckCoveragePolicy = {
-  rules: Array<{ id: string; paths: string[]; requires: string[] }>;
+  implementationRoots?: string[];
+  rules: Array<{
+    id: string;
+    paths: string[];
+    requires: string[];
+    classification?: CheckCoverageClassification;
+    rationale?: string;
+  }>;
 };
 
 export type EvidenceCheckStatus = "passed" | "failed" | "skipped";

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
-import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 import { readTask } from "../../src/core/contracts.js";
 
 describe("check", () => {
@@ -74,6 +74,47 @@ describe("check", () => {
     expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "checkCoverage.rule.paths" }),
       expect.objectContaining({ code: "checkCoverage.rule.requires" })
+    ]));
+  });
+
+  test("check --json enumerates unclassified implementation paths", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/core/classified.ts", "export const classified = true;\n");
+    writeText(root, "src/core/new-module.ts", "export const unclassified = true;\n");
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/core"],
+      rules: [{
+        id: "classified-core",
+        classification: "behavior-critical",
+        rationale: "The existing module affects the workflow.",
+        paths: ["src/core/classified.ts"],
+        requires: ["test:integration"]
+      }]
+    });
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheck(root, { json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "checkCoverage.unclassified", message: expect.stringContaining("src/core/new-module.ts") })
+    ]));
+  });
+
+  test("implementation inventory policies require classifications and rationales", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/core"],
+      rules: [{ id: "missing-metadata", paths: ["src/core/types.ts"], requires: ["test"] }]
+    });
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "checkCoverage.rule.classification" })
     ]));
   });
 

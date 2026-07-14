@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
 import { readEvidence, readTask } from "../core/contracts.js";
+import { branchChangedFiles } from "../core/git.js";
 import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
 import type { TaskContract } from "../core/types.js";
-import { checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
 
 function submodulePacket(root: string, task: TaskContract): string {
   const evidence = readEvidence(root, task.id).evidence;
@@ -32,12 +33,25 @@ function submodulePacket(root: string, task: TaskContract): string {
 function checkCoveragePacket(root: string, task: TaskContract): string {
   const { policy, issues } = readCheckCoveragePolicy(root);
   if (issues.length > 0) return `## Check Coverage\n- Policy error: ${issues.map((issue) => issue.message).join("; ")}`;
-  const summary = checkCoverageSummaryForAllowedPaths(policy, task);
+  const allowedSummary = checkCoverageSummaryForAllowedPaths(policy, task);
+  let changedFiles: string[] = [];
+  let diffError: string | undefined;
+  try {
+    changedFiles = branchChangedFiles(root, "origin/main");
+  } catch (error) {
+    diffError = error instanceof Error ? error.message : String(error);
+  }
+  const diffSummary = checkCoverageSummary(policy, task, changedFiles);
+  const formatSummary = (summary: ReturnType<typeof checkCoverageSummary>): string => [
+    `Required checks:\n${summary.required.map((item) => `- ${item}`).join("\n") || "- None"}`,
+    `Missing from Task Contract:\n${summary.missing.map((item) => `- ${item}`).join("\n") || "- None"}`,
+    `Unclassified implementation paths:\n${summary.unclassifiedFiles.map((item) => `- ${item}`).join("\n") || "- None"}`
+  ].join("\n");
   return `## Check Coverage
-Required by allowed paths:
-${summary.required.map((item) => `- ${item}`).join("\n") || "- None"}
-Missing from Task Contract:
-${summary.missing.map((item) => `- ${item}`).join("\n") || "- None"}`;
+Allowed-path prediction:
+${formatSummary(allowedSummary)}
+Current branch diff (origin/main):
+${diffError ? `- Unavailable: ${diffError}` : formatSummary(diffSummary)}`;
 }
 
 function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): Set<string> {

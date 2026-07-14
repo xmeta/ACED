@@ -4,7 +4,7 @@ import { workingTreeChangedFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { fileSha256 } from "../core/hash.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
-import { readCheckCoveragePolicy } from "../core/check-coverage.js";
+import { collectCheckCoveragePolicyIssues, readCheckCoveragePolicy } from "../core/check-coverage.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
@@ -253,6 +253,7 @@ export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   const profile: Profile = readProfile(root);
   issues.push(...readCheckCoveragePolicy(root).issues);
+  issues.push(...collectCheckCoveragePolicyIssues(root));
 
   const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
   if (hasWbs) {

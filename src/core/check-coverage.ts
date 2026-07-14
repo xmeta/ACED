@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { readApproval, readEvidence } from "./contracts.js";
 import { matchesAny } from "./glob.js";
 import { validateHumanGateApproval } from "./human-gate.js";
@@ -52,7 +53,71 @@ export type CheckCoverageSummary = {
   required: string[];
   missing: string[];
   matchedFiles: Map<string, string[]>;
+  unclassifiedFiles: string[];
 };
+
+export type CheckCoverageReport = {
+  implementationFiles: string[];
+  unclassifiedFiles: string[];
+};
+
+function normalizePath(value: string): string {
+  return value.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+export function isPolicyImplementationPath(policy: CheckCoveragePolicy, file: string): boolean {
+  const normalizedFile = normalizePath(file);
+  return normalizedFile.endsWith(".ts") && (policy.implementationRoots ?? []).some((root) => {
+    const normalizedRoot = normalizePath(root).replace(/\/$/, "");
+    return normalizedFile.startsWith(`${normalizedRoot}/`);
+  });
+}
+
+function isClassified(policy: CheckCoveragePolicy, file: string): boolean {
+  return policy.rules.some((rule) => matchesAny(file, rule.paths));
+}
+
+export function checkCoverageReport(policy: CheckCoveragePolicy, files: string[]): CheckCoverageReport {
+  const implementationFiles = files
+    .map(normalizePath)
+    .filter((file) => isPolicyImplementationPath(policy, file))
+    .sort();
+  return {
+    implementationFiles,
+    unclassifiedFiles: implementationFiles.filter((file) => !isClassified(policy, file))
+  };
+}
+
+function implementationFilesUnder(root: string, relativeDirectory: string): string[] {
+  const directory = resolveFrom(root, relativeDirectory);
+  if (!existsSync(directory)) return [];
+  const files: string[] = [];
+  const visit = (currentDirectory: string): void => {
+    for (const entry of readdirSync(currentDirectory, { withFileTypes: true })) {
+      const fullPath = path.join(currentDirectory, entry.name);
+      if (entry.isDirectory()) {
+        visit(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+        files.push(normalizePath(path.relative(root, fullPath)));
+      }
+    }
+  };
+  visit(directory);
+  return files;
+}
+
+export function collectCheckCoveragePolicyIssues(root: string): Issue[] {
+  const { policy, issues } = readCheckCoveragePolicy(root);
+  if (issues.length > 0) return issues;
+  const implementationFiles = (policy.implementationRoots ?? []).flatMap((directory) => implementationFilesUnder(root, directory));
+  const report = checkCoverageReport(policy, implementationFiles);
+  return report.unclassifiedFiles.map((file) => ({
+    severity: "error",
+    code: "checkCoverage.unclassified",
+    message: `${file} is an implementation path not classified by ${defaultCheckCoveragePath}`,
+    fixCommand: `Add ${file} to a classified rule in ${defaultCheckCoveragePath}`
+  }));
+}
 
 export function checkCoverageSummary(policy: CheckCoveragePolicy, task: TaskContract, files: string[]): CheckCoverageSummary {
   const required = new Set<string>();
@@ -69,7 +134,8 @@ export function checkCoverageSummary(policy: CheckCoveragePolicy, task: TaskCont
   return {
     required: requiredChecks,
     missing: requiredChecks.filter((check) => !task.requiredChecks.includes(check)),
-    matchedFiles
+    matchedFiles,
+    unclassifiedFiles: checkCoverageReport(policy, files).unclassifiedFiles
   };
 }
 
@@ -97,6 +163,14 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
   const summary = checkCoverageSummary(policy, task, files);
   const waivers = new Map((task.checkCoverageWaivers ?? []).map((waiver) => [waiver.check, waiver]));
   const result: Issue[] = [];
+  for (const file of summary.unclassifiedFiles) {
+    result.push({
+      severity: "error",
+      code: "checkCoverage.unclassified",
+      message: `${task.id} changes implementation path ${file} that is not classified by ${defaultCheckCoveragePath}`,
+      fixCommand: `Classify ${file} in ${defaultCheckCoveragePath} before changing it`
+    });
+  }
   for (const check of summary.missing) {
     const waiver = waivers.get(check);
     if (!waiver) {

@@ -398,6 +398,36 @@ describe("AI commands", () => {
     expect(packet).toContain("Missing from Task Contract:\n- test:integration");
   });
 
+  test("packet compares allowed-path and current-diff coverage", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/core"],
+      rules: [{
+        id: "core-safety",
+        classification: "behavior-critical",
+        rationale: "Core workflow behavior requires integration coverage.",
+        paths: ["src/core/git.ts"],
+        requires: ["test:integration"]
+      }]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/core/git.ts"], requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/core/git.ts", "export const changed = true;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "core change"], { cwd: root, stdio: "ignore" });
+
+    const packet = buildAiPacket(root, "WBS-001-004", 0);
+    expect(packet).toContain("Allowed-path prediction:");
+    expect(packet).toContain("Current branch diff (origin/main):");
+    expect(packet).toContain("Unclassified implementation paths:\n- None");
+    expect(packet.match(/Missing from Task Contract:\n- test:integration/g)).toHaveLength(2);
+  });
+
   test("core packet full outputs deep packet with relation depth 1", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
