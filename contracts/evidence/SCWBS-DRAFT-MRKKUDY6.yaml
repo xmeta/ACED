@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRKKUDY6
+type: evidence
+taskId: SCWBS-DRAFT-MRKKUDY6
+commit: 0733747e75110a0626f7a59ff9ece264f2e35649
+subjectHeadCommit: 0733747e75110a0626f7a59ff9ece264f2e35649
+diffHash: sha256:685308281e52145802eaf00147131fa1d994ba0eeaf782e0e93269fe5cacd208
+git:
+  branch: task/SCWBS-DRAFT-MRKKUDY6-issue-183-allowedpaths-managedcontractpaths-fail
+  base: origin/main
+  baseCommit: 0a6b5f32f64d54d7bdac363fd3cd99e2d2f4d004
+  changedFilesBasis: branch-diff
+  pullRequest: "201"
+  subjectHeadCommit: 0733747e75110a0626f7a59ff9ece264f2e35649
+  diffHash: sha256:685308281e52145802eaf00147131fa1d994ba0eeaf782e0e93269fe5cacd208
+  headCommit: 0733747e75110a0626f7a59ff9ece264f2e35649
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/specs/SPEC-LITE-MRKKUDY6.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+  - src/commands/check-diff.ts
+  - src/commands/health.ts
+  - src/core/managed-contract-paths.ts
+  - src/core/schema/contracts.ts
+  - src/core/types.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/health.test.ts
+  - tests/unit/contracts.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:0916f76686d86c31c2de46b50b84e139c94cd015d6d6f0f0578e02534e79b5f8
+    executedAt: "2026-07-14T11:47:39.481Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5910ae06d2e5e1b2c8644d74f2d1693e3dc309208de45cde4c49fc556e3283fb
+    executedAt: "2026-07-14T11:49:38.352Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:874404f383f96425ec5beb2e304afca4e0dd4d9a6aea41a6f44dcebb1ffe2b73
+    executedAt: "2026-07-14T11:49:41.130Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:fd83643c7265cbd38c6bc77f3d23005702bd5e7d029c71b48bf975458d471c07
+    executedAt: "2026-07-14T11:49:43.965Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Fail-closed regression tests cover empty allowedPaths, unsafe managed paths, task-scoped contract paths, and health consistency.

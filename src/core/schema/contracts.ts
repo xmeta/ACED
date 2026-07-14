@@ -1,5 +1,6 @@
 import type { ErrorObject } from "ajv";
 import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
+import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
 const specContractSchema = {
@@ -70,7 +71,15 @@ const taskContractSchema = {
     branchName: { type: "string", minLength: 1 },
     completionScope: { type: "string", enum: ["node"] },
     completionTaskIds: stringArraySchema,
-    managedContractPaths: stringArraySchema,
+    managedContractPaths: {
+      type: "array",
+      uniqueItems: true,
+      items: {
+        type: "string",
+        minLength: 1,
+        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
+      }
+    },
     allowedPaths: stringArraySchema,
     forbiddenPaths: stringArraySchema,
     humanGateRequiredPaths: stringArraySchema,
@@ -342,6 +351,14 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.managedContractPaths !== undefined && !isStringArray(value.managedContractPaths)) {
     issues.push(issue("task.managedContractPaths", `${filePath}.managedContractPaths must be a string array when present`));
+  } else if (isStringArray(value.managedContractPaths)) {
+    for (const managedPath of value.managedContractPaths) {
+      if (!isKnownManagedContractPath(managedPath)) {
+        issues.push(issue("task.managedContractPaths.path", `${filePath}.managedContractPaths contains unsupported path: ${managedPath}`));
+      } else if (typeof value.id === "string" && !isManagedContractPathForTask(managedPath, value.id)) {
+        issues.push(issue("task.managedContractPaths.scope", `${filePath}.managedContractPaths must reference ${value.id} for task-scoped contract files: ${managedPath}`));
+      }
+    }
   }
   if (value.completionScope === "node" && (!isStringArray(value.completionTaskIds) || value.completionTaskIds.length === 0)) {
     issues.push(issue("task.completionTaskIds.required", `${filePath}.completionTaskIds is required when completionScope is "node"`));

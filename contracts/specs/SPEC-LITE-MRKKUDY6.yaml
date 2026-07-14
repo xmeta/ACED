@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRKKUDY6
+type: spec-contract
+featureId: F-MRKKUDY6
+title: "Issue #183 allowedPaths空配列とmanagedContractPathsをfail-closedにする"
+status: approved
+version: 0.1.0
+summary: "Issue #183 allowedPaths空配列とmanagedContractPathsをfail-closedにする"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T20:40:00+09:00"
+acceptanceCriteria:
+  - allowedPaths空配列はdeny-allとして動作する
+  - managedContractPathsはCLIが管理する既知の契約ファイルの具体pathに制限する
+  - sensitive meta pathはmanaged指定だけでallowedPathsまたはHuman Gateを迂回できない
+  - forbiddenPathsとhumanGateRequiredPathsはmanagedContractPathsより優先する
+  - schemaとsemantic validationの両方が不正なmanaged pathを拒否する

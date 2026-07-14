@@ -1,6 +1,7 @@
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
+import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
@@ -86,10 +87,6 @@ function shouldCheckEvidenceHeadStaleness(currentBranchName: string | undefined,
 
 function hasTestQualityRationale(evidence: Evidence): boolean {
   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
-}
-
-function isManagedContractPath(task: TaskContract, file: string): boolean {
-  return matchesAny(file, task.managedContractPaths ?? []);
 }
 
 function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
@@ -182,8 +179,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   }
 
   for (const file of evidence.changedFiles) {
-    const managed = isManagedContractPath(task, file);
-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
+    const managed = matchesManagedContractPath(task, file);
+    if (!matchesAny(file, task.allowedPaths) && !managed) {
       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
     }
     if (matchesAny(file, task.forbiddenPaths)) {

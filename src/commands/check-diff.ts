@@ -3,6 +3,7 @@ import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
@@ -27,10 +28,6 @@ function requiresMetaFileGuard(file: string): boolean {
  * are exempt from allowedPaths and the sensitive meta-file guard, but never
  * from forbiddenPaths or humanGateRequiredPaths, which always take priority.
  */
-function isManagedContractPath(task: TaskContract, file: string): boolean {
-  return matchesAny(file, task.managedContractPaths ?? []);
-}
-
 export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
   const issues: Issue[] = [];
   const evidence = readEvidence(root, task.id).evidence;
@@ -62,13 +59,13 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     })));
   }
   for (const file of effectiveFiles) {
-    const managed = isManagedContractPath(task, file);
-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
+    const managed = matchesManagedContractPath(task, file);
+    if (!matchesAny(file, task.allowedPaths) && !managed) {
       issues.push({
         severity: "error",
         code: "diff.allowedPaths",
         message: `${file} is outside allowedPaths for ${task.id}`,
-        fixCommand: `Move this change out of the diff, or add ${file} to allowedPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if it is CLI-generated`
+        fixCommand: `Move this change out of the diff, or explicitly add ${file} to allowedPaths in contracts/tasks/${task.id}.yaml`
       });
     }
     if (matchesAny(file, task.forbiddenPaths)) {
@@ -86,7 +83,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
         severity: "error",
         code: "diff.metaFile",
         message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}`,
-        fixCommand: `Add ${file} to allowedPaths/humanGateRequiredPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
+        fixCommand: `Add ${file} to allowedPaths or humanGateRequiredPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
       });
     }
   }

@@ -131,6 +131,13 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(true);
   });
 
+  test("check-diff treats an empty allowedPaths array as deny-all", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ allowedPaths: [], humanGateRequiredPaths: [] });
+    const issues = collectDiffIssues(root, task, ["src/outside.ts"]);
+    expect(issues.some((issue) => issue.code === "diff.allowedPaths" && issue.severity === "error")).toBe(true);
+  });
+
   test("check-diff does not flag explicitly allowed sensitive meta files", () => {
     const root = makeTempRepo();
     const task = sampleTask({
@@ -196,15 +203,32 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
   });
 
-  test("check-diff treats managedContractPaths as exempt from allowedPaths and the meta-file guard (M2-019)", () => {
+  test("check-diff exempts only known managed contract files from deny-all", () => {
     const root = makeTempRepo();
     const task = sampleTask({
-      allowedPaths: ["src/**"],
-      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml", "package.json"]
+      allowedPaths: [],
+      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"]
     });
-    const issues = collectDiffIssues(root, task, ["contracts/evidence/WBS-001-004.yaml", "package.json"]);
+    const issues = collectDiffIssues(root, task, ["contracts/evidence/WBS-001-004.yaml"]);
     expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(false);
-    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+  });
+
+  test.each(["package.json", "package-lock.json", "tsconfig.json", ".github/workflows/ci.yml"])(
+    "check-diff does not trust sensitive managedContractPaths bypass %s",
+    (file) => {
+      const root = makeTempRepo();
+      const task = sampleTask({ allowedPaths: ["src/**"], humanGateRequiredPaths: [], managedContractPaths: [file] });
+      const issues = collectDiffIssues(root, task, [file]);
+      expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(true);
+      expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(true);
+    }
+  );
+
+  test("check-diff does not trust broad contracts globs as managed paths", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ allowedPaths: [], managedContractPaths: ["contracts/**"] });
+    const issues = collectDiffIssues(root, task, ["contracts/unmanaged/value.yaml"]);
+    expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(true);
   });
 
   test("check-diff never exempts forbiddenPaths via managedContractPaths (M2-019)", () => {

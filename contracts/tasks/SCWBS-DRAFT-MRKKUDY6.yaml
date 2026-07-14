@@ -1,0 +1,55 @@
+id: SCWBS-DRAFT-MRKKUDY6
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKKUDY6
+branchName: task/SCWBS-DRAFT-MRKKUDY6-issue-183-allowedpaths-managedcontractpaths-fail
+allowedPaths:
+  - src/core/managed-contract-paths.ts
+  - src/core/schema/contracts.ts
+  - src/core/types.ts
+  - src/commands/check-diff.ts
+  - src/commands/health.ts
+  - tests/unit/contracts.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/health.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - allowedPathsが空のTask Contractは通常ファイル変更をdiff.allowedPathsで拒否する
+  - deny-all taskでもCLI生成の既知契約ファイルだけをmanaged pathとして扱える
+  - managedContractPathsは既知の契約pathの具体的なファイルに制限され、package.json、.github/**、lockfile、tsconfig、broad contracts/**を拒否する
+  - forbiddenPathsとhumanGateRequiredPathsの優先順位を維持する
+  - schema、semantic check、check-diffにfail-closed regression testを追加する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/specs/SPEC-LITE-MRKKUDY6.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKKUDY6.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKKUDY6.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:81c35a282495a3ec011a509c4f5f3612225eab8ba7dbffb841ff98f615c7dd5d
+  createdAt: "2026-07-14T11:39:58.756Z"
