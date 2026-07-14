@@ -1,0 +1,53 @@
+id: EVD-SCWBS-DRAFT-MRKHLDDX
+type: evidence
+taskId: SCWBS-DRAFT-MRKHLDDX
+commit: 14ea88190be757f7b401ded438eb090e46636bc4
+subjectHeadCommit: 14ea88190be757f7b401ded438eb090e46636bc4
+diffHash: sha256:632c55cc47962d98498e879e92cbecab4630ed9df906c8e56ac5ef5089a09d24
+git:
+  branch: task/SCWBS-DRAFT-MRKHLDDX-issue-175-test-integration-ai
+  base: origin/main
+  baseCommit: 078820ae928eca976f21a034eae7c84b2c467764
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 14ea88190be757f7b401ded438eb090e46636bc4
+  diffHash: sha256:632c55cc47962d98498e879e92cbecab4630ed9df906c8e56ac5ef5089a09d24
+  headCommit: 14ea88190be757f7b401ded438eb090e46636bc4
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+  - docs/scwbs/integration-testing.md
+  - package.json
+  - scripts/integration-test-output.mjs
+  - tests/unit/integration-test-output.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:237340ac69211e75de41de0cbf699a524686980ec36a729624ed5f94b81fb834
+    executedAt: "2026-07-14T11:05:28.862Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5f6b51d6100cbef829bec424a2d5be5318de16803331a6aef3dfa37c26d55915
+    executedAt: "2026-07-14T11:07:16.589Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4fb09962cc5b45aa03feb4267b5f88a9acfa1b9fdca8b848d5fb57243096a312
+    executedAt: "2026-07-14T11:07:19.306Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:01ba0fcdea1a4c4205826b4a7f702331819fbd7a560a5dd9775b57d802cec51e
+    executedAt: "2026-07-14T11:07:21.999Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added bounded success and failure output budgets, failed-test cause and rerun diagnostics, and explicit verbose-mode regression coverage
