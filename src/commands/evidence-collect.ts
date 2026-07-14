@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
@@ -9,6 +9,15 @@ import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+import {
+  acquireRequiredCheckRun,
+  formatRequiredCheckProgress,
+  releaseRequiredCheckRun,
+  startRequiredCheckHeartbeat,
+  stopRequiredCheckHeartbeat,
+  updateRequiredCheckRun,
+  type RequiredCheckRunLease
+} from "../core/required-check-run.js";
 
 const maxCheckOutputSummaryLength = 1000;
 
@@ -61,14 +70,23 @@ function summarizeCheckOutput(output: string | null | undefined): string | undef
   return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
 }
 
-function runCheck(root: string, check: string, cacheKey: string): Evidence["checks"][number] {
+function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
   const command = commandForCheck(check);
-  const result = spawnSync(command[0] ?? "npm", command.slice(1), {
-    cwd: root,
-    encoding: "utf8",
-    shell: process.platform === "win32"
-  });
+  updateRequiredCheckRun(lease, check, checkIndex);
+  process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
+  const heartbeat = startRequiredCheckHeartbeat(lease);
+  let result: SpawnSyncReturns<string>;
+  try {
+    result = spawnSync(command[0] ?? "npm", command.slice(1), {
+      cwd: root,
+      encoding: "utf8",
+      shell: process.platform === "win32"
+    });
+  } finally {
+    stopRequiredCheckHeartbeat(heartbeat);
+  }
   const status: EvidenceCheckStatus = result.status === 0 ? "passed" : "failed";
+  process.stderr.write(`${formatRequiredCheckProgress(lease.state, status)}\n`);
   const record: Evidence["checks"][number] = {
     name: check,
     status,
@@ -114,17 +132,31 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
     : undefined;
-  const checks = task.requiredChecks.map((check) => {
-    const command = commandForCheck(check);
-    const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
-    const reusable = existingEvidence?.checks.find((candidate) =>
-      candidate.name === check
-      && candidate.status === "passed"
-      && candidate.command === command.join(" ")
-      && candidate.cacheKey === cacheKey
-    );
-    return !options.rerunChecks && cacheSubject?.reusable && reusable ? reusable : runCheck(root, check, cacheKey);
-  });
+  const lease = task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
+  let checks: Evidence["checks"];
+  try {
+    checks = task.requiredChecks.map((check, index) => {
+      const command = commandForCheck(check);
+      const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
+      const reusable = existingEvidence?.checks.find((candidate) =>
+        candidate.name === check
+        && candidate.status === "passed"
+        && candidate.command === command.join(" ")
+        && candidate.cacheKey === cacheKey
+      );
+      if (!options.rerunChecks && cacheSubject?.reusable && reusable) {
+        if (lease) {
+          updateRequiredCheckRun(lease, check, index + 1);
+          process.stderr.write(`${formatRequiredCheckProgress(lease.state, "cache-hit")}\n`);
+        }
+        return reusable;
+      }
+      if (!lease) throw new Error(`Required-check lease missing for ${check}`);
+      return runCheck(root, check, cacheKey, lease, index + 1);
+    });
+  } finally {
+    if (lease) releaseRequiredCheckRun(lease);
+  }
   const submodules = collectSubmoduleProvenance(root, baseRef, task);
   return {
     id: `EVD-${taskId}`,

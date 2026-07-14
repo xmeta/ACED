@@ -1,5 +1,5 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync, unlinkSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
@@ -120,6 +120,78 @@ function prepareFinishRepo(requestedApproval = false): string {
 }
 
 describe("finish", () => {
+  test("scwbs wrapper serializes the shared build and CLI lifecycle", async () => {
+    const root = makeTempRepo();
+    const marker = path.join(root, "command-order.log");
+    const wrapper = path.join(root, "scripts", "scwbs-run.mjs");
+    const fakeCli = path.join(root, "fake-cli.mjs");
+    writeText(root, "scripts/scwbs-run.mjs", readFileSync(path.join(process.cwd(), "scripts/scwbs-run.mjs"), "utf8"));
+    writeText(root, "fake-cli.mjs", [
+      "import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';",
+      "const marker = process.env.SCWBS_TEST_MARKER;",
+      "const lockPath = process.env.SCWBS_COMMAND_LOCK_PATH;",
+      "const state = JSON.parse(readFileSync(lockPath, 'utf8'));",
+      "writeFileSync(lockPath, JSON.stringify({ ...state, taskId: 'WBS-001-004', check: 'test:integration', checkIndex: 1, checkTotal: 1, checkStartedAt: new Date().toISOString() }));",
+      "appendFileSync(marker, 'start ' + process.pid + '\\n');",
+      "Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);",
+      "appendFileSync(marker, 'end ' + process.pid + '\\n');"
+    ].join("\n"));
+
+    const run = () => new Promise<{ code: number | null; stderr: string }>((resolve) => {
+      const child = spawn(process.execPath, [wrapper, "status"], {
+        cwd: root,
+        env: {
+          ...process.env,
+          SCWBS_SKIP_BUILD_FOR_TESTS: "1",
+          SCWBS_CLI_ENTRY_FOR_TESTS: fakeCli,
+          SCWBS_TEST_MARKER: marker
+        }
+      });
+      let stderr = "";
+      child.stderr.on("data", (chunk) => { stderr += String(chunk); });
+      child.on("close", (code) => resolve({ code, stderr }));
+    });
+
+    const first = run();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const second = run();
+    const results = await Promise.all([first, second]);
+    expect(results.map((result) => result.code)).toEqual([0, 0]);
+    expect(results.some((result) => result.stderr.includes("scwbs waiting for active command pid="))).toBe(true);
+    expect(results.some((result) => result.stderr.includes("check=1/1:test:integration"))).toBe(true);
+    expect(readFileSync(marker, "utf8").trim().split("\n").map((line) => line.split(" ")[0]))
+      .toEqual(["start", "end", "start", "end"]);
+  }, 15000);
+
+  test("scwbs wrapper recovers a stale command lock", () => {
+    const root = makeTempRepo();
+    const wrapper = path.join(root, "scripts", "scwbs-run.mjs");
+    const fakeCli = path.join(root, "fake-cli.mjs");
+    const marker = path.join(root, "stale-recovered.txt");
+    const lockPath = path.join(root, ".git", "scwbs-command.lock");
+    writeText(root, "scripts/scwbs-run.mjs", readFileSync(path.join(process.cwd(), "scripts/scwbs-run.mjs"), "utf8"));
+    writeText(root, "fake-cli.mjs", "import { writeFileSync } from 'node:fs'; writeFileSync(process.env.SCWBS_TEST_MARKER, 'recovered');\n");
+    writeText(root, ".git/scwbs-command.lock", JSON.stringify({
+      runId: "stale",
+      pid: 999_999_999,
+      command: "scwbs finish",
+      startedAt: "2026-01-01T00:00:00.000Z",
+      phase: "cli"
+    }));
+
+    execFileSync(process.execPath, [wrapper, "status"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        SCWBS_SKIP_BUILD_FOR_TESTS: "1",
+        SCWBS_CLI_ENTRY_FOR_TESTS: fakeCli,
+        SCWBS_TEST_MARKER: marker
+      }
+    });
+    expect(readFileSync(marker, "utf8")).toBe("recovered");
+    expect(existsSync(lockPath)).toBe(false);
+  }, 15000);
+
   test("finish --json outputs summary JSON with all required fields", () => {
     const root = prepareFinishRepo(true);
 

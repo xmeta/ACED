@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -8,6 +8,13 @@ import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
 import { branchDiffHash, headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+import {
+  acquireRequiredCheckRun,
+  heartbeatScript,
+  releaseRequiredCheckRun,
+  requiredCheckLockPath,
+  updateRequiredCheckRun
+} from "../../src/core/required-check-run.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
@@ -39,6 +46,66 @@ function prepareEvidenceOutputRepo(): string {
 }
 
 describe("evidence collect", () => {
+  test("required checks are single-flight and expose active run details", () => {
+    const root = prepareEvidenceOutputRepo();
+    const marker = path.join(root, "duplicate-check-ran");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
+    writeJson(root, "package.json", {
+      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+    });
+    const lease = acquireRequiredCheckRun(root, "WBS-001-004", 2);
+    try {
+      updateRequiredCheckRun(lease, "test:integration", 1);
+      expect(() => acquireRequiredCheckRun(root, "WBS-001-005", 1)).toThrow(
+        /required checks already active task=WBS-001-004 check=1\/2:test:integration pid=/
+      );
+      const duplicate = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true }));
+      expect(duplicate.result).toBe(1);
+      expect(duplicate.stderr).toContain("required checks already active task=WBS-001-004 check=1/2:test:integration");
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      releaseRequiredCheckRun(lease);
+    }
+  });
+
+  test("required-check single-flight safely recovers a stale PID lock", () => {
+    const root = prepareEvidenceOutputRepo();
+    const first = acquireRequiredCheckRun(root, "WBS-001-004", 1);
+    writeText(root, path.relative(root, requiredCheckLockPath(root)), JSON.stringify({
+      ...first.state,
+      runId: "stale-run",
+      pid: 999_999_999,
+      startedAt: "2026-01-01T00:00:00.000Z"
+    }));
+    const recovered = acquireRequiredCheckRun(root, "WBS-001-005", 1);
+    expect(recovered.state.taskId).toBe("WBS-001-005");
+    releaseRequiredCheckRun(recovered);
+  });
+
+  test("heartbeat emits bounded progress on stderr with active check metadata", () => {
+    const result = spawnSync(process.execPath, ["-e", heartbeatScript()], {
+      encoding: "utf8",
+      timeout: 600,
+      env: {
+        ...process.env,
+        SCWBS_HEARTBEAT_INTERVAL_MS: "40",
+        SCWBS_CHECK_STARTED_MS: String(Date.now()),
+        SCWBS_PARENT_PID: String(process.pid),
+        SCWBS_TASK_ID: "WBS-001-004",
+        SCWBS_CHECK_INDEX: "2",
+        SCWBS_CHECK_TOTAL: "4",
+        SCWBS_CHECK_NAME: "test:integration",
+        SCWBS_RUN_STARTED_AT: "2026-07-14T00:00:00.000Z"
+      }
+    });
+    const lines = result.stderr.trim().split("\n").filter(Boolean);
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(lines.length).toBeLessThanOrEqual(20);
+    expect(lines.every((line) => line.length < 300)).toBe(true);
+    expect(lines[0]).toContain("task=WBS-001-004 check=2/4:test:integration status=running");
+    expect(lines[0]).toContain(`pid=${process.pid}`);
+  });
+
   test("evidence collect defaults to a bounded success summary", () => {
     const root = prepareEvidenceOutputRepo();
     const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { force: true, baseRef: "base" }));
