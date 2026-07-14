@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/evidence-collect-summary.schema.json",
+  "title": "SC-WBS Evidence collect summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "taskId", "path", "checks", "changedFiles", "pullRequest"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "const": "pass" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "path": { "type": "string", "pattern": "^contracts/evidence/.+\\.yaml$" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "passed", "failed"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "changedFiles": { "type": "integer", "minimum": 0 },
+    "pullRequest": { "type": ["string", "null"] }
+  }
+}

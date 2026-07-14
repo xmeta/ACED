@@ -1,0 +1,48 @@
+id: SCWBS-DRAFT-MRK7Z2D4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRK7Z2D4
+branchName: task/SCWBS-DRAFT-MRK7Z2D4-issue-176-review-queue-evidence-bounded-summary
+allowedPaths:
+  - src/cli.ts
+  - src/commands/review-queue.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - tests/integration/review.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/review-queue-summary.schema.json
+  - docs/scwbs/schemas/evidence-collect-summary.schema.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - review-queueの既定出力は候補数に比例せず、health counts、主要blocker、ready/上位候補、omitted count、next commandを保持する
+  - review-queueは--verbose、--json、--limitを提供し、JSON schemaを文書化する
+  - evidence collectの既定成功出力はEvidence YAML全文ではなく固定長summaryを返す
+  - evidence collectは--verboseまたは--output -で全YAMLを明示取得でき、--jsonはversioned schemaに従う
+  - finishはEvidence収集をquietに実行し、重要なerror、Human Gate、failed checkを抑制しない
+  - integration testsで100件以上の候補とEvidence出力のline/byte budgetを回帰検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
+  - contracts/specs/SPEC-LITE-MRK7Z2D4.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRK7Z2D4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRK7Z2D4.yaml

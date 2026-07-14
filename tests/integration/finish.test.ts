@@ -155,10 +155,43 @@ describe("finish", () => {
 
     const command = buildHumanApprovalCommand("WBS-001-004");
     expect(output).toContain("PASS registry synchronized");
+    expect(output.join("\n")).not.toContain("id: EVD-WBS-001-004");
     expect(output).not.toContain(`  ${command}`);
     expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
     expect(command).not.toContain("--approved-by");
     expect(command).not.toContain("--human-confirm");
+  }, 30000);
+
+  test("finish keeps failed check diagnostics while Evidence collection stays quiet", () => {
+    const root = prepareFinishRepo();
+    writeJson(root, "package.json", {
+      scripts: {
+        test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
+      }
+    });
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWrite = process.stdout.write;
+    console.log = (...args: unknown[]) => stdout.push(args.map(String).join(" "));
+    console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdout.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+    } finally {
+      console.log = originalLog;
+      console.error = originalError;
+      process.stdout.write = originalWrite;
+    }
+
+    expect(stdout.join("\n")).not.toContain("id: EVD-WBS-001-004");
+    expect(stderr.join("\n")).toContain("Check failed: test (npm test)");
+    expect(stderr.join("\n")).toContain("bounded stdout detail");
+    expect(stderr.join("\n")).toContain("actionable stderr detail");
   }, 30000);
 
   test("a first finish creates Evidence and synchronizes registry in one run", () => {

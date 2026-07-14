@@ -1,0 +1,17 @@
+id: SPEC-LITE-MRK7Z2D4
+type: spec-contract
+featureId: F-MRK7Z2D4
+title: "Issue #176: review-queueとEvidence収集の既定出力をbounded summary化する"
+status: approved
+version: 0.1.0
+summary: "Issue #176: review-queueとEvidence収集の既定出力をbounded summary化する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T14:45:53+09:00"
+acceptanceCriteria:
+  - review-queueの既定出力は100件以上のcandidateでも固定長で、review health、主要blocker、ready件数、上位候補、omitted count、next actionを表示する
+  - review-queue --verboseは従来相当の全候補を表示し、--limitは既定出力の表示件数を制御する
+  - review-queue --jsonはversioned schemaに従う全候補の機械可読データを返す
+  - evidence collectの既定成功出力はpath、checks、changedFiles、pullRequestを含む固定長summaryで、Evidence YAML全文を表示しない
+  - evidence collect --verboseまたは--output -は全YAMLを取得でき、--jsonはversioned schemaに従う
+  - finishはEvidence YAMLを重複表示せず、failure、Human Gate、failed checkの診断を保持する
+  - CLI help、CLI reference、integration tests、line/byte budget testを更新する

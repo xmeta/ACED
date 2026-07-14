@@ -14,6 +14,32 @@ const maxCheckOutputSummaryLength = 1000;
 
 type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
 
+export type EvidenceCollectSummary = {
+  schemaVersion: "1.0.0";
+  status: "pass";
+  taskId: string;
+  path: string;
+  checks: {
+    total: number;
+    passed: number;
+    failed: number;
+  };
+  changedFiles: number;
+  pullRequest: string | null;
+};
+
+export type EvidenceCollectOptions = {
+  force: boolean;
+  baseRef?: string;
+  pullRequest?: string;
+  testQuality?: TestQualityOptions;
+  rerunChecks?: boolean;
+  json?: boolean;
+  verbose?: boolean;
+  output?: string;
+  quiet?: boolean;
+};
+
 function postEvidenceMetadataFiles(taskId: string): string[] {
   return [
     `contracts/evidence/${taskId}.yaml`,
@@ -115,8 +141,45 @@ export function buildCollectedEvidenceYaml(root: string, taskId: string, options
   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean }): number {
+export function buildEvidenceCollectSummary(taskId: string, relativePath: string, evidence: Evidence): EvidenceCollectSummary {
+  const passed = evidence.checks.filter((check) => check.status === "passed").length;
+  const failed = evidence.checks.length - passed;
+  return {
+    schemaVersion: "1.0.0",
+    status: "pass",
+    taskId,
+    path: relativePath,
+    checks: {
+      total: evidence.checks.length,
+      passed,
+      failed
+    },
+    changedFiles: evidence.changedFiles.length,
+    pullRequest: evidence.git?.pullRequest ?? null
+  };
+}
+
+export function formatEvidenceCollectSummary(summary: EvidenceCollectSummary): string {
+  return [
+    "PASS evidence collected",
+    `path: ${summary.path}`,
+    `checks: ${summary.checks.passed} passed, ${summary.checks.failed} failed`,
+    `changedFiles: ${summary.changedFiles}`,
+    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`
+  ].join("\n") + "\n";
+}
+
+export function runEvidenceCollect(root: string, taskId: string, options: EvidenceCollectOptions): number {
   try {
+    const outputModes = [options.json, options.verbose, options.output !== undefined].filter(Boolean).length;
+    if (outputModes > 1) {
+      console.error("Choose one of --json, --verbose, or --output -");
+      return 2;
+    }
+    if (options.output !== undefined && options.output !== "-") {
+      console.error("--output target must be -");
+      return 2;
+    }
     const relativePath = evidencePath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     if (existsSync(fullPath) && !options.force) {
@@ -124,14 +187,25 @@ export function runEvidenceCollect(root: string, taskId: string, options: { forc
       return 1;
     }
     mkdirSync(path.dirname(fullPath), { recursive: true });
-    const yaml = buildCollectedEvidenceYaml(root, taskId, {
+    const evidence = buildCollectedEvidence(root, taskId, {
       baseRef: options.baseRef,
       pullRequest: options.pullRequest,
       testQuality: options.testQuality,
       rerunChecks: options.rerunChecks
     });
+    const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
     writeFileSync(fullPath, yaml, "utf8");
-    process.stdout.write(yaml);
+    const summary = buildEvidenceCollectSummary(taskId, relativePath, evidence);
+    if (!options.quiet) {
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+      } else if (options.output === "-") {
+        process.stdout.write(yaml);
+      } else {
+        process.stdout.write(formatEvidenceCollectSummary(summary));
+        if (options.verbose) process.stdout.write(yaml);
+      }
+    }
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
