@@ -1,0 +1,64 @@
+id: EVD-SCWBS-DRAFT-MRKQ6SWA
+type: evidence
+taskId: SCWBS-DRAFT-MRKQ6SWA
+commit: de9a9f5aea3809f66c14c7555b9b819f4c36cde9
+subjectHeadCommit: de9a9f5aea3809f66c14c7555b9b819f4c36cde9
+diffHash: sha256:c1e6dd868e2d6fdbf3e64fff5ba3b9fc36e414135fc5050d950bc8c28336c16d
+git:
+  branch: task/SCWBS-DRAFT-MRKQ6SWA-issue-184-fail-closed-on-uncommitted-working-tre
+  base: origin/main
+  baseCommit: 3a2d58c97f780d70a118c80bb888d0af2f5ebddb
+  changedFilesBasis: branch-diff
+  pullRequest: "207"
+  subjectHeadCommit: de9a9f5aea3809f66c14c7555b9b819f4c36cde9
+  diffHash: sha256:c1e6dd868e2d6fdbf3e64fff5ba3b9fc36e414135fc5050d950bc8c28336c16d
+  headCommit: de9a9f5aea3809f66c14c7555b9b819f4c36cde9
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/contract-enforcement.md
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - src/core/git.ts
+  - src/core/managed-contract-paths.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2c93c1c3c7825ad54321b15cc8432d8d5432a11b77c7460964de7f5b4724aaaf
+    executedAt: "2026-07-14T14:44:59.489Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1859d33fe30cfade6334f052c13a5fe3ac301c15f07e0e090deef568588a57ee
+    executedAt: "2026-07-14T14:47:43.618Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2edc43bbd9803a38e05bfc5a8da1955a474b355eafeff4cd866589b118179f98
+    executedAt: "2026-07-14T14:47:47.152Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:8bb6ea9ba9411dba5dc79bcbf07d08fe73798cebe7549ce0c98cead0f456cc03
+    executedAt: "2026-07-14T14:47:50.429Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for staged, unstaged, untracked, dirty submodule, metadata exceptions, and commit-first failed-check fixtures

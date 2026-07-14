@@ -34,3 +34,17 @@ export function matchesManagedContractPath(task: TaskContract, file: string): bo
     (managedPath) => isManagedContractPathForTask(managedPath, task.id) && matchesGlob(file, managedPath)
   );
 }
+
+/**
+ * Task-scoped metadata written after implementation is committed. These
+ * exact paths may remain dirty while Evidence, Approval, Review, and Registry
+ * converge; implementation and authority files are intentionally excluded.
+ */
+export function taskLifecycleMetadataPaths(taskId: string): string[] {
+  return [
+    `contracts/evidence/${taskId}.yaml`,
+    `contracts/approvals/${taskId}.yaml`,
+    `contracts/reviews/${taskId}.yaml`,
+    "contracts/registry.yaml"
+  ];
+}

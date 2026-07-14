@@ -9,6 +9,8 @@ import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+import { printIssues } from "../core/report.js";
+import { evaluateWorkingTreeGuard } from "./check-diff.js";
 import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
@@ -224,6 +226,21 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
     if (options.output !== undefined && options.output !== "-") {
       console.error("--output target must be -");
       return 2;
+    }
+    const workingTree = evaluateWorkingTreeGuard(root, taskId);
+    if (workingTree.issues.length > 0) {
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify({
+          schemaVersion: "1.0.0",
+          status: "blocked",
+          taskId,
+          workingTree: workingTree.state,
+          issues: workingTree.issues
+        }, null, 2)}\n`);
+      } else {
+        printIssues(workingTree.issues);
+      }
+      return 1;
     }
     const relativePath = evidencePath(taskId);
     const fullPath = resolveFrom(root, relativePath);

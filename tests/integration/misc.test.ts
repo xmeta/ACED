@@ -372,6 +372,8 @@ describe("misc", () => {
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["branch", "base"], { cwd: root });
     writeText(root, "src/feature.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
 
     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
     const { evidence } = readEvidence(root, "WBS-001-004");

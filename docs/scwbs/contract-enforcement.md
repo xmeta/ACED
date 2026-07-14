@@ -30,6 +30,17 @@ npm run scwbs -- check-diff --task WBS-001-004 --base origin/main
 
 `check-diff` はPR readiness用の検査として、既定で `origin/main...HEAD` のbranch diffを使う。base branchが異なる場合は `--base <ref>` で明示する。作業ツリー上のWBS直編集ガードは `scwbs check` 側で引き続き検査する。
 
+Evidenceのsubjectとrequired checkの実行対象を一致させるため、実装・テスト・設定・Task Contractの変更は先にcommitする。`check-diff`、`evidence collect`、`finish` はstaged、unstaged、untracked、dirty submoduleを区別して検出し、通常のdirty working treeを拒否する。JSON出力では `workingTree.staged`、`unstaged`、`untracked`、`submodules` と、復旧用の `fixCommand` を返す。
+
+完了処理中にCLIが生成する次のtask-scoped metadataだけは例外である。例外は実装pathやTask Contractへ拡張されない。
+
+- `contracts/evidence/<task-id>.yaml`
+- `contracts/approvals/<task-id>.yaml`
+- `contracts/reviews/<task-id>.yaml`
+- `contracts/registry.yaml`
+
+したがって標準順序は「実装をcommit -> Evidence/Approval/Review/Registryを収束 -> metadataをcommit」となる。意図した実装変更が未コミットならcommitし、別作業なら表示された安全なstashコマンドで退避してから再実行する。
+
 判定ルール:
 
 | 条件 | 結果 |
@@ -42,6 +53,7 @@ npm run scwbs -- check-diff --task WBS-001-004 --base origin/main
 | `contracts/changesets/*.json` が `wjs` operations schemaに適合しない | Error |
 | 現在のGit branchがTask Contractの `branchName` と一致しない | Error |
 | 対象Task ContractのEvidenceが存在しない | Error |
+| task-scoped CLI metadata以外の未コミット変更 | Error |
 
 CIでは、Errorがある場合にPRを通してはならない。
 PRを開く前に `npm run scwbs -- evidence collect --task <task-id>` を実行し、`contracts/evidence/<task-id>.yaml` を追加または更新してから `scwbs check-diff --task <task-id>` を通す。
