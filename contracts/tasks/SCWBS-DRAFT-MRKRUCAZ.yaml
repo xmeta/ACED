@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MRKRUCAZ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRKRUCAZ
+branchName: task/SCWBS-DRAFT-MRKRUCAZ-issue-182-finish-human-gate-evidence-registry-re
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKRUCAZ.yaml
+allowedPaths:
+  - src/cli.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/atomic-files.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - The fix weakens Evidence provenance, check-diff, Human Gate, or approval scope semantics
+  - Atomic rollback cannot preserve both pre-existing Evidence and Registry on a failed checkpoint
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - failed required checkは既存の成功EvidenceとRegistryを上書きしない
+  - check-diff違反はEvidenceとRegistryの永続化前に検出し、片側更新を残さない
+  - Human Gate待ちはcandidate EvidenceとRegistryを同一checkpointとして保存し、awaiting-human-approvalを返す
+  - Registry checkpoint失敗時はEvidenceとRegistryを両方rollbackする
+  - finish --preflightはrequired checksを実行せず永続fileを変更しない
+  - JSONはphase、outcome、mutatedFiles、resumeCommandを全終了経路で返す
+  - integration testsはfailed check、diff violation、Human Gate、registry failure、interruption、preflight、successを終了前後のgit statusとともに検証する
+  - 成功済みcheck cacheと--rerun-checksの既存挙動を維持する
+  - Human Approvalとapproval scopeの既存ガードを維持する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-14T14:55:12.551Z"
