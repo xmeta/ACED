@@ -1,10 +1,9 @@
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
+import { buildHumanApprovalCommand, runFinish, writeFilesAtomically } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
-import { writeFilesAtomically } from "../../src/core/atomic-files.js";
 import { runTaskLock } from "../../src/commands/task-lock.js";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
