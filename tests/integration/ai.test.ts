@@ -394,7 +394,7 @@ describe("AI commands", () => {
 
     const packet = buildAiPacket(root, "WBS-001-004", 0);
     expect(packet).toContain("## Check Coverage");
-    expect(packet).toContain("Required by allowed paths:\n- test:integration");
+    expect(packet).toContain("Allowed-path prediction:\nRequired checks:\n- test:integration");
     expect(packet).toContain("Missing from Task Contract:\n- test:integration");
   });
 
