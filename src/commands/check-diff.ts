@@ -6,7 +6,7 @@ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import { collectTaskAuthorityIssues } from "../core/task-authority.js";
-import type { Issue, TaskContract } from "../core/types.js";
+import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
 
@@ -68,9 +68,9 @@ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state:
  * are exempt from allowedPaths and the sensitive meta-file guard, but never
  * from forbiddenPaths or humanGateRequiredPaths, which always take priority.
  */
-export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+export function collectDiffIssues(root: string, task: TaskContract, files: string[], evidenceOverride?: Evidence): Issue[] {
   const issues: Issue[] = [];
-  const evidence = readEvidence(root, task.id).evidence;
+  const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
   const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
   const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
   const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
@@ -150,7 +150,8 @@ export function collectBranchIssues(task: TaskContract, branch: string | undefin
   }];
 }
 
-export function collectEvidenceGateIssues(root: string, task: TaskContract): Issue[] {
+export function collectEvidenceGateIssues(root: string, task: TaskContract, evidenceOverride?: Evidence): Issue[] {
+  if (evidenceOverride) return [];
   const { evidence, issues } = readEvidence(root, task.id);
   if (!evidence) {
     return issues.map((issue) => ({
@@ -166,7 +167,7 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
   }));
 }
 
-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean } = {}): number {
+export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence } = {}): number {
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
@@ -199,10 +200,10 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   }
   const diffIssues = withDefaultFixCommand([
     ...collectBranchIssues(task, currentBranch(root)),
-    ...collectEvidenceGateIssues(root, task),
+    ...collectEvidenceGateIssues(root, task, options.evidence),
     ...workingTreeIssues,
     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
-    ...collectDiffIssues(root, task, files)
+    ...collectDiffIssues(root, task, files, options.evidence)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
 
   const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
@@ -212,7 +213,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   let humanGateFiles: string[] = [];
   let diffHash = "(not recorded)";
   if (requiresHumanApproval) {
-    const { evidence } = readEvidence(root, taskId);
+    const evidence = options.evidence ?? readEvidence(root, taskId).evidence;
     diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
     const gate = validateHumanGateApproval(task, evidence, readApproval(root, taskId).approval, files, root);
     humanGateFiles = gate.requiredFiles;
