@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRKB0YFI
+type: spec-contract
+featureId: F-MRKB0YFI
+title: "Issue #189 requiredChecks実行に進捗heartbeatとsingle-flight排他を追加する"
+status: approved
+version: 0.1.0
+summary: "Issue #189 requiredChecks実行に進捗heartbeatとsingle-flight排他を追加する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T16:05:00+09:00"
+acceptanceCriteria:
+  - 30秒以上のcheckでtask、check、PID、開始時刻、経過時間を含むbounded heartbeatをstderrへ出す
+  - 同一Taskのfinishとevidence collectを同時起動してもrequired checksは1回だけ実行する
+  - stale lockはPIDと開始時刻を検証して安全に回復する
+  - JSON stdoutのschema互換性を維持する
+  - npm run scwbsの共有dist buildを含む並列実行で出力を破損しない
