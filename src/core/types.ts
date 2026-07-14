@@ -103,8 +103,10 @@ export type TaskContract = {
   doneCriteria: string[];
   evidenceRequired: string[];
   /**
-   * M2-019: paths that are CLI-generated/managed contract files (evidence,
-   * approvals, reviews, registry, the task's own contract file, etc). These
+   * M2-019: concrete paths that are CLI-generated/managed contract files
+   * (evidence, approvals, reviews, registry, the task's own contract file,
+   * etc). Schema and semantic validation restrict these to known contracts.
+   * These
    * are exempt from allowedPaths and the sensitive meta-file guard in
    * check-diff, because they are produced by trusted CLI commands rather
    * than free-form edits. This does not exempt forbiddenPaths or

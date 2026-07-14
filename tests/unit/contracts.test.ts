@@ -171,6 +171,53 @@ describe("contracts / schema", () => {
     expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
   });
 
+  test.each(["package.json", "package-lock.json", "tsconfig.json", ".github/**", "contracts/**"])(
+    "managedContractPaths rejects unsafe path %s in JSON Schema",
+    (managedPath) => {
+      const root = makeTempRepo();
+      writeScwbsProject(root);
+      writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+        ...sampleTask(),
+        managedContractPaths: [managedPath]
+      });
+
+      const { task, issues } = readTask(root, "WBS-001-004");
+      expect(task).toBeUndefined();
+      expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+    }
+  );
+
+  test("managedContractPaths semantic validation rejects another task's contract file", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      managedContractPaths: ["contracts/evidence/OTHER-TASK.yaml"]
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
+  });
+
+  test("managedContractPaths accepts concrete known files for the same task", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      managedContractPaths: [
+        "contracts/tasks/WBS-001-004.yaml",
+        "contracts/evidence/WBS-001-004.yaml",
+        "contracts/approvals/WBS-001-004.yaml",
+        "contracts/reviews/WBS-001-004.yaml",
+        "contracts/registry.yaml",
+        "contracts/changesets/change-WBS-001-004.json"
+      ]
+    });
+
+    expect(readTask(root, "WBS-001-004").issues).toEqual([]);
+  });
+
   test("valid completionScope 'node' with completionTaskIds passes schema validation", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

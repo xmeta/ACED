@@ -175,6 +175,25 @@ describe("health", () => {
     expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths")).toBe(false);
   });
 
+  test("health treats empty allowedPaths as deny-all", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({ allowedPaths: [], managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] }) as unknown as Record<string, unknown>
+    );
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({ changedFiles: ["src/outside.ts", "contracts/evidence/WBS-001-004.yaml"] }) as unknown as Record<string, unknown>
+    );
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths" && issue.message.includes("src/outside.ts"))).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths" && issue.message.includes("contracts/evidence"))).toBe(false);
+  });
+
   test("health warns when evidence commit is missing", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");

@@ -143,29 +143,28 @@ describe("check", () => {
     expect(issues.some((issue) => issue.code === "task.completionTaskIds.missing")).toBe(true);
   });
 
-  test("managedContractPaths overlapping forbiddenPaths produces a warning", () => {
+  test("check rejects managedContractPaths outside known contract paths", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
       ...sampleTask(),
-      managedContractPaths: ["src/auth/**"]
+      managedContractPaths: ["package.json"]
     });
 
     const issues = collectCheckIssues(root);
-    expect(issues.some((issue) => issue.code === "task.managedContractPaths.forbiddenConflict" && issue.severity === "warn")).toBe(true);
+    expect(issues.some((issue) => issue.code === "task.schema" && issue.severity === "error")).toBe(true);
   });
 
-  test("managedContractPaths glob covering a specific forbiddenPath produces a warning", () => {
+  test("check rejects broad managedContractPaths globs", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
       ...sampleTask(),
-      managedContractPaths: ["src/auth/**"],
-      forbiddenPaths: ["src/auth/login.ts"]
+      managedContractPaths: ["contracts/**"]
     });
 
     const issues = collectCheckIssues(root);
-    expect(issues.some((issue) => issue.code === "task.managedContractPaths.forbiddenConflict" && issue.severity === "warn")).toBe(true);
+    expect(issues.some((issue) => issue.code === "task.schema" && issue.severity === "error")).toBe(true);
   });
 
   test("valid completion task with real second task produces no completion-related errors", () => {
