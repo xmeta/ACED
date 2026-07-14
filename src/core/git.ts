@@ -15,22 +15,48 @@ function gitLines(root: string, args: string[], errorMessage: string): string[] 
   return result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
 
+export type WorkingTreeState = {
+  staged: string[];
+  unstaged: string[];
+  untracked: string[];
+  submodules: string[];
+  changedFiles: string[];
+};
+
+function normalizeGitPath(file: string): string {
+  return file.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+export function workingTreeState(root: string, excludedFiles: string[] = []): WorkingTreeState {
+  const excluded = new Set(excludedFiles.map(normalizeGitPath));
+  const include = (file: string) => !excluded.has(normalizeGitPath(file));
+  const staged = gitLines(
+    root,
+    ["diff", "--cached", "--name-only", "--ignore-submodules=dirty", "HEAD"],
+    "git diff --cached failed"
+  ).filter(include);
+  const unstaged = gitLines(
+    root,
+    ["diff", "--name-only", "--ignore-submodules=dirty"],
+    "git diff failed"
+  ).filter(include);
+  const untracked = gitLines(
+    root,
+    ["ls-files", "--others", "--exclude-standard"],
+    "git ls-files failed"
+  ).filter(include);
+  const submodules = dirtySubmodulePaths(root).filter(include);
+  return {
+    staged,
+    unstaged,
+    untracked,
+    submodules,
+    changedFiles: Array.from(new Set([...staged, ...unstaged, ...untracked, ...submodules]))
+  };
+}
+
 export function workingTreeChangedFiles(root: string): string[] {
-  const tracked = spawnSync("git", ["-c", "core.quotePath=false", "diff", "--ignore-submodules=dirty", "--name-only", "HEAD"], {
-    cwd: root,
-    encoding: "utf8"
-  });
-  if (tracked.status !== 0) {
-    throw new Error(tracked.stderr || "git diff failed");
-  }
-  const untracked = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "--others", "--exclude-standard"], {
-    cwd: root,
-    encoding: "utf8"
-  });
-  if (untracked.status !== 0) {
-    throw new Error(untracked.stderr || "git ls-files failed");
-  }
-  return Array.from(new Set(`${tracked.stdout}\n${untracked.stdout}`.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)));
+  return workingTreeState(root).changedFiles;
 }
 
 export function branchChangedFiles(root: string, baseRef = "origin/main"): string[] {

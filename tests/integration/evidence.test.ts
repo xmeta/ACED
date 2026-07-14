@@ -53,6 +53,8 @@ describe("evidence collect", () => {
     writeJson(root, "package.json", {
       scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
     });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure required check"], { cwd: root, stdio: "ignore" });
     const lease = acquireRequiredCheckRun(root, "WBS-001-004", 2);
     try {
       updateRequiredCheckRun(lease, "test:integration", 1);
@@ -119,6 +121,36 @@ describe("evidence collect", () => {
       "pullRequest: (not recorded)"
     ]);
     expect(output.stdout).not.toContain("id: EVD-");
+  });
+
+  test("evidence collect rejects dirty implementation files before required checks and reports JSON state", () => {
+    const root = prepareEvidenceOutputRepo();
+    const marker = path.join(root, "required-check-ran");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      requiredChecks: ["test"],
+      allowedPaths: ["src/**"]
+    }) as unknown as Record<string, unknown>);
+    writeJson(root, "package.json", {
+      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+    });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure check"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/uncommitted.ts", "export const unsafe = true;\n");
+
+    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
+      force: true,
+      baseRef: "base",
+      json: true
+    }));
+    expect(output.result).toBe(1);
+    expect(existsSync(marker)).toBe(false);
+    expect(JSON.parse(output.stdout)).toMatchObject({
+      schemaVersion: "1.0.0",
+      status: "blocked",
+      taskId: "WBS-001-004",
+      workingTree: { untracked: ["src/uncommitted.ts"] },
+      issues: [expect.objectContaining({ code: "diff.workingTree.untracked" })]
+    });
   });
 
   test("evidence collect supports versioned JSON verbose and YAML-only output", () => {
@@ -332,6 +364,9 @@ describe("evidence collect", () => {
       branchName: "feature",
       requiredChecks: []
     }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "set post-merge task branch"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "-f", "base", "HEAD"], { cwd: root, stdio: "ignore" });
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "previous-subject",
       diffHash: "sha256:previous",
@@ -453,10 +488,14 @@ describe("evidence collect", () => {
     expect(readFileSync(marker, "utf8")).toBe("1");
 
     writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "change implementation"], { cwd: root, stdio: "ignore" });
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
     expect(readFileSync(marker, "utf8")).toBe("2");
 
     writeJson(root, "package-lock.json", { lockfileVersion: 3, packages: { changed: true } });
+    execFileSync("git", ["add", "package-lock.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "change dependency lock"], { cwd: root, stdio: "ignore" });
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
     expect(readFileSync(marker, "utf8")).toBe("3");
 
@@ -465,10 +504,19 @@ describe("evidence collect", () => {
     execFileSync("git", ["commit", "-m", "submodule update"], { cwd: submoduleRoot, stdio: "ignore" });
     execFileSync("git", ["fetch", submoduleRoot], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
     execFileSync("git", ["checkout", "FETCH_HEAD"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "update submodule"], { cwd: root, stdio: "ignore" });
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
     expect(readFileSync(marker, "utf8")).toBe("4");
 
     writeText(root, "vendor/dependency/version.txt", "dirty content changed again\n");
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(1);
+    expect(readFileSync(marker, "utf8")).toBe("4");
+
+    execFileSync("git", ["add", "version.txt"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "commit nested change"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "record nested change"], { cwd: root, stdio: "ignore" });
     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
     expect(readFileSync(marker, "utf8")).toBe("5");
 

@@ -1,11 +1,12 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
-import { runCheckDiff } from "./check-diff.js";
+import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
 import { runEvidenceCollect } from "./evidence-collect.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
 import type { Profile } from "../core/types.js";
+import type { WorkingTreeState } from "../core/git.js";
 import type { Evidence, Issue } from "../core/types.js";
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
@@ -25,6 +26,7 @@ export type FinishJsonOutput = {
   diffHash?: string;
   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
   fixCommands: string[];
+  workingTree?: WorkingTreeState;
 };
 
 type TestQuality = NonNullable<Evidence["testQuality"]>;
@@ -131,6 +133,30 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
         nextAction: preflightIssues[0]?.fixCommand ?? "Resolve task readiness warnings",
         readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
         fixCommands: readinessFixCommands(preflightIssues)
+      };
+      console.log(JSON.stringify(output, null, 2));
+    }
+    return 1;
+  }
+
+  const workingTree = evaluateWorkingTreeGuard(root, taskId);
+  if (workingTree.issues.length > 0) {
+    printReadinessIssues(workingTree.issues, options.json ?? false);
+    if (options.json) {
+      const output: FinishJsonOutput = {
+        schemaVersion: "1.0.0",
+        status: "blocked",
+        taskId,
+        requiresHumanApproval: false,
+        changedFiles: workingTree.state.changedFiles,
+        violations: workingTree.issues,
+        requiredChecks: [],
+        evidencePath: `contracts/evidence/${taskId}.yaml`,
+        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
+        nextAction: workingTree.issues[0]?.fixCommand ?? "Commit or stash working tree changes",
+        readinessWarnings: workingTree.issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+        fixCommands: readinessFixCommands(workingTree.issues),
+        workingTree: workingTree.state
       };
       console.log(JSON.stringify(output, null, 2));
     }

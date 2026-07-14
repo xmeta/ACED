@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../../src/core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
 import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
@@ -565,6 +565,8 @@ describe("check-diff", () => {
   test("git changed file helpers split working-tree and branch diff basis", () => {
     const root = makeTempRepo();
     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    writeText(root, "src/features/api/staged.ts", "export const staged = 1;\n");
+    writeText(root, "src/features/api/unstaged.ts", "export const unstaged = 1;\n");
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["branch", "base"], { cwd: root });
@@ -572,14 +574,117 @@ describe("check-diff", () => {
     writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "branch change"], { cwd: root, stdio: "ignore" });
-    writeText(root, "src/features/api/uncommitted.ts", "export const pending = true;\n");
+    writeText(root, "src/features/api/staged.ts", "export const staged = 2;\n");
+    execFileSync("git", ["add", "src/features/api/staged.ts"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/features/api/unstaged.ts", "export const unstaged = 2;\n");
     writeText(root, "src/features/api/untracked.ts", "export const extra = true;\n");
 
     expect(branchChangedFiles(root, "base")).toEqual(["src/features/api/index.ts"]);
     expect(workingTreeChangedFiles(root).sort()).toEqual([
-      "src/features/api/uncommitted.ts",
+      "src/features/api/staged.ts",
+      "src/features/api/unstaged.ts",
       "src/features/api/untracked.ts"
     ]);
+    expect(workingTreeState(root)).toMatchObject({
+      staged: ["src/features/api/staged.ts"],
+      unstaged: ["src/features/api/unstaged.ts"],
+      untracked: ["src/features/api/untracked.ts"],
+      submodules: []
+    });
+  });
+
+  test("check-diff rejects staged, unstaged, untracked, and human-gated working tree changes with structured JSON", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName,
+      allowedPaths: ["src/**"],
+      humanGateRequiredPaths: ["src/security/**"]
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
+    writeText(root, "src/staged.ts", "export const staged = 1;\n");
+    writeText(root, "src/unstaged.ts", "export const unstaged = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeText(root, "src/staged.ts", "export const staged = 2;\n");
+    execFileSync("git", ["add", "src/staged.ts"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/unstaged.ts", "export const unstaged = 2;\n");
+    writeText(root, "src/security/untracked.ts", "export const gated = true;\n");
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    const result = JSON.parse(output.join("\n"));
+    expect(result.workingTree).toMatchObject({
+      staged: ["src/staged.ts"],
+      unstaged: ["src/unstaged.ts"],
+      untracked: ["src/security/untracked.ts"],
+      submodules: []
+    });
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.workingTree.tracked", fixCommand: expect.stringContaining("git stash push") }),
+      expect.objectContaining({ code: "diff.workingTree.untracked", fixCommand: expect.stringContaining("src/security/untracked.ts") })
+    ]));
+  });
+
+  test("check-diff rejects a dirty submodule working tree", () => {
+    const root = makeTempRepo();
+    const submoduleRoot = makeTempRepo();
+    writeText(submoduleRoot, "version.txt", "one\n");
+    execFileSync("git", ["add", "."], { cwd: submoduleRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "submodule base"], { cwd: submoduleRoot, stdio: "ignore" });
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName, allowedPaths: ["vendor/**"] }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", submoduleRoot, "vendor/dependency"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "vendor/dependency/version.txt", "dirty\n");
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    const result = JSON.parse(output.join("\n"));
+    expect(result.workingTree.submodules).toEqual(["vendor/dependency"]);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.workingTree.submodule", fixCommand: expect.stringContaining("git -C 'vendor/dependency' stash") })
+    ]));
+  }, 30000);
+
+  test("check-diff permits only task-scoped lifecycle metadata to remain dirty", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested"
+    });
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "REV-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "requested"
+    });
+    writeYaml(root, "contracts/registry.yaml", { projectId: "test", contracts: [] });
+
+    expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(0);
   });
 
   test("git helpers detect branch lag and same-path additions on base", () => {

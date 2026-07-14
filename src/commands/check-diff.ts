@@ -1,9 +1,9 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-import { branchChangedFiles, currentBranch, workingTreeChangedFiles } from "../core/git.js";
+import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
-import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
 import { collectTaskAuthorityIssues } from "../core/task-authority.js";
 import type { Issue, TaskContract } from "../core/types.js";
@@ -21,6 +21,45 @@ const SENSITIVE_META_PATHS = [
 
 function requiresMetaFileGuard(file: string): boolean {
   return matchesAny(file, SENSITIVE_META_PATHS);
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+function stashCommand(files: string[]): string {
+  return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
+}
+
+export function evaluateWorkingTreeGuard(root: string, taskId: string): { state: WorkingTreeState; issues: Issue[] } {
+  const state = workingTreeState(root, taskLifecycleMetadataPaths(taskId));
+  const issues: Issue[] = [];
+  const tracked = Array.from(new Set([...state.staged, ...state.unstaged]));
+  if (tracked.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "diff.workingTree.tracked",
+      message: `Commit intended tracked changes before Evidence collection, or stash them temporarily: ${tracked.join(", ")}`,
+      fixCommand: stashCommand(tracked)
+    });
+  }
+  if (state.untracked.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "diff.workingTree.untracked",
+      message: `Commit intended untracked files before Evidence collection, or stash them temporarily: ${state.untracked.join(", ")}`,
+      fixCommand: stashCommand(state.untracked)
+    });
+  }
+  if (state.submodules.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "diff.workingTree.submodule",
+      message: `Commit or stash dirty submodule worktrees before Evidence collection: ${state.submodules.join(", ")}`,
+      fixCommand: state.submodules.map((file) => `git -C ${shellQuote(file)} stash push --include-untracked -m "scwbs: clean submodule before Evidence"`).join(" && ")
+    });
+  }
+  return { state, issues };
 }
 
 /**
@@ -138,8 +177,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   const baseRef = options.baseRef ?? "origin/main";
   let files: string[] = [];
   let authorityFiles: string[] = [];
+  let workingTree: WorkingTreeState = { staged: [], unstaged: [], untracked: [], submodules: [], changedFiles: [] };
+  let workingTreeIssues: Issue[] = [];
   try {
     files = branchChangedFiles(root, baseRef);
+    ({ state: workingTree, issues: workingTreeIssues } = evaluateWorkingTreeGuard(root, taskId));
     authorityFiles = Array.from(new Set([
       ...files,
       ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
@@ -151,13 +193,14 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       message: error instanceof Error ? error.message : String(error),
       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
     }] as Issue[];
-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues }, null, 2));
+    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
     else printIssues(baseIssues);
     return 1;
   }
   const diffIssues = withDefaultFixCommand([
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task),
+    ...workingTreeIssues,
     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
     ...collectDiffIssues(root, task, files)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
@@ -177,7 +220,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   }
 
   if (diffIssues.length === 0) {
-    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], requiresHumanApproval: false, nextAction: "" }, null, 2));
+    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
     else console.log(`PASS check-diff ${taskId}`);
     return 0;
   }
@@ -187,6 +230,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       status: hasErrors(diffIssues) ? "fail" : "warn",
       taskId,
       issues: diffIssues,
+      workingTree,
       ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
     }, null, 2));
   } else {

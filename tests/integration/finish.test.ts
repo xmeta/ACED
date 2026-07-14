@@ -116,6 +116,8 @@ function prepareFinishRepo(requestedApproval = false): string {
     ]
   });
   writeText(root, "src/feature.ts", "export const value = 1;\n");
+  execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
   return root;
 }
 
@@ -262,6 +264,35 @@ describe("finish", () => {
     expect(readFileSync(path.join(root, "package.json"), "utf8")).toContain("process.exit(9)");
   });
 
+  test("finish rejects a dirty working tree before required checks and returns structured JSON", () => {
+    const root = prepareFinishRepo();
+    const marker = path.join(root, "dirty-check-ran");
+    writeJson(root, "package.json", {
+      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+    });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure marker check"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/dirty.ts", "export const dirty = true;\n");
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(existsSync(marker)).toBe(false);
+    expect(JSON.parse(output[output.length - 1])).toMatchObject({
+      schemaVersion: "1.0.0",
+      status: "blocked",
+      taskId: "WBS-001-004",
+      requiredChecks: [],
+      workingTree: { untracked: ["src/dirty.ts"] },
+      violations: [expect.objectContaining({ code: "diff.workingTree.untracked" })]
+    });
+  });
+
   test("finish does not request Human Approval when no Human Gate files changed", () => {
     const root = prepareFinishRepo(true);
     const output: string[] = [];
@@ -291,6 +322,8 @@ describe("finish", () => {
         test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
       }
     });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure failing check"], { cwd: root, stdio: "ignore" });
     const stdout: string[] = [];
     const stderr: string[] = [];
     const originalLog = console.log;
