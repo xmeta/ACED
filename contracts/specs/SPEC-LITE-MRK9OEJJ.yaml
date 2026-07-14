@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRK9OEJJ
+type: spec-contract
+featureId: F-MRK9OEJJ
+title: "Issue #191 finishでtask固有health readinessをmerge前に検証する"
+status: approved
+version: 0.1.0
+summary: "Issue #191 finishでtask固有health readinessをmerge前に検証する"
+approvedBy: user-delegated-planning-request
+approvedAt: "2026-07-14T15:39:32+09:00"
+acceptanceCriteria:
+  - finishは対象Taskに限定したreadiness warningをmerge前に検出し、repository全体のlegacy warningを結果へ混在させない
+  - contractLock missingまたはstale、tests変更時のtestQuality missing、PR metadata missing、Evidence provenance不整合、ApprovalまたはReview scope driftを検査する
+  - readiness warningがある場合はmerge-readyを表示せず、plain textとJSONの両方でfix commandを返す
+  - Evidence metadata-only更新はsubject provenanceと成功済みchecksを保持する
+  - post-merge branchでのEvidence再収集は空差分で既存実装provenanceを上書きしない

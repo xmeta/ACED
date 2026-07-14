@@ -1,14 +1,18 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-import { currentBranch } from "../core/git.js";
+import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { runCheckDiff } from "./check-diff.js";
 import { runEvidenceCollect } from "./evidence-collect.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
 import type { Profile } from "../core/types.js";
+import type { Evidence, Issue } from "../core/types.js";
+import { collectTaskHealthIssues } from "./health.js";
+import { taskRefreshReasons } from "./task-refresh.js";
 
 export type FinishJsonOutput = {
-  status: "pass";
+  schemaVersion: "1.0.0";
+  status: "pass" | "blocked";
   taskId: string;
   requiresHumanApproval: boolean;
   changedFiles: string[];
@@ -19,7 +23,51 @@ export type FinishJsonOutput = {
   nextAction: string;
   humanGateFiles?: string[];
   diffHash?: string;
+  readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+  fixCommands: string[];
 };
+
+type TestQuality = NonNullable<Evidence["testQuality"]>;
+
+function readinessFixCommands(issues: Issue[]): string[] {
+  return [...new Set(issues.flatMap((issue) => issue.fixCommand ? [issue.fixCommand] : []))];
+}
+
+function printReadinessIssues(issues: Issue[], json: boolean): void {
+  const write = json ? console.error : console.log;
+  write("Task readiness blocked:");
+  for (const issue of issues) {
+    write(`- ${issue.code}: ${issue.message}`);
+    if (issue.fixCommand) write(`  fixCommand: ${issue.fixCommand}`);
+  }
+}
+
+function collectFinishPreflightIssues(root: string, taskId: string, baseRef: string | undefined, testQuality: TestQuality | undefined): Issue[] {
+  const { task } = readTask(root, taskId);
+  if (!task) return [];
+  const issues: Issue[] = [];
+  if (!task.contractLock) {
+    issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${task.id} has no contractLock`, fixCommand: `npm run scwbs -- task lock --task ${task.id}` });
+  } else {
+    const reasons = taskRefreshReasons(root, taskId);
+    if (reasons.length > 0) {
+      issues.push({ severity: "warn", code: "health.task.contractLock.stale", message: `${task.id} contractLock is stale: ${reasons.join("; ")}`, fixCommand: `npm run scwbs -- task refresh --task ${task.id} --apply` });
+    }
+  }
+  if (issues.length > 0) return issues;
+  const changedTests = branchChangedFiles(root, baseRef ?? "origin/main")
+    .some((file) => /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/.test(file));
+  const existingTestQuality = readEvidence(root, taskId).evidence?.testQuality;
+  if (changedTests && !testQuality && !existingTestQuality) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.testQuality.missing",
+      message: `${task.id} changes tests but Evidence testQuality metadata is missing`,
+      fixCommand: `npm run scwbs -- finish --task ${task.id} --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Describe regression coverage"`
+    });
+  }
+  return issues;
+}
 
 function captureStdout<T>(fn: () => T): { result: T; output: string } {
   const chunks: string[] = [];
@@ -52,7 +100,7 @@ export function buildHumanApprovalCommand(taskId: string): string {
   return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
 }
 
-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean } = {}): number {
+export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean; testQuality?: TestQuality } = {}): number {
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
     console.error("Missing --task <task-id> and current branch does not contain a task id");
@@ -66,10 +114,34 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     return 1;
   }
 
+  const preflightIssues = collectFinishPreflightIssues(root, taskId, options.baseRef, options.testQuality);
+  if (preflightIssues.length > 0) {
+    printReadinessIssues(preflightIssues, options.json ?? false);
+    if (options.json) {
+      const output: FinishJsonOutput = {
+        schemaVersion: "1.0.0",
+        status: "blocked",
+        taskId,
+        requiresHumanApproval: false,
+        changedFiles: [],
+        violations: [],
+        requiredChecks: [],
+        evidencePath: `contracts/evidence/${taskId}.yaml`,
+        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
+        nextAction: preflightIssues[0]?.fixCommand ?? "Resolve task readiness warnings",
+        readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+        fixCommands: readinessFixCommands(preflightIssues)
+      };
+      console.log(JSON.stringify(output, null, 2));
+    }
+    return 1;
+  }
+
   const evidenceExit = runEvidenceCollect(root, taskId, {
     force: options.force ?? true,
     baseRef: options.baseRef,
     pullRequest: options.pullRequest,
+    testQuality: options.testQuality,
     rerunChecks: options.rerunChecks,
     quiet: true
   });
@@ -179,6 +251,12 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
     console.log("PASS registry check");
   }
 
+  const readinessIssues = collectTaskHealthIssues(root, taskId);
+  if (readinessIssues.length > 0) {
+    printReadinessIssues(readinessIssues, options.json ?? false);
+    if (!options.json) return 1;
+  }
+
   if (!options.json && !needsHumanGate) {
     console.log(`Profile: ${profile}`);
     console.log("");
@@ -195,7 +273,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       checkDiffResult = {};
     }
     const output: FinishJsonOutput = {
-      status: "pass",
+      schemaVersion: "1.0.0",
+      status: readinessIssues.length > 0 ? "blocked" : "pass",
       taskId,
       requiresHumanApproval: needsHumanGate,
       changedFiles: evidence?.changedFiles ?? [],
@@ -203,11 +282,13 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
       requiredChecks: evidence?.checks ?? [],
       evidencePath: `contracts/evidence/${taskId}.yaml`,
       approvalStatus: approval?.status ?? "",
-      nextAction,
+      nextAction: readinessIssues[0]?.fixCommand ?? nextAction,
+      readinessWarnings: readinessIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+      fixCommands: readinessFixCommands(readinessIssues),
       ...(needsHumanGate ? { humanGateFiles, diffHash } : {})
     };
     console.log(JSON.stringify(output, null, 2));
   }
 
-  return 0;
+  return readinessIssues.length > 0 ? 1 : 0;
 }

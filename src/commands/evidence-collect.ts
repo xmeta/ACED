@@ -96,6 +96,19 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
   const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
   const { evidence: existingEvidence } = readEvidence(root, taskId);
+  const changedFiles = branchChangedFiles(root, baseRef);
+  const branch = currentBranch(root);
+  if (
+    existingEvidence?.git?.changedFilesBasis === "branch-diff"
+    && existingEvidence.changedFiles.length > 0
+    && changedFiles.length === 0
+    && branch !== task.branchName
+  ) {
+    throw new Error(
+      `Refusing to replace ${taskId} implementation provenance with an empty diff on ${branch ?? "detached HEAD"}. `
+      + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
+    );
+  }
   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
   const cacheSubject = task.requiredChecks.length > 0
@@ -121,7 +134,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     ...(head ? { subjectHeadCommit: head } : {}),
     diffHash,
     git: {
-      ...(currentBranch(root) ? { branch: currentBranch(root) } : {}),
+      ...(branch ? { branch } : {}),
       base: baseRef,
       ...(baseCommit ? { baseCommit } : {}),
       changedFilesBasis: "branch-diff",
@@ -130,7 +143,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       diffHash,
       ...(head ? { headCommit: head } : {})
     },
-    changedFiles: branchChangedFiles(root, baseRef),
+    changedFiles,
     ...(submodules.length > 0 ? { submodules } : {}),
     checks,
     ...(testQuality ? { testQuality } : {})

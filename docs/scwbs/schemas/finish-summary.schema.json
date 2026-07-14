@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.example/scwbs/finish-summary.schema.json",
+  "title": "SC-WBS finish summary",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "status",
+    "taskId",
+    "requiresHumanApproval",
+    "changedFiles",
+    "violations",
+    "requiredChecks",
+    "evidencePath",
+    "approvalStatus",
+    "nextAction",
+    "readinessWarnings",
+    "fixCommands"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["pass", "blocked"] },
+    "taskId": { "type": "string" },
+    "requiresHumanApproval": { "type": "boolean" },
+    "changedFiles": { "type": "array", "items": { "type": "string" } },
+    "violations": { "type": "array" },
+    "requiredChecks": { "type": "array", "items": { "type": "object" } },
+    "evidencePath": { "type": "string" },
+    "approvalStatus": { "type": "string" },
+    "nextAction": { "type": "string" },
+    "humanGateFiles": { "type": "array", "items": { "type": "string" } },
+    "diffHash": { "type": "string" },
+    "readinessWarnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "fixCommand": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "fixCommands": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRK9OEJJ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRK9OEJJ
+branchName: task/SCWBS-DRAFT-MRK9OEJJ-issue-191-finish-task-health-readiness-merge
+allowedPaths:
+  - src/cli.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/evidence-annotate.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/evidence.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - finishはrepository全体のlegacy warningと分離して対象TaskのcontractLock、testQuality、PR metadata、Evidence provenance、Approval、Review scopeを検査する
+  - task固有readiness warningが残る場合はmerge-readyを表示せず、実行可能なfix commandを返す
+  - finish --jsonはreadiness warningsとfix commandsをversioned summaryで返す
+  - Evidence annotateは既存commit、diffHash、changedFiles、checksを保持してPRとtestQuality metadataだけを更新する
+  - post-mergeの空branch diffによるEvidence collectは既存の実装provenanceを上書きしない
+  - integration testでtask固有warningの検出、解消、legacy warning分離、metadata-only更新を検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+  - contracts/specs/SPEC-LITE-MRK9OEJJ.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/index.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRK9OEJJ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRK9OEJJ.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:63b9d6739e50271c39ae8e3d8af2a19b66deb8f9bb18f9859e4bc8b2b6373aeb
+  createdAt: "2026-07-14T06:39:55.875Z"
