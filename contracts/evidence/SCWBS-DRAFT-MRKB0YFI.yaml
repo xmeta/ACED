@@ -1,0 +1,57 @@
+id: EVD-SCWBS-DRAFT-MRKB0YFI
+type: evidence
+taskId: SCWBS-DRAFT-MRKB0YFI
+commit: 5bff33f4cc63c5327ed0ed05cb955700b071036a
+subjectHeadCommit: 5bff33f4cc63c5327ed0ed05cb955700b071036a
+diffHash: sha256:6f00928a070d4d0fbb402940372c0d81021aa459bc7ac90587e0f87e16d20c50
+git:
+  branch: task/SCWBS-DRAFT-MRKB0YFI-issue-189-requiredchecks-heartbeat-single-flight
+  base: origin/main
+  baseCommit: 9d666ada01cc670b1b84853f50caf0e2e403b1c1
+  changedFilesBasis: branch-diff
+  pullRequest: "194"
+  subjectHeadCommit: 5bff33f4cc63c5327ed0ed05cb955700b071036a
+  diffHash: sha256:6f00928a070d4d0fbb402940372c0d81021aa459bc7ac90587e0f87e16d20c50
+  headCommit: 5bff33f4cc63c5327ed0ed05cb955700b071036a
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRKB0YFI.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
+  - docs/scwbs/cli-reference.md
+  - package.json
+  - scripts/scwbs-run.mjs
+  - src/commands/evidence-collect.ts
+  - src/core/required-check-run.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:cee1fbecd08a1d07b3aa6a2741c5da4d0190bd6722354c6789c2a87d5fa7bbed
+    executedAt: "2026-07-14T09:37:17.046Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:17cf8d2862cfb4351998588d512b327f2bf5a3ea5dfcff0f81263ce8cc311843
+    executedAt: "2026-07-14T09:41:56.559Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:8ac814939a629eed871be1b42325a815101b0c9465063a989b05c012ec96d39a
+    executedAt: "2026-07-14T09:42:00.572Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:db34ec61f41da36c188bca1de990ef3e6ef5edcde195ba062e373e786a56efe4
+    executedAt: "2026-07-14T09:42:04.053Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for command serialization, required-check single-flight, active run diagnostics, stale lock recovery, and bounded heartbeat output
