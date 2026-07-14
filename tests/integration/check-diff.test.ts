@@ -4,9 +4,236 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../../src/core/git.js";
+import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
+const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+
+function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
+  return sampleTask({
+    id: taskId,
+    featureId: "F-NEW",
+    wbsNodeId: "node-governance-maintenance",
+    branchName: `task/${taskId}-safe`,
+    allowedPaths: ["src/core/safe.ts", "tests/integration/safe.test.ts"],
+    forbiddenPaths: ["wjs/**"],
+    humanGateRequiredPaths: standardHumanGatePaths,
+    requiredChecks: ["test", "test:integration", "typecheck", "build"],
+    managedContractPaths: [
+      `contracts/tasks/${taskId}.yaml`,
+      "contracts/tasks/index.yaml",
+      "contracts/registry.yaml",
+      `contracts/evidence/${taskId}.yaml`,
+      `contracts/approvals/${taskId}.yaml`
+    ],
+    contractLock: {
+      lockVersion: "2",
+      wbsScopeRevision: "scope",
+      wbsGlobalRevision: "global",
+      wbsNodeId: "node-governance-maintenance",
+      createdAt: "2026-07-14T00:00:00.000Z"
+    }
+  });
+}
+
 describe("check-diff", () => {
+  test("authority comparison detects every scope field but ignores contractLock refresh metadata", () => {
+    const base = sampleTask({ managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] });
+    const refreshed = sampleTask({
+      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"],
+      contractLock: { lockVersion: "2", wbsScopeRevision: "new", createdAt: "2026-07-14T00:00:00.000Z" }
+    });
+    expect(changedTaskAuthorityFields(base, refreshed)).toEqual([]);
+
+    const weakened = sampleTask({
+      allowedPaths: [...base.allowedPaths, "src/outside.ts"],
+      forbiddenPaths: [],
+      humanGateRequiredPaths: [],
+      requiredChecks: ["test"],
+      managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
+      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }]
+    });
+    expect(changedTaskAuthorityFields(base, weakened)).toEqual([
+      "allowedPaths",
+      "forbiddenPaths",
+      "humanGateRequiredPaths",
+      "requiredChecks",
+      "managedContractPaths",
+      "checkCoverageWaivers"
+    ]);
+  });
+
+  test("check-diff rejects self-expanded allowedPaths instead of accepting the widened head contract", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    const baseTask = sampleTask({
+      branchName,
+      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...baseTask,
+      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"]
+    });
+    writeText(root, "src/outside.ts", "export const outside = true;\n");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["contracts/tasks/WBS-001-004.yaml", "src/outside.ts"] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "self widen"], { cwd: root, stdio: "ignore" });
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
+    ]));
+  });
+
+  test("check-diff also rejects an uncommitted Task Contract expansion", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    const baseTask = sampleTask({
+      branchName,
+      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeText(root, "src/outside.ts", "export const outside = true;\n");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["src/outside.ts"] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "outside change"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...baseTask, allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"] });
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
+    ]));
+  });
+
+  test("authority changes accept current-scope Human Approval without creating approval records", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const baseTask = sampleTask({ managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"] });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...baseTask, requiredChecks: ["test"] });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "authority change"], { cwd: root, stdio: "ignore" });
+    const subjectHead = headCommit(root)!;
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: subjectHead,
+      diffHash: "approved-authority-diff",
+      changedFiles: ["contracts/tasks/WBS-001-004.yaml"]
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvedBy: "Human Reviewer",
+      approvedAt: "2026-07-14T00:00:00.000Z",
+      headCommit: subjectHead,
+      diffHash: "approved-authority-diff"
+    }) as unknown as Record<string, unknown>);
+    const headTask = { ...baseTask, requiredChecks: ["test"] };
+    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual([]);
+  });
+
+  test("a separate existing governance task can change another task authority", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const target = sampleTask({ id: "TARGET", featureId: "F-TARGET" });
+    const governance = sampleTask({
+      id: "GOVERNANCE",
+      featureId: "F-GOV",
+      wbsNodeId: "node-governance-maintenance",
+      allowedPaths: ["contracts/tasks/TARGET.yaml"],
+      managedContractPaths: ["contracts/tasks/GOVERNANCE.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/TARGET.yaml", target as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/GOVERNANCE.yaml", governance as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeYaml(root, "contracts/tasks/TARGET.yaml", { ...target, allowedPaths: [...target.allowedPaths, "src/new.ts"] });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "governed scope change"], { cwd: root, stdio: "ignore" });
+    expect(collectTaskAuthorityIssues(root, governance, "base", ["contracts/tasks/TARGET.yaml"])).toEqual([]);
+  });
+
+  test("a safe contract-only first commit is the fail-closed trust root for a new task", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    const task = safeNewTask();
+    writeYaml(root, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", task as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "new task contract"], { cwd: root, stdio: "ignore" });
+    expect(collectTaskAuthorityIssues(root, task, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"])).toEqual([]);
+  });
+
+  test("new task trust fails for uncommitted, mixed, broad, and shallow creation states", () => {
+    const uncommittedRoot = makeTempRepo();
+    writeScwbsProject(uncommittedRoot);
+    execFileSync("git", ["add", "."], { cwd: uncommittedRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: uncommittedRoot, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: uncommittedRoot });
+    const task = safeNewTask();
+    writeYaml(uncommittedRoot, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", task as unknown as Record<string, unknown>);
+    expect(collectTaskAuthorityIssues(uncommittedRoot, task, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "diff.taskAuthority.newTask.uncommitted" })]));
+
+    const mixedRoot = makeTempRepo();
+    writeScwbsProject(mixedRoot);
+    execFileSync("git", ["add", "."], { cwd: mixedRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: mixedRoot, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: mixedRoot });
+    const broad = safeNewTask();
+    broad.allowedPaths = ["src/**"];
+    writeYaml(mixedRoot, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", broad as unknown as Record<string, unknown>);
+    writeText(mixedRoot, "src/core/safe.ts", "export const mixed = true;\n");
+    execFileSync("git", ["add", "."], { cwd: mixedRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "mixed broad creation"], { cwd: mixedRoot, stdio: "ignore" });
+    expect(collectTaskAuthorityIssues(mixedRoot, broad, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "diff.taskAuthority.newTask.mixedCommit" }),
+        expect.objectContaining({ code: "diff.taskAuthority.newTask.broadScope" })
+      ]));
+
+    writeText(mixedRoot, ".git/shallow", `${headCommit(mixedRoot)}\n`);
+    expect(collectTaskAuthorityIssues(mixedRoot, broad, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
+      .toEqual([expect.objectContaining({ code: "diff.taskAuthority.git.shallow" })]);
+  });
+
+  test("authority comparison fails closed when the base ref cannot be resolved", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    expect(collectTaskAuthorityIssues(root, sampleTask(), "missing-base", ["contracts/tasks/WBS-001-004.yaml"]))
+      .toEqual([expect.objectContaining({ code: "diff.taskAuthority.git.mergeBase" })]);
+  });
+
   test("check-diff passes allowed files and flags forbidden files", () => {
     const root = makeTempRepo();
     const task = sampleTask();

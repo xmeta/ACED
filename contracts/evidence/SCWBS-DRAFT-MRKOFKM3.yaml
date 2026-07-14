@@ -1,0 +1,58 @@
+id: EVD-SCWBS-DRAFT-MRKOFKM3
+type: evidence
+taskId: SCWBS-DRAFT-MRKOFKM3
+commit: 282480d5f9c90b8a43eeb0e708aa767e3408253a
+subjectHeadCommit: 282480d5f9c90b8a43eeb0e708aa767e3408253a
+diffHash: sha256:c884bbdd293b40d173997c815dafb60076a33db4c27febfd0de99db148785c2d
+git:
+  branch: task/SCWBS-DRAFT-MRKOFKM3-issue-186-task-contract-authority-baseline-enfor
+  base: origin/main
+  baseCommit: e1a51c4bba4d2be0cab408859c80b86d0236b866
+  changedFilesBasis: branch-diff
+  pullRequest: "206"
+  subjectHeadCommit: 282480d5f9c90b8a43eeb0e708aa767e3408253a
+  diffHash: sha256:c884bbdd293b40d173997c815dafb60076a33db4c27febfd0de99db148785c2d
+  headCommit: 282480d5f9c90b8a43eeb0e708aa767e3408253a
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRKOFKM3.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRKOFKM3.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/task-contract.md
+  - src/commands/check-diff.ts
+  - src/core/git.ts
+  - src/core/task-authority.ts
+  - tests/integration/check-diff.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c3d177099d91551a992391401a8c316e02bac56e28bbae3c306cce3a861c3533
+    executedAt: "2026-07-14T13:32:14.581Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:384b0e1f48e642f8694e6589e4a9f57d41bdf794163ef61f0752695b84ebc0ce
+    executedAt: "2026-07-14T13:34:10.446Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:d47043d049603f4874753a451a96f56f944c1ce56ae249a45e87677645ee5259
+    executedAt: "2026-07-14T13:34:13.326Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:510045a5a85f37a5fb8144f17754286ae7a189ddf9390522d7a414592b8208c8
+    executedAt: "2026-07-14T13:34:16.160Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added integration regressions for committed and uncommitted self-scope expansion, Human Approval and independent governance provenance, new-task trust roots, shallow repositories, and missing base refs.

@@ -85,12 +85,21 @@ export function mergeBase(root: string, baseRef: string, headRef = "HEAD"): stri
   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
 }
 
-function gitObject(root: string, ref: string, file: string): string | undefined {
+export function gitObject(root: string, ref: string, file: string): string | undefined {
   const result = spawnSync("git", ["show", `${ref}:${file}`], {
     cwd: root,
     encoding: "utf8"
   });
   return result.status === 0 ? result.stdout : undefined;
+}
+
+export function fileIntroductionCommit(root: string, baseRef: string, headRef: string, file: string): string | undefined {
+  const commits = gitLines(root, ["log", "--reverse", "--diff-filter=A", "--format=%H", `${baseRef}..${headRef}`, "--", file], "git log failed");
+  return commits[0];
+}
+
+export function commitChangedFiles(root: string, commit: string): string[] {
+  return gitLines(root, ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit], "git diff-tree failed");
 }
 
 export function baseBranchStatus(root: string, baseRef = "origin/main"): { baseRef: string; baseCommit?: string; mergeBase?: string; headCommit?: string; isBehind: boolean } {

@@ -1,10 +1,11 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-import { branchChangedFiles, currentBranch } from "../core/git.js";
+import { branchChangedFiles, currentBranch, workingTreeChangedFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+import { collectTaskAuthorityIssues } from "../core/task-authority.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
@@ -136,8 +137,13 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   }
   const baseRef = options.baseRef ?? "origin/main";
   let files: string[] = [];
+  let authorityFiles: string[] = [];
   try {
     files = branchChangedFiles(root, baseRef);
+    authorityFiles = Array.from(new Set([
+      ...files,
+      ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
+    ]));
   } catch (error) {
     const baseIssues = [{
       severity: "error",
@@ -152,6 +158,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   const diffIssues = withDefaultFixCommand([
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task),
+    ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
     ...collectDiffIssues(root, task, files)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
 
