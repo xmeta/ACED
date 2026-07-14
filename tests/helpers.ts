@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -6,8 +6,7 @@ import type { ApprovalRecord, Evidence, SpecChangeProposal, SpecContract, TaskCo
 import { stringifySimpleYaml } from "../src/core/yaml.js";
 
 export function makeTempRepo(): string {
-  const root = path.join(tmpdir(), `scwbs-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  mkdirSync(root, { recursive: true });
+  const root = mkdtempSync(path.join(tmpdir(), "scwbs-"));
   execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
   execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: root });
   execFileSync("git", ["config", "user.name", "Test"], { cwd: root });

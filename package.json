@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration --maxWorkers=1 --testTimeout=10000",
+    "test:integration": "node scripts/integration-test-run.mjs",
     "test:wjs": "npm test -w wjs",
     "test:all": "npm run test && npm run test:integration && npm run test:wjs",
     "scwbs": "node scripts/scwbs-run.mjs"
