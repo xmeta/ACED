@@ -1,0 +1,55 @@
+id: EVD-SCWBS-DRAFT-MRKH9ITY
+type: evidence
+taskId: SCWBS-DRAFT-MRKH9ITY
+commit: 7df1743e17cf84328a7040b61c0f8868662a5e47
+subjectHeadCommit: 7df1743e17cf84328a7040b61c0f8868662a5e47
+diffHash: sha256:b40de0773a5cc68c92865a455f988b04143a07e4bd9ce2a333d17cdb7d350966
+git:
+  branch: task/SCWBS-DRAFT-MRKH9ITY-issue-190-integration-suite
+  base: origin/main
+  baseCommit: 62d8c95ef082b96f0baae23281f1912babf66a19
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 7df1743e17cf84328a7040b61c0f8868662a5e47
+  diffHash: sha256:b40de0773a5cc68c92865a455f988b04143a07e4bd9ce2a333d17cdb7d350966
+  headCommit: 7df1743e17cf84328a7040b61c0f8868662a5e47
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRKH9ITY.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
+  - docs/scwbs/integration-testing.md
+  - package.json
+  - scripts/integration-test-run.mjs
+  - tests/helpers.ts
+  - tests/unit/integration-test-run.test.ts
+  - vitest.config.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c3ee71e8b6df931248155df29883ced253cdccb122d1d186a27c151898149418
+    executedAt: "2026-07-14T10:51:42.647Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:822f12cac5bda6e3fb66f5afac35507d852767afa36d180d4ac29b32c596cad7
+    executedAt: "2026-07-14T10:53:35.598Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:b172beeafe9abfb57613cd9b4b369b3bbb09d745a1a3c735b9d9a9b7bda950fd
+    executedAt: "2026-07-14T10:53:38.277Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:ea3d5166c15c4b98fe939fc0ce1aefad519b3c1eda1bb4164e0cec6f67dbdfc0
+    executedAt: "2026-07-14T10:53:41.128Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added runner regression coverage for fork isolation, worker bounds, no retry, serial classification, and bounded file/test duration summaries
