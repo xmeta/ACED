@@ -10,6 +10,7 @@ import { buildDoctorReport } from "../../src/commands/doctor.js";
 import { readProfile, runProfileSet } from "../../src/commands/profile.js";
 import { buildStatus } from "../../src/commands/status.js";
 import { runFinish } from "../../src/commands/finish.js";
+import { runTaskLock } from "../../src/commands/task-lock.js";
 import { runFix } from "../../src/commands/fix.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
@@ -366,6 +367,7 @@ describe("misc", () => {
       humanGateRequiredPaths: [],
       requiredChecks: ["test"]
     }) as unknown as Record<string, unknown>);
+    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["branch", "base"], { cwd: root });
