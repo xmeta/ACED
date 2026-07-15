@@ -7,6 +7,7 @@ import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
+import { runCiPlan } from "./commands/ci-plan.js";
 import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
@@ -82,6 +83,23 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Check repository contracts")
     .option("--json", "output as JSON")
     .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
+
+  const ci = program.command("ci");
+  ci
+    .command("plan")
+    .description("Plan full or provenance-verified metadata CI")
+    .option("--task <id>", "task id")
+    .option("--branch <name>", "branchName used to discover the task")
+    .option("--base <ref>", "base reference")
+    .option("--json", "output a versioned JSON plan")
+    .action((opts) => {
+      exitCode = runCiPlan(root, {
+        taskId: opts.task,
+        branch: opts.branch,
+        baseRef: opts.base,
+        json: opts.json ?? false
+      });
+    });
 
   program
     .command("fix")

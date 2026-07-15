@@ -1,5 +1,10 @@
 name: scwbs
 
+permissions:
+  contents: read
+  checks: read
+  actions: read
+
 on:
   pull_request:
   push:
@@ -7,7 +12,136 @@ on:
       - main
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.final.outputs.mode }}
+      task_id: ${{ steps.final.outputs.task_id }}
+      subject: ${{ steps.final.outputs.subject }}
+    steps:
+      - name: Checkout exact head with full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Restore branch identity and base reference
+        env:
+          CI_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git switch -C "$CI_BRANCH" HEAD
+          git fetch origin main:refs/remotes/origin/main
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build structural CI plan
+        id: candidate
+        env:
+          CI_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          npm run --silent scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > "$RUNNER_TEMP/ci-plan-candidate.json"
+          node -e 'const p=require(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT, `decision=${p.decision}\ntask_id=${p.taskId ?? ""}\nsubject=${p.subjectHeadCommit ?? ""}\n`)'
+      - name: Verify successful full CI for implementation subject
+        id: subject-checks
+        if: steps.candidate.outputs.decision == 'metadata-candidate'
+        uses: actions/github-script@v7
+        env:
+          SUBJECT: ${{ steps.candidate.outputs.subject }}
+        with:
+          script: |
+            const required = ["core", "integration", "wjs", "validate"];
+            const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+            let selected = [];
+            let workflowRun = null;
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              const runs = await github.paginate(github.rest.checks.listForRef, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: process.env.SUBJECT,
+                per_page: 100
+              });
+              selected = required.map((name) => runs
+                .filter((run) => run.name === name && run.app?.slug === "github-actions")
+                .sort((left, right) => Number(right.id) - Number(left.id))[0])
+                .filter(Boolean);
+              const runIds = new Set(selected.map((run) => /\/actions\/runs\/(\d+)/.exec(run.details_url ?? "")?.[1]).filter(Boolean));
+              if (selected.length === required.length && runIds.size === 1) {
+                const runId = Number([...runIds][0]);
+                workflowRun = (await github.rest.actions.getWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                })).data;
+              }
+              const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
+                && workflowRun?.head_sha === process.env.SUBJECT
+                && workflowRun?.conclusion === "success";
+              if (trustedRun && selected.every((run) => run.conclusion === "success")) break;
+              if (selected.length === required.length && selected.every((run) => run.status === "completed")) break;
+              if (attempt < 11) await sleep(10000);
+            }
+            const eligible = selected.length === required.length
+              && selected.every((run) => run.conclusion === "success")
+              && workflowRun?.path === ".github/workflows/scwbs.yml"
+              && workflowRun?.head_sha === process.env.SUBJECT
+              && workflowRun?.conclusion === "success";
+            core.setOutput("eligible", String(eligible));
+            core.setOutput("checks", JSON.stringify(selected.map((run) => ({
+              id: run.id,
+              name: run.name,
+              conclusion: run.conclusion,
+              detailsUrl: run.details_url,
+              workflowRunId: workflowRun?.id ?? null,
+              workflowPath: workflowRun?.path ?? null
+            }))));
+      - name: Finalize auditable CI plan
+        id: final
+        env:
+          SUBJECT_CHECKS_ELIGIBLE: ${{ steps.subject-checks.outputs.eligible }}
+          SUBJECT_CHECKS_JSON: ${{ steps.subject-checks.outputs.checks }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const candidate = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`, "utf8"));
+          const verified = candidate.decision === "metadata-candidate"
+            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true";
+          const plan = {
+            ...candidate,
+            mode: verified ? "metadata-fast-path" : "full",
+            subjectFullChecks: process.env.SUBJECT_CHECKS_JSON
+              ? JSON.parse(process.env.SUBJECT_CHECKS_JSON)
+              : [],
+            reasons: candidate.decision === "metadata-candidate" && !verified
+              ? [...candidate.reasons, {
+                  code: "ci.subjectChecks.unverified",
+                  message: "The implementation subject has no verified successful core, integration, wjs, and validate check set"
+                }]
+              : candidate.reasons
+          };
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\n`);
+          process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+          NODE
+      - name: Validate schemas and check coverage on metadata fast path
+        if: steps.final.outputs.mode == 'metadata-fast-path'
+        run: npm run scwbs -- check
+      - name: Validate governed diff on metadata fast path
+        if: steps.final.outputs.mode == 'metadata-fast-path'
+        env:
+          TASK_ID: ${{ steps.final.outputs.task_id }}
+        run: npm run scwbs -- check-diff --task "$TASK_ID" --base origin/main
+      - name: Validate registry consistency on metadata fast path
+        if: steps.final.outputs.mode == 'metadata-fast-path'
+        run: npm run scwbs -- registry rebuild --check
+
   core:
+    needs: plan
+    if: always() && needs.plan.outputs.mode == 'full'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -37,6 +171,8 @@ jobs:
         run: npm run scwbs -- registry rebuild --check
 
   integration:
+    needs: plan
+    if: always() && needs.plan.outputs.mode == 'full'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -54,6 +190,8 @@ jobs:
         run: npm run test:integration
 
   wjs:
+    needs: plan
+    if: always() && needs.plan.outputs.mode == 'full'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -73,6 +211,7 @@ jobs:
   validate:
     if: ${{ always() }}
     needs:
+      - plan
       - core
       - integration
       - wjs
@@ -80,10 +219,20 @@ jobs:
     steps:
       - name: Require all validation jobs
         env:
+          MODE: ${{ needs.plan.outputs.mode }}
+          PLAN_RESULT: ${{ needs.plan.result }}
           CORE_RESULT: ${{ needs.core.result }}
           INTEGRATION_RESULT: ${{ needs.integration.result }}
           WJS_RESULT: ${{ needs.wjs.result }}
         run: |
-          test "$CORE_RESULT" = "success"
-          test "$INTEGRATION_RESULT" = "success"
-          test "$WJS_RESULT" = "success"
+          test "$PLAN_RESULT" = "success"
+          if test "$MODE" = "metadata-fast-path"; then
+            test "$CORE_RESULT" = "skipped"
+            test "$INTEGRATION_RESULT" = "skipped"
+            test "$WJS_RESULT" = "skipped"
+          else
+            test "$MODE" = "full"
+            test "$CORE_RESULT" = "success"
+            test "$INTEGRATION_RESULT" = "success"
+            test "$WJS_RESULT" = "success"
+          fi

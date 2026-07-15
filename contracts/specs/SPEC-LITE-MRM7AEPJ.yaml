@@ -1,0 +1,18 @@
+id: SPEC-LITE-MRM7AEPJ
+type: spec-contract
+featureId: F-MRM7AEPJ
+title: "Issue #203: provenance検証付きmetadata-only CI fast path"
+status: approved
+version: 0.1.0
+summary: "固定されたimplementation subjectと現在HEAD間のprovenanceをfail-closedで検証し、安全なmetadata descendantだけ重いCI jobを省略する"
+approvedBy: user-requested-issue-203
+approvedAt: "2026-07-15T23:55:00+09:00"
+acceptanceCriteria:
+  - Evidenceのimplementation subject、diffHash、subjectからHEADまでのcommit ancestryを検証する
+  - Evidence、Approval、Review、Registryだけのmetadata descendantをfast path候補にする
+  - trusted Task Contract authority baseline、record schema、check-diff、registry consistency、check-coverage分類を維持する
+  - 未分類path、shallow history、merge-base不明、provenance不明では軽量化せずfull CIへfallbackする
+  - package、lockfile、submodule、workflow、implementation、tests、Task authority変更ではfull CIを実行する
+  - aggregate validateはfull CIとmetadata fast pathの両方を集約するrequired checkとして残す
+  - 判定mode、subject、metadata files、選択理由、fallback理由をversioned JSONで出力する
+  - metadata-only、偽metadata、scope改ざん、implementation変更を回帰テストする
