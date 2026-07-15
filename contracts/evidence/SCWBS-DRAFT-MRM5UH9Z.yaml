@@ -1,0 +1,51 @@
+id: EVD-SCWBS-DRAFT-MRM5UH9Z
+type: evidence
+taskId: SCWBS-DRAFT-MRM5UH9Z
+commit: 1fecdc5ad6aba9b045b911b92b9e99e256736138
+subjectHeadCommit: 1fecdc5ad6aba9b045b911b92b9e99e256736138
+diffHash: sha256:044d9a3b2e60035ff7aa49ac34c720066b4ef77b1a6398895e191540d9f6dd3a
+git:
+  branch: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
+  base: origin/main
+  baseCommit: 5e9708f29977769605ad73c016104adeefc6fe25
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 1fecdc5ad6aba9b045b911b92b9e99e256736138
+  diffHash: sha256:044d9a3b2e60035ff7aa49ac34c720066b4ef77b1a6398895e191540d9f6dd3a
+  headCommit: 1fecdc5ad6aba9b045b911b92b9e99e256736138
+changedFiles:
+  - contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/evidence-collect.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:a6c9425aba7e1bf237123489832e3b96f6f2db9e573cc376c23743777ac89a24
+    executedAt: "2026-07-15T14:19:45.700Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1a6e8f580d6f8d78011f3a56d212158c7e40f12477abeaf8afd43783337fae7b
+    executedAt: "2026-07-15T14:23:43.059Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7799868b938ab1453deecb5cf846f061e8c944af61977aaa7e972b0c52a8e740
+    executedAt: "2026-07-15T14:23:46.053Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b498c1d7e8ee6f611db9c897cb814e11f45b3a679fa032bdee788804fa4944f3
+    executedAt: "2026-07-15T14:23:48.952Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Issue #211のEvidence subject固定点と実装差分変更時の更新を回帰テストで検証'
