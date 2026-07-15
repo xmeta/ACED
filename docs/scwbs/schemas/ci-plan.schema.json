@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scwbs/ci-plan.schema.json",
+  "title": "SC-WBS CI plan",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "decision",
+    "taskId",
+    "baseRef",
+    "baseCommit",
+    "headCommit",
+    "subjectHeadCommit",
+    "diffHash",
+    "metadataFiles",
+    "changedFilesSinceSubject",
+    "reasons"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "decision": { "enum": ["full", "metadata-candidate"] },
+    "mode": { "enum": ["full", "metadata-fast-path"] },
+    "taskId": { "type": ["string", "null"] },
+    "baseRef": { "type": "string" },
+    "baseCommit": { "type": ["string", "null"] },
+    "headCommit": { "type": ["string", "null"] },
+    "subjectHeadCommit": { "type": ["string", "null"] },
+    "diffHash": { "type": ["string", "null"] },
+    "metadataFiles": { "type": "array", "items": { "type": "string" } },
+    "changedFilesSinceSubject": { "type": "array", "items": { "type": "string" } },
+    "subjectFullChecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "conclusion", "detailsUrl", "workflowRunId", "workflowPath"],
+        "properties": {
+          "id": { "type": "number" },
+          "name": { "type": "string" },
+          "conclusion": { "type": ["string", "null"] },
+          "detailsUrl": { "type": "string" },
+          "workflowRunId": { "type": ["number", "null"] },
+          "workflowPath": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
