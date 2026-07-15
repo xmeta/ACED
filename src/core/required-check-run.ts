@@ -12,6 +12,8 @@ export type RequiredCheckRunState = {
   checkIndex?: number;
   checkTotal?: number;
   checkStartedAt?: string;
+  mode?: string;
+  workers?: number;
 };
 
 export type RequiredCheckRunLease = {
@@ -70,7 +72,17 @@ function activeRunMessage(state: RequiredCheckRunState | undefined): string {
   const current = state.check
     ? ` check=${state.checkIndex ?? "?"}/${state.checkTotal ?? "?"}:${state.check}`
     : "";
-  return `required checks already active task=${state.taskId}${current} pid=${state.pid} startedAt=${state.startedAt} elapsed=${elapsed}s`;
+  const mode = state.mode ? ` mode=${state.mode}` : "";
+  const workers = state.workers ? ` workers=${state.workers}` : "";
+  return `required checks already active task=${state.taskId}${current} pid=${state.pid} startedAt=${state.startedAt}${mode}${workers} elapsed=${elapsed}s`;
+}
+
+export function requiredCheckChildEnv(lease: RequiredCheckRunLease): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    SCWBS_REQUIRED_CHECK_RUN_ID: lease.state.runId,
+    SCWBS_REQUIRED_CHECK_LOCK_PATH: lease.lockPath
+  };
 }
 
 export function acquireRequiredCheckRun(root: string, taskId: string, checkTotal: number): RequiredCheckRunLease {

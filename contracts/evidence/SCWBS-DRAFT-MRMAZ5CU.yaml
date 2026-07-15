@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRMAZ5CU
+type: evidence
+taskId: SCWBS-DRAFT-MRMAZ5CU
+commit: ba56e8cc8784f171ddce6613fc79dc118ef9f8c0
+subjectHeadCommit: ba56e8cc8784f171ddce6613fc79dc118ef9f8c0
+diffHash: sha256:056ac4502399fbde9b9e70e1d0e50473b4a8c591bcef3c2329da3b44bb0229ef
+git:
+  branch: task/SCWBS-DRAFT-MRMAZ5CU-issue-200-direct-integration-single-flight
+  base: origin/main
+  baseCommit: 721d4832986f6c13892a72d7e22b0e4437cbc18a
+  changedFilesBasis: branch-diff
+  pullRequest: "218"
+  subjectHeadCommit: ba56e8cc8784f171ddce6613fc79dc118ef9f8c0
+  diffHash: sha256:056ac4502399fbde9b9e70e1d0e50473b4a8c591bcef3c2329da3b44bb0229ef
+  headCommit: ba56e8cc8784f171ddce6613fc79dc118ef9f8c0
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRMAZ5CU.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - scripts/integration-single-flight.mjs
+  - scripts/integration-test-output.mjs
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/core/required-check-run.ts
+  - tests/integration/evidence.test.ts
+  - tests/unit/integration-test-output.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:4f95428a7ae2ce1782be8c9866bb8407d65cc3da1840de678cda2a4ff0a2243e
+    executedAt: "2026-07-15T16:47:38.884Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:177bf9bae20c353262704b8617ae653a639ac44da5c7ebdef285606b0bed828c
+    executedAt: "2026-07-15T16:51:04.194Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5383ec9a4acb2732009dd852c0e8c3877cd931032b3a1ecf197e260614471367
+    executedAt: "2026-07-15T16:51:07.169Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:bd74af4c574f94fc9347c46b55f374d688802551c095aea3b293f05eb3bad54c
+    executedAt: "2026-07-15T16:51:10.144Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - direct/inherited lock, duplicate refusal, wait, stale recovery, and failure cleanup regression coverage

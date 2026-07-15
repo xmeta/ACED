@@ -1,0 +1,19 @@
+id: SPEC-LITE-MRMAZ5CU
+type: spec-contract
+featureId: F-MRMAZ5CU
+title: "Issue #200: 直接integration実行のrepository-level single-flight"
+status: approved
+version: 0.1.0
+summary: "直接integration runnerとSC-WBS required checksで同じrepository-level lockを共有し、高コストsuiteの重複実行と競合timeoutを防ぐ"
+approvedBy: user-requested-issue-200
+approvedAt: "2026-07-16T00:00:00+09:00"
+acceptanceCriteria:
+  - 直接test:integrationを同時起動してもsuiteを重複実行しない
+  - finish実行中のintegrationと直接実行が同じlockで競合を検出する
+  - verboseとdefault modeが同じ排他を使う
+  - active PID、開始時刻、mode、worker数、経過時間をbounded表示する
+  - stale lockをPID検証付きで安全に回復する
+  - 正常終了、failure、signal interruptionで所有中のlockだけを解放する
+  - JSON reportとstdoutの既存互換性を壊さない
+  - fake integration actionで重複、継承、stale lock、failure cleanupを回帰検証する
+  - raw Vitest直接起動が排他を迂回できる保証限界を文書化する

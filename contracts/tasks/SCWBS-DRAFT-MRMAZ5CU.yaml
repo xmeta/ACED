@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MRMAZ5CU
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRMAZ5CU
+branchName: task/SCWBS-DRAFT-MRMAZ5CU-issue-200-direct-integration-single-flight
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRMAZ5CU.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRMAZ5CU.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRMAZ5CU.yaml
+allowedPaths:
+  - scripts/integration-test-output.mjs
+  - scripts/integration-single-flight.mjs
+  - src/core/required-check-run.ts
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - tests/unit/integration-test-output.test.ts
+  - tests/integration/evidence.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - workflow change required
+  - shared lock cannot preserve required-check ownership
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 直接test:integrationとtest:integration:verboseはrepository単位のrequired-check lockを共有し、同時起動でsuiteを重複実行しない
+  - finish、evidence collect、checks run配下のintegrationは親required-check leaseを検証して継承し、直接実行との競合を同じlockで検出する
+  - active PID、開始時刻、mode、worker数、経過時間をbounded outputで表示する
+  - PIDが存在しないstale lockを安全に回復し、正常終了、failure、signal interruptionで所有中のlockだけを解放する
+  - default、verbose、JSON reportの既存stdout互換性を維持する
+  - fake integration actionで重複、継承、stale lock、failure cleanupの回帰テストを追加する
+  - raw Vitest直接起動は排他を迂回できる保証限界を文書化する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:65e0b6e2426bf185f7940a52c673fbad9a2a8f6ef6c73a547442022aff957968
+  createdAt: "2026-07-15T16:43:48.042Z"
