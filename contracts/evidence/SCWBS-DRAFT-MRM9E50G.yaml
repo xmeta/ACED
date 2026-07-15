@@ -9,12 +9,13 @@ git:
   base: origin/main
   baseCommit: 58e8c0a28c65d053a75ab063e41ecc16adbb2b6a
   changedFilesBasis: branch-diff
-  pullRequest: "#217"
+  pullRequest: "217"
   subjectHeadCommit: c7da9ab0686ac80578fae3fd6c86a903405e5531
   diffHash: sha256:ed11ea96b33d9b33f2609f508e6e0ccbfa703831f9aeab4a993c08a9b202f3a2
   headCommit: c7da9ab0686ac80578fae3fd6c86a903405e5531
 changedFiles:
   - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM9E50G.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MRM9E50G.yaml
   - contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
@@ -52,3 +53,9 @@ checks:
     command: npm run build
     cacheKey: sha256:13e9007da6cdb59941df8237b12c1e5652510f4df9d384d7acef955485584f0a
     executedAt: "2026-07-15T16:23:40.682Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added receipt reuse, invalidation, failure, raw npm, and submodule regression coverage
