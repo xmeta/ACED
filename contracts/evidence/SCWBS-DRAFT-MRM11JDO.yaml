@@ -1,0 +1,51 @@
+id: EVD-SCWBS-DRAFT-MRM11JDO
+type: evidence
+taskId: SCWBS-DRAFT-MRM11JDO
+commit: fc917ad58bda058c59eb29a1c2ce442b59859e6c
+subjectHeadCommit: fc917ad58bda058c59eb29a1c2ce442b59859e6c
+diffHash: sha256:7a96ed4bf6cd12c290af7c5c53b5ee0e087aa3141e7f386716aa39fb6aedd481
+git:
+  branch: task/SCWBS-DRAFT-MRM11JDO-issue-204-finish-nextaction-pr-metadata-pr
+  base: origin/main
+  baseCommit: f3b91a8cefb214c373d11356ac139bf36ca28b90
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: fc917ad58bda058c59eb29a1c2ce442b59859e6c
+  diffHash: sha256:7a96ed4bf6cd12c290af7c5c53b5ee0e087aa3141e7f386716aa39fb6aedd481
+  headCommit: fc917ad58bda058c59eb29a1c2ce442b59859e6c
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:38b304184a14f945522f45fd93b937f10e4469739229ff09aeebfe8d6c98d70f
+    executedAt: "2026-07-15T12:21:44.630Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:50334597befe955c8da3b9bbc4e6df3050caaae6eeec10db2c5096dd960bf1ef
+    executedAt: "2026-07-15T12:25:55.756Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e7845816eb7763bd29683b5385ece2618770995e08c7b22ccc993e4dd4541b3a
+    executedAt: "2026-07-15T12:25:58.678Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:2b63860d321b2520a5b244fd662231190644d93eb9a6355b7cab6471125d21b7
+    executedAt: "2026-07-15T12:26:01.813Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - PR metadata normalization, PR state branches, safe fallback, and plain/JSON parity covered by integration tests
