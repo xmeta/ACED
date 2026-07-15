@@ -15,7 +15,7 @@ import { runFix } from "../../src/commands/fix.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
 import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
-import { readBlock, readEvidence, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { readBlock, readSpecChange, readTask } from "../../src/core/contracts.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
 import { validateWbsDocument } from "../../src/core/wbs.js";
 import { resolveCheckCommand, isKnownCheck } from "../../src/core/check-catalog.js";
@@ -353,7 +353,7 @@ describe("misc", () => {
     expect(main(["finish"], root)).toBe(2);
   });
 
-  test("finish stops after required check failures", () => {
+  test("finish stops after required check failures without replacing the existing checkpoint", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeJson(root, "package.json", {
@@ -374,10 +374,14 @@ describe("misc", () => {
     writeText(root, "src/feature.ts", "export const value = 1;\n");
     execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+    const evidencePath = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryPath = path.join(root, "contracts/registry.yaml");
+    const previousRegistry = readFileSync(registryPath, "utf8");
+    expect(existsSync(evidencePath)).toBe(false);
 
     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
-    const { evidence } = readEvidence(root, "WBS-001-004");
-    expect(evidence?.checks[0]).toMatchObject({ name: "test", status: "failed" });
+    expect(existsSync(evidencePath)).toBe(false);
+    expect(readFileSync(registryPath, "utf8")).toBe(previousRegistry);
   }, 30000);
 
   test("doctor reports suggested fixes for stale contracts", () => {

@@ -1,12 +1,28 @@
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
+import { buildHumanApprovalCommand, runFinish, writeFilesAtomically } from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
 import { runTaskLock } from "../../src/commands/task-lock.js";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+
+function gitStatus(root: string): string {
+  return execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
+}
+
+function captureFinishJson(root: string, options: Parameters<typeof runFinish>[1]): { exitCode: number; json: Record<string, unknown> } {
+  const output: string[] = [];
+  const originalLog = console.log;
+  console.log = (message?: unknown) => output.push(String(message));
+  try {
+    const exitCode = runFinish(root, { ...options, json: true });
+    return { exitCode, json: JSON.parse(output[output.length - 1]) };
+  } finally {
+    console.log = originalLog;
+  }
+}
 
 function prepareFinishRepoWithHumanGate(): string {
   const root = makeTempRepo();
@@ -211,6 +227,8 @@ describe("finish", () => {
     expect(json).toMatchObject({
       schemaVersion: "1.0.0",
       status: "pass",
+      phase: "complete",
+      outcome: "completed",
       taskId: "WBS-001-004",
       requiresHumanApproval: expect.any(Boolean),
       changedFiles: expect.any(Array),
@@ -219,6 +237,8 @@ describe("finish", () => {
       evidencePath: expect.any(String),
       approvalStatus: expect.any(String),
       nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      resumeCommand: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      mutatedFiles: expect.any(Array),
       readinessWarnings: [],
       fixCommands: []
     });
@@ -349,6 +369,138 @@ describe("finish", () => {
     expect(stderr.join("\n")).toContain("actionable stderr detail");
   }, 30000);
 
+  test("failed required checks preserve the previous Evidence and Registry checkpoint", () => {
+    const root = prepareFinishRepo();
+    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    const previousEvidence = readFileSync(evidenceFile, "utf8");
+    const previousRegistry = readFileSync(registryFile, "utf8");
+    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure failed check"], { cwd: root, stdio: "ignore" });
+    const beforeStatus = gitStatus(root);
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      phase: "required-checks",
+      outcome: "required-check-failed",
+      mutatedFiles: [],
+      resumeCommand: "npm run scwbs -- finish --task WBS-001-004"
+    });
+    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
+    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
+    expect(gitStatus(root)).toBe(beforeStatus);
+  }, 30000);
+
+  test("check-diff violations do not persist a candidate Evidence or partial Registry", () => {
+    const root = prepareFinishRepo();
+    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    const previousEvidence = readFileSync(evidenceFile, "utf8");
+    const previousRegistry = readFileSync(registryFile, "utf8");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      branchName: "master",
+      allowedPaths: ["docs/**", "contracts/**"],
+      humanGateRequiredPaths: [],
+      requiredChecks: ["test"]
+    }) as unknown as Record<string, unknown>);
+    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+    execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "restrict task scope"], { cwd: root, stdio: "ignore" });
+    const beforeStatus = gitStatus(root);
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({ phase: "validation", outcome: "validation-failed", mutatedFiles: [] });
+    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
+    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
+    expect(gitStatus(root)).toBe(beforeStatus);
+  }, 30000);
+
+  test("finish --preflight is read-only and does not execute required checks", () => {
+    const root = prepareFinishRepo();
+    const marker = path.join(root, "preflight-check-ran");
+    writeJson(root, "package.json", {
+      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+    });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure preflight marker"], { cwd: root, stdio: "ignore" });
+    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    const beforeEvidence = readFileSync(evidenceFile, "utf8");
+    const beforeRegistry = readFileSync(registryFile, "utf8");
+    const beforeStatus = gitStatus(root);
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base", preflight: true });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.json).toMatchObject({ phase: "preflight", outcome: "ready", mutatedFiles: [] });
+    expect(existsSync(marker)).toBe(false);
+    expect(readFileSync(evidenceFile, "utf8")).toBe(beforeEvidence);
+    expect(readFileSync(registryFile, "utf8")).toBe(beforeRegistry);
+    expect(gitStatus(root)).toBe(beforeStatus);
+  });
+
+  test("an interrupted Evidence and Registry checkpoint rolls both files back", () => {
+    const root = prepareFinishRepo();
+    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    writeText(root, "contracts/registry.yaml", `${readFileSync(registryFile, "utf8")}# stale registry marker\n`);
+    const beforeEvidence = readFileSync(evidenceFile, "utf8");
+    const beforeRegistry = readFileSync(registryFile, "utf8");
+    const beforeStatus = gitStatus(root);
+
+    const result = captureFinishJson(root, {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      checkpointWriter: (files) => writeFilesAtomically(files, {
+        beforeCommit: (index) => {
+          if (index === 1) throw new Error("simulated interruption before registry replace");
+        }
+      })
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({ phase: "checkpoint", outcome: "checkpoint-failed", mutatedFiles: [] });
+    expect(readFileSync(evidenceFile, "utf8")).toBe(beforeEvidence);
+    expect(readFileSync(registryFile, "utf8")).toBe(beforeRegistry);
+    expect(gitStatus(root)).toBe(beforeStatus);
+  }, 30000);
+
+  test("the next finish recovers a checkpoint journal left by a simulated process crash", () => {
+    const root = prepareFinishRepo();
+    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(8)\"" } });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure post-crash failed check"], { cwd: root, stdio: "ignore" });
+    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    const previousEvidence = readFileSync(evidenceFile, "utf8");
+    const previousRegistry = readFileSync(registryFile, "utf8");
+    const commonDirValue = execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).trim();
+    const commonDir = path.isAbsolute(commonDirValue) ? commonDirValue : path.resolve(root, commonDirValue);
+    const journalFile = path.join(commonDir, "scwbs-finish-WBS-001-004.journal.json");
+    writeText(root, path.relative(root, journalFile), `${JSON.stringify({
+      schemaVersion: "1.0.0",
+      files: [
+        { path: evidenceFile, existed: true, previous: previousEvidence },
+        { path: registryFile, existed: true, previous: previousRegistry }
+      ]
+    })}\n`);
+    writeText(root, "contracts/evidence/WBS-001-004.yaml", "interrupted evidence\n");
+    writeText(root, "contracts/registry.yaml", "interrupted registry\n");
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({ phase: "required-checks", outcome: "required-check-failed", mutatedFiles: [] });
+    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
+    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
+    expect(existsSync(journalFile)).toBe(false);
+  }, 30000);
+
   test("a first finish creates Evidence and synchronizes registry before blocking on missing PR metadata", () => {
     const root = prepareFinishRepo();
     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
@@ -381,6 +533,30 @@ describe("finish", () => {
     expect(text).toContain(buildHumanApprovalCommand("WBS-001-004"));
     expect(text).toContain("AI agents must stop here.");
     expect(text).toContain("Do not approve this task yourself.");
+  }, 30000);
+
+  test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
+    const root = prepareFinishRepoWithHumanGate();
+    const registryFile = path.join(root, "contracts/registry.yaml");
+    writeText(root, "contracts/registry.yaml", `${readFileSync(registryFile, "utf8")}# stale registry marker\n`);
+    const beforeEvidence = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8");
+    const beforeRegistry = readFileSync(registryFile, "utf8");
+    const beforeStatus = gitStatus(root);
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      phase: "checkpoint",
+      outcome: "awaiting-human-approval",
+      requiresHumanApproval: true,
+      mutatedFiles: ["contracts/evidence/WBS-001-004.yaml", "contracts/registry.yaml"],
+      resumeCommand: buildHumanApprovalCommand("WBS-001-004")
+    });
+    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
+    expect(readFileSync(registryFile, "utf8")).not.toBe(beforeRegistry);
+    expect(gitStatus(root)).toBe(beforeStatus);
   }, 30000);
 
   test("finish synchronizes Approval status and can force valid checks to rerun", () => {

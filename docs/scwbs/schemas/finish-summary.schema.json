@@ -6,6 +6,8 @@
   "required": [
     "schemaVersion",
     "status",
+    "phase",
+    "outcome",
     "taskId",
     "requiresHumanApproval",
     "changedFiles",
@@ -14,12 +16,16 @@
     "evidencePath",
     "approvalStatus",
     "nextAction",
+    "resumeCommand",
+    "mutatedFiles",
     "readinessWarnings",
     "fixCommands"
   ],
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "status": { "enum": ["pass", "blocked"] },
+    "phase": { "enum": ["preflight", "required-checks", "validation", "checkpoint", "readiness", "complete"] },
+    "outcome": { "enum": ["ready", "readiness-blocked", "required-check-failed", "validation-failed", "awaiting-human-approval", "checkpoint-failed", "completed"] },
     "taskId": { "type": "string" },
     "requiresHumanApproval": { "type": "boolean" },
     "changedFiles": { "type": "array", "items": { "type": "string" } },
@@ -28,6 +34,8 @@
     "evidencePath": { "type": "string" },
     "approvalStatus": { "type": "string" },
     "nextAction": { "type": "string" },
+    "resumeCommand": { "type": "string" },
+    "mutatedFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "humanGateFiles": { "type": "array", "items": { "type": "string" } },
     "diffHash": { "type": "string" },
     "readinessWarnings": {

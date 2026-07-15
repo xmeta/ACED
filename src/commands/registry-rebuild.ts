@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
-import { defaultRegistryPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
+import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
+import type { Evidence } from "../core/types.js";
 
 export type RegistryRebuildOptions = {
   check: boolean;
@@ -68,7 +69,7 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
   if (options.verbose) process.stdout.write(yaml);
 }
 
-export function buildRegistryYaml(root: string): string {
+export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
   const contracts: Record<string, unknown>[] = [];
   for (const { spec, path } of listSpecs(root)) {
@@ -83,9 +84,20 @@ export function buildRegistryYaml(root: string): string {
     if (!task) continue;
     contracts.push({ id: `TASK-${task.id}`, type: "task", path, featureId: task.featureId });
   }
-  for (const { evidence, path } of listEvidence(root)) {
+  let candidateEvidenceIncluded = false;
+  for (const { evidence: storedEvidence, path } of listEvidence(root)) {
+    const evidence = options.evidence?.taskId === storedEvidence?.taskId ? options.evidence : storedEvidence;
     if (!evidence) continue;
+    if (evidence === options.evidence) candidateEvidenceIncluded = true;
     contracts.push({ id: evidence.id, type: "evidence", path, relatedTask: evidence.taskId });
+  }
+  if (options.evidence && !candidateEvidenceIncluded) {
+    contracts.push({
+      id: options.evidence.id,
+      type: "evidence",
+      path: evidencePath(options.evidence.taskId),
+      relatedTask: options.evidence.taskId
+    });
   }
   for (const { approval, path } of listApprovals(root)) {
     if (!approval) continue;

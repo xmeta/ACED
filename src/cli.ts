@@ -144,6 +144,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
     .option("--rerun-checks", "rerun required checks even when cached results are valid")
+    .option("--preflight", "validate finish readiness without running checks or writing files")
     .option("--test-assertions-added <bool>", "test assertions added")
     .option("--tests-disabled <bool>", "tests disabled")
     .option("--coverage-decreased <bool>", "coverage decreased")
@@ -157,6 +158,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         force: true,
         json: opts.json ?? false,
         rerunChecks: opts.rerunChecks ?? false,
+        preflight: opts.preflight ?? false,
         testQuality: parseTestQuality(opts)
       });
     });
