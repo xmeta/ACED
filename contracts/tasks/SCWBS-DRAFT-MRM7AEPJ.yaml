@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MRM7AEPJ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRM7AEPJ
+branchName: task/SCWBS-DRAFT-MRM7AEPJ-issue-203-provenance-verified-metadata-only-ci-f
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRM7AEPJ.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRM7AEPJ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRM7AEPJ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM7AEPJ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM7AEPJ.yaml
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - src/core/ci-plan.ts
+  - src/core/git.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+  - tests/integration/ci-plan.test.ts
+  - docs/scwbs/schemas/ci-plan.schema.json
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - submodule change required
+  - breaking Evidence Review Approval or Registry schema change required
+  - metadata fast path cannot fail closed
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - implementation subjectのdiffHashと現在HEADまでのancestryを検証し、許可済みmetadata descendantだけをfast path候補にする
+  - Task Contract authority baseline、schema、check-diff、registry consistency、check-coverage分類をfast pathでも検証する
+  - 未分類path、shallow history、merge-base不明、Evidence provenance不整合はfail-closedでfull CIへfallbackする
+  - package、lockfile、submodule、workflow、implementation、tests、Task authority変更ではfull core integration wjsを維持する
+  - aggregate validate required checkを維持し、fast path選択理由とfallback理由をversioned JSONで監査できる
+  - metadata-only、偽metadata、scope改ざん、implementation変更の回帰テストを追加する
+  - 同一implementation subject後のmetadata-only full CI追加実行を3回から0回へ削減できる
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:5b47e83409d3b453ec1ae5ce3a30a99d8b1b993660d7fbbbc7aead48ebb8b98a
+  createdAt: "2026-07-15T14:54:24.528Z"
