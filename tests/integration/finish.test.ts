@@ -161,6 +161,8 @@ describe("finish", () => {
       "  pending: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }] },",
       "  failure: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'FAILURE' }] },",
       "  success: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }, { state: 'SUCCESS' }] },",
+      "  'closed-success': { isDraft: false, state: 'CLOSED', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }] },",
+      "  'closed-empty': { isDraft: false, state: 'CLOSED', statusCheckRollup: [] },",
       "  merged: { isDraft: false, state: 'MERGED', statusCheckRollup: [] }",
       "};",
       "process.stdout.write(JSON.stringify(views[scenario]));"
@@ -175,6 +177,8 @@ describe("finish", () => {
         ["pending", "checks-pending"],
         ["failure", "checks-failure"],
         ["success", "checks-success"],
+        ["closed-success", "closed"],
+        ["closed-empty", "closed"],
         ["merged", "merged"],
         ["unavailable", "unavailable"]
       ] as const) {
@@ -330,6 +334,7 @@ describe("finish", () => {
     ["checks-pending", "gh pr checks 42 --watch"],
     ["checks-failure", "gh pr checks 42"],
     ["checks-success", "gh pr merge 42 --squash --delete-branch"],
+    ["closed", "gh pr reopen 42"],
     ["merged", "git switch main && git pull --ff-only origin main"],
     ["unavailable", "gh pr checks 42 --watch"]
   ] as const)("finish maps PR state %s to the existing PR next action", (state, expected) => {
@@ -403,7 +408,7 @@ describe("finish", () => {
     const jsonResult = captureFinishJson(jsonRoot, {
       taskId: "WBS-001-004",
       baseRef: "base",
-      pullRequestStateResolver: () => "draft"
+      pullRequestStateResolver: () => "closed"
     });
     const plainRoot = prepareFinishRepo(true);
     const output: string[] = [];
@@ -413,7 +418,7 @@ describe("finish", () => {
       expect(runFinish(plainRoot, {
         taskId: "WBS-001-004",
         baseRef: "base",
-        pullRequestStateResolver: () => "draft"
+        pullRequestStateResolver: () => "closed"
       })).toBe(0);
     } finally {
       console.log = originalLog;

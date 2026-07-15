@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRM46Z18
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRM46Z18
+branchName: task/SCWBS-DRAFT-MRM46Z18-issue-210-finish-merge-closed-pr
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRM46Z18.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRM46Z18.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRM46Z18.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM46Z18.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM46Z18.yaml
+allowedPaths:
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 未mergeのCLOSED PRをdraft、checks状態、mergedとは別の状態として扱う
+  - CLOSED PRではmergeやchecks watchを案内せず、reopenまたはPR metadata修正を案内する
+  - GitHub state取得不可時はrepository-local PR番号を使うfallbackを維持する
+  - plainとJSONのfinish outputが同じnext actionを返す
+  - CLOSED PRのchecks successおよびchecksなしを回帰テストで固定する
+stopIf:
+  - package.json、package-lock.json、.github配下、wjs配下の変更が必要
+  - PR reopenやGitHub repository設定の変更が必要
+  - EvidenceまたはReviewのPR metadataを自動修正する必要がある
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:c3bfab90c09971a6f657d0b87205bfb39a3f35feff2555cbb191a4e0040547fa
+  createdAt: "2026-07-15T13:42:01.969Z"

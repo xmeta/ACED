@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRM46Z18
+type: spec-contract
+featureId: F-MRM46Z18
+title: "Issue #210: finishで未mergeのCLOSED PRを明示的に停止・案内する"
+status: approved
+version: 0.1.0
+summary: "Issue #210: finishで未mergeのCLOSED PRを明示的に停止・案内する"
+approvedBy: user-requested-issue-210
+approvedAt: "2026-07-15T22:32:06+09:00"
+acceptanceCriteria:
+  - 未mergeのCLOSED PRを独立したPR stateとして判定する
+  - CLOSED PRではPRのreopenまたはEvidence / Review PR metadata修正をactionable next actionとして返す
+  - CLOSED PRをdraft、checks pending、checks failure、checks success、mergedと混同しない
+  - GitHub state取得不可時のrepository-local fallbackを維持する
+  - plain outputとJSON outputが同じnext action commandを返す
+  - CLOSEDかつ過去checks success、およびCLOSEDかつchecksなしの回帰テストを追加する
