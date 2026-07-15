@@ -58,6 +58,7 @@ export type PullRequestState =
   | "checks-pending"
   | "checks-failure"
   | "checks-success"
+  | "closed"
   | "merged"
   | "unavailable";
 export type PullRequestStateResolver = (root: string, pullRequest: number) => PullRequestState;
@@ -82,6 +83,7 @@ export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequ
     );
     const view = JSON.parse(output) as PullRequestView;
     if (view.state === "MERGED") return "merged";
+    if (view.state === "CLOSED") return "closed";
     if (view.isDraft) return "draft";
     const checks = Array.isArray(view.statusCheckRollup) ? view.statusCheckRollup : [];
     if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
@@ -256,6 +258,8 @@ function pullRequestNextAction(taskId: string, pullRequest: number | undefined, 
       return { label: `Inspect failing checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest}` };
     case "checks-success":
       return { label: `Merge pull request #${pullRequest}:`, command: `gh pr merge ${pullRequest} --squash --delete-branch` };
+    case "closed":
+      return { label: `Reopen closed pull request #${pullRequest} or reconcile its recorded metadata:`, command: `gh pr reopen ${pullRequest}` };
     case "merged":
       return { label: `Synchronize main after merged pull request #${pullRequest}:`, command: "git switch main && git pull --ff-only origin main" };
     case "checks-pending":
