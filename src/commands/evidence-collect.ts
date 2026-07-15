@@ -4,6 +4,7 @@ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
+import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
 import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
@@ -163,6 +164,14 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
     : undefined;
+  const receipt = head && cacheSubject
+    ? readCheckReceipt(root, {
+      taskId,
+      headCommit: head,
+      subjectFingerprint: cacheSubject.fingerprint,
+      provenance: collectCheckReceiptProvenance(root)
+    }).receipt
+    : undefined;
   const lease = task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
   let checks: Evidence["checks"];
   try {
@@ -170,6 +179,11 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       const command = commandForCheck(check);
       const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
       const reusable = existingEvidence?.checks.find((candidate) =>
+        candidate.name === check
+        && candidate.status === "passed"
+        && candidate.command === command.join(" ")
+        && candidate.cacheKey === cacheKey
+      ) ?? receipt?.checks.find((candidate) =>
         candidate.name === check
         && candidate.status === "passed"
         && candidate.command === command.join(" ")

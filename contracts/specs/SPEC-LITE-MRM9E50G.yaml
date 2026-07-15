@@ -1,0 +1,18 @@
+id: SPEC-LITE-MRM9E50G
+type: spec-contract
+featureId: F-MRM9E50G
+title: "Issue #202: provenance拘束付きrequiredChecks receipt再利用"
+status: approved
+version: 0.1.0
+summary: "requiredChecksの正規実行結果を一時receiptとして保存し、完全一致するsubjectとcommandに限ってEvidence収集で安全に再利用する"
+approvedBy: user-requested-issue-202
+approvedAt: "2026-07-16T00:00:00+09:00"
+acceptanceCriteria:
+  - scwbs checks run --taskをrequiredChecksの正規実行入口にする
+  - receiptをtask ID、HEAD、subject diff hash、resolved command、lockfile、submodule、dependency provenanceへ拘束する
+  - Evidence収集とfinishは現在のsubjectおよびcommandに完全一致するpassed receiptだけを再利用する
+  - HEAD、差分、command、lockfile、submodule provenanceの変化でreceiptを無効化する
+  - failed、interrupted、staleなreceiptと生のnpm自己申告結果は再利用しない
+  - --rerun-checksでreceiptを無視してrequiredChecksを再実行できる
+  - bounded human出力とversioned JSONで実行、再利用、無効化理由を監査できる
+  - canonical run後のEvidence収集で高コストcheckを再実行しない回帰テストを追加する

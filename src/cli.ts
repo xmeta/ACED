@@ -8,6 +8,7 @@ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-requ
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runCiPlan } from "./commands/ci-plan.js";
+import { runChecksRun } from "./commands/checks-run.js";
 import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runEvidenceCollect } from "./commands/evidence-collect.js";
@@ -97,6 +98,27 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         taskId: opts.task,
         branch: opts.branch,
         baseRef: opts.base,
+        json: opts.json ?? false
+      });
+    });
+
+  const checks = program.command("checks");
+  checks
+    .command("run")
+    .description("Run required checks and write a provenance-bound receipt")
+    .option("--task <id>", "task id")
+    .option("--base <ref>", "base reference")
+    .option("--rerun-checks", "rerun required checks even when a receipt is valid")
+    .option("--json", "output a versioned JSON summary")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runChecksRun(root, opts.task, {
+        baseRef: opts.base,
+        rerunChecks: opts.rerunChecks ?? false,
         json: opts.json ?? false
       });
     });

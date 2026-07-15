@@ -45,6 +45,14 @@ scwbs block "DBスキーマ変更が必要"
 
 ### 4. 完了処理をする
 
+手動確認でrequired checksを先に実行する場合は、正規入口からprovenance付きreceiptを作る。
+
+```bash
+scwbs checks run --task WBS-001
+```
+
+receiptは現在のtask、HEAD、差分、resolved command、dependency lockfile、submodule状態に拘束される。続く `finish` は完全一致する成功結果だけを再利用するため、同じ高コストcheckを重複実行しない。明示的に再実行する場合は `--rerun-checks` を使う。
+
 ```bash
 scwbs finish
 ```

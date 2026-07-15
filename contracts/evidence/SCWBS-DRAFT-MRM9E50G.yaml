@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRM9E50G
+type: evidence
+taskId: SCWBS-DRAFT-MRM9E50G
+commit: c7da9ab0686ac80578fae3fd6c86a903405e5531
+subjectHeadCommit: c7da9ab0686ac80578fae3fd6c86a903405e5531
+diffHash: sha256:ed11ea96b33d9b33f2609f508e6e0ccbfa703831f9aeab4a993c08a9b202f3a2
+git:
+  branch: task/SCWBS-DRAFT-MRM9E50G-issue-202-canonical-required-check-receipt-reuse
+  base: origin/main
+  baseCommit: 58e8c0a28c65d053a75ab063e41ecc16adbb2b6a
+  changedFilesBasis: branch-diff
+  pullRequest: "217"
+  subjectHeadCommit: c7da9ab0686ac80578fae3fd6c86a903405e5531
+  diffHash: sha256:ed11ea96b33d9b33f2609f508e6e0ccbfa703831f9aeab4a993c08a9b202f3a2
+  headCommit: c7da9ab0686ac80578fae3fd6c86a903405e5531
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRM9E50G.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/checks-run-summary.schema.json
+  - src/cli.ts
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/core/check-receipt.ts
+  - tests/integration/checks-run.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:eb09e52854377bd2a772478ab94f987edd6d366067acc7284316bbb01af8eec2
+    executedAt: "2026-07-15T16:20:18.233Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:69dc820b4111921645c5a62b727b0e16bd3ca2e757b1277fee1d711b88121834
+    executedAt: "2026-07-15T16:23:34.587Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:90e154bd213aadbd4c343fe135a791309eff6172097532152061f95194906216
+    executedAt: "2026-07-15T16:23:37.729Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:13e9007da6cdb59941df8237b12c1e5652510f4df9d384d7acef955485584f0a
+    executedAt: "2026-07-15T16:23:40.682Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added receipt reuse, invalidation, failure, raw npm, and submodule regression coverage
