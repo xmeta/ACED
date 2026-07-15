@@ -1,0 +1,57 @@
+id: EVD-SCWBS-DRAFT-MRM7AEPJ
+type: evidence
+taskId: SCWBS-DRAFT-MRM7AEPJ
+commit: 566fa545e18c89f85a3a428af564a26e40571237
+subjectHeadCommit: 566fa545e18c89f85a3a428af564a26e40571237
+diffHash: sha256:d9ee77c36a6e6ca5c734e0fef4b21c7457e208ffa7a19ca32c316a13475a9edf
+git:
+  branch: task/SCWBS-DRAFT-MRM7AEPJ-issue-203-provenance-verified-metadata-only-ci-f
+  base: origin/main
+  baseCommit: 64fdd3b5bf9de1cfa7101134e7bf70fddd7d7665
+  changedFilesBasis: branch-diff
+  pullRequest: "216"
+  subjectHeadCommit: 566fa545e18c89f85a3a428af564a26e40571237
+  diffHash: sha256:d9ee77c36a6e6ca5c734e0fef4b21c7457e208ffa7a19ca32c316a13475a9edf
+  headCommit: 566fa545e18c89f85a3a428af564a26e40571237
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRM7AEPJ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - tests/integration/ci-plan.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:4a7949fc9b9c2ae0aee74e5b86336fdddd44eb450301de4db1a7dac87229113f
+    executedAt: "2026-07-15T15:10:13.557Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:caf671493585d31b26c53162d0d2ac3771793be72350258cb6e164ff70db3a8a
+    executedAt: "2026-07-15T15:13:20.965Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7011f5a429091939678b2e8c08f6ddfed19b10a56061af940f9d4c380d9ad44c
+    executedAt: "2026-07-15T15:13:24.476Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:628714886984c226357ecd91ad0f347b29f1005df18c355b35f229f411cb61e1
+    executedAt: "2026-07-15T15:13:27.765Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Issue #203 provenance and fail-closed CI planner regression tests added'
