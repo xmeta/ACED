@@ -42,14 +42,16 @@ When in doubt, prefer `next` over guessing from Git status alone.
 For a docs-only change:
 
 ```bash
-npm run scwbs -- task new "Improve user docs" --paths "README.md,docs/**"
+npm run scwbs -- task new "Improve user docs" --paths "README.md,docs/scwbs/getting-started.md" --stop "source change required"
 ```
 
 For a code-and-test change:
 
 ```bash
-npm run scwbs -- task new "Fix parser edge case" --paths "src/**,tests/**"
+npm run scwbs -- task new "Fix parser edge case" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema or dependency change required"
 ```
+
+`--paths` を省略すると `allowedPaths: []` のdraftになり、実装を認可しません。`--wbs-node` を省略したTaskはWBS-lessとして保存され、WBS completion queueには入りません。Stop Conditionsを意図的に空にする場合は `--no-stop-conditions` を明示してください。
 
 The command prints a Task Contract. Note these fields:
 
@@ -210,4 +212,3 @@ Do not mark Approval as approved unless a human reviewer explicitly approved it.
 | Running several `npm run scwbs` commands in parallel | Run SC-WBS commands sequentially |
 | Collecting Evidence before the final implementation commit | Commit first, then collect Evidence |
 | Self-approving a Human Gate | Request human review instead |
-

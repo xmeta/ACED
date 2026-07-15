@@ -52,6 +52,10 @@ scwbs task new "スタッフ検索APIを実装" \
   --stop db,auth,permission,breaking-api
 ```
 
+`--paths` 未指定では `allowedPaths: []` のfail-closed draftを作る。`--wbs-node` 未指定では `wbsNodeId: wbs-less` を記録し、特定のgovernance nodeへ暗黙割当しない。WBS-less TaskはWBS completion queueに入らない。
+
+Stop Conditionsは `--stop` で明示する。意図的に空にする場合だけ `--no-stop-conditions` を使う。`src/**`、`tests/**`、`docs/**`、`contracts/**`、`**` の広範scopeを明示するとwarningを表示し、Tiny Packetにscope riskを表示する。
+
 生成物:
 
 ```text

@@ -1,0 +1,70 @@
+id: EVD-SCWBS-DRAFT-MRME5SO8
+type: evidence
+taskId: SCWBS-DRAFT-MRME5SO8
+commit: 107690a91ad230dfc048f07df4ee1b49fa48bf51
+subjectHeadCommit: 107690a91ad230dfc048f07df4ee1b49fa48bf51
+diffHash: sha256:7f26a9ee750152ad912fdd78092d245997ec2b77789d04173db065426d6dce1b
+git:
+  branch: task/SCWBS-DRAFT-MRME5SO8-issue-139-task-new-fail-closed
+  base: origin/main
+  baseCommit: e01cb83d22b54dd3b1b57a6ad3ceffe1a7b8eb6f
+  changedFilesBasis: branch-diff
+  pullRequest: "219"
+  subjectHeadCommit: 107690a91ad230dfc048f07df4ee1b49fa48bf51
+  diffHash: sha256:7f26a9ee750152ad912fdd78092d245997ec2b77789d04173db065426d6dce1b
+  headCommit: 107690a91ad230dfc048f07df4ee1b49fa48bf51
+changedFiles:
+  - README.md
+  - contracts/evidence/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/specs/SPEC-LITE-MRME5SO8.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core/07-cli-core-spec.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/ai-packet.ts
+  - src/commands/ai-queue.ts
+  - src/commands/check.ts
+  - src/commands/completion.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-new.ts
+  - src/commands/trace.ts
+  - src/core/node-utils.ts
+  - src/core/schema/contracts.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:dbd69cbdfdac0fe10bca2ededc3c98010d2bed17640a233194345f6412f047da
+    executedAt: "2026-07-15T18:19:11.233Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:8b2b8911c20f674893c3385a9a775a4d684d60135443718250279d32f41288e8
+    executedAt: "2026-07-15T18:23:51.769Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5230e7df36c46d69eb1aa97af8b82091d572cd0f007fb8b086643410f25fe1d1
+    executedAt: "2026-07-15T18:23:54.844Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:49a9de6e05f86eb1481be6b47d4bbddf0fd33cadf6f5ddd9f8dc60c034e8d84d
+    executedAt: "2026-07-15T18:23:57.844Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - fail-closed draft, WBS-less lock, broad scope warning, Tiny Packet scope riskの回帰テストを追加

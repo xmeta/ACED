@@ -149,7 +149,7 @@ work, and `strict` when broader governance checks are required.
 Create a small task:
 
 ```bash
-npm run scwbs -- task new "Update docs" --paths "docs/**"
+npm run scwbs -- task new "Update docs" --paths "docs/scwbs/getting-started.md" --stop "source change required"
 ```
 
 Switch to the branch printed by the Task Contract:
@@ -202,7 +202,7 @@ Common commands:
 
 ```bash
 npm run scwbs -- next
-npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
+npm run scwbs -- task new "作業名" --paths "src/commands/example.ts,tests/integration/example.test.ts" --stop "schema or dependency change required"
 npm run scwbs -- start <goal>
 npm run scwbs -- packet --task <task-id>           # tiny (default)
 npm run scwbs -- packet --task <task-id> --standard

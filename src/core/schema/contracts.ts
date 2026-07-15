@@ -1,4 +1,5 @@
 import type { ErrorObject } from "ajv";
+import { WBS_LESS_TASK_NODE_ID } from "../node-utils.js";
 import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
 import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
@@ -324,7 +325,10 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
         }
       }
       if (value.contractLock.lockVersion === "2") {
-        for (const key of ["wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId"]) {
+        const requiredLockKeys = value.wbsNodeId === WBS_LESS_TASK_NODE_ID
+          ? ["wbsGlobalRevision", "wbsNodeId"]
+          : ["wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId"];
+        for (const key of requiredLockKeys) {
           if (typeof value.contractLock[key] !== "string" || value.contractLock[key].length === 0) {
             issues.push(issue("task.contractLock", `${filePath}.contractLock.${key} must be present for lockVersion 2`));
           }

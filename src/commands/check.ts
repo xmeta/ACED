@@ -11,6 +11,7 @@ import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+import { isWbsLessTask } from "../core/node-utils.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
   if (!evidence) return [];
@@ -55,13 +56,15 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
 
   const wbs = readWbs(root);
   if (task.contractLock.lockVersion === "2") {
-    const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
-    if (task.contractLock.wbsScopeRevision !== scopeRevision) {
-      issues.push({
-        severity: "error",
-        code: "task.contractLock.wbsScopeRevision",
-        message: `${task.id} contractLock.wbsScopeRevision is stale: ${task.contractLock.wbsScopeRevision} != ${scopeRevision}`
-      });
+    if (!isWbsLessTask(task)) {
+      const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
+      if (task.contractLock.wbsScopeRevision !== scopeRevision) {
+        issues.push({
+          severity: "error",
+          code: "task.contractLock.wbsScopeRevision",
+          message: `${task.id} contractLock.wbsScopeRevision is stale: ${task.contractLock.wbsScopeRevision} != ${scopeRevision}`
+        });
+      }
     }
     const globalRevision = wbsGlobalRevision(wbs);
     if (task.contractLock.wbsGlobalRevision !== globalRevision) {
@@ -108,6 +111,19 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
 
 function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocument, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
   const issues: Issue[] = [];
+  if (isWbsLessTask(task)) {
+    issues.push(...specIssues);
+    issues.push(...validateContractLock(root, task, spec, specPath));
+    if (evidenceExists(root, task.id)) {
+      const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
+      issues.push(...evidenceIssues);
+      issues.push(...validateRequiredChecks(task, evidence));
+      if (evidence) {
+        issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, evidence.changedFiles, root).issues);
+      }
+    }
+    return issues;
+  }
   const node = findNode(wbs, task.wbsNodeId);
   if (!node) {
     issues.push({ severity: "error", code: "task.wbsNodeId", message: `${task.id} references missing WBS node: ${task.wbsNodeId}` });

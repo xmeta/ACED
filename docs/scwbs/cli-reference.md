@@ -57,6 +57,8 @@ AI agents must not run `block resolve`. The command updates the existing record 
 ## Contracts
 
 ```bash
+npm run scwbs -- task new "Fix parser" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema change required" --wbs-node node-parser
+npm run scwbs -- task new "Draft only" --no-stop-conditions
 npm run scwbs -- task generate --node node-api --task WBS-001-004
 npm run scwbs -- task lock --task WBS-001-004
 npm run scwbs -- task refresh --task WBS-001-004
@@ -78,6 +80,8 @@ npm run scwbs -- registry rebuild --check
 npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
+
+`task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
 
 `checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
 

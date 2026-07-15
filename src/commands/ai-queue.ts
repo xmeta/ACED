@@ -4,6 +4,7 @@ import { evidenceExists, listTasks, readBlock, readTask } from "../core/contract
 import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
+import { isWbsLessTask } from "../core/node-utils.js";
 import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
 import { buildReviewQueue } from "./review-queue.js";
 
@@ -28,6 +29,7 @@ function loadTaskAndNode(root: string, taskId: string) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
   const wbs = readWbs(root);
+  if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
   const node = findNode(wbs, task.wbsNodeId);
   if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
   return { task, wbs, node };
@@ -191,7 +193,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
     }
     process.stdout.write(`\nHuman decision required: ${buildBlockRecord(taskId, reason).requiredHumanDecision}\n`);
     process.stdout.write("AI must stop implementation until the block is resolved.\n");
-    if (existsSync(resolveFrom(root, defaultWbsPath))) {
+    if (existsSync(resolveFrom(root, defaultWbsPath)) && !isWbsLessTask(taskResult.task)) {
       process.stdout.write("\nWBS block change-set preview:\n");
       process.stdout.write(buildBlockChangeSet(root, taskId, reason));
     }

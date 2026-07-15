@@ -1,5 +1,6 @@
 import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
 import { findNode, readWbs } from "../core/wbs.js";
+import { isWbsLessTask } from "../core/node-utils.js";
 
 export function buildTrace(root: string, taskId: string): string {
   const { task, issues } = readTask(root, taskId);
@@ -14,7 +15,7 @@ export function buildTrace(root: string, taskId: string): string {
   return `Trace ${task.id}
 
 Spec: ${spec ? `${spec.id} v${spec.version} ${spec.status}` : "missing"}
-  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : `missing ${task.wbsNodeId}`}
+  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : isWbsLessTask(task) ? "WBS-less" : `missing ${task.wbsNodeId}`}
   -> Task: ${task.id}${task.mode ? ` (${task.mode})` : ""}
   -> Evidence: ${evidence ? `${evidence.id} (${evidence.checks.length} checks)` : "missing"}
   -> Review: ${review ? `${review.id} ${review.status}` : "missing"}

@@ -3,6 +3,7 @@ import { fileSha256 } from "../core/hash.js";
 import { resolveFrom, taskPath } from "../core/paths.js";
 import { readRegistry, readTask, resolveSpecForTask } from "../core/contracts.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
+import { isWbsLessTask } from "../core/node-utils.js";
 import type { TaskContract } from "../core/types.js";
 import { readWbs } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
@@ -20,7 +21,7 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
     ...task,
     contractLock: {
       lockVersion: "2",
-      wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId),
+      ...(!isWbsLessTask(task) ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
       wbsGlobalRevision: wbsGlobalRevision(wbs),
       wbsNodeId: task.wbsNodeId,
       ...(spec?.version && specPath ? { specVersion: spec.version, specRevision: fileSha256(root, specPath) } : {}),

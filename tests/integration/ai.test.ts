@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildAiPacket } from "../../src/commands/ai-packet.js";
+import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
 import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
 import { buildNextAction } from "../../src/commands/next.js";
 import { main } from "../../src/cli.js";
@@ -469,6 +469,25 @@ describe("AI commands", () => {
     expect(packet).toContain("# Tiny Packet");
     expect(packet).toContain("Objective:");
     expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
+  });
+
+  test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      wbsNodeId: "wbs-less",
+      allowedPaths: []
+    }) as unknown as Record<string, unknown>);
+
+    const denyAll = buildTinyPacket(root, "WBS-001-004");
+    expect(denyAll).toContain("Node: wbs-less");
+    expect(denyAll).toContain("Scope Risk:\n- deny-all draft");
+
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      wbsNodeId: "wbs-less",
+      allowedPaths: ["src/**"]
+    }) as unknown as Record<string, unknown>);
+    expect(buildTinyPacket(root, "WBS-001-004")).toContain("Scope Risk:\n- broad; explicit review required (src/**)");
   });
 
   test("core command aliases route to existing approval and block commands", () => {

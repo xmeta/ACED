@@ -716,6 +716,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--forbid <paths>", "forbidden paths (comma separated)")
     .option("--gate <paths>", "human gate paths (comma separated)")
     .option("--stop <reasons>", "stop reasons (comma separated)")
+    .option("--no-stop-conditions", "explicitly acknowledge an empty stop condition list")
     .option("--checks <checks>", "required checks (comma separated)")
     .option("--wbs-node <id>", "WBS node id")
     .action((titleParts: string[], opts) => {
@@ -725,6 +726,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         forbid: opts.forbid,
         gate: opts.gate,
         stop: opts.stop,
+        noStopConditions: opts.noStopConditions,
         checks: opts.checks,
         wbsNode: opts.wbsNode
       });
