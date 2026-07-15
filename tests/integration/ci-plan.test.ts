@@ -199,6 +199,7 @@ describe("CI plan", () => {
   test("workflow preserves aggregate validate and gates heavy jobs on the final plan", () => {
     const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
     expect(workflow).toContain("Verify successful full CI for implementation subject");
+    expect(workflow).toContain("npm run --silent scwbs -- ci plan");
     expect(workflow).toContain('workflowRun?.path === ".github/workflows/scwbs.yml"');
     expect(workflow).toContain("workflowRun?.head_sha === process.env.SUBJECT");
     expect(workflow).toContain('if: always() && needs.plan.outputs.mode == \'full\'');

@@ -43,7 +43,7 @@ jobs:
         env:
           CI_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          npm run scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > ci-plan-candidate.json
+          npm run --silent scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > ci-plan-candidate.json
           node -e 'const p=require("./ci-plan-candidate.json"); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT, `decision=${p.decision}\ntask_id=${p.taskId ?? ""}\nsubject=${p.subjectHeadCommit ?? ""}\n`)'
       - name: Verify successful full CI for implementation subject
         id: subject-checks
