@@ -1,0 +1,67 @@
+id: SCWBS-DRAFT-MRM9E50G
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRM9E50G
+branchName: task/SCWBS-DRAFT-MRM9E50G-issue-202-canonical-required-check-receipt-reuse
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRM9E50G.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM9E50G.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM9E50G.yaml
+allowedPaths:
+  - src/cli.ts
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/core/check-receipt.ts
+  - contracts/check-coverage.yaml
+  - tests/integration/checks-run.test.ts
+  - tests/integration/evidence.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - docs/scwbs/schemas/checks-run-summary.schema.json
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - workflow change required
+  - receipt cannot be bound to current subject and command provenance
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - scwbs checks run --taskをrequiredChecksの正規実行入口として追加し、task、subject、command、dependency、submodule provenanceをreceiptへ記録する
+  - Evidence収集とfinishは現在subjectおよびresolved commandに完全一致するpassed receiptだけを再利用する
+  - HEAD、差分、check command、lockfile、submodule provenanceの変化でreceiptをfail-closedに無効化する
+  - failed、interrupted、staleなreceiptおよび生のnpm自己申告結果を再利用しない
+  - --rerun-checksで有効なreceiptがあってもrequiredChecksを明示的に再実行できる
+  - human向け出力をboundedに保ち、JSON出力で実行、再利用、無効化理由を監査できる
+  - 高コストcheckがcanonical runと直後のEvidence収集を通じて一度だけ実行される回帰テストを追加する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:379ce60f979864a77e53b748be067da2c76df1ffcab35c6120bf451552251370
+  createdAt: "2026-07-15T15:54:33.599Z"
