@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRME5SO8
+type: spec-contract
+featureId: F-MRME5SO8
+title: "Issue #139: task newの既定scopeをfail-closedにし暗黙WBS割当を廃止する"
+status: approved
+version: 0.1.0
+summary: "Task作成時の広範scopeとgovernance nodeへの暗黙割当を廃止し、実際のpathとpolicyに基づくfail-closedな入口にする"
+approvedBy: user-requested-issue-139
+approvedAt: "2026-07-16T00:00:00+09:00"
+acceptanceCriteria:
+  - task newのタイトルだけでは広範な実装可能Taskを作らない
+  - WBS-less Taskを特定のgovernance nodeへ自動割当しない
+  - broad scopeを明示した場合はCLIがwarningを表示する
+  - Tiny Packetにscopeの広さとリスクを表示する
+  - stop conditionまたは明示的なno-stop-conditionsの意思表示を求める
+  - WBS-backedとWBS-lessの両フローを回帰テストする

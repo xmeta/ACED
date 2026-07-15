@@ -1,0 +1,82 @@
+id: SCWBS-DRAFT-MRME5SO8
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRME5SO8
+branchName: task/SCWBS-DRAFT-MRME5SO8-issue-139-task-new-fail-closed
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRME5SO8.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRME5SO8.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRME5SO8.yaml
+allowedPaths:
+  - src/commands/task-new.ts
+  - src/cli.ts
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/commands/check.ts
+  - src/commands/task-lock.ts
+  - src/commands/ai-packet.ts
+  - src/commands/status.ts
+  - src/commands/trace.ts
+  - src/commands/health.ts
+  - src/commands/ai-queue.ts
+  - src/commands/review-queue.ts
+  - src/commands/completion.ts
+  - src/core/node-utils.ts
+  - tests/integration/tasks.test.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/health.test.ts
+  - tests/unit/contracts.test.ts
+  - README.md
+  - docs/sc-wbs-core/07-cli-core-spec.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - workflow change required
+  - WBS-less compatibility cannot remain fail-closed
+  - Task authority semantics require policy expansion
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - paths未指定のtask newは広範な実装可能Taskを作らずfail-closedのdraftにする
+  - WBS node未指定のTaskをnode-governance-maintenanceへ暗黙割当せず、WBS-lessとして安全に扱う
+  - broad scopeを明示した場合はCLIがwarningを表示する
+  - stop condition未指定時は明示的な意思表示を求め、空のstopIfを暗黙生成しない
+  - Tiny Packetにscopeの広さとリスクをbounded表示する
+  - 既存のWBS-backed Taskとcompletion、queue、health、lockの挙動を壊さない
+  - fail-closed draft、WBS-less、explicit WBS node、broad scope warning、Tiny Packetの回帰テストを追加する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:4aff21d32ee75c8f6b579f83c5b775eca6f5128d65fb9ee92889d3d978f5aceb
+  createdAt: "2026-07-15T18:07:12.491Z"
