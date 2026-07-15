@@ -70,11 +70,16 @@ npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added tru
 npm run scwbs -- evidence collect --task WBS-001-004 --json --force
 npm run scwbs -- evidence collect --task WBS-001-004 --verbose --force
 npm run scwbs -- evidence collect --task WBS-001-004 --output - --force
+npm run scwbs -- checks run --task WBS-001-004
+npm run scwbs -- checks run --task WBS-001-004 --json
+npm run scwbs -- checks run --task WBS-001-004 --rerun-checks
 npm run scwbs -- evidence annotate --task WBS-001-004 --pull-request "#42" --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage"
 npm run scwbs -- registry rebuild --check
 npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
+
+`checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
 
 `registry rebuild --force` の既定出力は、registry全体ではなく `added` / `updated` / `removed` / `path` の固定長サマリである。成功時の出力が不要なら `--quiet`、versioned summaryが必要なら `--json`、サマリに続けて全YAMLを確認する場合は `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら4つの出力modeは同時指定できない。JSONの正式なshapeは [`schemas/registry-rebuild-summary.schema.json`](schemas/registry-rebuild-summary.schema.json) で定義する。既定の `--check` は従来どおり、同期済みなら `PASS registry rebuild --check` とexit 0、未同期なら既存errorとexit 1を返す。
 
