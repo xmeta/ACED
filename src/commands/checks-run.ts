@@ -10,6 +10,7 @@ import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
   releaseRequiredCheckRun,
+  requiredCheckChildEnv,
   startRequiredCheckHeartbeat,
   stopRequiredCheckHeartbeat,
   updateRequiredCheckRun,
@@ -76,6 +77,7 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
     result = spawnSync(command[0] ?? "npm", command.slice(1), {
       cwd: root,
       encoding: "utf8",
+      env: requiredCheckChildEnv(lease),
       shell: process.platform === "win32"
     });
   } finally {

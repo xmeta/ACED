@@ -12,6 +12,7 @@ import {
   normalizeReport,
   parseArgs as parseRunnerArgs
 } from "./integration-test-run.mjs";
+import { runWithIntegrationSingleFlight } from "./integration-single-flight.mjs";
 
 export const FAILURE_LIMIT = 5;
 export const DIAGNOSTIC_EDGE_BYTES = 2_000;
@@ -19,10 +20,11 @@ export const DIAGNOSTIC_CAPTURE_BYTES = DIAGNOSTIC_EDGE_BYTES * 2;
 
 export function parseArgs(argv, env = process.env) {
   const verbose = argv.includes("--verbose");
-  const runnerArgs = argv.filter((argument) => argument !== "--verbose");
+  const wait = argv.includes("--wait");
+  const runnerArgs = argv.filter((argument) => argument !== "--verbose" && argument !== "--wait");
   const options = parseRunnerArgs(runnerArgs, env);
   if (verbose && options.reportPath) throw new Error("--verbose cannot be combined with --report");
-  return { ...options, verbose };
+  return { ...options, verbose, wait };
 }
 
 function createBoundedCapture() {
@@ -121,38 +123,51 @@ export async function main(argv = process.argv.slice(2)) {
     console.error(error instanceof Error ? error.message : String(error));
     return 2;
   }
-  if (options.verbose) return runVerbose(options.workers);
-
-  const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
-  const rawOutputFile = path.join(directory, "vitest.json");
   try {
-    const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
-    let raw;
-    try {
-      raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
-    } catch (error) {
-      console.error(`FAIL integration report unavailable: ${error instanceof Error ? error.message : String(error)}`);
-      if (execution.stdout.text.trim()) console.error(`stdout bytes=${execution.stdout.totalBytes}\n${execution.stdout.text}`);
-      if (execution.stderr.text.trim()) console.error(`stderr bytes=${execution.stderr.totalBytes}\n${execution.stderr.text}`);
-      return execution.exitCode || 1;
-    }
+    return await runWithIntegrationSingleFlight(process.cwd(), {
+      mode: options.verbose ? "verbose" : "default",
+      workers: options.workers,
+      wait: options.wait,
+      env: process.env,
+      onWait: (message) => console.error(message)
+    }, async () => {
+      if (options.verbose) return runVerbose(options.workers);
 
-    const report = normalizeReport(raw, execution.wallDurationMs, options.workers);
-    const summary = formatSummary(report, options.slowest);
-    (report.success ? console.log : console.error)(summary);
-    if (options.reportPath) {
-      const destination = path.resolve(options.reportPath);
-      await mkdir(path.dirname(destination), { recursive: true });
-      await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-      console.log(`duration report: ${path.relative(process.cwd(), destination) || destination}`);
-    }
-    if (!report.success || execution.exitCode !== 0) {
-      const diagnostics = formatFailureDiagnostics(raw, execution.stdout, execution.stderr);
-      if (diagnostics) console.error(diagnostics);
-    }
-    return execution.exitCode;
-  } finally {
-    await rm(directory, { recursive: true, force: true });
+      const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
+      const rawOutputFile = path.join(directory, "vitest.json");
+      try {
+        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
+        let raw;
+        try {
+          raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
+        } catch (error) {
+          console.error(`FAIL integration report unavailable: ${error instanceof Error ? error.message : String(error)}`);
+          if (execution.stdout.text.trim()) console.error(`stdout bytes=${execution.stdout.totalBytes}\n${execution.stdout.text}`);
+          if (execution.stderr.text.trim()) console.error(`stderr bytes=${execution.stderr.totalBytes}\n${execution.stderr.text}`);
+          return execution.exitCode || 1;
+        }
+
+        const report = normalizeReport(raw, execution.wallDurationMs, options.workers);
+        const summary = formatSummary(report, options.slowest);
+        (report.success ? console.log : console.error)(summary);
+        if (options.reportPath) {
+          const destination = path.resolve(options.reportPath);
+          await mkdir(path.dirname(destination), { recursive: true });
+          await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+          console.log(`duration report: ${path.relative(process.cwd(), destination) || destination}`);
+        }
+        if (!report.success || execution.exitCode !== 0) {
+          const diagnostics = formatFailureDiagnostics(raw, execution.stdout, execution.stderr);
+          if (diagnostics) console.error(diagnostics);
+        }
+        return execution.exitCode;
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
   }
 }
 

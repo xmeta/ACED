@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
@@ -12,6 +13,7 @@ import {
   acquireRequiredCheckRun,
   heartbeatScript,
   releaseRequiredCheckRun,
+  requiredCheckChildEnv,
   requiredCheckLockPath,
   updateRequiredCheckRun
 } from "../../src/core/required-check-run.js";
@@ -82,6 +84,31 @@ describe("evidence collect", () => {
     const recovered = acquireRequiredCheckRun(root, "WBS-001-005", 1);
     expect(recovered.state.taskId).toBe("WBS-001-005");
     releaseRequiredCheckRun(recovered);
+  });
+
+  test("required-check integration child inherits the existing repository lease", () => {
+    const root = prepareEvidenceOutputRepo();
+    const lease = acquireRequiredCheckRun(root, "WBS-001-004", 1);
+    try {
+      updateRequiredCheckRun(lease, "test:integration", 1);
+      const helperUrl = pathToFileURL(path.resolve("scripts/integration-single-flight.mjs")).href;
+      const script = [
+        `import { acquireIntegrationRun, releaseIntegrationRun } from ${JSON.stringify(helperUrl)};`,
+        `const lease = await acquireIntegrationRun(process.cwd(), { mode: "default", workers: 4, env: process.env });`,
+        "process.stdout.write(JSON.stringify({ owned: lease.owned, runId: lease.runId, mode: lease.state.mode, workers: lease.state.workers }));",
+        "releaseIntegrationRun(lease);"
+      ].join("\n");
+      const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+        cwd: root,
+        encoding: "utf8",
+        env: requiredCheckChildEnv(lease)
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual({ owned: false, runId: lease.state.runId, mode: "default", workers: 4 });
+      expect(existsSync(lease.lockPath)).toBe(true);
+    } finally {
+      releaseRequiredCheckRun(lease);
+    }
   });
 
   test("heartbeat emits bounded progress on stderr with active check metadata", () => {
