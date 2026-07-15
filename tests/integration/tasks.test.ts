@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
 
 import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
@@ -364,7 +364,8 @@ describe("task management", () => {
       paths: "src/**,tests/**",
       forbid: "wjs/**",
       gate: ".github/**",
-      checks: "test,typecheck"
+      checks: "test,typecheck",
+      stop: "schema change"
     })).toBe(0);
 
     const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
@@ -387,8 +388,57 @@ describe("task management", () => {
 
     expect(task.id).toMatch(/^SCWBS-DRAFT-/);
     expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
-    expect(task.allowedPaths).toEqual(["src/**", "tests/**", "docs/**", "contracts/**"]);
+    expect(task.allowedPaths).toEqual([]);
+    expect(task.wbsNodeId).toBe("wbs-less");
     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+  });
+
+  test("task new fails closed until stop-condition intent is explicit", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runTaskNew(root, "Fail Closed Draft")).toBe(1);
+    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
+  });
+
+  test("task new without paths creates a deny-all WBS-less draft", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runTaskNew(root, "Deny All Draft", { noStopConditions: true })).toBe(0);
+    const taskFile = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+    const yaml = readFileSync(path.join(root, "contracts/tasks", taskFile ?? ""), "utf8");
+    expect(yaml).toContain("wbsNodeId: wbs-less");
+    expect(yaml).toContain("allowedPaths: []");
+    expect(collectCheckIssues(root)).toEqual([]);
+    const taskId = taskFile?.replace(/\.yaml$/, "") ?? "";
+    const locked = buildLockedTask(root, taskId);
+    expect(locked.contractLock?.wbsNodeId).toBe("wbs-less");
+    expect(locked.contractLock?.wbsScopeRevision).toBeUndefined();
+    expect(locked.contractLock?.wbsGlobalRevision).toMatch(/^sha256:/);
+    writeYaml(root, `contracts/tasks/${taskId}.yaml`, locked as unknown as Record<string, unknown>);
+    expect(collectCheckIssues(root)).toEqual([]);
+  });
+
+  test("task new warns when broad scope is explicitly requested", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    try {
+      expect(runTaskNew(root, "Broad Draft", { paths: "src/**", noStopConditions: true })).toBe(0);
+      expect(stdout.mock.calls.flat().join("")).toContain("Warning: broad allowedPaths require explicit review");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  test("task new rejects an unknown explicit WBS node before writing artifacts", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runTaskNew(root, "Unknown Node", { paths: "src/safe.ts", noStopConditions: true, wbsNode: "node-missing" })).toBe(1);
+    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
   });
 
   test("task new retries draft task id collisions", () => {
@@ -419,7 +469,7 @@ describe("task management", () => {
     writeScwbsProject(root);
     const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
 
-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
 
     const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
     expect(wbsAfter).toBe(wbsBefore);
@@ -428,7 +478,7 @@ describe("task management", () => {
     const taskFile = taskFileName ? `contracts/tasks/${taskFileName}` : undefined;
     expect(taskFile).toBeTruthy();
     const taskYaml = readFileSync(path.join(root, taskFile ?? ""), "utf8");
-    expect(taskYaml).toContain("wbsNodeId: node-project");
+    expect(taskYaml).toContain("wbsNodeId: node-api");
 
     const changesetDir = path.join(root, "contracts/changesets");
     const changesetFiles = existsSync(changesetDir) ? readdirSync(changesetDir).filter((file) => file.includes("link-wbs-node")) : [];
@@ -440,8 +490,8 @@ describe("task management", () => {
     writeScwbsProject(root);
     const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
 
-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
+    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
 
     const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
     expect(wbsAfter).toBe(wbsBefore);
@@ -454,7 +504,7 @@ describe("task management", () => {
   test("WBS-less task flow passes check and can generate WBS candidates", () => {
     const root = makeTempRepo();
 
-    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test" })).toBe(0);
+    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test", noStopConditions: true })).toBe(0);
     expect(collectCheckIssues(root)).toEqual([]);
     const candidates = buildWbsCandidatesFromTaskIndex(root);
     const parsed = JSON.parse(candidates);

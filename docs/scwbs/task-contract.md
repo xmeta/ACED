@@ -166,4 +166,6 @@ npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
 
 生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
 
+`task new` で `--wbs-node` を指定しない場合、`wbsNodeId: wbs-less` は「特定WBS nodeに未割当」を表す予約値である。このTaskはEvidence収集とpath/check検査は行えるが、WBS nodeのcompletion対象にはならない。WBS completionが必要な場合は、trusted contractで実在する `--wbs-node` を明示する。
+
 ---

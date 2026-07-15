@@ -1,6 +1,12 @@
 import type { TaskContract, WbsDocument } from "./types.js";
 import { findNode, isDoneNode } from "./wbs.js";
 
+export const WBS_LESS_TASK_NODE_ID = "wbs-less";
+
+export function isWbsLessTask(task: TaskContract): boolean {
+  return task.wbsNodeId === WBS_LESS_TASK_NODE_ID;
+}
+
 export function completionTaskIds(task: TaskContract): string[] {
   return [...new Set(task.completionTaskIds ?? [])];
 }

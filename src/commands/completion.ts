@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
+import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
@@ -136,6 +136,7 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
   for (const taskId of taskIds) {
     const { task, issues: taskIssues } = readTask(root, taskId);
     if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
+    if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
 
     const node = findNode(wbs, task.wbsNodeId);
     if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);

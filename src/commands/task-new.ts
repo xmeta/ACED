@@ -1,8 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { taskPath, resolveFrom } from "../core/paths.js";
+import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
+import { findNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
+
+const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
 
 function slug(value: string): string {
   return value
@@ -65,6 +69,7 @@ export function buildCoreTaskNew(title: string, options: {
   gate?: string;
   checks?: string;
   stop?: string;
+  noStopConditions?: boolean;
   wbsNode?: string;
   id?: string;
 } = {}): { task: TaskContract; fallback: TaskNewFallback } {
@@ -74,10 +79,10 @@ export function buildCoreTaskNew(title: string, options: {
   const task: TaskContract = {
     id,
     type: "task-contract",
-    wbsNodeId: options.wbsNode?.trim() || "node-governance-maintenance",
+    wbsNodeId: options.wbsNode?.trim() || WBS_LESS_TASK_NODE_ID,
     featureId: `F-${id.replace(/^SCWBS-DRAFT-/, "")}`,
     branchName: `task/${id}-${safeTitle}`,
-    allowedPaths: splitList(options.paths, ["src/**", "tests/**", "docs/**", "contracts/**"]),
+    allowedPaths: splitList(options.paths, []),
     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
     humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
     stopIf: splitList(options.stop, []),
@@ -113,10 +118,26 @@ export function runTaskNew(root: string, title: string, options: {
   gate?: string;
   checks?: string;
   stop?: string;
+  noStopConditions?: boolean;
   wbsNode?: string;
 } = {}): number {
   try {
+    if (!options.stop && !options.noStopConditions) {
+      console.error("Task creation is fail-closed: provide --stop <reasons> or explicitly acknowledge an empty stop list with --no-stop-conditions");
+      return 1;
+    }
     const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
+    if (!isWbsLessTask(task)) {
+      if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+        console.error(`Cannot validate --wbs-node ${task.wbsNodeId}: WBS document is missing`);
+        return 1;
+      }
+      const wbs = readWbs(root);
+      if (!findNode(wbs, task.wbsNodeId)) {
+        console.error(`Unknown WBS node: ${task.wbsNodeId}`);
+        return 1;
+      }
+    }
     const relativePath = taskPath(task.id);
     const fullPath = resolveFrom(root, relativePath);
     if (existsSync(fullPath)) {
@@ -136,6 +157,17 @@ export function runTaskNew(root: string, title: string, options: {
 
     if (fallback.usedFallbackTitle && fallback.fallbackNote) {
       process.stdout.write(`Notice: ${fallback.fallbackNote}\n`);
+    }
+
+    if (task.allowedPaths.length === 0) {
+      process.stdout.write("Notice: no --paths were provided; allowedPaths is empty and this draft cannot authorize implementation.\n");
+    }
+    const broadScopes = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
+    if (broadScopes.length > 0) {
+      process.stdout.write(`Warning: broad allowedPaths require explicit review before implementation: ${broadScopes.join(", ")}\n`);
+    }
+    if (isWbsLessTask(task)) {
+      process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
     }
 
     process.stdout.write(yaml);

@@ -7,6 +7,15 @@ import { findNode, readWbs } from "../core/wbs.js";
 import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
 import type { TaskContract } from "../core/types.js";
 import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+import { isWbsLessTask } from "../core/node-utils.js";
+
+const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+
+function tinyScopeRisk(task: TaskContract): string {
+  if (task.allowedPaths.length === 0) return "deny-all draft; add explicit paths before implementation";
+  const broad = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
+  return broad.length > 0 ? `broad; explicit review required (${broad.join(", ")})` : "bounded";
+}
 
 function submodulePacket(root: string, task: TaskContract): string {
   const evidence = readEvidence(root, task.id).evidence;
@@ -101,7 +110,7 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1, f
   const profile: Profile = readProfile(root);
   const artifactDirs = profileRequiredDirs(profile);
 
-  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+  if (!existsSync(resolveFrom(root, defaultWbsPath)) || isWbsLessTask(task)) {
     return `# AI Work Packet
 
 ## Role
@@ -116,7 +125,7 @@ ${task.id} ${task.doneCriteria[0] ?? ""}
 
 ## WBS Node
 - Node ID: ${task.wbsNodeId}
-- Status: WBS document not present; use Task Contract and tasks index as ground truth.
+- Status: ${isWbsLessTask(task) ? "WBS-less; this task does not participate in WBS completion." : "WBS document not present; use Task Contract and tasks index as ground truth."}
 - Feature: ${task.featureId}
 
 ## Scope
@@ -252,7 +261,7 @@ export function buildTinyPacket(root: string, taskId: string): string {
   const profile: Profile = readProfile(root);
   const artifactDirs = profileRequiredDirs(profile);
 
-  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+  if (!existsSync(resolveFrom(root, defaultWbsPath)) || isWbsLessTask(task)) {
     return `# Tiny Packet
 Task: ${task.id}
 Node: ${task.wbsNodeId}
@@ -262,6 +271,8 @@ Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
 ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Scope Risk:
+- ${tinyScopeRisk(task)}
 Forbidden:
 ${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 Human Gate:
@@ -290,6 +301,8 @@ Objective:
 ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
 Allowed:
 ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+Scope Risk:
+- ${tinyScopeRisk(task)}
 Forbidden:
 ${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
 Human Gate:
