@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRM5UH9Z
+type: spec-contract
+featureId: F-MRM5UH9Z
+title: "Issue #211: finish後のEvidence subjectをmetadata commitから分離する"
+status: approved
+version: 0.1.0
+summary: "Evidence自身と許可されたpost-Evidence metadata commitをsubject headから除外し、finishを固定点へ収束させる"
+approvedBy: user-requested-issue-211
+approvedAt: "2026-07-15T23:00:00+09:00"
+acceptanceCriteria:
+  - 初回収集では現在HEADをEvidence subjectとして記録する
+  - 既存subjectから現在HEADまでがEvidence、Approval、Review、RegistryのみでdiffHashが同一なら既存subjectを保持する
+  - 実装ファイルの追加変更またはdiffHash変更時は現在HEADへsubjectを進める
+  - Evidence commit後の再収集でEvidence YAMLが変化せずworktreeがcleanになる
+  - required checks、diff guard、Human Gate、review scopeの既存挙動を退行させない

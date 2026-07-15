@@ -1,0 +1,55 @@
+id: EVD-SCWBS-DRAFT-MRM5UH9Z
+type: evidence
+taskId: SCWBS-DRAFT-MRM5UH9Z
+commit: a0e37610041f925212ce33b9671aa79257261df5
+subjectHeadCommit: a0e37610041f925212ce33b9671aa79257261df5
+diffHash: sha256:498a3bcfe938d1209d091207f2d0a0bff8f433d507e548b3eeca4710a179141e
+git:
+  branch: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
+  base: origin/main
+  baseCommit: 5e9708f29977769605ad73c016104adeefc6fe25
+  changedFilesBasis: branch-diff
+  pullRequest: "214"
+  subjectHeadCommit: a0e37610041f925212ce33b9671aa79257261df5
+  diffHash: sha256:498a3bcfe938d1209d091207f2d0a0bff8f433d507e548b3eeca4710a179141e
+  headCommit: a0e37610041f925212ce33b9671aa79257261df5
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/evidence-collect.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:0711c857fb7a5c75ad2d510987918b049d5394fb648d7754dbdce9d1dc779f39
+    executedAt: "2026-07-15T14:26:00.168Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:d13ae3ccc896ff700a902422fb1123dc32ee507f7a6b51c445b2295312f7edf1
+    executedAt: "2026-07-15T14:30:16.282Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:b197c930f8a63d29b76dc7dc148ea184bd145a6dbbee04af3ae525e222b2b82e
+    executedAt: "2026-07-15T14:30:19.304Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:866253dcd324623f67241b2269a1ea1cd31de1ac44bb52db8753874cfae0fd97
+    executedAt: "2026-07-15T14:30:22.326Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Issue #211のEvidence subject固定点と実装差分変更時の更新を回帰テストで検証'

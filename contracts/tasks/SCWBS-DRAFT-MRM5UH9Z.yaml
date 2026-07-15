@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRM5UH9Z
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRM5UH9Z
+branchName: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM5UH9Z.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM5UH9Z.yaml
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - tests/integration/evidence.test.ts
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package.json package-lock.json .github wjs の変更が必要
+  - Evidence schemaの破壊的変更が必要
+  - 'metadata-only commitの判定をIssue #211の範囲外へ拡張する必要'
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 実装差分を収集したfinish後にEvidenceをcommitしても、次のfinishが同じsubject headを保持する
+  - Evidence、Approval、Review、Registryだけのmetadata-only descendantではcommit、subjectHeadCommit、git.subjectHeadCommit、git.headCommitを更新しない
+  - 実装差分またはdiffHashが変わった場合は現在HEADを新しいsubjectとして収集する
+  - 2回連続のfinishとEvidence commitを模した回帰テストで2回目のEvidence YAMLが不変になる
+  - plainとJSONのmutatedFilesが非冪等更新の有無を正確に反映する既存finish契約を維持する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a722094ea94edc618a6cf98652be21a15e7bd0fad78c37903018c883f4e27d71
+  createdAt: "2026-07-15T14:14:02.856Z"

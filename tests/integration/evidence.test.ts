@@ -228,6 +228,56 @@ describe("evidence collect", () => {
     expect(first.diffHash).toBe(second.diffHash);
   });
 
+  test("evidence subject stays stable across post-evidence metadata commits", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+    const subjectHead = headCommit(root);
+    const first = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", first as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested" });
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved" });
+    writeText(root, "contracts/registry.yaml", `${readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")}# metadata checkpoint\n`);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "record evidence metadata"], { cwd: root, stdio: "ignore" });
+
+    const second = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(second).toMatchObject({
+      commit: subjectHead,
+      subjectHeadCommit: subjectHead,
+      git: { subjectHeadCommit: subjectHead, headCommit: subjectHead }
+    });
+    expect(second.diffHash).toBe(first.diffHash);
+    expect(second.changedFiles).toEqual(expect.arrayContaining([
+      "contracts/evidence/WBS-001-004.yaml",
+      "contracts/approvals/WBS-001-004.yaml",
+      "contracts/reviews/WBS-001-004.yaml",
+      "contracts/registry.yaml"
+    ]));
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", second as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "refresh evidence checkpoint"], { cwd: root, stdio: "ignore" });
+    const fixedPoint = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(fixedPoint).toEqual(second);
+
+    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "change implementation"], { cwd: root, stdio: "ignore" });
+    const third = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(third.subjectHeadCommit).toBe(headCommit(root));
+    expect(third.subjectHeadCommit).not.toBe(subjectHead);
+    expect(third.diffHash).not.toBe(first.diffHash);
+  }, 15000);
+
   test("evidence collect records explicit pull request metadata", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

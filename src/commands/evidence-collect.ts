@@ -4,7 +4,7 @@ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
-import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
+import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
@@ -58,6 +58,33 @@ function postEvidenceMetadataFiles(taskId: string): string[] {
     `contracts/reviews/${taskId}.yaml`,
     "contracts/registry.yaml"
   ];
+}
+
+function stableSubjectHead(
+  root: string,
+  currentHead: string | undefined,
+  diffHash: string,
+  existingEvidence: Evidence | undefined,
+  metadataFiles: string[]
+): string | undefined {
+  const previousHead = existingEvidence?.subjectHeadCommit
+    ?? existingEvidence?.git?.subjectHeadCommit
+    ?? existingEvidence?.git?.headCommit
+    ?? existingEvidence?.commit;
+  const previousDiffHash = existingEvidence?.diffHash ?? existingEvidence?.git?.diffHash;
+  if (
+    !currentHead
+    || !previousHead
+    || previousHead === currentHead
+    || previousDiffHash !== diffHash
+    || !isCommitAncestor(root, previousHead, currentHead)
+  ) {
+    return currentHead;
+  }
+  const allowedMetadata = new Set(metadataFiles);
+  return changedFilesBetween(root, previousHead, currentHead).every((file) => allowedMetadata.has(file))
+    ? previousHead
+    : currentHead;
 }
 
 function commandForCheck(check: string): string[] {
@@ -114,9 +141,11 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const baseRef = options.baseRef ?? "origin/main";
   const head = headCommit(root);
   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
-  const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
+  const metadataFiles = postEvidenceMetadataFiles(taskId);
+  const diffHash = branchDiffHash(root, baseRef, metadataFiles);
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const changedFiles = branchChangedFiles(root, baseRef);
+  const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
   const branch = currentBranch(root);
   if (
     existingEvidence?.git?.changedFilesBasis === "branch-diff"
@@ -164,8 +193,8 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     id: `EVD-${taskId}`,
     type: "evidence",
     taskId,
-    ...(head ? { commit: head } : {}),
-    ...(head ? { subjectHeadCommit: head } : {}),
+    ...(subjectHead ? { commit: subjectHead } : {}),
+    ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
     diffHash,
     git: {
       ...(branch ? { branch } : {}),
@@ -173,9 +202,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       ...(baseCommit ? { baseCommit } : {}),
       changedFilesBasis: "branch-diff",
       ...(pullRequest ? { pullRequest } : {}),
-      ...(head ? { subjectHeadCommit: head } : {}),
+      ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
       diffHash,
-      ...(head ? { headCommit: head } : {})
+      ...(subjectHead ? { headCommit: subjectHead } : {})
     },
     changedFiles,
     ...(submodules.length > 0 ? { submodules } : {}),
