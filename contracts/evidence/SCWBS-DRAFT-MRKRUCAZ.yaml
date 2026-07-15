@@ -1,0 +1,58 @@
+id: EVD-SCWBS-DRAFT-MRKRUCAZ
+type: evidence
+taskId: SCWBS-DRAFT-MRKRUCAZ
+commit: 394a710c6480ea23381943cab6c17c9f82b7dc46
+subjectHeadCommit: 394a710c6480ea23381943cab6c17c9f82b7dc46
+diffHash: sha256:33aa7b477914d5977d1fb7d249cc45d8ccd4a9c82c78718a10628aef765413dc
+git:
+  branch: task/SCWBS-DRAFT-MRKRUCAZ-issue-182-finish-human-gate-evidence-registry-re
+  base: origin/main
+  baseCommit: f154580fa0563bc0846a34ec89a4394a359a5247
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 394a710c6480ea23381943cab6c17c9f82b7dc46
+  diffHash: sha256:33aa7b477914d5977d1fb7d249cc45d8ccd4a9c82c78718a10628aef765413dc
+  headCommit: 394a710c6480ea23381943cab6c17c9f82b7dc46
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - src/cli.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/commands/registry-rebuild.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b90d62c048367e63cfe436953bd5cb0dcb7e237838c99e2cd7e3a2ab01366076
+    executedAt: "2026-07-15T11:46:08.089Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:7bbf4da42175e0c2fb05f23e4f54559bab84af96deb7aeccf2bce9c7e3233b70
+    executedAt: "2026-07-15T11:48:46.376Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:78be37c948576207ed758526748b1319b70025a140adec509b0ac65e0ce060a6
+    executedAt: "2026-07-15T11:48:50.464Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:be2d09e83e0f617f83e99b3ca4593d320fe59cbf80aff0e38aae4ddee52e6427
+    executedAt: "2026-07-15T11:48:54.124Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Issue #182 finish checkpoint, rollback, preflight, Human Gate, and crash recovery regressions'
