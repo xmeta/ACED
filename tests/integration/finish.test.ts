@@ -1,7 +1,13 @@
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, unlinkSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { buildHumanApprovalCommand, runFinish, writeFilesAtomically } from "../../src/commands/finish.js";
+import {
+  buildHumanApprovalCommand,
+  normalizePullRequestNumber,
+  resolvePullRequestState,
+  runFinish,
+  writeFilesAtomically
+} from "../../src/commands/finish.js";
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
 import { runTaskLock } from "../../src/commands/task-lock.js";
@@ -138,6 +144,50 @@ function prepareFinishRepo(requestedApproval = false): string {
 }
 
 describe("finish", () => {
+  test("pull request state resolver classifies gh statusCheckRollup and degrades safely", () => {
+    expect(normalizePullRequestNumber("#42")).toBe(42);
+    expect(normalizePullRequestNumber("https://github.com/xmeta/ACED/pull/42")).toBe(42);
+    expect(normalizePullRequestNumber("not-a-pr")).toBeUndefined();
+
+    const root = makeTempRepo();
+    const bin = path.join(root, "bin");
+    const gh = path.join(bin, "gh");
+    writeText(root, "bin/gh", [
+      "#!/usr/bin/env node",
+      "const scenario = process.env.SCWBS_TEST_PR_STATE;",
+      "if (scenario === 'unavailable') process.exit(1);",
+      "const views = {",
+      "  draft: { isDraft: true, state: 'OPEN', statusCheckRollup: [] },",
+      "  pending: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }] },",
+      "  failure: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'FAILURE' }] },",
+      "  success: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }, { state: 'SUCCESS' }] },",
+      "  merged: { isDraft: false, state: 'MERGED', statusCheckRollup: [] }",
+      "};",
+      "process.stdout.write(JSON.stringify(views[scenario]));"
+    ].join("\n"));
+    chmodSync(gh, 0o755);
+    const previousPath = process.env.PATH;
+    const previousScenario = process.env.SCWBS_TEST_PR_STATE;
+    process.env.PATH = `${bin}:${previousPath ?? ""}`;
+    try {
+      for (const [scenario, expected] of [
+        ["draft", "draft"],
+        ["pending", "checks-pending"],
+        ["failure", "checks-failure"],
+        ["success", "checks-success"],
+        ["merged", "merged"],
+        ["unavailable", "unavailable"]
+      ] as const) {
+        process.env.SCWBS_TEST_PR_STATE = scenario;
+        expect(resolvePullRequestState(root, 42)).toBe(expected);
+      }
+    } finally {
+      process.env.PATH = previousPath;
+      if (previousScenario === undefined) delete process.env.SCWBS_TEST_PR_STATE;
+      else process.env.SCWBS_TEST_PR_STATE = previousScenario;
+    }
+  });
+
   test("scwbs wrapper serializes the shared build and CLI lifecycle", async () => {
     const root = makeTempRepo();
     const marker = path.join(root, "command-order.log");
@@ -219,7 +269,12 @@ describe("finish", () => {
       output.push(String(message));
     };
     try {
-      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(0);
+      expect(runFinish(root, {
+        taskId: "WBS-001-004",
+        baseRef: "base",
+        json: true,
+        pullRequestStateResolver: () => "checks-pending"
+      })).toBe(0);
     } finally {
       console.log = originalLog;
     }
@@ -236,8 +291,8 @@ describe("finish", () => {
       requiredChecks: expect.any(Array),
       evidencePath: expect.any(String),
       approvalStatus: expect.any(String),
-      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
-      resumeCommand: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      nextAction: "gh pr checks 42 --watch",
+      resumeCommand: "gh pr checks 42 --watch",
       mutatedFiles: expect.any(Array),
       readinessWarnings: [],
       fixCommands: []
@@ -246,7 +301,7 @@ describe("finish", () => {
     expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
   }, 30000);
 
-  test("finish blocks merge readiness when pull request metadata is missing", () => {
+  test("finish creates a pull request only when pull request metadata is missing", () => {
     const root = prepareFinishRepo();
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
@@ -255,17 +310,115 @@ describe("finish", () => {
     const originalLog = console.log;
     console.log = (message?: unknown) => output.push(String(message));
     try {
-      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(1);
+      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(0);
     } finally {
       console.log = originalLog;
     }
     const json = JSON.parse(output[output.length - 1]);
     expect(json).toMatchObject({
       schemaVersion: "1.0.0",
-      status: "blocked",
-      readinessWarnings: [{ code: "health.evidence.git.pullRequest.missing" }]
+      status: "pass",
+      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      resumeCommand: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
+      readinessWarnings: []
     });
-    expect(json.fixCommands[0]).toContain("evidence annotate --task WBS-001-004 --pull-request");
+    expect(json.fixCommands).toEqual([]);
+  }, 30000);
+
+  test.each([
+    ["draft", "gh pr ready 42"],
+    ["checks-pending", "gh pr checks 42 --watch"],
+    ["checks-failure", "gh pr checks 42"],
+    ["checks-success", "gh pr merge 42 --squash --delete-branch"],
+    ["merged", "git switch main && git pull --ff-only origin main"],
+    ["unavailable", "gh pr checks 42 --watch"]
+  ] as const)("finish maps PR state %s to the existing PR next action", (state, expected) => {
+    const root = prepareFinishRepo(true);
+    const result = captureFinishJson(root, {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      pullRequestStateResolver: () => state
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.json).toMatchObject({ nextAction: expected, resumeCommand: expected });
+  }, 30000);
+
+  test("finish uses Review PR metadata when Evidence PR metadata is absent", () => {
+    const root = prepareFinishRepo(true);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "human-review",
+      pullRequest: "#73",
+      groundTruth: ["Task Contract", "Evidence"]
+    });
+
+    const result = captureFinishJson(root, {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      pullRequestStateResolver: () => "checks-pending"
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.json).toMatchObject({ nextAction: "gh pr checks 73 --watch" });
+  }, 30000);
+
+  test("finish stops before required checks when Evidence and Review PR metadata mismatch", () => {
+    const root = prepareFinishRepo(true);
+    const marker = path.join(root, "mismatch-check-ran");
+    writeJson(root, "package.json", {
+      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+    });
+    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "configure mismatch marker"], { cwd: root, stdio: "ignore" });
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "requested",
+      reviewProfile: "human-review",
+      pullRequest: "#73",
+      groundTruth: ["Task Contract", "Evidence"]
+    });
+
+    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+
+    expect(result.exitCode).toBe(1);
+    expect(existsSync(marker)).toBe(false);
+    expect(result.json).toMatchObject({
+      phase: "validation",
+      outcome: "validation-failed",
+      readinessWarnings: [{ code: "finish.pullRequest.metadata.mismatch" }]
+    });
+    expect(result.json.nextAction).toContain("review request --task WBS-001-004 --pull-request 42 --force");
+  });
+
+  test("plain and JSON finish output return the same PR next action", () => {
+    const jsonRoot = prepareFinishRepo(true);
+    const jsonResult = captureFinishJson(jsonRoot, {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      pullRequestStateResolver: () => "draft"
+    });
+    const plainRoot = prepareFinishRepo(true);
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runFinish(plainRoot, {
+        taskId: "WBS-001-004",
+        baseRef: "base",
+        pullRequestStateResolver: () => "draft"
+      })).toBe(0);
+    } finally {
+      console.log = originalLog;
+    }
+    expect(output).toContain(`  ${jsonResult.json.nextAction}`);
   }, 30000);
 
   test("finish rejects a missing contract lock before required checks", () => {
@@ -321,7 +474,11 @@ describe("finish", () => {
       output.push(String(message));
     };
     try {
-      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+      expect(runFinish(root, {
+        taskId: "WBS-001-004",
+        baseRef: "base",
+        pullRequestStateResolver: () => "draft"
+      })).toBe(0);
     } finally {
       console.log = originalLog;
     }
@@ -330,7 +487,7 @@ describe("finish", () => {
     expect(output).toContain("PASS registry synchronized");
     expect(output.join("\n")).not.toContain("id: EVD-WBS-001-004");
     expect(output).not.toContain(`  ${command}`);
-    expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
+    expect(output).toContain("  gh pr ready 42");
     expect(command).not.toContain("--approved-by");
     expect(command).not.toContain("--human-confirm");
   }, 30000);
@@ -501,11 +658,11 @@ describe("finish", () => {
     expect(existsSync(journalFile)).toBe(false);
   }, 30000);
 
-  test("a first finish creates Evidence and synchronizes registry before blocking on missing PR metadata", () => {
+  test("a first finish creates Evidence and synchronizes registry before proposing PR creation", () => {
     const root = prepareFinishRepo();
     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
 
-    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
   }, 30000);
