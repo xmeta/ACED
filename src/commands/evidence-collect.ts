@@ -144,8 +144,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const metadataFiles = postEvidenceMetadataFiles(taskId);
   const diffHash = branchDiffHash(root, baseRef, metadataFiles);
   const { evidence: existingEvidence } = readEvidence(root, taskId);
-  const metadataFileSet = new Set(metadataFiles);
-  const changedFiles = branchChangedFiles(root, baseRef).filter((file) => !metadataFileSet.has(file));
+  const changedFiles = branchChangedFiles(root, baseRef);
   const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
   const branch = currentBranch(root);
   if (

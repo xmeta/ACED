@@ -250,16 +250,24 @@ describe("evidence collect", () => {
     execFileSync("git", ["commit", "-m", "record evidence metadata"], { cwd: root, stdio: "ignore" });
 
     const second = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
-    expect(second).toEqual(first);
     expect(second).toMatchObject({
       commit: subjectHead,
       subjectHeadCommit: subjectHead,
       git: { subjectHeadCommit: subjectHead, headCommit: subjectHead }
     });
-    expect(second.changedFiles).not.toContain("contracts/evidence/WBS-001-004.yaml");
-    expect(second.changedFiles).not.toContain("contracts/approvals/WBS-001-004.yaml");
-    expect(second.changedFiles).not.toContain("contracts/reviews/WBS-001-004.yaml");
-    expect(second.changedFiles).not.toContain("contracts/registry.yaml");
+    expect(second.diffHash).toBe(first.diffHash);
+    expect(second.changedFiles).toEqual(expect.arrayContaining([
+      "contracts/evidence/WBS-001-004.yaml",
+      "contracts/approvals/WBS-001-004.yaml",
+      "contracts/reviews/WBS-001-004.yaml",
+      "contracts/registry.yaml"
+    ]));
+
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", second as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "refresh evidence checkpoint"], { cwd: root, stdio: "ignore" });
+    const fixedPoint = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(fixedPoint).toEqual(second);
 
     writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
