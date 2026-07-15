@@ -43,8 +43,8 @@ jobs:
         env:
           CI_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          npm run --silent scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > ci-plan-candidate.json
-          node -e 'const p=require("./ci-plan-candidate.json"); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT, `decision=${p.decision}\ntask_id=${p.taskId ?? ""}\nsubject=${p.subjectHeadCommit ?? ""}\n`)'
+          npm run --silent scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > "$RUNNER_TEMP/ci-plan-candidate.json"
+          node -e 'const p=require(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT, `decision=${p.decision}\ntask_id=${p.taskId ?? ""}\nsubject=${p.subjectHeadCommit ?? ""}\n`)'
       - name: Verify successful full CI for implementation subject
         id: subject-checks
         if: steps.candidate.outputs.decision == 'metadata-candidate'
@@ -106,7 +106,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require("fs");
-          const candidate = JSON.parse(fs.readFileSync("ci-plan-candidate.json", "utf8"));
+          const candidate = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`, "utf8"));
           const verified = candidate.decision === "metadata-candidate"
             && process.env.SUBJECT_CHECKS_ELIGIBLE === "true";
           const plan = {
@@ -122,7 +122,7 @@ jobs:
                 }]
               : candidate.reasons
           };
-          fs.writeFileSync("ci-plan.json", `${JSON.stringify(plan, null, 2)}\n`);
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT,
             `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\n`);
           process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
