@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRM11JDO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRM11JDO
+branchName: task/SCWBS-DRAFT-MRM11JDO-issue-204-finish-nextaction-pr-metadata-pr
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRM11JDO.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRM11JDO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRM11JDO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRM11JDO.yaml
+allowedPaths:
+  - src/commands/finish.ts
+  - src/core/pull-request-state.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - PR metadataがないTaskだけがPR作成をnext actionにする
+  - EvidenceまたはReviewにPR metadataがある場合は既存PR番号を使う
+  - EvidenceとReviewのPR番号不一致はactionable errorとして停止する
+  - draft、checks pending、checks failure、checks success、mergedを区別する
+  - GitHub state取得不可時はrepository-local metadataだけで安全にdegradeする
+  - plainとJSONのfinish outputが同じnext actionを返す
+  - PR状態分岐とmetadata不一致の回帰テストを追加する
+stopIf:
+  - GitHub repository設定や外部サービス変更が必要
+  - package.json、package-lock.json、.github配下の変更が必要
+  - PR state取得のために認証情報を永続化する必要がある
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-15T12:00:49.357Z"

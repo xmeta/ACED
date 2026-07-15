@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch } from "../core/git.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { gitCommonDir } from "../core/required-check-run.js";
@@ -51,6 +52,47 @@ export type FinishJsonOutput = {
 
 type TestQuality = NonNullable<Evidence["testQuality"]>;
 type CheckpointWriter = (files: AtomicFileWrite[]) => string[];
+
+export type PullRequestState =
+  | "draft"
+  | "checks-pending"
+  | "checks-failure"
+  | "checks-success"
+  | "merged"
+  | "unavailable";
+export type PullRequestStateResolver = (root: string, pullRequest: number) => PullRequestState;
+
+type PullRequestStatusCheck = { status?: string; conclusion?: string; state?: string };
+type PullRequestView = { isDraft?: boolean; state?: string; statusCheckRollup?: PullRequestStatusCheck[] };
+const FAILED_CHECK_CONCLUSIONS = new Set(["ACTION_REQUIRED", "CANCELLED", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
+const SUCCESSFUL_CHECK_CONCLUSIONS = new Set(["NEUTRAL", "SKIPPED", "SUCCESS"]);
+
+export function normalizePullRequestNumber(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const match = value.trim().match(/^(?:#|.*\/pull\/)?([1-9]\d*)\/?$/);
+  return match?.[1] ? Number(match[1]) : undefined;
+}
+
+export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
+  try {
+    const output = execFileSync(
+      "gh",
+      ["pr", "view", String(pullRequest), "--json", "isDraft,state,statusCheckRollup"],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    );
+    const view = JSON.parse(output) as PullRequestView;
+    if (view.state === "MERGED") return "merged";
+    if (view.isDraft) return "draft";
+    const checks = Array.isArray(view.statusCheckRollup) ? view.statusCheckRollup : [];
+    if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
+    if (checks.length > 0 && checks.every((check) => SUCCESSFUL_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) {
+      return "checks-success";
+    }
+    return "checks-pending";
+  } catch {
+    return "unavailable";
+  }
+};
 
 export type AtomicFileWrite = { path: string; content: string };
 type AtomicWriteJournal = {
@@ -139,7 +181,7 @@ export function writeFilesAtomically(
   }
 }
 
-type FinishOptions = {
+export type FinishOptions = {
   taskId?: string;
   baseRef?: string;
   pullRequest?: string;
@@ -149,7 +191,79 @@ type FinishOptions = {
   preflight?: boolean;
   testQuality?: TestQuality;
   checkpointWriter?: CheckpointWriter;
+  pullRequestStateResolver?: PullRequestStateResolver;
 };
+
+type PullRequestMetadata = {
+  evidence?: number;
+  review?: number;
+  selected?: number;
+  issue?: Issue;
+};
+
+function collectPullRequestMetadata(root: string, taskId: string): PullRequestMetadata {
+  const evidenceValue = readEvidence(root, taskId).evidence?.git?.pullRequest;
+  const reviewValue = readReview(root, taskId).review?.pullRequest;
+  const evidence = normalizePullRequestNumber(evidenceValue);
+  const review = normalizePullRequestNumber(reviewValue);
+  if (evidenceValue && evidence === undefined) {
+    return {
+      issue: {
+        severity: "error",
+        code: "finish.pullRequest.evidence.invalid",
+        message: `${taskId} Evidence pullRequest is not a PR number: ${evidenceValue}`,
+        fixCommand: `npm run scwbs -- evidence annotate --task ${taskId} --pull-request <pr-number>`
+      }
+    };
+  }
+  if (reviewValue && review === undefined) {
+    return {
+      evidence,
+      issue: {
+        severity: "error",
+        code: "finish.pullRequest.review.invalid",
+        message: `${taskId} Review pullRequest is not a PR number: ${reviewValue}`,
+        fixCommand: `npm run scwbs -- review request --task ${taskId} --pull-request <pr-number> --force`
+      }
+    };
+  }
+  if (evidence !== undefined && review !== undefined && evidence !== review) {
+    return {
+      evidence,
+      review,
+      issue: {
+        severity: "error",
+        code: "finish.pullRequest.metadata.mismatch",
+        message: `${taskId} Evidence pullRequest #${evidence} does not match Review pullRequest #${review}`,
+        fixCommand: `npm run scwbs -- review request --task ${taskId} --pull-request ${evidence} --force`
+      }
+    };
+  }
+  return { evidence, review, selected: evidence ?? review };
+}
+
+function pullRequestNextAction(taskId: string, pullRequest: number | undefined, state?: PullRequestState): { label: string; command: string } {
+  if (pullRequest === undefined) {
+    return {
+      label: "Open a pull request:",
+      command: `gh pr create --base main --title "feat: ${taskId}" --body ""`
+    };
+  }
+  switch (state) {
+    case "draft":
+      return { label: `Mark pull request #${pullRequest} ready for review:`, command: `gh pr ready ${pullRequest}` };
+    case "checks-failure":
+      return { label: `Inspect failing checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest}` };
+    case "checks-success":
+      return { label: `Merge pull request #${pullRequest}:`, command: `gh pr merge ${pullRequest} --squash --delete-branch` };
+    case "merged":
+      return { label: `Synchronize main after merged pull request #${pullRequest}:`, command: "git switch main && git pull --ff-only origin main" };
+    case "checks-pending":
+      return { label: `Watch checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest} --watch` };
+    default:
+      return { label: `Verify checks for existing pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest} --watch` };
+  }
+}
 
 function readinessFixCommands(issues: Issue[]): string[] {
   return [...new Set(issues.flatMap((issue) => issue.fixCommand ? [issue.fixCommand] : []))];
@@ -348,6 +462,22 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
     return 1;
   }
 
+  const initialPullRequestMetadata = collectPullRequestMetadata(root, taskId);
+  if (initialPullRequestMetadata.issue) {
+    const issue = initialPullRequestMetadata.issue;
+    printReadinessIssues([issue], json);
+    const nextAction = issue.fixCommand ?? "Reconcile pull request metadata";
+    emitJson(finishOutput({
+      status: "blocked", phase: "validation", outcome: "validation-failed", taskId,
+      requiresHumanApproval: false, changedFiles: [], violations: [issue], requiredChecks: [],
+      evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
+      resumeCommand: nextAction, mutatedFiles: [],
+      readinessWarnings: [{ code: issue.code, message: issue.message, ...(issue.fixCommand ? { fixCommand: issue.fixCommand } : {}) }],
+      fixCommands: issue.fixCommand ? [issue.fixCommand] : []
+    }), json);
+    return 1;
+  }
+
   const workingTree = evaluateWorkingTreeGuard(root, taskId);
   if (workingTree.issues.length > 0) {
     printReadinessIssues(workingTree.issues, json);
@@ -384,7 +514,7 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
   try {
     evidence = buildCollectedEvidence(root, taskId, {
       baseRef: options.baseRef,
-      pullRequest: options.pullRequest,
+      pullRequest: options.pullRequest ?? (initialPullRequestMetadata.selected ? String(initialPullRequestMetadata.selected) : undefined),
       testQuality: options.testQuality,
       rerunChecks: options.rerunChecks
     });
@@ -504,7 +634,26 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
     return 1;
   }
 
-  const readinessIssues = collectTaskHealthIssues(root, taskId);
+  const finalPullRequestMetadata = collectPullRequestMetadata(root, taskId);
+  if (finalPullRequestMetadata.issue) {
+    const issue = finalPullRequestMetadata.issue;
+    printReadinessIssues([issue], json);
+    const nextAction = issue.fixCommand ?? "Reconcile pull request metadata";
+    emitJson(finishOutput({
+      status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
+      requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [issue],
+      requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
+      readinessWarnings: [{ code: issue.code, message: issue.message, ...(issue.fixCommand ? { fixCommand: issue.fixCommand } : {}) }],
+      fixCommands: issue.fixCommand ? [issue.fixCommand] : []
+    }), json);
+    return 1;
+  }
+  const readinessIssues = collectTaskHealthIssues(root, taskId)
+    .filter((issue) => ![
+      "health.evidence.git.pullRequest.missing",
+      "health.review.scope.pullRequest"
+    ].includes(issue.code));
   if (readinessIssues.length > 0) {
     printReadinessIssues(readinessIssues, json);
     const nextAction = readinessIssues[0]?.fixCommand ?? resumeFinishCommand(taskId);
@@ -520,19 +669,22 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
   }
 
   const profile: Profile = readProfile(root);
-  const prCommand = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+  const pullRequest = finalPullRequestMetadata.selected;
+  const resolver = options.pullRequestStateResolver ?? resolvePullRequestState;
+  const pullRequestState = pullRequest === undefined ? undefined : resolver(root, pullRequest);
+  const next = pullRequestNextAction(taskId, pullRequest, pullRequestState);
   if (!json) {
     console.log(`Profile: ${profile}`);
     console.log("");
     console.log("Next action:");
-    console.log("  Open a pull request and merge:");
-    console.log(`  ${prCommand}`);
+    console.log(`  ${next.label}`);
+    console.log(`  ${next.command}`);
   }
   emitJson(finishOutput({
     status: "pass", phase: "complete", outcome: "completed", taskId,
     requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
     requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
-    approvalStatus: approval?.status ?? "", nextAction: prCommand, resumeCommand: prCommand,
+    approvalStatus: approval?.status ?? "", nextAction: next.command, resumeCommand: next.command,
     mutatedFiles, readinessWarnings: [], fixCommands: []
   }), json);
   return 0;
