@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRNKB9XV
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNKB9XV
+branchName: task/SCWBS-DRAFT-MRNKB9XV-issue-179-read-only-governance-cost-metrics-summ
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNKB9XV.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNKB9XV.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNKB9XV.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNKB9XV.yaml
+allowedPaths:
+  - contracts/check-coverage.yaml
+  - src/commands/metrics.ts
+  - src/cli.ts
+  - tests/integration/metrics.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - budget enforcementやprofile安全性の変更が必要
+  - 履歴や外部CIからの未取得データを推測で補う必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - scwbs metrics governance --jsonが現行repoのgovernance artifact、src、testsのファイル数・bytes・行数を再現可能に集計する
+  - Lean / Standard / Strictのprofile別に対象artifact directoryの集計を比較でき、現在のprofileを明示する
+  - 'status: archivedまたはarchive directoryのartifactをactiveと分離し、未取得の履歴・CI・時間を推測せず未計測として扱う'
+  - read-only commandは永続的なmetric record、budget enforcement、profile downgrade、WBS正本変更を行わない
+  - JSON schema version、metric定義、分母、hard limit非適用をCLI docsへ記録し、代表fixtureのintegration testでactive/archiveとprofile集計を検証する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T13:47:14.182Z"
