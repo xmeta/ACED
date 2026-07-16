@@ -78,6 +78,7 @@ const evidenceSchema = {
           stdoutSummary: { type: "string" },
           stderrSummary: { type: "string" },
           executedAt: { type: "string" },
+          durationMilliseconds: { type: "number", minimum: 0 },
           verifiedBy: { type: "string" }
         }
       }

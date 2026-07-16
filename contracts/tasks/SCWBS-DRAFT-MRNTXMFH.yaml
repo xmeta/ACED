@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MRNTXMFH
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNTXMFH
+branchName: task/SCWBS-DRAFT-MRNTXMFH-issue-179-canonical-required-check-receipt-local
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNTXMFH.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNTXMFH.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNTXMFH.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNTXMFH.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNTXMFH.yaml
+allowedPaths:
+  - contracts/check-coverage.yaml
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/metrics.ts
+  - src/core/check-receipt.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/checks-run.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/metrics.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - canonical required-check executionが各checkのdurationMillisecondsをreceiptとEvidenceへ記録し、legacy recordは後方互換で読める
+  - scwbs metrics governance --jsonがgit common dirの現存receiptだけをread-onlyかつboundedに集計し、観測不能を0秒と推測しない
+  - JSONはobserved receipt/check count、期間、合計・平均・最小・最大durationとtask別bounded trendを返す
+  - metric実行は永続artifactを生成せず、finish試行、metadata descendant、Human Gate wait、publish loop、health deltaは未計測と明示する
+  - hard limit、warning budget、profile downgrade、risk-based execution policy、Approval境界を変更しない
+stopIf:
+  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - legacy receiptのlocal durationを推測で補う必要
+  - finish試行、Human Gate wait、publish loop、health deltaの信頼できる時刻を新しい大量永続artifactなしに取得できない
+  - budget enforcement、profile安全性、risk-based execution policy、Approval policyの変更が必要
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T18:16:54.074Z"

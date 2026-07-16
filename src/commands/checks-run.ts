@@ -72,6 +72,7 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
   updateRequiredCheckRun(lease, check, index);
   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
   const heartbeat = startRequiredCheckHeartbeat(lease);
+  const startedAt = performance.now();
   let result: SpawnSyncReturns<string>;
   try {
     result = spawnSync(command[0] ?? "npm", command.slice(1), {
@@ -91,6 +92,7 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
     source: "local",
     command: command.join(" "),
     cacheKey,
+    durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
     executedAt: new Date().toISOString(),
     ...(typeof result.status === "number" && status === "failed" ? { exitStatus: result.status } : {}),
     ...(status === "failed" && summarize(result.stdout) ? { stdoutSummary: summarize(result.stdout) } : {}),

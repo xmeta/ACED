@@ -192,6 +192,7 @@ export type Evidence = {
     stdoutSummary?: string;
     stderrSummary?: string;
     executedAt?: string;
+    durationMilliseconds?: number;
     verifiedBy?: string;
   }>;
   testQuality?: {

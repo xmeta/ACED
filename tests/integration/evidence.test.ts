@@ -490,6 +490,7 @@ describe("evidence collect", () => {
     expect(check?.stdoutSummary).toContain("[truncated]");
     expect(check?.stdoutSummary?.length).toBeLessThanOrEqual(1000);
     expect(check?.stderrSummary).toContain("stderr failure");
+    expect(check?.durationMilliseconds).toBeGreaterThanOrEqual(0);
   }, 30000);
 
   test("evidence collect preserves passed-check evidence shape", () => {
@@ -512,6 +513,7 @@ describe("evidence collect", () => {
       status: "passed",
       command: "npm test"
     });
+    expect(check?.durationMilliseconds).toBeGreaterThanOrEqual(0);
     expect(check).not.toHaveProperty("exitStatus");
     expect(check).not.toHaveProperty("stdoutSummary");
     expect(check).not.toHaveProperty("stderrSummary");

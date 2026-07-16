@@ -128,11 +128,22 @@ describe("checks run", () => {
     });
     expect(count(root)).toBe(1);
     expect(existsSync(checkReceiptPath(root, taskId))).toBe(true);
+    const receipt = JSON.parse(readFileSync(checkReceiptPath(root, taskId), "utf8"));
+    expect(receipt.checks[0].durationMilliseconds).toBeGreaterThanOrEqual(0);
 
     state.phase = "evidence reuse";
     const evidence = buildCollectedEvidence(root, taskId, { baseRef: "base" });
     expect(evidence.checks).toHaveLength(1);
     expect(evidence.checks[0]).toMatchObject({ name: "costly", status: "passed", cacheKey: first.checks[0]?.cacheKey });
+    expect(evidence.checks[0]?.durationMilliseconds).toBe(receipt.checks[0].durationMilliseconds);
+    expect(count(root)).toBe(1);
+
+    state.phase = "legacy evidence prefers observed receipt";
+    const legacyEvidence = structuredClone(evidence);
+    delete legacyEvidence.checks[0]?.durationMilliseconds;
+    writeYaml(root, `contracts/evidence/${taskId}.yaml`, legacyEvidence as unknown as Record<string, unknown>);
+    const refreshed = buildCollectedEvidence(root, taskId, { baseRef: "base" });
+    expect(refreshed.checks[0]?.durationMilliseconds).toBe(receipt.checks[0].durationMilliseconds);
     expect(count(root)).toBe(1);
 
     state.phase = "checks-run receipt reuse";
@@ -199,6 +210,21 @@ describe("checks run", () => {
     const summary = buildChecksRunSummary(root, taskId, { baseRef: "base" });
     expect(summary.checks[0]).toMatchObject({ disposition: "executed", reason: "receipt-invalid" });
     expect(count(root)).toBe(2);
+  });
+
+  caseTest("accepts a legacy receipt without duration and rejects a negative duration", (state) => {
+    const root = prepareRepo();
+    state.root = root;
+    state.command = "buildChecksRunSummary";
+    buildChecksRunSummary(root, taskId, { baseRef: "base" });
+    const receipt = JSON.parse(readFileSync(checkReceiptPath(root, taskId), "utf8"));
+    delete receipt.checks[0].durationMilliseconds;
+    writeText(root, path.relative(root, checkReceiptPath(root, taskId)), JSON.stringify(receipt));
+    expect(receiptReason(root)).toBe("receipt-valid");
+    expect(buildChecksRunSummary(root, taskId, { baseRef: "base" }).checks[0]).toMatchObject({ disposition: "reused" });
+    receipt.checks[0].durationMilliseconds = -1;
+    writeText(root, path.relative(root, checkReceiptPath(root, taskId)), JSON.stringify(receipt));
+    expect(receiptReason(root)).toBe("receipt-invalid");
   });
 
   caseTest("invalidates when recursive submodule provenance changes", (state) => {
