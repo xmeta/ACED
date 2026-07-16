@@ -48,7 +48,7 @@ jobs:
       - name: Verify successful full CI for implementation subject
         id: subject-checks
         if: steps.candidate.outputs.decision == 'metadata-candidate'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           SUBJECT: ${{ steps.candidate.outputs.subject }}
         with:
