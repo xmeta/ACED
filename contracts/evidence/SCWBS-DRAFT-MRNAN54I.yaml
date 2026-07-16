@@ -1,0 +1,53 @@
+id: EVD-SCWBS-DRAFT-MRNAN54I
+type: evidence
+taskId: SCWBS-DRAFT-MRNAN54I
+commit: 4695e59f5f1678078042a73a3eef314c48f0fbc0
+subjectHeadCommit: 4695e59f5f1678078042a73a3eef314c48f0fbc0
+diffHash: sha256:4b18eee6d923166dbd917ec6f7a701ff00acd1de0d28dd99867c4d2d4ad87ee6
+git:
+  branch: task/SCWBS-DRAFT-MRNAN54I-issue-224-checks-run-integration-concurrent-time
+  base: origin/main
+  baseCommit: 19a7866fda43dc401f35e18977a61fa0efb19195
+  changedFilesBasis: branch-diff
+  pullRequest: "227"
+  subjectHeadCommit: 4695e59f5f1678078042a73a3eef314c48f0fbc0
+  diffHash: sha256:4b18eee6d923166dbd917ec6f7a701ff00acd1de0d28dd99867c4d2d4ad87ee6
+  headCommit: 4695e59f5f1678078042a73a3eef314c48f0fbc0
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRNAN54I.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/integration-testing.md
+  - tests/integration/checks-run.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:f499ba174762451c6ace8a89be74e1e3ed95e39d459f23898facff878063a892
+    executedAt: "2026-07-16T09:30:23.906Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3fb2663d4d2b965dd4d2ab563683499a9cd6083946bf3f09a2fe53f28e177cc5
+    executedAt: "2026-07-16T09:33:54.825Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:07378126515affb7366035b9c9f127db3ee382c7080b110429a442005c2b5d96
+    executedAt: "2026-07-16T09:33:57.631Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:2f2768d8d110735a12bb6b8532f9ab59c11896d2919654dcd49818199c20fa43
+    executedAt: "2026-07-16T09:34:00.498Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Serial boundary and bounded failure diagnostics added; existing receipt, Evidence reuse, provenance, and schema assertions remain enabled.
