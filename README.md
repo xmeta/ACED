@@ -112,6 +112,16 @@ npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --
 
 `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
 
+Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
+
+```bash
+SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" \
+  npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" \
+  --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
+```
+
+A local `.env` file or CI secret store may be used to manage the environment variable, but the CLI does not automatically load `.env`, and `.env` alone never grants authority. Use a randomly generated token of at least 32 bytes; the public SHA-256 in the contract otherwise permits offline guessing of weak secrets. The committed Task Contract policy and a matching, unexpired token are both required. Delegated records use `approvalMode: delegated` and a token-derived `delegationProof`, and record their declared source, delegator, executor, and scope separately from human approvals. Consumers revalidate the proof and accept `human-gate` only for Human Gate checks and `post-finish` only for completion. These controls make accidental and simple YAML bypasses substantially harder, but they do not independently verify the real-world identity of `delegatedBy`, the person who provisioned the token, or a fully privileged process that can rewrite both code and local secrets.
+
 ## 6. Core Artifacts
 
 - Task Contract: `contracts/tasks/<task-id>.yaml`

@@ -1,4 +1,5 @@
 import { matchesAny } from "./glob.js";
+import { validateDelegatedApproval } from "./approval-delegation.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import type { ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
 
@@ -67,6 +68,9 @@ export function validateHumanGateApproval(
   }
 
   const issues: Issue[] = [];
+  if (approval.approvalMode === "delegated") {
+    issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
+  }
   const subjectHead = evidence ? evidenceHead(evidence) : undefined;
   const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;

@@ -13,7 +13,8 @@ export const TASK_AUTHORITY_FIELDS = [
   "humanGateRequiredPaths",
   "requiredChecks",
   "managedContractPaths",
-  "checkCoverageWaivers"
+  "checkCoverageWaivers",
+  "approvalPolicy"
 ] as const;
 
 const REQUIRED_NEW_TASK_HUMAN_GATES = [
@@ -42,7 +43,10 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
     managedContractPaths: normalizedStrings(task.managedContractPaths),
     checkCoverageWaivers: [...(task.checkCoverageWaivers ?? [])]
       .map((waiver) => ({ check: waiver.check, reason: waiver.reason }))
-      .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`))
+      .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`)),
+    approvalPolicy: task.approvalPolicy?.mode === "delegated"
+      ? { ...task.approvalPolicy, scopes: normalizedStrings(task.approvalPolicy.scopes) }
+      : { mode: "human-only" }
   };
 }
 

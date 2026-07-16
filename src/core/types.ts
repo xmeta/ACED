@@ -25,6 +25,20 @@ export type Registry = {
 };
 
 export type ApprovalStatus = "requested" | "approved" | "rejected";
+export type ApprovalDelegationScope = "human-gate" | "post-finish";
+
+export type ApprovalPolicy =
+  | { mode: "human-only" }
+  | {
+      mode: "delegated";
+      delegatedBy: string;
+      delegatedTo: "ai-agent";
+      scopes: ApprovalDelegationScope[];
+      source: string;
+      reason: string;
+      expiresAt: string;
+      tokenSha256: string;
+    };
 
 export type SpecContractStatus = "draft" | "approved" | "superseded";
 export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
@@ -113,6 +127,7 @@ export type TaskContract = {
    * humanGateRequiredPaths, which always take priority.
    */
   managedContractPaths?: string[];
+  approvalPolicy?: ApprovalPolicy;
 };
 
 export type CheckCoverageClassification = "behavior-critical" | "unit-only";
@@ -199,6 +214,12 @@ export type ApprovalRecord = {
   diffHash?: string;
   pullRequest?: string;
   reason?: string;
+  approvalMode?: "human" | "delegated";
+  delegationSource?: string;
+  delegatedBy?: string;
+  executedBy?: "ai-agent";
+  delegationScope?: ApprovalDelegationScope;
+  delegationProof?: string;
   notes?: string[];
 };
 

@@ -3,10 +3,28 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
+import { runApprovalApprove } from "../../src/commands/approval-request.js";
+import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/approval-delegation.js";
 import { readApproval } from "../../src/core/contracts.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("completion apply", () => {
+  const delegationToken = "0123456789abcdef0123456789abcdef";
+
+  function delegatedTask(): ReturnType<typeof sampleTask> {
+    return sampleTask({
+      approvalPolicy: {
+        mode: "delegated",
+        delegatedBy: "xmeta",
+        delegatedTo: "ai-agent",
+        scopes: ["human-gate", "post-finish"],
+        source: "https://github.com/xmeta/ACED/issues/222",
+        reason: "Authorized unattended execution",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        tokenSha256: approvalDelegationTokenSha256(delegationToken)
+      }
+    });
+  }
   function writeFakeWjsApply(root: string): void {
     mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
     writeText(root, "wjs/tools/apply.ts", "// marker file for the WJS apply tool\n");
@@ -294,6 +312,38 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
     const wbs = readWbs(root);
     expect(wbs.nodes.find((node) => node.id === "node-api")?.status).toBe("ready");
+  });
+
+  test("completion accepts a valid post-finish delegated proof", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", delegatedTask() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
+    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
+    try {
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
+      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(0);
+    } finally {
+      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+    }
+  });
+
+  test("completion rejects human-gate scope and a tampered delegated proof", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", delegatedTask() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
+    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
+    try {
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", force: false })).toBe(0);
+      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: true })).toBe(0);
+      const approval = readApproval(root, "WBS-001-004").approval!;
+      writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...approval, delegationProof: `hmac-sha256:${"a".repeat(64)}` } as unknown as Record<string, unknown>);
+      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+    } finally {
+      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+    }
   });
 
   test("completion apply fails when approval is requested", () => {
