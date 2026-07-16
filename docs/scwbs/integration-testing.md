@@ -12,6 +12,8 @@ Vitest uses the `forks` pool and parallelizes test files with 2–4 workers (4 b
 
 The fork-per-file boundary isolates those mutations. Temporary git repositories are unique per test through `makeTempRepo`, so git fixtures are parallel-safe across files. Do not convert the affected tests to `test.concurrent`; their process-global mutations are serial-required within their file.
 
+`checks-run.test.ts` follows the same boundary. Its six cases use separate temporary repositories, but each case performs multiple Git setup operations, starts an npm child process, and exercises required-check receipt and lock/lease paths. The cases are therefore serial within the file so CPU, filesystem, process-table, and child-process pressure cannot turn the exact-receipt scenario into a timeout. File-level parallelism and the default 2–4 workers remain enabled. The test registers a bounded failure diagnostic containing the case phase, test-worker PID, temporary repository, child-process command, lock/lease state, and receipt presence.
+
 ## Duration report
 
 The default output is bounded to one total line, the slowest five files, and the slowest five tests. A reproducible JSON report with file and test durations can be written without running the suite again:
