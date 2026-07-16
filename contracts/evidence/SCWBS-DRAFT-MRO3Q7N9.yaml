@@ -1,0 +1,55 @@
+id: EVD-SCWBS-DRAFT-MRO3Q7N9
+type: evidence
+taskId: SCWBS-DRAFT-MRO3Q7N9
+commit: 8ac481e35e89032f7d678e373791fd5ac3215800
+subjectHeadCommit: 8ac481e35e89032f7d678e373791fd5ac3215800
+diffHash: sha256:53ed50b9745a9588198171535a2b1485c1c86789b0fd676fc837ce91d278a16c
+git:
+  branch: task/SCWBS-DRAFT-MRO3Q7N9-issue-238-task-new-gate-human-gate
+  base: origin/main
+  baseCommit: 64ae0a920eb01957c72e2aac53478a52ac629016
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 8ac481e35e89032f7d678e373791fd5ac3215800
+  diffHash: sha256:53ed50b9745a9588198171535a2b1485c1c86789b0fd676fc837ce91d278a16c
+  headCommit: 8ac481e35e89032f7d678e373791fd5ac3215800
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/task-new.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:3fa01084feb95c756b4c4ed364c2057f8fbda83754df51e071a7915d6794e6d2
+    durationMilliseconds: 11923
+    executedAt: "2026-07-16T22:57:36.674Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f5297625446d49f8a812719bd725db7aadd374a5de5b505eff6a5db4353e6706
+    durationMilliseconds: 277503
+    executedAt: "2026-07-16T23:02:14.180Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:10b74fcd331d3cf75ee8af2e6fa96203e36136c8d36c7dc1648635d372fefaa0
+    durationMilliseconds: 3094
+    executedAt: "2026-07-16T23:02:17.278Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:274eea44f610c3ad7e5d0d39e18c419aa45a89175a32e14958a26dcb88becd3c
+    durationMilliseconds: 3174
+    executedAt: "2026-07-16T23:02:20.455Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 標準Human Gateの保持、custom gateの追加順序、標準/custom重複排除をintegration regressionで検証
