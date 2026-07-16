@@ -1,0 +1,53 @@
+id: EVD-SCWBS-DRAFT-MRNRMETS
+type: evidence
+taskId: SCWBS-DRAFT-MRNRMETS
+commit: 3666b8db7d1c7dcea8293d4a2536dfc507a37090
+subjectHeadCommit: 3666b8db7d1c7dcea8293d4a2536dfc507a37090
+diffHash: sha256:022e83367cd33b2b61be14c05fce9d2c90172c897361fe6232a89d941b449ca1
+git:
+  branch: task/SCWBS-DRAFT-MRNRMETS-issue-220-shared-lifecycle-integration-test-slee
+  base: origin/main
+  baseCommit: 810f05c90fdf4ab8e952242db7a4feb3679882a1
+  changedFilesBasis: branch-diff
+  pullRequest: "233"
+  subjectHeadCommit: 3666b8db7d1c7dcea8293d4a2536dfc507a37090
+  diffHash: sha256:022e83367cd33b2b61be14c05fce9d2c90172c897361fe6232a89d941b449ca1
+  headCommit: 3666b8db7d1c7dcea8293d4a2536dfc507a37090
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRNRMETS.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNRMETS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRNRMETS.yaml
+  - contracts/tasks/index.yaml
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:0facc1e49064c1b413b26b1c3ff9fce86201af2784b06cc7b2b5eb9978eff275
+    executedAt: "2026-07-16T17:20:58.487Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:18ca93fcb3699028f03a503a359ad6c84b062b131c7f4211b5b5ec32528b265e
+    executedAt: "2026-07-16T17:24:08.015Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:83da6539246e5d29281cc085cacf10f1fc1a2d284ba9ca916b459fc4cf46c5d3
+    executedAt: "2026-07-16T17:24:11.069Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:97b4a17e1d35ea67fc8cde2b7a9b8a15caa8d8b8c63d3d87a3e1a9b88d4cdda5
+    executedAt: "2026-07-16T17:24:14.298Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Fixed-sleep race regression now waits for the fake CLI start marker and reports bounded lock diagnostics on timeout.

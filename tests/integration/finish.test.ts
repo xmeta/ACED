@@ -30,6 +30,27 @@ function captureFinishJson(root: string, options: Parameters<typeof runFinish>[1
   }
 }
 
+function readBounded(file: string): string {
+  try {
+    return readFileSync(file, "utf8").slice(0, 2_000);
+  } catch {
+    return "<missing>";
+  }
+}
+
+async function waitForCommandStart(marker: string, lockPath: string, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (readBounded(marker).split("\n").some((line) => line.startsWith("start "))) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error([
+    `first wrapper did not start the fake CLI within ${timeoutMs}ms`,
+    `marker=${JSON.stringify(readBounded(marker))}`,
+    `lock=${JSON.stringify(readBounded(lockPath))}`
+  ].join("\n"));
+}
+
 function prepareFinishRepoWithHumanGate(): string {
   const root = makeTempRepo();
   writeScwbsProject(root);
@@ -225,7 +246,7 @@ describe("finish", () => {
     });
 
     const first = run();
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await waitForCommandStart(marker, path.join(root, ".git", "scwbs-command.lock"));
     const second = run();
     const results = await Promise.all([first, second]);
     expect(results.map((result) => result.code)).toEqual([0, 0]);
