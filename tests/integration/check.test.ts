@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
 import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 import { readTask } from "../../src/core/contracts.js";
+import { runApprovalApprove } from "../../src/commands/approval-request.js";
+import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 
 describe("check", () => {
   test("check --json outputs pass status with empty issues for a healthy repo", () => {
@@ -190,6 +192,36 @@ describe("check", () => {
     expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "approval.status", severity: "error" })
     ]));
+  });
+
+  test("Human Gate rejects a post-finish delegated approval", () => {
+    const root = makeTempRepo();
+    const token = "0123456789abcdef0123456789abcdef";
+    writeScwbsProject(root, "completed");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ approvalPolicy: {
+      mode: "delegated",
+      delegatedBy: "xmeta",
+      delegatedTo: "ai-agent",
+      scopes: ["human-gate", "post-finish"],
+      source: "https://github.com/xmeta/ACED/issues/222",
+      reason: "Authorized unattended execution",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      tokenSha256: approvalDelegationTokenSha256(token)
+    } }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      changedFiles: ["src/security/key.ts"],
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234"
+    }) as unknown as Record<string, unknown>);
+    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
+    try {
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
+      expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "approval.delegation.scope", severity: "error" })
+      ]));
+    } finally {
+      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+    }
   });
 
   test("non-existent task ID in completionTaskIds is detected", () => {

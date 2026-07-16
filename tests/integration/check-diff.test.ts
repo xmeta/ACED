@@ -51,7 +51,17 @@ describe("check-diff", () => {
       humanGateRequiredPaths: [],
       requiredChecks: ["test"],
       managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
-      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }]
+      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }],
+      approvalPolicy: {
+        mode: "delegated",
+        delegatedBy: "owner",
+        delegatedTo: "ai-agent",
+        scopes: ["human-gate"],
+        source: "issue-222",
+        reason: "automation",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        tokenSha256: `sha256:${"a".repeat(64)}`
+      }
     });
     expect(changedTaskAuthorityFields(base, weakened)).toEqual([
       "allowedPaths",
@@ -59,7 +69,8 @@ describe("check-diff", () => {
       "humanGateRequiredPaths",
       "requiredChecks",
       "managedContractPaths",
-      "checkCoverageWaivers"
+      "checkCoverageWaivers",
+      "approvalPolicy"
     ]);
   });
 

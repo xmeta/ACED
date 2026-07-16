@@ -109,6 +109,62 @@ describe("contracts / schema", () => {
     expect(issues.some((issue) => issue.code === "task.wbsNodeId")).toBe(true);
   });
 
+  test.each([
+    {
+      name: "missing token hash",
+      approvalPolicy: {
+        mode: "delegated",
+        delegatedBy: "owner",
+        delegatedTo: "ai-agent",
+        scopes: ["human-gate"],
+        source: "issue-222",
+        reason: "automation",
+        expiresAt: "2099-01-01T00:00:00.000Z"
+      },
+      semanticCode: undefined
+    },
+    {
+      name: "malformed expiry and plaintext token",
+      approvalPolicy: {
+        mode: "delegated",
+        delegatedBy: "owner",
+        delegatedTo: "ai-agent",
+        scopes: ["human-gate"],
+        source: "issue-222",
+        reason: "automation",
+        expiresAt: "not-a-date",
+        tokenSha256: "plaintext-secret"
+      },
+      semanticCode: "task.approvalPolicy.expiresAt"
+    }
+  ])("task approvalPolicy rejects $name", ({ approvalPolicy, semanticCode }) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      approvalPolicy
+    });
+    const result = readTask(root, "WBS-001-004");
+    expect(result.task).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "task.schema")).toBe(true);
+    if (semanticCode) {
+      expect(result.issues.some((issue) => issue.code === semanticCode)).toBe(true);
+    }
+  });
+
+  test("delegated approval records require complete provenance", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvalMode: "delegated"
+    }) as unknown as Record<string, unknown>);
+
+    const result = readApproval(root, "WBS-001-004");
+    expect(result.approval).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "approval.delegation")).toBe(true);
+  });
+
   test("missing wbsNodeId is an error", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

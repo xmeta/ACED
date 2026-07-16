@@ -291,6 +291,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pull-request <number>", "pull request number (legacy)")
     .option("--reason <text>", "approval reason")
     .option("--actor <text>", "approval actor")
+    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
     .option("--force", "force approval")
     .action((opts) => {
       const taskId = opts.task;
@@ -303,6 +304,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         pullRequest: opts.pr ?? opts.pullRequest,
         reason: opts.reason,
         actor: opts.actor,
+        scope: opts.scope,
         force: opts.force ?? false
       });
     });
@@ -466,6 +468,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pull-request <id>", "pull request id")
     .option("--reason <text>", "approval reason")
     .option("--actor <text>", "approval actor")
+    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
     .option("--force", "force approval")
     .action((opts) => {
       if (!opts.task) {
@@ -477,6 +480,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         pullRequest: opts.pullRequest,
         reason: opts.reason,
         actor: opts.actor,
+        scope: opts.scope,
         force: opts.force ?? false
       });
     });

@@ -127,6 +127,36 @@ const taskContractSchema = {
     },
     doneCriteria: stringArraySchema,
     evidenceRequired: stringArraySchema,
+    approvalPolicy: {
+      oneOf: [
+        {
+          type: "object",
+          required: ["mode"],
+          additionalProperties: false,
+          properties: { mode: { const: "human-only" } }
+        },
+        {
+          type: "object",
+          required: ["mode", "delegatedBy", "delegatedTo", "scopes", "source", "reason", "expiresAt", "tokenSha256"],
+          additionalProperties: false,
+          properties: {
+            mode: { const: "delegated" },
+            delegatedBy: { type: "string", minLength: 1 },
+            delegatedTo: { const: "ai-agent" },
+            scopes: {
+              type: "array",
+              minItems: 1,
+              uniqueItems: true,
+              items: { type: "string", enum: ["human-gate", "post-finish"] }
+            },
+            source: { type: "string", minLength: 1 },
+            reason: { type: "string", minLength: 1 },
+            expiresAt: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$" },
+            tokenSha256: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" }
+          }
+        }
+      ]
+    },
     contractLock: {
       type: "object",
       additionalProperties: true,
@@ -300,6 +330,12 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.stopIf !== undefined && !isStringArray(value.stopIf)) {
     issues.push(issue("task.array", `${filePath}.stopIf must be a string array when present`));
+  }
+  if (isObject(value.approvalPolicy) && value.approvalPolicy.mode === "delegated") {
+    const expiresAt = value.approvalPolicy.expiresAt;
+    if (typeof expiresAt !== "string" || !Number.isFinite(Date.parse(expiresAt))) {
+      issues.push(issue("task.approvalPolicy.expiresAt", `${filePath}.approvalPolicy.expiresAt must be a valid timestamp`));
+    }
   }
   if (value.checkCoverageWaivers !== undefined) {
     if (!Array.isArray(value.checkCoverageWaivers)) {

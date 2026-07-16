@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+import { validateDelegatedApproval } from "../core/human-gate.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
@@ -168,8 +169,16 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
     if (approval.status === "rejected") throw new Error(`${task.id} approval is rejected`);
     if (approval.status !== "approved") throw new Error(`${task.id} approval status is ${approval.status}; only approved records can complete`);
 
+    if (approval.approvalMode === "delegated") {
+      const delegationIssues = validateDelegatedApproval(task, approval, "post-finish");
+      if (delegationIssues.length > 0) throw new Error(delegationIssues.map((issue) => issue.message).join("\n"));
+    }
+
     const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
     const evidenceDiffHash = evidence.git?.diffHash ?? evidence.diffHash;
+    if (approval.approvalMode === "delegated" && (!approval.headCommit || !approval.diffHash || !evidenceHeadCommit || !evidenceDiffHash)) {
+      throw new Error(`${task.id} delegated approval and Evidence require headCommit and diffHash`);
+    }
     if (approval.headCommit !== undefined && evidenceHeadCommit !== undefined && approval.headCommit !== evidenceHeadCommit) {
       throw new Error(`${task.id} approval headCommit does not match Evidence`);
     }

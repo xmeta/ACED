@@ -111,6 +111,12 @@ const approvalRecordSchema = {
     diffHash: { type: "string" },
     pullRequest: { type: "string" },
     reason: { type: "string" },
+    approvalMode: { type: "string", enum: ["human", "delegated"] },
+    delegationSource: { type: "string" },
+    delegatedBy: { type: "string" },
+    executedBy: { const: "ai-agent" },
+    delegationScope: { type: "string", enum: ["human-gate", "post-finish"] },
+    delegationProof: { type: "string", pattern: "^hmac-sha256:[a-f0-9]{64}$" },
     notes: stringArraySchema
   }
 };
@@ -297,7 +303,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason"]) {
+  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }
@@ -310,6 +316,21 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
       if (typeof value[key] !== "string" || value[key].length === 0) {
         issues.push(issue("approval.status", `${filePath}.${key} must be present when status is approved`));
       }
+    }
+    if (value.approvalMode === "delegated") {
+      for (const key of ["delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof", "headCommit", "diffHash"]) {
+        if (typeof value[key] !== "string" || value[key].length === 0) {
+          issues.push(issue("approval.delegation", `${filePath}.${key} must be present for delegated approval`));
+        }
+      }
+      if (value.executedBy !== "ai-agent") {
+        issues.push(issue("approval.delegation", `${filePath}.executedBy must be ai-agent for delegated approval`));
+      }
+      if (value.approvedBy !== `delegated:${String(value.delegatedBy ?? "")}`) {
+        issues.push(issue("approval.delegation", `${filePath}.approvedBy must identify the delegatedBy principal`));
+      }
+    } else if (["delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"].some((key) => value[key] !== undefined)) {
+      issues.push(issue("approval.delegation", `${filePath} delegation fields require approvalMode delegated`));
     }
   }
   return issues;

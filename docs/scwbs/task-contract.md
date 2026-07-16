@@ -99,12 +99,35 @@ npm run scwbs -- task lock --task WBS-001-004
 - `requiredChecks`
 - `managedContractPaths`
 - `checkCoverageWaivers`
+- `approvalPolicy`
 
 同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。
 
 base側に契約がない新規Taskでは、契約・index・registryなど宣言済み `managedContractPaths` だけを含む最初のcommitをtrust rootとして使う。この初回契約はversion 2 lock、自身のmanaged path、標準Human Gate、`wjs/**` boundary、baseline checksを持ち、repository-wide既定globやcreation-time waiverを含めてはならない。契約が未commit、実装と同じcommit、または初回commit後にauthority fieldsが書き換えられた場合は拒否する。
 
 authority比較が必要なbranchでbase refやmerge-baseを解決できない場合、およびshallow cloneではfail-closedになる。履歴を取得してから再実行する。
+
+## Approval delegation policy
+
+既定はHuman Approvalである。全自動実行を許可するTaskだけ、creation commitのTask Contractへ次のような委譲policyを固定する。
+
+```yaml
+approvalPolicy:
+  mode: delegated
+  delegatedBy: xmeta
+  delegatedTo: ai-agent
+  scopes: [human-gate, post-finish]
+  source: https://github.com/xmeta/ACED/issues/222
+  reason: Authorized unattended execution
+  expiresAt: "2026-07-17T00:00:00.000Z"
+  tokenSha256: sha256:<64 lowercase hex characters>
+```
+
+`human-gate` と `post-finish` は別scopeであり、実行時に要求したscopeが `scopes` に含まれなければならない。CLIは32 UTF-8 bytes以上の `SCWBS_APPROVAL_DELEGATION_TOKEN` のSHA-256が `tokenSha256` と一致し、UTCのpolicy期限内の場合だけdelegated approvalを許可する。tokenは `openssl rand -hex 32` などでランダム生成する。secretそのものはTask Contract、Evidence、Approvalへ保存せず、ログにも出力しない。
+
+`.env` やCI secretはsecret注入の運用手段にできるが、CLIは `.env` を自動読込しない。shellやCI runnerが明示的に環境変数を設定する必要がある。また `.env` の存在や内容だけではauthorityにならず、baselineで固定された `approvalPolicy` とtokenの両方が必要である。creation commit後のpolicy追加、mode変更、scope拡張、expiry・hash等の変更はauthority driftとして拒否される。
+
+delegated Approvalは `approvalMode: delegated` とし、`delegationSource`、`delegatedBy`、`executedBy`、`delegationScope`、token由来の `delegationProof` をHuman Approvalと区別して記録する。Human Gateとcompletionはpolicy、scope、Evidence、HMAC proofを再検証し、単純な手書きYAMLを拒否する。これは契約に宣言されたprovenanceを監査可能にするが、`delegatedBy` の実在本人性、tokenを注入した主体、codeとsecretの双方を書き換えられるprocessまでを暗号学的に排除するものではない。より強い本人性が必要なTaskでは `mode: human-only` を維持し、#144の外部provenanceを利用する。
 
 submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
 
