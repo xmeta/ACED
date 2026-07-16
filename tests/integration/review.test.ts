@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 import { buildReviewQueue, runReviewQueue } from "../../src/commands/review-queue.js";
 import { buildNextAction } from "../../src/commands/next.js";
 import { buildReviewRequestYaml, buildReviewRouteReport, runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest } from "../../src/commands/review-request.js";
+import { runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
 import { buildTrace } from "../../src/commands/trace.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import {
@@ -33,6 +34,27 @@ function captureReviewQueue(root: string, options: { verbose?: boolean; json?: b
   }) as typeof process.stdout.write;
   try {
     return { result: runReviewQueue(root, options), stdout: stdout.join(""), stderr: stderr.join("\n") };
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    process.stdout.write = originalWrite;
+  }
+}
+
+function captureReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean; json?: boolean }): { result: number; stdout: string; stderr: string } {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWrite = process.stdout.write;
+  console.log = (...args: unknown[]) => stdout.push(`${args.map(String).join(" ")}\n`);
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdout.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    return { result: runReviewRequest(root, taskId, options), stdout: stdout.join(""), stderr: stderr.join("\n") };
   } finally {
     console.log = originalLog;
     console.error = originalError;
@@ -113,6 +135,23 @@ describe("review queue + review request", () => {
     const trace = buildTrace(root, "WBS-001-004");
     expect(trace).toContain("Review: RVW-WBS-001-004 requested");
     expect(trace).toContain("Evidence: missing");
+    expect(runRegistryRebuild(root, { check: true, force: false })).toBe(0);
+  });
+
+  test("review request force-refresh synchronizes Registry and reports written artifacts as JSON", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runReviewRequest(root, "WBS-001-004", { pullRequest: "#42", force: false })).toBe(0);
+    const output = captureReviewRequest(root, "WBS-001-004", { pullRequest: "#43", force: true, json: true });
+    expect(output).toMatchObject({ result: 0, stderr: "" });
+    expect(JSON.parse(output.stdout)).toEqual({
+      schemaVersion: "1.0.0",
+      status: "synchronized",
+      artifacts: ["contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"],
+      nextAction: "request human review for WBS-001-004"
+    });
+    expect(readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8")).toContain('pullRequest: "#43"');
+    expect(runRegistryRebuild(root, { check: true, force: false })).toBe(0);
   });
 
   test("review route and request include requested reviewers from evidence changes", () => {
