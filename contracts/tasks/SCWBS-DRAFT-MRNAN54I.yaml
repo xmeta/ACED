@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MRNAN54I
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNAN54I
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRNAN54I.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNAN54I.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNAN54I.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNAN54I.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNAN54I.yaml
+branchName: task/SCWBS-DRAFT-MRNAN54I-issue-224-checks-run-integration-concurrent-time
+allowedPaths:
+  - tests/integration/checks-run.test.ts
+  - docs/scwbs/integration-testing.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - workflow change required
+  - production runner or shared lease semantics change required
+  - diagnostic state cannot remain bounded
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - checks-run.test.tsの共有resource、child process、required-check lock/lease、receipt phaseを列挙し、同一file内はserial、file間はparallelという安全境界を文書化する
+  - test.concurrentを除去または安全なserial groupへ限定し、既定4 workersのfull integrationとcanonical required-check配下でexact-receipt timeoutを再発させない
+  - 2 workersでもPASSし、既定のworker数を下げず、既定設定のwall timeを不必要に悪化させない
+  - timeoutまたは失敗時にcase phase、test-worker PID、temporary repository、lock/lease state、receipt presenceをboundedに出力する
+  - '改善前後のwall time、output lines/bytes、full-check rerun countをIssue #179へ記録する'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:5dd7a6f453f282775e0e5713c4a1a39cda5b5fe3cc7dab7ec74db738fd2e5647
+  createdAt: "2026-07-16T09:18:17.602Z"
