@@ -26,6 +26,17 @@ npm run scwbs -- status
 
 `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
 
+## Governance Cost Metrics
+
+```bash
+npm run scwbs -- metrics governance
+npm run scwbs -- metrics governance --json
+```
+
+`metrics governance` は永続artifactを作らないread-only計測で、現在のprofile、governance artifactのファイル数・bytes・行数、`src/**/*.ts` と `tests/**/*.ts` の分母、governance/source・governance/testの行比率を返す。JSONは `schemaVersion: "1.0.0"` と `metric: "governance-cost"` を持ち、Lean / Standard / Strictの対象directory別集計も含む。
+
+行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。履歴CI時間、finish回数、Human Gate待ち時間、publish loop、warning budgetはこのread-only summaryでは未計測として明示し、hard limitやprofile downgradeは行わない。
+
 ## AI Workflow
 
 ```bash
