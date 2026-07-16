@@ -18,6 +18,7 @@ import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runLiteTask, runPromote } from "./commands/lite.js";
+import { runMetricsGovernance } from "./commands/metrics.js";
 import { runNext } from "./commands/next.js";
 import { runPlan } from "./commands/plan.js";
 import { runProfileSet, runProfileShow } from "./commands/profile.js";
@@ -141,6 +142,13 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--json", "output a versioned JSON report")
     .option("--verbose", "show every health issue")
     .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false }); });
+
+  const metrics = program.command("metrics");
+  metrics
+    .command("governance")
+    .description("Measure governance cost without writing artifacts")
+    .option("--json", "output a versioned JSON summary")
+    .action((opts) => { exitCode = runMetricsGovernance(root, { json: opts.json ?? false }); });
 
   program
     .command("status")
