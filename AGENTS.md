@@ -48,7 +48,7 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明�
 
 WBS正本 (`contracts/wbs/project.wbs.json`) は直接編集してはならない。変更は必ず `contracts/changesets/*.json` 経由で行い、`npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json` で適用する。`scwbs check` / `scwbs check-diff` は対応する changeset がないWBS直接編集を `wbs.changeset.required` で fail させる。
 
-Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
+Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。例外は、Task開始前からauthority baselineに固定された `approvalPolicy.mode: delegated` が要求scope（`human-gate` または `post-finish`）を許可し、有効期限内かつ32 bytes以上の `SCWBS_APPROVAL_DELEGATION_TOKEN` が契約のhashと一致する場合に、`--actor delegated-ai --scope <scope>` でdelegated Approvalを作成するときだけである。AIは `--actor human` を使用してはならず、policyやscopeをTask開始後に追加・拡張してはならない。
 
 CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
 
@@ -91,7 +91,7 @@ npm run scwbs -- finish --task <task-id>
 - registry 整合性チェック
 - Human Gate 検出と次アクション表示
 
-`finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。勝手に Approval を approved にしてはいけない。
+`finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。AIは、有効な `post-finish` scopeのdelegated policyとtokenが揃う場合だけ、最終Evidence scopeに対して `--actor delegated-ai --scope post-finish` でApprovalを作成できる。それ以外では勝手にApprovalをapprovedにしてはいけない。
 
 ## レビュー時
 

@@ -1,0 +1,52 @@
+id: SCWBS-DRAFT-MRN2Y0EK
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRN2Y0EK
+branchName: task/SCWBS-DRAFT-MRN2Y0EK-issue-222-agents-delegated-approval-guidance-syn
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MRN2Y0EK.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRN2Y0EK.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRN2Y0EK.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRN2Y0EK.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRN2Y0EK.yaml
+allowedPaths:
+  - AGENTS.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - AGENTS.md以外の実装または文書変更が必要
+  - package、lockfile、workflow変更が必要
+  - delegated Approvalの実装仕様とガイダンスが一致しない
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - AGENTS.mdがdelegated ApprovalをTask開始前に固定されたapprovalPolicy、許可scope、有効期限、有効tokenの例外として限定する
+  - AIによる--actor humanの使用とTask開始後のdelegation policyまたはscope拡張を明示的に禁止する
+  - post-finish delegated Approvalを有効なpost-finish scopeと最終Evidence subjectへ限定する
+  - Issue
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0fe101d9b4951494173a12bfcb4dc6cd6c53fb4982b495b3cf83bdfc2705dc8b
+  createdAt: "2026-07-16T05:44:27.383Z"
