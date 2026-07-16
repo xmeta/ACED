@@ -612,6 +612,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--task <id>", "task id")
     .option("--pull-request <id>", "pull request id")
     .option("--force", "force request")
+    .option("--json", "print a versioned JSON summary")
     .action((opts) => {
       if (!opts.task) {
         console.error("Missing --task <task-id>");
@@ -620,7 +621,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       }
       exitCode = runReviewRequest(root, opts.task, {
         pullRequest: opts.pullRequest,
-        force: opts.force ?? false
+        force: opts.force ?? false,
+        json: opts.json ?? false
       });
     });
 

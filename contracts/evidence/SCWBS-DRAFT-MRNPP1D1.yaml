@@ -1,0 +1,55 @@
+id: EVD-SCWBS-DRAFT-MRNPP1D1
+type: evidence
+taskId: SCWBS-DRAFT-MRNPP1D1
+commit: c100a8c40e1f2facb4009f294a944ebbaff3e9d0
+subjectHeadCommit: c100a8c40e1f2facb4009f294a944ebbaff3e9d0
+diffHash: sha256:7318be45425186b3ef56a88fb64977b77dec16aeefa19ed2ca7d97a7d0f629a1
+git:
+  branch: codex/issue-231-review-request-registry-v2
+  base: origin/main
+  baseCommit: 8ef6aad234f70a022b54a484deaf55534e59d8b0
+  changedFilesBasis: branch-diff
+  pullRequest: "232"
+  subjectHeadCommit: c100a8c40e1f2facb4009f294a944ebbaff3e9d0
+  diffHash: sha256:7318be45425186b3ef56a88fb64977b77dec16aeefa19ed2ca7d97a7d0f629a1
+  headCommit: c100a8c40e1f2facb4009f294a944ebbaff3e9d0
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/review-request.ts
+  - tests/integration/review.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:d4570a01dc64218c06326a6aae56cff8a97f840b3cfb874ce85f776269ca0f26
+    executedAt: "2026-07-16T16:17:41.709Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e95fd9acd8ecfa6d91a96cf199c80a6065c72b3de37c213b0f68210de221fc8a
+    executedAt: "2026-07-16T16:21:04.256Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e97f2a4f257826c6505633dd4161ab06e3da0de7eb0d11ca500cbe44c744195d
+    executedAt: "2026-07-16T16:21:07.367Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a0d47f876cce6b1f05d036ad878f7ae46ac14e7d5c1d1d27fbef3c7c525fd41f
+    executedAt: "2026-07-16T16:21:10.461Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - review request create and force-refresh paths synchronize the derived Registry

@@ -131,7 +131,7 @@ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reaso
 
 `review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
 
-`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers`.
+`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers` and synchronizes the derived `contracts/registry.yaml` in the same successful operation. Use `--json` to obtain the written artifacts and next action.
 
 Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
 

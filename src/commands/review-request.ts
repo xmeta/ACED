@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
-import { evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
+import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
+import { buildRegistryYaml } from "./registry-rebuild.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
 
@@ -180,7 +181,19 @@ export function runReviewRoute(root: string, taskId: string): number {
   }
 }
 
-export function runReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean }): number {
+export type ReviewRequestSummary = {
+  schemaVersion: "1.0.0";
+  status: "synchronized";
+  artifacts: string[];
+  nextAction: string;
+};
+
+function restoreReview(fullPath: string, previous: string | undefined): void {
+  if (previous === undefined) rmSync(fullPath, { force: true });
+  else writeFileSync(fullPath, previous, "utf8");
+}
+
+export function runReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean; json?: boolean }): number {
   try {
     const { task, issues } = readTask(root, taskId);
     if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
@@ -191,14 +204,37 @@ export function runReviewRequest(root: string, taskId: string, options: { pullRe
       console.error(`${relativePath} already exists`);
       return 1;
     }
+    const previousReview = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
     mkdirSync(path.dirname(fullPath), { recursive: true });
     const yaml = buildReviewRequestYaml(taskId, {
       ...options,
       evidence,
       requestedReviewers: routeReviewers(task, evidence)
     });
-    writeFileSync(fullPath, yaml, "utf8");
-    process.stdout.write(yaml);
+    try {
+      writeFileSync(fullPath, yaml, "utf8");
+      const registryPath = resolveFrom(root, defaultRegistryPath);
+      const registryYaml = buildRegistryYaml(root);
+      writeFileSync(registryPath, registryYaml, "utf8");
+    } catch (error) {
+      try {
+        restoreReview(fullPath, previousReview);
+      } catch (rollbackError) {
+        throw new Error(`review request failed and rollback failed: ${error instanceof Error ? error.message : String(error)}; ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}. Run npm run scwbs -- registry rebuild --force after resolving the filesystem error.`);
+      }
+      throw new Error(`review request did not synchronize Registry: ${error instanceof Error ? error.message : String(error)}. Review record was restored; rerun npm run scwbs -- review request --task ${taskId}${options.pullRequest ? ` --pull-request ${options.pullRequest}` : ""}${options.force ? " --force" : ""}.`);
+    }
+    if (options.json) {
+      const summary: ReviewRequestSummary = {
+        schemaVersion: "1.0.0",
+        status: "synchronized",
+        artifacts: [relativePath, defaultRegistryPath],
+        nextAction: `request human review for ${taskId}`
+      };
+      console.log(JSON.stringify(summary));
+    } else {
+      process.stdout.write(yaml);
+    }
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
