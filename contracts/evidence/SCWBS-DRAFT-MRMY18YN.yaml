@@ -1,0 +1,66 @@
+id: EVD-SCWBS-DRAFT-MRMY18YN
+type: evidence
+taskId: SCWBS-DRAFT-MRMY18YN
+commit: 9b15f10448af7328186397d482e1d9e04c254e74
+subjectHeadCommit: 9b15f10448af7328186397d482e1d9e04c254e74
+diffHash: sha256:b12fc474a299e3e9bf283cf5ad9140121d46e72d698cb3ca2222ab6a1a43d61c
+git:
+  branch: task/SCWBS-DRAFT-MRMY18YN-issue-222-fail-closed-approval-delegation-policy
+  base: origin/main
+  baseCommit: 874e9f17a2ddceae79b68f8abfc516737539b383
+  changedFilesBasis: branch-diff
+  pullRequest: "223"
+  subjectHeadCommit: 9b15f10448af7328186397d482e1d9e04c254e74
+  diffHash: sha256:b12fc474a299e3e9bf283cf5ad9140121d46e72d698cb3ca2222ab6a1a43d61c
+  headCommit: 9b15f10448af7328186397d482e1d9e04c254e74
+changedFiles:
+  - README.md
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/core/human-gate.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/task-authority.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/completion.test.ts
+  - tests/unit/contracts.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:59bbafa7d186dec76d88fbede38bb80779a9e20978e9ad8c413beadfa3bebd5d
+    executedAt: "2026-07-16T03:59:38.984Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:4359e77986fa226b639955d0f947374d6c647f2731fad0d2df5d8ae7fd75dbd6
+    executedAt: "2026-07-16T04:04:59.975Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:a14ebf8eef89a8dfb29553622f05c383500189464f904a94d12693be269d7d2a
+    executedAt: "2026-07-16T04:05:03.314Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:8e6365a6abb5ec0331de2ac03e3f2889347d12b017e524f4e0dcf1538c9845f4
+    executedAt: "2026-07-16T04:05:06.293Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - delegated approval policy, token, scope, expiry, proof, consumer revalidation, and authority drift assertions added
