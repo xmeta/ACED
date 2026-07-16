@@ -8,6 +8,7 @@ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/type
 import type { TaskContract } from "../core/types.js";
 import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
 import { isWbsLessTask } from "../core/node-utils.js";
+import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
 
 const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
 
@@ -322,6 +323,16 @@ Next:
 export function runAiPacket(root: string, taskId: string, relationDepth = 1, format: AiPacketFormat = "default"): number {
   try {
     process.stdout.write(buildAiPacket(root, taskId, relationDepth, format));
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function runCodeContextManifest(root: string, taskId: string, options: CodeContextOptions = {}): number {
+  try {
+    process.stdout.write(buildCodeContextManifestJson(root, taskId, options));
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

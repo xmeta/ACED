@@ -7,6 +7,7 @@ import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.
 import { buildNextAction } from "../../src/commands/next.js";
 import { main } from "../../src/cli.js";
 import { readApproval, readBlock } from "../../src/core/contracts.js";
+import { buildCodeContextManifest, buildCodeContextManifestJson } from "../../src/core/code-context.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("AI commands", () => {
@@ -469,6 +470,112 @@ describe("AI commands", () => {
     expect(packet).toContain("# Tiny Packet");
     expect(packet).toContain("Objective:");
     expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
+  });
+
+  test("packet context manifest is deterministic, source-free, and records import provenance", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const secretSourceBody = helper;\n");
+    writeText(root, "src/helper.ts", "export const helper = 1;\n");
+    writeText(root, "src/caller.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src"],
+      rules: [{
+        id: "source",
+        classification: "behavior-critical",
+        rationale: "Source behavior requires integration coverage.",
+        paths: ["src/**"],
+        requires: ["test:integration"]
+      }]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/feature.ts"],
+      requiredChecks: ["test", "typecheck"]
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
+
+    const first = buildCodeContextManifestJson(root, "WBS-001-004");
+    writeText(root, "src/feature.ts", "export const uncommittedSourceBody = 99;\n");
+    const second = buildCodeContextManifestJson(root, "WBS-001-004");
+    expect(second).toBe(first);
+    expect(first).not.toContain("secretSourceBody");
+    const manifest = JSON.parse(first);
+    expect(manifest.mustRead.map((item: { path: string }) => item.path)).toEqual([
+      "contracts/tasks/WBS-001-004.yaml"
+    ]);
+    expect(manifest.candidates.map((item: { path: string; editable: boolean }) => [item.path, item.editable])).toEqual([
+      ["src/caller.ts", false],
+      ["src/feature.ts", true],
+      ["src/helper.ts", false]
+    ]);
+    expect(manifest.candidates.find((item: { path: string }) => item.path === "src/caller.ts").reasons[0]).toContain("reverse-importer:src/feature.ts");
+    expect(manifest.candidates.find((item: { path: string }) => item.path === "src/helper.ts").reasons[0]).toContain("direct-static-import:src/feature.ts");
+    expect(manifest.coverage).toEqual({ required: ["test:integration"], missing: ["test:integration"], unclassified: [] });
+    expect(manifest.completeness.reasons).toContain("coverage-missing");
+    expect(manifest.constraints.sourceContentIncluded).toBe(false);
+  });
+
+  test("context manifest does not expand broad or protected paths and reports incomplete analysis", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import { value } from \"./barrel.js\";\nimport(\"./dynamic.js\");\nexport * from \"./barrel.js\";\nvoid value;\n");
+    writeText(root, "src/barrel.ts", "export const value = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/feature.ts", "tests/**"],
+      forbiddenPaths: ["src/barrel.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
+
+    const manifest = buildCodeContextManifest(root, "WBS-001-004");
+    expect(manifest.excluded).toContainEqual({ path: "tests/**", reasons: ["broad-glob-not-expanded"], editable: false });
+    expect(manifest.excluded.find((item) => item.path === "src/barrel.ts")?.reasons).toContain("protected-path-not-promoted");
+    expect(manifest.candidates.map((item) => item.path)).toEqual(["src/feature.ts"]);
+    expect(manifest.completeness.status).toBe("widening-required");
+    expect(manifest.completeness.reasons).toEqual(expect.arrayContaining(["broad-glob", "dynamic-import", "re-export"]));
+  });
+
+  test("context manifest omits candidates deterministically when the budget is exceeded", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nvoid helper;\n");
+    writeText(root, "src/helper.ts", "export const helper = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/feature.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
+
+    const manifest = buildCodeContextManifest(root, "WBS-001-004", { maxFiles: 2, maxBytes: 100_000 });
+    expect(manifest.candidates.map((item) => item.path)).toEqual(["src/feature.ts"]);
+    expect(manifest.budget.omitted).toBe(1);
+    expect(manifest.excluded.find((item) => item.path === "src/helper.ts")?.reasons).toContain("budget-exceeded");
+    expect(manifest.completeness.reasons).toContain("budget-exceeded");
+  });
+
+  test("packet --context-json writes parseable JSON without changing tiny packet behavior", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "export const value = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/feature.ts"] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["packet", "--task", "WBS-001-004", "--context-json"], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+    expect(JSON.parse(output.join("")).schemaVersion).toBe("1.0.0");
+    expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
   });
 
   test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {

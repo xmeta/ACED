@@ -2,7 +2,7 @@
 import { Command, CommanderError } from "commander";
 import { pathToFileURL } from "node:url";
 import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
-import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
+import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
@@ -220,6 +220,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--full", "full packet")
     .option("--deep", "deep packet (legacy)")
     .option("--normal", "normal packet (legacy)")
+    .option("--context-json", "output a source-free read-only code context manifest")
+    .option("--context-max-files <n>", "maximum selected context files", parseInt)
+    .option("--context-max-bytes <n>", "maximum selected context bytes", parseInt)
     .option("--relation-depth <n>", "relation depth", parseInt)
     .action((opts) => {
       const taskId = opts.task;
@@ -228,7 +231,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         exitCode = 2;
         return;
       }
-      if (opts.full || opts.deep) {
+      if (opts.contextJson) {
+        exitCode = runCodeContextManifest(root, taskId, {
+          maxFiles: opts.contextMaxFiles,
+          maxBytes: opts.contextMaxBytes
+        });
+      } else if (opts.full || opts.deep) {
         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 1, "default");
       } else if (opts.standard || opts.normal) {
         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 0, "default");
