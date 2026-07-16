@@ -3,7 +3,7 @@ import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
 import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 import { readTask } from "../../src/core/contracts.js";
 import { runApprovalApprove } from "../../src/commands/approval-request.js";
-import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/approval-delegation.js";
+import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 
 describe("check", () => {
   test("check --json outputs pass status with empty issues for a healthy repo", () => {

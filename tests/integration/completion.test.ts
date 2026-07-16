@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
 import { runApprovalApprove } from "../../src/commands/approval-request.js";
-import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/approval-delegation.js";
+import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { readApproval } from "../../src/core/contracts.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
-import { validateDelegatedApproval } from "../core/approval-delegation.js";
+import { validateDelegatedApproval } from "../core/human-gate.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
