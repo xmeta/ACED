@@ -1,7 +1,10 @@
-import { readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildGovernanceCostSummary, runMetricsGovernance } from "../../src/commands/metrics.js";
 import { main } from "../../src/cli.js";
+import { checkReceiptPath } from "../../src/core/check-receipt.js";
 import { summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
 import { makeTempRepo, sampleWbs, writeJson, writeText, writeYaml } from "../helpers.js";
 
@@ -17,6 +20,26 @@ function captureStdout(action: () => number): { result: number; stdout: string }
   } finally {
     process.stdout.write = originalWrite;
   }
+}
+
+function writeReceipt(root: string, taskId: string, createdAt: string, durations: Array<number | undefined>): void {
+  writeText(root, path.relative(root, checkReceiptPath(root, taskId)), JSON.stringify({
+    schemaVersion: "1.0.0",
+    taskId,
+    createdAt,
+    headCommit: `head-${taskId}`,
+    subjectFingerprint: `subject-${taskId}`,
+    provenance: { nodeVersion: "v22", platform: "linux-x64", lockfiles: [], submoduleStatus: [] },
+    checks: durations.map((durationMilliseconds, index) => ({
+      name: `check-${index}`,
+      status: "passed",
+      source: "local",
+      command: `command-${index}`,
+      cacheKey: `cache-${index}`,
+      executedAt: createdAt,
+      ...(durationMilliseconds === undefined ? {} : { durationMilliseconds })
+    }))
+  }));
 }
 
 describe("governance metrics", () => {
@@ -45,8 +68,53 @@ describe("governance metrics", () => {
     });
     expect(summary.profiles.Strict.files).toBeGreaterThan(summary.profiles.Lean.files);
     expect(summary.definitions.hardLimitEnforced).toBe(false);
-    expect(summary.unmeasured).toContain("historical local check duration");
+    expect(summary.localRequiredChecks).toMatchObject({ status: "available", receiptCount: 0, observedCheckCount: 0 });
+    if (summary.localRequiredChecks.status !== "available") throw new Error(summary.localRequiredChecks.reason);
+    expect(summary.localRequiredChecks.durationMilliseconds).toEqual({ total: null, average: null, minimum: null, maximum: null });
+    expect(summary.unmeasured).toContain("finish attempts and metadata-only descendant count");
     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
+  });
+
+  test("summarizes only observed receipt durations and bounds the task trend", () => {
+    const root = makeTempRepo();
+    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+    writeReceipt(root, "legacy", "2026-07-16T00:00:00Z", [undefined, undefined]);
+    writeReceipt(root, "partial", "2026-07-16T01:00:00Z", [100, undefined]);
+    writeReceipt(root, "observed", "2026-07-16T02:00:00Z", [200, 300]);
+    for (let index = 0; index < 19; index += 1) {
+      writeReceipt(root, `trend-${index.toString().padStart(2, "0")}`, `2026-07-15T${index.toString().padStart(2, "0")}:00:00Z`, [10]);
+    }
+    writeText(root, path.relative(root, checkReceiptPath(root, "malformed")), "{not-json\n");
+    writeText(root, path.join(path.dirname(path.relative(root, checkReceiptPath(root, "observed"))), "copied.json"), readFileSync(checkReceiptPath(root, "observed"), "utf8"));
+
+    const summary = buildGovernanceCostSummary(root).localRequiredChecks;
+    if (summary.status !== "available") throw new Error(summary.reason);
+
+    expect(summary).toMatchObject({
+      receiptCount: 22,
+      invalidReceiptCount: 2,
+      checkCount: 25,
+      observedReceiptCount: 20,
+      partiallyObservedReceiptCount: 1,
+      unobservedReceiptCount: 1,
+      observedCheckCount: 22,
+      unobservedCheckCount: 3
+    });
+    expect(summary.durationMilliseconds).toEqual({ total: 790, average: 36, minimum: 10, maximum: 300 });
+    expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 22, truncated: true });
+    expect(summary.taskTrend.items).toHaveLength(20);
+    expect(summary.taskTrend.items[0]).toMatchObject({ taskId: "observed", durationMilliseconds: 500 });
+    expect(summary.taskTrend.items[1]).toMatchObject({ taskId: "partial", durationMilliseconds: null });
+    expect(summary.taskTrend.items[2]).toMatchObject({ taskId: "legacy", durationMilliseconds: null });
+  });
+
+  test("reports local receipt metrics as unavailable outside a git repository", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "scwbs-metrics-no-git-"));
+    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+    expect(buildGovernanceCostSummary(root).localRequiredChecks).toMatchObject({
+      status: "unavailable",
+      source: "git-common-dir-check-receipts"
+    });
   });
 
   test("summarizes completed GitHub Actions durations without treating incomplete runs as zero duration", () => {

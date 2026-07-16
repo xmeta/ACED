@@ -55,7 +55,7 @@ export function checkReceiptPath(root: string, taskId: string): string {
   return path.join(gitCommonDir(root), "scwbs-check-receipts", `${encodeURIComponent(taskId)}.json`);
 }
 
-function isReceipt(value: unknown): value is CheckReceipt {
+export function isCheckReceipt(value: unknown): value is CheckReceipt {
   if (!value || typeof value !== "object") return false;
   const receipt = value as Partial<CheckReceipt>;
   return receipt.schemaVersion === "1.0.0"
@@ -74,7 +74,11 @@ function isReceipt(value: unknown): value is CheckReceipt {
       && check.status === "passed"
       && typeof check.command === "string"
       && typeof check.cacheKey === "string"
-      && typeof check.executedAt === "string");
+      && typeof check.executedAt === "string"
+      && (check.durationMilliseconds === undefined
+        || (typeof check.durationMilliseconds === "number"
+          && Number.isFinite(check.durationMilliseconds)
+          && check.durationMilliseconds >= 0)));
 }
 
 export function readCheckReceipt(root: string, expected: {
@@ -91,7 +95,7 @@ export function readCheckReceipt(root: string, expected: {
   } catch {
     return { reason: "receipt-invalid" };
   }
-  if (!isReceipt(value)) return { reason: "receipt-invalid" };
+  if (!isCheckReceipt(value)) return { reason: "receipt-invalid" };
   if (value.taskId !== expected.taskId) return { reason: "task-mismatch" };
   if (value.headCommit !== expected.headCommit) return { reason: "head-mismatch" };
   if (value.subjectFingerprint !== expected.subjectFingerprint) return { reason: "subject-mismatch" };

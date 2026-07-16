@@ -106,6 +106,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
   updateRequiredCheckRun(lease, check, checkIndex);
   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
   const heartbeat = startRequiredCheckHeartbeat(lease);
+  const startedAt = performance.now();
   let result: SpawnSyncReturns<string>;
   try {
     result = spawnSync(command[0] ?? "npm", command.slice(1), {
@@ -125,6 +126,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
     source: "local",
     command: command.join(" "),
     cacheKey,
+    durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
     executedAt: new Date().toISOString()
   };
   if (status === "passed") return record;
@@ -180,17 +182,19 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     checks = task.requiredChecks.map((check, index) => {
       const command = commandForCheck(check);
       const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
-      const reusable = existingEvidence?.checks.find((candidate) =>
-        candidate.name === check
-        && candidate.status === "passed"
-        && candidate.command === command.join(" ")
-        && candidate.cacheKey === cacheKey
-      ) ?? receipt?.checks.find((candidate) =>
+      const existing = existingEvidence?.checks.find((candidate) =>
         candidate.name === check
         && candidate.status === "passed"
         && candidate.command === command.join(" ")
         && candidate.cacheKey === cacheKey
       );
+      const received = receipt?.checks.find((candidate) =>
+        candidate.name === check
+        && candidate.status === "passed"
+        && candidate.command === command.join(" ")
+        && candidate.cacheKey === cacheKey
+      );
+      const reusable = received?.durationMilliseconds !== undefined ? received : existing ?? received;
       if (!options.rerunChecks && cacheSubject?.reusable && reusable) {
         if (lease) {
           updateRequiredCheckRun(lease, check, index + 1);
