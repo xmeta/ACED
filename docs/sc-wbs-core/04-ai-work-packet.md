@@ -109,6 +109,24 @@ AIは、すぐに全文読み込みを要求してはいけない。まず不足
 scwbs packet --task WBS-001 --standard
 ```
 
+## Read-only Context Manifest (`--context-json`)
+
+実装前のコード探索を小さく始める場合は、source本文を含まないderived manifestを生成する。
+
+```bash
+npm run scwbs -- packet --task WBS-001 --context-json
+```
+
+manifest v1はTask Contractと現在HEADから毎回再生成し、次をJSONで返す。
+
+- Task Contract、exact allowed file、direct static relative import、reverse importerのpath/hash/bytes/line range/reason
+- `editable`（allowedPaths内かつforbidden/Human Gate外の場合だけtrue）
+- check coverageのrequired/missing/unclassified
+- selected files/bytes、omitted件数、widening/completeness
+- source本文を含めず、編集権限やrequired check省略を許可しないという制約
+
+広いglobは全展開しない。dynamic import、re-export、path alias、unresolved import、cycle、budget超過、未分類pathはwidening理由として残す。manifestはナビゲーション情報であり、Task Contract、Approval、Evidence、required checksの代替ではない。
+
 ## 実装AIに渡す標準プロンプト
 
 ```text

@@ -1,0 +1,62 @@
+id: EVD-SCWBS-DRAFT-MRNWE8OG
+type: evidence
+taskId: SCWBS-DRAFT-MRNWE8OG
+commit: 0f604889b20b39814eb9b118dffb648d2965dcb4
+subjectHeadCommit: 0f604889b20b39814eb9b118dffb648d2965dcb4
+diffHash: sha256:e2d8df0bf2c59302fa11f5c65a20ffa35b8ed7a1b9a094f259fe2df805d69f11
+git:
+  branch: task/SCWBS-DRAFT-MRNWE8OG-issue-221-read-only-context-manifest-vertical-sl
+  base: origin/main
+  baseCommit: ee4bf4689635c537ce7c352912c13b071b4d63f6
+  changedFilesBasis: branch-diff
+  pullRequest: "236"
+  subjectHeadCommit: 0f604889b20b39814eb9b118dffb648d2965dcb4
+  diffHash: sha256:e2d8df0bf2c59302fa11f5c65a20ffa35b8ed7a1b9a094f259fe2df805d69f11
+  headCommit: 0f604889b20b39814eb9b118dffb648d2965dcb4
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core/04-ai-work-packet.md
+  - src/cli.ts
+  - src/commands/ai-packet.ts
+  - src/core/code-context.ts
+  - tests/integration/ai.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:05f6d6ce2ca36ef708e795e45a2fcf92edd753647637901dc4d06669da8e6ef4
+    durationMilliseconds: 11025
+    executedAt: "2026-07-16T19:39:40.485Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:64e10fffc153a7d5364951ff76d90c9294848bbf8cc9f85875be3d9def18a3c5
+    durationMilliseconds: 197179
+    executedAt: "2026-07-16T19:42:57.668Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:acbd63fddad154bc136d14ea5db71a1c9614329da80f5c0f6a580046fbb43725
+    durationMilliseconds: 2787
+    executedAt: "2026-07-16T19:43:00.459Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:57ac78f7aa49714a1388c20e8a1db2cde640bfb31f51fb5ba2ece85a270e4e99
+    durationMilliseconds: 2809
+    executedAt: "2026-07-16T19:43:03.271Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added deterministic source-free manifest coverage for import provenance, protected paths, budgets, coverage diagnostics, HEAD stability, parseable JSON, and tiny packet compatibility

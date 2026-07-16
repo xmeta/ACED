@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MRNWE8OG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNWE8OG
+branchName: task/SCWBS-DRAFT-MRNWE8OG-issue-221-read-only-context-manifest-vertical-sl
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNWE8OG.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNWE8OG.yaml
+allowedPaths:
+  - src/core/code-context.ts
+  - src/commands/ai-packet.ts
+  - src/cli.ts
+  - tests/integration/ai.test.ts
+  - contracts/check-coverage.yaml
+  - docs/sc-wbs-core/04-ai-work-packet.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package・lockfile・tsconfig・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - persistent index・cache・検索DB・新規dependencyが必要
+  - allowedPaths外の編集またはcheck-coverage分類をTask authorityへ含められない
+  - hard limit・warning・profile・risk policy・required check削減・Approval境界の変更が必要
+  - unsupported importを安全にwidening表示できず完全解決が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - packet --context-jsonがsource本文を含まないversioned JSON manifestをstdoutへ出力する
+  - manifestはTask Contract・HEAD・exact allowed files・1-hop static relative importとreverse importerをhash・size・range・reason・editable付きで決定的に列挙する
+  - broad glob・forbidden・Human Gate pathを自動昇格せず、dynamic・unresolved・re-export・alias・cycle・fan-out・budget超過をwideningまたはomittedとして明示する
+  - coverage required・missing・unclassifiedとbudget・completenessを既存check-coverage semanticsと矛盾なく返す
+  - 同一HEADとTask Contractでbyte-identical、stdoutはparse可能なJSONのみ、既存packet --tinyの互換性と50行制約を維持する
+  - Task 234 replayでmanifest bytes・件数・初期読込files/lines/bytes・widening・wall time・決定性を計測し、hard limit・warning・policy enforcementは導入しない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T19:25:17.824Z"
