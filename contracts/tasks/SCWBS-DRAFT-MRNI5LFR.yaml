@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRNI5LFR
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNI5LFR
+branchName: task/SCWBS-DRAFT-MRNI5LFR-scwbs-052-replacement-make-governance-maintenanc
+allowedPaths:
+  - contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
+  - contracts/wbs/project.wbs.json
+  - contracts/tasks/*.yaml
+  - contracts/tasks/index.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - DB schema or migration
+  - auth or permission design
+  - security or PII
+  - breaking API
+  - external service or release decision
+  - allowedPaths outside scope
+  - specification-level ambiguity
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - node-governance-maintenance is ready for reviewed node-level completion under the current WBS revision.
+  - The readiness change is represented by contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json and applied through scwbs wbs apply.
+  - No historical SCWBS-052 Contract lock or changeset is reused.
+  - SCWBS-046 completion apply is not attempted until this replacement Task is merged and its Evidence, Review, and human Approval are current.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/tasks/index.yaml
+  - contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
+  - contracts/evidence/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNI5LFR.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T12:46:41.656Z"
