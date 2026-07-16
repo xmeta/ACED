@@ -1,0 +1,45 @@
+id: EVD-SCWBS-DRAFT-MRN2Y0EK
+type: evidence
+taskId: SCWBS-DRAFT-MRN2Y0EK
+commit: e3184979936773081c521757d7911debaa0c90eb
+subjectHeadCommit: e3184979936773081c521757d7911debaa0c90eb
+diffHash: sha256:8a29b4c641eca2b3e6204e551df3eb302b4454c946a95a309872cc892365b4ae
+git:
+  branch: task/SCWBS-DRAFT-MRN2Y0EK-issue-222-agents-delegated-approval-guidance-syn
+  base: origin/main
+  baseCommit: a6a4a0cfa0327ce330c74454d95ffcdc85f7906f
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: e3184979936773081c521757d7911debaa0c90eb
+  diffHash: sha256:8a29b4c641eca2b3e6204e551df3eb302b4454c946a95a309872cc892365b4ae
+  headCommit: e3184979936773081c521757d7911debaa0c90eb
+  pullRequest: "225"
+changedFiles:
+  - AGENTS.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRN2Y0EK.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:cb607f691db49703c8c018c3542cd8115ca598efbb448fb618329cd536538356
+    executedAt: "2026-07-16T05:44:47.849Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5206d25c1375db7ba97e9f9855526da3b5633221c4ac6148d0d22a338c3ebd24
+    executedAt: "2026-07-16T05:44:52.182Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:333cf02f337e5e7f5ebcb88d77e83044166992781be2c3fa54517c2731693ac7
+    executedAt: "2026-07-16T05:44:56.263Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - AGENTS.md guidance-only change; no runtime code or tests changed
