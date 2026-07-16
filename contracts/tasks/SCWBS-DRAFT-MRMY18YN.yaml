@@ -1,0 +1,76 @@
+id: SCWBS-DRAFT-MRMY18YN
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRMY18YN
+branchName: task/SCWBS-DRAFT-MRMY18YN-issue-222-fail-closed-approval-delegation-policy
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRMY18YN.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRMY18YN.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRMY18YN.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRMY18YN.yaml
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/task-authority.ts
+  - src/core/approval-delegation.ts
+  - src/core/human-gate.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/cli.ts
+  - tests/helpers.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/completion.test.ts
+  - tests/unit/contracts.test.ts
+  - README.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or lockfile change required
+  - workflow change required
+  - delegation consumer validation cannot remain fail-closed
+  - verified human provenance is required for this slice
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - approvalPolicy未指定またはhuman-onlyのTaskではAI execution modeからapproved recordを作成できず既存Human Approval境界を維持する
+  - delegated policyはdelegatedBy、delegatedTo、scopes、source、reason、UTC expiresAt、tokenSha256を必須とし不正値をschemaで拒否する
+  - 32 bytes以上のSCWBS_APPROVAL_DELEGATION_TOKENのSHA-256がTask Contractと一致し有効期限内かつ要求scopeが許可された場合だけdelegated approvalを発行する
+  - delegated approvalはEvidence subjectHeadCommitとdiffHashを必須としtoken由来HMAC proofを記録するがsecret自体は出力または保存しない
+  - consumerはTask policy、scope、Evidence subject、HMAC proofを再検証し手書きYAMLによるtoken迂回を拒否する
+  - human-gate scopeはHuman Gate検証だけ、post-finish scopeは全required checks PASS後のcompletionだけに使用でき相互流用できない
+  - approvalPolicyをTask authority fieldとしてcreation commit後の追加、mode変更、scope拡張、hash変更をcheck-diffで拒否する
+  - metadata-only descendantを含む既存Human Gate scope検証とhuman actor、legacy recordの後方互換性を維持する
+  - delegationなし、成功、token欠落、hash不一致、弱いtoken、期限切れ、scope不一致、proof改ざん、authority driftの回帰テストを追加する
+  - README、Task Contract、CLI referenceへ安全なenv secret運用、declared provenance、初回Task自己委譲の限界を記載する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T03:23:06.494Z"
