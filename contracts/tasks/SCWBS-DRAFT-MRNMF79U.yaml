@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRNMF79U
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNMF79U
+branchName: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNMF79U.yaml
+allowedPaths:
+  - contracts/check-coverage.yaml
+  - src/commands/metrics.ts
+  - src/core/github-actions.ts
+  - tests/integration/metrics.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - GitHub Actionsの既存run履歴からworkflow、event、branch、期間、完了statusを明示したhistorical CI duration summaryをread-onlyに取得できる
+  - APIまたはghの認証・保持期間・通信失敗は0件や0秒と推測せずunavailable reasonとしてJSONへ記録する
+  - fixture化したrun payloadでcount、completed runのみのduration、workflow別集計、unavailableを再現可能に検証する
+  - commandは永続artifact、budget enforcement、profile downgrade、workflowまたはWBS正本変更を行わない
+  - historical local duration、finish attempts、metadata descendant、Human Gate wait、publish loop、warning budgetは未計測のまま維持する
+stopIf:
+  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - GitHub Actions履歴にないローカルdurationやTaskイベントを推測で補う必要
+  - budget enforcement、profile安全性、risk-based execution policyの変更が必要
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T14:46:45.819Z"

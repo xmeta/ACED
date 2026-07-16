@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRNMF79U
+type: evidence
+taskId: SCWBS-DRAFT-MRNMF79U
+commit: a9ccbbaaf2c4408c8e1d118546013b0b4a233eb9
+subjectHeadCommit: a9ccbbaaf2c4408c8e1d118546013b0b4a233eb9
+diffHash: sha256:85e895bbec083f8720f353acbd66cf132dc7295c7d2ec3ecf34d5d21dfa6766c
+git:
+  branch: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
+  base: origin/main
+  baseCommit: 48c35c581625cddbb0c2f6830ec10236c1f335b9
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: a9ccbbaaf2c4408c8e1d118546013b0b4a233eb9
+  diffHash: sha256:85e895bbec083f8720f353acbd66cf132dc7295c7d2ec3ecf34d5d21dfa6766c
+  headCommit: a9ccbbaaf2c4408c8e1d118546013b0b4a233eb9
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/metrics.ts
+  - src/core/github-actions.ts
+  - tests/integration/metrics.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:bba78bb0d4556d5746fa61a57bf045088273409fd24b6d528220d22d14a983fd
+    executedAt: "2026-07-16T14:57:03.451Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3beba8ff67f25bd8549e5849c573f053f2b3661a684140d6d27ca56a1ec98ac2
+    executedAt: "2026-07-16T15:00:17.215Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:d6abec31512db79173a62c304effde8531a2a7947e9b02b2a80ea877a1e1a5ce
+    executedAt: "2026-07-16T15:00:20.179Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:5206d5ff9798c2cdec95b24b891554b05ed538a248e2f5023e30a55cfae413c4
+    executedAt: "2026-07-16T15:00:22.940Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - GitHub Actions completed and in-progress fixture runs cover duration aggregation and prevent incomplete runs from being counted as zero.

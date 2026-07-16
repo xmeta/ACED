@@ -4,6 +4,7 @@ import { profileRequiredDirs, resolveFrom } from "../core/paths.js";
 import type { Profile } from "../core/types.js";
 import { parseSimpleYaml } from "../core/yaml.js";
 import { readProfile } from "./profile.js";
+import { readGithubActionsHistory, type GithubActionsHistory } from "../core/github-actions.js";
 
 const GOVERNANCE_DIRS = [
   "contracts/tasks",
@@ -47,6 +48,7 @@ export type GovernanceCostSummary = {
     governanceToSourceLineRatio: number | null;
     governanceToTestLineRatio: number | null;
   };
+  historicalCi: GithubActionsHistory;
   unmeasured: string[];
 };
 
@@ -168,6 +170,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     Standard: profileBucket(root, "Standard", categories),
     Strict: profileBucket(root, "Strict", categories)
   };
+  const historicalCi = readGithubActionsHistory(root);
 
   return {
     schemaVersion: "1.0.0",
@@ -189,8 +192,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
       governanceToSourceLineRatio: ratio(governance.lines, source.lines),
       governanceToTestLineRatio: ratio(governance.lines, tests.lines)
     },
+    historicalCi,
     unmeasured: [
-      "historical CI and local check duration",
+      "historical local check duration",
       "finish attempts and metadata-only descendant count",
       "Human Gate wait time and publish-loop duration",
       "warning budgets and hard enforcement"
