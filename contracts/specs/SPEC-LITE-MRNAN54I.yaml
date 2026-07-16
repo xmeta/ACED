@@ -1,0 +1,18 @@
+id: SPEC-LITE-MRNAN54I
+type: spec-contract
+featureId: F-MRNAN54I
+title: "Issue #224 checks-run integration concurrent timeout flake"
+status: approved
+version: 0.1.0
+summary: Make checks-run integration coverage deterministic without reducing suite-level worker parallelism.
+approvedBy: user-requested-issue-224
+approvedAt: "2026-07-16T09:18:00+09:00"
+acceptanceCriteria:
+  - checks-run.test.ts records its shared-resource boundary and runs its process-heavy cases serially while retaining file-level parallelism
+  - failures expose bounded case phase, test-worker PID, temporary repository, required-check lock or lease state, and receipt presence
+  - default four-worker full integration and canonical required-check execution pass repeatedly without the observed exact-receipt timeout
+  - two-worker execution remains passing without changing the default worker configuration
+  - "the before-and-after wall time, output size, and full-check rerun count are recorded in Issue #179"
+sourcePaths:
+  - tests/integration/checks-run.test.ts
+  - docs/scwbs/integration-testing.md
