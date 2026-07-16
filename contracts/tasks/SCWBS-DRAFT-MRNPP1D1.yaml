@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRNPP1D1
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRNPP1D1
+branchName: codex/issue-231-review-request-registry-v2
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRNPP1D1.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRNPP1D1.yaml
+allowedPaths:
+  - src/cli.ts
+  - src/commands/review-request.ts
+  - tests/integration/review.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - review request creates or force-refreshes its review record and synchronizes the derived Registry before reporting success
+  - review request failure does not leave a newly written review record without a synchronized Registry, and reports an actionable resume command
+  - review request JSON output reports the review and Registry artifacts it wrote plus its next action
+  - existing required-check, Human Gate, review scope, and non-AI review-transition behavior remain fail-closed
+  - regression tests cover create and force-refresh paths and prove registry rebuild --check passes without a separate command
+stopIf:
+  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - review status transition、Human Approval、review scope policy、またはRegistry schemaの仕様変更が必要
+  - reviewとRegistryのatomic rollbackを既存のファイル書込み方式だけで安全に実現できない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T16:17:18.699Z"
