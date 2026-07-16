@@ -35,6 +35,8 @@ npm run scwbs -- metrics governance --json
 
 `metrics governance` は永続artifactを作らないread-only計測で、現在のprofile、governance artifactのファイル数・bytes・行数、`src/**/*.ts` と `tests/**/*.ts` の分母、governance/source・governance/testの行比率を返す。JSONは `schemaVersion: "1.0.0"` と `metric: "governance-cost"` を持ち、Lean / Standard / Strictの対象directory別集計も含む。
 
+GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。local duration、finish試行、metadata descendant、Human Gate wait、publish loop、warning budgetは未計測であり、hard limitは導入しない。
+
 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。履歴CI時間、finish回数、Human Gate待ち時間、publish loop、warning budgetはこのread-only summaryでは未計測として明示し、hard limitやprofile downgradeは行わない。
 
 ## AI Workflow
