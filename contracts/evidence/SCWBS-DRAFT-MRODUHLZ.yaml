@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRODUHLZ
+type: evidence
+taskId: SCWBS-DRAFT-MRODUHLZ
+commit: 26824cc07cedbe23f46a03837be51ed163382a15
+subjectHeadCommit: 26824cc07cedbe23f46a03837be51ed163382a15
+diffHash: sha256:29bf24630edce114931559581cc7a512bd92ee60962e098e156145f42d2f831f
+git:
+  branch: task/SCWBS-DRAFT-MRODUHLZ-issue-239-finish-human-approval-force
+  base: origin/main
+  baseCommit: 992df376cc18456fcf5a4b50941c666dbce9bf25
+  changedFilesBasis: branch-diff
+  pullRequest: "241"
+  subjectHeadCommit: 26824cc07cedbe23f46a03837be51ed163382a15
+  diffHash: sha256:29bf24630edce114931559581cc7a512bd92ee60962e098e156145f42d2f831f
+  headCommit: 26824cc07cedbe23f46a03837be51ed163382a15
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:d713187c6cfb8806251a9d01460319fb2f215309c0f8d0611d48ce243a595693
+    durationMilliseconds: 13265
+    executedAt: "2026-07-17T03:40:11.943Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:ec0f70e34dfd95ec99934a8ec3a5171f89630d8eb7a06d74f1b360236cc90e0f
+    durationMilliseconds: 239269
+    executedAt: "2026-07-17T03:44:11.217Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e467ad2b8ccfcec8c93dd280d60d1f00787f869e7a53d381bb7492cd8e02316c
+    durationMilliseconds: 2968
+    executedAt: "2026-07-17T03:44:14.190Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:bcbcd03a3d9ef4b9a9a06c625f07d19f8e0ff14246046ed3917a0b21a8efd709
+    durationMilliseconds: 2933
+    executedAt: "2026-07-17T03:44:17.125Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - approved/rejected force guidance and requested/missing behavior covered in finish integration tests
