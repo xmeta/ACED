@@ -1,0 +1,59 @@
+id: EVD-SCWBS-DRAFT-MROEIGJG
+type: evidence
+taskId: SCWBS-DRAFT-MROEIGJG
+commit: d291dbfa50aeaef3654f7546778124b00810fa00
+subjectHeadCommit: d291dbfa50aeaef3654f7546778124b00810fa00
+diffHash: sha256:9072410bfbee3198dfbc11eeddffb2d5c63337696ccab8d86451b0034fa9f2a7
+git:
+  branch: task/SCWBS-DRAFT-MROEIGJG-issue-179-task-pr-ci-run-failure-governance-metr
+  base: origin/main
+  baseCommit: 509ae5373479d7be7c1a11e0867c139918f78e67
+  changedFilesBasis: branch-diff
+  pullRequest: "242"
+  subjectHeadCommit: d291dbfa50aeaef3654f7546778124b00810fa00
+  diffHash: sha256:9072410bfbee3198dfbc11eeddffb2d5c63337696ccab8d86451b0034fa9f2a7
+  headCommit: d291dbfa50aeaef3654f7546778124b00810fa00
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/metrics.ts
+  - src/core/github-actions.ts
+  - tests/integration/metrics.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:6e6d4d1d291a65eea4e23478391a18c4d21d829c2a4a143dfbcb36f96c284ffe
+    durationMilliseconds: 10817
+    executedAt: "2026-07-17T03:54:42.524Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b5e6de54e82c4f7b9066fdd09611ecc2e259b3ca06fdcd36114346975f617d50
+    durationMilliseconds: 229589
+    executedAt: "2026-07-17T03:58:32.116Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c2ff3e0f4451bd037d40273b5bdcbc9aadfe2d210bc1ae9794057760d46b1e16
+    durationMilliseconds: 3054
+    executedAt: "2026-07-17T03:58:35.174Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:703b776a313991e9e2a26e9533f9c807a37aad5b162e764cfb2e146305a1426e
+    durationMilliseconds: 3197
+    executedAt: "2026-07-17T03:58:38.375Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Task PR CI outcome counts, malformed branch exclusion, and bounded ordering covered in integration tests

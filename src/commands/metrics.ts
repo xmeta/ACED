@@ -314,7 +314,6 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     localRequiredChecks,
     unmeasured: [
       "finish attempts and metadata-only descendant count",
-      "task-level PR CI run and failure count",
       "Human Gate wait time, publish-loop duration, and health warning delta",
       "warning budgets and hard enforcement"
     ]
