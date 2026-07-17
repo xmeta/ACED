@@ -375,6 +375,11 @@ describe("task management", () => {
     expect(actual).toContain("branchName: task/SCWBS-DRAFT-");
     expect(actual).toContain("allowedPaths:");
     expect(actual).toContain("  - src/**");
+    expect(actual).toContain("  - package.json");
+    expect(actual).toContain("  - package-lock.json");
+    expect(actual).toContain("  - tsconfig.json");
+    expect(actual).toContain("  - vitest.config.ts");
+    expect(actual.match(/  - \.github\/\*\*/g)).toHaveLength(1);
     expect(actual).toContain("requiredChecks:");
     expect(actual).toContain("  - typecheck");
     const index = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");
@@ -391,6 +396,22 @@ describe("task management", () => {
     expect(task.allowedPaths).toEqual([]);
     expect(task.wbsNodeId).toBe("wbs-less");
     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+  });
+
+  test("task new appends custom gates to the standard Human Gates deterministically", () => {
+    const { task } = buildCoreTaskNew("Custom Human Gates", {
+      gate: "src/security/**,.github/**,src/security/**,package.json,config/release/**"
+    });
+
+    expect(task.humanGateRequiredPaths).toEqual([
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "vitest.config.ts",
+      ".github/**",
+      "src/security/**",
+      "config/release/**"
+    ]);
   });
 
   test("task new fails closed until stop-condition intent is explicit", () => {

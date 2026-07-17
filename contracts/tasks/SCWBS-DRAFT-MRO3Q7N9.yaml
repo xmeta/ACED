@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRO3Q7N9
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRO3Q7N9
+branchName: task/SCWBS-DRAFT-MRO3Q7N9-issue-238-task-new-gate-human-gate
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRO3Q7N9.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRO3Q7N9.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRO3Q7N9.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRO3Q7N9.yaml
+allowedPaths:
+  - src/commands/task-new.ts
+  - tests/integration/tasks.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - 標準Human Gateを外すoverrideまたは破壊的CLI変更が必要
+  - custom gateの順序・重複排除に仕様判断が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - --gate指定を標準Human Gateへの追加として扱う
+  - 標準Gateとcustom gateの重複を除去し決定的な順序で生成する
+  - --gate未指定時の既存標準Gateを維持する
+  - custom gate、重複gate、順序の回帰テストを追加する
+  - task newが生成した契約とnew-task authority検査の要求を一致させる
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-16T22:49:53.892Z"

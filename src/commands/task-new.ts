@@ -7,6 +7,7 @@ import { findNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
 
 const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
 
 function slug(value: string): string {
   return value
@@ -34,6 +35,10 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
   if (!value) return fallback;
   const items = value.split(",").map((item) => item.trim()).filter(Boolean);
   return items.length > 0 ? items : fallback;
+}
+
+function humanGatePaths(value: string | undefined): string[] {
+  return [...new Set([...STANDARD_HUMAN_GATE_PATHS, ...splitList(value, [])])];
 }
 
 export interface TaskNewFallback {
@@ -84,7 +89,7 @@ export function buildCoreTaskNew(title: string, options: {
     branchName: `task/${id}-${safeTitle}`,
     allowedPaths: splitList(options.paths, []),
     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
-    humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
+    humanGateRequiredPaths: humanGatePaths(options.gate),
     stopIf: splitList(options.stop, []),
     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
     doneCriteria: [`Complete ${resolvedTitle}`],
