@@ -1,0 +1,60 @@
+id: SCWBS-DRAFT-MROEIGJG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MROEIGJG
+branchName: task/SCWBS-DRAFT-MROEIGJG-issue-179-task-pr-ci-run-failure-governance-metr
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/approvals/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/evidence/SCWBS-DRAFT-MROEIGJG.yaml
+  - contracts/reviews/SCWBS-DRAFT-MROEIGJG.yaml
+allowedPaths:
+  - src/core/github-actions.ts
+  - src/commands/metrics.ts
+  - tests/integration/metrics.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - GitHub APIの追加取得または永続metric artifactが必要
+  - hard limit、warning budget enforcement、profile downgradeが必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 既存Actions run履歴からpull_request eventのTask branchをtaskId別に集計する
+  - run、completed、success、failure、other completed、incomplete、durationを区別する
+  - Task集計を決定的な順序と上限でboundedにする
+  - malformedまたはTaskでないbranchをTask集計へ混入させない
+  - unavailable時に0件と推測せず既存reasonを維持する
+  - JSON定義とCLI文書からtask別PR CIが未計測という記述を除く
+  - hard limitとprofile downgradeを導入しない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-17T03:51:57.936Z"
