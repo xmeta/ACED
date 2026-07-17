@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MRODUHLZ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRODUHLZ
+branchName: task/SCWBS-DRAFT-MRODUHLZ-issue-239-finish-human-approval-force
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRODUHLZ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRODUHLZ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRODUHLZ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRODUHLZ.yaml
+allowedPaths:
+  - src/commands/finish.ts
+  - tests/integration/finish.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - preflightのread-only契約変更が必要
+  - Approval CLIの上書き規則またはHuman Approval境界の変更が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - stale scopeの既存approvedまたはrejected ApprovalにはHuman用commandへ--forceを付ける
+  - Approvalなしまたはrequestedには不要な--forceを付けない
+  - plain出力とJSONのnextAction・resumeCommand・fixCommandsを同一commandにする
+  - diffHash不一致、head不一致、rejected、requested、missingの回帰テストを追加する
+  - preflightはrequired checks・Evidence候補・Human Gate判定を行わないread-only契約を維持する
+  - AIはHuman Approvalを作成しない境界を維持する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-17T03:33:51.629Z"

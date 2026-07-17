@@ -11,9 +11,8 @@ import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
 import { buildCollectedEvidence } from "./evidence-collect.js";
 import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
-import type { Profile } from "../core/types.js";
 import type { WorkingTreeState } from "../core/git.js";
-import type { Evidence, Issue } from "../core/types.js";
+import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js";
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { printIssues } from "../core/report.js";
@@ -337,8 +336,9 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
 }
 
-export function buildHumanApprovalCommand(taskId: string): string {
-  return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+export function buildHumanApprovalCommand(taskId: string, approvalStatus?: ApprovalStatus): string {
+  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
+  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "Evidence and diff reviewed"`;
 }
 
 function resumeFinishCommand(taskId: string): string {
@@ -377,7 +377,7 @@ function checkpointFinishMetadata(root: string, evidence: Evidence, writer: Chec
   return changedWrites.map((file) => file.relativePath);
 }
 
-function printHumanGate(taskId: string, files: string[], diffHash: string): void {
+function printHumanGate(approvalCommand: string, files: string[], diffHash: string): void {
   console.log("");
   console.log("Human approval required.");
   console.log("");
@@ -388,7 +388,7 @@ function printHumanGate(taskId: string, files: string[], diffHash: string): void
   console.log(`  ${diffHash}`);
   console.log("");
   console.log("Next action for human reviewer:");
-  console.log(`  ${buildHumanApprovalCommand(taskId)}`);
+  console.log(`  ${approvalCommand}`);
   console.log("");
   console.log("AI agents must stop here.");
   console.log("Do not approve this task yourself.");
@@ -625,8 +625,8 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
   if (humanGateIssues.length > 0) {
-    const approvalCommand = buildHumanApprovalCommand(taskId);
-    if (!json) printHumanGate(taskId, gate.requiredFiles, diffHash);
+    const approvalCommand = buildHumanApprovalCommand(taskId, approval?.status);
+    if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
     emitJson(finishOutput({
       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
       requiresHumanApproval: true, changedFiles: evidence.changedFiles, violations: humanGateIssues,
