@@ -11,6 +11,7 @@ import {
 import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
 import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
 import { runTaskLock } from "../../src/commands/task-lock.js";
+import { readEvidence } from "../../src/core/contracts.js";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 
@@ -716,6 +717,78 @@ describe("finish", () => {
     expect(text).toContain(buildHumanApprovalCommand("WBS-001-004"));
     expect(text).toContain("AI agents must stop here.");
     expect(text).toContain("Do not approve this task yourself.");
+  }, 30000);
+
+  test.each([
+    { name: "approved diffHash mismatch", status: "approved" as const, mismatch: "diffHash" as const, force: true },
+    { name: "approved head mismatch", status: "approved" as const, mismatch: "headCommit" as const, force: true },
+    { name: "rejected", status: "rejected" as const, mismatch: undefined, force: true },
+    { name: "requested", status: "requested" as const, mismatch: undefined, force: false },
+    { name: "missing", status: undefined, mismatch: undefined, force: false }
+  ])("Human Gate recovery command handles $name Approval", ({ status, mismatch, force }) => {
+    const root = prepareFinishRepoWithHumanGate();
+    const taskId = "WBS-001-004";
+
+    if (status === "approved") {
+      expect(captureFinishJson(root, { taskId, baseRef: "base" }).exitCode).toBe(1);
+      const evidence = readEvidence(root, taskId).evidence;
+      expect(evidence).toBeDefined();
+      const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.commit;
+      const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+      expect(headCommit).toBeTruthy();
+      expect(diffHash).toBeTruthy();
+      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+        id: `APR-${taskId}`,
+        type: "approval",
+        taskId,
+        status,
+        approvedBy: "human",
+        approvedAt: "2026-07-17T00:00:00.000Z",
+        headCommit: mismatch === "headCommit" ? "stale-head" : headCommit,
+        diffHash: mismatch === "diffHash" ? "sha256:stale-diff" : diffHash
+      });
+    } else if (status) {
+      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+        id: `APR-${taskId}`,
+        type: "approval",
+        taskId,
+        status
+      });
+    }
+
+    const result = captureFinishJson(root, { taskId, baseRef: "base" });
+    const command = buildHumanApprovalCommand(taskId, status);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json).toMatchObject({
+      outcome: "awaiting-human-approval",
+      approvalStatus: status ?? "",
+      nextAction: command,
+      resumeCommand: command,
+      fixCommands: [command]
+    });
+    expect(command.includes("--force")).toBe(force);
+  }, 30000);
+
+  test("plain Human Gate output uses the same forced recovery command as JSON", () => {
+    const root = prepareFinishRepoWithHumanGate();
+    const taskId = "WBS-001-004";
+    writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+      id: `APR-${taskId}`,
+      type: "approval",
+      taskId,
+      status: "rejected"
+    });
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runFinish(root, { taskId, baseRef: "base" })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
   }, 30000);
 
   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
