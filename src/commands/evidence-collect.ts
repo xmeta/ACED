@@ -9,6 +9,7 @@ import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch,
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { printIssues } from "../core/report.js";
 import { evaluateWorkingTreeGuard } from "./check-diff.js";
@@ -22,8 +23,6 @@ import {
   updateRequiredCheckRun,
   type RequiredCheckRunLease
 } from "../core/required-check-run.js";
-
-const maxCheckOutputSummaryLength = 1000;
 
 type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
 
@@ -91,14 +90,6 @@ function stableSubjectHead(
 
 function commandForCheck(check: string): string[] {
   return resolveCheckCommand(check);
-}
-
-function summarizeCheckOutput(output: string | null | undefined): string | undefined {
-  const normalized = (output ?? "").replace(/\r\n/g, "\n").trim();
-  if (normalized.length === 0) return undefined;
-  if (normalized.length <= maxCheckOutputSummaryLength) return normalized;
-  const marker = "[truncated]\n";
-  return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
 }
 
 function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {

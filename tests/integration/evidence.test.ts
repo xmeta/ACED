@@ -474,7 +474,7 @@ describe("evidence collect", () => {
     execFileSync("git", ["branch", "base"], { cwd: root });
     writeJson(root, "package.json", {
       scripts: {
-        test: "node -e \"console.log('stdout ' + 'x'.repeat(1200)); console.error('stderr failure'); process.exit(7)\""
+        test: "node -e \"console.log('failed test=tests/integration/stdout.test.ts :: stdout failure'); console.log('cause=stdout assertion'); console.log('rerun=npx vitest run tests/integration/stdout.test.ts'); console.error('failed test=tests/integration/stderr.test.ts :: stderr failure'); console.error('cause=Authorization: Bearer fixture-secret'); console.error('rerun=TOKEN=fixture-secret node test'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
       }
     });
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
@@ -487,9 +487,14 @@ describe("evidence collect", () => {
       command: "npm test",
       exitStatus: 7
     });
-    expect(check?.stdoutSummary).toContain("[truncated]");
+    expect(check?.stdoutSummary).toContain("failed test=tests/integration/stdout.test.ts :: stdout failure");
+    expect(check?.stdoutSummary).toContain("rerun=npx vitest run tests/integration/stdout.test.ts");
     expect(check?.stdoutSummary?.length).toBeLessThanOrEqual(1000);
-    expect(check?.stderrSummary).toContain("stderr failure");
+    expect(check?.stderrSummary).toContain("failed test=tests/integration/stderr.test.ts :: stderr failure");
+    expect(check?.stderrSummary).toContain("cause=Authorization: Bearer [redacted]");
+    expect(check?.stderrSummary).toContain("rerun=TOKEN=[redacted] node test");
+    expect(check?.stderrSummary).not.toContain("fixture-secret");
+    expect(check?.stderrSummary?.length).toBeLessThanOrEqual(1000);
     expect(check?.durationMilliseconds).toBeGreaterThanOrEqual(0);
   }, 30000);
 

@@ -6,6 +6,7 @@ import { resolveCheckCommand } from "../core/check-catalog.js";
 import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt, removeCheckReceipt, writeCheckReceipt } from "../core/check-receipt.js";
 import { headCommit } from "../core/git.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
@@ -16,8 +17,6 @@ import {
   updateRequiredCheckRun,
   type RequiredCheckRunLease
 } from "../core/required-check-run.js";
-
-const maxOutputLength = 1000;
 
 export type ChecksRunSummary = {
   schemaVersion: "1.0.0";
@@ -51,22 +50,6 @@ function metadataFiles(taskId: string): string[] {
   ];
 }
 
-function summarize(value: string | null | undefined): string | undefined {
-  const normalized = (value ?? "").replace(/\r\n/g, "\n").trim();
-  if (!normalized) return undefined;
-  if (normalized.length <= maxOutputLength) return normalized;
-  const diagnosticsIndex = normalized.indexOf("\nfailed test=");
-  if (diagnosticsIndex >= 0) {
-    const diagnostics = normalized.slice(diagnosticsIndex + 1);
-    const marker = "\n[truncated]\n";
-    const headLength = 750;
-    return `${diagnostics.slice(0, headLength)}${marker}${diagnostics.slice(-(maxOutputLength - headLength - marker.length))}`;
-  }
-  const marker = "\n[truncated]\n";
-  const edge = Math.floor((maxOutputLength - marker.length) / 2);
-  return `${normalized.slice(0, edge)}${marker}${normalized.slice(-edge)}`;
-}
-
 function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
   const command = resolveCheckCommand(check);
   updateRequiredCheckRun(lease, check, index);
@@ -95,8 +78,8 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
     durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
     executedAt: new Date().toISOString(),
     ...(typeof result.status === "number" && status === "failed" ? { exitStatus: result.status } : {}),
-    ...(status === "failed" && summarize(result.stdout) ? { stdoutSummary: summarize(result.stdout) } : {}),
-    ...(status === "failed" && summarize(result.stderr) ? { stderrSummary: summarize(result.stderr) } : {})
+    ...(status === "failed" && summarizeCheckOutput(result.stdout) ? { stdoutSummary: summarizeCheckOutput(result.stdout) } : {}),
+    ...(status === "failed" && summarizeCheckOutput(result.stderr) ? { stderrSummary: summarizeCheckOutput(result.stderr) } : {})
   };
 }
 

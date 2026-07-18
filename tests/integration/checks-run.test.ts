@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test, type TestContext } from "vitest";
-import { buildChecksRunSummary } from "../../src/commands/checks-run.js";
+import { buildChecksRunSummary, formatChecksRunSummary } from "../../src/commands/checks-run.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
 import { buildCheckCacheSubject } from "../../src/core/check-cache.js";
 import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt } from "../../src/core/check-receipt.js";
@@ -192,6 +192,28 @@ describe("checks run", () => {
     const failed = buildChecksRunSummary(root, taskId, { baseRef: "base" });
     expect(failed).toMatchObject({ status: "fail", receiptPath: null, receiptReason: "check-failed-no-receipt" });
     expect(existsSync(checkReceiptPath(root, taskId))).toBe(false);
+  });
+
+  caseTest("plain and JSON summaries retain the same actionable failure diagnostics", (state) => {
+    state.phase = "prepare-repo";
+    const root = prepareRepo();
+    state.root = root;
+    writeJson(root, "package.json", {
+      scripts: {
+        costly: "node -e \"console.error('failed test=tests/integration/example.test.ts :: fails'); console.error('cause=expected true'); console.error('rerun=npx vitest run tests/integration/example.test.ts'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
+      }
+    });
+    state.phase = "failed diagnostic summary";
+    state.command = "buildChecksRunSummary";
+    const summary = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+    const diagnostics = summary.checks[0]?.stderrSummary;
+    expect(summary.status).toBe("fail");
+    expect(diagnostics).toContain("failed test=tests/integration/example.test.ts :: fails");
+    expect(diagnostics).toContain("cause=expected true");
+    expect(diagnostics).toContain("rerun=npx vitest run tests/integration/example.test.ts");
+    expect(diagnostics?.length).toBeLessThanOrEqual(1000);
+    expect(formatChecksRunSummary(summary)).toContain(diagnostics);
+    expect(JSON.parse(JSON.stringify(summary)).checks[0].stderrSummary).toBe(diagnostics);
   });
 
   caseTest("does not trust raw npm self-report or a malformed receipt", (state) => {
