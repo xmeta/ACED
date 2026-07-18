@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRPHOQ03
+type: evidence
+taskId: SCWBS-DRAFT-MRPHOQ03
+commit: 2015e2b95d1facbccae453ecfd22a850909fd066
+subjectHeadCommit: 2015e2b95d1facbccae453ecfd22a850909fd066
+diffHash: sha256:952976c3e40f25caba86a33fc4890d9c65d2292edf338047a63a8dd8e912f198
+git:
+  branch: task/SCWBS-DRAFT-MRPHOQ03-issue-215-read-only-task-execution-classificatio
+  base: origin/main
+  baseCommit: 791f5af6c4c611d9186045bab9318476cf4f8f77
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 2015e2b95d1facbccae453ecfd22a850909fd066
+  diffHash: sha256:952976c3e40f25caba86a33fc4890d9c65d2292edf338047a63a8dd8e912f198
+  headCommit: 2015e2b95d1facbccae453ecfd22a850909fd066
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - docs/scwbs/schemas/task-classification.schema.json
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - src/core/task-authority.ts
+  - tests/integration/ci-plan.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:3fb9c57dc8230cd90bb9136969a0f714d0c2d2efdaa1ad2c0cf405ae6b38ec13
+    durationMilliseconds: 19705
+    executedAt: "2026-07-18T14:14:57.202Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:fa7c06c63cc5b18a65b0b940e0a20dfdcfdadcb2879e77200d650b0a43ff9408
+    durationMilliseconds: 479014
+    executedAt: "2026-07-18T14:22:56.222Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ea038681961eb700984aa38514e457a4a13a655824e0a95407e453900d2fbc99
+    durationMilliseconds: 4890
+    executedAt: "2026-07-18T14:23:01.119Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e3aeaaf3676699c3d4da44356529d6611c2c745b2366c5991cafbfdc07e56504
+    durationMilliseconds: 4486
+    executedAt: "2026-07-18T14:23:05.609Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - CI plan classification covers bootstrap provenance and fail-closed high-risk routing
