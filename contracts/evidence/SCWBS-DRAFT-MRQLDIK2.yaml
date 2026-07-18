@@ -1,0 +1,58 @@
+id: EVD-SCWBS-DRAFT-MRQLDIK2
+type: evidence
+taskId: SCWBS-DRAFT-MRQLDIK2
+commit: c8670b0e868ced35bfa4a475348870be62ec7bbb
+subjectHeadCommit: c8670b0e868ced35bfa4a475348870be62ec7bbb
+diffHash: sha256:10be94a651633b2795efaf97fd7a772d913124aedf462f887c38f2fff9add64d
+git:
+  branch: task/SCWBS-DRAFT-MRQLDIK2-issue-243-npm-bin-symlink
+  base: origin/main
+  baseCommit: 898a340e898e1f6e10d4b5c5bdb670d80e10f2bb
+  changedFilesBasis: branch-diff
+  pullRequest: "254"
+  subjectHeadCommit: c8670b0e868ced35bfa4a475348870be62ec7bbb
+  diffHash: sha256:10be94a651633b2795efaf97fd7a772d913124aedf462f887c38f2fff9add64d
+  headCommit: c8670b0e868ced35bfa4a475348870be62ec7bbb
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/tasks/index.yaml
+  - src/cli.ts
+  - tests/integration/packaging.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2f8c7162ee5f404b77949e86cb388ca99e82525851ef5ff8382ee1f4120a1973
+    durationMilliseconds: 15902
+    executedAt: "2026-07-18T16:43:05.306Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:d3368887678f4037340946e035eda35f3ac6498cca4422529f8aea086dc3e60b
+    durationMilliseconds: 281646
+    executedAt: "2026-07-18T16:47:46.958Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e6f634911faa5becd8ee0d0a720036837f25db454f0ff7eb691e9eb056a4c4a9
+    durationMilliseconds: 4086
+    executedAt: "2026-07-18T16:47:51.053Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:439cb428da2be47f9206ac2caae6e8c9150a5c09e2c202b67802ced8fdcf935d
+    durationMilliseconds: 5084
+    executedAt: "2026-07-18T16:47:56.140Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - npm形式のsymlink経由でversion出力と終了コードが直接実行と一致する回帰を追加

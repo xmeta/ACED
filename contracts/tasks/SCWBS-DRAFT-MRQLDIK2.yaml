@@ -1,0 +1,52 @@
+id: SCWBS-DRAFT-MRQLDIK2
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRQLDIK2
+branchName: task/SCWBS-DRAFT-MRQLDIK2-issue-243-npm-bin-symlink
+allowedPaths:
+  - src/cli.ts
+  - tests/integration/packaging.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外の変更が必要
+  - humanGateRequiredPathsへの変更が必要
+  - package metadataまたはrelease/publish判断が必要
+  - 仕様変更レベルの判断が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #243 npm bin symlink経由の無出力終了を修正'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRQLDIK2.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRQLDIK2.yaml
+contractLock:
+  lockVersion: "2"
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: wbs-less
+  createdAt: "2026-07-18T16:39:26.981Z"

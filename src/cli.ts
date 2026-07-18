@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command, CommanderError } from "commander";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
 import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
 import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
@@ -864,7 +865,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   return exitCode;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
+) {
   const exitCode = main();
   process.exit(exitCode);
 }
