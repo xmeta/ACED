@@ -95,7 +95,11 @@ describe("CI plan", () => {
       reasons: [{ code: "provenance.metadataOnly" }]
     });
     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ci-plan.schema.json"), "utf8"));
-    expect(new Ajv2020({ strict: false }).compile(schema)(plan)).toBe(true);
+    const classificationSchema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/task-classification.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: false });
+    ajv.addSchema(classificationSchema);
+    expect(ajv.compile(schema)(plan)).toBe(true);
+    expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
   });
 
   test("falls back to full CI when Evidence is absent at the implementation subject", () => {
@@ -178,6 +182,18 @@ describe("CI plan", () => {
     const plan = buildCiPlan(shallow, { taskId, baseRef: "HEAD" });
     expect(plan.decision).toBe("full");
     expect(plan.reasons.some((item) => item.code === "git.shallow")).toBe(true);
+    expect(plan.classification).toMatchObject({ executionClass: "standard" });
+  });
+
+  test("fails closed when an existing task has no branch-local bootstrap introduction", () => {
+    const { root } = prepareSubject();
+    const taskPath = `contracts/tasks/${taskId}.yaml`;
+    const current = readFileSync(path.join(root, taskPath), "utf8");
+    writeText(root, taskPath, current);
+    commit(root, "copy task contract is not a valid bootstrap");
+    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
+    expect(plan.classification.executionClass).toBe("high-risk");
+    expect(plan.classification.reasons.map((item) => item.code)).toContain("classification.bootstrap.introduction.missing");
   });
 
   test("discovers the task by exact branch and emits fallback JSON with exit zero", () => {

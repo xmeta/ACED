@@ -14,6 +14,9 @@ import {
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
 import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+import { verifyTaskBootstrapAuthority } from "../core/task-authority.js";
+import { matchesAny } from "../core/glob.js";
+import { readWbs } from "../core/wbs.js";
 import type { Issue, TaskContract } from "../core/types.js";
 import { collectDiffIssues } from "./check-diff.js";
 
@@ -33,6 +36,19 @@ export type CiPlan = {
   diffHash: string | null;
   metadataFiles: string[];
   changedFilesSinceSubject: string[];
+  reasons: CiPlanReason[];
+  classification: TaskClassificationReport;
+};
+
+export type TaskClassificationReport = {
+  schemaVersion: "1.0.0";
+  status: "classified" | "unavailable";
+  projectProfile: "Lean" | "Standard" | "Strict" | null;
+  executionClass: "routine" | "standard" | "high-risk" | null;
+  enforcement: "read-only";
+  bootstrapAuthority: { verified: boolean; introductionCommit: string | null };
+  consideredFiles: string[];
+  excludedBootstrapFiles: string[];
   reasons: CiPlanReason[];
 };
 
@@ -104,7 +120,45 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
     diffHash: null,
     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
     changedFilesSinceSubject: [],
-    reasons
+    reasons,
+    classification: {
+      schemaVersion: "1.0.0", status: "unavailable", projectProfile: null, executionClass: null, enforcement: "read-only",
+      bootstrapAuthority: { verified: false, introductionCommit: null }, consideredFiles: [], excludedBootstrapFiles: [], reasons
+    }
+  };
+}
+
+function profile(root: string): "Lean" | "Standard" | "Strict" {
+  const value = readWbs(root).extensions?.scwbs;
+  const candidate = typeof value === "object" && value !== null ? (value as Record<string, unknown>).profile : undefined;
+  return candidate === "Lean" || candidate === "Strict" || candidate === "Standard" ? candidate : "Standard";
+}
+
+function classifyTask(root: string, task: TaskContract, baseRef: string, branchFiles: string[], issues: CiPlanReason[]): TaskClassificationReport {
+  const ownTaskPath = `contracts/tasks/${task.id}.yaml`;
+  const bootstrap = branchFiles.includes(ownTaskPath)
+    ? verifyTaskBootstrapAuthority(root, baseRef, task)
+    : { verified: true, reasons: [], introductionCommit: undefined };
+  const bootstrapFiles = bootstrap.verified ? taskLifecycleMetadataPaths(task.id) : [];
+  const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
+  const reasons: CiPlanReason[] = bootstrap.reasons.map((item) => reason(item.code, item.message));
+  if (issues.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {
+    reasons.push(reason("classification.authorityOrCoverage.unverified", "Authority or implementation coverage cannot be verified"));
+  }
+  if (consideredFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths))) {
+    reasons.push(reason("classification.path.humanGate", "A Human Gate path is in the classified change set"));
+  }
+  if (consideredFiles.some((file) => /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|.*schema.*|.*migration.*|.*auth.*|.*permission.*|.*release.*)$/.test(file) || file.startsWith(".github/") || file.startsWith("wjs/"))) {
+    reasons.push(reason("classification.path.highRisk", "A dependency, schema, migration, authority, release, workflow, or submodule path is in the classified change set"));
+  }
+  const executionClass = reasons.length > 0 ? "high-risk"
+    : consideredFiles.some((file) => file.startsWith("src/") || file.startsWith("tests/")) ? "standard"
+      : "routine";
+  if (reasons.length === 0) reasons.push(reason(`classification.${executionClass}`, executionClass === "routine" ? "Only non-implementation, non-gated files remain after verified bootstrap metadata exclusion" : "Implementation or test files require the Standard execution class"));
+  return {
+    schemaVersion: "1.0.0", status: "classified", projectProfile: profile(root), executionClass, enforcement: "read-only",
+    bootstrapAuthority: { verified: bootstrap.verified, introductionCommit: bootstrap.introductionCommit ?? null },
+    consideredFiles, excludedBootstrapFiles: bootstrapFiles.filter((file) => branchFiles.includes(file)).sort(), reasons: uniqueReasons(reasons)
   };
 }
 
@@ -199,6 +253,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
 
   const normalizedReasons = uniqueReasons(reasons);
   const decision = normalizedReasons.length === 0 ? "metadata-candidate" : "full";
+  const classification = classifyTask(root, task, baseRef, branchFiles, normalizedReasons);
   return {
     schemaVersion: "1.0.0",
     decision,
@@ -212,7 +267,8 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
     changedFilesSinceSubject,
     reasons: decision === "metadata-candidate"
       ? [reason("provenance.metadataOnly", "Only approved metadata files changed after the verified implementation subject")]
-      : normalizedReasons
+      : normalizedReasons,
+    classification
   };
 }
 
