@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
 import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
 import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
 
@@ -15,6 +15,9 @@ export function readRegistry(root: string): { registry?: Registry; issues: Issue
 }
 
 export function readTask(root: string, taskId: string): { task?: TaskContract; issues: Issue[] } {
+  if (!isValidTaskId(taskId)) {
+    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+  }
   const relativePath = taskPath(taskId);
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {
@@ -46,6 +49,9 @@ export function readSpecChange(root: string, relativePath: string): { specChange
 }
 
 export function readEvidence(root: string, taskId: string): { evidence?: Evidence; issues: Issue[] } {
+  if (!isValidTaskId(taskId)) {
+    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+  }
   const relativePath = evidencePath(taskId);
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {
@@ -57,6 +63,9 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
 }
 
 export function readApproval(root: string, taskId: string): { approval?: ApprovalRecord; issues: Issue[] } {
+  if (!isValidTaskId(taskId)) {
+    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+  }
   const relativePath = approvalPath(taskId);
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {
@@ -68,6 +77,9 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
 }
 
 export function readReview(root: string, taskId: string): { review?: ReviewRecord; issues: Issue[] } {
+  if (!isValidTaskId(taskId)) {
+    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+  }
   const relativePath = reviewPath(taskId);
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {
@@ -79,6 +91,9 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
 }
 
 export function readBlock(root: string, taskId: string): { block?: BlockRecord; issues: Issue[] } {
+  if (!isValidTaskId(taskId)) {
+    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+  }
   const relativePath = blockPath(taskId);
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {

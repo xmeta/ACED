@@ -1,12 +1,73 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectCheckIssues } from "../../src/commands/check.js";
 import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { approvalPath, blockPath, evidencePath, reviewPath, taskPath } from "../../src/core/paths.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
 import type { WbsDocument } from "../../src/core/types.js";
 
 describe("contracts / schema", () => {
+  test.each([
+    "WBS-001-004",
+    "SCWBS-DRAFT-ABC123",
+    "task.with_dots-and-hyphens"
+  ])("task lifecycle paths accept compatible task id %s", (taskId) => {
+    expect(taskPath(taskId)).toBe(`contracts/tasks/${taskId}.yaml`);
+    expect(evidencePath(taskId)).toBe(`contracts/evidence/${taskId}.yaml`);
+    expect(approvalPath(taskId)).toBe(`contracts/approvals/${taskId}.yaml`);
+    expect(reviewPath(taskId)).toBe(`contracts/reviews/${taskId}.yaml`);
+    expect(blockPath(taskId)).toBe(`contracts/blocks/${taskId}.yaml`);
+  });
+
+  test.each([
+    "",
+    ".",
+    "..",
+    "../../outside",
+    "/tmp/outside",
+    String.raw`..\..\outside`,
+    "nested/task",
+    "nested\\task",
+    "%2e%2e%2foutside",
+    "task id",
+    "タスク"
+  ])("task lifecycle paths reject unsafe task id without exposing it: %s", (taskId) => {
+    for (const buildPath of [taskPath, evidencePath, approvalPath, reviewPath, blockPath]) {
+      expect(() => buildPath(taskId)).toThrow("Invalid task id");
+    }
+  });
+
+  test("invalid task reads fail before inspecting an outside fixture", () => {
+    const root = makeTempRepo();
+    const outsideId = `outside-${path.basename(root)}`;
+    const outside = path.resolve(root, `../${outsideId}.yaml`);
+    writeYaml(root, `../${outsideId}.yaml`, { secret: "must-not-appear" });
+
+    const result = readTask(root, `../${outsideId}`);
+
+    expect(existsSync(outside)).toBe(true);
+    expect(result.task).toBeUndefined();
+    expect(result.issues).toEqual([{
+      severity: "error",
+      code: "task.id.invalid",
+      message: "Invalid task id"
+    }]);
+    expect(JSON.stringify(result.issues)).not.toContain("must-not-appear");
+  });
+
+  test("Task Contract schema rejects an unsafe id", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ id: "../outside" }) as unknown as Record<string, unknown>);
+
+    const result = readTask(root, "WBS-001-004");
+
+    expect(result.task).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "task.schema")).toBe(true);
+    expect(result.issues.some((issue) => issue.code === "task.id.invalid")).toBe(true);
+  });
+
   test("spec contracts are first-class files with required metadata", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

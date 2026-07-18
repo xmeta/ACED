@@ -1,5 +1,6 @@
 import type { ErrorObject } from "ajv";
 import { WBS_LESS_TASK_NODE_ID } from "../node-utils.js";
+import { isValidTaskId, taskIdPatternSource } from "../paths.js";
 import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
 import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
@@ -34,7 +35,7 @@ const specChangeProposalSchema = {
     targetSpec: { type: "string", minLength: 1 },
     currentVersion: { type: "string", minLength: 1 },
     proposedVersion: { type: "string", minLength: 1 },
-    taskId: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     level: { type: "integer", enum: [0, 1, 2] },
     summary: { type: "string", minLength: 1 },
     rationale: stringArraySchema,
@@ -64,7 +65,7 @@ const taskContractSchema = {
     }
   ],
   properties: {
-    id: { type: "string", minLength: 1 },
+    id: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     type: { const: "task-contract" },
     mode: { const: "lite" },
     wbsNodeId: { type: "string", minLength: 1 },
@@ -316,6 +317,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.type !== "task-contract") {
     issues.push(issue("task.type", `${filePath}.type must be task-contract`));
+  }
+  if (typeof value.id === "string" && !isValidTaskId(value.id)) {
+    issues.push(issue("task.id.invalid", `${filePath}.id must be a valid task id`));
   }
   if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
     issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));

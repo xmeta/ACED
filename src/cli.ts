@@ -34,6 +34,7 @@ import { runTaskRefresh } from "./commands/task-refresh.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
 import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
+import { isValidTaskId } from "./core/paths.js";
 import type { Evidence } from "./core/types.js";
 
 function parseBool(val: unknown): boolean | undefined {
@@ -61,6 +62,24 @@ function parseTestQuality(opts: Record<string, unknown>): Evidence["testQuality"
 
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
   let exitCode = 0;
+  const taskOptionIndex = argv.findIndex((argument) => argument === "--task" || argument.startsWith("--task="));
+  if (taskOptionIndex >= 0) {
+    const option = argv[taskOptionIndex] ?? "";
+    const taskId = option === "--task" ? argv[taskOptionIndex + 1] : option.slice("--task=".length);
+    if (taskId !== undefined && !isValidTaskId(taskId)) {
+      if (argv.includes("--json")) {
+        console.error(JSON.stringify({
+          version: "scwbs.error.v1",
+          status: "error",
+          code: "task.id.invalid",
+          message: "Invalid task id"
+        }));
+      } else {
+        console.error("ERROR task.id.invalid: Invalid task id");
+      }
+      return 2;
+    }
+  }
 
   const program = new Command();
   program
