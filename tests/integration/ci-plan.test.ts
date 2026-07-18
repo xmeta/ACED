@@ -182,15 +182,15 @@ describe("CI plan", () => {
     const plan = buildCiPlan(shallow, { taskId, baseRef: "HEAD" });
     expect(plan.decision).toBe("full");
     expect(plan.reasons.some((item) => item.code === "git.shallow")).toBe(true);
-    expect(plan.classification).toMatchObject({ executionClass: "standard" });
+    expect(plan.classification).toMatchObject({ executionClass: "high-risk" });
   });
 
   test("fails closed when an existing task has no branch-local bootstrap introduction", () => {
     const { root } = prepareSubject();
     const taskPath = `contracts/tasks/${taskId}.yaml`;
     const current = readFileSync(path.join(root, taskPath), "utf8");
-    writeText(root, taskPath, current);
-    commit(root, "copy task contract is not a valid bootstrap");
+    writeText(root, taskPath, current.replace("  - API tests pass\n", "  - API tests pass\n  - Classification is reported\n"));
+    commit(root, "change existing task without branch-local introduction");
     const plan = buildCiPlan(root, { taskId, baseRef: "base" });
     expect(plan.classification.executionClass).toBe("high-risk");
     expect(plan.classification.reasons.map((item) => item.code)).toContain("classification.bootstrap.introduction.missing");

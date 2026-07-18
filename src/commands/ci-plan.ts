@@ -142,6 +142,9 @@ function classifyTask(root: string, task: TaskContract, baseRef: string, branchF
   const bootstrapFiles = bootstrap.verified ? bootstrap.bootstrapFiles : [];
   const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
   const reasons: CiPlanReason[] = bootstrap.reasons.map((item) => reason(item.code, item.message));
+  if (issues.some((item) => ["git.shallow", "git.base.missing", "git.mergeBase.missing", "git.diff.failed"].includes(item.code))) {
+    reasons.push(reason("classification.provenance.unverified", "Repository history or the classified branch diff cannot be verified"));
+  }
   if (issues.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {
     reasons.push(reason("classification.authorityOrCoverage.unverified", "Authority or implementation coverage cannot be verified"));
   }
