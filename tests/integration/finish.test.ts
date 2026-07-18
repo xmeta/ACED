@@ -523,7 +523,7 @@ describe("finish", () => {
     const root = prepareFinishRepo();
     writeJson(root, "package.json", {
       scripts: {
-        test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
+        test: "node -e \"console.log('bounded stdout detail'); console.error('failed test=tests/integration/finish.test.ts :: actionable failure'); console.error('cause=expected fixed point'); console.error('rerun=npx vitest run tests/integration/finish.test.ts -t actionable'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
       }
     });
     execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
@@ -550,7 +550,9 @@ describe("finish", () => {
     expect(stdout.join("\n")).not.toContain("id: EVD-WBS-001-004");
     expect(stderr.join("\n")).toContain("Check failed: test (npm test)");
     expect(stderr.join("\n")).toContain("bounded stdout detail");
-    expect(stderr.join("\n")).toContain("actionable stderr detail");
+    expect(stderr.join("\n")).toContain("failed test=tests/integration/finish.test.ts :: actionable failure");
+    expect(stderr.join("\n")).toContain("cause=expected fixed point");
+    expect(stderr.join("\n")).toContain("rerun=npx vitest run tests/integration/finish.test.ts -t actionable");
   }, 30000);
 
   test("failed required checks preserve the previous Evidence and Registry checkpoint", () => {
@@ -559,7 +561,11 @@ describe("finish", () => {
     const registryFile = path.join(root, "contracts/registry.yaml");
     const previousEvidence = readFileSync(evidenceFile, "utf8");
     const previousRegistry = readFileSync(registryFile, "utf8");
-    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
+    writeJson(root, "package.json", {
+      scripts: {
+        test: "node -e \"console.error('failed test=tests/integration/json.test.ts :: json failure'); console.error('cause=timeout'); console.error('rerun=npx vitest run tests/integration/json.test.ts'); console.error('progress '.repeat(1000)); process.exit(9)\""
+      }
+    });
     execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "configure failed check"], { cwd: root, stdio: "ignore" });
     const beforeStatus = gitStatus(root);
@@ -573,6 +579,9 @@ describe("finish", () => {
       mutatedFiles: [],
       resumeCommand: "npm run scwbs -- finish --task WBS-001-004"
     });
+    expect(JSON.stringify(result.json)).toContain("failed test=tests/integration/json.test.ts :: json failure");
+    expect(JSON.stringify(result.json)).toContain("cause=timeout");
+    expect(JSON.stringify(result.json)).toContain("rerun=npx vitest run tests/integration/json.test.ts");
     expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
     expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
     expect(gitStatus(root)).toBe(beforeStatus);
