@@ -1,0 +1,45 @@
+id: SCWBS-DRAFT-MRQQ8J7W
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRQQ8J7W
+branchName: task/SCWBS-DRAFT-MRQQ8J7W-root-mjs-lf-checkout
+allowedPaths:
+  - .gitattributes
+  - contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - root .mjs attribute behavior cannot be verified
+  - submodule change is required
+  - scope expansion is required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Root .mjs の LF checkout を固定
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRQQ8J7W.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRQQ8J7W.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRQQ8J7W.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRQQ8J7W.yaml
+contractLock:
+  lockVersion: "2"
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: wbs-less
+  createdAt: "2026-07-18T18:56:45.739Z"
