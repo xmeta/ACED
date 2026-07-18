@@ -8,8 +8,12 @@
   "bin": {
     "scwbs": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run tests/unit",
     "test:integration": "node scripts/integration-test-output.mjs",
