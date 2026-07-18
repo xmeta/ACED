@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRQHGOF0
+type: evidence
+taskId: SCWBS-DRAFT-MRQHGOF0
+commit: 3b928caa7de7c55397e38f50e86cd01ae2090eef
+subjectHeadCommit: 3b928caa7de7c55397e38f50e86cd01ae2090eef
+diffHash: sha256:6660c24a120b60c62e42c7db906b04fb8d1d18bdec354503c2c3c4cf1ba785a8
+git:
+  branch: task/SCWBS-DRAFT-MRQHGOF0-issue-245-task-id-path-traversal-fail-closed
+  base: origin/main
+  baseCommit: 5b6d03e82e6bb3a1fdbab7e03bdadc6a8a17961c
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 3b928caa7de7c55397e38f50e86cd01ae2090eef
+  diffHash: sha256:6660c24a120b60c62e42c7db906b04fb8d1d18bdec354503c2c3c4cf1ba785a8
+  headCommit: 3b928caa7de7c55397e38f50e86cd01ae2090eef
+  pullRequest: "#252"
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+  - contracts/tasks/index.yaml
+  - src/cli.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - tests/integration/task-id-security.test.ts
+  - tests/unit/contracts.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e05daf15a3e029fd388ed3011a07b9b161dd8d49c73b25047ba8240e270e51c6
+    durationMilliseconds: 17836
+    executedAt: "2026-07-18T15:28:21.239Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f92890c154cc80053dee1879682a75844566071ca001d8fcd6e2597d6a467276
+    durationMilliseconds: 501388
+    executedAt: "2026-07-18T15:36:42.635Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:15cf34fbb28460c4cf560c7cd21853d13e5575fd1a2bce3d5b3b0b0c6a68d287
+    durationMilliseconds: 4699
+    executedAt: "2026-07-18T15:36:47.342Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:34724caa40f3cb4b33276fd6f9d7a06d5fd6476be7d5f00b988de61dd025dec2
+    durationMilliseconds: 4445
+    executedAt: "2026-07-18T15:36:51.790Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Task ID read/write traversal, POSIX/Windows separators, absolute paths, URL encoding, schema rejection, plain/JSON diagnostics, and valid-ID compatibility are covered by new regression assertions
