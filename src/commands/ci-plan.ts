@@ -138,8 +138,8 @@ function classifyTask(root: string, task: TaskContract, baseRef: string, branchF
   const ownTaskPath = `contracts/tasks/${task.id}.yaml`;
   const bootstrap = branchFiles.includes(ownTaskPath)
     ? verifyTaskBootstrapAuthority(root, baseRef, task)
-    : { verified: true, reasons: [], introductionCommit: undefined };
-  const bootstrapFiles = bootstrap.verified ? taskLifecycleMetadataPaths(task.id) : [];
+    : { verified: true, reasons: [], introductionCommit: undefined, bootstrapFiles: [] };
+  const bootstrapFiles = bootstrap.verified ? bootstrap.bootstrapFiles : [];
   const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
   const reasons: CiPlanReason[] = bootstrap.reasons.map((item) => reason(item.code, item.message));
   if (issues.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {

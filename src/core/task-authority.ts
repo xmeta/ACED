@@ -33,6 +33,7 @@ type AuthoritySnapshot = Record<AuthorityField, unknown>;
 export type TaskBootstrapAuthority = {
   verified: boolean;
   introductionCommit?: string;
+  bootstrapFiles: string[];
   reasons: Issue[];
 };
 
@@ -208,18 +209,18 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
 export function verifyTaskBootstrapAuthority(root: string, baseRef: string, task: TaskContract): TaskBootstrapAuthority {
   const taskPath = `contracts/tasks/${task.id}.yaml`;
   if (isShallowRepository(root)) {
-    return { verified: false, reasons: [{ severity: "error", code: "classification.bootstrap.git.shallow", message: "Task bootstrap authority cannot be verified in a shallow repository" }] };
+    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.git.shallow", message: "Task bootstrap authority cannot be verified in a shallow repository" }] };
   }
   const trustedBase = mergeBase(root, baseRef, "HEAD");
   if (!trustedBase) {
-    return { verified: false, reasons: [{ severity: "error", code: "classification.bootstrap.git.mergeBase", message: `Task bootstrap authority cannot be verified because ${baseRef} and HEAD have no resolvable merge base` }] };
+    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.git.mergeBase", message: `Task bootstrap authority cannot be verified because ${baseRef} and HEAD have no resolvable merge base` }] };
   }
   const introductionCommit = fileIntroductionCommit(root, trustedBase, "HEAD", taskPath);
   if (!introductionCommit) {
-    return { verified: false, reasons: [{ severity: "error", code: "classification.bootstrap.introduction.missing", message: `${taskPath} has no committed introduction after ${trustedBase}` }] };
+    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.introduction.missing", message: `${taskPath} has no committed introduction after ${trustedBase}` }] };
   }
   const reasons = collectNewTaskTrustIssues(root, trustedBase, taskPath, task);
-  return { verified: reasons.length === 0, introductionCommit, reasons };
+  return { verified: reasons.length === 0, introductionCommit, bootstrapFiles: commitChangedFiles(root, introductionCommit), reasons };
 }
 
 export function collectTaskAuthorityIssues(
