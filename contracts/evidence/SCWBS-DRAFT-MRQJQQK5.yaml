@@ -1,0 +1,62 @@
+id: EVD-SCWBS-DRAFT-MRQJQQK5
+type: evidence
+taskId: SCWBS-DRAFT-MRQJQQK5
+commit: 7df2e0b30a8c6d17f5e85c0d615fe754f6f2801b
+subjectHeadCommit: 7df2e0b30a8c6d17f5e85c0d615fe754f6f2801b
+diffHash: sha256:30ae80b44c12aebb105bdc44cdf9ab2e179f6f4d6229a72ddf79be2dabb1d01c
+git:
+  branch: task/SCWBS-DRAFT-MRQJQQK5-issue-251-finish-required-check-failure-diagnost
+  base: origin/main
+  baseCommit: ee51de681a3db7a5259fe6e309a50178f71140c8
+  changedFilesBasis: branch-diff
+  pullRequest: "253"
+  subjectHeadCommit: 7df2e0b30a8c6d17f5e85c0d615fe754f6f2801b
+  diffHash: sha256:30ae80b44c12aebb105bdc44cdf9ab2e179f6f4d6229a72ddf79be2dabb1d01c
+  headCommit: 7df2e0b30a8c6d17f5e85c0d615fe754f6f2801b
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/core/check-output-summary.ts
+  - tests/integration/checks-run.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - tests/unit/check-output-summary.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:85035afb9f712d880fbe2f18a0e49d6f9309d6eb6350cb88df0ce5a560f58a43
+    durationMilliseconds: 15875
+    executedAt: "2026-07-18T16:12:12.558Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5bca18dc305e7a476443cafda696c40cc72b94f8aab557c5c95cb8d70bfc7c8d
+    durationMilliseconds: 407849
+    executedAt: "2026-07-18T16:19:00.413Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4b99362eb333ce1d8ad652d4479be445ffc3167906aa7460cbd0278e2a77034c
+    durationMilliseconds: 5059
+    executedAt: "2026-07-18T16:19:05.480Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:d8e2f164b1c881dab8f4d0c3648c1aa0604e951e91109f47be3b81c15427b157
+    durationMilliseconds: 4807
+    executedAt: "2026-07-18T16:19:10.292Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added unit and integration regressions for diagnostic extraction, deduplication, progress aggregation, redaction, bounded fallback, and plain/JSON/Evidence/finish parity. No tests disabled and no coverage decrease. One known finish lifecycle flake failed in the first canonical run; its exact targeted rerun passed in 5.44s and the default-worker canonical rerun passed 4/4 in 439.59s.
