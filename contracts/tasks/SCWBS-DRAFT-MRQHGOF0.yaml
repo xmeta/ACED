@@ -1,0 +1,53 @@
+id: SCWBS-DRAFT-MRQHGOF0
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRQHGOF0
+branchName: task/SCWBS-DRAFT-MRQHGOF0-issue-245-task-id-path-traversal-fail-closed
+allowedPaths:
+  - src/core/paths.ts
+  - src/core/contracts.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/cli.ts
+  - tests/unit/**
+  - tests/integration/**
+  - contracts/check-coverage.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外の変更が必要
+  - humanGateRequiredPathsへの変更が必要
+  - 破壊的仕様変更が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #245: Task ID path traversalをfail-closedで拒否する'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRQHGOF0.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRQHGOF0.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRQHGOF0.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRQHGOF0.yaml
+contractLock:
+  lockVersion: "2"
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: wbs-less
+  createdAt: "2026-07-18T14:49:56.809Z"

@@ -1,5 +1,6 @@
 import type { ErrorObject } from "ajv";
 import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from "../types.js";
+import { taskIdPatternSource } from "../paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
 const evidenceSchema = {
@@ -9,7 +10,7 @@ const evidenceSchema = {
   properties: {
     id: { type: "string", minLength: 1 },
     type: { const: "evidence" },
-    taskId: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     commit: { type: "string" },
     subjectHeadCommit: { type: "string" },
     evidenceCommit: { type: "string" },
@@ -104,7 +105,7 @@ const approvalRecordSchema = {
   properties: {
     id: { type: "string", minLength: 1 },
     type: { const: "approval" },
-    taskId: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     status: { type: "string", enum: ["requested", "approved", "rejected"] },
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
@@ -129,7 +130,7 @@ const blockRecordSchema = {
   properties: {
     id: { type: "string", minLength: 1 },
     type: { const: "block" },
-    taskId: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     status: { type: "string", enum: ["blocked", "resolved"] },
     level: { type: "integer", enum: [1, 2] },
     category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
@@ -163,7 +164,7 @@ const reviewRecordSchema = {
   properties: {
     id: { type: "string", minLength: 1 },
     type: { const: "review" },
-    taskId: { type: "string", minLength: 1 },
+    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     status: { type: "string", enum: ["requested", "approved", "changes-requested", "closed"] },
     reviewProfile: { type: "string", minLength: 1 },
     headCommit: { type: "string" },
