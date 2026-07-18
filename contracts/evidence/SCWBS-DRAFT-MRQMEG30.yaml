@@ -1,0 +1,57 @@
+id: EVD-SCWBS-DRAFT-MRQMEG30
+type: evidence
+taskId: SCWBS-DRAFT-MRQMEG30
+commit: 7004695b80e8e5b2f282d9be149e696055e652ed
+subjectHeadCommit: 7004695b80e8e5b2f282d9be149e696055e652ed
+diffHash: sha256:230818f8def5bb59f0057f54b9e405c667e8f1ce2393c9b4d7e726a3bc174329
+git:
+  branch: task/SCWBS-DRAFT-MRQMEG30-issue-255-clean-npm-pack-scwbs-bin
+  base: origin/main
+  baseCommit: 4ac383b6924a2ecdf623b0ffaa808ab2bcbff0d1
+  changedFilesBasis: branch-diff
+  pullRequest: "256"
+  subjectHeadCommit: 7004695b80e8e5b2f282d9be149e696055e652ed
+  diffHash: sha256:230818f8def5bb59f0057f54b9e405c667e8f1ce2393c9b4d7e726a3bc174329
+  headCommit: 7004695b80e8e5b2f282d9be149e696055e652ed
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRQMEG30.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
+  - contracts/tasks/index.yaml
+  - package.json
+  - tests/integration/packaging.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:13aab18fa8613c68541a6264ec6f533100da008b589bda41f85f9e71b51ae1b8
+    durationMilliseconds: 15184
+    executedAt: "2026-07-18T17:33:15.720Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:409026d82c269ef8913d2d1d0dbbe69e24b3face7dc0cdfbc8c030abcfca3a40
+    durationMilliseconds: 436992
+    executedAt: "2026-07-18T17:40:32.716Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3c2a470a773ac0d779c8083ba6e27ad667843e006694497df17cf5a21d039627
+    durationMilliseconds: 4175
+    executedAt: "2026-07-18T17:40:36.897Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:5eb76b1ddcc05cd2f764f1db8e3b4d85859e48343229284cc2f81ce703f12fa7
+    durationMilliseconds: 3903
+    executedAt: "2026-07-18T17:40:40.804Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - clean npm packのtarball内容、entry/size上限、consumer bin生成と--versionを回帰検証
