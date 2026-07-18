@@ -89,7 +89,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   const ci = program.command("ci");
   ci
     .command("plan")
-    .description("Plan full or provenance-verified metadata CI")
+    .description("Plan full or provenance-verified metadata CI and report a read-only task execution classification")
     .option("--task <id>", "task id")
     .option("--branch <name>", "branchName used to discover the task")
     .option("--base <ref>", "base reference")

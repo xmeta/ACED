@@ -1,0 +1,55 @@
+id: SCWBS-DRAFT-MRPHOQ03
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRPHOQ03
+branchName: task/SCWBS-DRAFT-MRPHOQ03-issue-215-read-only-task-execution-classificatio
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRPHOQ03.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRPHOQ03.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRPHOQ03.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRPHOQ03.yaml
+allowedPaths:
+  - src/commands/ci-plan.ts
+  - src/core/task-authority.ts
+  - src/cli.ts
+  - tests/integration/ci-plan.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - docs/scwbs/schemas/task-classification.schema.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - checks/artifacts削減またはprofile downgradeが必要
+  - classificationによりHuman Approval境界を変更する必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - project profileを安全性の下限として保持したversioned classification reportをread-onlyで返す
+  - routine、standard、high-riskと判定理由をdeterministicに返し、checksまたはartifactの要求を変更しない
+  - own Task Contractはcontract-only trust-root、初出blobとのauthority一致、lock検証済みの場合だけbootstrap authorityとして除外する
+  - shallow history、merge-base不明、初出commit不明、authority field変更、未分類implementation pathはhigh-riskへfail-closedする
+  - docs-only routine、source/test standard、authority driftとprovenance不足high-riskの回帰を追加する
+  - '#202 receipt、#203 metadata CI fast path、Human Approval境界を変更しない'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-18T07:49:10.136Z"
