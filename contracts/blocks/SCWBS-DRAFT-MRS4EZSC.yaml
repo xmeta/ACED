@@ -2,11 +2,11 @@ id: BLK-SCWBS-DRAFT-MRS4EZSC
 type: block
 taskId: SCWBS-DRAFT-MRS4EZSC
 status: resolved
-category: human-gate
+category: unknown
 level: 1
-requiredHumanDecision: Complete the required human gate decision before implementation continues.
-reason: Human Gate required for package metadata and CI workflow changes; approval request APR-SCWBS-DRAFT-MRS4EZSC is pending.
-createdAt: "2026-07-19T18:20:50.320Z"
+requiredHumanDecision: Clarify the blocking decision before implementation continues.
+reason: "Direct Vitest diagnosis reproduces the integration hang even with --maxWorkers=1: it forks many workers and stalls. Repair requires runner or Vitest configuration paths outside this Task Contract."
+createdAt: "2026-07-19T18:53:37.410Z"
 history:
   - status: blocked
     at: "2026-07-19T18:20:50.320Z"
@@ -16,6 +16,22 @@ history:
     at: "2026-07-19T18:24:23.878Z"
     reason: "Human Gate approved; resume Issue #244 implementation"
     by: human
-resolvedAt: "2026-07-19T18:24:23.878Z"
+  - status: blocked
+    at: "2026-07-19T18:44:29.889Z"
+    reason: test:integration hangs under both 4 and 2 workers without a report; required integration receipt cannot be collected. Diagnose the runner separately before retrying finish.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T18:52:03.516Z"
+    reason: Authorize investigation or resolution of the required integration-test runner failure
+    by: human
+  - status: blocked
+    at: "2026-07-19T18:53:37.410Z"
+    reason: "Direct Vitest diagnosis reproduces the integration hang even with --maxWorkers=1: it forks many workers and stalls. Repair requires runner or Vitest configuration paths outside this Task Contract."
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T18:57:37.710Z"
+    reason: Authorize a separate Task Contract for the Vitest integration-runner repair
+    by: human
+resolvedAt: "2026-07-19T18:57:37.710Z"
 resolvedBy: human
-resolution: "Human Gate approved; resume Issue #244 implementation"
+resolution: Authorize a separate Task Contract for the Vitest integration-runner repair
