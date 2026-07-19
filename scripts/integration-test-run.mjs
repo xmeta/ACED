@@ -12,9 +12,9 @@ export const MAX_PARALLEL_WORKERS = 4;
 export const OUTPUT_CAPTURE_BYTES = 8_000;
 export const OUTPUT_EDGE_BYTES = OUTPUT_CAPTURE_BYTES / 2;
 
-// These files contain tests that must remain serial within their worker because
-// they mutate process-global state. Vitest's fork-per-file isolation makes the
-// files themselves safe to schedule in parallel.
+// These files mutate process-global state. Keep this inventory explicit even
+// though the canonical runner schedules files serially; it records why a
+// future parallelization change requires a focused isolation audit.
 export const SERIAL_WITHIN_FILE = Object.freeze({
   "tests/integration/tasks.test.ts": "process.chdir",
   "tests/integration/approval.test.ts": "process.env",
@@ -65,7 +65,7 @@ export function buildVitestArgs({ workers, outputFile }) {
     "tests/integration",
     `--maxWorkers=${workers}`,
     "--pool=forks",
-    "--fileParallelism",
+    "--no-file-parallelism",
     "--testTimeout=10000",
     "--reporter=json",
     `--outputFile=${outputFile}`

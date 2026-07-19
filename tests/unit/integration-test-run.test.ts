@@ -10,13 +10,13 @@ import {
 } from "../../scripts/integration-test-run.mjs";
 
 describe("integration test runner", () => {
-  it("uses fork-isolated file parallelism with at least two workers and no retry", () => {
+  it("uses fork isolation with serial file scheduling, at least two workers, and no retry", () => {
     const workers = defaultWorkerCount();
     const args = buildVitestArgs({ workers, outputFile: "/tmp/results.json" });
     expect(workers).toBeGreaterThanOrEqual(2);
     expect(args).toContain(`--maxWorkers=${workers}`);
     expect(args).toContain("--pool=forks");
-    expect(args).toContain("--fileParallelism");
+    expect(args).toContain("--no-file-parallelism");
     expect(args.join(" ")).not.toMatch(/retry/i);
   });
 
