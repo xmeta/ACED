@@ -1,0 +1,35 @@
+id: SCWBS-DRAFT-MRS4EZSC
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRS4EZSC
+branchName: task/SCWBS-DRAFT-MRS4EZSC-issue-244-align-node-and-npm-support-policy
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - src/commands/doctor.ts
+  - tests/integration/misc.test.ts
+  - README.md
+  - docs/scwbs/getting-started.md
+  - .github/workflows/scwbs.yml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/scwbs.yml
+stopIf:
+  - Human approval required before changing package metadata or CI workflow
+  - dependency or breaking API change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #244: align Node and npm support policy'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
