@@ -2,10 +2,19 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildDoctorReport, runDoctor } from "../../src/commands/doctor.js";
+import { buildDoctorReport, isVersionAtLeast, runDoctor } from "../../src/commands/doctor.js";
 import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
 
 describe("doctor", () => {
+  test("doctor uses the declared Node and npm version floors", () => {
+    expect(isVersionAtLeast("22.11.9", "22.12.0")).toBe(false);
+    expect(isVersionAtLeast("22.12.0", "22.12.0")).toBe(true);
+    expect(isVersionAtLeast("24.0.0", "22.12.0")).toBe(true);
+    expect(isVersionAtLeast("9.9.9", "10.0.0")).toBe(false);
+    expect(isVersionAtLeast("10.0.0", "10.0.0")).toBe(true);
+    expect(isVersionAtLeast("invalid", "10.0.0")).toBe(false);
+  });
+
   test("doctor shows the issue-specific CRLF repair command", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

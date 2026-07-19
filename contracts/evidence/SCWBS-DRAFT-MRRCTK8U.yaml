@@ -1,0 +1,50 @@
+id: EVD-SCWBS-DRAFT-MRRCTK8U
+type: evidence
+taskId: SCWBS-DRAFT-MRRCTK8U
+commit: 5261309ba0af156876dced9417bcde939f9b5ebc
+subjectHeadCommit: 5261309ba0af156876dced9417bcde939f9b5ebc
+diffHash: sha256:9f27a2860d27dc357a579e81ae9233e34842c53d0752cbf846af1d505707f261
+git:
+  branch: task/SCWBS-DRAFT-MRRCTK8U-repair-inherited-governance-metadata-scope
+  base: origin/task/SCWBS-DRAFT-MRR33BUN-align-supported-node-and-npm-requirements-with-d
+  baseCommit: ef2d1f270a9fb29f969704501db2cd00fbd26d1c
+  changedFilesBasis: branch-diff
+  pullRequest: "260"
+  subjectHeadCommit: 5261309ba0af156876dced9417bcde939f9b5ebc
+  diffHash: sha256:9f27a2860d27dc357a579e81ae9233e34842c53d0752cbf846af1d505707f261
+  headCommit: 5261309ba0af156876dced9417bcde939f9b5ebc
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRR33BUN.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/tasks/index.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:d3235d97edaca600484ef1c1184e452cfd2ec2150c9b2e85c43267c270d6d1e2
+    durationMilliseconds: 18462
+    executedAt: "2026-07-19T05:32:04.401Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4df1582b5b510a788dbce0189f0f061f41cf11424fa98d1ac604b5d731ed109d
+    durationMilliseconds: 5933
+    executedAt: "2026-07-19T05:32:10.349Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:c6da5d620656c91bf05035bc8e4a5cdeb9a53cc5f8f8ffc955ba5733ac114985
+    durationMilliseconds: 7446
+    executedAt: "2026-07-19T05:32:17.800Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Task Contract scope recovery only; existing canonical unit, type, and build checks were rerun.

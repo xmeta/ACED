@@ -6,7 +6,25 @@ import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import type { Issue } from "../core/types.js";
 
-const MIN_NODE_MAJOR = 18;
+const MIN_NODE_VERSION = "22.12.0";
+const MIN_NPM_VERSION = "10.0.0";
+
+function parseVersion(version: string): number[] | undefined {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+  if (!match) return undefined;
+  return match.slice(1).map(Number);
+}
+
+export function isVersionAtLeast(version: string, minimum: string): boolean {
+  const actualParts = parseVersion(version);
+  const minimumParts = parseVersion(minimum);
+  if (!actualParts || !minimumParts) return false;
+  for (let index = 0; index < minimumParts.length; index += 1) {
+    if (actualParts[index] > minimumParts[index]) return true;
+    if (actualParts[index] < minimumParts[index]) return false;
+  }
+  return true;
+}
 
 export type DoctorDiagnostic = {
   id: string;
@@ -54,22 +72,21 @@ export function collectEnvironmentDiagnostics(root: string): DoctorDiagnostic[] 
   const diagnostics: DoctorDiagnostic[] = [];
 
   const nodeVersion = process.versions.node ?? "";
-  const nodeMajor = Number(nodeVersion.split(".")[0]);
   diagnostics.push({
     id: "node",
-    label: `Node.js >= ${MIN_NODE_MAJOR}`,
-    status: Number.isFinite(nodeMajor) && nodeMajor >= MIN_NODE_MAJOR ? "pass" : "fail",
+    label: `Node.js >= ${MIN_NODE_VERSION}`,
+    status: isVersionAtLeast(nodeVersion, MIN_NODE_VERSION) ? "pass" : "fail",
     message: nodeVersion ? `Node.js ${nodeVersion}` : "Node.js version unknown",
-    fix: `Install Node.js >= ${MIN_NODE_MAJOR} from https://nodejs.org/`
+    fix: `Install Node.js >= ${MIN_NODE_VERSION} from https://nodejs.org/`
   });
 
   const npmVersion = runShellVersion("npm", ["--version"]);
   diagnostics.push({
     id: "npm",
-    label: "npm available",
-    status: npmVersion ? "pass" : "fail",
+    label: `npm >= ${MIN_NPM_VERSION}`,
+    status: isVersionAtLeast(npmVersion, MIN_NPM_VERSION) ? "pass" : "fail",
     message: npmVersion ? `npm ${npmVersion}` : "npm not found in PATH",
-    fix: "Install Node.js (bundles npm) from https://nodejs.org/"
+    fix: `Install npm >= ${MIN_NPM_VERSION} with Node.js from https://nodejs.org/`
   });
 
   const gitVersion = runShellVersion("git", ["--version"]);

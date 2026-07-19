@@ -1,0 +1,45 @@
+id: BLK-SCWBS-DRAFT-MRR33BUN
+type: block
+taskId: SCWBS-DRAFT-MRR33BUN
+status: resolved
+category: unknown
+level: 1
+requiredHumanDecision: Clarify the blocking decision before implementation continues.
+reason: Worker 1 local integration diagnosis is unsupported (--workers accepts only 2-4); 2 and 4 workers stall locally while GitHub CI integration passes at head 5586ceb. Decide whether CI-only integration evidence is acceptable or require a local runner fix.
+createdAt: "2026-07-19T10:27:09.417Z"
+history:
+  - status: blocked
+    at: "2026-07-19T00:57:00.668Z"
+    reason: Human Gate required before modifying package.json, package-lock.json, or .github/workflows/scwbs.yml
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T04:33:52.013Z"
+    reason: Human Gate approval recorded; proceed with the approved Node/npm support policy
+    by: human
+  - status: blocked
+    at: "2026-07-19T04:52:48.105Z"
+    reason: "Authority repair required: requiredChecks omitted test:integration at trust root; final Evidence scope also requires current human approval"
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T09:53:14.665Z"
+    reason: "PR #259 と #260 の governance repair を確認。requiredChecks と継承 metadata scope は修復済みのため、最終 Evidence 収集と Human Approval へ進む。"
+    by: human
+  - status: blocked
+    at: "2026-07-19T10:10:30.261Z"
+    reason: Canonical local test:integration remains stalled after 4-worker and 2-worker attempts; GitHub CI integration passed for head cbdb200. Need a human decision on accepting CI-only receipt or diagnosing the local runner before final Evidence.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T10:26:30.958Z"
+    reason: ローカル integration runner を worker 1 で再診断する。CI-only receipt の採用可否は結果を確認して判断する。
+    by: human
+  - status: blocked
+    at: "2026-07-19T10:27:09.417Z"
+    reason: Worker 1 local integration diagnosis is unsupported (--workers accepts only 2-4); 2 and 4 workers stall locally while GitHub CI integration passes at head 5586ceb. Decide whether CI-only integration evidence is acceptable or require a local runner fix.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T10:32:36.248Z"
+    reason: GitHub CI の成功を integration 証跡として採用する運用を承認する。現行 CLI の local-only receipt 制約を解消するため、別 Task で CI-based receipt を実装・検証する。
+    by: human
+resolvedAt: "2026-07-19T10:32:36.248Z"
+resolvedBy: human
+resolution: GitHub CI の成功を integration 証跡として採用する運用を承認する。現行 CLI の local-only receipt 制約を解消するため、別 Task で CI-based receipt を実装・検証する。

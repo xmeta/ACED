@@ -30,9 +30,11 @@ Evidence, and sends risky work back to Human Gate.
 
 ## 2. Minimal Setup
 
-Install dependencies:
+Requires Node.js 22.12.0 or later and npm 10 or later. The repository pins
+npm 10.9.2 through Corepack; enable it before installing dependencies:
 
 ```bash
+corepack enable
 npm install
 ```
 

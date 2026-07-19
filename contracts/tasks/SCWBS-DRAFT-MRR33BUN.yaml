@@ -1,0 +1,55 @@
+id: SCWBS-DRAFT-MRR33BUN
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRR33BUN
+branchName: task/SCWBS-DRAFT-MRR33BUN-align-supported-node-and-npm-requirements-with-d
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - src/commands/doctor.ts
+  - tests/integration/doctor.test.ts
+  - README.md
+  - .github/workflows/scwbs.yml
+  - contracts/tasks/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRCTK8U.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/scwbs.yml
+stopIf:
+  - Human Gate approval required
+  - dependency downgrade required
+  - wjs boundary change required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Align supported Node and npm requirements with dependencies
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRR33BUN.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRR33BUN.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRR33BUN.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRR33BUN.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRR33BUN.yaml
+contractLock:
+  lockVersion: "2"
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: wbs-less
+  createdAt: "2026-07-19T00:55:24.334Z"
