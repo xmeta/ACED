@@ -1,0 +1,41 @@
+id: SCWBS-DRAFT-MRRCTK8U
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRRCTK8U
+branchName: task/SCWBS-DRAFT-MRRCTK8U-repair-inherited-governance-metadata-scope
+allowedPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRR33BUN.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - recovery must remain limited to inherited governance metadata paths;Human Approval records must not be created by AI;wjs boundary change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Repair inherited governance metadata scope
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRCTK8U.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRCTK8U.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-19T05:27:45.259Z"
