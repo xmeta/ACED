@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRRPSFLC
+type: evidence
+taskId: SCWBS-DRAFT-MRRPSFLC
+commit: 055d1d0ca03354f2ff668eefca352dfbaca108a2
+subjectHeadCommit: 055d1d0ca03354f2ff668eefca352dfbaca108a2
+diffHash: sha256:cb839659026bdc9301d38872608d41a1d60ccd36e5dd0467f6fc8661999e096a
+git:
+  branch: task/SCWBS-DRAFT-MRRPSFLC-issue-226-governance-coverage-and-integration-re
+  base: origin/main
+  baseCommit: 0b00bc2b9239cd0529091eec0176462879074315
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 055d1d0ca03354f2ff668eefca352dfbaca108a2
+  diffHash: sha256:cb839659026bdc9301d38872608d41a1d60ccd36e5dd0467f6fc8661999e096a
+  headCommit: 055d1d0ca03354f2ff668eefca352dfbaca108a2
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRRPSFLC.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
+  - scripts/integration-test-run.mjs
+  - tests/unit/integration-test-run.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:1b44115b21a596278794695aec42f994b3310be0f00f439f4fdddf3c9501153d
+    durationMilliseconds: 20036
+    executedAt: "2026-07-19T11:38:16.708Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b9734583d9129f8f2f5fc349de34ed2404484f993abf95193ff13a202db0d4e2
+    durationMilliseconds: 917303
+    executedAt: "2026-07-19T11:53:34.017Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:90e9968992ca67332be09d5011ad86af69ab9130176e7a1036aa4335c5c874a0
+    durationMilliseconds: 3577
+    executedAt: "2026-07-19T11:53:37.599Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:fb126042f607ff04a31c0fa8c471bcd13582950cc2437b135a7423c5d994d606
+    durationMilliseconds: 4039
+    executedAt: "2026-07-19T11:53:41.643Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Serial integration scheduling and delegation command coverage
