@@ -2,11 +2,11 @@ id: BLK-SCWBS-DRAFT-MRS4EZSC
 type: block
 taskId: SCWBS-DRAFT-MRS4EZSC
 status: resolved
-category: auth
-level: 2
-requiredHumanDecision: Decide authentication or permission design before implementation continues.
-reason: test:integration leaves the Vitest parent process alive after its worker exits and never writes a JSON report. Required integration receipt remains unavailable; decide whether to authorize a scoped coverage waiver or a dedicated runner lifecycle repair.
-createdAt: "2026-07-19T19:25:18.449Z"
+category: human-gate
+level: 1
+requiredHumanDecision: Complete the required human gate decision before implementation continues.
+reason: "Human Approval required for the Issue #244 scoped local test:integration waiver; requested approval is tied to Evidence commit 97af3df3918aba0e03cac2b256e6475b86d149dc."
+createdAt: "2026-07-19T19:50:29.544Z"
 history:
   - status: blocked
     at: "2026-07-19T18:20:50.320Z"
@@ -40,6 +40,14 @@ history:
     at: "2026-07-19T19:31:01.567Z"
     reason: "Authorize a dedicated runner lifecycle repair and retain test:integration as required for Issue #244"
     by: human
-resolvedAt: "2026-07-19T19:31:01.567Z"
+  - status: blocked
+    at: "2026-07-19T19:50:29.544Z"
+    reason: "Human Approval required for the Issue #244 scoped local test:integration waiver; requested approval is tied to Evidence commit 97af3df3918aba0e03cac2b256e6475b86d149dc."
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T19:52:01.800Z"
+    reason: "Approve the scoped local test:integration waiver and continue Issue #244 finish, PR, CI, and merge workflow"
+    by: human
+resolvedAt: "2026-07-19T19:52:01.800Z"
 resolvedBy: human
-resolution: "Authorize a dedicated runner lifecycle repair and retain test:integration as required for Issue #244"
+resolution: "Approve the scoped local test:integration waiver and continue Issue #244 finish, PR, CI, and merge workflow"

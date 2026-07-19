@@ -1,0 +1,53 @@
+id: EVD-SCWBS-DRAFT-MRS4EZSC
+type: evidence
+taskId: SCWBS-DRAFT-MRS4EZSC
+commit: 97af3df3918aba0e03cac2b256e6475b86d149dc
+subjectHeadCommit: 97af3df3918aba0e03cac2b256e6475b86d149dc
+diffHash: sha256:08060f40257af1d3cda28a109c7668092ce6b8e333a558abb1a90952665ff5a2
+git:
+  branch: task/SCWBS-DRAFT-MRS4EZSC-issue-244-align-node-and-npm-support-policy
+  base: origin/main
+  baseCommit: 1e6c71948f9f283a849f8fd603fe6f66ded97116
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 97af3df3918aba0e03cac2b256e6475b86d149dc
+  diffHash: sha256:08060f40257af1d3cda28a109c7668092ce6b8e333a558abb1a90952665ff5a2
+  headCommit: 97af3df3918aba0e03cac2b256e6475b86d149dc
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - README.md
+  - contracts/approvals/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/getting-started.md
+  - package-lock.json
+  - package.json
+  - src/commands/doctor.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:eb0a871e810dedd43fa81160f2be92555fd509a3304f6da27ebd76d9c27a41cf
+    durationMilliseconds: 15997
+    executedAt: "2026-07-19T19:49:29.131Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5276e9d9cc8420fcd33ba6a7bb1a89fbb8e97f73eb274868100687ac68a5d3fd
+    durationMilliseconds: 5162
+    executedAt: "2026-07-19T19:49:34.297Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:0322269d22b3b8309728ef988177f7044dd526fb9da9f89fd9d8a2024eec06a9
+    durationMilliseconds: 5316
+    executedAt: "2026-07-19T19:49:39.619Z"
+testQuality:
+  assertionsAdded: true
+  notes:
+    - Targeted doctor integration tests passed; local full integration runner receipt is waived by pending Human Approval.
