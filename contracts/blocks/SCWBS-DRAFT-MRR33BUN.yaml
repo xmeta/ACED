@@ -1,12 +1,12 @@
 id: BLK-SCWBS-DRAFT-MRR33BUN
 type: block
 taskId: SCWBS-DRAFT-MRR33BUN
-status: resolved
-category: db
-level: 2
-requiredHumanDecision: Decide database schema or migration scope before implementation continues.
-reason: Canonical local test:integration remains stalled after 4-worker and 2-worker attempts; GitHub CI integration passed for head cbdb200. Need a human decision on accepting CI-only receipt or diagnosing the local runner before final Evidence.
-createdAt: "2026-07-19T10:10:30.261Z"
+status: blocked
+category: unknown
+level: 1
+requiredHumanDecision: Clarify the blocking decision before implementation continues.
+reason: Worker 1 local integration diagnosis is unsupported (--workers accepts only 2-4); 2 and 4 workers stall locally while GitHub CI integration passes at head 5586ceb. Decide whether CI-only integration evidence is acceptable or require a local runner fix.
+createdAt: "2026-07-19T10:27:09.417Z"
 history:
   - status: blocked
     at: "2026-07-19T00:57:00.668Z"
@@ -32,6 +32,7 @@ history:
     at: "2026-07-19T10:26:30.958Z"
     reason: ローカル integration runner を worker 1 で再診断する。CI-only receipt の採用可否は結果を確認して判断する。
     by: human
-resolvedAt: "2026-07-19T10:26:30.958Z"
-resolvedBy: human
-resolution: ローカル integration runner を worker 1 で再診断する。CI-only receipt の採用可否は結果を確認して判断する。
+  - status: blocked
+    at: "2026-07-19T10:27:09.417Z"
+    reason: Worker 1 local integration diagnosis is unsupported (--workers accepts only 2-4); 2 and 4 workers stall locally while GitHub CI integration passes at head 5586ceb. Decide whether CI-only integration evidence is acceptable or require a local runner fix.
+    by: ai-agent
