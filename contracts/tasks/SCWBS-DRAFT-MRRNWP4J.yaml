@@ -1,0 +1,60 @@
+id: SCWBS-DRAFT-MRRNWP4J
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRRNWP4J
+branchName: task/SCWBS-DRAFT-MRRNWP4J-issue-226-delegated-approval-bootstrap-ux
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRRNWP4J.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRRNWP4J.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRRNWP4J.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRRNWP4J.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRNWP4J.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRNWP4J.yaml
+allowedPaths:
+  - src/cli.ts
+  - src/commands/approval-delegation.ts
+  - src/core/human-gate.ts
+  - tests/integration/approval-delegation.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - approval delegation prepareはexternal environment tokenからsecret-freeなpolicy patchとhandoff summaryを生成しtokenをstdout、stderr、YAML、Evidence、Approval、process argumentsへ出力しない
+  - prepareはuncommittedの新規Taskだけを対象にし既存TaskのapprovalPolicyを追加または拡張せず、contract-only creation commitとtask lockを明示する
+  - generated policyはdelegatedBy、delegatedTo、scopes、source、reason、UTC expiresAt、tokenSha256を既存schemaで検証しhuman-gateとpost-finishを分離する
+  - token未設定、weak token、invalid scope、expiry、schema invalid、authority driftはsecret-free bounded diagnosticでfail-closedになる
+  - handoff summaryはsecret injection、policy fingerprint再確認、human-gateとpost-finishのconsumer commandを分離し.envをCLIが自動読込しないことを明示する
+  - preparation outputのmanual inputとcommit/finish retry proxyを定義し#179/#215 governance costへの還元を測定可能にする
+  - human-only、legacy human、既存delegated approval consumer validationを変更しない
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-19T10:42:47.254Z"
