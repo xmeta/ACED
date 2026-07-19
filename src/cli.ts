@@ -6,6 +6,7 @@ import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-q
 import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
 import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+import { runApprovalDelegationPrepare } from "./commands/approval-delegation.js";
 import { runCheck } from "./commands/check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runCiPlan } from "./commands/ci-plan.js";
@@ -519,6 +520,25 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         scope: opts.scope,
         force: opts.force ?? false
       });
+    });
+
+  const approvalDelegation = approval.command("delegation");
+  approvalDelegation
+    .command("prepare")
+    .description("Prepare a secret-free delegated approval policy patch before a Task Contract creation commit")
+    .option("--task <id>", "task id")
+    .requiredOption("--scopes <scopes>", "comma-separated scopes: human-gate,post-finish")
+    .requiredOption("--expires-at <utc>", "future UTC expiry")
+    .requiredOption("--source <source>", "delegation policy source")
+    .requiredOption("--reason <reason>", "delegation reason")
+    .requiredOption("--delegated-by <principal>", "delegating principal")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runApprovalDelegationPrepare(root, opts.task, opts);
     });
 
   const completion = program.command("completion");

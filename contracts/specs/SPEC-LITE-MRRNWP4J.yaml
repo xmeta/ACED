@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRRNWP4J
+type: spec-contract
+featureId: F-MRRNWP4J
+title: "Issue #226 delegated Approval bootstrap UX"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-07-19T10:45:00.000Z"
+version: 0.1.0
+summary: "Task creation前のexternal secret tokenからdelegated Approval policy patchとsecret-free handoffを準備し、既存Taskのauthorityを変更しない。"
+acceptanceCriteria:
+  - prepareはtokenを環境変数からのみ読み、token値を出力、YAML、Evidence、Approval、CLI引数へ出さない
+  - generated policyは既存schemaを通り、token hash、UTC expiry、source、reason、delegatedBy、delegatedTo、scopeを含む
+  - prepareはTask Contractのcreation commit前だけで許可し、既存またはauthority driftのTaskを拒否する
+  - handoffはsecret-freeでhuman-gateとpost-finishの実行を区別し、CLIが.envを自動読込しないことを説明する
+  - token欠落、weak token、invalid expiry、scope、policy fields、authority driftを回帰テストでfail-closedにする

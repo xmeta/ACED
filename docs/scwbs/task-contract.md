@@ -129,6 +129,8 @@ approvalPolicy:
 
 delegated Approvalは `approvalMode: delegated` とし、`delegationSource`、`delegatedBy`、`executedBy`、`delegationScope`、token由来の `delegationProof` をHuman Approvalと区別して記録する。Human Gateとcompletionはpolicy、scope、Evidence、HMAC proofを再検証し、単純な手書きYAMLを拒否する。これは契約に宣言されたprovenanceを監査可能にするが、`delegatedBy` の実在本人性、tokenを注入した主体、codeとsecretの双方を書き換えられるprocessまでを暗号学的に排除するものではない。より強い本人性が必要なTaskでは `mode: human-only` を維持し、#144の外部provenanceを利用する。
 
+初期設定では `approval delegation prepare` がexternal environment tokenのhash、schema-valid policy patch、secret-free handoffを生成する。これは便利な入力補助でありauthorityを付与しない。policy patchはTask Contractのcreation commit前に利用者が適用し、lockしたcontract-only commitでtrust rootに固定する必要がある。prepareはcommit済みTask、既存delegated policy、token欠落・weak token・無効scope・過去expiryを拒否する。出力のcost proxyはCLIが生成したfield数、必要な手入力数、追加finish retry数を明示し、#179/#215で比較可能なbounded setup指標とする。
+
 submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
 
 ## Required check coverage

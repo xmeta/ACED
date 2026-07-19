@@ -153,6 +153,22 @@ notes:
 
 `--actor delegated-ai` は、Task Contractの `approvalPolicy.mode: delegated` で明示的に委譲されたTaskだけに使える。`--scope human-gate|post-finish` は必須で、policyの `scopes`、UTC `expiresAt`、`tokenSha256` と32 bytes以上の環境変数 `SCWBS_APPROVAL_DELEGATION_TOKEN` を検証する。policy未指定、`human-only`、token欠落・不一致、弱いtoken、期限切れ、scope不一致はすべてfail-closedになる。tokenは出力・永続化せず、成功時は `approvalMode: delegated`、`delegationSource`、`delegatedBy`、`executedBy: ai-agent`、`delegationScope`、`delegationProof` を記録してHuman Approvalと区別する。consumerもHMAC proofを再検証し、Human Gateでは`human-gate`、completionでは`post-finish`だけを受理する。
 
+### `approval delegation prepare`
+
+新規Taskのcontract-only creation commitより前に、外部secret transportに設定済みのtokenからsecret-freeなpolicy patchとhandoffを生成する。tokenはCLI引数に渡さない。
+
+```bash
+SCWBS_APPROVAL_DELEGATION_TOKEN="<external-secret>" npm run scwbs -- approval delegation prepare \
+  --task SCWBS-001 \
+  --scopes human-gate,post-finish \
+  --expires-at 2026-12-31T00:00:00.000Z \
+  --source https://example.invalid/policy/42 \
+  --reason "Unattended evidence workflow" \
+  --delegated-by release-owner
+```
+
+出力の `policyPatch` は未commitのTask Contractへ人間が適用し、`task lock` 後にcontract-only creation commitへ固定する。既存・commit済みTaskのpolicy追加やscope拡張には使えない。handoffはhuman-gateとpost-finishのconsumer commandを別々に示し、token値は含まない。shell、CI secret store、任意の`.env` loaderはtransportの選択肢だが、SC-WBS CLIは`.env`を自動読込しない。
+
 CLIは `.env` を自動読込しない。必要ならshell側で `.env` を読み込むかCI secretから環境変数を注入するが、`.env` はauthority sourceではなくsecret transportにすぎない。Task Contractの委譲policyはcreation commitでauthority baselineへ固定され、後からの追加・拡張・hash変更は拒否される。記録されるdelegator/sourceはdeclared provenanceであり、実在本人性やtoken注入者を独立に検証するものではない。
 
 When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
