@@ -1,0 +1,60 @@
+id: SCWBS-DRAFT-MRRPSFLC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRRPSFLC
+branchName: task/SCWBS-DRAFT-MRRPSFLC-issue-226-governance-coverage-and-integration-re
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRRPSFLC.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRRPSFLC.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRRPSFLC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRPSFLC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRPSFLC.yaml
+allowedPaths:
+  - contracts/check-coverage.yaml
+  - scripts/integration-test-output.mjs
+  - scripts/integration-test-run.mjs
+  - scripts/integration-single-flight.mjs
+  - tests/unit/integration-test-output.test.ts
+  - tests/unit/integration-test-run.test.ts
+  - tests/unit/integration-single-flight.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - src/commands/approval-delegation.tsをintegration-test必須としてcontracts/check-coverage.yamlに分類する
+  - canonical integration runnerはsingle-flight lockを解放し、完了reportまたはbounded failure diagnosticを返す
+  - 4 workerの不安定性を再現する場合も2 worker fallbackを明示的に実行し、success receiptまたは原因とtargeted rerunを返す
+  - '#226の本体Taskやdelegated Approvalのconsumer安全境界を変更しない'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:85eece6ec3cc89496e03947c1b7541e44b8f5b76409947b6d8bca6bbcfd74c9f
+  createdAt: "2026-07-19T11:32:42.540Z"
