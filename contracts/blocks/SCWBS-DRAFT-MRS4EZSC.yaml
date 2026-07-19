@@ -2,11 +2,11 @@ id: BLK-SCWBS-DRAFT-MRS4EZSC
 type: block
 taskId: SCWBS-DRAFT-MRS4EZSC
 status: resolved
-category: unknown
-level: 1
-requiredHumanDecision: Clarify the blocking decision before implementation continues.
-reason: "Direct Vitest diagnosis reproduces the integration hang even with --maxWorkers=1: it forks many workers and stalls. Repair requires runner or Vitest configuration paths outside this Task Contract."
-createdAt: "2026-07-19T18:53:37.410Z"
+category: auth
+level: 2
+requiredHumanDecision: Decide authentication or permission design before implementation continues.
+reason: test:integration leaves the Vitest parent process alive after its worker exits and never writes a JSON report. Required integration receipt remains unavailable; decide whether to authorize a scoped coverage waiver or a dedicated runner lifecycle repair.
+createdAt: "2026-07-19T19:25:18.449Z"
 history:
   - status: blocked
     at: "2026-07-19T18:20:50.320Z"
@@ -32,6 +32,14 @@ history:
     at: "2026-07-19T18:57:37.710Z"
     reason: Authorize a separate Task Contract for the Vitest integration-runner repair
     by: human
-resolvedAt: "2026-07-19T18:57:37.710Z"
+  - status: blocked
+    at: "2026-07-19T19:25:18.449Z"
+    reason: test:integration leaves the Vitest parent process alive after its worker exits and never writes a JSON report. Required integration receipt remains unavailable; decide whether to authorize a scoped coverage waiver or a dedicated runner lifecycle repair.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T19:31:01.567Z"
+    reason: "Authorize a dedicated runner lifecycle repair and retain test:integration as required for Issue #244"
+    by: human
+resolvedAt: "2026-07-19T19:31:01.567Z"
 resolvedBy: human
-resolution: Authorize a separate Task Contract for the Vitest integration-runner repair
+resolution: "Authorize a dedicated runner lifecycle repair and retain test:integration as required for Issue #244"
