@@ -1,0 +1,41 @@
+id: SCWBS-DRAFT-MRRCFPH8
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRRCFPH8
+branchName: task/SCWBS-DRAFT-MRRCFPH8-repair-node-runtime-task-required-check-authorit
+allowedPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRR33BUN.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - target Task Contract authority must remain limited to requiredChecks;Human Approval records must not be created by AI;wjs boundary change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - Complete Repair Node runtime Task required check authority
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRRCFPH8.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRRCFPH8.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-07-19T05:17:01.288Z"
