@@ -30,10 +30,15 @@ Evidence, and sends risky work back to Human Gate.
 
 ## 2. Minimal Setup
 
+This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
+`10.9.0` through `packageManager`; enable Corepack before installing so the
+lockfile is produced by the supported npm release.
+
 Install dependencies:
 
 ```bash
-npm install
+corepack enable
+corepack npm install
 ```
 
 Check the local installation:
@@ -54,7 +59,8 @@ npm run scwbs -- check
 npm run scwbs -- registry rebuild --check
 ```
 
-`doctor` reports PASS / FAIL for Node.js, npm, the root `node_modules`,
+`doctor` reads the Node.js requirement from `package.json` and reports PASS /
+FAIL for that range, npm, the root `node_modules`,
 `wjs/node_modules`, `git`, `contracts/registry.yaml`,
 `contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
 plus any check / health issues. Each FAIL prints a suggested fix command.

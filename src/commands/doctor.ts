@@ -1,12 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import type { Issue } from "../core/types.js";
 
-const MIN_NODE_MAJOR = 18;
+type EnvironmentRuntime = {
+  nodeVersion?: string;
+  npmVersion?: string;
+};
 
 export type DoctorDiagnostic = {
   id: string;
@@ -50,20 +53,76 @@ function runShellVersion(command: string, args: string[]): string {
   }
 }
 
-export function collectEnvironmentDiagnostics(root: string): DoctorDiagnostic[] {
+function parseNodeVersion(version: string): [number, number, number] | undefined {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+  if (!match) return undefined;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function meetsMinimumVersion(actual: [number, number, number], minimum: [number, number, number]): boolean {
+  for (let index = 0; index < actual.length; index += 1) {
+    if (actual[index]! > minimum[index]!) return true;
+    if (actual[index]! < minimum[index]!) return false;
+  }
+  return true;
+}
+
+function readNodeEngine(root: string): string | undefined {
+  try {
+    const packageJson = JSON.parse(readFileSync(resolveFrom(root, "package.json"), "utf8")) as {
+      engines?: { node?: unknown };
+    };
+    return typeof packageJson.engines?.node === "string" ? packageJson.engines.node : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnostic {
+  const range = readNodeEngine(root);
+  const minimum = range ? parseNodeVersion(range.replace(/^>=\s*/, "")) : undefined;
+  const actual = parseNodeVersion(nodeVersion);
+  const label = range ? `Node.js ${range} (package.json engines.node)` : "Node.js requirement declared in package.json";
+
+  if (!range) {
+    return {
+      id: "node",
+      label,
+      status: "fail",
+      message: "package.json engines.node is missing",
+      fix: "Declare engines.node in package.json using a >= semver range"
+    };
+  }
+  if (!minimum) {
+    return {
+      id: "node",
+      label,
+      status: "fail",
+      message: `Unsupported engines.node range: ${range}`,
+      fix: "Use a >= semver range in package.json engines.node"
+    };
+  }
+  const supported = actual !== undefined && meetsMinimumVersion(actual, minimum);
+  return {
+    id: "node",
+    label,
+    status: supported ? "pass" : "fail",
+    message: nodeVersion
+      ? supported
+        ? `Node.js ${nodeVersion} satisfies package.json engines.node ${range}`
+        : `Node.js ${nodeVersion} does not satisfy package.json engines.node ${range}`
+      : "Node.js version unknown",
+    fix: `Install Node.js ${range} from https://nodejs.org/`
+  };
+}
+
+export function collectEnvironmentDiagnostics(root: string, runtime: EnvironmentRuntime = {}): DoctorDiagnostic[] {
   const diagnostics: DoctorDiagnostic[] = [];
 
-  const nodeVersion = process.versions.node ?? "";
-  const nodeMajor = Number(nodeVersion.split(".")[0]);
-  diagnostics.push({
-    id: "node",
-    label: `Node.js >= ${MIN_NODE_MAJOR}`,
-    status: Number.isFinite(nodeMajor) && nodeMajor >= MIN_NODE_MAJOR ? "pass" : "fail",
-    message: nodeVersion ? `Node.js ${nodeVersion}` : "Node.js version unknown",
-    fix: `Install Node.js >= ${MIN_NODE_MAJOR} from https://nodejs.org/`
-  });
+  const nodeVersion = runtime.nodeVersion ?? process.versions.node ?? "";
+  diagnostics.push(nodeEngineDiagnostic(root, nodeVersion));
 
-  const npmVersion = runShellVersion("npm", ["--version"]);
+  const npmVersion = runtime.npmVersion ?? runShellVersion("npm", ["--version"]);
   diagnostics.push({
     id: "npm",
     label: "npm available",

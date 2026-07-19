@@ -6,7 +6,7 @@ import { describe, expect, test } from "vitest";
 import { runInit } from "../../src/commands/init.js";
 import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
 import { buildStartArtifacts } from "../../src/commands/start.js";
-import { buildDoctorReport } from "../../src/commands/doctor.js";
+import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
 import { readProfile, runProfileSet } from "../../src/commands/profile.js";
 import { buildStatus } from "../../src/commands/status.js";
 import { runFinish } from "../../src/commands/finish.js";
@@ -408,6 +408,7 @@ describe("misc", () => {
     mkdirSync(path.join(root, "wjs/node_modules/@esbuild"), { recursive: true });
     writeText(root, "wjs/node_modules/@esbuild/.keep", "");
     writeText(root, "wjs/schema/wbs-json.schema.json", "{}");
+    writeJson(root, "package.json", { engines: { node: ">=22.12.0" } });
     const report = buildDoctorReport(root);
     expect(report).toContain("Environment diagnostics:");
     expect(report).toContain("Node.js");
@@ -422,6 +423,21 @@ describe("misc", () => {
     expect(report).toContain("[PASS] contracts/registry.yaml exists");
     expect(report).toContain("[PASS] contracts/wbs/project.wbs.json exists");
     expect(report).toContain("[PASS] wjs/schema/wbs-json.schema.json exists");
+  });
+
+  test("doctor reads the Node.js lower bound from package.json engines.node", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", { engines: { node: ">=22.12.0" } });
+
+    const supported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.12.0", npmVersion: "10.9.0" })
+      .find((diagnostic) => diagnostic.id === "node");
+    const unsupported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.11.0", npmVersion: "10.9.0" })
+      .find((diagnostic) => diagnostic.id === "node");
+
+    expect(supported).toMatchObject({ status: "pass", label: "Node.js >=22.12.0 (package.json engines.node)" });
+    expect(unsupported).toMatchObject({ status: "fail" });
+    expect(unsupported?.message).toContain("does not satisfy package.json engines.node >=22.12.0");
   });
 
   test("doctor flags missing root node_modules and prints a suggested fix", () => {
