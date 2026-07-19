@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRRNWP4J
+type: evidence
+taskId: SCWBS-DRAFT-MRRNWP4J
+commit: 78237a4b0709ab77846320bf70e917754672fd0a
+subjectHeadCommit: 78237a4b0709ab77846320bf70e917754672fd0a
+diffHash: sha256:b8ce23b69f1f58253e6d3204c62f3436db8b2327fa99588feaea4a77172ba437
+git:
+  branch: task/SCWBS-DRAFT-MRRNWP4J-issue-226-delegated-approval-bootstrap-ux
+  base: origin/main
+  baseCommit: 5a9f3fa9ddda95179909cdf3188fbc4b4a6e53e3
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 78237a4b0709ab77846320bf70e917754672fd0a
+  diffHash: sha256:b8ce23b69f1f58253e6d3204c62f3436db8b2327fa99588feaea4a77172ba437
+  headCommit: 78237a4b0709ab77846320bf70e917754672fd0a
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRRNWP4J.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRRNWP4J.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRRNWP4J.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/approval-delegation.ts
+  - src/core/human-gate.ts
+  - tests/integration/approval-delegation.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:661e7729f39ebe970d77d37f07b2316484cfa80ee9cf7fc618eb23f487d16845
+    durationMilliseconds: 16653
+    executedAt: "2026-07-19T13:11:14.964Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5fcb63f170dbf9af72bc8802dd728cc3901b4f9dc5238208dfe45c70e5f335e3
+    durationMilliseconds: 879173
+    executedAt: "2026-07-19T13:25:54.149Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:da265ae501108d11ccfba7cfec22127a34334d7593a83cc5e20de398398575b5
+    durationMilliseconds: 5109
+    executedAt: "2026-07-19T13:25:59.285Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:ce61daf7634b3d2f8bff9390010e40ea3f656d22973853251a99f256fd7da8b8
+    durationMilliseconds: 5593
+    executedAt: "2026-07-19T13:26:04.892Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Delegation prepare success and fail-closed regressions
