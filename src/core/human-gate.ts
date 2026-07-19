@@ -31,7 +31,7 @@ function hashesEqual(actual: string, expected: string): boolean {
   return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
-function policyFingerprint(task: TaskContract): string {
+export function delegationPolicyFingerprint(task: TaskContract): string {
   const policy = task.approvalPolicy;
   if (!policy || policy.mode !== "delegated") return "human-only";
   return createHash("sha256").update(JSON.stringify({
@@ -41,7 +41,7 @@ function policyFingerprint(task: TaskContract): string {
 }
 
 function proofPayload(task: TaskContract, input: DelegationProofInput): string {
-  return ["scwbs-delegated-approval-v1", task.id, input.scope, input.headCommit, input.diffHash, input.approvedAt, policyFingerprint(task)].join("\0");
+  return ["scwbs-delegated-approval-v1", task.id, input.scope, input.headCommit, input.diffHash, input.approvedAt, delegationPolicyFingerprint(task)].join("\0");
 }
 
 export function buildDelegationProof(task: TaskContract, token: string, input: DelegationProofInput): string {
