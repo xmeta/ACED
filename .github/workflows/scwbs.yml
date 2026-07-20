@@ -1,5 +1,8 @@
 name: scwbs
 
+env:
+  NODE_VERSION: 24
+
 permissions:
   contents: read
   checks: read
@@ -34,10 +37,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - name: Enable Corepack and report toolchain
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          node --version
+          corepack npm --version
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: corepack npm ci --no-audit --no-fund
       - name: Build structural CI plan
         id: candidate
         env:
@@ -139,6 +148,37 @@ jobs:
         if: steps.final.outputs.mode == 'metadata-fast-path'
         run: npm run scwbs -- registry rebuild --check
 
+  minimum-node:
+    needs: plan
+    if: always() && needs.plan.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22.12.0"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Set up minimum supported Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - name: Enable Corepack and report toolchain
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          node --version
+          corepack npm --version
+      - name: Install dependencies and run core tests
+        run: |
+          corepack npm ci --no-audit --no-fund
+          npm test
+          npm run typecheck
+          npm run build
+
   core:
     needs: plan
     if: always() && needs.plan.outputs.mode == 'full'
@@ -151,10 +191,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - name: Enable Corepack and report toolchain
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          node --version
+          corepack npm --version
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: corepack npm ci --no-audit --no-fund
       - name: Verify npm workspaces
         run: npm ls --workspaces --depth=0
       - name: Unit tests
@@ -182,10 +228,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - name: Enable Corepack and report toolchain
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          node --version
+          corepack npm --version
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: corepack npm ci --no-audit --no-fund
       - name: Integration tests
         run: npm run test:integration
 
@@ -201,10 +253,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      - name: Enable Corepack and report toolchain
+        run: |
+          npm install --global corepack@latest
+          corepack enable
+          node --version
+          corepack npm --version
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: corepack npm ci --no-audit --no-fund
       - name: WJS tests
         run: npm run test:wjs
 
@@ -215,6 +273,7 @@ jobs:
       - core
       - integration
       - wjs
+      - minimum-node
     runs-on: ubuntu-latest
     steps:
       - name: Require all validation jobs
@@ -224,15 +283,18 @@ jobs:
           CORE_RESULT: ${{ needs.core.result }}
           INTEGRATION_RESULT: ${{ needs.integration.result }}
           WJS_RESULT: ${{ needs.wjs.result }}
+          MINIMUM_NODE_RESULT: ${{ needs.minimum-node.result }}
         run: |
           test "$PLAN_RESULT" = "success"
           if test "$MODE" = "metadata-fast-path"; then
             test "$CORE_RESULT" = "skipped"
             test "$INTEGRATION_RESULT" = "skipped"
             test "$WJS_RESULT" = "skipped"
+            test "$MINIMUM_NODE_RESULT" = "skipped"
           else
             test "$MODE" = "full"
             test "$CORE_RESULT" = "success"
             test "$INTEGRATION_RESULT" = "success"
             test "$WJS_RESULT" = "success"
+            test "$MINIMUM_NODE_RESULT" = "success"
           fi

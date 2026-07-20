@@ -1,0 +1,51 @@
+id: SCWBS-DRAFT-MRS4EZSC
+type: task-contract
+wbsNodeId: wbs-less
+featureId: F-MRS4EZSC
+branchName: task/SCWBS-DRAFT-MRS4EZSC-issue-244-align-node-and-npm-support-policy
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRS4EZSC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRS4EZSC.yaml
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - src/commands/doctor.ts
+  - tests/integration/misc.test.ts
+  - README.md
+  - docs/scwbs/getting-started.md
+  - .github/workflows/scwbs.yml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/scwbs.yml
+stopIf:
+  - Human approval required before changing package metadata or CI workflow
+  - dependency or breaking API change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+checkCoverageWaivers:
+  - check: test:integration
+    reason: Local Vitest parent process hangs after its worker exits and produces no receipt; the targeted doctor integration coverage passes, and GitHub Actions continues to run the full integration suite on Node 22.
+doneCriteria:
+  - 'Complete Issue #244: align Node and npm support policy'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: wbs-less
+  createdAt: "2026-07-19T19:48:07.158Z"

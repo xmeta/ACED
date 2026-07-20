@@ -1,0 +1,53 @@
+id: BLK-SCWBS-DRAFT-MRS4EZSC
+type: block
+taskId: SCWBS-DRAFT-MRS4EZSC
+status: resolved
+category: human-gate
+level: 1
+requiredHumanDecision: Complete the required human gate decision before implementation continues.
+reason: "Human Approval required for the Issue #244 scoped local test:integration waiver; requested approval is tied to Evidence commit 97af3df3918aba0e03cac2b256e6475b86d149dc."
+createdAt: "2026-07-19T19:50:29.544Z"
+history:
+  - status: blocked
+    at: "2026-07-19T18:20:50.320Z"
+    reason: Human Gate required for package metadata and CI workflow changes; approval request APR-SCWBS-DRAFT-MRS4EZSC is pending.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T18:24:23.878Z"
+    reason: "Human Gate approved; resume Issue #244 implementation"
+    by: human
+  - status: blocked
+    at: "2026-07-19T18:44:29.889Z"
+    reason: test:integration hangs under both 4 and 2 workers without a report; required integration receipt cannot be collected. Diagnose the runner separately before retrying finish.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T18:52:03.516Z"
+    reason: Authorize investigation or resolution of the required integration-test runner failure
+    by: human
+  - status: blocked
+    at: "2026-07-19T18:53:37.410Z"
+    reason: "Direct Vitest diagnosis reproduces the integration hang even with --maxWorkers=1: it forks many workers and stalls. Repair requires runner or Vitest configuration paths outside this Task Contract."
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T18:57:37.710Z"
+    reason: Authorize a separate Task Contract for the Vitest integration-runner repair
+    by: human
+  - status: blocked
+    at: "2026-07-19T19:25:18.449Z"
+    reason: test:integration leaves the Vitest parent process alive after its worker exits and never writes a JSON report. Required integration receipt remains unavailable; decide whether to authorize a scoped coverage waiver or a dedicated runner lifecycle repair.
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T19:31:01.567Z"
+    reason: "Authorize a dedicated runner lifecycle repair and retain test:integration as required for Issue #244"
+    by: human
+  - status: blocked
+    at: "2026-07-19T19:50:29.544Z"
+    reason: "Human Approval required for the Issue #244 scoped local test:integration waiver; requested approval is tied to Evidence commit 97af3df3918aba0e03cac2b256e6475b86d149dc."
+    by: ai-agent
+  - status: resolved
+    at: "2026-07-19T19:52:01.800Z"
+    reason: "Approve the scoped local test:integration waiver and continue Issue #244 finish, PR, CI, and merge workflow"
+    by: human
+resolvedAt: "2026-07-19T19:52:01.800Z"
+resolvedBy: human
+resolution: "Approve the scoped local test:integration waiver and continue Issue #244 finish, PR, CI, and merge workflow"
