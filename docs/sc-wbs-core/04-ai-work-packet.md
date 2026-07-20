@@ -127,6 +127,19 @@ manifest v1はTask Contractと現在HEADから毎回再生成し、次をJSONで
 
 広いglobは全展開しない。dynamic import、re-export、path alias、unresolved import、cycle、budget超過、未分類pathはwidening理由として残す。manifestはナビゲーション情報であり、Task Contract、Approval、Evidence、required checksの代替ではない。
 
+versioned JSON schemaは [`docs/scwbs/schemas/code-context-manifest.schema.json`](../../docs/scwbs/schemas/code-context-manifest.schema.json) で定義する。schemaVersionは `1.0.0` で、追加・変更はchangeset経由のschema version bumpで行う。
+
+選定規則は以下の通りである。
+
+1. `mustRead` にTask Contractを常に含める。
+2. `allowedPaths` のexact path（globを含まない）で、HEADに存在し、forbiddenでもHuman Gateでもないものを `candidates` のseedとする。
+3. seedからdirect static relative importを再帰的に追跡し、解決できたものを `candidates` に加える。理由は `direct-static-import:<seed>:<line>` とする。
+4. repository内の全source fileからseedへのreverse importを追跡し、解決できたものを `candidates` に加える。理由は `reverse-importer:<seed>:<line>` とする。
+5. `candidates` の追加は `budget.maxFiles` と `budget.maxBytes` で打ち切り、打ち切られたものを `excluded` に `budget-exceeded` 理由で残す。
+6. broad glob、存在しないexact path、forbidden/Human Gate path、dynamic import、re-export、path alias、未解決import、import cycle、check coverage未分類・未対応は `widening` 診断として残す。
+7. `completeness.status` は `widening` が空なら `complete`、それ以外は `widening-required` とする。
+8. `constraints.sourceContentIncluded`、`grantsEditAuthority`、`permitsRequiredCheckOmission` は manifest v1 では常に `false` とする。
+
 ## 実装AIに渡す標準プロンプト
 
 ```text

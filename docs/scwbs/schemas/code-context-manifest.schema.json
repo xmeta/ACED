@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/code-context-manifest.schema.json",
+  "title": "SC-WBS code context manifest",
+  "description": "Read-only derived manifest for packet --context-json (schemaVersion 1.0.0).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "task",
+    "repository",
+    "mustRead",
+    "candidates",
+    "excluded",
+    "widening",
+    "coverage",
+    "budget",
+    "completeness",
+    "constraints"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "contractPath", "contractHash"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "contractPath": { "type": "string", "minLength": 1 },
+        "contractHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head"],
+      "properties": {
+        "head": { "type": "string", "minLength": 1 }
+      }
+    },
+    "mustRead": { "$ref": "#/$defs/contextEntryArray" },
+    "candidates": { "$ref": "#/$defs/contextEntryArray" },
+    "excluded": { "$ref": "#/$defs/excludedEntryArray" },
+    "widening": { "$ref": "#/$defs/wideningDiagnosticArray" },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "missing", "unclassified"],
+      "properties": {
+        "required": { "type": "array", "items": { "type": "string" } },
+        "missing": { "type": "array", "items": { "type": "string" } },
+        "unclassified": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxFiles", "maxBytes", "selectedFiles", "selectedBytes", "omitted"],
+      "properties": {
+        "maxFiles": { "type": "integer", "minimum": 1 },
+        "maxBytes": { "type": "integer", "minimum": 1 },
+        "selectedFiles": { "type": "integer", "minimum": 0 },
+        "selectedBytes": { "type": "integer", "minimum": 0 },
+        "omitted": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reasons"],
+      "properties": {
+        "status": { "enum": ["complete", "widening-required"] },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceContentIncluded", "grantsEditAuthority", "permitsRequiredCheckOmission"],
+      "properties": {
+        "sourceContentIncluded": { "type": "boolean" },
+        "grantsEditAuthority": { "type": "boolean" },
+        "permitsRequiredCheckOmission": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "contextEntryArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contextEntry" }
+    },
+    "contextEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "contentHash", "bytes", "lines", "lineRanges", "reasons", "editable"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "lines": { "type": "integer", "minimum": 0 },
+        "lineRanges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start", "end"],
+            "properties": {
+              "start": { "type": "integer", "minimum": 1 },
+              "end": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "editable": { "type": "boolean" }
+      }
+    },
+    "excludedEntryArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/excludedEntry" }
+    },
+    "excludedEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "reasons", "editable"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "editable": { "const": false }
+      }
+    },
+    "wideningDiagnosticArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/wideningDiagnostic" }
+    },
+    "wideningDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "path", "detail"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "detail": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

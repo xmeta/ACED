@@ -1,0 +1,68 @@
+id: SCWBS-DRAFT-MRTH8LI4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRTH8LI4
+branchName: task/SCWBS-DRAFT-MRTH8LI4-issue-221-code-context-manifest-versioned-json-s
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRTH8LI4.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRTH8LI4.yaml
+allowedPaths:
+  - src/core/code-context.ts
+  - src/commands/health.ts
+  - src/cli.ts
+  - tests/integration/health.test.ts
+  - tests/integration/ai.test.ts
+  - tests/unit/code-context.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/schemas/code-context-manifest.schema.json
+  - docs/scwbs/cli-reference.md
+  - docs/sc-wbs-core/04-ai-work-packet.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package・lockfile・tsconfig・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
+  - 新規dependency・persistent index・cache・検索DBが必要
+  - allowedPaths外の編集またはcheck-coverage分類をTask authorityへ含められない
+  - hard limit・fail閾値の新設・profile・risk policy・required check削減・Approval境界の変更が必要
+  - health JSONのversion/status/summary構造やpacket --tiny互換性の破壊的変更が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - docs/scwbs/schemas/code-context-manifest.schema.json が packet --context-json の versioned manifest を定義し、integration test が Ajv2020 で manifest を schema 検証して pass する
+  - health が code-context 由来の診断Issue（file lines/bytes・import fan-out・context plan bytes・widening）を WARN severity・codeContext 分類付きで公開し、manifest 生成不可（shallow clone 等）では fail せず明示的に skip する
+  - health 既定出力は bounded（代表件数制限・--verbose で全件）で、version/status/summary の既存構造と exit code の互換性を維持する
+  - 閾値は WARN 診断のみで fail 条件を新設せず、Issue
+  - packet --context-json の決定性（同一HEAD・同一Task Contractで byte-identical）と既存 packet --tiny の互換性を維持する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:16e80f48a745d98bce951c381b1d7826cc6e51162e874c25d918f414b912d446
+  createdAt: "2026-07-20T20:16:40.649Z"

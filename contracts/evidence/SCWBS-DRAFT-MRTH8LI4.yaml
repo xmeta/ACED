@@ -1,0 +1,64 @@
+id: EVD-SCWBS-DRAFT-MRTH8LI4
+type: evidence
+taskId: SCWBS-DRAFT-MRTH8LI4
+commit: f916107c4c89f7c05e6a27a0062700ac0b23898e
+subjectHeadCommit: f916107c4c89f7c05e6a27a0062700ac0b23898e
+diffHash: sha256:6a8a4dc5dc0b0a55ffbe5e81f95135d8ca3b0631fe0e176d8b262531fd23c78c
+git:
+  branch: task/SCWBS-DRAFT-MRTH8LI4-issue-221-code-context-manifest-versioned-json-s
+  base: origin/main
+  baseCommit: 10e1d7ff6fac4859ee6dd54e6c9af3719bca9423
+  changedFilesBasis: branch-diff
+  pullRequest: "265"
+  subjectHeadCommit: f916107c4c89f7c05e6a27a0062700ac0b23898e
+  diffHash: sha256:6a8a4dc5dc0b0a55ffbe5e81f95135d8ca3b0631fe0e176d8b262531fd23c78c
+  headCommit: f916107c4c89f7c05e6a27a0062700ac0b23898e
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRTH8LI4.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRTH8LI4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
+  - docs/sc-wbs-core/04-ai-work-packet.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/code-context-manifest.schema.json
+  - src/commands/health.ts
+  - src/core/code-context.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/health.test.ts
+  - tests/unit/code-context.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:396707f5ea936e234744496f5749f5a0743f0d46f83ee90df1f68530796e9284
+    durationMilliseconds: 4628
+    executedAt: "2026-07-20T20:21:07.098Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:af9577eeb03ac51076aa6693be6941440edb399c95f43a37613aa89556090fd2
+    durationMilliseconds: 169171
+    executedAt: "2026-07-20T20:23:56.277Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:65aaa0129f3e3db41742e6328597eaa60f9935cbe815770fa453d8ce9cbff3ce
+    durationMilliseconds: 5110
+    executedAt: "2026-07-20T20:24:01.393Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:26f90500f5beef0a6bb544459fe570b0bb2d7d847a9990da8b42358c91766212
+    durationMilliseconds: 5619
+    executedAt: "2026-07-20T20:24:07.016Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Added regression coverage: manifest schema conformance + Ajv2020 negative cases, planBudget omitted 19/20 boundary, verbose completeness, shallow-clone skip, importFanOut unique-importer fire/no-fire, health JSON structure compatibility'

@@ -26,6 +26,16 @@ npm run scwbs -- status
 
 `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
 
+`health` はアクティブな（completed でない）Task Contractの `packet --context-json` manifestをread-onlyで診断し、次のWARN指標を報告する。これらは診断のみでexit codeを変更しない。指標はファイル単位またはwidening reason単位で全アクティブタスクを横断集約し、タスク数の爆発を防ぐ。
+
+- `health.codeContext.fileTooLarge`：context内の単一file（mustRead/candidates）が 500 lines を超える、または 40,960 bytes を超える。一意な file path ごとに 1 issue、message に参照しているアクティブタスク数と代表例を含める。
+- `health.codeContext.importFanOut`：context内の単一fileへのreverse importer数が 8 を超える。一意な file path ごとに 1 issue、message に最大importer数と参照タスク数を含める。
+- `health.codeContext.planBudget`：context plan が `budget.omitted >= 20` の候補を省略している（budget が飽和しスコープ過大）。message に省略件数と `selectedBytes/maxBytes` を含める。
+- `health.codeContext.widening`：`completeness.status` が `widening-required` 。widening reason code ごとに 1 issue、message に該当するアクティブタスク数と代表例を含める。
+- `health.codeContext.skipped`：shallow clone等でgit blobが読めずmanifest生成できない場合、failせずskipを明示する。
+
+これらの指標は既定で既存のhealth出力と同じbounded形式（代表2件、omitted件数）で集約され、`--verbose` で全件表示する。
+
 ## Governance Cost Metrics
 
 ```bash

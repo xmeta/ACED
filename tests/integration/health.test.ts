@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { buildCodeContextManifest } from "../../src/core/code-context.js";
 import { buildHealthJsonOutput, buildHealthText, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
 import type { Issue } from "../../src/core/types.js";
 import { main } from "../../src/cli.js";
@@ -619,5 +620,270 @@ describe("health", () => {
     expect(issues.some((issue) => issue.code === "health.review.scope.diffHash")).toBe(true);
     expect(issues.some((issue) => issue.code === "health.review.scope.pullRequest")).toBe(true);
     expect(issues.find((issue) => issue.code === "health.review.scope.diffHash")?.fixCommand).toContain("review request --task WBS-001-004");
+  });
+
+  test("health reports codeContext file too large warning", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
+    writeText(root, "src/large.ts", longLines);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/large.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "large file"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.codeContext.fileTooLarge" && issue.message.includes("src/large.ts"))).toBe(true);
+    expect(runHealth(root)).toBe(0);
+  });
+
+  test("health aggregates fileTooLarge across active tasks by unique file path", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
+    writeText(root, "src/shared.ts", longLines);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      id: "WBS-001-004",
+      allowedPaths: ["src/shared.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      wbsNodeId: "node-root",
+      branchName: "task/WBS-001-005",
+      allowedPaths: ["src/shared.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeJson(root, "contracts/wbs/project.wbs.json", {
+      schemaVersion: "0.1.0",
+      id: "test-wbs",
+      name: "Test WBS",
+      rootId: "node-root",
+      nodes: [
+        { id: "node-root", parentId: null, code: "1", name: "Root", type: "deliverable", status: "planned" },
+        { id: "node-api", parentId: "node-root", code: "1.1", name: "API", type: "workPackage", status: "planned" }
+      ]
+    });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "shared large file"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root).filter((issue) => issue.code === "health.codeContext.fileTooLarge");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("src/shared.ts");
+    expect(issues[0].message).toContain("2 active task plans");
+    expect(issues[0].message).toContain("WBS-001-004");
+    expect(issues[0].message).toContain("WBS-001-005");
+  });
+
+  test("health reports codeContext widening warning", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/feature.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "widening fixture"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.codeContext.widening" && issue.message.includes("dynamic-import"))).toBe(true);
+  });
+
+  test("health reports importFanOut when a seed is referenced by 9+ distinct importers", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/seed.ts", "export const value = 1;\n");
+    for (let index = 0; index < 10; index += 1) {
+      writeText(root, `src/caller${index}.ts`, `import { value } from "./seed.js";\nvoid value;\n`);
+    }
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/seed.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "fan-out fixture"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    const fanOutIssue = issues.find((issue) => issue.code === "health.codeContext.importFanOut");
+    expect(fanOutIssue).toBeDefined();
+    expect(fanOutIssue?.message).toContain("src/seed.ts");
+    expect(fanOutIssue?.message).toContain("10 reverse importers");
+    expect(fanOutIssue?.message).toContain("WBS-001-004");
+  });
+
+  test("health does not report importFanOut for repeated imports from the same importer file", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/seed.ts", "export const a = 1;\nexport const b = 2;\n");
+    writeText(root, "src/caller.ts", "import { a } from \"./seed.js\";\nimport { b } from \"./seed.js\";\nvoid a;\nvoid b;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/seed.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "same importer repeated imports"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.codeContext.importFanOut")).toBe(false);
+  });
+
+  test("health aggregates widening by reason code across active tasks", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      id: "WBS-001-004",
+      allowedPaths: ["src/feature.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      wbsNodeId: "node-root",
+      branchName: "task/WBS-001-005",
+      allowedPaths: ["src/feature.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeJson(root, "contracts/wbs/project.wbs.json", {
+      schemaVersion: "0.1.0",
+      id: "test-wbs",
+      name: "Test WBS",
+      rootId: "node-root",
+      nodes: [
+        { id: "node-root", parentId: null, code: "1", name: "Root", type: "deliverable", status: "planned" },
+        { id: "node-api", parentId: "node-root", code: "1.1", name: "API", type: "workPackage", status: "planned" }
+      ]
+    });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "shared widening"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root).filter((issue) => issue.code === "health.codeContext.widening");
+    const dynamicIssue = issues.find((issue) => issue.message.includes("dynamic-import"));
+    expect(dynamicIssue).toBeDefined();
+    expect(dynamicIssue?.message).toContain("2 active task plans");
+    expect(dynamicIssue?.message).toContain("WBS-001-004");
+    expect(dynamicIssue?.message).toContain("WBS-001-005");
+  });
+
+  test("health reports planBudget when omitted candidates reach the threshold", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const featureCount = 60;
+    for (let index = 0; index < featureCount; index += 1) {
+      writeText(root, `src/feature${index}.ts`, `export const value${index} = ${index};\n`);
+    }
+    writeText(root, "src/seed.ts", Array.from({ length: featureCount }, (_, index) => `import { value${index} } from "./feature${index}.js";`).join("\n") + "\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/seed.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "budget fixture"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    const planBudgetIssue = issues.find((issue) => issue.code === "health.codeContext.planBudget");
+    expect(planBudgetIssue).toBeDefined();
+    expect(planBudgetIssue?.message).toMatch(/omits \d+ candidates \(budget saturated at \d+\/\d+ bytes\)/);
+    expect(planBudgetIssue?.message).toContain("WBS-001-004");
+  });
+
+  test("health planBudget boundary: omitted < 20 does not warn, omitted >= 20 does warn", () => {
+    // collectHealthIssues uses default maxFiles=40. Create enough candidates
+    // so the tight case overflows.
+    const FEATURE_COUNT_GENEROUS = 30;  // mustRead(1)+seed(1)+30 = 32 ≤ 40 → omitted=0
+    const FEATURE_COUNT_TIGHT = 80;     // mustRead(1)+seed(1)+80-fits = omitted >= 20
+
+    function setupRepo(featureCount: number): string {
+      const root = makeTempRepo();
+      writeScwbsProject(root);
+      for (let index = 0; index < featureCount; index += 1) {
+        writeText(root, `src/feature${index}.ts`, `export const value${index} = ${index};\n`);
+      }
+      writeText(root, "src/seed.ts", Array.from({ length: featureCount }, (_, index) => `import { value${index} } from "./feature${index}.js";`).join("\n") + "\n");
+      writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+        allowedPaths: ["src/seed.ts"],
+        humanGateRequiredPaths: []
+      }) as unknown as Record<string, unknown>);
+      execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+      execFileSync("git", ["commit", "-m", `budget fixture ${featureCount}`], { cwd: root, stdio: "ignore" });
+      return root;
+    }
+
+    // Case 1: few features → omitted < 20 → no planBudget warning
+    const generousRoot = setupRepo(FEATURE_COUNT_GENEROUS);
+    const generousIssues = collectHealthIssues(generousRoot);
+    expect(generousIssues.some((issue) => issue.code === "health.codeContext.planBudget")).toBe(false);
+
+    // Case 2: many features → omitted >= 20 → planBudget warning
+    const tightRoot = setupRepo(FEATURE_COUNT_TIGHT);
+    const tightIssues = collectHealthIssues(tightRoot);
+    expect(tightIssues.some((issue) => issue.code === "health.codeContext.planBudget")).toBe(true);
+  });
+
+  test("health verbose text output lists every codeContext issue individually without omission markers", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
+    writeText(root, "src/large.ts", longLines);
+    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/large.ts", "src/feature.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "verbose fixture"], { cwd: root, stdio: "ignore" });
+
+    const verboseText = buildHealthText(root, undefined, { verbose: true });
+
+    // Verbose output must not contain "more omitted" markers
+    expect(verboseText).not.toMatch(/more omitted/);
+    // Verbose must include all codeContext issue types individually
+    expect(verboseText).toContain("health.codeContext.fileTooLarge");
+    expect(verboseText).toContain("health.codeContext.widening");
+    // Verbose must include the issue messages directly (not aggregated by code)
+    expect(verboseText).toContain("src/large.ts");
+    expect(verboseText).toContain("dynamic-import");
+  });
+
+  test("health skips codeContext check in a shallow clone with an explicit note", () => {
+    const source = makeTempRepo();
+    writeScwbsProject(source);
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: source, stdio: "ignore" });
+    writeText(source, "README.md", "latest\n");
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "latest"], { cwd: source, stdio: "ignore" });
+    const clone = mkdtempSync(path.join(os.tmpdir(), "scwbs-shallow-"));
+    execFileSync("git", ["clone", "--depth", "1", `file://${source}`, clone], { stdio: "ignore" });
+
+    const issues = collectHealthIssues(clone);
+    expect(issues.some((issue) => issue.code === "health.codeContext.skipped" && issue.message.includes("shallow repository"))).toBe(true);
+  });
+
+  test("health --json keeps version/status/summary structure when codeContext issues exist", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
+    writeText(root, "src/large.ts", longLines);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["src/large.ts"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "large file"], { cwd: root, stdio: "ignore" });
+
+    const issues = collectHealthIssues(root);
+    const report = buildHealthJsonOutput(root, issues);
+    expect(report.version).toBe("scwbs.health.v1");
+    expect(report.status).toBe("warn");
+    expect(report.summary).toMatchObject({
+      total: expect.any(Number),
+      errors: 0,
+      warnings: expect.any(Number),
+      byCode: expect.arrayContaining([{ code: "health.codeContext.fileTooLarge", severity: "warn", count: 1 }])
+    });
+    expect(report.issues.some((issue) => issue.code === "health.codeContext.fileTooLarge")).toBe(true);
   });
 });

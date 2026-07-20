@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRTH8LI4
+type: spec-contract
+featureId: F-MRTH8LI4
+title: "Issue #221: code-context manifest の versioned JSON schema 化と health WARN 指標公開"
+status: approved
+version: 0.1.0
+summary: "code-context manifest の versioned JSON schema を docs/scwbs/schemas/ に作成し packet --context-json 出力を schema 検証する。あわせて file lines/bytes, import fan-out, context plan bytes, widening を health の WARN 指標として公開し、既存 health JSON 構造の互換性を維持する"
+approvedBy: user-requested-issue-221
+approvedAt: "2026-07-21T00:00:00+09:00"
+acceptanceCriteria:
+  - docs/scwbs/schemas/code-context-manifest.schema.json が packet --context-json の versioned manifest を定義し、integration test が Ajv2020 で manifest を schema 検証して pass する
+  - health が code-context 由来の診断Issue（file lines/bytes・import fan-out・context plan bytes・widening）を WARN severity・codeContext 分類付きで公開し、manifest 生成不可（shallow clone 等）では fail せず明示的に skip する
+  - health 既定出力は bounded（代表件数制限・--verbose で全件）で、version/status/summary の既存構造と exit code の互換性を維持する
+  - 閾値は WARN 診断のみで fail 条件を新設せず、Issue #221 提案の再肥大化検出に必要な指標名と選定規則を docs へ記録する
+  - packet --context-json の決定性（同一HEAD・同一Task Contractで byte-identical）と既存 packet --tiny の互換性を維持する

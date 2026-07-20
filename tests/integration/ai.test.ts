@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
 import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
@@ -576,6 +577,49 @@ describe("AI commands", () => {
     }
     expect(JSON.parse(output.join("")).schemaVersion).toBe("1.0.0");
     expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
+  });
+
+  test("packet --context-json manifest conforms to the versioned JSON schema", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const value = helper;\n");
+    writeText(root, "src/helper.ts", "export const helper = 1;\n");
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/feature.ts"] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
+
+    const manifest = buildCodeContextManifest(root, "WBS-001-004");
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/code-context-manifest.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: false });
+    expect(ajv.compile(schema)(manifest)).toBe(true);
+  });
+
+  test("schema rejects manifest with missing required fields", () => {
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/code-context-manifest.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: false });
+    const validate = ajv.compile(schema);
+
+    const base = {
+      schemaVersion: "1.0.0",
+      task: { id: "T", contractPath: "c.yaml", contractHash: `sha256:${"a".repeat(64)}` },
+      repository: { head: "h" },
+      mustRead: [],
+      candidates: [],
+      excluded: [],
+      widening: [],
+      coverage: { required: [], missing: [], unclassified: [] },
+      budget: { maxFiles: 10, maxBytes: 1000, selectedFiles: 0, selectedBytes: 0, omitted: 0 },
+      completeness: { status: "complete", reasons: [] },
+      constraints: { sourceContentIncluded: false, grantsEditAuthority: false, permitsRequiredCheckOmission: false }
+    };
+
+    expect(validate({ ...base, schemaVersion: undefined })).toBe(false);
+    expect(validate({ ...base, schemaVersion: "2.0.0" })).toBe(false);
+    expect(validate({ ...base, task: { id: "T" } })).toBe(false);
+    expect(validate({ ...base, completeness: { status: "bogus", reasons: [] } })).toBe(false);
+    expect(validate({ ...base, constraints: { sourceContentIncluded: "yes", grantsEditAuthority: false, permitsRequiredCheckOmission: false } })).toBe(false);
+    expect(validate({ ...base, extraField: "should fail" })).toBe(false);
+    expect(validate({ ...base, mustRead: [{ path: "x.ts", contentHash: "md5:abc", bytes: 1, lines: 1, lineRanges: [{ start: 1, end: 1 }], reasons: [], editable: false }] })).toBe(false);
   });
 
   test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {
