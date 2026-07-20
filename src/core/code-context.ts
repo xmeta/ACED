@@ -17,6 +17,8 @@ export type CodeContextOptions = {
   maxBytes?: number;
 };
 
+export type CodeContextManifest = ReturnType<typeof buildCodeContextManifest>;
+
 type LineRange = { start: number; end: number };
 
 type ContextEntry = {
@@ -57,8 +59,10 @@ function exactPath(value: string): boolean {
   return !GLOB_PATTERN.test(value);
 }
 
-function entryFor(root: string, relativePath: string, reasons: string[], editable: boolean): ContextEntry {
-  const content = gitObject(root, "HEAD", relativePath);
+type GitObjectReader = (root: string, ref: string, file: string) => string | undefined;
+
+function entryFor(root: string, relativePath: string, reasons: string[], editable: boolean, readGitObject: GitObjectReader = gitObject): ContextEntry {
+  const content = readGitObject(root, "HEAD", relativePath);
   if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
   const lines = lineCount(content);
   const hash = createHash("sha256").update(content, "utf8").digest("hex");
@@ -73,7 +77,9 @@ function entryFor(root: string, relativePath: string, reasons: string[], editabl
   };
 }
 
-function parseRelativeImports(relativePath: string, content: string): { imports: RelativeImport[]; widening: WideningDiagnostic[] } {
+export type ParsedImports = { imports: RelativeImport[]; widening: WideningDiagnostic[] };
+
+function parseRelativeImports(relativePath: string, content: string): ParsedImports {
   const imports: RelativeImport[] = [];
   const widening: WideningDiagnostic[] = [];
   const lines = content.split(/\r?\n/);
@@ -100,7 +106,7 @@ function parseRelativeImports(relativePath: string, content: string): { imports:
   return { imports, widening };
 }
 
-function resolveRelativeImport(root: string, importer: string, specifier: string): string | undefined {
+function resolveRelativeImport(root: string, importer: string, specifier: string, readGitObject: GitObjectReader = gitObject): string | undefined {
   const base = normalizePath(path.posix.join(path.posix.dirname(importer), specifier));
   if (base === ".." || base.startsWith("../") || path.posix.isAbsolute(base)) return undefined;
   const extension = path.posix.extname(base);
@@ -109,7 +115,7 @@ function resolveRelativeImport(root: string, importer: string, specifier: string
     : extension.length > 0
       ? [base]
       : [base, `${base}.ts`, `${base}.tsx`, `${base}.js`, `${base}/index.ts`, `${base}/index.tsx`, `${base}/index.js`];
-  return candidates.find((candidate) => gitObject(root, "HEAD", candidate) !== undefined);
+  return candidates.find((candidate) => readGitObject(root, "HEAD", candidate) !== undefined);
 }
 
 function diagnosticSort(left: WideningDiagnostic, right: WideningDiagnostic): number {
@@ -123,7 +129,29 @@ function excludedSort(left: ExcludedEntry, right: ExcludedEntry): number {
   return left.path.localeCompare(right.path) || left.reasons.join("\0").localeCompare(right.reasons.join("\0"));
 }
 
-export function buildCodeContextManifest(root: string, taskId: string, options: CodeContextOptions = {}) {
+export function reverseImporterCounts(manifest: CodeContextManifest): Map<string, number> {
+  const counts = new Map<string, number>();
+  const REVERSE_IMPORTER_PREFIX = "reverse-importer:";
+  for (const entry of [...manifest.mustRead, ...manifest.candidates]) {
+    const targets = new Set<string>();
+    for (const reason of entry.reasons) {
+      if (!reason.startsWith(REVERSE_IMPORTER_PREFIX)) continue;
+      const target = reason.slice(REVERSE_IMPORTER_PREFIX.length).split(":")[0];
+      if (target) targets.add(target);
+    }
+    for (const target of targets) {
+      counts.set(target, (counts.get(target) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+export function buildCodeContextManifest(
+  root: string,
+  taskId: string,
+  options: CodeContextOptions = {},
+  sharedCache?: { parse?: Map<string, ParsedImports>; gitObject?: Map<string, string | undefined>; trackedFiles?: string[] }
+) {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const head = headCommit(root);
@@ -131,13 +159,21 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
 
   const maxFiles = Math.max(1, Math.floor(options.maxFiles ?? DEFAULT_MAX_FILES));
   const maxBytes = Math.max(1, Math.floor(options.maxBytes ?? DEFAULT_MAX_BYTES));
+  const gitObjectCache = sharedCache?.gitObject ?? new Map<string, string | undefined>();
+  const readGitObject: GitObjectReader = (gitRoot, ref, file) => {
+    const cacheKey = `${ref}:${file}`;
+    if (gitObjectCache.has(cacheKey)) return gitObjectCache.get(cacheKey);
+    const content = gitObject(gitRoot, ref, file);
+    gitObjectCache.set(cacheKey, content);
+    return content;
+  };
   const contractPath = taskPath(task.id);
   const mustRead = new Map<string, ContextEntry>();
   const candidateReasons = new Map<string, string[]>();
   const excluded: ExcludedEntry[] = [];
   const widening: WideningDiagnostic[] = [];
 
-  const contractEntry = entryFor(root, contractPath, ["task-contract"], false);
+  const contractEntry = entryFor(root, contractPath, ["task-contract"], false, readGitObject);
   if (fileSha256(root, contractPath) !== contractEntry.contentHash) {
     throw new Error(`${contractPath} differs from repository HEAD`);
   }
@@ -149,7 +185,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
     widening.push({ code: "broad-glob", path: pattern, detail: "manifest v1 does not enumerate broad allowedPaths" });
   }
   for (const seed of seeds) {
-    if (gitObject(root, "HEAD", seed) === undefined) {
+    if (readGitObject(root, "HEAD", seed) === undefined) {
       excluded.push({ path: seed, reasons: ["exact-allowed-path-missing"], editable: false });
       widening.push({ code: "missing-seed", path: seed, detail: "exact allowedPath does not exist at HEAD" });
       continue;
@@ -165,15 +201,15 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
   }
 
   const seedPaths = activeSeeds.filter((item) => SOURCE_PATTERN.test(item));
-  const repositorySources = trackedTextFiles(root)
+  const repositorySources = (sharedCache?.trackedFiles ?? trackedTextFiles(root))
     .map(normalizePath)
-    .filter((item) => SOURCE_PATTERN.test(item) && gitObject(root, "HEAD", item) !== undefined)
+    .filter((item) => SOURCE_PATTERN.test(item) && readGitObject(root, "HEAD", item) !== undefined)
     .sort();
-  const parsedByPath = new Map<string, ReturnType<typeof parseRelativeImports>>();
+  const parsedByPath = sharedCache?.parse ?? new Map<string, ParsedImports>();
   const parse = (relativePath: string) => {
     const existing = parsedByPath.get(relativePath);
     if (existing) return existing;
-    const content = gitObject(root, "HEAD", relativePath);
+    const content = readGitObject(root, "HEAD", relativePath);
     if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
     const parsed = parseRelativeImports(relativePath, content);
     parsedByPath.set(relativePath, parsed);
@@ -184,7 +220,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
     const parsed = parse(seed);
     widening.push(...parsed.widening);
     for (const item of parsed.imports) {
-      const resolved = resolveRelativeImport(root, seed, item.specifier);
+      const resolved = resolveRelativeImport(root, seed, item.specifier, readGitObject);
       if (!resolved) {
         widening.push({ code: "unresolved-import", path: seed, line: item.line, detail: item.specifier });
         continue;
@@ -198,7 +234,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
     if (seedPaths.includes(importer)) continue;
     const parsed = parse(importer);
     for (const item of parsed.imports) {
-      const resolved = resolveRelativeImport(root, importer, item.specifier);
+      const resolved = resolveRelativeImport(root, importer, item.specifier, readGitObject);
       if (resolved && seedPaths.includes(resolved)) {
         candidateReasons.set(importer, [...(candidateReasons.get(importer) ?? []), `reverse-importer:${resolved}:${item.line}`]);
       }
@@ -241,7 +277,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options: 
     if (reasons.length > 8) {
       widening.push({ code: "high-fan-out", path: candidatePath, detail: `${reasons.length} one-hop relations reference this candidate` });
     }
-    const entry = entryFor(root, candidatePath, reasons, matchesAny(candidatePath, task.allowedPaths));
+    const entry = entryFor(root, candidatePath, reasons, matchesAny(candidatePath, task.allowedPaths), readGitObject);
     if (selectedFiles + 1 > maxFiles || selectedBytes + entry.bytes > maxBytes) {
       omitted.push({ path: candidatePath, reasons: ["budget-exceeded", ...entry.reasons].sort(), editable: false });
       continue;

@@ -1,5 +1,5 @@
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository } from "../core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
@@ -7,6 +7,7 @@ import { hasErrors } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import { taskRefreshReasons } from "./task-refresh.js";
+import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -350,6 +351,137 @@ function validateRepositoryHealth(root: string): Issue[] {
   return issues;
 }
 
+const CODE_CONTEXT_FILE_LINES_WARN = 500;
+const CODE_CONTEXT_FILE_BYTES_WARN = 40_960;
+const CODE_CONTEXT_FAN_OUT_WARN = 8;
+const CODE_CONTEXT_PLAN_OMITTED_WARN = 20;
+
+function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefined): Issue[] {
+  const issues: Issue[] = [];
+  if (!wbs) return issues;
+
+  if (isShallowRepository(root)) {
+    return [{
+      severity: "warn",
+      code: "health.codeContext.skipped",
+      message: "codeContext check skipped (shallow repository)"
+    }];
+  }
+
+  const parseCache = new Map<string, ParsedImports>();
+  const gitObjectCache = new Map<string, string | undefined>();
+  const trackedFilesCache = trackedTextFiles(root);
+
+  type FileMetric = { lines: number; bytes: number; tasks: string[] };
+  const fileTooLarge = new Map<string, FileMetric>();
+  const importFanOut = new Map<string, { maxCount: number; tasks: string[] }>();
+  const planBudget = new Map<string, { omitted: number; selectedBytes: number; maxBytes: number }>();
+  const widening = new Map<string, string[]>();
+
+  for (const entry of listTasks(root)) {
+    if (!entry.task) continue;
+    const node = findNode(wbs, entry.task.wbsNodeId);
+    if (!node) continue;
+    if (isDoneNode(node)) continue;
+
+    let manifest;
+    try {
+      manifest = buildCodeContextManifest(root, entry.task.id, {}, { parse: parseCache, gitObject: gitObjectCache, trackedFiles: trackedFilesCache });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      issues.push({
+        severity: "warn",
+        code: "health.codeContext.skipped",
+        message: `codeContext check skipped for ${entry.task.id}: ${detail}`
+      });
+      continue;
+    }
+
+    for (const file of [...manifest.mustRead, ...manifest.candidates]) {
+      if (file.lines > CODE_CONTEXT_FILE_LINES_WARN || file.bytes > CODE_CONTEXT_FILE_BYTES_WARN) {
+        const existing = fileTooLarge.get(file.path);
+        if (existing) {
+          if (file.bytes > existing.bytes) {
+            existing.lines = file.lines;
+            existing.bytes = file.bytes;
+          }
+          existing.tasks.push(entry.task.id);
+        } else {
+          fileTooLarge.set(file.path, { lines: file.lines, bytes: file.bytes, tasks: [entry.task.id] });
+        }
+      }
+    }
+
+    for (const [filePath, count] of reverseImporterCounts(manifest)) {
+      if (count > CODE_CONTEXT_FAN_OUT_WARN) {
+        const existing = importFanOut.get(filePath);
+        if (existing) {
+          if (count > existing.maxCount) existing.maxCount = count;
+          existing.tasks.push(entry.task.id);
+        } else {
+          importFanOut.set(filePath, { maxCount: count, tasks: [entry.task.id] });
+        }
+      }
+    }
+
+    if (manifest.budget.omitted >= CODE_CONTEXT_PLAN_OMITTED_WARN) {
+      planBudget.set(entry.task.id, {
+        omitted: manifest.budget.omitted,
+        selectedBytes: manifest.budget.selectedBytes,
+        maxBytes: manifest.budget.maxBytes
+      });
+    }
+
+    if (manifest.completeness.status === "widening-required") {
+      for (const reason of manifest.completeness.reasons) {
+        const tasks = widening.get(reason) ?? [];
+        tasks.push(entry.task.id);
+        widening.set(reason, tasks);
+      }
+    }
+  }
+
+  function formatExamples(tasks: string[]): string {
+    const examples = tasks.slice(0, 3).join(", ");
+    const suffix = tasks.length > 3 ? ` and ${tasks.length - 3} more` : "";
+    return `e.g., ${examples}${suffix}`;
+  }
+
+  for (const [path, metric] of fileTooLarge) {
+    issues.push({
+      severity: "warn",
+      code: "health.codeContext.fileTooLarge",
+      message: `context file ${path} is too large (${metric.lines} lines, ${metric.bytes} bytes); referenced by ${metric.tasks.length} active task plan${metric.tasks.length === 1 ? "" : "s"} (${formatExamples(metric.tasks)})`
+    });
+  }
+
+  for (const [path, metric] of importFanOut) {
+    issues.push({
+      severity: "warn",
+      code: "health.codeContext.importFanOut",
+      message: `context file ${path} has ${metric.maxCount} reverse importers; referenced by ${metric.tasks.length} active task plan${metric.tasks.length === 1 ? "" : "s"} (${formatExamples(metric.tasks)})`
+    });
+  }
+
+  for (const [taskId, metric] of planBudget) {
+    issues.push({
+      severity: "warn",
+      code: "health.codeContext.planBudget",
+      message: `${taskId} context plan omits ${metric.omitted} candidates (budget saturated at ${metric.selectedBytes}/${metric.maxBytes} bytes)`
+    });
+  }
+
+  for (const [reason, tasks] of widening) {
+    issues.push({
+      severity: "warn",
+      code: "health.codeContext.widening",
+      message: `${tasks.length} active task plan${tasks.length === 1 ? "" : "s"} require widening (${reason}): ${formatExamples(tasks)}`
+    });
+  }
+
+  return issues;
+}
+
 export function collectHealthIssues(root: string): Issue[] {
   const issues: Issue[] = [];
   let wbs: WbsDocument | undefined;
@@ -389,6 +521,8 @@ export function collectHealthIssues(root: string): Issue[] {
     issues.push(...evidenceIssues);
     if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence, checkCommitReachability));
   }
+
+  issues.push(...collectCodeContextHealthIssues(root, wbs));
 
   return issues;
 }
