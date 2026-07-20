@@ -32,7 +32,8 @@ Evidence, and sends risky work back to Human Gate.
 
 This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
 `10.9.0` through `packageManager`; enable Corepack before installing so the
-lockfile is produced by the supported npm release.
+lockfile is produced by the supported npm release. CI verifies both the
+minimum supported Node.js version and the current LTS version.
 
 Install dependencies:
 

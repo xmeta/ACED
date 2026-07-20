@@ -1,7 +1,7 @@
 name: scwbs
 
 env:
-  NODE_VERSION: 22
+  NODE_VERSION: 24
 
 permissions:
   contents: read
@@ -41,6 +41,7 @@ jobs:
           cache: npm
       - name: Enable Corepack and report toolchain
         run: |
+          npm install --global corepack@latest
           corepack enable
           node --version
           corepack npm --version
@@ -167,6 +168,7 @@ jobs:
           cache: npm
       - name: Enable Corepack and report toolchain
         run: |
+          npm install --global corepack@latest
           corepack enable
           node --version
           corepack npm --version
@@ -193,6 +195,7 @@ jobs:
           cache: npm
       - name: Enable Corepack and report toolchain
         run: |
+          npm install --global corepack@latest
           corepack enable
           node --version
           corepack npm --version
@@ -229,6 +232,7 @@ jobs:
           cache: npm
       - name: Enable Corepack and report toolchain
         run: |
+          npm install --global corepack@latest
           corepack enable
           node --version
           corepack npm --version
@@ -253,6 +257,7 @@ jobs:
           cache: npm
       - name: Enable Corepack and report toolchain
         run: |
+          npm install --global corepack@latest
           corepack enable
           node --version
           corepack npm --version

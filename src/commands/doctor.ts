@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
@@ -67,9 +68,34 @@ function meetsMinimumVersion(actual: [number, number, number], minimum: [number,
   return true;
 }
 
-function readNodeEngine(root: string): string | undefined {
+type NodeEngineSource = "package.json" | "scwbs CLI package.json";
+
+type NodeEngineInfo =
+  | { range: string; source: NodeEngineSource }
+  | { range: undefined; source: undefined }
+  | { range: undefined; source: undefined; corrupt: true };
+
+function readRepoNodeEngine(root: string): { range?: string; missingEngine: boolean; corrupt: boolean } {
+  const packagePath = resolveFrom(root, "package.json");
+  if (!existsSync(packagePath)) {
+    return { missingEngine: false, corrupt: false };
+  }
   try {
-    const packageJson = JSON.parse(readFileSync(resolveFrom(root, "package.json"), "utf8")) as {
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
+      engines?: { node?: unknown };
+    };
+    return typeof packageJson.engines?.node === "string"
+      ? { range: packageJson.engines.node, missingEngine: false, corrupt: false }
+      : { missingEngine: true, corrupt: false };
+  } catch {
+    return { missingEngine: false, corrupt: true };
+  }
+}
+
+function readCliNodeEngine(): string | undefined {
+  try {
+    const packagePath = fileURLToPath(new URL("../../package.json", import.meta.url));
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
       engines?: { node?: unknown };
     };
     return typeof packageJson.engines?.node === "string" ? packageJson.engines.node : undefined;
@@ -78,11 +104,41 @@ function readNodeEngine(root: string): string | undefined {
   }
 }
 
+function readNodeEngine(root: string): NodeEngineInfo {
+  const repo = readRepoNodeEngine(root);
+  if (repo.corrupt) {
+    return { range: undefined, source: undefined, corrupt: true };
+  }
+  if (repo.range) {
+    return { range: repo.range, source: "package.json" };
+  }
+  if (repo.missingEngine) {
+    return { range: undefined, source: undefined };
+  }
+  const cliRange = readCliNodeEngine();
+  if (cliRange) {
+    return { range: cliRange, source: "scwbs CLI package.json" };
+  }
+  return { range: undefined, source: undefined };
+}
+
 function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnostic {
-  const range = readNodeEngine(root);
+  const engine = readNodeEngine(root);
+  const range = engine.range;
+  const source = engine.source;
   const minimum = range ? parseNodeVersion(range.replace(/^>=\s*/, "")) : undefined;
   const actual = parseNodeVersion(nodeVersion);
-  const label = range ? `Node.js ${range} (package.json engines.node)` : "Node.js requirement declared in package.json";
+  const label = range ? `Node.js ${range} (${source} engines.node)` : "Node.js requirement declared in package.json";
+
+  if ("corrupt" in engine) {
+    return {
+      id: "node",
+      label,
+      status: "fail",
+      message: "package.json could not be parsed",
+      fix: "Repair package.json so it is valid JSON"
+    };
+  }
 
   if (!range) {
     return {
@@ -109,8 +165,8 @@ function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnost
     status: supported ? "pass" : "fail",
     message: nodeVersion
       ? supported
-        ? `Node.js ${nodeVersion} satisfies package.json engines.node ${range}`
-        : `Node.js ${nodeVersion} does not satisfy package.json engines.node ${range}`
+        ? `Node.js ${nodeVersion} satisfies ${source} engines.node ${range}`
+        : `Node.js ${nodeVersion} does not satisfy ${source} engines.node ${range}`
       : "Node.js version unknown",
     fix: `Install Node.js ${range} from https://nodejs.org/`
   };
