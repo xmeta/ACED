@@ -1,0 +1,15 @@
+id: SPEC-LITE-MRTXA8MP
+type: spec-contract
+featureId: F-MRTXA8MP
+title: "AGENTS.md へ Task start 手順と registry 同期タイミングの運用知見を追記"
+status: approved
+version: 0.1.0
+summary: "scwbs start の生成物が task-authority 要件と衝突する罠（Issue #267）、evidence/approval 後の registry 失陥による CI 失敗（Issue #266）、finish の testQuality 要件について、今セッションで観測・確立した正しい運用手順を AGENTS.md に明文化する"
+approvedBy: user-requested-agents-md-guidance-update
+approvedAt: "2026-07-21T00:00:00+09:00"
+acceptanceCriteria:
+  - start 直後の正しい順序（契約引き締め・SPEC approve・task lock・managed ファイルのみの作成コミット・authority フィールド不変）が記載されている
+  - WBS 新規ノードは既定で作らず既存ノードを再利用する判断基準が記載されている
+  - evidence/approval 後の registry rebuild と PR 作成後の evidence collect --pull-request が記載されている
+  - テスト変更 Task の finish testQuality 要件が記載されている
+  - 既存の最重要ルールと承認境界を変更していない
