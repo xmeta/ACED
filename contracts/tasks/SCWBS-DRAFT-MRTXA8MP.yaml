@@ -1,0 +1,53 @@
+id: SCWBS-DRAFT-MRTXA8MP
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRTXA8MP
+branchName: task/SCWBS-DRAFT-MRTXA8MP-agents-md-start-flow-and-registry-sync-guidance
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRTXA8MP.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRTXA8MP.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRTXA8MP.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRTXA8MP.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRTXA8MP.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRTXA8MP.yaml
+allowedPaths:
+  - AGENTS.md
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - AGENTS.md 以外の変更が必要
+  - コマンド・契約スキーマ・承認境界の意味変更が必要（本Taskは運用知見の記述のみ）
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - AGENTS.md に start 直後の正しい順序（契約引き締め・SPEC approve・task lock・managed ファイルのみの作成コミット・authority フィールド不変）が記載されている
+  - WBS 新規ノードは既定で作らず既存ノードを再利用する判断基準が記載されている
+  - evidence/approval/request-approval/approve 後に registry rebuild が必要であることと、PR 作成後の evidence collect --pull-request による記録が記載されている
+  - テスト変更 Task の finish が testQuality 引数を要求することが記載されている
+  - 最重要ルール・承認境界（AI は request-approval まで）等の既存規範を変更していない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:baa53c80a83a5c19243345f047999517cd3fee3db07a0972ff42176235a6b2d4
+  createdAt: "2026-07-21T01:03:52.194Z"
