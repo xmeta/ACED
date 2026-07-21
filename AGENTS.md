@@ -61,6 +61,16 @@ CI が通るまでマージしてはいけない。merge 前に CI status を確
 5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id>` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
 6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
 
+## 新規 Task Contract を start する場合
+
+1. `npm run scwbs -- start <goal>`
+2. 生成された draft 契約を最小の `allowedPaths` に引き締め、SPEC-LITE の `acceptanceCriteria` を具体化して `status: approved`・`approvedBy` を記入する
+3. WBS 新規ノードは既定で作らず、既存ノード（例: `node-governance-maintenance`）を `wbsNodeId` に再利用する。`start` が生成した changeset は apply せず削除し、`managedContractPaths` からも外す。新規ノードが真に必要な場合のみ changeset を apply し、既存の code と重複しない一意の階層番号を設定する（`start` は code 固定 `"draft"` を生成し `wbs.code.duplicate` になる既知問題、Issue #267）
+4. `npm run scwbs -- task lock --task <task-id>` で contractLock v2 を付与する
+5. `npm run scwbs -- registry rebuild --force`
+6. managed ファイルのみ（`contracts/tasks/<id>.yaml`、`contracts/specs/SPEC-LITE-<id>.yaml`、`contracts/registry.yaml`、必要なら `contracts/tasks/index.yaml`）の契約作成コミットを作る。WBS 正本・changeset・実装ファイルを混ぜない（混ぜると `check-diff` の task-authority 検査で fail する）
+7. 作成コミット後は `allowedPaths` / `managedContractPaths` 等の authority フィールドを変更しない（`diff.taskAuthority.change` で fail する）。変更が必要な場合は block して人間に確認する
+
 ## 実装中の停止条件
 
 次のいずれかに該当する場合、実装を続けず `npm run scwbs -- block "<reason>" --task <task-id>` を使う。
@@ -89,7 +99,12 @@ npm run scwbs -- finish --task <task-id>
 - Evidence 更新
 - check-diff（allowedPaths/forbiddenPaths/humanGatePaths 検査）
 - registry 整合性チェック
-- Human Gate 検出と次アクション表示
+  - Human Gate 検出と次アクション表示
+
+- `evidence collect` / `request-approval` / `approval approve`（status 変更）は registry を失陥させる。push 前に `npm run scwbs -- registry rebuild --force`（または `--check` で確認）しないと CI の Registry check が fail する（Issue #266）
+- PR 作成後は `npm run scwbs -- evidence collect --task <task-id> --force --pull-request <num>` で Evidence に PR metadata を記録する（自動検出は未実装、Issue #268）
+- 推奨順序: コード変更 commit → `evidence collect --force` → PR 作成 → `evidence collect --force --pull-request <num>` → `registry rebuild --force` → commit・push → `request-approval` で停止 → 人間が approve → `registry rebuild --force` → `finish` → push → CI 確認 → マージ
+- テストを変更した Task では `finish` が testQuality metadata（`--test-assertions-added` / `--tests-disabled` / `--coverage-decreased` / `--test-quality-note`）を要求する。提示される fixCommand に従って再実行する
 
 `finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。AIは、有効な `post-finish` scopeのdelegated policyとtokenが揃う場合だけ、最終Evidence scopeに対して `--actor delegated-ai --scope post-finish` でApprovalを作成できる。それ以外では勝手にApprovalをapprovedにしてはいけない。
 
