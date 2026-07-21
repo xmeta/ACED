@@ -66,8 +66,8 @@ CI が通るまでマージしてはいけない。merge 前に CI status を確
 1. `npm run scwbs -- start <goal>`
 2. 生成された draft 契約を最小の `allowedPaths` に引き締め、SPEC-LITE の `acceptanceCriteria` を具体化して `status: approved`・`approvedBy` を記入する
 3. WBS 新規ノードは既定で作らず、既存ノード（例: `node-governance-maintenance`）を `wbsNodeId` に再利用する。`start` が生成した changeset は apply せず削除し、`managedContractPaths` からも外す。新規ノードが真に必要な場合のみ changeset を apply し、既存の code と重複しない一意の階層番号を設定する（`start` は code 固定 `"draft"` を生成し `wbs.code.duplicate` になる既知問題、Issue #267）
-4. `npm run scwbs -- task lock --task <task-id>` で contractLock v2 を付与する
-5. `npm run scwbs -- registry rebuild --force`
+4. `npm run scwbs -- registry rebuild --force` で SPEC-LITE を registry に索引する
+5. `npm run scwbs -- task lock --task <task-id>` で contractLock v2 を付与する。**registry rebuild より先に lock してはならない**（task lock は registry 経由で SPEC を解決するため、先に lock すると specRevision が欠落し finish 時に `contractLock.stale` でブロックされる）
 6. managed ファイルのみ（`contracts/tasks/<id>.yaml`、`contracts/specs/SPEC-LITE-<id>.yaml`、`contracts/registry.yaml`、必要なら `contracts/tasks/index.yaml`）の契約作成コミットを作る。WBS 正本・changeset・実装ファイルを混ぜない（混ぜると `check-diff` の task-authority 検査で fail する）
 7. 作成コミット後は `allowedPaths` / `managedContractPaths` 等の authority フィールドを変更しない（`diff.taskAuthority.change` で fail する）。変更が必要な場合は block して人間に確認する
 
