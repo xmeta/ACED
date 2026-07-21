@@ -4,6 +4,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
+import { syncRegistry } from "./registry-rebuild.js";
 import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
 
 export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string }): ApprovalRecord {
@@ -66,6 +67,7 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
     const yaml = buildApprovalRequestYaml(taskId, options);
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {
@@ -155,6 +157,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {

@@ -3,6 +3,7 @@ import { readEvidence } from "../core/contracts.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence } from "../core/types.js";
+import { syncRegistry } from "./registry-rebuild.js";
 
 type TestQuality = NonNullable<Evidence["testQuality"]>;
 
@@ -36,6 +37,7 @@ export function runEvidenceAnnotate(root: string, taskId: string, options: Evide
       stringifySimpleYaml(annotated as unknown as Record<string, unknown>),
       "utf8"
     );
+    syncRegistry(root);
     console.log(`annotated ${evidencePath(taskId)} (subject provenance and checks preserved)`);
     return 0;
   } catch (error) {

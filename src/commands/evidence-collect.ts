@@ -13,6 +13,7 @@ import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { printIssues } from "../core/report.js";
 import { evaluateWorkingTreeGuard } from "./check-diff.js";
+import { syncRegistry } from "./registry-rebuild.js";
 import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
@@ -23,6 +24,25 @@ import {
   updateRequiredCheckRun,
   type RequiredCheckRunLease
 } from "../core/required-check-run.js";
+
+export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
+  if (!branchName) return undefined;
+  try {
+    const result = spawnSync("gh", ["pr", "list", "--head", branchName, "--state", "open", "--json", "number"], {
+      cwd: root,
+      encoding: "utf8",
+      shell: process.platform === "win32"
+    });
+    if (result.status !== 0 || !result.stdout) return undefined;
+    const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
+    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0]?.number === "number") {
+      return String(parsed[0].number);
+    }
+  } catch {
+    // gh CLI missing, invalid output, or failed
+  }
+  return undefined;
+}
 
 type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
 
@@ -154,7 +174,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
     );
   }
-  const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
+  const pullRequest = options.pullRequest
+    ?? existingEvidence?.git?.pullRequest
+    ?? detectOpenPullRequest(root, branch ?? task.branchName);
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
@@ -297,6 +319,7 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
     });
     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     const summary = buildEvidenceCollectSummary(taskId, relativePath, evidence);
     if (!options.quiet) {
       if (options.json) {

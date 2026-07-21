@@ -4,6 +4,7 @@ import { readTask } from "../core/contracts.js";
 import { currentBranch } from "../core/git.js";
 import { resolveFrom, specPath, taskPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
+import { syncRegistry } from "./registry-rebuild.js";
 
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "goal";
@@ -101,6 +102,7 @@ export function runStart(root: string, goal: string): number {
       writeFileSync(fullPath, content, "utf8");
       console.log(`created ${relativePath}`);
     }
+    syncRegistry(root);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
