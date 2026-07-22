@@ -4,10 +4,13 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
 import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
-import { branchDiffHash, headCommit } from "../../src/core/git.js";
-import { readEvidence } from "../../src/core/contracts.js";
+import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
+import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
+import { readEvidence, readTask } from "../../src/core/contracts.js";
+import { validateEvidenceSchema } from "../../src/core/schema/records.js";
+import type { CiReceipt } from "../../src/core/types.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
 import {
   acquireRequiredCheckRun,
@@ -47,7 +50,108 @@ function prepareEvidenceOutputRepo(): string {
   return root;
 }
 
+function prepareCiReceiptRepo(): { root: string; taskId: string; receipt: Record<string, unknown> } {
+  const root = makeTempRepo();
+  const taskId = "WBS-001-004";
+  writeScwbsProject(root);
+  writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
+    branchName: "task/WBS-001-004-ci-receipt",
+    allowedPaths: ["src/**"],
+    requiredChecks: ["test", "test:integration", "typecheck", "build"]
+  }) as unknown as Record<string, unknown>);
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+  writeText(root, "src/feature.ts", "export const feature = true;\n");
+  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["commit", "-m", "implementation subject"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root, stdio: "ignore" });
+  const task = readTask(root, taskId).task!;
+  const head = headCommit(root)!;
+  const baseCommit = mergeBase(root, "base")!;
+  const runId = "12345";
+  const workflowPath = ".github/workflows/scwbs.yml";
+  const runUrl = `https://github.com/xmeta/ACED/actions/runs/${runId}`;
+  return {
+    root,
+    taskId,
+    receipt: {
+      schemaVersion: "1.0.0",
+      repository: "xmeta/ACED",
+      pullRequest: "#42",
+      taskId,
+      headCommit: head,
+      baseRef: "base",
+      baseCommit,
+      diffHash: branchDiffHash(root, "base", [
+        `contracts/evidence/${taskId}.yaml`,
+        `contracts/approvals/${taskId}.yaml`,
+        `contracts/reviews/${taskId}.yaml`,
+        "contracts/registry.yaml"
+      ]),
+      authorityFingerprint: taskAuthorityFingerprint(task),
+      workflowPath,
+      workflowRunId: runId,
+      workflowRunUrl: runUrl,
+      trustedCommit: head,
+      retrievedAt: "2026-07-22T14:00:00.000Z",
+      verifiedBy: "github-actions-provenance",
+      jobs: [
+        { name: "core", checkNames: ["test", "typecheck", "build"], jobId: "101", conclusion: "success", url: `${runUrl}/job/101`, workflowRunId: runId, workflowPath },
+        { name: "integration", checkNames: ["test:integration"], jobId: "102", conclusion: "success", url: `${runUrl}/job/102`, workflowRunId: runId, workflowPath },
+        { name: "wjs", checkNames: [], jobId: "103", conclusion: "success", url: `${runUrl}/job/103`, workflowRunId: runId, workflowPath },
+        { name: "validate", checkNames: [], jobId: "104", conclusion: "success", url: `${runUrl}/job/104`, workflowRunId: runId, workflowPath }
+      ]
+    }
+  };
+}
+
 describe("evidence collect", () => {
+  test("accepts only a provenance-verified CI receipt and records CI checks distinctly", () => {
+    const { root, taskId, receipt } = prepareCiReceiptRepo();
+    const evidence = buildCollectedEvidence(root, taskId, {
+      baseRef: "base",
+      pullRequest: "#42",
+      ciReceipt: receipt as unknown as CiReceipt
+    });
+
+    expect(evidence.ciReceipt).toMatchObject({
+      repository: "xmeta/ACED",
+      workflowRunId: "12345",
+      verifiedBy: "github-actions-provenance"
+    });
+    expect(evidence.checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "test", source: "ci", runId: "12345", verifiedBy: "github-actions-provenance" }),
+      expect.objectContaining({ name: "test:integration", source: "ci" }),
+      expect.objectContaining({ name: "typecheck", source: "ci" }),
+      expect.objectContaining({ name: "build", source: "ci" })
+    ]));
+    expect(evidence.checks.every((check) => check.source === "ci" && check.command === undefined)).toBe(true);
+    expect(validateEvidenceSchema(evidence)).toEqual([]);
+    expect(buildEvidenceCollectSummary(taskId, `contracts/evidence/${taskId}.yaml`, evidence).ciReceipt).toEqual({
+      verified: true,
+      workflowRunId: "12345",
+      jobCount: 4
+    });
+  });
+
+  test("rejects stale, mixed-run, fork, and incomplete CI provenance", () => {
+    const { root, taskId, receipt } = prepareCiReceiptRepo();
+    const cases = [
+      { name: "stale head", change: { headCommit: "0".repeat(40) }, message: /headCommit is stale/ },
+      { name: "fork repository", change: { repository: "someone-else/ACED" }, message: /repository does not match origin/ },
+      { name: "mixed run", change: { jobs: (receipt.jobs as Array<Record<string, unknown>>).map((job, index) => index === 0 ? { ...job, workflowRunId: "99999" } : job) }, message: /different workflow run/ },
+      { name: "missing required mapping", change: { jobs: (receipt.jobs as Array<Record<string, unknown>>).map((job, index) => index === 1 ? { ...job, checkNames: [] } : job) }, message: /exact one-to-one job mapping/ }
+    ];
+    for (const item of cases) {
+      expect(() => buildCollectedEvidence(root, taskId, {
+        baseRef: "base",
+        pullRequest: "#42",
+        ciReceipt: { ...receipt, ...item.change } as unknown as CiReceipt
+      }), item.name).toThrow(item.message);
+    }
+  });
+
   test("required checks are single-flight and expose active run details", () => {
     const root = prepareEvidenceOutputRepo();
     const marker = path.join(root, "duplicate-check-ran");

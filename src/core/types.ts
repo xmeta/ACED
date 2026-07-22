@@ -146,6 +146,35 @@ export type CheckCoveragePolicy = {
 export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
 export type EvidenceCheckSource = "ci" | "local" | "manual";
 
+export type CiReceiptJob = {
+  name: string;
+  checkNames: string[];
+  jobId: string;
+  conclusion: "success";
+  url: string;
+  workflowRunId: string;
+  workflowPath: string;
+};
+
+export type CiReceipt = {
+  schemaVersion: "1.0.0";
+  repository: string;
+  pullRequest: string;
+  taskId: string;
+  headCommit: string;
+  baseRef: string;
+  baseCommit: string;
+  diffHash: string;
+  authorityFingerprint: string;
+  workflowPath: string;
+  workflowRunId: string;
+  workflowRunUrl: string;
+  trustedCommit: string;
+  retrievedAt: string;
+  verifiedBy: "github-actions-provenance";
+  jobs: CiReceiptJob[];
+};
+
 export type Evidence = {
   id: string;
   type: "evidence";
@@ -165,6 +194,7 @@ export type Evidence = {
     pullRequest?: string;
   };
   changedFiles: string[];
+  ciReceipt?: CiReceipt;
   submodules?: Array<{
     path: string;
     repository: string;

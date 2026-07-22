@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRW5BNB1
+type: spec-contract
+featureId: F-MRW5BNB1
+title: "Issue #261 replacement: provenance検証済みGitHub CI required-check Evidence取り込み"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-261-replacement
+approvedAt: "2026-07-22T00:00:00+09:00"
+summary: "GitHub Actionsの任意成功をEvidenceへ昇格せず、TaskとPR provenanceに拘束されたrequired-check receiptだけを取り込む"
+acceptanceCriteria:
+  - "CI receiptはrepository、PR番号、head SHA、base SHA/ref、implementation diffHash、Task ID/authority fingerprint、workflow path、run ID/URL、取得時刻、required job mapping、検証結果をversioned schemaで保持し、tokenやAuthorization値を保存・出力しない"
+  - "現在のTask ContractとEvidenceのhead/base/diffHash/authorityが一致し、対象PRのhead/baseと一致し、同一workflow runのrequired job（core、integration、wjs、validate）がすべてSUCCESSである場合だけpassed CI checkとして採用する"
+  - "workflow path/ref、run ID、job ID/name、job URL、head SHA、conclusion、PR contextをAPIから再検証し、fork PR、merge queue、rerun/attempt不明、同名job、複数run混在、取得失敗、認証失敗、stale head、不一致はfail-closedでfull/local再実行または未採用になる"
+  - "Evidenceの各CI checkへsource: ci、runId、URL、verifiedBy、executedAt相当の監査情報を記録し、local receiptとCI receiptを同一視せず、head/base/diffHash/authority/workflow/job mappingの変更時にCI receiptを無効化する"
+  - "既存のexact local receipt、#203/#273のmetadata fast path、Evidence fixed point、Human Approval/GitHub Approve禁止を回帰fixtureで維持する"
+  - "最終plan/receipt JSONとEvidence collect summaryはschema validationを通過し、fallback理由とtrusted run/jobの選択理由をboundedかつ監査可能に出力する"

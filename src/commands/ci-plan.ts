@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
@@ -39,12 +40,25 @@ export type CiPlan = {
   headCommit: string | null;
   subjectHeadCommit: string | null;
   diffHash: string | null;
+  authorityFingerprint: string | null;
   metadataFiles: string[];
   metadataAncestry: CiPlanCommit[];
   changedFilesSinceSubject: string[];
   reasons: CiPlanReason[];
   classification: TaskClassificationReport;
 };
+
+export function taskAuthorityFingerprint(task: TaskContract): string {
+  const authority = {
+    allowedPaths: task.allowedPaths,
+    forbiddenPaths: task.forbiddenPaths,
+    humanGateRequiredPaths: task.humanGateRequiredPaths,
+    requiredChecks: task.requiredChecks,
+    managedContractPaths: task.managedContractPaths ?? [],
+    checkCoverageWaivers: task.checkCoverageWaivers ?? []
+  };
+  return `sha256:${createHash("sha256").update(JSON.stringify(authority)).digest("hex")}`;
+}
 
 export type TaskClassificationReport = {
   schemaVersion: "1.0.0";
@@ -124,6 +138,7 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
     headCommit: null,
     subjectHeadCommit: null,
     diffHash: null,
+    authorityFingerprint: null,
     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
     metadataAncestry: [],
     changedFilesSinceSubject: [],
@@ -308,6 +323,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
     headCommit: currentHead,
     subjectHeadCommit: subjectHead,
     diffHash: recordedDiffHash,
+    authorityFingerprint: taskAuthorityFingerprint(task),
     metadataFiles,
     metadataAncestry,
     changedFilesSinceSubject,

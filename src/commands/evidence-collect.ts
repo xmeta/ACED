@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { readEvidence, readTask } from "../core/contracts.js";
@@ -8,11 +8,12 @@ import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-r
 import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { printIssues } from "../core/report.js";
 import { evaluateWorkingTreeGuard } from "./check-diff.js";
+import { taskAuthorityFingerprint } from "./ci-plan.js";
 import { syncRegistry } from "./registry-rebuild.js";
 import {
   acquireRequiredCheckRun,
@@ -58,6 +59,11 @@ export type EvidenceCollectSummary = {
   };
   changedFiles: number;
   pullRequest: string | null;
+  ciReceipt?: {
+    verified: true;
+    workflowRunId: string;
+    jobCount: number;
+  };
 };
 
 export type EvidenceCollectOptions = {
@@ -70,6 +76,7 @@ export type EvidenceCollectOptions = {
   verbose?: boolean;
   output?: string;
   quiet?: boolean;
+  ciReceipt?: string;
 };
 
 function postEvidenceMetadataFiles(taskId: string): string[] {
@@ -79,6 +86,121 @@ function postEvidenceMetadataFiles(taskId: string): string[] {
     `contracts/reviews/${taskId}.yaml`,
     "contracts/registry.yaml"
   ];
+}
+
+const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+const CI_JOB_NAMES = ["core", "integration", "wjs", "validate"];
+
+function normalizedGithubRepository(value: string): string | undefined {
+  const trimmed = value.trim().replace(/\.git$/, "");
+  const match = trimmed.match(/github\.com[/:]([^/]+\/[^/]+)$/i);
+  return match?.[1];
+}
+
+function originRepository(root: string): string {
+  const result = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
+  if (result.status !== 0 || !result.stdout.trim()) throw new Error("CI receipt rejected: origin repository cannot be verified");
+  const repository = normalizedGithubRepository(result.stdout);
+  if (!repository) throw new Error("CI receipt rejected: origin is not a GitHub repository");
+  return repository;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validRunUrl(value: unknown, runId: string): value is string {
+  if (typeof value !== "string" || value.length === 0) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.pathname.includes(`/actions/runs/${runId}`);
+  } catch {
+    return false;
+  }
+}
+
+function verifyCiReceipt(
+  root: string,
+  task: TaskContract,
+  taskId: string,
+  receiptValue: unknown,
+  expected: { pullRequest?: string; head: string; baseRef: string; baseCommit: string; diffHash: string }
+): CiReceipt {
+  const failures: string[] = [];
+  if (!isRecord(receiptValue)) throw new Error("CI receipt rejected: JSON root must be an object");
+  const receipt = receiptValue as Partial<CiReceipt>;
+  const requiredStrings = [
+    "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash",
+    "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit", "retrievedAt"
+  ] as const;
+  for (const key of requiredStrings) {
+    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
+  }
+  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
+  if (receipt.verifiedBy !== "github-actions-provenance") failures.push("verifiedBy is not the GitHub provenance verifier");
+  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
+  if (receipt.pullRequest !== expected.pullRequest || !expected.pullRequest) failures.push("pullRequest does not match the current PR");
+  if (receipt.headCommit !== expected.head) failures.push("headCommit is stale or does not match HEAD");
+  if (receipt.baseRef !== expected.baseRef) failures.push("baseRef does not match the requested base");
+  if (receipt.baseCommit !== expected.baseCommit) failures.push("baseCommit does not match the verified merge base");
+  if (receipt.diffHash !== expected.diffHash) failures.push("diffHash does not match the current implementation diff");
+  if (receipt.authorityFingerprint !== taskAuthorityFingerprint(task)) failures.push("authorityFingerprint does not match the current Task authority");
+  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
+  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
+    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
+  }
+  if (typeof receipt.retrievedAt === "string" && Number.isNaN(Date.parse(receipt.retrievedAt))) failures.push("retrievedAt is not a valid timestamp");
+  if (typeof receipt.repository === "string") {
+    try {
+      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
+    }
+  }
+
+  if (!Array.isArray(receipt.jobs)) {
+    failures.push("jobs must be an array");
+  } else {
+    const names = receipt.jobs.map((job) => isRecord(job) ? job.name : undefined);
+    if (receipt.jobs.length !== CI_JOB_NAMES.length || new Set(names).size !== CI_JOB_NAMES.length || !CI_JOB_NAMES.every((name) => names.includes(name))) {
+      failures.push("jobs must contain exactly core, integration, wjs, and validate once each");
+    }
+    const jobIds = new Set<string>();
+    const checkNames: string[] = [];
+    for (const [index, jobValue] of receipt.jobs.entries()) {
+      if (!isRecord(jobValue)) {
+        failures.push(`jobs[${index}] must be an object`);
+        continue;
+      }
+      const job = jobValue as Partial<CiReceipt["jobs"][number]>;
+      if (typeof job.jobId !== "string" || job.jobId.length === 0 || jobIds.has(job.jobId)) failures.push(`jobs[${index}].jobId must be unique`);
+      else jobIds.add(job.jobId);
+      if (job.conclusion !== "success") failures.push(`jobs[${index}] did not conclude successfully`);
+      if (job.workflowRunId !== receipt.workflowRunId) failures.push(`jobs[${index}] belongs to a different workflow run`);
+      if (job.workflowPath !== CI_WORKFLOW_PATH) failures.push(`jobs[${index}] belongs to a different workflow`);
+      if (typeof job.url !== "string" || typeof receipt.workflowRunId !== "string" || !validRunUrl(job.url, receipt.workflowRunId)) failures.push(`jobs[${index}].url is invalid`);
+      if (!Array.isArray(job.checkNames) || job.checkNames.some((name) => typeof name !== "string") || new Set(job.checkNames).size !== (job.checkNames?.length ?? 0)) {
+        failures.push(`jobs[${index}].checkNames must be unique strings`);
+      } else {
+        checkNames.push(...job.checkNames);
+      }
+    }
+    const required = [...task.requiredChecks].sort();
+    const mapped = [...checkNames].sort();
+    if (required.length !== mapped.length || required.some((name, index) => mapped[index] !== name)) failures.push("required checks do not have an exact one-to-one job mapping");
+  }
+
+  if (typeof receipt.trustedCommit === "string") {
+    if (!resolveCommit(root, receipt.trustedCommit)) failures.push("trustedCommit is not available locally");
+    else if (!isCommitAncestor(root, receipt.trustedCommit, expected.head)) failures.push("trustedCommit is not an ancestor of the current head");
+    else {
+      const unexpected = changedFilesBetween(root, receipt.trustedCommit, expected.head)
+        .filter((file) => !postEvidenceMetadataFiles(taskId).includes(file));
+      if (unexpected.length > 0) failures.push(`trustedCommit range contains non-metadata files: ${unexpected.join(", ")}`);
+    }
+  }
+  if (failures.length > 0) throw new Error(`CI receipt rejected:\n- ${failures.join("\n- ")}`);
+  return receipt as CiReceipt;
 }
 
 function stableSubjectHead(
@@ -151,7 +273,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
   };
 }
 
-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): Evidence {
+export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): Evidence {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const baseRef = options.baseRef ?? "origin/main";
@@ -178,6 +300,15 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     ?? existingEvidence?.git?.pullRequest
     ?? detectOpenPullRequest(root, branch ?? task.branchName);
   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+  const ciReceipt = options.ciReceipt
+    ? verifyCiReceipt(root, task, taskId, options.ciReceipt, {
+      pullRequest,
+      head: head ?? "",
+      baseRef,
+      baseCommit: baseCommit ?? "",
+      diffHash
+    })
+    : undefined;
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
     : undefined;
@@ -189,10 +320,24 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       provenance: collectCheckReceiptProvenance(root)
     }).receipt
     : undefined;
-  const lease = task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
+  const lease = !ciReceipt && task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
   let checks: Evidence["checks"];
   try {
-    checks = task.requiredChecks.map((check, index) => {
+    checks = ciReceipt
+      ? task.requiredChecks.map((check) => {
+        const job = ciReceipt.jobs.find((candidate) => candidate.checkNames.includes(check));
+        if (!job) throw new Error(`CI receipt rejected: no job mapping for ${check}`);
+        return {
+          name: check,
+          status: "passed",
+          source: "ci",
+          runId: ciReceipt.workflowRunId,
+          url: job.url,
+          executedAt: ciReceipt.retrievedAt,
+          verifiedBy: ciReceipt.verifiedBy
+        };
+      })
+      : task.requiredChecks.map((check, index) => {
       const command = commandForCheck(check);
       const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
       const existing = existingEvidence?.checks.find((candidate) =>
@@ -217,7 +362,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       }
       if (!lease) throw new Error(`Required-check lease missing for ${check}`);
       return runCheck(root, check, cacheKey, lease, index + 1);
-    });
+      });
   } finally {
     if (lease) releaseRequiredCheckRun(lease);
   }
@@ -241,12 +386,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     },
     changedFiles,
     ...(submodules.length > 0 ? { submodules } : {}),
+    ...(ciReceipt ? { ciReceipt } : {}),
     checks,
     ...(testQuality ? { testQuality } : {})
   };
 }
 
-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): string {
+export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): string {
   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
 }
 
@@ -264,7 +410,10 @@ export function buildEvidenceCollectSummary(taskId: string, relativePath: string
       failed
     },
     changedFiles: evidence.changedFiles.length,
-    pullRequest: evidence.git?.pullRequest ?? null
+    pullRequest: evidence.git?.pullRequest ?? null,
+    ...(evidence.ciReceipt ? {
+      ciReceipt: { verified: true as const, workflowRunId: evidence.ciReceipt.workflowRunId, jobCount: evidence.ciReceipt.jobs.length }
+    } : {})
   };
 }
 
@@ -274,7 +423,8 @@ export function formatEvidenceCollectSummary(summary: EvidenceCollectSummary): s
     `path: ${summary.path}`,
     `checks: ${summary.checks.passed} passed, ${summary.checks.failed} failed`,
     `changedFiles: ${summary.changedFiles}`,
-    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`
+    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`,
+    ...(summary.ciReceipt ? [`ciReceipt: verified ${summary.ciReceipt.workflowRunId} (${summary.ciReceipt.jobCount} jobs)`] : [])
   ].join("\n") + "\n";
 }
 
@@ -311,11 +461,15 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
       return 1;
     }
     mkdirSync(path.dirname(fullPath), { recursive: true });
+    const ciReceipt = options.ciReceipt
+      ? JSON.parse(readFileSync(path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt), "utf8")) as CiReceipt
+      : undefined;
     const evidence = buildCollectedEvidence(root, taskId, {
       baseRef: options.baseRef,
       pullRequest: options.pullRequest,
       testQuality: options.testQuality,
-      rerunChecks: options.rerunChecks
+      rerunChecks: options.rerunChecks,
+      ciReceipt
     });
     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
     writeFileSync(fullPath, yaml, "utf8");

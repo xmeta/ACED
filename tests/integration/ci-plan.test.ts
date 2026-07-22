@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { buildCiPlan, runCiPlan } from "../../src/commands/ci-plan.js";
+import { buildCiPlan, runCiPlan, taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
 import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
 import { taskLifecycleMetadataPaths } from "../../src/core/managed-contract-paths.js";
 import { makeTempRepo, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
@@ -101,6 +101,20 @@ describe("CI plan", () => {
     ajv.addSchema(classificationSchema);
     expect(ajv.compile(schema)(plan)).toBe(true);
     expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
+    expect(plan.authorityFingerprint).toBe(taskAuthorityFingerprint(sampleTask({
+      branchName: "task/WBS-001-004-ci-plan",
+      allowedPaths: ["src/**"],
+      forbiddenPaths: ["wjs/**"],
+      humanGateRequiredPaths: [".github/**"],
+      requiredChecks: ["test", "test:integration", "typecheck", "build"],
+      managedContractPaths: [
+        `contracts/tasks/${taskId}.yaml`,
+        `contracts/evidence/${taskId}.yaml`,
+        `contracts/approvals/${taskId}.yaml`,
+        `contracts/reviews/${taskId}.yaml`,
+        "contracts/registry.yaml"
+      ]
+    })));
   });
 
   test("lists newest metadata-only descendants when the subject was not separately pushed", () => {

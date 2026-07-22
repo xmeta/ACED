@@ -565,6 +565,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--task <id>", "task id")
     .option("--base <ref>", "base reference")
     .option("--pull-request <id>", "pull request id")
+    .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
     .option("--force", "force collection")
     .option("--test-assertions-added <bool>", "test assertions added")
     .option("--tests-disabled <bool>", "tests disabled")
@@ -584,6 +585,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         force: opts.force ?? false,
         baseRef: opts.base,
         pullRequest: opts.pullRequest,
+        ciReceipt: opts.ciReceipt,
         testQuality: parseTestQuality(opts),
         rerunChecks: opts.rerunChecks ?? false,
         json: opts.json ?? false,

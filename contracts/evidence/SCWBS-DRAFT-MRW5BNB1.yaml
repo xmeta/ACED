@@ -1,0 +1,65 @@
+id: EVD-SCWBS-DRAFT-MRW5BNB1
+type: evidence
+taskId: SCWBS-DRAFT-MRW5BNB1
+commit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+subjectHeadCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+diffHash: sha256:5e05521ef30e1ca14d9aaf6b1c26982ba2cbdf70241e291c3d3051f373b4e6f4
+git:
+  branch: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
+  base: origin/main
+  baseCommit: 3ff1a37050ac4e2631b5e5a179d366d99c588305
+  changedFilesBasis: branch-diff
+  pullRequest: "278"
+  subjectHeadCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+  diffHash: sha256:5e05521ef30e1ca14d9aaf6b1c26982ba2cbdf70241e291c3d3051f373b4e6f4
+  headCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRW5BNB1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - docs/scwbs/schemas/evidence-collect-summary.schema.json
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/ci-plan.test.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:41d6e8a98b83e58d0c283d6fc5763b05d611554cd1fae0d7f0d701f2b1ee39a7
+    durationMilliseconds: 15412
+    executedAt: "2026-07-22T21:00:49.236Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3ad8ae05ca53b85b9a7ac1e6cdb573fb64eb71ea2545ccaa063f9de0698e19d3
+    durationMilliseconds: 140532
+    executedAt: "2026-07-22T21:03:09.773Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:14ba77f527e69d6b48b4e832034ea3ffd806f1e125d5dce70f5b8af8b69d062f
+    durationMilliseconds: 3401
+    executedAt: "2026-07-22T21:03:13.178Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:d4da6ee6711d11f0fd2120bd676ef9df169a0b171d1ad596188856025ca3b5e4
+    durationMilliseconds: 3111
+    executedAt: "2026-07-22T21:03:16.297Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added CI receipt provenance and fail-closed integration coverage
