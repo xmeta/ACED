@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error The production output controller is intentionally dependency-free ESM.
 import { FAILURE_LIMIT, formatFailureDiagnostics, parseArgs } from "../../scripts/integration-test-output.mjs";
 // @ts-expect-error The production runner is intentionally dependency-free ESM.
-import { formatSummary, normalizeReport } from "../../scripts/integration-test-run.mjs";
+import { formatSummary, formatTempDiagnostic, normalizeReport } from "../../scripts/integration-test-run.mjs";
 // @ts-expect-error The production lock helper is intentionally dependency-free ESM.
 import {
   acquireIntegrationRun,
@@ -49,6 +49,13 @@ describe("integration output controller", () => {
     const output = formatSummary(normalizeReport(result("passed"), 2_000, 4), 5);
     expect(output.split("\n").length).toBeLessThanOrEqual(11);
     expect(Buffer.byteLength(output)).toBeLessThanOrEqual(2_048);
+  });
+
+  it("keeps the temp diagnostic to one bounded line", () => {
+    const output = formatTempDiagnostic({ path: "/tmp", source: "wsl-linux-fallback" });
+    expect(output).toBe("integration temp=/tmp tempSource=wsl-linux-fallback");
+    expect(output.split("\n")).toHaveLength(1);
+    expect(Buffer.byteLength(output)).toBeLessThan(256);
   });
 
   it("shows a bounded cause and copyable rerun command on failure", () => {

@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRVZ1NHY
+type: spec-contract
+featureId: F-MRVZ1NHY
+title: "Issue #272: normalize WSL integration temp to Linux filesystem"
+status: approved
+version: 0.1.0
+summary: "Issue #272: normalize WSL integration temp to Linux filesystem"
+approvedBy: user-approved-issue-272-plan
+approvedAt: "2026-07-22T20:00:59+09:00"
+acceptanceCriteria:
+  - WSL + Windows側TMPまたはTEMPのfixtureでLinux側/tmpへのfallbackを再現できる
+  - integration runnerが実効temp pathと選択policyをbounded診断として表示する
+  - 明示的なTMPDIRは上書きせず、DrvFS上ならTMPDIR=/tmpを使う具体的な再実行コマンドを表示する
+  - 通常Linux、macOS、Windowsでは従来の実効tempを維持する
+  - canonical、verbose、direct runnerの一時reportと子Vitestが同じ選択済み環境を使う
+  - 現在のWSL環境で手動TMPDIR指定なしのfull integrationがLinux側tempを使って成功し、Issue記録の約20分より短縮する

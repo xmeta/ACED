@@ -1,0 +1,50 @@
+id: SCWBS-DRAFT-MRVZ1NHY
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRVZ1NHY
+branchName: task/SCWBS-DRAFT-MRVZ1NHY-issue-272-normalize-wsl-integration-temp-to-linu
+allowedPaths:
+  - scripts/integration-test-run.mjs
+  - scripts/integration-test-output.mjs
+  - tests/unit/integration-test-run.test.ts
+  - tests/unit/integration-test-output.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - WSLでTMPDIR未指定かつ実効tempがDrvFS上の場合、integration runnerがLinux側/tmpへ自動fallbackする
+  - 明示的なTMPDIRは安全・DrvFS上のいずれでも上書きせず、DrvFSの場合は具体的なfix commandを表示する
+  - canonical、verbose、direct runnerが同じtemp選択を使い、実効pathと選択policyをbounded表示する
+  - 通常Linux、macOS、Windowsのtemp選択を変えず、既存report JSON schemaを変更しない
+  - 現在のWSL環境で手動TMPDIR指定なしのfull integrationがLinux側tempを使って成功する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
+  - contracts/specs/SPEC-LITE-MRVZ1NHY.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRVZ1NHY.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:143063c49f22ecb0e576cbfddb498ac7c1144ce29fe29e3775ac9ed25a44464e
+  createdAt: "2026-07-22T11:01:40.257Z"

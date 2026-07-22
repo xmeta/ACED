@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { availableParallelism, tmpdir } from "node:os";
+import { availableParallelism, release, tmpdir } from "node:os";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,8 @@ export const MIN_PARALLEL_WORKERS = 2;
 export const MAX_PARALLEL_WORKERS = 4;
 export const OUTPUT_CAPTURE_BYTES = 8_000;
 export const OUTPUT_EDGE_BYTES = OUTPUT_CAPTURE_BYTES / 2;
+export const WSL_LINUX_TEMP = "/tmp";
+export const TEMP_DIAGNOSTIC_PATH_BYTES = 240;
 
 // These files mutate process-global state. Keep this inventory explicit even
 // though the canonical runner schedules files serially; it records why a
@@ -31,6 +33,50 @@ export const SERIAL_WITHIN_FILE = Object.freeze({
 
 export function defaultWorkerCount() {
   return Math.max(MIN_PARALLEL_WORKERS, Math.min(MAX_PARALLEL_WORKERS, availableParallelism()));
+}
+
+function isWsl(platform, osRelease, env) {
+  return platform === "linux"
+    && (/microsoft/i.test(osRelease) || Boolean(env.WSL_DISTRO_NAME) || Boolean(env.WSL_INTEROP));
+}
+
+function isDrvFsPath(value) {
+  return /^\/mnt\/[a-z](?:\/|$)/i.test(value);
+}
+
+export function selectIntegrationTemp({ platform, osRelease, env, effectiveTemp }) {
+  const explicitTmpdir = typeof env.TMPDIR === "string" && env.TMPDIR.length > 0
+    ? env.TMPDIR
+    : undefined;
+  const wsl = isWsl(platform, osRelease, env);
+  if (explicitTmpdir) {
+    return {
+      path: explicitTmpdir,
+      source: "explicit-tmpdir",
+      warning: wsl && isDrvFsPath(explicitTmpdir)
+        ? "integration temp warning: explicit TMPDIR is on DrvFS; rerun with TMPDIR=/tmp npm run test:integration"
+        : undefined
+    };
+  }
+  if (wsl && isDrvFsPath(effectiveTemp)) {
+    return { path: WSL_LINUX_TEMP, source: "wsl-linux-fallback", warning: undefined };
+  }
+  return { path: effectiveTemp, source: "system", warning: undefined };
+}
+
+export function runtimeIntegrationTemp(env = process.env) {
+  return selectIntegrationTemp({ platform: process.platform, osRelease: release(), env, effectiveTemp: tmpdir() });
+}
+
+export function integrationTempEnv(env, selection) {
+  return selection.source === "wsl-linux-fallback"
+    ? { ...env, TMPDIR: selection.path }
+    : env;
+}
+
+export function formatTempDiagnostic(selection) {
+  const compactPath = String(selection.path).replace(/\s+/g, " ").slice(0, TEMP_DIAGNOSTIC_PATH_BYTES);
+  return `integration temp=${compactPath} tempSource=${selection.source}`;
 }
 
 export function parseArgs(argv, env = process.env) {
@@ -147,11 +193,11 @@ export function formatSummary(report, slowest = DEFAULT_SLOWEST_COUNT) {
   return lines.join("\n");
 }
 
-async function runVitest(args) {
+async function runVitest(args, env) {
   const stdout = captureEdge();
   const stderr = captureEdge();
   const startedAt = performance.now();
-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: ["ignore", "pipe", "pipe"] });
   child.stdout.on("data", (chunk) => stdout.add(chunk));
   child.stderr.on("data", (chunk) => stderr.add(chunk));
   const exitCode = await new Promise((resolve, reject) => {
@@ -163,11 +209,15 @@ async function runVitest(args) {
 
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv);
-  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-"));
+  const tempSelection = runtimeIntegrationTemp();
+  const childEnv = integrationTempEnv(process.env, tempSelection);
+  console.log(formatTempDiagnostic(tempSelection));
+  if (tempSelection.warning) console.error(tempSelection.warning);
+  const temporaryDirectory = await mkdtemp(path.join(tempSelection.path, "scwbs-integration-"));
   const rawOutputFile = path.join(temporaryDirectory, "vitest.json");
 
   try {
-    const execution = await runVitest(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
+    const execution = await runVitest(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }), childEnv);
     let raw;
     try {
       raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
