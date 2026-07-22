@@ -91,6 +91,7 @@ describe("CI plan", () => {
       decision: "metadata-candidate",
       taskId,
       subjectHeadCommit: subject,
+      metadataAncestry: [{ sha: expect.any(String), changedFiles: [`contracts/evidence/${taskId}.yaml`] }],
       changedFilesSinceSubject: [`contracts/evidence/${taskId}.yaml`],
       reasons: [{ code: "provenance.metadataOnly" }]
     });
@@ -100,6 +101,19 @@ describe("CI plan", () => {
     ajv.addSchema(classificationSchema);
     expect(ajv.compile(schema)(plan)).toBe(true);
     expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
+  });
+
+  test("lists newest metadata-only descendants when the subject was not separately pushed", () => {
+    const { root, subject } = prepareSubject();
+    commitEvidence(root, subject);
+
+    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
+    expect(plan.metadataAncestry).toHaveLength(1);
+    expect(plan.metadataAncestry[0]).toMatchObject({
+      sha: headCommit(root),
+      changedFiles: [`contracts/evidence/${taskId}.yaml`]
+    });
+    expect(plan.metadataAncestry.every((candidate) => candidate.sha !== subject)).toBe(true);
   });
 
   test("falls back to full CI when Evidence is absent at the implementation subject", () => {
@@ -219,6 +233,13 @@ describe("CI plan", () => {
     expect(workflow).toContain('$RUNNER_TEMP/ci-plan-candidate.json');
     expect(workflow).toContain('workflowRun?.path === ".github/workflows/scwbs.yml"');
     expect(workflow).toContain("workflowRun?.head_sha === process.env.SUBJECT");
+    expect(workflow).toContain("metadataAncestry");
+    expect(workflow).toContain("trustedCommit");
+    expect(workflow).toContain("trustedWorkflowRunId");
+    expect(workflow).toContain("trustedChecks");
+    expect(workflow).toContain("trustedRanges");
+    expect(workflow).toContain('"--name-only"');
+    expect(workflow).toContain("ci.trustedCommit.diffHash.mismatch");
     expect(workflow).toContain('if: always() && needs.plan.outputs.mode == \'full\'');
     expect(workflow).toContain('if test "$MODE" = "metadata-fast-path"; then');
     expect(workflow).toContain('test "$CORE_RESULT" = "skipped"');

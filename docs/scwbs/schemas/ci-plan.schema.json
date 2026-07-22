@@ -13,6 +13,7 @@
     "subjectHeadCommit",
     "diffHash",
     "metadataFiles",
+    "metadataAncestry",
     "changedFilesSinceSubject",
     "reasons",
     "classification"
@@ -28,6 +29,18 @@
     "subjectHeadCommit": { "type": ["string", "null"] },
     "diffHash": { "type": ["string", "null"] },
     "metadataFiles": { "type": "array", "items": { "type": "string" } },
+    "metadataAncestry": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sha", "changedFiles"],
+        "properties": {
+          "sha": { "type": "string" },
+          "changedFiles": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
     "changedFilesSinceSubject": { "type": "array", "items": { "type": "string" } },
     "subjectFullChecks": {
       "type": "array",
@@ -41,6 +54,45 @@
           "detailsUrl": { "type": "string" },
           "workflowRunId": { "type": ["number", "null"] },
           "workflowPath": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "trustedCommit": { "type": ["string", "null"] },
+    "trustedWorkflowRunId": { "type": ["number", "null"] },
+    "trustedChecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "conclusion", "detailsUrl", "workflowRunId", "workflowPath"],
+        "properties": {
+          "id": { "type": "number" },
+          "name": { "type": "string" },
+          "conclusion": { "type": ["string", "null"] },
+          "detailsUrl": { "type": "string" },
+          "workflowRunId": { "type": ["number", "null"] },
+          "workflowPath": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "trustedRanges": {
+      "type": ["object", "null"],
+      "required": ["subjectToTrusted", "trustedToHead"],
+      "properties": {
+        "subjectToTrusted": { "$ref": "#/$defs/trustedRange" },
+        "trustedToHead": { "$ref": "#/$defs/trustedRange" }
+      },
+      "additionalProperties": false
+    },
+    "fallbackReasons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
         },
         "additionalProperties": false
       }
@@ -59,6 +111,19 @@
       }
     },
     "classification": { "$ref": "task-classification.schema.json" }
+  },
+  "$defs": {
+    "trustedRange": {
+      "type": "object",
+      "required": ["from", "to", "changedFiles", "metadataOnly"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "changedFiles": { "type": "array", "items": { "type": "string" } },
+        "metadataOnly": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }
