@@ -21,6 +21,16 @@
       }
     },
     "changedFiles": { "type": "integer", "minimum": 0 },
-    "pullRequest": { "type": ["string", "null"] }
+    "pullRequest": { "type": ["string", "null"] },
+    "ciReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "workflowRunId", "jobCount"],
+      "properties": {
+        "verified": { "const": true },
+        "workflowRunId": { "type": "string", "minLength": 1 },
+        "jobCount": { "type": "integer", "minimum": 1 }
+      }
+    }
   }
 }

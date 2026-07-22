@@ -15,6 +15,49 @@ const evidenceSchema = {
     subjectHeadCommit: { type: "string" },
     evidenceCommit: { type: "string" },
     diffHash: { type: "string" },
+    ciReceipt: {
+      type: "object",
+      required: [
+        "schemaVersion", "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit",
+        "diffHash", "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit",
+        "retrievedAt", "verifiedBy", "jobs"
+      ],
+      additionalProperties: false,
+      properties: {
+        schemaVersion: { const: "1.0.0" },
+        repository: { type: "string", minLength: 1 },
+        pullRequest: { type: "string", minLength: 1 },
+        taskId: { type: "string", minLength: 1 },
+        headCommit: { type: "string", minLength: 1 },
+        baseRef: { type: "string", minLength: 1 },
+        baseCommit: { type: "string", minLength: 1 },
+        diffHash: { type: "string", minLength: 1 },
+        authorityFingerprint: { type: "string", minLength: 1 },
+        workflowPath: { const: ".github/workflows/scwbs.yml" },
+        workflowRunId: { type: "string", minLength: 1 },
+        workflowRunUrl: { type: "string", minLength: 1 },
+        trustedCommit: { type: "string", minLength: 1 },
+        retrievedAt: { type: "string", minLength: 1 },
+        verifiedBy: { const: "github-actions-provenance" },
+        jobs: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["name", "checkNames", "jobId", "conclusion", "url", "workflowRunId", "workflowPath"],
+            additionalProperties: false,
+            properties: {
+              name: { type: "string", minLength: 1 },
+              checkNames: { type: "array", minItems: 0, items: { type: "string", minLength: 1 } },
+              jobId: { type: "string", minLength: 1 },
+              conclusion: { const: "success" },
+              url: { type: "string", minLength: 1 },
+              workflowRunId: { type: "string", minLength: 1 },
+              workflowPath: { const: ".github/workflows/scwbs.yml" }
+            }
+          }
+        }
+      }
+    },
     changedFiles: stringArraySchema,
     submodules: {
       type: "array",
