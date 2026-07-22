@@ -3,7 +3,7 @@ import { rmSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { syncRegistry } from "../../src/commands/registry-rebuild.js";
 import { detectOpenPullRequest } from "../../src/commands/evidence-collect.js";
-import { buildLockedTask } from "../../src/commands/task-lock.js";
+import { runTaskLock } from "../../src/commands/task-lock.js";
 import { makeTempRepo, sampleSpec, sampleTask, sampleWbs, writeJson, writeYaml } from "../helpers.js";
 
 describe("Automatic Registry Synchronization (Issue #270 Direction A)", () => {
@@ -35,15 +35,16 @@ describe("Automatic Registry Synchronization (Issue #270 Direction A)", () => {
     expect(secondSummary.status).toBe("synchronized");
   });
 
-  it("buildLockedTask triggers syncRegistry internally to resolve specs without manual rebuild", () => {
+  it("task lock synchronizes the registry before resolving specs", () => {
     writeYaml(tmpDir, "contracts/specs/SPEC-F001-API.yaml", sampleSpec() as unknown as Record<string, unknown>);
     writeYaml(tmpDir, "contracts/tasks/SCWBS-DRAFT-TEST.yaml", sampleTask({ id: "SCWBS-DRAFT-TEST", featureId: "F001", wbsNodeId: "node-api" }) as unknown as Record<string, unknown>);
 
-    // Call buildLockedTask without calling registry rebuild beforehand
-    const locked = buildLockedTask(tmpDir, "SCWBS-DRAFT-TEST");
-    expect(locked.contractLock).toBeDefined();
-    expect(locked.contractLock?.specVersion).toBe("1.0.0");
-    expect(locked.contractLock?.specRevision).toBeDefined();
+    // Run task lock without calling registry rebuild beforehand.
+    expect(runTaskLock(tmpDir, "SCWBS-DRAFT-TEST")).toBe(0);
+    const locked = readFileSync(path.join(tmpDir, "contracts/tasks/SCWBS-DRAFT-TEST.yaml"), "utf8");
+    expect(locked).toContain("contractLock:");
+    expect(locked).toContain("specVersion: 1.0.0");
+    expect(locked).toContain("specRevision:");
     expect(existsSync(path.join(tmpDir, "contracts/registry.yaml"))).toBe(true);
   });
 

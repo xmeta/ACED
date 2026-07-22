@@ -15,7 +15,6 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
 
-  syncRegistry(root);
   const { registry } = readRegistry(root);
   const { spec, path: specPath } = resolveSpecForTask(root, registry, task);
   const wbs = readWbs(root);
@@ -38,6 +37,7 @@ export function buildLockedTaskYaml(root: string, taskId: string, createdAt?: Da
 
 export function runTaskLock(root: string, taskId: string): number {
   try {
+    syncRegistry(root);
     const yaml = buildLockedTaskYaml(root, taskId);
     writeFileSync(resolveFrom(root, taskPath(taskId)), yaml, "utf8");
     syncRegistry(root);

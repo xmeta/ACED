@@ -592,7 +592,6 @@ describe("finish", () => {
     const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
     const registryFile = path.join(root, "contracts/registry.yaml");
     const previousEvidence = readFileSync(evidenceFile, "utf8");
-    const previousRegistry = readFileSync(registryFile, "utf8");
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
       branchName: "master",
       allowedPaths: ["docs/**", "contracts/**"],
@@ -602,6 +601,7 @@ describe("finish", () => {
     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
     execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "restrict task scope"], { cwd: root, stdio: "ignore" });
+    const previousRegistry = readFileSync(registryFile, "utf8");
     const beforeStatus = gitStatus(root);
 
     const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
