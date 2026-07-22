@@ -1,12 +1,12 @@
 id: BLK-SCWBS-DRAFT-MRW0MRQ3
 type: block
 taskId: SCWBS-DRAFT-MRW0MRQ3
-status: resolved
-category: auth
-level: 2
-requiredHumanDecision: Decide authentication or permission design before implementation continues.
-reason: "Human Gate required: correct locked Issue #273 Task authority so managed Evidence is not forbidden; no authority changes are permitted after contract lock"
-createdAt: "2026-07-22T12:25:26.863Z"
+status: blocked
+category: human-gate
+level: 1
+requiredHumanDecision: Complete the required human gate decision before implementation continues.
+reason: "Human Gate required: add Issue #273 Evidence/Approval/Review lifecycle files to managedContractPaths; current locked contract passes forbiddenPaths but check-diff rejects lifecycle metadata as outside allowedPaths"
+createdAt: "2026-07-22T12:31:33.119Z"
 history:
   - status: blocked
     at: "2026-07-22T11:47:13.051Z"
@@ -24,6 +24,7 @@ history:
     at: "2026-07-22T12:27:52.224Z"
     reason: "Authorize locked Task authority correction: remove contracts/evidence/** from forbiddenPaths because it is a managedContractPath; retain package, lockfile, wjs, and unrelated contract restrictions"
     by: human
-resolvedAt: "2026-07-22T12:27:52.224Z"
-resolvedBy: human
-resolution: "Authorize locked Task authority correction: remove contracts/evidence/** from forbiddenPaths because it is a managedContractPath; retain package, lockfile, wjs, and unrelated contract restrictions"
+  - status: blocked
+    at: "2026-07-22T12:31:33.119Z"
+    reason: "Human Gate required: add Issue #273 Evidence/Approval/Review lifecycle files to managedContractPaths; current locked contract passes forbiddenPaths but check-diff rejects lifecycle metadata as outside allowedPaths"
+    by: ai-agent
