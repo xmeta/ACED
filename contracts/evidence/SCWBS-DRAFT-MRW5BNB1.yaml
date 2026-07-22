@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MRW5BNB1
+type: evidence
+taskId: SCWBS-DRAFT-MRW5BNB1
+commit: c1bb368df86c1383a4fd6456f722e37c03301d21
+subjectHeadCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
+diffHash: sha256:793d15a6575afce49df31aacabef0c31af32341ac4b3bb5583c2b28baf5cbb7a
+git:
+  branch: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
+  base: origin/main
+  baseCommit: b07ffef3f0a7c4e5639bb25ea82a7e052144d550
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
+  diffHash: sha256:793d15a6575afce49df31aacabef0c31af32341ac4b3bb5583c2b28baf5cbb7a
+  headCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRW5BNB1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - docs/scwbs/schemas/evidence-collect-summary.schema.json
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/ci-plan.test.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: failed
+    source: local
+    command: npm test
+    cacheKey: sha256:a08b139b574f3c842ed4d6ea3ef28b0c1d948a2d043c5a6e3064799a642d82ee
+    durationMilliseconds: 28907
+    executedAt: "2026-07-22T14:25:14.218Z"
+    exitStatus: 1
+    stdoutSummary: |-
+      > scwbs@0.1.0 test
+      > vitest run tests/unit
+
+
+       RUN  v4.1.10 /home/x_meta/workspace/ACED
+
+       ❯ tests/unit/code-context.test.ts (3 tests | 1 failed) 12228ms
+           × reverseImporterCounts counts reverse importers per file 6235ms
+
+       Test Files  1 failed | 7 passed (8)
+            Tests  1 failed | 84 passed (85)
+         Start at  23:24:47
+         Duration  26.14s (transform 7.30s, setup 0ms, import 14.78s, tests 52.37s, environment 6ms)
+    stderrSummary: |-
+      ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+       FAIL  tests/unit/code-context.test.ts > code-context helpers > reverseImporterCounts counts reverse importers per file
+      Error: Test timed out in 5000ms.
+      If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+       ❯ tests/unit/code-context.test.ts:12:3
+           10|   }
+           11|
+           12|   test("reverseImporterCounts counts reverse importers per file", () =…
+             |   ^
+           13|     const root = makeTempRepo();
+           14|     writeScwbsProject(root);
+
+      ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f9a0e362dbf71931b71b5c9168a6d6e5e392c052ab1562ea849980dd318f1996
+    durationMilliseconds: 243892
+    executedAt: "2026-07-22T14:29:18.122Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5c3ffffd431a73c09f167d8a0de720c668f3cc5c5e02f76684c25118a703d588
+    durationMilliseconds: 5530
+    executedAt: "2026-07-22T14:29:23.692Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:c9d0ce3f395e4a69b03310fa2a0d7d30181799c74db70dd0857d36e31064647e
+    durationMilliseconds: 6317
+    executedAt: "2026-07-22T14:29:30.096Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added CI receipt provenance and fail-closed integration coverage
