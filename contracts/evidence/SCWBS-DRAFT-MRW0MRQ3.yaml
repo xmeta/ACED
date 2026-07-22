@@ -1,0 +1,58 @@
+id: EVD-SCWBS-DRAFT-MRW0MRQ3
+type: evidence
+taskId: SCWBS-DRAFT-MRW0MRQ3
+commit: 71bd02b2627851319151f391e629f7eb67ff4dad
+subjectHeadCommit: 71bd02b2627851319151f391e629f7eb67ff4dad
+diffHash: sha256:d892b249c729991fdacb879e542a652624783fc92e27862eff7a485db12566b3
+git:
+  branch: task/SCWBS-DRAFT-MRW0MRQ3-issue-273-trust-verified-metadata-only-descendan
+  base: origin/main
+  baseCommit: 3395ab779185ae5d1bf82ea088b8724546d7409e
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 71bd02b2627851319151f391e629f7eb67ff4dad
+  diffHash: sha256:d892b249c729991fdacb879e542a652624783fc92e27862eff7a485db12566b3
+  headCommit: 71bd02b2627851319151f391e629f7eb67ff4dad
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - src/commands/ci-plan.ts
+  - tests/integration/ci-plan.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:5ff3453ae9ed215cbf30d96b183f080150bec12d2ba5c5cd0cb232be374fd55a
+    durationMilliseconds: 22349
+    executedAt: "2026-07-22T12:15:43.157Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2cbe8c8ef3b29286fb459ea8662acbeaeb1479c7f3735a5918ac9b015b1671cb
+    durationMilliseconds: 219112
+    executedAt: "2026-07-22T12:19:22.279Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:de9023310beaef514bf914e25ae5411064ad346b719315dca9c462c1706edc17
+    durationMilliseconds: 6501
+    executedAt: "2026-07-22T12:19:28.809Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:55de846051f8a7ebc30856dce22225c6b0bd21c2cf3055f68d7ab4697ca84206
+    durationMilliseconds: 6391
+    executedAt: "2026-07-22T12:19:35.209Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Added metadata ancestry candidate enumeration, same-run trusted descendant provenance, range diffHash checks, audit fields, and Issue #273 regression coverage.'
