@@ -1,10 +1,10 @@
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
 import {
   branchChangedFiles,
   branchDiffHash,
-  changedFilesBetween,
   headCommit,
   isCommitAncestor,
   isShallowRepository,
@@ -25,6 +25,11 @@ export type CiPlanReason = {
   message: string;
 };
 
+export type CiPlanCommit = {
+  sha: string;
+  changedFiles: string[];
+};
+
 export type CiPlan = {
   schemaVersion: "1.0.0";
   decision: "full" | "metadata-candidate";
@@ -35,6 +40,7 @@ export type CiPlan = {
   subjectHeadCommit: string | null;
   diffHash: string | null;
   metadataFiles: string[];
+  metadataAncestry: CiPlanCommit[];
   changedFilesSinceSubject: string[];
   reasons: CiPlanReason[];
   classification: TaskClassificationReport;
@@ -119,12 +125,41 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
     subjectHeadCommit: null,
     diffHash: null,
     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
+    metadataAncestry: [],
     changedFilesSinceSubject: [],
     reasons,
     classification: {
       schemaVersion: "1.0.0", status: "unavailable", projectProfile: null, executionClass: null, enforcement: "read-only",
       bootstrapAuthority: { verified: false, introductionCommit: null }, consideredFiles: [], excludedBootstrapFiles: [], reasons
     }
+  };
+}
+
+function collectMetadataAncestry(root: string, subjectHead: string, currentHead: string): {
+  ancestry: CiPlanCommit[];
+  changedFiles: string[];
+} {
+  const result = spawnSync("git", ["log", "--format=%H", "--name-only", "--no-renames", `${subjectHead}..${currentHead}`], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) throw new Error(result.stderr || "git log failed");
+  const ancestry: CiPlanCommit[] = [];
+  let current: CiPlanCommit | undefined;
+  for (const line of result.stdout.split(/\r?\n/)) {
+    const value = line.trim();
+    if (!value) continue;
+    if (/^[0-9a-f]{40}$/.test(value)) {
+      if (current) ancestry.push(current);
+      current = { sha: value, changedFiles: [] };
+    } else if (current) {
+      current.changedFiles.push(value);
+    }
+  }
+  if (current) ancestry.push(current);
+  return {
+    ancestry,
+    changedFiles: Array.from(new Set(ancestry.flatMap((commit) => commit.changedFiles))).sort()
   };
 }
 
@@ -214,6 +249,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
     ?? evidence?.commit
     ?? null;
   const recordedDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? null;
+  let metadataAncestry: CiPlanCommit[] = [];
   let changedFilesSinceSubject: string[] = [];
 
   if (evidence && evidence.taskId !== task.id) {
@@ -230,7 +266,13 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
     } else if (subjectHead === currentHead) {
       reasons.push(reason("provenance.noMetadataDescendant", "HEAD is the implementation subject, so full CI is required"));
     } else {
-      changedFilesSinceSubject = changedFilesBetween(root, subjectHead, currentHead);
+      try {
+        const collected = collectMetadataAncestry(root, subjectHead, currentHead);
+        changedFilesSinceSubject = collected.changedFiles;
+        metadataAncestry = collected.ancestry;
+      } catch (error) {
+        reasons.push(reason("provenance.ancestry.failed", error instanceof Error ? error.message : String(error)));
+      }
       const unexpected = changedFilesSinceSubject.filter((file) => !metadataFiles.includes(file));
       if (unexpected.length > 0) {
         reasons.push(reason(
@@ -267,6 +309,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
     subjectHeadCommit: subjectHead,
     diffHash: recordedDiffHash,
     metadataFiles,
+    metadataAncestry,
     changedFilesSinceSubject,
     reasons: decision === "metadata-candidate"
       ? [reason("provenance.metadataOnly", "Only approved metadata files changed after the verified implementation subject")]

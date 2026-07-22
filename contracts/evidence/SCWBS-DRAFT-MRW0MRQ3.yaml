@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRW0MRQ3
+type: evidence
+taskId: SCWBS-DRAFT-MRW0MRQ3
+commit: 8feec8a4aa5daa0e0da2f8271ad25cad7b7951ce
+subjectHeadCommit: 8feec8a4aa5daa0e0da2f8271ad25cad7b7951ce
+diffHash: sha256:c49d400a603907e4e2834648c78b853106a2f3d02609a23980c436cd3ad819c5
+git:
+  branch: task/SCWBS-DRAFT-MRW0MRQ3-issue-273-trust-verified-metadata-only-descendan
+  base: origin/main
+  baseCommit: 3395ab779185ae5d1bf82ea088b8724546d7409e
+  changedFilesBasis: branch-diff
+  pullRequest: "275"
+  subjectHeadCommit: 8feec8a4aa5daa0e0da2f8271ad25cad7b7951ce
+  diffHash: sha256:c49d400a603907e4e2834648c78b853106a2f3d02609a23980c436cd3ad819c5
+  headCommit: 8feec8a4aa5daa0e0da2f8271ad25cad7b7951ce
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - src/commands/ci-plan.ts
+  - tests/integration/ci-plan.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2efebaca5542ef59a0ad61014cc714c0aebb538792175a9d035b8b22021e23f9
+    durationMilliseconds: 21122
+    executedAt: "2026-07-22T12:37:36.929Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:dd9b017afa3472660f4dd96ba749eeb8df7c7b6ad8070ef7974a4a75b516e092
+    durationMilliseconds: 233026
+    executedAt: "2026-07-22T12:41:29.965Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2b46b31a64c8d3067966a2d225f4923bb0d3719d9cd8ba6fd6d0b063cecd19be
+    durationMilliseconds: 6318
+    executedAt: "2026-07-22T12:41:36.314Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e0ce678e01ffb4e7c9e2a1fd76000b643f8066cf17bd0b2a1cdedd32cf80f637
+    durationMilliseconds: 6719
+    executedAt: "2026-07-22T12:41:43.043Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Added metadata ancestry candidate enumeration, same-run trusted descendant provenance, range diffHash checks, audit fields, and Issue #273 regression coverage.'

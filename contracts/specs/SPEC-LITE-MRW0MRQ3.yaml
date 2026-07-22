@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRW0MRQ3
+type: spec-contract
+featureId: F-MRW0MRQ3
+title: "Issue #273: trust verified metadata-only descendant full CI"
+status: approved
+version: 0.1.0
+summary: "Issue #273: trust verified metadata-only descendant full CI"
+approvedBy: user-requested-issue-273
+approvedAt: "2026-07-22T00:00:00+09:00"
+acceptanceCriteria:
+  - subject commit自体が未pushでも、subjectの子孫かつcurrent headの祖先であるverified metadata-only descendantのfull CI成功を新しい順に候補化できる
+  - subjectからtrusted commit、trusted commitからcurrent headの両区間について、許可済みmetadata-only差分、ancestry、implementation diffHash、Task authority baselineを検証する
+  - trusted commitのworkflow path、head SHA、conclusion、run ID、およびcore/integration/wjs/validateの同一workflow run成功を検証する
+  - 不明・不一致・shallow history・非metadata差分・authority変更・workflow変更・不正check・複数run混在では必ずfull CIへfallbackする
+  - exact subject checksが存在する既存ケースを維持し、候補なしケースでは不要な120秒待機を行わない
+  - final CI plan JSONにtrusted commit、workflow run ID、check set、fallback理由を含め、schemaとintegration testで監査項目を検証する

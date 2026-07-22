@@ -60,76 +60,175 @@ jobs:
         uses: actions/github-script@v9
         env:
           SUBJECT: ${{ steps.candidate.outputs.subject }}
+          CANDIDATE_FILE: ${{ runner.temp }}/ci-plan-candidate.json
         with:
           script: |
+            const fs = require("fs");
+            const candidate = JSON.parse(fs.readFileSync(process.env.CANDIDATE_FILE, "utf8"));
             const required = ["core", "integration", "wjs", "validate"];
             const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-            let selected = [];
-            let workflowRun = null;
-            for (let attempt = 0; attempt < 12; attempt += 1) {
-              const runs = await github.paginate(github.rest.checks.listForRef, {
+            const runIdFrom = (url) => Number(/\/actions\/runs\/(\d+)/.exec(url ?? "")?.[1] ?? 0) || null;
+            const commits = Array.from(new Set([
+              ...(candidate.metadataAncestry ?? []).map((entry) => entry.sha),
+              candidate.subjectHeadCommit
+            ].filter(Boolean)));
+            const inspectCommit = async (commit) => {
+              const checks = await github.paginate(github.rest.checks.listForRef, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: process.env.SUBJECT,
+                ref: commit,
                 per_page: 100
               });
-              selected = required.map((name) => runs
-                .filter((run) => run.name === name && run.app?.slug === "github-actions")
-                .sort((left, right) => Number(right.id) - Number(left.id))[0])
-                .filter(Boolean);
-              const runIds = new Set(selected.map((run) => /\/actions\/runs\/(\d+)/.exec(run.details_url ?? "")?.[1]).filter(Boolean));
-              if (selected.length === required.length && runIds.size === 1) {
-                const runId = Number([...runIds][0]);
-                workflowRun = (await github.rest.actions.getWorkflowRun({
+              const groups = new Map();
+              let pending = false;
+              for (const check of checks.filter((item) => required.includes(item.name) && item.app?.slug === "github-actions")) {
+                const runId = runIdFrom(check.details_url);
+                if (!runId) continue;
+                if (check.status !== "completed") pending = true;
+                const group = groups.get(runId) ?? new Map();
+                group.set(check.name, check);
+                groups.set(runId, group);
+              }
+              for (const [runId, group] of [...groups.entries()].sort((left, right) => right[0] - left[0])) {
+                if (!required.every((name) => group.has(name))) continue;
+                const selected = required.map((name) => group.get(name));
+                const workflowRun = (await github.rest.actions.getWorkflowRun({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   run_id: runId
                 })).data;
+                const subjectHeadMatches = workflowRun?.head_sha === process.env.SUBJECT;
+                const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
+                  && (commit === process.env.SUBJECT ? subjectHeadMatches : workflowRun?.head_sha === commit)
+                  && workflowRun?.id === runId
+                  && workflowRun?.conclusion === "success";
+                if (trustedRun && selected.every((run) => run.conclusion === "success")) {
+                  return {
+                    commit,
+                    workflowRunId: runId,
+                    checks: selected.map((run) => ({
+                      id: run.id,
+                      name: run.name,
+                      conclusion: run.conclusion,
+                      detailsUrl: run.details_url,
+                      workflowRunId: workflowRun.id,
+                      workflowPath: workflowRun.path
+                    }))
+                  };
+                }
               }
-              const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
-                && workflowRun?.head_sha === process.env.SUBJECT
-                && workflowRun?.conclusion === "success";
-              if (trustedRun && selected.every((run) => run.conclusion === "success")) break;
-              if (selected.length === required.length && selected.every((run) => run.status === "completed")) break;
-              if (attempt < 11) await sleep(10000);
+              return { pending, trusted: null };
+            };
+            let trusted = null;
+            let pending = false;
+            for (let attempt = 0; attempt < 12 && !trusted; attempt += 1) {
+              pending = false;
+              for (const commit of commits) {
+                const result = await inspectCommit(commit);
+                if (result.commit) {
+                  trusted = result;
+                  break;
+                }
+                pending ||= result.pending;
+              }
+              if (trusted || !pending || attempt >= 11) break;
+              await sleep(10000);
             }
-            const eligible = selected.length === required.length
-              && selected.every((run) => run.conclusion === "success")
-              && workflowRun?.path === ".github/workflows/scwbs.yml"
-              && workflowRun?.head_sha === process.env.SUBJECT
-              && workflowRun?.conclusion === "success";
-            core.setOutput("eligible", String(eligible));
-            core.setOutput("checks", JSON.stringify(selected.map((run) => ({
-              id: run.id,
-              name: run.name,
-              conclusion: run.conclusion,
-              detailsUrl: run.details_url,
-              workflowRunId: workflowRun?.id ?? null,
-              workflowPath: workflowRun?.path ?? null
-            }))));
+            core.setOutput("eligible", String(Boolean(trusted)));
+            core.setOutput("trusted_commit", trusted?.commit ?? "");
+            core.setOutput("trusted_workflow_run_id", trusted?.workflowRunId ? String(trusted.workflowRunId) : "");
+            core.setOutput("checks", JSON.stringify(trusted?.checks ?? []));
       - name: Finalize auditable CI plan
         id: final
         env:
           SUBJECT_CHECKS_ELIGIBLE: ${{ steps.subject-checks.outputs.eligible }}
           SUBJECT_CHECKS_JSON: ${{ steps.subject-checks.outputs.checks }}
+          TRUSTED_COMMIT: ${{ steps.subject-checks.outputs.trusted_commit }}
+          TRUSTED_WORKFLOW_RUN_ID: ${{ steps.subject-checks.outputs.trusted_workflow_run_id }}
         run: |
           node <<'NODE'
+          const crypto = require("crypto");
+          const { execFileSync } = require("child_process");
           const fs = require("fs");
           const candidate = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`, "utf8"));
+          const parseJson = (value, fallback) => {
+            try { return value ? JSON.parse(value) : fallback; } catch { return fallback; }
+          };
+          const gitFiles = (args) => execFileSync("git", args, { encoding: "utf8" })
+            .split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
+          const isAncestor = (ancestor, descendant) => {
+            try {
+              execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], { stdio: "ignore" });
+              return true;
+            } catch { return false; }
+          };
+          const diffHash = (from, to) => {
+            const diff = execFileSync("git", [
+              "diff", "--binary", "--no-ext-diff", `${from}...${to}`, "--", ".",
+              ...candidate.metadataFiles.map((file) => `:(exclude)${file}`)
+            ]);
+            return `sha256:${crypto.createHash("sha256").update(diff).digest("hex")}`;
+          };
+          const trustedCommit = process.env.TRUSTED_COMMIT || null;
+          const trustedWorkflowRunId = Number(process.env.TRUSTED_WORKFLOW_RUN_ID) || null;
+          const trustedChecks = parseJson(process.env.SUBJECT_CHECKS_JSON, []);
+          const rangeIssues = [];
+          let trustedRanges = null;
+          if (process.env.SUBJECT_CHECKS_ELIGIBLE === "true" && trustedCommit) {
+            const subjectToTrustedFiles = gitFiles(["diff", "--name-only", `${candidate.subjectHeadCommit}..${trustedCommit}`]);
+            const trustedToHeadFiles = gitFiles(["diff", "--name-only", `${trustedCommit}..${candidate.headCommit}`]);
+            const metadataOnly = (files) => files.every((file) => candidate.metadataFiles.includes(file));
+            trustedRanges = {
+              subjectToTrusted: {
+                from: candidate.subjectHeadCommit,
+                to: trustedCommit,
+                changedFiles: subjectToTrustedFiles,
+                metadataOnly: metadataOnly(subjectToTrustedFiles)
+              },
+              trustedToHead: {
+                from: trustedCommit,
+                to: candidate.headCommit,
+                changedFiles: trustedToHeadFiles,
+                metadataOnly: metadataOnly(trustedToHeadFiles)
+              }
+            };
+            if (!isAncestor(candidate.subjectHeadCommit, trustedCommit) || !isAncestor(trustedCommit, candidate.headCommit)) {
+              rangeIssues.push({ code: "ci.trustedCommit.ancestry.mismatch", message: "Trusted commit is not between the implementation subject and current head" });
+            }
+            if (!trustedRanges.subjectToTrusted.metadataOnly || !trustedRanges.trustedToHead.metadataOnly) {
+              rangeIssues.push({ code: "ci.trustedCommit.nonMetadataRange", message: "Trusted commit ranges contain a non-metadata file" });
+            }
+            try {
+              if (diffHash(candidate.baseCommit, trustedCommit) !== candidate.diffHash) {
+                rangeIssues.push({ code: "ci.trustedCommit.diffHash.mismatch", message: "Trusted commit implementation diffHash does not match the Evidence diffHash" });
+              }
+            } catch (error) {
+              rangeIssues.push({ code: "ci.trustedCommit.diffHash.failed", message: error instanceof Error ? error.message : String(error) });
+            }
+          }
           const verified = candidate.decision === "metadata-candidate"
-            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true";
+            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true"
+            && Boolean(trustedCommit)
+            && Boolean(trustedWorkflowRunId)
+            && rangeIssues.length === 0;
+          const fallbackReasons = candidate.decision === "full"
+            ? candidate.reasons
+            : verified
+              ? []
+              : [...candidate.reasons, ...rangeIssues, {
+                  code: "ci.trustedChecks.unverified",
+                  message: "No provenance-verified successful required check set was found on a metadata-only ancestor"
+                }];
           const plan = {
             ...candidate,
             mode: verified ? "metadata-fast-path" : "full",
-            subjectFullChecks: process.env.SUBJECT_CHECKS_JSON
-              ? JSON.parse(process.env.SUBJECT_CHECKS_JSON)
-              : [],
-            reasons: candidate.decision === "metadata-candidate" && !verified
-              ? [...candidate.reasons, {
-                  code: "ci.subjectChecks.unverified",
-                  message: "The implementation subject has no verified successful core, integration, wjs, and validate check set"
-                }]
-              : candidate.reasons
+            trustedCommit: verified ? trustedCommit : null,
+            trustedWorkflowRunId: verified ? trustedWorkflowRunId : null,
+            trustedChecks: verified ? trustedChecks : [],
+            trustedRanges: verified ? trustedRanges : null,
+            subjectFullChecks: verified ? trustedChecks : [],
+            fallbackReasons,
+            reasons: verified ? candidate.reasons : fallbackReasons
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT,
