@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MRWBWDEG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRWBWDEG
+branchName: task/SCWBS-DRAFT-MRWBWDEG-issue-276-code-context-reverseimportercounts-uni
+allowedPaths:
+  - tests/unit/code-context.test.ts
+forbiddenPaths:
+  - wjs/**
+  - src/**
+  - vitest.config.ts
+  - package.json
+  - package-lock.json
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - contracts/tasks/index.yaml
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - reverseImporterCounts unit testから不要な一時Git repository、fixture書き込み、commit、manifest構築を除き、純粋関数の入力と出力を直接検証する
+  - 変更前後の対象testとnpm testのwall time、fixture生成・Git・manifest構築コストを記録する
+  - npm testを20回連続実行し、対象testを含む85/85 testsが毎回PASSする
+  - canonical checks runがtest、test:integration、typecheck、buildの4/4 PASSとcurrent-head receiptを生成する
+  - グローバルtimeout、製品コード、Issue
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
+  - contracts/specs/SPEC-LITE-MRWBWDEG.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRWBWDEG.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRWBWDEG.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRWBWDEG.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRWBWDEG.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:4497eac6912e76dea74265ceaca83b73336a591f958844cebce947b7b1a7ac22
+  createdAt: "2026-07-22T17:02:21.305Z"

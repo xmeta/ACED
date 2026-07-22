@@ -1,0 +1,16 @@
+id: SPEC-LITE-MRWBWDEG
+type: spec-contract
+featureId: F-MRWBWDEG
+title: "Issue #276: code-context reverseImporterCounts unit testの一時Git repository・fixture・manifest構築コストを計測し、required npm testの5秒timeout flakeをテスト専用fixture軽量化で解消する"
+status: approved
+version: 0.1.0
+summary: "Issue #276のcode-context unit timeout flakeを、reverseImporterCountsの純粋関数testから不要なGit・fixture・manifest構築を除くことで解消する"
+approvedBy: user-requested-issue-276
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - reverseImporterCountsの3つのunit testが、一時Git repository、fixture書き込み、commit、buildCodeContextManifestを実行せず、manifestのreasons入力に対するcount結果を直接検証する
+  - integration suiteの既存testがbuildCodeContextManifestのreverse-importer reason生成を継続検証する
+  - 変更前後の対象test、npm test、fixture生成、Git操作、manifest構築の実測値をIssue #276またはEvidenceに記録する
+  - npm testを20回連続実行し、全85 testsが毎回PASSし、対象の5秒timeoutが再発しない
+  - checks run --base origin/main --rerun-checks --jsonでtest、test:integration、typecheck、buildが4/4 PASSし、current-head receiptが生成される
+  - vitest.config.tsのグローバルtimeout、src/core/code-context.ts、Issue #261 Task authority、PR #258に変更を加えない
