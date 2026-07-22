@@ -1,0 +1,57 @@
+id: EVD-SCWBS-DRAFT-MRVZ1NHY
+type: evidence
+taskId: SCWBS-DRAFT-MRVZ1NHY
+commit: 101e2ecb380cacb3daa2d0fcfa7c1c8271200a8c
+subjectHeadCommit: 101e2ecb380cacb3daa2d0fcfa7c1c8271200a8c
+diffHash: sha256:51c8406c3906d0e912c22ae643864162180534649300d964b01e95dbc65ff916
+git:
+  branch: task/SCWBS-DRAFT-MRVZ1NHY-issue-272-normalize-wsl-integration-temp-to-linu
+  base: origin/main
+  baseCommit: 1385c70854689b567b7cd4cac71350a89983a96c
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 101e2ecb380cacb3daa2d0fcfa7c1c8271200a8c
+  diffHash: sha256:51c8406c3906d0e912c22ae643864162180534649300d964b01e95dbc65ff916
+  headCommit: 101e2ecb380cacb3daa2d0fcfa7c1c8271200a8c
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRVZ1NHY.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
+  - scripts/integration-test-output.mjs
+  - scripts/integration-test-run.mjs
+  - tests/unit/integration-test-output.test.ts
+  - tests/unit/integration-test-run.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:fec1ee62b79e5ac15d4f534f1ad5fb386fb64884c2e98381031f87f1598565d7
+    durationMilliseconds: 21459
+    executedAt: "2026-07-22T11:09:12.933Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2b2cb831d6c48fe7f7c6d3d982fb7ed722b3a6e234819e79896873bc27c6f53a
+    durationMilliseconds: 227789
+    executedAt: "2026-07-22T11:13:00.731Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:fb0d77a74c19dfe50db3060fc945f9c5c6b8c520957b404e1b1ae8744f8dcade
+    durationMilliseconds: 6606
+    executedAt: "2026-07-22T11:13:07.374Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:605ecbe3868752c156b3fed882f52b4ad0466a8c45009f03cb1703628aa4bf18
+    durationMilliseconds: 6643
+    executedAt: "2026-07-22T11:13:14.025Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added WSL DrvFS temp fallback, explicit TMPDIR preservation, child environment propagation, and bounded diagnostic regression coverage.
