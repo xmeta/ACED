@@ -1,0 +1,56 @@
+id: EVD-SCWBS-DRAFT-MRWBWDEG
+type: evidence
+taskId: SCWBS-DRAFT-MRWBWDEG
+commit: d2315e84d9189a04a3e8c5e1098ca712490e6b55
+subjectHeadCommit: d2315e84d9189a04a3e8c5e1098ca712490e6b55
+diffHash: sha256:ffa5552c7a40f006a9e116b8c1fe5f509072d312420c70f44ae9e6c835f0132b
+git:
+  branch: task/SCWBS-DRAFT-MRWBWDEG-issue-276-code-context-reverseimportercounts-uni
+  base: origin/main
+  baseCommit: b07ffef3f0a7c4e5639bb25ea82a7e052144d550
+  changedFilesBasis: branch-diff
+  pullRequest: "277"
+  subjectHeadCommit: d2315e84d9189a04a3e8c5e1098ca712490e6b55
+  diffHash: sha256:ffa5552c7a40f006a9e116b8c1fe5f509072d312420c70f44ae9e6c835f0132b
+  headCommit: d2315e84d9189a04a3e8c5e1098ca712490e6b55
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MRWBWDEG.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRWBWDEG.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
+  - tests/unit/code-context.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:203b7f2a123f0e584b5dc650d3ed99e3d6df7cfd61d7663e21b82cec4b6a2e7e
+    durationMilliseconds: 19946
+    executedAt: "2026-07-22T17:18:40.291Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3db68a01c22df58759603496b9de2d40325d6faefc441ae99a9a5b42a32f8e2e
+    durationMilliseconds: 195252
+    executedAt: "2026-07-22T17:21:55.550Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:716534fbae7e472af1371bb76be07a9bbcbb8c35c6ace2f3b3ba1db7a15743fd
+    durationMilliseconds: 4973
+    executedAt: "2026-07-22T17:22:00.541Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:add691c247efc6fd32e433bbdf287b569c5517e911e7197c63f00e3eafb8a275
+    durationMilliseconds: 5152
+    executedAt: "2026-07-22T17:22:05.698Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'Issue #276: pure reverseImporterCounts input/output assertions replace three temporary Git repositories and manifest builds; existing integration test still covers reverse-importer reason generation. Baseline npm test failed 84/85 at 26.38s with target timeout 5.075s; instrumented focused target spent repo 475.7ms, fixture 133.7ms, commit 947.7ms, manifest 1137.8ms, total 2694.9ms. Optimized target body is 6ms; 20 consecutive npm test runs passed 85/85 with Vitest duration min 15.66s, mean 18.02s, max 21.06s.'
