@@ -1,18 +1,20 @@
 id: EVD-SCWBS-DRAFT-MRW5BNB1
 type: evidence
 taskId: SCWBS-DRAFT-MRW5BNB1
-commit: c1bb368df86c1383a4fd6456f722e37c03301d21
-subjectHeadCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
-diffHash: sha256:793d15a6575afce49df31aacabef0c31af32341ac4b3bb5583c2b28baf5cbb7a
+commit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+subjectHeadCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+diffHash: sha256:5e05521ef30e1ca14d9aaf6b1c26982ba2cbdf70241e291c3d3051f373b4e6f4
 git:
   branch: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
   base: origin/main
-  baseCommit: b07ffef3f0a7c4e5639bb25ea82a7e052144d550
+  baseCommit: 3ff1a37050ac4e2631b5e5a179d366d99c588305
   changedFilesBasis: branch-diff
-  subjectHeadCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
-  diffHash: sha256:793d15a6575afce49df31aacabef0c31af32341ac4b3bb5583c2b28baf5cbb7a
-  headCommit: c1bb368df86c1383a4fd6456f722e37c03301d21
+  subjectHeadCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
+  diffHash: sha256:5e05521ef30e1ca14d9aaf6b1c26982ba2cbdf70241e291c3d3051f373b4e6f4
+  headCommit: 7799ec1c9a0196e3380b1f7f4154f04c7a5a3af1
 changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRW5BNB1.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MRW5BNB1.yaml
   - contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
@@ -27,63 +29,33 @@ changedFiles:
   - tests/integration/evidence.test.ts
 checks:
   - name: test
-    status: failed
+    status: passed
     source: local
     command: npm test
-    cacheKey: sha256:a08b139b574f3c842ed4d6ea3ef28b0c1d948a2d043c5a6e3064799a642d82ee
-    durationMilliseconds: 28907
-    executedAt: "2026-07-22T14:25:14.218Z"
-    exitStatus: 1
-    stdoutSummary: |-
-      > scwbs@0.1.0 test
-      > vitest run tests/unit
-
-
-       RUN  v4.1.10 /home/x_meta/workspace/ACED
-
-       ❯ tests/unit/code-context.test.ts (3 tests | 1 failed) 12228ms
-           × reverseImporterCounts counts reverse importers per file 6235ms
-
-       Test Files  1 failed | 7 passed (8)
-            Tests  1 failed | 84 passed (85)
-         Start at  23:24:47
-         Duration  26.14s (transform 7.30s, setup 0ms, import 14.78s, tests 52.37s, environment 6ms)
-    stderrSummary: |-
-      ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
-
-       FAIL  tests/unit/code-context.test.ts > code-context helpers > reverseImporterCounts counts reverse importers per file
-      Error: Test timed out in 5000ms.
-      If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
-       ❯ tests/unit/code-context.test.ts:12:3
-           10|   }
-           11|
-           12|   test("reverseImporterCounts counts reverse importers per file", () =…
-             |   ^
-           13|     const root = makeTempRepo();
-           14|     writeScwbsProject(root);
-
-      ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+    cacheKey: sha256:41d6e8a98b83e58d0c283d6fc5763b05d611554cd1fae0d7f0d701f2b1ee39a7
+    durationMilliseconds: 15412
+    executedAt: "2026-07-22T21:00:49.236Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:f9a0e362dbf71931b71b5c9168a6d6e5e392c052ab1562ea849980dd318f1996
-    durationMilliseconds: 243892
-    executedAt: "2026-07-22T14:29:18.122Z"
+    cacheKey: sha256:3ad8ae05ca53b85b9a7ac1e6cdb573fb64eb71ea2545ccaa063f9de0698e19d3
+    durationMilliseconds: 140532
+    executedAt: "2026-07-22T21:03:09.773Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:5c3ffffd431a73c09f167d8a0de720c668f3cc5c5e02f76684c25118a703d588
-    durationMilliseconds: 5530
-    executedAt: "2026-07-22T14:29:23.692Z"
+    cacheKey: sha256:14ba77f527e69d6b48b4e832034ea3ffd806f1e125d5dce70f5b8af8b69d062f
+    durationMilliseconds: 3401
+    executedAt: "2026-07-22T21:03:13.178Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:c9d0ce3f395e4a69b03310fa2a0d7d30181799c74db70dd0857d36e31064647e
-    durationMilliseconds: 6317
-    executedAt: "2026-07-22T14:29:30.096Z"
+    cacheKey: sha256:d4da6ee6711d11f0fd2120bd676ef9df169a0b171d1ad596188856025ca3b5e4
+    durationMilliseconds: 3111
+    executedAt: "2026-07-22T21:03:16.297Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
