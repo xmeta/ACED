@@ -4,9 +4,12 @@ import {
   SERIAL_WITHIN_FILE,
   buildVitestArgs,
   defaultWorkerCount,
+  formatTempDiagnostic,
   formatSummary,
+  integrationTempEnv,
   normalizeReport,
-  parseArgs
+  parseArgs,
+  selectIntegrationTemp
 } from "../../scripts/integration-test-run.mjs";
 
 describe("integration test runner", () => {
@@ -31,6 +34,43 @@ describe("integration test runner", () => {
     expect(() => parseArgs(["--workers", "1"], {})).toThrow(/between 2 and 4/);
     expect(() => parseArgs(["--workers", "5"], {})).toThrow(/between 2 and 4/);
     expect(() => parseArgs(["--slowest", "21"], {})).toThrow(/between 0 and 20/);
+  });
+
+  it("falls back to Linux temp for implicit DrvFS temp on WSL", () => {
+    const selection = selectIntegrationTemp({
+      platform: "linux",
+      osRelease: "6.6.87.2-microsoft-standard-WSL2",
+      env: { TMP: "/mnt/c/Users/example/Temp", TEMP: "/mnt/c/Users/example/Temp", WSL_DISTRO_NAME: "Ubuntu" },
+      effectiveTemp: "/mnt/c/Users/example/Temp"
+    });
+    expect(selection).toEqual({ path: "/tmp", source: "wsl-linux-fallback", warning: undefined });
+    expect(integrationTempEnv({ TMP: "/mnt/c/Temp" }, selection)).toMatchObject({ TMPDIR: "/tmp" });
+  });
+
+  it("preserves explicit TMPDIR and warns without overriding explicit DrvFS", () => {
+    const safe = selectIntegrationTemp({
+      platform: "linux", osRelease: "microsoft-standard-WSL2", env: { TMPDIR: "/var/tmp" }, effectiveTemp: "/var/tmp"
+    });
+    expect(safe).toEqual({ path: "/var/tmp", source: "explicit-tmpdir", warning: undefined });
+    const explicitDrvFs = selectIntegrationTemp({
+      platform: "linux", osRelease: "microsoft-standard-WSL2", env: { TMPDIR: "/mnt/d/tmp" }, effectiveTemp: "/mnt/d/tmp"
+    });
+    expect(explicitDrvFs.path).toBe("/mnt/d/tmp");
+    expect(explicitDrvFs.warning).toContain("TMPDIR=/tmp npm run test:integration");
+    const originalEnv = { TMPDIR: "/mnt/d/tmp" };
+    expect(integrationTempEnv(originalEnv, explicitDrvFs)).toBe(originalEnv);
+  });
+
+  it("keeps the system temp on non-WSL platforms and bounds diagnostics", () => {
+    for (const platform of ["linux", "darwin", "win32"]) {
+      expect(selectIntegrationTemp({ platform, osRelease: "generic", env: {}, effectiveTemp: "/system/temp" }))
+        .toEqual({ path: "/system/temp", source: "system", warning: undefined });
+    }
+    const diagnostic = formatTempDiagnostic({ path: `/tmp/${"x".repeat(500)}\nunsafe`, source: "system" });
+    expect(diagnostic).toContain("integration temp=/tmp/");
+    expect(diagnostic).toContain("tempSource=system");
+    expect(diagnostic).not.toContain("\n");
+    expect(Buffer.byteLength(diagnostic)).toBeLessThan(300);
   });
 
   it("creates a bounded summary and reproducible file/test duration report", () => {

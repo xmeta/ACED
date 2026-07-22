@@ -2,15 +2,17 @@
 
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildVitestArgs,
   defaultWorkerCount,
   formatSummary,
+  formatTempDiagnostic,
+  integrationTempEnv,
   normalizeReport,
-  parseArgs as parseRunnerArgs
+  parseArgs as parseRunnerArgs,
+  runtimeIntegrationTemp
 } from "./integration-test-run.mjs";
 import { runWithIntegrationSingleFlight } from "./integration-single-flight.mjs";
 
@@ -83,11 +85,11 @@ export function formatFailureDiagnostics(raw, stdout, stderr) {
   return lines.join("\n");
 }
 
-async function runCaptured(args) {
+async function runCaptured(args, env) {
   const stdout = createBoundedCapture();
   const stderr = createBoundedCapture();
   const startedAt = performance.now();
-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: ["ignore", "pipe", "pipe"] });
   child.stdout.on("data", (chunk) => stdout.add(chunk));
   child.stderr.on("data", (chunk) => stderr.add(chunk));
   const exitCode = await new Promise((resolve, reject) => {
@@ -97,7 +99,7 @@ async function runCaptured(args) {
   return { exitCode, wallDurationMs: performance.now() - startedAt, stdout: stdout.value(), stderr: stderr.value() };
 }
 
-async function runVerbose(workers) {
+async function runVerbose(workers, env) {
   const args = [
     path.join("node_modules", "vitest", "vitest.mjs"),
     "run",
@@ -108,7 +110,7 @@ async function runVerbose(workers) {
     "--testTimeout=10000",
     "--reporter=verbose"
   ];
-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: "inherit" });
+  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: "inherit" });
   return new Promise((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (code) => resolve(code ?? 1));
@@ -124,6 +126,10 @@ export async function main(argv = process.argv.slice(2)) {
     return 2;
   }
   try {
+    const tempSelection = runtimeIntegrationTemp();
+    const childEnv = integrationTempEnv(process.env, tempSelection);
+    console.log(formatTempDiagnostic(tempSelection));
+    if (tempSelection.warning) console.error(tempSelection.warning);
     return await runWithIntegrationSingleFlight(process.cwd(), {
       mode: options.verbose ? "verbose" : "default",
       workers: options.workers,
@@ -131,12 +137,12 @@ export async function main(argv = process.argv.slice(2)) {
       env: process.env,
       onWait: (message) => console.error(message)
     }, async () => {
-      if (options.verbose) return runVerbose(options.workers);
+      if (options.verbose) return runVerbose(options.workers, childEnv);
 
-      const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
+      const directory = await mkdtemp(path.join(tempSelection.path, "scwbs-integration-output-"));
       const rawOutputFile = path.join(directory, "vitest.json");
       try {
-        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
+        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }), childEnv);
         let raw;
         try {
           raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
