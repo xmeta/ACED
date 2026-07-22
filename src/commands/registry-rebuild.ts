@@ -115,6 +115,17 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
   return stringifySimpleYaml({ projectId, contracts });
 }
 
+export function syncRegistry(root: string): RegistryRebuildSummary {
+  const next = buildRegistryYaml(root);
+  const fullPath = resolveFrom(root, defaultRegistryPath);
+  const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "";
+  const summary = buildRegistryRebuildSummary(current, next, current === next ? "synchronized" : "rebuilt");
+  if (current !== next) {
+    writeFileSync(fullPath, next, "utf8");
+  }
+  return summary;
+}
+
 export function runRegistryRebuild(root: string, options: RegistryRebuildOptions): number {
   try {
     const outputModes = [options.quiet, options.json, options.verbose, options.output !== undefined].filter(Boolean).length;

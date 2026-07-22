@@ -5,6 +5,7 @@ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
+import { syncRegistry } from "./registry-rebuild.js";
 
 const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
 const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
@@ -175,6 +176,7 @@ export function runTaskNew(root: string, title: string, options: {
       process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
     }
 
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {

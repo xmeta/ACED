@@ -3,7 +3,7 @@ import path from "node:path";
 import { readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
-import { buildRegistryYaml } from "./registry-rebuild.js";
+import { buildRegistryYaml, syncRegistry } from "./registry-rebuild.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
 
@@ -279,6 +279,7 @@ export function runReviewApprove(root: string, taskId: string, options: { review
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {
@@ -309,6 +310,7 @@ export function runReviewChangesRequested(root: string, taskId: string, options:
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {
@@ -338,6 +340,7 @@ export function runReviewClose(root: string, taskId: string, options: { reviewed
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
+    syncRegistry(root);
     process.stdout.write(yaml);
     return 0;
   } catch (error) {

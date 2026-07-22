@@ -3,6 +3,7 @@ import { listTasks, readTask } from "../core/contracts.js";
 import { taskPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { buildLockedTask } from "./task-lock.js";
+import { syncRegistry } from "./registry-rebuild.js";
 
 export function buildTaskRefreshPreview(root: string, taskId: string): string {
   const { task, issues } = readTask(root, taskId);
@@ -72,6 +73,7 @@ export function runTaskRefresh(root: string, taskId: string | undefined, options
       for (const refreshed of refreshedTasks) {
         writeFileSync(resolveFrom(root, taskPath(refreshed.id)), stringifySimpleYaml(refreshed as unknown as Record<string, unknown>), "utf8");
       }
+      syncRegistry(root);
       console.log("refreshed all Task Contracts");
       return 0;
     }
@@ -82,6 +84,7 @@ export function runTaskRefresh(root: string, taskId: string | undefined, options
     }
     const refreshed = buildLockedTask(root, taskId);
     writeFileSync(resolveFrom(root, taskPath(taskId)), stringifySimpleYaml(refreshed as unknown as Record<string, unknown>), "utf8");
+    syncRegistry(root);
     console.log(`refreshed ${taskPath(taskId)}`);
     return 0;
   } catch (error) {

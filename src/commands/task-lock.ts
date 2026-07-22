@@ -7,6 +7,7 @@ import { isWbsLessTask } from "../core/node-utils.js";
 import type { TaskContract } from "../core/types.js";
 import { readWbs } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+import { syncRegistry } from "./registry-rebuild.js";
 
 export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
   const { task, issues } = readTask(root, taskId);
@@ -36,8 +37,10 @@ export function buildLockedTaskYaml(root: string, taskId: string, createdAt?: Da
 
 export function runTaskLock(root: string, taskId: string): number {
   try {
+    syncRegistry(root);
     const yaml = buildLockedTaskYaml(root, taskId);
     writeFileSync(resolveFrom(root, taskPath(taskId)), yaml, "utf8");
+    syncRegistry(root);
     console.log(`locked ${taskPath(taskId)}`);
     return 0;
   } catch (error) {

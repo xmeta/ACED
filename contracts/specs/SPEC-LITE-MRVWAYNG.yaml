@@ -1,0 +1,14 @@
+id: SPEC-LITE-MRVWAYNG
+type: spec-contract
+featureId: F-MRVWAYNG
+title: Complete automatic registry synchronization with integration expectation updates for Issues 266 267 268 270
+status: approved
+version: 0.1.0
+summary: Complete Direction A automatic derived-state convergence for Issues 266, 267, 268, and 270, including integration expectation updates required by task lock Registry synchronization.
+approvedBy: user-successor-task-decision
+approvedAt: "2026-07-22T18:44:21+09:00"
+acceptanceCriteria:
+  - Record-modifying Evidence, Approval, Review, Task lock, Task refresh, Task creation, and finish flows automatically synchronize contracts/registry.yaml without breaking failure atomicity.
+  - task lock synchronizes Registry before resolving specRevision while pure preview and validation helpers remain side-effect free.
+  - evidence collect detects exactly one open pull request for the current branch when pull request metadata is absent; missing gh, command failure, invalid output, zero matches, and multiple matches do not fail Evidence collection.
+  - Integration tests are updated for intentional Registry synchronization and all required checks pass.

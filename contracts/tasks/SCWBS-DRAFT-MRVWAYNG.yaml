@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MRVWAYNG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRVWAYNG
+branchName: task/SCWBS-DRAFT-MRVWAYNG-complete-automatic-registry-synchronization-with
+allowedPaths:
+  - src/commands/registry-rebuild.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/evidence-annotate.ts
+  - src/commands/approval-request.ts
+  - src/commands/review-request.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-refresh.ts
+  - src/commands/task-new.ts
+  - tests/unit/auto-registry-sync.test.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/review.test.ts
+  - tests/integration/tasks.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Record-modifying Evidence, Approval, Review, Task lock, Task refresh, Task creation, and finish flows automatically synchronize contracts/registry.yaml without breaking failure atomicity.
+  - task lock synchronizes Registry before resolving specRevision while pure preview and validation helpers remain side-effect free.
+  - evidence collect detects a unique open pull request for the current branch when pull request metadata is absent, and safely preserves legacy behavior when detection is unavailable or ambiguous.
+  - Integration expectations cover the intentional automatic synchronization behavior and all required checks pass.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
+  - contracts/specs/SPEC-LITE-MRVWAYNG.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRVWAYNG.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a6ec2dc5e0e72529a3eb1cbd204eac28cf3c3c07285ebd55f62c9a7eb15154ad
+  createdAt: "2026-07-22T09:45:26.667Z"
