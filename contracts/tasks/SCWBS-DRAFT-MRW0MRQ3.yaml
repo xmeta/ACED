@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MRW0MRQ3
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRW0MRQ3
+branchName: task/SCWBS-DRAFT-MRW0MRQ3-issue-273-trust-verified-metadata-only-descendan
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - src/commands/ci-plan.ts
+  - tests/integration/ci-plan.test.ts
+  - docs/scwbs/schemas/ci-plan.schema.json
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - contracts/evidence/**
+  - contracts/approvals/**
+  - contracts/reviews/**
+  - contracts/tasks/index.yaml
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Subject未pushでも、subjectの子孫かつcurrent headの祖先であるverified metadata-only descendantからfull CI成功候補を新しい順に探索する
+  - subjectからtrusted commit、trusted commitからcurrent headの両区間について、許可済みmetadata-only ancestryとimplementation diffHash一致を検証する
+  - Task authority baseline、workflow path、workflow run、head SHA、required jobs（core/integration/wjs/validate）の同一run成功を検証する
+  - provenance不明、shallow history、非metadata差分、authority変更、workflow変更、不正または混在checkでは必ずfull CIへfallbackする
+  - 最終CI plan JSONにtrusted commit、workflow run ID、check set、fallback理由を監査可能に記録し、既存exact subject checksを維持する
+  - Issue
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
+  - contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:89f5056261f5647150550c4d3888f4f5dd78d7a7a0f68226b08522bbb461c075
+  createdAt: "2026-07-22T11:46:27.862Z"
