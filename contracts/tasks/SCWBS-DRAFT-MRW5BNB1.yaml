@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MRW5BNB1
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRW5BNB1
+branchName: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - src/cli.ts
+  - src/commands/ci-plan.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/ci-plan.test.ts
+  - tests/integration/evidence.test.ts
+  - docs/scwbs/schemas/ci-plan.schema.json
+  - docs/scwbs/schemas/evidence-collect-summary.schema.json
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - Human Gate approval required before changing .github/**
+  - GitHub API authentication, fork PR, merge queue, rerun, or duplicate job semantics are not fail-closed
+  - package, lockfile, tsconfig, vitest, WJS, or check-coverage changes are required
+  - Required-check job mapping or local/CI receipt precedence is not explicit
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Versioned CI receipt input and Evidence representation record repository, PR, head, base, diffHash, workflow path, run ID/URL, retrieval time, and verification result without secrets
+  - CI receipt is accepted only when PR/head/base/diffHash and Task authority match the current Task, and every required job maps explicitly to a successful job in one provenance-verified workflow run
+  - Missing or failed authentication/API retrieval, unknown workflow provenance, fork or merge-queue context, rerun ambiguity, duplicate job names, mixed runs, stale head, or mismatched authority fail closed and never produce passed CI Evidence
+  - Verified CI checks are recorded as source ci with auditable run/job identifiers and verifiedBy metadata; local receipts remain distinct and cache invalidation covers head, base, diffHash, authority, workflow, and required-job mapping changes
+  - Existing exact local receipt reuse, metadata fast-path behavior, Human Approval boundaries, and GitHub Approve prohibition remain unchanged
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/specs/SPEC-LITE-MRW5BNB1.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRW5BNB1.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRW5BNB1.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:5257411e875aeb611e5b576b6023750fc2d46f9b90e85994385fcf879d54ee36
+  createdAt: "2026-07-22T13:57:34.788Z"
