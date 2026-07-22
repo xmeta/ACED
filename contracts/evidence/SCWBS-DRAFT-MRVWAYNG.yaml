@@ -1,0 +1,64 @@
+id: EVD-SCWBS-DRAFT-MRVWAYNG
+type: evidence
+taskId: SCWBS-DRAFT-MRVWAYNG
+commit: 29bdb141ee15e7879259e11e5b34b7fe87ed68cd
+subjectHeadCommit: 29bdb141ee15e7879259e11e5b34b7fe87ed68cd
+diffHash: sha256:c331767c400697bf7e4bef5757265defb527e942672ea8f8db6f6d40d202dfd3
+git:
+  branch: task/SCWBS-DRAFT-MRVWAYNG-complete-automatic-registry-synchronization-with
+  base: origin/main
+  baseCommit: 82786f9e1a811f5967bcc2e8130ce5a806b96244
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 29bdb141ee15e7879259e11e5b34b7fe87ed68cd
+  diffHash: sha256:c331767c400697bf7e4bef5757265defb527e942672ea8f8db6f6d40d202dfd3
+  headCommit: 29bdb141ee15e7879259e11e5b34b7fe87ed68cd
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRVWAYNG.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
+  - src/commands/approval-request.ts
+  - src/commands/evidence-annotate.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/registry-rebuild.ts
+  - src/commands/review-request.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-new.ts
+  - src/commands/task-refresh.ts
+  - tests/integration/finish.test.ts
+  - tests/unit/auto-registry-sync.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:a09cd224ef7a8358ee782f880b6f08260b9918c8241e24a5446d8f94250fe39f
+    durationMilliseconds: 8894
+    executedAt: "2026-07-22T10:14:34.911Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9679b0a66016815a486f25fd55a05b87f4d3927afea586229ef9206cb2b87db2
+    durationMilliseconds: 5119
+    executedAt: "2026-07-22T10:14:40.037Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:fe4e883331e1de247c9301b99c71d53c6c2d393be59a513427ea8de173b1e14f
+    durationMilliseconds: 5372
+    executedAt: "2026-07-22T10:14:45.415Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a43f9e6457f7bde697924b5f774a86887a57cb2bbbb9df5d4c8f63122eea68e3
+    durationMilliseconds: 174932
+    executedAt: "2026-07-22T10:17:40.352Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added unit and integration coverage for automatic Registry synchronization, task-lock ordering, failure atomicity, and pull-request detection; no tests disabled and coverage not decreased.
