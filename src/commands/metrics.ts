@@ -7,6 +7,7 @@ import { readProfile } from "./profile.js";
 import { readGithubActionsHistory, type GithubActionsHistory } from "../core/github-actions.js";
 import { isCheckReceipt, type CheckReceipt } from "../core/check-receipt.js";
 import { gitCommonDir } from "../core/required-check-run.js";
+import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycleEvent, type FinishLifecycleReceipt } from "../core/finish-lifecycle.js";
 
 const GOVERNANCE_DIRS = [
   "contracts/tasks",
@@ -56,6 +57,36 @@ export type LocalRequiredChecksSummary = {
   source: "git-common-dir-check-receipts";
   reason: string;
 };
+
+export type LocalLifecycleSummary = {
+  status: "available";
+  source: "git-common-dir-finish-lifecycle";
+  receiptCount: number;
+  invalidReceiptCount: number;
+  eventCount: number;
+  taskTrend: {
+    limit: 20;
+    totalCount: number;
+    truncated: boolean;
+    items: Array<{
+      taskId: string;
+      latestEndedAt: string;
+      finishAttemptCount: number;
+      preflightAttemptCount: number;
+      fullAttemptCount: number;
+      successfulCount: number;
+      blockedCount: number;
+      failedCount: number;
+      convergenceMilliseconds: number | null;
+      verifiedMetadataAncestryCount: number | null;
+      historyTruncated: boolean;
+    }>;
+  };
+} | {
+  status: "unavailable";
+  source: "git-common-dir-finish-lifecycle";
+  reason: string;
+};
 type FileMeasurement = Bucket & {
   activeFiles: number;
   activeBytes: number;
@@ -75,6 +106,7 @@ export type GovernanceCostSummary = {
     activeArchive: string;
     ratios: string;
     localRequiredChecks: string;
+    localLifecycle: string;
     hardLimitEnforced: false;
   };
   categories: Record<string, FileMeasurement>;
@@ -88,6 +120,7 @@ export type GovernanceCostSummary = {
   };
   historicalCi: GithubActionsHistory;
   localRequiredChecks: LocalRequiredChecksSummary;
+  localLifecycle: LocalLifecycleSummary;
   unmeasured: string[];
 };
 
@@ -267,6 +300,84 @@ export function buildLocalRequiredChecksSummary(root: string): LocalRequiredChec
   };
 }
 
+function lifecycleClassification(event: FinishLifecycleEvent): "successful" | "blocked" | "failed" {
+  if (event.exitCode === 0 && (event.outcome === "ready" || event.outcome === "completed")) return "successful";
+  if (event.outcome === "readiness-blocked" || event.outcome === "awaiting-human-approval") return "blocked";
+  return "failed";
+}
+
+function convergenceMilliseconds(receipt: FinishLifecycleReceipt): number | null {
+  if (receipt.historyTruncated) return null;
+  const fullEvents = receipt.events.filter((event) => event.runMode === "full");
+  const first = fullEvents[0];
+  const completed = fullEvents.find((event) => event.exitCode === 0 && event.outcome === "completed");
+  if (!first || !completed) return null;
+  const started = Date.parse(first.startedAt);
+  const ended = Date.parse(completed.endedAt);
+  return Number.isFinite(started) && Number.isFinite(ended) && ended >= started ? ended - started : null;
+}
+
+export function buildLocalLifecycleSummary(root: string): LocalLifecycleSummary {
+  let directory: string;
+  try {
+    directory = finishLifecycleDirectory(root);
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-finish-lifecycle", reason: error instanceof Error ? error.message.trim() : String(error) };
+  }
+  const receipts: FinishLifecycleReceipt[] = [];
+  let invalidReceiptCount = 0;
+  try {
+    if (existsSync(directory)) {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+        try {
+          const value: unknown = JSON.parse(readFileSync(path.join(directory, entry.name), "utf8"));
+          if (isFinishLifecycleReceipt(value) && entry.name === `${encodeURIComponent(value.taskId)}.json`) receipts.push(value);
+          else invalidReceiptCount += 1;
+        } catch {
+          invalidReceiptCount += 1;
+        }
+      }
+    }
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-finish-lifecycle", reason: error instanceof Error ? error.message : String(error) };
+  }
+  const trend = receipts
+    .map((receipt) => {
+      const classifications = receipt.events.map(lifecycleClassification);
+      const ancestry = receipt.events.flatMap((event) =>
+        event.verifiedMetadataAncestryCount === null ? [] : [event.verifiedMetadataAncestryCount]
+      );
+      return {
+        taskId: receipt.taskId,
+        latestEndedAt: receipt.events.at(-1)?.endedAt ?? "",
+        finishAttemptCount: receipt.events.length,
+        preflightAttemptCount: receipt.events.filter((event) => event.runMode === "preflight").length,
+        fullAttemptCount: receipt.events.filter((event) => event.runMode === "full").length,
+        successfulCount: classifications.filter((value) => value === "successful").length,
+        blockedCount: classifications.filter((value) => value === "blocked").length,
+        failedCount: classifications.filter((value) => value === "failed").length,
+        convergenceMilliseconds: convergenceMilliseconds(receipt),
+        verifiedMetadataAncestryCount: ancestry.length === 0 ? null : Math.max(...ancestry),
+        historyTruncated: receipt.historyTruncated
+      };
+    })
+    .sort((left, right) => right.latestEndedAt.localeCompare(left.latestEndedAt) || left.taskId.localeCompare(right.taskId));
+  return {
+    status: "available",
+    source: "git-common-dir-finish-lifecycle",
+    receiptCount: receipts.length,
+    invalidReceiptCount,
+    eventCount: receipts.reduce((sum, receipt) => sum + receipt.events.length, 0),
+    taskTrend: {
+      limit: 20,
+      totalCount: trend.length,
+      truncated: trend.length > 20,
+      items: trend.slice(0, 20)
+    }
+  };
+}
+
 export function buildGovernanceCostSummary(root: string, now = new Date()): GovernanceCostSummary {
   const categories: Record<string, FileMeasurement> = {};
   for (const directory of GOVERNANCE_DIRS) {
@@ -288,6 +399,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
   };
   const historicalCi = readGithubActionsHistory(root);
   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
+  const localLifecycle = buildLocalLifecycleSummary(root);
 
   return {
     schemaVersion: "1.0.0",
@@ -299,6 +411,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
       activeArchive: "active is the default; status: archived or an archive/archived directory is separated",
       ratios: "governance lines divided by src TypeScript lines or test TypeScript lines; null means zero denominator",
       localRequiredChecks: "current git-common-dir receipts only; latest successful canonical run per task, with missing legacy durations left unobserved",
+      localLifecycle: "bounded Task-local finish events from the current git common directory; missing history is not inferred as zero attempts",
       hardLimitEnforced: false
     },
     categories,
@@ -312,6 +425,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     },
     historicalCi,
     localRequiredChecks,
+    localLifecycle,
     unmeasured: [
       "finish attempts and metadata-only descendant count",
       "Human Gate wait time, publish-loop duration, and health warning delta",

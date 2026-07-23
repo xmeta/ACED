@@ -16,6 +16,7 @@ import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js"
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { printIssues } from "../core/report.js";
+import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
 
 export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
 export type FinishOutcome =
@@ -353,7 +354,10 @@ function finishOutput(input: Omit<FinishJsonOutput, "schemaVersion">): FinishJso
   return { schemaVersion: "1.0.0", ...input };
 }
 
+let finishLifecycleObserver: ((output: FinishJsonOutput) => void) | undefined;
+
 function emitJson(output: FinishJsonOutput, enabled: boolean): void {
+  finishLifecycleObserver?.(output);
   if (enabled) console.log(JSON.stringify(output, null, 2));
 }
 
@@ -394,7 +398,7 @@ function printHumanGate(approvalCommand: string, files: string[], diffHash: stri
   console.log("Do not approve this task yourself.");
 }
 
-export function runFinish(root: string, options: FinishOptions = {}): number {
+function runFinishInternal(root: string, options: FinishOptions = {}): number {
   const json = options.json ?? false;
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
@@ -692,4 +696,41 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
     mutatedFiles, readinessWarnings: [], fixCommands: []
   }), json);
   return 0;
+}
+
+export function runFinish(root: string, options: FinishOptions = {}): number {
+  const startedAt = new Date();
+  const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+  let terminalOutput: FinishLifecycleTerminalOutput | undefined;
+  const previousObserver = finishLifecycleObserver;
+  finishLifecycleObserver = (output) => {
+    terminalOutput = {
+      phase: output.phase,
+      outcome: output.outcome,
+      mutatedFiles: output.mutatedFiles
+    };
+    previousObserver?.(output);
+  };
+  let exitCode = 1;
+  try {
+    exitCode = runFinishInternal(root, options);
+    return exitCode;
+  } catch (error) {
+    terminalOutput ??= { phase: "preflight", outcome: "unexpected-error", mutatedFiles: [] };
+    throw error;
+  } finally {
+    finishLifecycleObserver = previousObserver;
+    if (taskId && terminalOutput) {
+      try {
+        const endedAt = new Date();
+        recordFinishLifecycleEvent(
+          root,
+          taskId,
+          buildFinishLifecycleEvent(root, taskId, startedAt, endedAt, exitCode, terminalOutput, options.preflight ?? false)
+        );
+      } catch (error) {
+        console.error(`WARN finish lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
 }

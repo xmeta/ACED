@@ -47,7 +47,11 @@ npm run scwbs -- metrics governance --json
 
 GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。`taskPullRequests` は `pull_request` eventの `task/SCWBS-*` branchだけをtask ID別にまとめ、run、completed、success、failure、その他の完了、未完了、durationを最新更新順の最大20件で返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
 
-`localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。finish試行、metadata descendant、Human Gate wait、publish loop、health warning delta、warning budgetは未計測であり、hard limitは導入しない。
+`localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。
+
+`finish` はpreflight/fullのterminal outcomeごとに、git common dirのTask別 `scwbs-finish-lifecycle` receiptへ開始・終了・duration・phase・outcome・exit code・mutated file数・subject/head・検証済みmetadata ancestry数をatomicに記録する。tracked artifactやRegistryは増やさない。1 Taskは最新50 event、repositoryは最新100 Taskにbounded化される。
+
+`metrics governance --json` の `localLifecycle` はこのreceiptをread-onlyで集計し、source status、invalid receipt数、event数、最大20 Taskのattempt、successful/blocked/failed、収束時間、metadata-only descendant数を返す。履歴切捨て、未収束、subject不明、shallow history、壊れたreceipt、git common dir読取不能は `null` または `status: unavailable` とし、0へ推測しない。Human Gate wait、publish loop、health warning delta、warning budgetは引き続き未計測であり、hard limitは導入しない。
 
 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。未計測項目はJSONへ明示し、hard limitやprofile downgradeは行わない。
 
