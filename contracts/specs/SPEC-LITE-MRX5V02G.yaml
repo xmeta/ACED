@@ -1,0 +1,21 @@
+id: SPEC-LITE-MRX5V02G
+type: spec-contract
+featureId: F-MRX5V02G
+title: "Issue #177: statusへ完了信頼度を統合する"
+status: approved
+version: 0.1.0
+summary: "WBS lifecycleとは別にTask Evidenceの再検証可能性をhealthと共通判定で要約する"
+approvedBy: user-requested-baseline-continuation
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - statusの既存WBS status、Evidence Missing、Blocking Relations出力を維持しTask completion trust summaryを追加する
+  - archivedまたはcompletedのTask index entryだけを完了Task母集団としcancelledは除外する
+  - trustはverified、degraded、unverifiable、not-evaluatedを区別する
+  - required check欠落または非passed、Evidence subject欠落または到達不能、Human Gate approval不整合はunverifiableとする
+  - verifiable source metadata不足など補助metadataの低信頼はdegradedとする
+  - shallow cloneでcommit到達性だけが評価不能な場合はnot-evaluatedとし、確定的な欠落や不整合を隠さない
+  - Evidence trustとHuman Gate scopeはhealthと共通の判定関数を利用する
+  - status --jsonはversion scwbs.status.v1、repository評価状態、WBS status、completion trust summaryを返す
+  - status --strictはdegradedまたはunverifiableが1件以上なら非0、not-evaluatedだけの場合もfail-closedで非0を返す
+  - JSONとtextはTask ID一覧を既定で展開せず件数だけを返してboundedに保つ
+  - WBS、Evidence、Approval、Review、Task lifecycleの正本や意味は変更しない

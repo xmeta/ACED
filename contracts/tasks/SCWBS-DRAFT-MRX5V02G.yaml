@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MRX5V02G
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX5V02G
+branchName: codex/SCWBS-DRAFT-MRX5V02G-issue-177-status-completion-trust
+allowedPaths:
+  - src/commands/status.ts
+  - src/commands/health.ts
+  - src/cli.ts
+  - tests/integration/status.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/status.schema.json
+  - README.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - WBS lifecycle statusとTask completion trustを別軸で表示する
+  - Evidenceの存在だけでverifiedにせずrequired checks、subject provenance、Human Approval scopeを評価する
+  - shallow cloneの未評価と真正なunverifiableを区別する
+  - healthと同じEvidence/Human Gate trust判定を共有し結果を矛盾させない
+  - status --jsonはversioned schemaとboundedなsummaryを返す
+  - status --strictはdegradedまたはunverifiableな完了Taskがあれば非0を返す
+  - missing Evidence、missing/failed required check、approval mismatch、low-trust check、shallow cloneを回帰テストする
+  - READMEとCLI referenceでcompleted lifecycleとverified trustの違いを説明する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/specs/SPEC-LITE-MRX5V02G.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX5V02G.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a0fcb51cf871d9e2c4399b648af63b3edba4b4ce055c6861145450735428a2a5
+  createdAt: "2026-07-23T07:00:27.921Z"
