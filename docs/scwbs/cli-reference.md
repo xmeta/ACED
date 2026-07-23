@@ -55,6 +55,8 @@ GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `hi
 
 JSON schema `1.1.0` では `humanGate`、`historicalPullRequests`、`healthLifecycle` を加法的に追加する。新規Approval requestは `requestedAt` を記録しapprove後も保持するが、legacy recordの待ち時間は `null` のまま扱う。PR履歴は1回のbounded GitHub一覧取得からTask branchの作成・merge時刻と最大20 Taskのpublish loopを返し、取得不能は `unavailable`、未mergeは `null` とする。`health` はactive Task別warning summaryをgit common dirへ最大50 event/Task・最大100 Taskで保存し、履歴切捨てがなく最初と最後を比較できる場合だけwarning deltaを返す。plain metrics outputは変更しない。
 
+`warningBudgets` は任意の `extensions.scwbs.governanceCost.warningBudgets.<Profile>` からprofile別の `governanceFiles`、`governanceLines`、`governanceToSourceLineRatio` をread-onlyで選択する。未設定は `not-configured`、completed Task 10件・観測済みHuman Gate 2件・full/metadata descendant各2件に不足する場合は `insufficient-baseline` とし、閾値を推測しない。baseline充足後の超過もwarning-onlyで、hard failureやprofile変更を行わない。`health --governance-cost` は明示指定時だけ同じstatusと最大3 warningを追加し、budget warningだけではexit codeを変更しない。
+
 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。未計測項目はJSONへ明示し、hard limitやprofile downgradeは行わない。
 
 ## AI Workflow
