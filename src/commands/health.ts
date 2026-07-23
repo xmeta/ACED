@@ -8,6 +8,7 @@ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } fro
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
+import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -610,6 +611,14 @@ export function buildHealthText(root: string, issues = collectHealthIssues(root)
 
 export function runHealth(root: string, options: HealthOptions = {}): number {
   const issues = collectHealthIssues(root);
+  try {
+    for (const entry of listActiveTasks(root)) {
+      if (!entry.task) continue;
+      recordHealthLifecycleEvent(root, entry.task.id, buildHealthLifecycleEvent(collectTaskHealthIssues(root, entry.task.id)));
+    }
+  } catch (error) {
+    console.error(`WARN health lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
   if (options.json) console.log(JSON.stringify(buildHealthJsonOutput(root, issues), null, 2));
   else process.stdout.write(buildHealthText(root, issues, options));
   return hasErrors(issues) ? 1 : 0;

@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MRX4AQKB
+type: evidence
+taskId: SCWBS-DRAFT-MRX4AQKB
+commit: c454b125062dbd41123622a968bf48ea658d6532
+subjectHeadCommit: c454b125062dbd41123622a968bf48ea658d6532
+diffHash: sha256:0950b83d86b6f841ebab086d03b913c4d85a69eb6445b4f911c8619e77db6467
+git:
+  branch: codex/SCWBS-DRAFT-MRX4AQKB-issue-179-gate-publish-health
+  base: origin/main
+  baseCommit: 8783a08105c407fe1d4f3ecb419fd20e168074d3
+  changedFilesBasis: branch-diff
+  pullRequest: "283"
+  subjectHeadCommit: c454b125062dbd41123622a968bf48ea658d6532
+  diffHash: sha256:0950b83d86b6f841ebab086d03b913c4d85a69eb6445b4f911c8619e77db6467
+  headCommit: c454b125062dbd41123622a968bf48ea658d6532
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX4AQKB.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/approval-request.ts
+  - src/commands/health.ts
+  - src/commands/metrics.ts
+  - src/core/github-pull-requests.ts
+  - src/core/health-lifecycle.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/issue-179-observability.test.ts
+  - tests/integration/metrics.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:9c06fd01ede1a39ddd743ed7d39196f21b472b3254a9054ff6e7167505437fd4
+    durationMilliseconds: 3202
+    executedAt: "2026-07-23T06:23:31.852Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b9cc1b7e13eeb82115e75bce158d2564a9ff22143538a851fc5d956247fbe241
+    durationMilliseconds: 151956
+    executedAt: "2026-07-23T06:26:03.812Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:dfd1c938f2cb7d8ff90a1b463d2da1daea1daf63af01347db45d112dd5383595
+    durationMilliseconds: 3188
+    executedAt: "2026-07-23T06:26:07.008Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b38bd607f24da30c5e55d3585daa8ad515924353b774b8b0cf74ee98c5b38a5f
+    durationMilliseconds: 3405
+    executedAt: "2026-07-23T06:26:10.418Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added coverage for Approval requestedAt compatibility, bounded PR publish loops, health receipt corruption and 50-event/100-Task retention, warning delta, and schema 1.1.0.

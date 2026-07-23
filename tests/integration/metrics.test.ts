@@ -71,7 +71,7 @@ describe("governance metrics", () => {
     expect(summary.localRequiredChecks).toMatchObject({ status: "available", receiptCount: 0, observedCheckCount: 0 });
     if (summary.localRequiredChecks.status !== "available") throw new Error(summary.localRequiredChecks.reason);
     expect(summary.localRequiredChecks.durationMilliseconds).toEqual({ total: null, average: null, minimum: null, maximum: null });
-    expect(summary.unmeasured).toContain("finish attempts and metadata-only descendant count");
+    expect(summary.unmeasured).toEqual(["warning budgets and hard enforcement"]);
     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
   });
 
@@ -179,7 +179,7 @@ describe("governance metrics", () => {
     expect(output.result).toBe(0);
     const summary = JSON.parse(output.stdout);
     expect(summary).toMatchObject({
-      schemaVersion: "1.0.0",
+      schemaVersion: "1.1.0",
       metric: "governance-cost",
       definitions: { hardLimitEnforced: false }
     });

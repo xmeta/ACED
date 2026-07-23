@@ -1,0 +1,20 @@
+id: SPEC-LITE-MRX4AQKB
+type: spec-contract
+featureId: F-MRX4AQKB
+title: "Issue #179: Human Gate・publish・health観測を追加する"
+status: approved
+version: 0.1.0
+summary: "Approval待ち時間、Task PR publish loop、health warning deltaをboundedかつfail-openに観測する"
+approvedBy: user-requested-issue-179
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - 新規Approval requestはrequestedAtをISO timestampで保持し、human/delegated approveは既存requestedAtを保持する
+  - requestedAtのないlegacy Approvalは有効なrecordとして扱い、Human Gate wait durationをnullまたは未観測とし0へ推測しない
+  - GitHub PR取得は1 invocationあたりboundedな一覧取得1回だけとし、Task branchからTask ID、createdAt、mergedAt、publish-loop durationを集計する
+  - historicalPullRequestsはavailable/unavailable、取得上限、取得件数、最大20 Task trendを返し、取得不能や未mergeを0 durationへ変換しない
+  - health実行ごとにactive Task別warning countとcode summaryをgit common dirへatomic保存し、1 Task最大50 event・repository最大100 Taskとする
+  - health warning deltaは履歴切捨てがなく同一Taskの最初と最後を比較できる場合だけ返し、それ以外はnullとする
+  - metrics governance --json schemaVersionを1.1.0へ上げ、localLifecycle等の既存フィールドを保持したままhumanGate、historicalPullRequests、healthLifecycleを加法的に追加する
+  - plain metrics outputは5行以内かつ既存意味を維持し、Task trendは各source最大20件とする
+  - Approval/PR/healthのsource不明、壊れたreceipt、git common dir不能はunavailableまたはnullとし0へ推測しない
+  - warning budget、WBS extension、閾値採用、active/archive metrics classifier補正はこのTaskに含めない

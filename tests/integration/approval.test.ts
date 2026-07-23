@@ -35,8 +35,8 @@ describe("approval", () => {
 
     expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#42", note: "Awaiting human review", force: false })).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
-    expect(actual).toBe(buildApprovalRequestYaml("WBS-001-004", { pullRequest: "#42", note: "Awaiting human review" }));
     expect(actual).toContain("status: requested");
+    expect(actual).toContain("requestedAt:");
     expect(actual).toContain('pullRequest: "#42"');
   });
 
@@ -87,6 +87,17 @@ describe("approval", () => {
     expect(actual).toContain("diffHash: diff1234");
     expect(actual).toContain('pullRequest: "#42"');
     expect(actual).toContain("reason: Evidence and PR reviewed");
+  });
+
+  test("approval approve preserves request time while legacy approval remains unobserved", () => {
+    const requestedAt = "2026-07-23T00:00:00.000Z";
+    expect(buildApprovalApproveYaml("WBS-001-004", {
+      requestedAt,
+      approvedAt: "2026-07-23T00:01:00.000Z"
+    })).toContain(`requestedAt: "${requestedAt}"`);
+    expect(buildApprovalApproveYaml("WBS-001-004", {
+      approvedAt: "2026-07-23T00:01:00.000Z"
+    })).not.toContain("requestedAt:");
   });
 
   test("approval approve rejects AI execution mode", () => {
