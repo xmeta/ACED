@@ -150,6 +150,7 @@ const approvalRecordSchema = {
     type: { const: "approval" },
     taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     status: { type: "string", enum: ["requested", "approved", "rejected"] },
+    requestedAt: { type: "string" },
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
     headCommit: { type: "string" },
@@ -348,7 +349,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }

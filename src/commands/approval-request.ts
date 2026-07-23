@@ -7,27 +7,29 @@ import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
 import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
 
-export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string }): ApprovalRecord {
+export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
   return {
     id: `APR-${taskId}`,
     type: "approval",
     taskId,
     status: "requested",
+    requestedAt: options.requestedAt ?? new Date().toISOString(),
     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
     ...(options.note ? { notes: [options.note] } : {})
   };
 }
 
-export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string }): string {
+export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): string {
   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
   return {
     id: `APR-${taskId}`,
     type: "approval",
     taskId,
     status: "approved",
+    ...(options.requestedAt ? { requestedAt: options.requestedAt } : {}),
     approvedBy: options.approvedBy ?? "human",
     approvedAt: options.approvedAt ?? new Date().toISOString(),
     approvalMode: options.approvalMode ?? "human",
@@ -150,6 +152,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     }
 
     const yaml = buildApprovalApproveYaml(taskId, {
+      requestedAt: approval?.requestedAt,
       pullRequest: options.pullRequest ?? approval?.pullRequest,
       reason: options.reason,
       ...approvalExecution,

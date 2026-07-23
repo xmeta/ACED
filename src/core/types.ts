@@ -257,6 +257,7 @@ export type ApprovalRecord = {
   type: "approval";
   taskId: string;
   status: ApprovalStatus;
+  requestedAt?: string;
   approvedBy?: string;
   approvedAt?: string;
   headCommit?: string;

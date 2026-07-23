@@ -8,6 +8,9 @@ import { readGithubActionsHistory, type GithubActionsHistory } from "../core/git
 import { isCheckReceipt, type CheckReceipt } from "../core/check-receipt.js";
 import { gitCommonDir } from "../core/required-check-run.js";
 import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycleEvent, type FinishLifecycleReceipt } from "../core/finish-lifecycle.js";
+import { readHistoricalPullRequests, type HistoricalPullRequests } from "../core/github-pull-requests.js";
+import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycleReceipt } from "../core/health-lifecycle.js";
+import { listApprovals } from "../core/contracts.js";
 
 const GOVERNANCE_DIRS = [
   "contracts/tasks",
@@ -87,6 +90,54 @@ export type LocalLifecycleSummary = {
   source: "git-common-dir-finish-lifecycle";
   reason: string;
 };
+
+export type HumanGateSummary = {
+  status: "available";
+  source: "approval-records";
+  recordCount: number;
+  invalidRecordCount: number;
+  observedRequestCount: number;
+  observedCompletedCount: number;
+  legacyUnobservedCount: number;
+  taskTrend: {
+    limit: 20;
+    totalCount: number;
+    truncated: boolean;
+    items: Array<{
+      taskId: string;
+      status: string;
+      requestedAt: string | null;
+      approvedAt: string | null;
+      waitingMilliseconds: number | null;
+    }>;
+  };
+};
+
+export type HealthLifecycleSummary = {
+  status: "available";
+  source: "git-common-dir-health-lifecycle";
+  receiptCount: number;
+  invalidReceiptCount: number;
+  eventCount: number;
+  taskTrend: {
+    limit: 20;
+    totalCount: number;
+    truncated: boolean;
+    items: Array<{
+      taskId: string;
+      latestObservedAt: string;
+      observationCount: number;
+      firstWarningCount: number | null;
+      latestWarningCount: number | null;
+      warningDelta: number | null;
+      historyTruncated: boolean;
+    }>;
+  };
+} | {
+  status: "unavailable";
+  source: "git-common-dir-health-lifecycle";
+  reason: string;
+};
 type FileMeasurement = Bucket & {
   activeFiles: number;
   activeBytes: number;
@@ -97,7 +148,7 @@ type FileMeasurement = Bucket & {
 };
 
 export type GovernanceCostSummary = {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.1.0";
   metric: "governance-cost";
   generatedAt: string;
   profile: Profile;
@@ -107,6 +158,9 @@ export type GovernanceCostSummary = {
     ratios: string;
     localRequiredChecks: string;
     localLifecycle: string;
+    humanGate: string;
+    historicalPullRequests: string;
+    healthLifecycle: string;
     hardLimitEnforced: false;
   };
   categories: Record<string, FileMeasurement>;
@@ -121,6 +175,9 @@ export type GovernanceCostSummary = {
   historicalCi: GithubActionsHistory;
   localRequiredChecks: LocalRequiredChecksSummary;
   localLifecycle: LocalLifecycleSummary;
+  humanGate: HumanGateSummary;
+  historicalPullRequests: HistoricalPullRequests;
+  healthLifecycle: HealthLifecycleSummary;
   unmeasured: string[];
 };
 
@@ -378,6 +435,84 @@ export function buildLocalLifecycleSummary(root: string): LocalLifecycleSummary 
   };
 }
 
+export function buildHumanGateSummary(root: string): HumanGateSummary {
+  const entries = listApprovals(root);
+  const approvals = entries.flatMap((entry) => entry.approval ? [entry.approval] : []);
+  const items = approvals.map((approval) => {
+    const requested = approval.requestedAt ? Date.parse(approval.requestedAt) : Number.NaN;
+    const approved = approval.approvedAt ? Date.parse(approval.approvedAt) : Number.NaN;
+    return {
+      taskId: approval.taskId,
+      status: approval.status,
+      requestedAt: approval.requestedAt ?? null,
+      approvedAt: approval.approvedAt ?? null,
+      waitingMilliseconds: Number.isFinite(requested) && Number.isFinite(approved) && approved >= requested ? approved - requested : null
+    };
+  }).sort((left, right) =>
+    (right.requestedAt ?? right.approvedAt ?? "").localeCompare(left.requestedAt ?? left.approvedAt ?? "")
+    || left.taskId.localeCompare(right.taskId)
+  );
+  return {
+    status: "available",
+    source: "approval-records",
+    recordCount: approvals.length,
+    invalidRecordCount: entries.length - approvals.length,
+    observedRequestCount: approvals.filter((approval) => approval.requestedAt).length,
+    observedCompletedCount: items.filter((item) => item.waitingMilliseconds !== null).length,
+    legacyUnobservedCount: approvals.filter((approval) => !approval.requestedAt).length,
+    taskTrend: { limit: 20, totalCount: items.length, truncated: items.length > 20, items: items.slice(0, 20) }
+  };
+}
+
+export function buildHealthLifecycleSummary(root: string): HealthLifecycleSummary {
+  let directory: string;
+  try {
+    directory = healthLifecycleDirectory(root);
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-health-lifecycle", reason: error instanceof Error ? error.message : String(error) };
+  }
+  const receipts: HealthLifecycleReceipt[] = [];
+  let invalidReceiptCount = 0;
+  try {
+    if (existsSync(directory)) {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+        try {
+          const value: unknown = JSON.parse(readFileSync(path.join(directory, entry.name), "utf8"));
+          if (isHealthLifecycleReceipt(value) && entry.name === `${encodeURIComponent(value.taskId)}.json`) receipts.push(value);
+          else invalidReceiptCount += 1;
+        } catch {
+          invalidReceiptCount += 1;
+        }
+      }
+    }
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-health-lifecycle", reason: error instanceof Error ? error.message : String(error) };
+  }
+  const items = receipts.map((receipt) => {
+    const first = receipt.events[0];
+    const latest = receipt.events.at(-1);
+    const comparable = !receipt.historyTruncated && receipt.events.length >= 2 && first && latest;
+    return {
+      taskId: receipt.taskId,
+      latestObservedAt: latest?.observedAt ?? "",
+      observationCount: receipt.events.length,
+      firstWarningCount: first?.warningCount ?? null,
+      latestWarningCount: latest?.warningCount ?? null,
+      warningDelta: comparable ? latest.warningCount - first.warningCount : null,
+      historyTruncated: receipt.historyTruncated
+    };
+  }).sort((left, right) => right.latestObservedAt.localeCompare(left.latestObservedAt) || left.taskId.localeCompare(right.taskId));
+  return {
+    status: "available",
+    source: "git-common-dir-health-lifecycle",
+    receiptCount: receipts.length,
+    invalidReceiptCount,
+    eventCount: receipts.reduce((sum, receipt) => sum + receipt.events.length, 0),
+    taskTrend: { limit: 20, totalCount: items.length, truncated: items.length > 20, items: items.slice(0, 20) }
+  };
+}
+
 export function buildGovernanceCostSummary(root: string, now = new Date()): GovernanceCostSummary {
   const categories: Record<string, FileMeasurement> = {};
   for (const directory of GOVERNANCE_DIRS) {
@@ -400,9 +535,12 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
   const historicalCi = readGithubActionsHistory(root);
   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
   const localLifecycle = buildLocalLifecycleSummary(root);
+  const humanGate = buildHumanGateSummary(root);
+  const historicalPullRequests = readHistoricalPullRequests(root);
+  const healthLifecycle = buildHealthLifecycleSummary(root);
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     metric: "governance-cost",
     generatedAt: now.toISOString(),
     profile: readProfile(root),
@@ -412,6 +550,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
       ratios: "governance lines divided by src TypeScript lines or test TypeScript lines; null means zero denominator",
       localRequiredChecks: "current git-common-dir receipts only; latest successful canonical run per task, with missing legacy durations left unobserved",
       localLifecycle: "bounded Task-local finish events from the current git common directory; missing history is not inferred as zero attempts",
+      humanGate: "Approval requestedAt through approvedAt when both timestamps are observed; legacy records remain unobserved",
+      historicalPullRequests: "one bounded GitHub pull request list request; unmerged and unavailable durations remain null",
+      healthLifecycle: "bounded Task-local health warning summaries from the current git common directory; delta requires comparable first and last events",
       hardLimitEnforced: false
     },
     categories,
@@ -426,9 +567,10 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     historicalCi,
     localRequiredChecks,
     localLifecycle,
+    humanGate,
+    historicalPullRequests,
+    healthLifecycle,
     unmeasured: [
-      "finish attempts and metadata-only descendant count",
-      "Human Gate wait time, publish-loop duration, and health warning delta",
       "warning budgets and hard enforcement"
     ]
   };
