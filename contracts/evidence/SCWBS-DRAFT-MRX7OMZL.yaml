@@ -1,0 +1,63 @@
+id: EVD-SCWBS-DRAFT-MRX7OMZL
+type: evidence
+taskId: SCWBS-DRAFT-MRX7OMZL
+commit: 24dedfc996dbee925423b5f0a6bfae3291539abb
+subjectHeadCommit: 24dedfc996dbee925423b5f0a6bfae3291539abb
+diffHash: sha256:e97f2b5a2869b990f17474c8d9ceea7b6da2ca850ea0c0809732bd48c9eb4478
+git:
+  branch: codex/SCWBS-DRAFT-MRX7OMZL-issue-247-test-typecheck
+  base: origin/main
+  baseCommit: 443174a2d8861cdd9d15d204259a4b1ef8c7d8b3
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 24dedfc996dbee925423b5f0a6bfae3291539abb
+  diffHash: sha256:e97f2b5a2869b990f17474c8d9ceea7b6da2ca850ea0c0809732bd48c9eb4478
+  headCommit: 24dedfc996dbee925423b5f0a6bfae3291539abb
+changedFiles:
+  - README.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX7OMZL.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/tasks/index.yaml
+  - package.json
+  - scripts/tsconfig.json
+  - tests/integration/approval-delegation.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/integration-test-output.test.ts
+  - tests/unit/integration-test-run.test.ts
+  - tests/unit/typecheck-config.test.ts
+  - tsconfig.tests.json
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:03d38dfae10844f833b82b2a65ae1e78b449ba189fccbd535875837e2f5d94a2
+    durationMilliseconds: 3051
+    executedAt: "2026-07-23T08:02:24.444Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:612dddb8f5d8f3cdd5695d300d7db879fd0c00d89a302a9abd8dd421bd567f25
+    durationMilliseconds: 144029
+    executedAt: "2026-07-23T08:04:48.478Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7cac4767d43bdb548425742fb94e7a325c4c8621c304ca63e0fe04e8422788d9
+    durationMilliseconds: 7948
+    executedAt: "2026-07-23T08:04:56.430Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:8ae098bc3f2da68e393ee38022fa1170b2f2de71708a4e22e9c3729fa30e2bfe
+    durationMilliseconds: 3761
+    executedAt: "2026-07-23T08:05:00.195Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added three configuration assertions; enabled compiler coverage for all test TypeScript and checkJs for scripts without disabling tests or reducing coverage.
