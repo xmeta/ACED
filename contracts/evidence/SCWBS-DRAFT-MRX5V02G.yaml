@@ -1,0 +1,61 @@
+id: EVD-SCWBS-DRAFT-MRX5V02G
+type: evidence
+taskId: SCWBS-DRAFT-MRX5V02G
+commit: c3a6dff6fd6b09857abcc537e194d41e2523a4f1
+subjectHeadCommit: c3a6dff6fd6b09857abcc537e194d41e2523a4f1
+diffHash: sha256:ca0b0dd190ab8ea0ab01c9985b18aa367339fffcc10166fc8283e62456140750
+git:
+  branch: codex/SCWBS-DRAFT-MRX5V02G-issue-177-status-completion-trust
+  base: origin/main
+  baseCommit: fc742c06e6e5c81ee62db8ca34d650455581ea12
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: c3a6dff6fd6b09857abcc537e194d41e2523a4f1
+  diffHash: sha256:ca0b0dd190ab8ea0ab01c9985b18aa367339fffcc10166fc8283e62456140750
+  headCommit: c3a6dff6fd6b09857abcc537e194d41e2523a4f1
+changedFiles:
+  - README.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX5V02G.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/status.schema.json
+  - src/cli.ts
+  - src/commands/health.ts
+  - src/commands/status.ts
+  - tests/integration/status.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:a1aa99ea062358b47dcfe50084aa2252d9c28eb6f5f73b113d6ec8289250e596
+    durationMilliseconds: 3423
+    executedAt: "2026-07-23T07:13:42.158Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6f45782c25d22318d64f3f30403b034bd6a3b916b36ec4b36a96450bd84c42f9
+    durationMilliseconds: 150392
+    executedAt: "2026-07-23T07:16:12.554Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:35490d7bdcc1c8b2cf8dbb2964ad52b998b1322306522fa3fe9517491e1c5cc6
+    durationMilliseconds: 3494
+    executedAt: "2026-07-23T07:16:16.051Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:eb4eb321b7a77430872437cb3c3e5fdaa57ab0e4dc62dae7d81922f7a2cc565b
+    durationMilliseconds: 3302
+    executedAt: "2026-07-23T07:16:19.357Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added completion trust coverage for verified, degraded, unverifiable, shallow not-evaluated, strict exit, JSON schema, and Human Gate mismatch cases.
