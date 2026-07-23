@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MRX7OMZL
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX7OMZL
+branchName: codex/SCWBS-DRAFT-MRX7OMZL-issue-247-test-typecheck
+allowedPaths:
+  - package.json
+  - tsconfig.tests.json
+  - scripts/tsconfig.json
+  - tests/integration/approval-delegation.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/integration-test-output.test.ts
+  - tests/unit/integration-test-run.test.ts
+  - tests/unit/typecheck-config.test.ts
+  - README.md
+forbiddenPaths:
+  - wjs/**
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - npm run typecheckがsrcとtestsのTypeScriptを両方検査する
+  - scriptsのJavaScriptも型検査可能な範囲を明示し、未検査領域を隠さない
+  - production buildのrootDirと出力内容を変更しない
+  - test用tsconfigは既存設定を継承しnoEmitで動作する
+  - 意図的なテストfixture以外の型エラーを修正し、型抑制は理由を限定する
+  - canonical test、integration、typecheck、buildが成功する
+  - package.json変更をHuman Gate対象としてrequestし、AIは承認しない
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/specs/SPEC-LITE-MRX7OMZL.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX7OMZL.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:397ac7f10c75f93605efa6b619adb6ca5b78975efd02611bb212f70b66c050ec
+  createdAt: "2026-07-23T07:51:50.481Z"
