@@ -200,6 +200,13 @@ npm run scwbs -- finish --task <task-id>
 npm run scwbs -- registry rebuild --check
 ```
 
+`npm run typecheck` runs three checks in sequence: production TypeScript,
+test TypeScript, and the dependency-free JavaScript runners in `scripts/`.
+The production build continues to use `tsconfig.json`. Test code uses
+`tsconfig.tests.json` with no output, while scripts use `scripts/tsconfig.json`
+with `checkJs`; implicit JavaScript parameter types remain a documented
+migration boundary, but other inferred type errors are checked.
+
 For a walkthrough with decision points, use
 `docs/scwbs/getting-started.md`.
 

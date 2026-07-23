@@ -3,11 +3,8 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-// @ts-expect-error The production output controller is intentionally dependency-free ESM.
 import { FAILURE_LIMIT, formatFailureDiagnostics, parseArgs } from "../../scripts/integration-test-output.mjs";
-// @ts-expect-error The production runner is intentionally dependency-free ESM.
 import { formatSummary, formatTempDiagnostic, normalizeReport } from "../../scripts/integration-test-run.mjs";
-// @ts-expect-error The production lock helper is intentionally dependency-free ESM.
 import {
   acquireIntegrationRun,
   integrationLockPath,

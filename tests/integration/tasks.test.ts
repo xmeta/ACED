@@ -11,9 +11,13 @@ import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
 import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh, taskRefreshReasons } from "../../src/commands/task-refresh.js";
 import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
 import { buildNextTask } from "../../src/commands/ai-queue.js";
-import { validateJsonWithSchema } from "../../wjs/tools/validate.js";
 import { main } from "../../src/cli.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+
+const wjsValidatorModule = "../../wjs/tools/validate.js";
+const { validateJsonWithSchema } = await import(wjsValidatorModule) as {
+  validateJsonWithSchema(document: unknown, kind: "wbs" | "operations"): string[];
+};
 
 describe("task management", () => {
   test("check errors when contract lock wbs node id is stale", () => {
