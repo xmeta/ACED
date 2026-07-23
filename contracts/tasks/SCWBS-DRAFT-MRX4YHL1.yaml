@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MRX4YHL1
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX4YHL1
+branchName: codex/SCWBS-DRAFT-MRX4YHL1-issue-179-warning-budget
+allowedPaths:
+  - src/core/governance-warning-budget.ts
+  - src/commands/metrics.ts
+  - src/commands/health.ts
+  - src/cli.ts
+  - tests/integration/governance-warning-budget.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/metrics.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - completed Task 10件、Human Gate 2件、execution class各2件の観測条件を評価し不足時はinsufficient-baselineを返す
+  - profile別任意budgetをextensions.scwbs.governanceCost.warningBudgetsからread-onlyで選択する
+  - Standard未設定の現行ACEDはnot-configuredまたはinsufficient-baselineを明示し閾値を自動採用しない
+  - metrics governanceと明示指定health --governance-costはbudget超過をwarning-onlyで表示する
+  - budget warningはCI failure、profile downgrade、required check省略、Human Gate緩和を起こさない
+  - Lean/Standard/Strictのfixture、baseline不足、未設定、warning-only exit codeを検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/specs/SPEC-LITE-MRX4YHL1.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX4YHL1.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:57c53964e0e229ed9bf3ed4de4fd2804e14068e1244280ffb93d9ab8173e55ad
+  createdAt: "2026-07-23T06:34:46.845Z"

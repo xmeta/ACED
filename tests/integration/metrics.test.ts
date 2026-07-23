@@ -71,7 +71,8 @@ describe("governance metrics", () => {
     expect(summary.localRequiredChecks).toMatchObject({ status: "available", receiptCount: 0, observedCheckCount: 0 });
     if (summary.localRequiredChecks.status !== "available") throw new Error(summary.localRequiredChecks.reason);
     expect(summary.localRequiredChecks.durationMilliseconds).toEqual({ total: null, average: null, minimum: null, maximum: null });
-    expect(summary.unmeasured).toEqual(["warning budgets and hard enforcement"]);
+    expect(summary.warningBudgets).toMatchObject({ status: "not-configured", profile: "Strict", warnings: [] });
+    expect(summary.unmeasured).toEqual(["hard enforcement"]);
     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
   });
 

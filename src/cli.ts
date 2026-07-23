@@ -163,7 +163,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Check repository health")
     .option("--json", "output a versioned JSON report")
     .option("--verbose", "show every health issue")
-    .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false }); });
+    .option("--governance-cost", "include warning-only governance cost budget status")
+    .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false, governanceCost: opts.governanceCost ?? false }); });
 
   const metrics = program.command("metrics");
   metrics

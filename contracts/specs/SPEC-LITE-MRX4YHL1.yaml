@@ -1,0 +1,19 @@
+id: SPEC-LITE-MRX4YHL1
+type: spec-contract
+featureId: F-MRX4YHL1
+title: "Issue #179: baseline評価とwarning budget配線を追加する"
+status: approved
+version: 0.1.0
+summary: "観測不足をfail-closedに明示し、人間が設定したprofile別budgetだけをwarning-onlyで評価する"
+approvedBy: user-requested-issue-179
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - baselineはcompleted full finishを最低10 Task、requestedAtとapprovedAtを持つHuman Gateを最低2 Task要求する
+  - execution classはfull実装subjectとmetadata descendantを各最低2 Task要求し、満たさなければinsufficient-baselineとする
+  - profile別budgetはWBS任意extension extensions.scwbs.governanceCost.warningBudgets.<Profile>からread-onlyで選択する
+  - budget未設定はnot-configured、値が不正ならnot-configured理由付き、baseline不足はinsufficient-baselineを返す
+  - budget数値をコードやACED WBSへ自動採用せず、Lean/Standard/Strict選択はfixtureで検証する
+  - metrics governance JSONへwarningBudgetsを追加し、plain outputは5行以内を維持する
+  - health --governance-costは明示指定時だけbudget warningを追加し、budget超過だけではexit codeを非0にしない
+  - warningはgovernance files、lines、governance/source line ratioの任意閾値を超えた項目だけをboundedに返す
+  - CI failure、profile downgrade、required check省略、Human Gate緩和、WBS変更は行わない

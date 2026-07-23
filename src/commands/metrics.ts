@@ -11,6 +11,8 @@ import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycl
 import { readHistoricalPullRequests, type HistoricalPullRequests } from "../core/github-pull-requests.js";
 import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycleReceipt } from "../core/health-lifecycle.js";
 import { listApprovals } from "../core/contracts.js";
+import { evaluateGovernanceWarningBudgets, type GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
+import { readWbs } from "../core/wbs.js";
 
 const GOVERNANCE_DIRS = [
   "contracts/tasks",
@@ -178,6 +180,7 @@ export type GovernanceCostSummary = {
   humanGate: HumanGateSummary;
   historicalPullRequests: HistoricalPullRequests;
   healthLifecycle: HealthLifecycleSummary;
+  warningBudgets: GovernanceWarningBudgets;
   unmeasured: string[];
 };
 
@@ -532,18 +535,35 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     Standard: profileBucket(root, "Standard", categories),
     Strict: profileBucket(root, "Strict", categories)
   };
+  const profile = readProfile(root);
   const historicalCi = readGithubActionsHistory(root);
   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
   const localLifecycle = buildLocalLifecycleSummary(root);
   const humanGate = buildHumanGateSummary(root);
   const historicalPullRequests = readHistoricalPullRequests(root);
   const healthLifecycle = buildHealthLifecycleSummary(root);
+  const lifecycleItems = localLifecycle.status === "available" ? localLifecycle.taskTrend.items : [];
+  const warningBudgets = evaluateGovernanceWarningBudgets(readWbs(root), profile, {
+    completedTaskCount: lifecycleItems.filter((item) => item.fullAttemptCount > 0 && item.successfulCount > 0).length,
+    minimumCompletedTaskCount: 10,
+    observedHumanGateCount: humanGate.observedCompletedCount,
+    minimumObservedHumanGateCount: 2,
+    executionClasses: {
+      full: lifecycleItems.filter((item) => item.fullAttemptCount > 0 && item.successfulCount > 0).length,
+      metadataDescendant: lifecycleItems.filter((item) => (item.verifiedMetadataAncestryCount ?? 0) > 0).length,
+      minimumEach: 2
+    }
+  }, {
+    governanceFiles: governance.files,
+    governanceLines: governance.lines,
+    governanceToSourceLineRatio: ratio(governance.lines, source.lines)
+  });
 
   return {
     schemaVersion: "1.1.0",
     metric: "governance-cost",
     generatedAt: now.toISOString(),
-    profile: readProfile(root),
+    profile,
     definitions: {
       lineCount: "UTF-8 newline count, plus one for a non-empty file without a trailing newline",
       activeArchive: "active is the default; status: archived or an archive/archived directory is separated",
@@ -570,8 +590,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     humanGate,
     historicalPullRequests,
     healthLifecycle,
+    warningBudgets,
     unmeasured: [
-      "warning budgets and hard enforcement"
+      "hard enforcement"
     ]
   };
 }
@@ -587,7 +608,7 @@ export function runMetricsGovernance(root: string, options: MetricsOptions = {})
     console.log(`- governance: ${summary.totals.governance.files} files, ${summary.totals.governance.lines} lines, ${summary.totals.governance.bytes} bytes`);
     console.log(`- source: ${summary.totals.source.files} files, ${summary.totals.source.lines} lines`);
     console.log(`- tests: ${summary.totals.tests.files} files, ${summary.totals.tests.lines} lines`);
-    console.log(`- hard limit: not enforced; unmeasured dimensions: ${summary.unmeasured.length}`);
+    console.log(`- hard limit: not enforced; warning budget: ${summary.warningBudgets.status}, warnings=${summary.warningBudgets.warnings.length}; unmeasured dimensions: ${summary.unmeasured.length}`);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

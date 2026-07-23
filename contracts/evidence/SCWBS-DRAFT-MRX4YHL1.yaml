@@ -1,0 +1,64 @@
+id: EVD-SCWBS-DRAFT-MRX4YHL1
+type: evidence
+taskId: SCWBS-DRAFT-MRX4YHL1
+commit: e7d46fc73a7e4963edf62135e78192d63fdba42a
+subjectHeadCommit: e7d46fc73a7e4963edf62135e78192d63fdba42a
+diffHash: sha256:57ec4cba0eda626e46326c1695e521a02c11dac600d36b7f8cb0a4776fcf4ec9
+git:
+  branch: codex/SCWBS-DRAFT-MRX4YHL1-issue-179-warning-budget
+  base: origin/main
+  baseCommit: 13f18c09a95231be8348e56a3153aa0d8d5552ac
+  changedFilesBasis: branch-diff
+  pullRequest: "285"
+  subjectHeadCommit: e7d46fc73a7e4963edf62135e78192d63fdba42a
+  diffHash: sha256:57ec4cba0eda626e46326c1695e521a02c11dac600d36b7f8cb0a4776fcf4ec9
+  headCommit: e7d46fc73a7e4963edf62135e78192d63fdba42a
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX4YHL1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/health.ts
+  - src/commands/metrics.ts
+  - src/core/governance-warning-budget.ts
+  - tests/integration/governance-warning-budget.test.ts
+  - tests/integration/metrics.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ae83b4805a56ebfda851e8ce3b89ecc8b1416ac159234170e0068e926c931d29
+    durationMilliseconds: 3219
+    executedAt: "2026-07-23T06:38:03.100Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:edab3605f0b3cf5330248c50334f12b6e2108414a4d119c27ec01d34e95c1f93
+    durationMilliseconds: 145162
+    executedAt: "2026-07-23T06:40:28.265Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:a161893e9c781152bc633ab28f7a746dcfda8f8d85f5b99637e681e348748c70
+    durationMilliseconds: 3372
+    executedAt: "2026-07-23T06:40:31.642Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6bc8bde8d9a9b1330f15b9f4349e20ee785fd561ed03bf753074c78b15b205fb
+    durationMilliseconds: 3392
+    executedAt: "2026-07-23T06:40:35.037Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added profile selection, not-configured, insufficient-baseline, bounded warning, and explicit health warning-only exit coverage.

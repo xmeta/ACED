@@ -9,6 +9,8 @@ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
 import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
+import { buildGovernanceCostSummary } from "./metrics.js";
+import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -16,6 +18,7 @@ export type HealthOptions = {
   json?: boolean;
   verbose?: boolean;
   representativeLimit?: number;
+  governanceCost?: boolean;
 };
 
 export type HealthJsonOutput = {
@@ -32,6 +35,7 @@ export type HealthJsonOutput = {
     byCode: Array<{ code: string; severity: Issue["severity"]; count: number }>;
   };
   issues: Issue[];
+  governanceCost?: GovernanceWarningBudgets;
 };
 
 function evidenceCheckLevel(check: Evidence["checks"][number]): EvidenceLevel {
@@ -619,7 +623,17 @@ export function runHealth(root: string, options: HealthOptions = {}): number {
   } catch (error) {
     console.error(`WARN health lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (options.json) console.log(JSON.stringify(buildHealthJsonOutput(root, issues), null, 2));
-  else process.stdout.write(buildHealthText(root, issues, options));
+  const governanceCost = options.governanceCost ? buildGovernanceCostSummary(root).warningBudgets : undefined;
+  if (options.json) {
+    console.log(JSON.stringify({
+      ...buildHealthJsonOutput(root, issues),
+      ...(governanceCost ? { governanceCost } : {})
+    }, null, 2));
+  } else {
+    process.stdout.write(buildHealthText(root, issues, options));
+    if (governanceCost) {
+      process.stdout.write(`Governance cost: ${governanceCost.status}; warnings=${governanceCost.warnings.length}${governanceCost.warnings.length > 0 ? ` (${governanceCost.warnings.join("; ")})` : ""}\n`);
+    }
+  }
   return hasErrors(issues) ? 1 : 0;
 }
