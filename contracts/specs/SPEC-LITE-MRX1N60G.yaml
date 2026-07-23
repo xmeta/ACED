@@ -1,0 +1,20 @@
+id: SPEC-LITE-MRX1N60G
+type: spec-contract
+featureId: F-MRX1N60G
+title: "Issue #146: Task Contract indexへactive/archive lifecycleと既定active走査を導入する"
+status: approved
+version: 0.1.0
+summary: "Task Contract自体と監査recordを残したまま、index lifecycleでactive queueとarchive履歴を分離する"
+approvedBy: user-requested-issue-146
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - indexは全Task Contractの一意なid、canonical path、branchName、wbsNodeId、status、dependsOnを保持し、statusはplanned、active、blocked、reviewed、completed、cancelled、archivedのいずれかとする
+  - completed、cancelled、archivedをterminalかつinactiveとし、それ以外をactiveとして既定queue・health走査に使用する
+  - task index rebuild --checkはTask directoryとの欠落、余剰、重複、不正path、未知status、内容driftを非0で報告し、--forceは既存lifecycleを保持して原子的に正規化する
+  - task archive --taskでindex statusとarchivedAtを更新できるが、Task、Evidence、Approval、Reviewのファイルは移動・削除しない
+  - archived Taskはpacket --task、finish --task、task refresh --task、check、registry rebuildなど明示Task操作から引き続き参照できる
+  - next、review-queue、ai next-task、health code-context、WBS candidateの既定走査からinactive Taskを除外する
+  - indexが欠落または不正なTaskは既定走査でactiveとして扱い、checkとrebuild --checkがdriftを報告する
+  - RegistryのTask entryへstatus、active、archivedAtを加法的に記録し、既存fieldの意味を変えない
+  - plain outputとJSON outputをboundedに保ち、100件超のTask inventoryでも全Task詳細を既定表示しない
+  - 物理archive directoryへの移動、record削除、WBS canonical変更、#179 lifecycle metrics、warning budgetはこのTaskに含めない

@@ -19,6 +19,8 @@ const registrySchema = {
           type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
           path: { type: "string", minLength: 1 },
           status: { type: "string" },
+          active: { type: "boolean" },
+          archivedAt: { type: "string" },
           version: { type: "string" },
           featureId: { type: "string" },
           relatedTask: { type: "string" }

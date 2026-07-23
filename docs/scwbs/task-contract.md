@@ -86,6 +86,22 @@ Task Contractのlockを生成するには以下を実行する。
 npm run scwbs -- task lock --task WBS-001-004
 ```
 
+### Active/archive lifecycle
+
+`contracts/tasks/index.yaml` はTask Contract inventoryと既定走査用lifecycleの正本である。各entryはTask Contractの `id`、canonical `path`、`branchName`、`wbsNodeId` に加え、`status`、`dependsOn`、必要な場合だけ `archivedAt` を保持する。
+
+statusは `planned`、`active`、`blocked`、`reviewed`、`completed`、`cancelled`、`archived` のいずれかである。`completed`、`cancelled`、`archived` はterminalかつinactiveであり、それ以外はactiveである。`next`、`ai next-task`、`review-queue`、repository-wide `health`、WBS candidate生成はactive Taskだけを既定走査する。
+
+```bash
+npm run scwbs -- task index rebuild --check
+npm run scwbs -- task index rebuild --force
+npm run scwbs -- task archive --task WBS-001-004
+```
+
+`task index rebuild --check` はTask directoryとの欠落、余剰、重複、不正path、未知status、contract metadata driftをfail-closedで検出する。`--force` は既存の有効なlifecycleを保持してindexをatomicに正規化し、Registryを同期する。indexが欠落または不正な場合、既定走査はTaskを黙って消さず全Taskをactiveとして扱う。
+
+archiveはrecordの物理移動や削除ではない。Task、Evidence、Approval、Reviewは元のpathに残り、明示Task操作、監査、Registry rebuildの対象であり続ける。RegistryのTask entryは加法的な `status`、`active`、任意の `archivedAt` を公開する。
+
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 

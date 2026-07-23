@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MRX1N60G
+type: evidence
+taskId: SCWBS-DRAFT-MRX1N60G
+commit: adb522fe80261a46f889b61bd36f07f4ca592b34
+subjectHeadCommit: adb522fe80261a46f889b61bd36f07f4ca592b34
+diffHash: sha256:2913a57f3f3bce4749e02c37368839fdb102b623ed7c67afb29e813b15719fb3
+git:
+  branch: codex/SCWBS-DRAFT-MRX1N60G-issue-146-active-archive
+  base: origin/main
+  baseCommit: ccf712284aed06e8db786884221c8adabc7cf060
+  changedFilesBasis: branch-diff
+  pullRequest: "279"
+  subjectHeadCommit: adb522fe80261a46f889b61bd36f07f4ca592b34
+  diffHash: sha256:2913a57f3f3bce4749e02c37368839fdb102b623ed7c67afb29e813b15719fb3
+  headCommit: adb522fe80261a46f889b61bd36f07f4ca592b34
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX1N60G.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/commands/ai-queue.ts
+  - src/commands/health.ts
+  - src/commands/next.ts
+  - src/commands/registry-rebuild.ts
+  - src/commands/review-queue.ts
+  - src/commands/task-index.ts
+  - src/commands/task-new.ts
+  - src/commands/wbs.ts
+  - src/core/contracts.ts
+  - src/core/schema/registries.ts
+  - src/core/task-index.ts
+  - src/core/types.ts
+  - tests/integration/task-index.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:bc161dd8e248f5eebe44788b0a123bd0a3edd8750609eb08647e81d0b5829ead
+    durationMilliseconds: 13685
+    executedAt: "2026-07-23T05:27:17.867Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:d5823561491afa341d9faba40cecd18df6b05000e3ff9e367557244ced7f4dce
+    durationMilliseconds: 140648
+    executedAt: "2026-07-23T05:29:38.521Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:bf1095ffaed900a6584f2a8028cf343a501fcc37fb8d35913ee731ed2c6c523c
+    durationMilliseconds: 3180
+    executedAt: "2026-07-23T05:29:41.706Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:14c510b8cca770b6161d91591f656611656c13d5c011af7af2337e90e9e93fa8
+    durationMilliseconds: 3615
+    executedAt: "2026-07-23T05:29:45.323Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added active/archive, invalid index, invalid Task Contract, Registry traceability, and bounded-output integration coverage

@@ -1,4 +1,4 @@
-import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
@@ -378,7 +378,7 @@ function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefin
   const planBudget = new Map<string, { omitted: number; selectedBytes: number; maxBytes: number }>();
   const widening = new Map<string, string[]>();
 
-  for (const entry of listTasks(root)) {
+  for (const entry of listActiveTasks(root)) {
     if (!entry.task) continue;
     const node = findNode(wbs, entry.task.wbsNodeId);
     if (!node) continue;
@@ -507,7 +507,7 @@ export function collectHealthIssues(root: string): Issue[] {
     }
   }
 
-  for (const entry of listTasks(root)) {
+  for (const entry of listActiveTasks(root)) {
     issues.push(...entry.issues);
     if (!wbs || !entry.task) continue;
 

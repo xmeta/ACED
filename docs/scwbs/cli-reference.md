@@ -91,6 +91,9 @@ npm run scwbs -- task refresh --task WBS-001-004 --apply
 npm run scwbs -- task refresh --affected
 npm run scwbs -- task refresh --all
 npm run scwbs -- task refresh --all --apply
+npm run scwbs -- task index rebuild --check
+npm run scwbs -- task index rebuild --force
+npm run scwbs -- task archive --task WBS-001-004
 npm run scwbs -- evidence collect --task WBS-001-004
 npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
 npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage" --force
@@ -107,6 +110,10 @@ npm run scwbs -- profile set lean
 ```
 
 `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
+
+`task index rebuild --check` は `contracts/tasks/index.yaml` とTask Contract inventoryの整合性をread-onlyで検査する。`--force` は既存のlifecycle status、`dependsOn`、`archivedAt`を保持しながらcanonical path、branch、WBS node、並び順をatomicに再構築し、Registryも同期する。出力はactive、archived、total、issuesの固定長summaryで、`--json`も全Taskを展開しない。
+
+`task archive --task <id>` はindexを `status: archived` にして既定の `next`、`ai next-task`、`review-queue`、`health`、WBS candidate走査から除外する。Task Contract、Evidence、Approval、Reviewは移動・削除せず、`packet --task`、`finish --task`、`task refresh --task`、`check`、Registryから引き続き明示参照できる。
 
 `checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
 

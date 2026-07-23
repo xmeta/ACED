@@ -30,6 +30,7 @@ import { runReviewQueue } from "./commands/review-queue.js";
 import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
 import { runTaskGenerate } from "./commands/task-generate.js";
+import { runTaskArchive, runTaskIndexRebuild } from "./commands/task-index.js";
 import { runTaskLock } from "./commands/task-lock.js";
 import { runTaskNew } from "./commands/task-new.js";
 import { runTaskRefresh } from "./commands/task-refresh.js";
@@ -807,6 +808,30 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         return;
       }
       exitCode = runTaskLock(root, opts.task);
+    });
+
+  const taskIndex = task.command("index").description("Manage the Task Contract lifecycle index");
+  taskIndex
+    .command("rebuild")
+    .description("Check or rebuild contracts/tasks/index.yaml")
+    .option("--check", "check index consistency without writing")
+    .option("--force", "rebuild the index and synchronize the registry")
+    .option("--json", "print bounded JSON summary")
+    .action((opts) => {
+      exitCode = runTaskIndexRebuild(root, {
+        check: opts.check ?? false,
+        force: opts.force ?? false,
+        json: opts.json ?? false
+      });
+    });
+
+  task
+    .command("archive")
+    .description("Exclude a terminal Task from default active scans while retaining its records")
+    .requiredOption("--task <id>", "task id")
+    .option("--json", "print JSON")
+    .action((opts) => {
+      exitCode = runTaskArchive(root, opts.task, { json: opts.json ?? false });
     });
 
   task

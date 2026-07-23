@@ -3,6 +3,7 @@ import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, 
 import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
+import { isActiveTaskStatus, readTaskIndex } from "../core/task-index.js";
 import type { Evidence } from "../core/types.js";
 
 export type RegistryRebuildOptions = {
@@ -72,6 +73,10 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
 export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
   const contracts: Record<string, unknown>[] = [];
+  const taskIndex = readTaskIndex(root);
+  const taskLifecycle = taskIndex.index && taskIndex.issues.length === 0
+    ? new Map(taskIndex.index.tasks.map((entry) => [entry.id, entry]))
+    : new Map();
   for (const { spec, path } of listSpecs(root)) {
     if (!spec) continue;
     contracts.push({ id: spec.id, type: "spec", path, status: spec.status, version: spec.version, featureId: spec.featureId });
@@ -82,7 +87,17 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
   }
   for (const { task, path } of listTasks(root)) {
     if (!task) continue;
-    contracts.push({ id: `TASK-${task.id}`, type: "task", path, featureId: task.featureId });
+    const lifecycle = taskLifecycle.get(task.id);
+    const status = lifecycle?.status ?? "planned";
+    contracts.push({
+      id: `TASK-${task.id}`,
+      type: "task",
+      path,
+      status,
+      active: isActiveTaskStatus(status),
+      ...(lifecycle?.archivedAt ? { archivedAt: lifecycle.archivedAt } : {}),
+      featureId: task.featureId
+    });
   }
   let candidateEvidenceIncluded = false;
   for (const { evidence: storedEvidence, path } of listEvidence(root)) {

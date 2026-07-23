@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
 import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
 import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+import { activeTaskEntries } from "./task-index.js";
 import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
@@ -115,6 +116,10 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
       const issues = [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)];
       return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues, path };
     });
+}
+
+export function listActiveTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
+  return activeTaskEntries(root, listTasks(root));
 }
 
 export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Issue[]; path: string }> {

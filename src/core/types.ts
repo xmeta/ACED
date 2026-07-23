@@ -14,6 +14,8 @@ export type RegistryContract = {
   type: RegistryContractType;
   path: string;
   status?: string;
+  active?: boolean;
+  archivedAt?: string;
   version?: string;
   featureId?: string;
   relatedTask?: string;
@@ -22,6 +24,22 @@ export type RegistryContract = {
 export type Registry = {
   projectId: string;
   contracts: RegistryContract[];
+};
+
+export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
+
+export type TaskIndexEntry = {
+  id: string;
+  path: string;
+  branchName: string;
+  wbsNodeId: string;
+  status: TaskLifecycleStatus;
+  dependsOn: string[];
+  archivedAt?: string;
+};
+
+export type TaskIndex = {
+  tasks: TaskIndexEntry[];
 };
 
 export type ApprovalStatus = "requested" | "approved" | "rejected";

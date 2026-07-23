@@ -1,0 +1,73 @@
+id: SCWBS-DRAFT-MRX1N60G
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX1N60G
+branchName: codex/SCWBS-DRAFT-MRX1N60G-issue-146-active-archive
+allowedPaths:
+  - src/core/task-index.ts
+  - src/core/contracts.ts
+  - src/core/types.ts
+  - src/core/schema/registries.ts
+  - src/commands/task-index.ts
+  - src/commands/task-new.ts
+  - src/commands/next.ts
+  - src/commands/ai-queue.ts
+  - src/commands/review-queue.ts
+  - src/commands/health.ts
+  - src/commands/check.ts
+  - src/commands/registry-rebuild.ts
+  - src/commands/wbs.ts
+  - src/cli.ts
+  - tests/integration/task-index.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - contracts/tasks/index.yamlのactive/archive lifecycle semanticsが文書化され、task index rebuild --checkがTask Contract inventoryとの不整合をfail-closedで検出する
+  - terminal Taskをarchiveへ遷移でき、Task・Evidence・Approval・Reviewは移動・削除せず明示Task参照とRegistry traceabilityを維持する
+  - next、review-queue、ai next-task、health code-context、WBS candidateの既定走査がactive Taskだけを対象にする
+  - index欠落Task、重複、未知status、不正pathを検出し、既定走査でTaskを黙って消さない
+  - active/archive、legacy index、100件超inventory、explicit archived Task参照をintegration testで検証し、bounded outputを維持する
+  - merge前にrequired checks、check、check-diff、Registry、finish固定点、PR CIを直列に確認する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/specs/SPEC-LITE-MRX1N60G.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX1N60G.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX1N60G.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:4b56f8635bdee7ec57efcffd051d78e5644e0610634a3317349fc8810cc6b919
+  createdAt: "2026-07-23T05:02:36.876Z"

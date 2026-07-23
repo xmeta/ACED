@@ -1,7 +1,7 @@
 import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
+import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
 
 function hasActiveBlock(root: string, taskId: string): boolean {
   return readBlock(root, taskId).block?.status === "blocked";
@@ -17,13 +17,15 @@ function taskIdsFromSection(queue: string, heading: string): string[] {
 }
 
 export function buildNextAction(root: string): string {
+  const activeTasks = listActiveTasks(root);
+  const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
   const stale = collectCheckIssues(root).find((issue) => {
     if (!issue.code.startsWith("task.contractLock")) return false;
-    const taskId = taskIdFromMessage(issue.message);
-    return !taskId || !hasActiveBlock(root, taskId);
+    const taskId = activeTaskIds.find((id) => issue.message.includes(id));
+    return Boolean(taskId) && !hasActiveBlock(root, taskId!);
   });
   if (stale) {
-    const taskId = taskIdFromMessage(stale.message) ?? "<task-id>";
+    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
     return `Next suggested action:
 
 Refresh stale task ${taskId}
@@ -35,7 +37,7 @@ Command:
 `;
   }
 
-  const failedCheck = listTasks(root).flatMap((entry) => {
+  const failedCheck = activeTasks.flatMap((entry) => {
     if (!entry.task) return [];
     if (hasActiveBlock(root, entry.task.id)) return [];
     const { evidence } = readEvidence(root, entry.task.id);
@@ -75,7 +77,7 @@ Command:
 `;
   }
 
-  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
   if (missingEvidence?.task) {
     return `Next suggested action:
 

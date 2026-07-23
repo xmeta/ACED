@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { listActiveTasks } from "../core/contracts.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import { readWbs, runWjsValidate } from "../core/wbs.js";
@@ -115,12 +116,7 @@ export function runWbsVerifyChangesets(root: string, options: { base?: string; h
 }
 
 export function buildWbsCandidatesFromTaskIndex(root: string): string {
-  const indexPath = resolveFrom(root, "contracts/tasks/index.yaml");
-  if (!existsSync(indexPath)) {
-    return `${JSON.stringify({ schemaVersion: "0.1.0", targetWbsId: "scwbs", changeSetId: "changeset-wbs-candidates", author: "scwbs-cli", reason: "No task index exists.", dryRun: true, operations: [] }, null, 2)}\n`;
-  }
-  const text = readFileSync(indexPath, "utf8");
-  const ids = [...text.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]?.trim()).filter((value): value is string => Boolean(value));
+  const ids = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task.id] : []);
   const wbs = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root) : null;
   const rootId = wbs?.rootId ?? "node-project";
   const operations = ids.map((id, index) => ({
