@@ -176,7 +176,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("status")
     .description("Show repository status")
-    .action(() => { exitCode = runStatus(root); });
+    .option("--json", "output a versioned JSON report")
+    .option("--strict", "fail when completed Task trust is not fully verified")
+    .action((opts) => { exitCode = runStatus(root, { json: opts.json ?? false, strict: opts.strict ?? false }); });
 
   program
     .command("review-queue")
