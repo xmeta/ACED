@@ -1,0 +1,61 @@
+id: SCWBS-DRAFT-MRX3C5TX
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX3C5TX
+branchName: codex/SCWBS-DRAFT-MRX3C5TX-issue-179-finish-lifecycle
+allowedPaths:
+  - src/core/finish-lifecycle.ts
+  - src/commands/finish.ts
+  - src/commands/metrics.ts
+  - tests/integration/finish-lifecycle.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - finish preflight/fullの全terminal outcomeをTask単位のgit common dir receiptへatomicに記録する
+  - receiptは最大50 event/Task、最大100 Taskでboundedに保持し、repository tracked artifactとRegistryを増やさない
+  - eventは開始・終了・duration・run mode・phase・outcome・exit code・mutated file数・subject/head・検証済みmetadata ancestry数を保持する
+  - metrics governance --jsonにsource status明示のlocalLifecycleと最大20件のTask trendを加法的に追加する
+  - shallow history、subject不明、legacy Task、壊れたreceiptはnullまたはunavailableとして扱い0へ推測しない
+  - required checks、check-diff、Registry、finish固定点、PR CIを直列に確認する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
+  - contracts/specs/SPEC-LITE-MRX3C5TX.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX3C5TX.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX3C5TX.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX3C5TX.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX3C5TX.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0875caeda703244b281f1b62090b791d6972a9a973487ce1dd28f9b84f075132
+  createdAt: "2026-07-23T05:51:37.357Z"
