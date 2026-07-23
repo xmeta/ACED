@@ -1,0 +1,20 @@
+id: SPEC-LITE-MRX3C5TX
+type: spec-contract
+featureId: F-MRX3C5TX
+title: "Issue #179: finish lifecycle receiptとlocalLifecycle metricsを導入する"
+status: approved
+version: 0.1.0
+summary: "tracked artifactを増やさず、finishの試行・outcome・収束・metadata descendantをTask単位で観測する"
+approvedBy: user-requested-issue-179
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - git common dir配下へTask単位のversioned JSON receiptをatomic writeし、repository worktreeとRegistryへ観測artifactを追加しない
+  - 各eventはpreflight/full、startedAt、endedAt、durationMilliseconds、final phase、outcome、exitCode、mutatedFileCount、subjectHeadCommit、headCommit、verifiedMetadataAncestryCountを保持する
+  - 1 Taskあたり最新50 event、repositoryあたり最新100 Task receiptだけを保持し、超過時は決定的に古いものから削除する
+  - finishが例外または早期errorで終了してもTaskを解決できfinal outputを得た試行は1 eventとして記録する
+  - subject/headが不明、shallow history、ancestry不一致、非metadata descendantを含む場合はverifiedMetadataAncestryCountをnullとし0へ推測しない
+  - metrics governance --jsonへlocalLifecycleを加法的に追加し、availableまたはunavailable、invalid receipt数、event数、最大20 Taskのattempt・successful・blocked・failed・convergence・metadata descendantを返す
+  - convergenceは保持範囲内の最初のfull attempt開始から最初のcompleted成功終了までとし、未収束または履歴切捨て時はnullとする
+  - receipt欠落Taskやlegacy Taskを0 attemptとして列挙せず、壊れたreceiptはinvalidとして数え、source読取不能はunavailableとする
+  - plain metrics outputの既存行数を増やさず、JSON taskTrendは20件を超えない
+  - Human Gate requestedAt、PR publish loop、health warning delta、warning budget、file-based active/archive classifier補正はこのTaskに含めない
