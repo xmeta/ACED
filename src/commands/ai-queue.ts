@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { evidenceExists, listTasks, readBlock, readTask } from "../core/contracts.js";
+import { evidenceExists, listActiveTasks, readBlock, readTask } from "../core/contracts.js";
 import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
@@ -206,7 +206,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
 
 export function buildNextTask(root: string): string {
   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
-    const candidates = listTasks(root)
+    const candidates = listActiveTasks(root)
       .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
       .sort((a, b) => a.taskId.localeCompare(b.taskId));
     if (candidates.length === 0) return "No available planned tasks.\n";
@@ -215,7 +215,7 @@ export function buildNextTask(root: string): string {
   }
   const wbs = readWbs(root);
   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
-  const tasks = listTasks(root);
+  const tasks = listActiveTasks(root);
   const candidates = tasks
     .flatMap(({ task }) => {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];

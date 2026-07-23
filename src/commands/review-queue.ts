@@ -1,4 +1,4 @@
-import { readApproval, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
+import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
@@ -122,7 +122,7 @@ function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): s
 function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
   const wbs = readWbs(root);
   const entries: ReviewQueueEntry[] = [];
-  const tasks = listTasks(root);
+  const tasks = listActiveTasks(root);
   const taskCountByNode = new Map<string, number>();
   for (const entry of tasks) {
     if (!entry.task) continue;
