@@ -1,0 +1,69 @@
+id: SCWBS-DRAFT-MRX4AQKB
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MRX4AQKB
+branchName: codex/SCWBS-DRAFT-MRX4AQKB-issue-179-gate-publish-health
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/github-pull-requests.ts
+  - src/core/health-lifecycle.ts
+  - src/commands/approval-request.ts
+  - src/commands/health.ts
+  - src/commands/metrics.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/metrics.test.ts
+  - tests/integration/issue-179-observability.test.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Approval requestへ任意requestedAtを設定し、approve時に保持してlegacy recordを未観測として扱う
+  - boundedな1回のPR一覧取得からTask branchの作成・merge時刻とpublish-loop時間をhistoricalPullRequestsとして集計する
+  - health実行時のTask別warning summaryをgit common dir receiptへboundedに記録し、比較可能な最初と最後だけdeltaを返す
+  - metrics governance JSON schemaを加法的な1.1.0へ更新し、localLifecycleを含む既存フィールドの意味を変えない
+  - sourceはavailable/unavailableを明示し、legacy・取得不能・比較不能を0へ推測しない
+  - plain outputの既存行数とbytes budget、各JSON trend上限を維持する
+  - required checks、check-diff、Registry、finish固定点、PR CIを直列に確認する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/specs/SPEC-LITE-MRX4AQKB.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/evidence/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/approvals/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/reviews/SCWBS-DRAFT-MRX4AQKB.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:8825ee4d95754561d211dfcbc0646761c714efb51e47139b5f6c57c524d12c93
+  createdAt: "2026-07-23T06:17:14.197Z"
