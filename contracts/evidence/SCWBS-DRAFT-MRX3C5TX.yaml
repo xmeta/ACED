@@ -1,0 +1,60 @@
+id: EVD-SCWBS-DRAFT-MRX3C5TX
+type: evidence
+taskId: SCWBS-DRAFT-MRX3C5TX
+commit: e8fbacbbcb1395f0f4e081d77bb917920dd0a835
+subjectHeadCommit: e8fbacbbcb1395f0f4e081d77bb917920dd0a835
+diffHash: sha256:dffa43849c387939d307d9ec106f566fc323d076566e4afb60f53a17290720a0
+git:
+  branch: codex/SCWBS-DRAFT-MRX3C5TX-issue-179-finish-lifecycle
+  base: origin/main
+  baseCommit: cacd29a9e34f329161e5706ea675d2f986ba8dfe
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: e8fbacbbcb1395f0f4e081d77bb917920dd0a835
+  diffHash: sha256:dffa43849c387939d307d9ec106f566fc323d076566e4afb60f53a17290720a0
+  headCommit: e8fbacbbcb1395f0f4e081d77bb917920dd0a835
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MRX3C5TX.yaml
+  - contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/finish.ts
+  - src/commands/metrics.ts
+  - src/core/finish-lifecycle.ts
+  - tests/integration/finish-lifecycle.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:0b058129ab3da1319623bbe2ea9ad7cf4085df5307a58b0c2d8f5c9ea295b080
+    durationMilliseconds: 3540
+    executedAt: "2026-07-23T06:03:41.687Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:241509aa70ee26ad31cbe817ee3d4f46aa4131cf726246f60c0ee4258307c0cf
+    durationMilliseconds: 151573
+    executedAt: "2026-07-23T06:06:13.267Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:064fb69417987c9b96a22bc494e555cbe5b1b088e09192526a123949fcecb029
+    durationMilliseconds: 3598
+    executedAt: "2026-07-23T06:06:16.870Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:f0422331c11088d81408b800fa0620352ccfede474f7fc7cdf13aa2c456a575e
+    durationMilliseconds: 3489
+    executedAt: "2026-07-23T06:06:20.362Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added finish lifecycle integration coverage for automatic preflight/full receipts, outcomes, corruption, retention bounds, ancestry, and unavailable sources.
