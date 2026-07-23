@@ -57,6 +57,8 @@ Use `doctor` for setup diagnostics and `check` for contract/registry health:
 npm run scwbs -- doctor
 npm run scwbs -- doctor --fix
 npm run scwbs -- check
+npm run scwbs -- status
+npm run scwbs -- status --strict
 npm run scwbs -- registry rebuild --check
 ```
 
@@ -70,6 +72,11 @@ plus any check / health issues. Each FAIL prints a suggested fix command.
 
 Run `doctor` before `check` whenever setup may be incomplete so failures
 are diagnosed explicitly instead of surfacing as opaque errors.
+
+`status` keeps WBS lifecycle counts separate from completion trust. A completed
+or archived Task is only `verified` when its required checks, Evidence subject,
+and any Human Approval scope remain verifiable; `--strict` returns a non-zero
+status when terminal Task trust is degraded, unverifiable, or not evaluated.
 
 ## 4. AI Minimum Flow
 

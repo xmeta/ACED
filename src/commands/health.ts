@@ -95,16 +95,35 @@ function hasTestQualityRationale(evidence: Evidence): boolean {
   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
 }
 
-function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
+export type EvidenceTrustOptions = {
+  checkCommitReachability?: boolean;
+  completed?: boolean;
+  repositoryState?: {
+    currentHead: string | undefined;
+    currentBranchName: string | undefined;
+    commitExists: (commit: string) => boolean;
+  };
+};
+
+export function collectEvidenceTrustIssues(
+  root: string,
+  wbs: WbsDocument,
+  task: TaskContract,
+  evidence: Evidence,
+  options: EvidenceTrustOptions = {}
+): Issue[] {
   const issues: Issue[] = [];
   const node = findNode(wbs, task.wbsNodeId);
-  const currentHead = headCommit(root);
-  const currentBranchName = currentBranch(root);
+  const checkCommitReachability = options.checkCommitReachability ?? true;
+  const completed = options.completed ?? Boolean(node && isDoneNode(node));
+  const currentHead = options.repositoryState ? options.repositoryState.currentHead : headCommit(root);
+  const currentBranchName = options.repositoryState ? options.repositoryState.currentBranchName : currentBranch(root);
+  const evidenceCommitExists = options.repositoryState?.commitExists ?? ((commit: string) => commitExists(root, commit));
   const { approval } = readApproval(root, task.id);
   const approvalPullRequest = approval?.pullRequest;
   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
 
-  if (node && isDoneNode(node) && strongestEvidenceLevel(evidence) === "C") {
+  if (completed && strongestEvidenceLevel(evidence) === "C") {
     issues.push({
       severity: "warn",
       code: "health.evidence.lowTrust",
@@ -115,7 +134,19 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   const checksByName = new Map(evidence.checks.map((check) => [check.name, check]));
   for (const requiredCheck of task.requiredChecks) {
     const check = checksByName.get(requiredCheck);
-    if (check && evidenceCheckLevel(check) === "C") {
+    if (!check) {
+      issues.push({
+        severity: "warn",
+        code: "health.evidence.check.missing",
+        message: `${task.id} required check ${requiredCheck} is missing`
+      });
+    } else if (check.status !== "passed") {
+      issues.push({
+        severity: "warn",
+        code: "health.evidence.check.notPassed",
+        message: `${task.id} required check ${requiredCheck} status is ${check.status}`
+      });
+    } else if (evidenceCheckLevel(check) === "C") {
       issues.push({
         severity: "warn",
         code: "health.evidence.check.lowTrust",
@@ -126,7 +157,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
 
   if (!evidence.commit) {
     issues.push({ severity: "warn", code: "health.evidence.commit.missing", message: `${task.id} evidence has no commit` });
-  } else if (checkCommitReachability && !commitExists(root, evidence.commit)) {
+  } else if (checkCommitReachability && !evidenceCommitExists(evidence.commit)) {
     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
   }
 
@@ -136,7 +167,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
   const subjectHead = evidenceSubjectHead(evidence);
   if (!subjectHead) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
-  } else if (checkCommitReachability && !commitExists(root, subjectHead)) {
+  } else if (checkCommitReachability && !evidenceCommitExists(subjectHead)) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
   } else if (
     checkCommitReachability
@@ -156,7 +187,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
     }
     if (!evidence.git.baseCommit) {
       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.missing", message: `${task.id} branch-diff evidence has no git.baseCommit` });
-    } else if (checkCommitReachability && !commitExists(root, evidence.git.baseCommit)) {
+    } else if (checkCommitReachability && !evidenceCommitExists(evidence.git.baseCommit)) {
       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
     }
     const actualDiffHash = evidenceDiffHash(evidence);
@@ -303,7 +334,7 @@ export function collectTaskHealthIssues(root: string, taskId: string): Issue[] {
   }
   issues.push(...evidenceIssues.map((issue) => ({ ...issue, code: `health.${issue.code}` })));
   const checkCommitReachability = !isShallowRepository(root);
-  issues.push(...validateEvidenceTrust(root, wbs, task, evidence, checkCommitReachability));
+  issues.push(...collectEvidenceTrustIssues(root, wbs, task, evidence, { checkCommitReachability }));
   issues.push(...validateReviewScope(root, task, evidence, checkCommitReachability));
   return issues;
 }
@@ -524,7 +555,7 @@ export function collectHealthIssues(root: string): Issue[] {
     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
     if (missingEvidenceOnly) continue;
     issues.push(...evidenceIssues);
-    if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence, checkCommitReachability));
+    if (evidence) issues.push(...collectEvidenceTrustIssues(root, wbs, entry.task, evidence, { checkCommitReachability }));
   }
 
   issues.push(...collectCodeContextHealthIssues(root, wbs));

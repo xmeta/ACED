@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scwbs/status.schema.json",
+  "title": "SC-WBS status report",
+  "type": "object",
+  "required": [
+    "version",
+    "project",
+    "repository",
+    "wbsStatus",
+    "completionTrust",
+    "evidenceMissing",
+    "blockingRelations"
+  ],
+  "properties": {
+    "version": { "const": "scwbs.status.v1" },
+    "project": { "type": "string" },
+    "repository": {
+      "type": "object",
+      "required": ["shallow", "commitReachability"],
+      "properties": {
+        "shallow": { "type": "boolean" },
+        "commitReachability": { "enum": ["evaluated", "not-evaluated"] }
+      },
+      "additionalProperties": false
+    },
+    "wbsStatus": {
+      "type": "object",
+      "required": ["total", "counts"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "completionTrust": {
+      "type": "object",
+      "required": [
+        "sourceStatus",
+        "source",
+        "reason",
+        "total",
+        "verified",
+        "degraded",
+        "unverifiable",
+        "notEvaluated"
+      ],
+      "properties": {
+        "sourceStatus": { "enum": ["available", "unavailable"] },
+        "source": { "const": "task-index" },
+        "reason": { "type": ["string", "null"] },
+        "total": { "type": "integer", "minimum": 0 },
+        "verified": { "type": "integer", "minimum": 0 },
+        "degraded": { "type": "integer", "minimum": 0 },
+        "unverifiable": { "type": "integer", "minimum": 0 },
+        "notEvaluated": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "evidenceMissing": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blockingRelations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
