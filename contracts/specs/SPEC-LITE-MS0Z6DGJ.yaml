@@ -1,0 +1,18 @@
+id: SPEC-LITE-MS0Z6DGJ
+type: spec-contract
+featureId: F-MS0Z6DGJ
+title: "Issue #178: Evidence subject provenance manifest v1でsquash後の検証状態を構造化する"
+status: approved
+version: 0.1.0
+summary: "Evidence subjectのcanonical identityとretention状態を後方互換で記録し、履歴消失時を検証済みと誤認しない"
+approvedBy: user-requested-baseline-continuation
+approvedAt: "2026-07-26T00:00:00+09:00"
+acceptanceCriteria:
+  - provenance.subject schemaVersion 1.0.0はcommit、treeHash、diffHash、canonicalizationを持つ
+  - provenance.retentionはgit-object、patch-artifact、bundleのmode vocabularyとlocator、任意manifestHashを持つ
+  - 現行evidence collectはgit-object modeを収集しsubject commitのtree hashを記録する
+  - hashはsha256またはGit object idとして形式検証され、未知modeと未知canonicalizationは拒否される
+  - healthはlegacy manifest欠落をwarning、到達可能git-objectをverified、未実装external payloadをnot-evaluated、locator欠落またはcommit消失をunverifiableとして構造化する
+  - diffHash単独ではpayload再検証済みと扱わない
+  - patch-artifactまたはbundleの生成、保存期間、機密情報除外は後続Human Decisionまで非目標とする
+  - 既存Evidenceの読込とcheckは後方互換である

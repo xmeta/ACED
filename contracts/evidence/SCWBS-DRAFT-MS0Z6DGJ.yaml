@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MS0Z6DGJ
+type: evidence
+taskId: SCWBS-DRAFT-MS0Z6DGJ
+commit: cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+subjectHeadCommit: cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+diffHash: sha256:80bc0187678e337bbf720cf1ca5720224cea5e0cae18238e0d64038c84030bb0
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+    treeHash: ee504036b9a585f0cdfd0c18db17440346462ab5
+    diffHash: sha256:80bc0187678e337bbf720cf1ca5720224cea5e0cae18238e0d64038c84030bb0
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+git:
+  branch: codex/SCWBS-DRAFT-MS0Z6DGJ-issue-178-subject-manifest
+  base: origin/main
+  baseCommit: ef807ec88b32046f6b56d10221775f45794e8700
+  changedFilesBasis: branch-diff
+  pullRequest: "294"
+  subjectHeadCommit: cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+  diffHash: sha256:80bc0187678e337bbf720cf1ca5720224cea5e0cae18238e0d64038c84030bb0
+  headCommit: cc7ec7c16f20afa2dcdc6547c15d6eebc1baecf5
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - docs/scwbs/evidence-human-gate-review.md
+  - src/commands/evidence-collect.ts
+  - src/commands/health.ts
+  - src/core/git.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/health.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2994c869b1ea668374f293b99fa066733b483fdae83e2c6f192e3fce71492c8c
+    durationMilliseconds: 4202
+    executedAt: "2026-07-25T23:13:28.658Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a7afe3290666d82a792ca258f9824c1ea1113acc45875907703837bc0438b661
+    durationMilliseconds: 175289
+    executedAt: "2026-07-25T23:16:23.952Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:cd1b69974a3d8b3bf5ab4cb33c29879e62d91fec3df2acc43faae460c9dc8649
+    durationMilliseconds: 11615
+    executedAt: "2026-07-25T23:16:35.574Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:fe66044237cb40d20d00c476688d58a46c5e0a8aa7123e2b17739ce8349938ae
+    durationMilliseconds: 5424
+    executedAt: "2026-07-25T23:16:41.004Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added subject manifest schema, collection, unavailable object, and external payload state regression coverage

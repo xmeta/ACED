@@ -5,7 +5,7 @@ import { readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
 import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
-import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
+import { branchChangedFiles, branchDiffHash, changedFilesBetween, commitTreeHash, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
@@ -284,6 +284,10 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const changedFiles = branchChangedFiles(root, baseRef);
   const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
+  const subjectTreeHash = subjectHead ? commitTreeHash(root, subjectHead) : undefined;
+  if (subjectHead && !subjectTreeHash) {
+    throw new Error(`Unable to resolve tree hash for Evidence subject ${subjectHead}`);
+  }
   const branch = currentBranch(root);
   if (
     existingEvidence?.git?.changedFilesBasis === "branch-diff"
@@ -374,6 +378,21 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     ...(subjectHead ? { commit: subjectHead } : {}),
     ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
     diffHash,
+    ...(subjectHead && subjectTreeHash ? {
+      provenance: {
+        schemaVersion: "1.0.0" as const,
+        subject: {
+          commit: subjectHead,
+          treeHash: subjectTreeHash,
+          diffHash,
+          canonicalization: "git-diff-binary-v1" as const
+        },
+        retention: {
+          mode: "git-object" as const,
+          locator: `git:${subjectHead}`
+        }
+      }
+    } : {}),
     git: {
       ...(branch ? { branch } : {}),
       base: baseRef,

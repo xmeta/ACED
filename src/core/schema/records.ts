@@ -15,6 +15,35 @@ const evidenceSchema = {
     subjectHeadCommit: { type: "string" },
     evidenceCommit: { type: "string" },
     diffHash: { type: "string" },
+    provenance: {
+      type: "object",
+      required: ["schemaVersion", "subject", "retention"],
+      additionalProperties: false,
+      properties: {
+        schemaVersion: { const: "1.0.0" },
+        subject: {
+          type: "object",
+          required: ["commit", "treeHash", "diffHash", "canonicalization"],
+          additionalProperties: false,
+          properties: {
+            commit: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
+            treeHash: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
+            diffHash: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
+            canonicalization: { const: "git-diff-binary-v1" }
+          }
+        },
+        retention: {
+          type: "object",
+          required: ["mode", "locator"],
+          additionalProperties: false,
+          properties: {
+            mode: { enum: ["git-object", "patch-artifact", "bundle"] },
+            locator: { type: "string", minLength: 1 },
+            manifestHash: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" }
+          }
+        }
+      }
+    },
     ciReceipt: {
       type: "object",
       required: [
@@ -272,6 +301,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("evidence.field", `${filePath}.${key} must be a string when present`));
     }
+  }
+  if (value.provenance !== undefined && !isObject(value.provenance)) {
+    issues.push(issue("evidence.provenance", `${filePath}.provenance must be an object when present`));
   }
   if (!isStringArray(value.changedFiles)) {
     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));

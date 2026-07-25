@@ -1,5 +1,5 @@
 import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
@@ -122,6 +122,52 @@ export function collectEvidenceTrustIssues(
   const { approval } = readApproval(root, task.id);
   const approvalPullRequest = approval?.pullRequest;
   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+
+  if (!evidence.provenance) {
+    if (!completed) {
+      issues.push({
+        severity: "warn",
+        code: "health.evidence.provenance.missing",
+        message: `${task.id} active Evidence has no versioned subject provenance manifest`
+      });
+    }
+  } else if (
+    evidence.provenance.subject.commit !== evidenceSubjectHead(evidence)
+    || evidence.provenance.subject.diffHash !== evidenceDiffHash(evidence)
+  ) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.provenance.unverifiable",
+      message: `${task.id} provenance subject does not match the legacy Evidence subject fields`
+    });
+  } else if (evidence.provenance.retention.mode !== "git-object") {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.provenance.notEvaluated",
+      message: `${task.id} ${evidence.provenance.retention.mode} payload verification is not evaluated by this CLI version`
+    });
+  } else if (evidence.provenance.retention.locator !== `git:${evidence.provenance.subject.commit}`) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.provenance.unverifiable",
+      message: `${task.id} git-object retention locator is invalid`
+    });
+  } else if (checkCommitReachability && !evidenceCommitExists(evidence.provenance.subject.commit)) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.provenance.unverifiable",
+      message: `${task.id} retained git object is unavailable; diffHash alone cannot reverify the subject`
+    });
+  } else if (
+    checkCommitReachability
+    && commitTreeHash(root, evidence.provenance.subject.commit) !== evidence.provenance.subject.treeHash
+  ) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.provenance.treeHash",
+      message: `${task.id} retained subject tree hash does not match Evidence`
+    });
+  }
 
   if (completed && strongestEvidenceLevel(evidence) === "C") {
     issues.push({

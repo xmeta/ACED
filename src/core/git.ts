@@ -103,6 +103,14 @@ export function resolveCommit(root: string, ref: string): string | undefined {
   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
 }
 
+export function commitTreeHash(root: string, commit: string): string | undefined {
+  const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{tree}`], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  return result.status === 0 ? result.stdout.trim() || undefined : undefined;
+}
+
 export function mergeBase(root: string, baseRef: string, headRef = "HEAD"): string | undefined {
   const result = spawnSync("git", ["merge-base", baseRef, headRef], {
     cwd: root,

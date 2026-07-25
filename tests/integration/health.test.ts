@@ -4,15 +4,55 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildCodeContextManifest } from "../../src/core/code-context.js";
-import { buildHealthJsonOutput, buildHealthText, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+import { buildHealthJsonOutput, buildHealthText, collectEvidenceTrustIssues, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
 import type { Issue } from "../../src/core/types.js";
 import { main } from "../../src/cli.js";
 import { headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("health", () => {
+  test("distinguishes legacy, unavailable git-object, and unevaluated external provenance", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
+
+    const task = sampleTask({ requiredChecks: [] });
+    const legacyIssues = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, sampleEvidence(), {
+      checkCommitReachability: false
+    });
+    expect(legacyIssues.some((issue) => issue.code === "health.evidence.provenance.missing")).toBe(true);
+
+    const evidence = buildCollectedEvidence(root, task.id, { baseRef: "base" });
+    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence, {
+      repositoryState: {
+        currentHead: headCommit(root),
+        currentBranchName: task.branchName,
+        commitExists: () => false
+      }
+    });
+    expect(unavailable.some((issue) =>
+      issue.code === "health.evidence.provenance.unverifiable"
+      && issue.message.includes("diffHash alone")
+    )).toBe(true);
+
+    const external = {
+      ...evidence,
+      provenance: {
+        ...evidence.provenance!,
+        retention: { mode: "patch-artifact" as const, locator: "artifact:example" }
+      }
+    };
+    const notEvaluated = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, external);
+    expect(notEvaluated.some((issue) => issue.code === "health.evidence.provenance.notEvaluated")).toBe(true);
+  });
+
   test("health JSON keeps every issue in a versioned schema", () => {
     const root = makeTempRepo();
     const issues: Issue[] = Array.from({ length: 100 }, (_, index) => ({

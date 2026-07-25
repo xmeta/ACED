@@ -201,6 +201,20 @@ export type Evidence = {
   subjectHeadCommit?: string;
   evidenceCommit?: string;
   diffHash?: string;
+  provenance?: {
+    schemaVersion: "1.0.0";
+    subject: {
+      commit: string;
+      treeHash: string;
+      diffHash: string;
+      canonicalization: "git-diff-binary-v1";
+    };
+    retention: {
+      mode: "git-object" | "patch-artifact" | "bundle";
+      locator: string;
+      manifestHash?: string;
+    };
+  };
   git?: {
     branch?: string;
     base?: string;
