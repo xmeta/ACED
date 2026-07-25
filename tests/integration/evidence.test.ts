@@ -127,7 +127,27 @@ describe("evidence collect", () => {
       expect.objectContaining({ name: "build", source: "ci" })
     ]));
     expect(evidence.checks.every((check) => check.source === "ci" && check.command === undefined)).toBe(true);
+    expect(evidence.provenance).toEqual({
+      schemaVersion: "1.0.0",
+      subject: {
+        commit: evidence.subjectHeadCommit,
+        treeHash: expect.stringMatching(/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/),
+        diffHash: evidence.diffHash,
+        canonicalization: "git-diff-binary-v1"
+      },
+      retention: {
+        mode: "git-object",
+        locator: `git:${evidence.subjectHeadCommit}`
+      }
+    });
     expect(validateEvidenceSchema(evidence)).toEqual([]);
+    expect(validateEvidenceSchema({
+      ...evidence,
+      provenance: {
+        ...evidence.provenance,
+        subject: { ...evidence.provenance?.subject, treeHash: "not-a-git-object" }
+      }
+    }).some((issue) => issue.code === "evidence.schema")).toBe(true);
     expect(buildEvidenceCollectSummary(taskId, `contracts/evidence/${taskId}.yaml`, evidence).ciReceipt).toEqual({
       verified: true,
       workflowRunId: "12345",

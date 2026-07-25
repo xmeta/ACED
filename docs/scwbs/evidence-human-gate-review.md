@@ -61,6 +61,26 @@ notes:
 
 Evidenceは自己申告だけで完結させない。可能な限り、CIログ、テスト結果、コミットID、差分、レビュー結果と結びつける。
 
+### Evidence subject provenance
+
+新規に収集するEvidenceは `provenance.schemaVersion: 1.0.0` を持ち、
+subjectのcommit、tree hash、`diffHash`、および
+`git-diff-binary-v1` canonicalizationを記録する。既定retentionは
+`git-object` であり、locatorは `git:<commit>` とする。これは対象Git
+objectが取得可能な間だけ再検証可能であることを明示するもので、長期保存を
+保証しない。
+
+`patch-artifact` と `bundle` は将来のretention modeとしてschemaで予約する。
+現行CLIはそれらのpayloadを生成・取得・検証せず、healthでは
+`notEvaluated` とする。保存期間、repository肥大化、削除済みsecretや個人情報を
+patchに残す危険、外部artifactのアクセス制御をHuman Decisionで決めるまで、
+巨大patchをEvidence本文へ埋め込まない。
+
+subject commitが失われた `git-object` recordは `unverifiable` である。
+`diffHash` は同一性の識別子であり、payloadなしに元差分を復元できないため、
+digestが残っているだけで再検証成功とは扱わない。manifestを持たない既存の
+terminal Evidenceは後方互換で読めるが、active Evidenceでは移行warningを出す。
+
 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
 
 branch diffにsubmodule gitlink変更がある場合、`evidence collect` はold/new commit、nested changed files、repository、merge target refへのhead到達可否を `submodules` に収集する。Task Contractの `submoduleDependencies` に依存PR、`upstreamRef`、submodule側checkを記録しておくと、それらもEvidenceへ関連付けられる。nested diffを収集できない場合は空差分として扱わず収集を失敗させる。`check-diff` はnested pathの契約違反、merge targetへ未到達のhead、未通過checkをerrorにする。依存PRを先にmergeし、そのheadが指定したmerge target refのancestorになってからparent PRをmergeする。
