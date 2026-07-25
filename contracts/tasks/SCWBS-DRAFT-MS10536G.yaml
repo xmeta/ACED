@@ -1,0 +1,70 @@
+id: SCWBS-DRAFT-MS10536G
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS10536G
+branchName: codex/SCWBS-DRAFT-MS10536G-issue-136-discovery-probe
+allowedPaths:
+  - src/core/types.ts
+  - src/core/discovery.ts
+  - src/core/schema/discovery.ts
+  - src/core/schema/index.ts
+  - src/commands/discovery.ts
+  - src/commands/check.ts
+  - src/commands/ai-packet.ts
+  - src/cli.ts
+  - tests/integration/discovery.test.ts
+  - tests/integration/ai.test.ts
+  - docs/scwbs/schemas/discovery-probe.schema.json
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Discovery Probeのversioned schemaとproposed active concluded inconclusive状態を実装する
+  - discovery new start concludeコマンドが安全なIDと原子的更新でProbeを管理する
+  - question hypotheses activities evidenceExpected unknowns timebox costLimit exitConditions nextDecisionを記録できる
+  - concludeは判明事実、棄却仮説、残存不確実性を記録する
+  - exit condition未充足のProbeから関連delivery Taskをcheck成功にできない
+  - inconclusiveを正常なterminal状態として扱い追加Probe導線を表示する
+  - Tiny Packetがdelivery Taskに関連するDiscovery Probeの状態と停止条件を表示する
+  - schema CLI text JSON aggregate check packetをintegration testする
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/specs/SPEC-LITE-MS10536G.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS10536G.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:e1b9fe26f16db47f30d203ee6197991ace88e47294614d1449a5de6de3f0331d
+  createdAt: "2026-07-25T23:31:15.888Z"
