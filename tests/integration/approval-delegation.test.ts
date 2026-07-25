@@ -14,8 +14,11 @@ describe("approval delegation prepare", () => {
     const result = buildApprovalDelegationPrepare(root, "WBS-001-004", options, TOKEN);
     expect(result.error).toBeUndefined();
     const rendered = JSON.stringify(result.output);
-    expect(result.output?.policyPatch.approvalPolicy.tokenSha256).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(result.output?.policyPatch.approvalPolicy.scopes).toEqual(["human-gate", "post-finish"]);
+    const approvalPolicy = result.output?.policyPatch.approvalPolicy;
+    expect(approvalPolicy?.mode).toBe("delegated");
+    if (approvalPolicy?.mode !== "delegated") throw new Error("expected delegated approval policy");
+    expect(approvalPolicy.tokenSha256).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(approvalPolicy.scopes).toEqual(["human-gate", "post-finish"]);
     expect(result.output?.handoff.join(" ")).toContain("never auto-loads .env");
     expect(rendered).not.toContain(TOKEN);
     expect(result.output?.governanceCostProxy).toEqual({ manualInputsRequired: 5, generatedFields: 3, requiredContractOnlyCommits: 1, finishRetriesAdded: 0 });

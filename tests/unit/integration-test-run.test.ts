@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-// @ts-expect-error The production runner is intentionally a dependency-free ESM script.
 import {
   SERIAL_WITHIN_FILE,
   buildVitestArgs,
@@ -94,7 +93,7 @@ describe("integration test runner", () => {
     };
     const report = normalizeReport(raw, 2500, 4);
     const summary = formatSummary(report, 1);
-    expect(report.files.map((entry) => entry.file)).toEqual(["tests/integration/slow.test.ts", "tests/integration/fast.test.ts"]);
+    expect(report.files.map((entry: { file: string }) => entry.file)).toEqual(["tests/integration/slow.test.ts", "tests/integration/fast.test.ts"]);
     expect(report.tests[0]).toMatchObject({ name: "slow test", durationMs: 1900 });
     expect(summary.split("\n")).toHaveLength(3);
     expect(summary).toContain("duration=2.50s");

@@ -1,0 +1,17 @@
+id: SPEC-LITE-MRX7OMZL
+type: spec-contract
+featureId: F-MRX7OMZL
+title: "Issue #247: canonical typecheckでtestsとscriptsの型安全性を検証する"
+status: approved
+version: 0.1.0
+summary: "production buildを変えず、テストTypeScriptと補助scriptを専用設定で型検査する"
+approvedBy: user-requested-baseline-continuation
+approvedAt: "2026-07-23T00:00:00+09:00"
+acceptanceCriteria:
+  - npm run typecheckはproduction sourceの検査後にtest用設定の検査を直列実行する
+  - tsconfig.tests.jsonはtests TypeScriptをincludeし、noEmitかつrepository root基準で解決する
+  - JavaScript補助scriptはcheckJsを有効化して可能な限り同じ検査へ含める
+  - 型検査対象外が残る場合は対象と理由を文書化する
+  - production tsconfig、build出力、runtime挙動は変更しない
+  - 既存のtestとintegration testを維持する
+  - package.json変更はTaskのHuman Gateとして承認要求し、人間の承認まで完了扱いにしない
