@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scwbs/discovery-probe.schema.json",
+  "title": "SC-WBS Discovery Probe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "type",
+    "status",
+    "question",
+    "hypotheses",
+    "activities",
+    "evidenceExpected",
+    "unknowns",
+    "timebox",
+    "costLimit",
+    "exitConditions",
+    "nextDecision"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": {
+      "type": "string",
+      "pattern": "^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "type": { "const": "discovery-probe" },
+    "status": {
+      "enum": ["proposed", "active", "concluded", "inconclusive"]
+    },
+    "question": { "type": "string", "minLength": 1 },
+    "hypotheses": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "activities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidenceExpected": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "timebox": { "type": "string", "minLength": 1 },
+    "costLimit": { "type": "string", "minLength": 1 },
+    "exitConditions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "nextDecision": { "type": "string", "minLength": 1 },
+    "deliveryTaskId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "minLength": 1 },
+    "concludedAt": { "type": "string", "minLength": 1 },
+    "exitConditionsMet": { "type": "boolean" },
+    "factsLearned": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "hypothesesRejected": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "remainingUnknowns": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "concluded" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": [
+          "concludedAt",
+          "exitConditionsMet",
+          "factsLearned",
+          "hypothesesRejected"
+        ],
+        "properties": {
+          "exitConditionsMet": { "const": true }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "inconclusive" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["concludedAt", "remainingUnknowns", "nextDecision"]
+      }
+    }
+  ]
+}

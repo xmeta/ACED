@@ -712,6 +712,43 @@ describe("AI commands", () => {
     expect(buildTinyPacket(root, "WBS-001-004")).toContain("Scope Risk:\n- broad; explicit review required (src/**)");
   });
 
+  test("tiny packet shows related Discovery Probe state and stop instruction", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const probe = {
+      schemaVersion: "1.0.0",
+      id: "PROBE-cache",
+      type: "discovery-probe",
+      status: "active",
+      question: "Can the existing cache meet the target?",
+      hypotheses: ["Existing cache is enough"],
+      activities: ["Measure representative load"],
+      evidenceExpected: ["p95 latency"],
+      unknowns: ["Peak degradation"],
+      timebox: "4h",
+      costLimit: "one engineer-day",
+      exitConditions: ["Representative run complete"],
+      nextDecision: "Choose the delivery design",
+      deliveryTaskId: "WBS-001-004"
+    };
+    writeYaml(root, "contracts/discovery/PROBE-cache.yaml", probe);
+
+    const blocked = buildTinyPacket(root, "WBS-001-004");
+    expect(blocked).toContain("Discovery:");
+    expect(blocked).toContain("PROBE-cache: active");
+    expect(blocked).toContain("Stop: related Discovery Probe is not concluded");
+
+    writeYaml(root, "contracts/discovery/PROBE-cache.yaml", {
+      ...probe,
+      status: "concluded",
+      concludedAt: "2026-07-26T00:00:00.000Z",
+      exitConditionsMet: true,
+      factsLearned: ["p95 met the target"],
+      hypothesesRejected: ["A new store is required"]
+    });
+    expect(buildTinyPacket(root, "WBS-001-004")).not.toContain("Stop: related Discovery Probe");
+  });
+
   test("core command aliases route to existing approval and block commands", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

@@ -43,6 +43,57 @@ AIは `allowedPaths` 内だけを変更する。
 scwbs block "DBスキーマ変更が必要"
 ```
 
+### Discovery Probe で不確実性を先に閉じる
+
+実装前に技術的不確実性を検証する場合は、`contracts/discovery/PROBE-*.yaml`
+を正本とする bounded Discovery Probe を作る。Probe は delivery Task と分離し、
+question、hypotheses、activities、evidenceExpected、unknowns、timebox、costLimit、
+exitConditions、nextDecision を最初に固定する。
+
+```bash
+scwbs discovery new \
+  --probe PROBE-cache-strategy \
+  --question "既存キャッシュで応答時間目標を満たせるか" \
+  --hypotheses "既存方式で十分" \
+  --activities "代表負荷を測定" \
+  --evidence-expected "p95 latency" \
+  --unknowns "ピーク時の劣化" \
+  --timebox "4h" \
+  --cost-limit "one engineer-day" \
+  --exit-conditions "代表負荷の測定完了" \
+  --next-decision "実装方式を選ぶ" \
+  --delivery-task WBS-001
+scwbs discovery start --probe PROBE-cache-strategy
+```
+
+状態遷移は `proposed -> active -> concluded|inconclusive` のみで、既存Probeを
+暗黙に上書きしない。`concluded` は全exit conditionの達成と、学習した事実・
+棄却した仮説の記録を要求する。
+
+```bash
+scwbs discovery conclude \
+  --probe PROBE-cache-strategy \
+  --outcome concluded \
+  --facts "p95が目標内" \
+  --rejected "追加ストアが必須" \
+  --exit-conditions-met true
+```
+
+時間または費用上限に達して判断できない場合、失敗扱いにせず
+`inconclusive` で終了し、残存不確実性と次の判断を明示する。
+
+```bash
+scwbs discovery conclude \
+  --probe PROBE-cache-strategy \
+  --outcome inconclusive \
+  --remaining "ピーク負荷の再現性" \
+  --next-decision "追加Probeの費用を判断"
+```
+
+delivery Task に関連付けられたProbeは `concluded` になるまで `scwbs check`
+を失敗させ、Tiny Packetにも停止指示を表示する。`inconclusive` は正常な終端
+だが、delivery開始を許可する根拠にはならない。
+
 ### 4. 完了処理をする
 
 手動確認でrequired checksを先に実行する場合は、正規入口からprovenance付きreceiptを作る。
