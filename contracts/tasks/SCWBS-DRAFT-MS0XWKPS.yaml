@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MS0XWKPS
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS0XWKPS
+branchName: codex/SCWBS-DRAFT-MS0XWKPS-issue-180-docs-lifecycle
+allowedPaths:
+  - src/core/document-lifecycle.ts
+  - src/core/code-context.ts
+  - src/commands/docs-check.ts
+  - src/cli.ts
+  - src/commands/check.ts
+  - tests/integration/docs-check.test.ts
+  - tests/integration/ai.test.ts
+  - docs/document-lifecycle.json
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - docs/scwbs/schemas/docs-check.schema.json
+  - docs/README.md
+  - README.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - docs/scwbs/cli-reference.md
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - set単位manifestでdocumentId、status、version、appliesToCli、entrypoint、paths、supersedes、standardEntrypointsを機械可読化する
+  - status vocabularyをnormative、informative、proposal、deprecated、supersededへ限定する
+  - docs checkとdocs check --jsonがschema、参照切れ、normative競合、supersedes関係、CLI version適用範囲をfail-closedで検証する
+  - proposal、deprecated、superseded entrypointがstandardEntrypointsへ入った場合はwarningを返す
+  - deprecatedまたはsuperseded文書は後継documentIdへ到達できなければerrorにする
+  - scwbs checkがmanifest存在時にdocs validationをaggregateしCIで回帰を検出する
+  - packet --context-jsonはproposal、deprecated、superseded文書を既定除外し明示overrideだけで含める
+  - 現行docsの人間向けsource-of-truth順序を維持する
+  - schema、text、JSON、help、aggregate check、AI context filteringをintegration testする
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/specs/SPEC-LITE-MS0XWKPS.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS0XWKPS.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7d00d77f6aad1dc01c72cee05e7b31690633086b22bcd245fe052ee5b55c389d
+  createdAt: "2026-07-25T22:30:36.926Z"

@@ -1,0 +1,21 @@
+id: SPEC-LITE-MS0XWKPS
+type: spec-contract
+featureId: F-MS0XWKPS
+title: "Issue #180: 文書lifecycleを機械可読化しdocs checkで検証する"
+status: approved
+version: 0.1.0
+summary: "set単位manifest、versioned docs check、CI aggregate、AI context filterで正本とproposal境界を検証する"
+approvedBy: user-requested-baseline-continuation
+approvedAt: "2026-07-26T00:00:00+09:00"
+acceptanceCriteria:
+  - document lifecycle manifestはversioned JSON schemaでdocumentId、status、version、appliesToCli、entrypoint、paths、supersedesを検証する
+  - statusはnormative、informative、proposal、deprecated、superseded以外を拒否する
+  - entrypointとstandardEntrypointsの参照切れ、重複documentId、normative正本の競合を検出する
+  - supersedesの未知参照、自己参照、cycleを検出し、deprecatedまたはsuperseded文書から後継へ辿れない状態を拒否する
+  - package.jsonのCLI versionがappliesToCli範囲外なら構造化errorを返す
+  - proposal、deprecated、superseded文書をstandardEntrypointsへ入れた場合は構造化warningを返す
+  - docs check textとscwbs.docs-check.v1 JSONは決定的かつboundedである
+  - manifestが存在するrepositoryではscwbs checkが同じdocs issueをaggregateする
+  - packet --context-jsonはnon-current文書を既定除外し、明示optionでのみ含める
+  - 現行のREADME、docs/README、Core、proposal、detail文書群をset単位で登録し既存導線を壊さない
+  - test、integration、typecheck、buildが成功する
