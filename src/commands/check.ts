@@ -13,6 +13,7 @@ import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } fr
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
 import { isWbsLessTask } from "../core/node-utils.js";
 import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
+import { discoveryIssues } from "../core/discovery.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
   if (!evidence) return [];
@@ -271,6 +272,7 @@ export function collectCheckIssues(root: string): Issue[] {
   if (existsSync(resolveFrom(root, documentLifecyclePath))) {
     issues.push(...collectDocumentLifecycleIssues(root, false).issues);
   }
+  issues.push(...discoveryIssues(root));
   const profile: Profile = readProfile(root);
   const coverage = readCheckCoveragePolicy(root);
   issues.push(...coverage.issues);

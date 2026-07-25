@@ -18,3 +18,5 @@ export {
 export {
   validateWbsShape, asWbsDocument
 } from "./wbs.js";
+
+export { discoveryProbeSchema, validateDiscoveryProbe } from "./discovery.js";

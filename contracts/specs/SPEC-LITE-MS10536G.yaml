@@ -1,0 +1,19 @@
+id: SPEC-LITE-MS10536G
+type: spec-contract
+featureId: F-MS10536G
+title: "Issue #136: Discovery Probe schemaとCLIの最小フローを実装する"
+status: approved
+version: 0.1.0
+summary: "実装Taskの前段で未知を安全に探索し、concludedまたはinconclusiveを正規terminal状態として扱う"
+approvedBy: user-requested-baseline-continuation
+approvedAt: "2026-07-26T00:00:00+09:00"
+acceptanceCriteria:
+  - schemaVersion 1.0.0のProbeはquestion hypotheses activities evidenceExpected unknowns timebox costLimit exitConditions nextDecision statusを持つ
+  - status transitionはproposedからactive、activeからconcludedまたはinconclusiveだけを許可する
+  - concludedはfactsLearnedとhypothesesRejectedとexitConditionsMetを要求する
+  - inconclusiveはremainingUnknownsとnextDecisionを要求し失敗扱いにしない
+  - deliveryTaskIdがある未concluded Probeはaggregate checkをerrorにする
+  - new start concludeはtextとversioned JSON結果を返し既存ファイルを暗黙上書きしない
+  - unsafe IDとschema不正と不正transitionを拒否する
+  - Tiny Packetは関連Probeが未concludedなら実装停止を表示する
+  - contracts/discovery配下を正本としsource生成要約を権限根拠にしない

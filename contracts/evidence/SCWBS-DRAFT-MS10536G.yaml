@@ -1,0 +1,77 @@
+id: EVD-SCWBS-DRAFT-MS10536G
+type: evidence
+taskId: SCWBS-DRAFT-MS10536G
+commit: 2dba8846c07fe91e079e2e4d4d630acacf55057d
+subjectHeadCommit: 2dba8846c07fe91e079e2e4d4d630acacf55057d
+diffHash: sha256:db7b3842abcdd4285eea765766ead90fb03d88f24911021dc354740f24d29c97
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 2dba8846c07fe91e079e2e4d4d630acacf55057d
+    treeHash: 04b046bd3fd7aa2eac2c682885914b7ca42d5d4d
+    diffHash: sha256:db7b3842abcdd4285eea765766ead90fb03d88f24911021dc354740f24d29c97
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:2dba8846c07fe91e079e2e4d4d630acacf55057d
+git:
+  branch: codex/SCWBS-DRAFT-MS10536G-issue-136-discovery-probe
+  base: origin/main
+  baseCommit: 42b403d8363868159f333d3ac842bd4a595fd579
+  changedFilesBasis: branch-diff
+  pullRequest: "296"
+  subjectHeadCommit: 2dba8846c07fe91e079e2e4d4d630acacf55057d
+  diffHash: sha256:db7b3842abcdd4285eea765766ead90fb03d88f24911021dc354740f24d29c97
+  headCommit: 2dba8846c07fe91e079e2e4d4d630acacf55057d
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS10536G.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS10536G.yaml
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - docs/scwbs/schemas/discovery-probe.schema.json
+  - src/cli.ts
+  - src/commands/ai-packet.ts
+  - src/commands/check.ts
+  - src/commands/discovery.ts
+  - src/core/discovery.ts
+  - src/core/schema/discovery.ts
+  - src/core/schema/index.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/discovery.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ad8f8414abb5b9bfeb0693d7e1893b4f5249a39f3190bfb5f0062acdcf400588
+    durationMilliseconds: 4875
+    executedAt: "2026-07-25T23:41:19.640Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:58fe447f210f938c6878113717d9bb67b4fa1bb799657be1b77606bc8cb78e7b
+    durationMilliseconds: 182334
+    executedAt: "2026-07-25T23:44:21.980Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ec9c82f5a229f40ff8ec0c546145ff180ecdc87ccf6bdfedd7e250ac4724158e
+    durationMilliseconds: 8935
+    executedAt: "2026-07-25T23:44:30.920Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:2109a1efaac0baaa176c2fa1bd0ec83f788600a8d03f29ba59b1eb1397487d9e
+    durationMilliseconds: 3983
+    executedAt: "2026-07-25T23:44:34.907Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Discovery Probe lifecycle, invalid transitions, schema conformance, aggregate delivery gate, inconclusive outcome, and Tiny Packet stop behavior are covered by integration tests.

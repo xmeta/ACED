@@ -9,6 +9,7 @@ import type { TaskContract } from "../core/types.js";
 import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
 import { isWbsLessTask } from "../core/node-utils.js";
 import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
+import { probesForTask } from "../core/discovery.js";
 
 const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
 
@@ -16,6 +17,15 @@ function tinyScopeRisk(task: TaskContract): string {
   if (task.allowedPaths.length === 0) return "deny-all draft; add explicit paths before implementation";
   const broad = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
   return broad.length > 0 ? `broad; explicit review required (${broad.join(", ")})` : "bounded";
+}
+
+function discoveryPacket(root: string, taskId: string): string {
+  const probes = probesForTask(root, taskId);
+  if (probes.length === 0) return "";
+  const blocked = probes.filter((probe) => probe.status !== "concluded");
+  return `Discovery:
+${probes.map((probe) => `- ${probe.id}: ${probe.status} | ${probe.question}`).join("\n")}
+${blocked.length > 0 ? "Stop: related Discovery Probe is not concluded; do not begin delivery implementation.\n" : ""}`;
 }
 
 function submodulePacket(root: string, task: TaskContract): string {
@@ -284,6 +294,7 @@ Coverage required:
 ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
 Coverage missing:
 ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
+${discoveryPacket(root, task.id)}
 Next:
 - npm run scwbs -- finish --task ${task.id}
 - npm run scwbs -- block "reason" --task ${task.id}
@@ -314,6 +325,7 @@ Coverage required:
 ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
 Coverage missing:
 ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
+${discoveryPacket(root, task.id)}
 Next:
 - npm run scwbs -- finish --task ${task.id}
 - npm run scwbs -- block "reason" --task ${task.id}
