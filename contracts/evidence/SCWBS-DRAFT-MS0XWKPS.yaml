@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MS0XWKPS
+type: evidence
+taskId: SCWBS-DRAFT-MS0XWKPS
+commit: 755c0ffd0ca77edba79302792aaa13b2947d89a5
+subjectHeadCommit: 755c0ffd0ca77edba79302792aaa13b2947d89a5
+diffHash: sha256:6a9973a3dd6e7447aa87f71bcae9782b52301264864768ed9858fb97801e5827
+git:
+  branch: codex/SCWBS-DRAFT-MS0XWKPS-issue-180-docs-lifecycle
+  base: origin/main
+  baseCommit: f2e2c95e1a2bd237a0d74f68c093ff0d79fba447
+  changedFilesBasis: branch-diff
+  pullRequest: "292"
+  subjectHeadCommit: 755c0ffd0ca77edba79302792aaa13b2947d89a5
+  diffHash: sha256:6a9973a3dd6e7447aa87f71bcae9782b52301264864768ed9858fb97801e5827
+  headCommit: 755c0ffd0ca77edba79302792aaa13b2947d89a5
+changedFiles:
+  - README.md
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS0XWKPS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/tasks/index.yaml
+  - docs/README.md
+  - docs/document-lifecycle.json
+  - docs/scwbs/schemas/docs-check.schema.json
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - src/cli.ts
+  - src/commands/check.ts
+  - src/commands/docs-check.ts
+  - src/core/code-context.ts
+  - src/core/document-lifecycle.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/docs-check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:27e3a05e041c0cb577c21319fba2923eff47346f8ab90c4e4f16bc4825fdbe0f
+    durationMilliseconds: 4019
+    executedAt: "2026-07-25T22:45:43.260Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:8bd77921be1a2ac896d9137f494b87a71ac83ab0261b7fc69d52c54650056733
+    durationMilliseconds: 173430
+    executedAt: "2026-07-25T22:48:36.694Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:49d4c93a12512a04fda72c8a97c10c6e4047f86bf924e539007cd0bf4eee0af2
+    durationMilliseconds: 9314
+    executedAt: "2026-07-25T22:48:46.015Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e381b42b7f1e96b84116ef15e8c4c50d34bc7d194acf29336a6e46b2c72e09c2
+    durationMilliseconds: 4135
+    executedAt: "2026-07-25T22:48:50.155Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added lifecycle schema, validation, CLI, aggregate, and non-current context filter regression coverage

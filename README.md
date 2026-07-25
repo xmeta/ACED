@@ -47,6 +47,7 @@ Check the local installation:
 ```bash
 npm run scwbs -- doctor
 npm run scwbs -- check
+npm run scwbs -- docs check
 ```
 
 ## 3. Doctor And Check
@@ -72,6 +73,11 @@ plus any check / health issues. Each FAIL prints a suggested fix command.
 
 Run `doctor` before `check` whenever setup may be incomplete so failures
 are diagnosed explicitly instead of surfacing as opaque errors.
+
+`docs check` validates `docs/document-lifecycle.json`, including document-set
+status, entrypoints, normative ownership, successor links, and compatibility
+with the current CLI version. Its `--json` output is suitable for CI tooling;
+the same errors are included in the aggregate `scwbs check`.
 
 `status` keeps WBS lifecycle counts separate from completion trust. A completed
 or archived Task is only `verified` when its required checks, Evidence subject,

@@ -4,6 +4,8 @@ Status: current navigation entrypoint.
 
 This file is the first stop for choosing which documentation set to read.
 Do not treat every directory under `docs/` as equally current.
+The machine-readable status and CLI applicability of each set are recorded in
+`document-lifecycle.json` and validated by `npm run scwbs -- docs check`.
 
 ## Source Of Truth Order
 
@@ -26,6 +28,10 @@ If these disagree during implementation, the active Task Contract and
 | `scwbs/` | legacy reference | Detailed SC-WBS method and CLI references; use when current docs or a task point here. |
 | `sc-wbs-core-revision/` | proposal | Draft revision notes for future Core changes; not current execution rules. |
 
+The lifecycle vocabulary is `normative`, `informative`, `proposal`,
+`deprecated`, and `superseded`. Deprecated and superseded sets must name a
+successor in the manifest. Standard execution entrypoints must remain current.
+
 ## AI Reading Path
 
 Implementation agents should read only the smallest required context:
@@ -39,6 +45,11 @@ target files named by the task
 
 Use `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` only
 when the Task Contract does not provide enough context.
+
+`packet --context-json` excludes proposal, deprecated, and superseded document
+sets by default. Use `--context-include-noncurrent-docs` only when a task
+explicitly requires historical or proposal context. This navigation filter
+does not change Task Contract edit authority.
 
 ## Legacy And Proposal Boundaries
 

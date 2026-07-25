@@ -6,6 +6,12 @@ import { matchesAny } from "./glob.js";
 import { gitObject, headCommit, trackedTextFiles } from "./git.js";
 import { fileSha256 } from "./hash.js";
 import { taskPath } from "./paths.js";
+import {
+  documentLifecyclePath,
+  documentStatusForPath,
+  isNonCurrentDocumentStatus,
+  parseDocumentLifecycleManifest
+} from "./document-lifecycle.js";
 
 const DEFAULT_MAX_FILES = 40;
 const DEFAULT_MAX_BYTES = 262_144;
@@ -15,6 +21,7 @@ const SOURCE_PATTERN = /\.(?:cjs|js|mjs|ts|tsx)$/;
 export type CodeContextOptions = {
   maxFiles?: number;
   maxBytes?: number;
+  includeNonCurrentDocs?: boolean;
 };
 
 export type CodeContextManifest = ReturnType<typeof buildCodeContextManifest>;
@@ -167,6 +174,19 @@ export function buildCodeContextManifest(
     gitObjectCache.set(cacheKey, content);
     return content;
   };
+  const lifecycleText = readGitObject(root, "HEAD", documentLifecyclePath);
+  const lifecycleResult = lifecycleText === undefined
+    ? undefined
+    : parseDocumentLifecycleManifest(lifecycleText);
+  if (lifecycleResult && !lifecycleResult.manifest) {
+    throw new Error(lifecycleResult.issues.map((issue) => issue.message).join("\n"));
+  }
+  const lifecycleManifest = lifecycleResult?.manifest;
+  const nonCurrentStatus = (file: string) => {
+    if (options.includeNonCurrentDocs || !lifecycleManifest) return undefined;
+    const status = documentStatusForPath(lifecycleManifest, file);
+    return isNonCurrentDocumentStatus(status) ? status : undefined;
+  };
   const contractPath = taskPath(task.id);
   const mustRead = new Map<string, ContextEntry>();
   const candidateReasons = new Map<string, string[]>();
@@ -188,6 +208,16 @@ export function buildCodeContextManifest(
     if (readGitObject(root, "HEAD", seed) === undefined) {
       excluded.push({ path: seed, reasons: ["exact-allowed-path-missing"], editable: false });
       widening.push({ code: "missing-seed", path: seed, detail: "exact allowedPath does not exist at HEAD" });
+      continue;
+    }
+    const status = nonCurrentStatus(seed);
+    if (status) {
+      excluded.push({ path: seed, reasons: [`document-status-${status}`], editable: false });
+      widening.push({
+        code: "non-current-document",
+        path: seed,
+        detail: `${status} document excluded; use --context-include-noncurrent-docs to include it`
+      });
       continue;
     }
     const protectedPath = matchesAny(seed, task.forbiddenPaths) || matchesAny(seed, task.humanGateRequiredPaths);
@@ -257,6 +287,20 @@ export function buildCodeContextManifest(
     if (mustRead.has(candidatePath)) {
       const current = mustRead.get(candidatePath);
       if (current) current.reasons = [...new Set([...current.reasons, ...reasons])].sort();
+      continue;
+    }
+    const status = nonCurrentStatus(candidatePath);
+    if (status) {
+      excluded.push({
+        path: candidatePath,
+        reasons: [`document-status-${status}`, ...new Set(reasons)].sort(),
+        editable: false
+      });
+      widening.push({
+        code: "non-current-document",
+        path: candidatePath,
+        detail: `${status} document excluded; use --context-include-noncurrent-docs to include it`
+      });
       continue;
     }
     if (matchesAny(candidatePath, task.forbiddenPaths) || matchesAny(candidatePath, task.humanGateRequiredPaths)) {

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/document-lifecycle.schema.json",
+  "title": "SC-WBS document lifecycle manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "standardEntrypoints", "documents"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "standardEntrypoints": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/repositoryPath" }
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/documentSet" }
+    }
+  },
+  "$defs": {
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
+    },
+    "documentSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documentId", "status", "version", "appliesToCli", "entrypoint", "paths", "supersedes"],
+      "properties": {
+        "documentId": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["normative", "informative", "proposal", "deprecated", "superseded"] },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "appliesToCli": {
+          "type": "string",
+          "pattern": "^(?:(?:>=|<=|>|<|=)?\\d+\\.\\d+\\.\\d+)(?:\\s+(?:>=|<=|>|<|=)?\\d+\\.\\d+\\.\\d+)*$"
+        },
+        "entrypoint": { "$ref": "#/$defs/repositoryPath" },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/repositoryPath" }
+        },
+        "supersedes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

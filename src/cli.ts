@@ -8,6 +8,7 @@ import { runAiRun } from "./commands/ai-run.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runApprovalDelegationPrepare } from "./commands/approval-delegation.js";
 import { runCheck } from "./commands/check.js";
+import { runDocsCheck } from "./commands/docs-check.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runCiPlan } from "./commands/ci-plan.js";
 import { runChecksRun } from "./commands/checks-run.js";
@@ -107,6 +108,13 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Check repository contracts")
     .option("--json", "output as JSON")
     .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
+
+  const docs = program.command("docs").description("Validate documentation lifecycle metadata");
+  docs
+    .command("check")
+    .description("Check documentation status, ownership, successors, and CLI applicability")
+    .option("--json", "output a versioned JSON report")
+    .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
 
   const ci = program.command("ci");
   ci
@@ -248,6 +256,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--context-json", "output a source-free read-only code context manifest")
     .option("--context-max-files <n>", "maximum selected context files", parseInt)
     .option("--context-max-bytes <n>", "maximum selected context bytes", parseInt)
+    .option("--context-include-noncurrent-docs", "include proposal, deprecated, and superseded docs")
     .option("--relation-depth <n>", "relation depth", parseInt)
     .action((opts) => {
       const taskId = opts.task;
@@ -259,7 +268,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       if (opts.contextJson) {
         exitCode = runCodeContextManifest(root, taskId, {
           maxFiles: opts.contextMaxFiles,
-          maxBytes: opts.contextMaxBytes
+          maxBytes: opts.contextMaxBytes,
+          includeNonCurrentDocs: opts.contextIncludeNoncurrentDocs ?? false
         });
       } else if (opts.full || opts.deep) {
         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 1, "default");
