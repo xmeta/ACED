@@ -1,0 +1,66 @@
+id: SCWBS-DRAFT-MS0Z6DGJ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS0Z6DGJ
+branchName: codex/SCWBS-DRAFT-MS0Z6DGJ-issue-178-subject-manifest
+allowedPaths:
+  - src/core/types.ts
+  - src/core/git.ts
+  - src/core/schema/records.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/health.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/health.test.ts
+  - docs/scwbs/evidence-human-gate-review.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Evidenceへversioned subject manifestを後方互換で追加する
+  - subject manifestはcommit、treeHash、diffHash、canonicalization、retention modeとlocatorを記録する
+  - evidence collectがGit objectを既定retentionとして決定的に収集する
+  - schemaが不正なhash、mode、canonicalizationを拒否する
+  - healthがmanifest欠落、commit到達可能、payload未評価、検証不能を構造化して区別する
+  - commitが失われてもdiffHashだけから再検証済みとは判定しない
+  - git-object以外の永続payload保存は本Taskでは導入せずtrade-offを文書化する
+  - test、integration、typecheck、buildが成功する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS0Z6DGJ.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:8be702086ff1d4fcac15cd01a48aed24db2dc6cef68eba501583b7c016e51ded
+  createdAt: "2026-07-25T23:04:32.098Z"
