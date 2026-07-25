@@ -12,6 +12,7 @@ import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract
 import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
 import { isWbsLessTask } from "../core/node-utils.js";
+import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
   if (!evidence) return [];
@@ -267,6 +268,9 @@ function validateCompletionTaskIds(root: string): Issue[] {
 
 export function collectCheckIssues(root: string): Issue[] {
   const issues: Issue[] = [];
+  if (existsSync(resolveFrom(root, documentLifecyclePath))) {
+    issues.push(...collectDocumentLifecycleIssues(root, false).issues);
+  }
   const profile: Profile = readProfile(root);
   const coverage = readCheckCoveragePolicy(root);
   issues.push(...coverage.issues);

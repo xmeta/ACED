@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/docs-check.schema.json",
+  "title": "SC-WBS docs check report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "status", "manifestPath", "cliVersion", "summary", "issues"],
+  "properties": {
+    "version": { "const": "scwbs.docs-check.v1" },
+    "status": { "enum": ["pass", "warn", "fail"] },
+    "manifestPath": { "const": "docs/document-lifecycle.json" },
+    "cliVersion": {
+      "oneOf": [
+        { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        { "type": "null" }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documents", "normative", "informative", "proposal", "deprecated", "superseded", "errors", "warnings"],
+      "properties": {
+        "documents": { "type": "integer", "minimum": 0 },
+        "normative": { "type": "integer", "minimum": 0 },
+        "informative": { "type": "integer", "minimum": 0 },
+        "proposal": { "type": "integer", "minimum": 0 },
+        "deprecated": { "type": "integer", "minimum": 0 },
+        "superseded": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "code", "message"],
+        "properties": {
+          "severity": { "enum": ["error", "warn"] },
+          "code": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "fixCommand": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

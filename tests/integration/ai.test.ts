@@ -579,6 +579,77 @@ describe("AI commands", () => {
     expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
   });
 
+  test("context manifest excludes noncurrent documents by default and supports an explicit override", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeText(root, "docs/current/index.md", "# Current\n");
+    writeText(root, "docs/proposal/index.md", "# Proposal\n");
+    writeJson(root, "package.json", { version: "0.1.0" });
+    writeJson(root, "docs/document-lifecycle.json", {
+      schemaVersion: "1.0.0",
+      standardEntrypoints: ["docs/current/index.md"],
+      documents: [
+        {
+          documentId: "current",
+          status: "normative",
+          version: "1.0.0",
+          appliesToCli: ">=0.1.0 <0.2.0",
+          entrypoint: "docs/current/index.md",
+          paths: ["docs/current/**"],
+          supersedes: []
+        },
+        {
+          documentId: "proposal",
+          status: "proposal",
+          version: "0.1.0",
+          appliesToCli: ">=0.1.0 <0.2.0",
+          entrypoint: "docs/proposal/index.md",
+          paths: ["docs/proposal/**"],
+          supersedes: []
+        }
+      ]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+      allowedPaths: ["docs/current/index.md", "docs/proposal/index.md"],
+      forbiddenPaths: [],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "document context fixture"], { cwd: root, stdio: "ignore" });
+
+    const filtered = buildCodeContextManifest(root, "WBS-001-004");
+    expect(filtered.candidates.map((item) => item.path)).toEqual(["docs/current/index.md"]);
+    expect(filtered.excluded.find((item) => item.path === "docs/proposal/index.md")?.reasons)
+      .toContain("document-status-proposal");
+    expect(filtered.completeness.reasons).toContain("non-current-document");
+
+    const included = buildCodeContextManifest(root, "WBS-001-004", { includeNonCurrentDocs: true });
+    expect(included.candidates.map((item) => item.path)).toEqual([
+      "docs/current/index.md",
+      "docs/proposal/index.md"
+    ]);
+
+    const output: string[] = [];
+    const originalWrite = process.stdout.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main([
+        "packet",
+        "--task",
+        "WBS-001-004",
+        "--context-json",
+        "--context-include-noncurrent-docs"
+      ], root)).toBe(0);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+    expect(JSON.parse(output.join("")).candidates.map((item: { path: string }) => item.path))
+      .toContain("docs/proposal/index.md");
+  });
+
   test("packet --context-json manifest conforms to the versioned JSON schema", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
