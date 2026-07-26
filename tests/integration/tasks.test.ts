@@ -606,6 +606,52 @@ describe("task management", () => {
 });
 
 describe("WBS-less task flow", () => {
+  test("applyWbsChangesets processes setDocumentExtension atomically", () => {
+    const baseWbs = sampleWbs();
+    baseWbs.extensions = {
+      scwbs: { profile: "Lean", stale: true },
+      vendor: { retained: true }
+    };
+    const nodesBefore = structuredClone(baseWbs.nodes);
+
+    const result = applyWbsChangesets(baseWbs, [{
+      schemaVersion: "0.1.0",
+      targetWbsId: "scwbs",
+      operations: [{
+        operation: "setDocumentExtension",
+        namespace: "scwbs",
+        value: {
+          profile: "Standard",
+          governanceCost: {
+            warningBudgets: {
+              Standard: {
+                governanceFiles: 700,
+                governanceLines: 31000,
+                governanceToSourceLineRatio: 2
+              }
+            }
+          }
+        }
+      }]
+    }]);
+
+    expect(result.extensions?.vendor).toEqual({ retained: true });
+    expect(result.extensions?.scwbs).toEqual({
+      profile: "Standard",
+      governanceCost: {
+        warningBudgets: {
+          Standard: {
+            governanceFiles: 700,
+            governanceLines: 31000,
+            governanceToSourceLineRatio: 2
+          }
+        }
+      }
+    });
+    expect(result.nodes).toEqual(nodesBefore);
+    expect(baseWbs.extensions?.scwbs).toEqual({ profile: "Lean", stale: true });
+  });
+
   test("applyWbsChangesets processes addNode operations with nested node object format", () => {
     const baseWbs = sampleWbs();
     const beforeCount = baseWbs.nodes.length;

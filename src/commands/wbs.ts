@@ -63,6 +63,18 @@ export function applyWbsChangesets(base: WbsDocument, changeSets: Array<Record<s
     for (const rawOperation of operations) {
       if (!rawOperation || typeof rawOperation !== "object") continue;
       const operation = rawOperation as Record<string, unknown>;
+      if (
+        operation.operation === "setDocumentExtension"
+        && typeof operation.namespace === "string"
+        && operation.value
+        && typeof operation.value === "object"
+        && !Array.isArray(operation.value)
+      ) {
+        next.extensions = {
+          ...(next.extensions ?? {}),
+          [operation.namespace]: JSON.parse(JSON.stringify(operation.value)) as Record<string, unknown>
+        };
+      }
       if (operation.operation === "changeNodeStatus" && typeof operation.nodeId === "string" && typeof operation.status === "string") {
         const node = next.nodes.find((item) => item.id === operation.nodeId);
         if (node) node.status = operation.status as WbsDocument["nodes"][number]["status"];

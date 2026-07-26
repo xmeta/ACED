@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
+  "changeSetId": "changeset-SCWBS-DRAFT-MS1K843U-standard-warning-budget",
+  "author": "codex",
+  "createdAt": "2026-07-26T00:00:00+09:00",
+  "reason": "Configure the Issue #179 observed Standard governance budget as warning-only while retaining the Standard profile.",
+  "dryRun": true,
+  "operations": [
+    {
+      "operationId": "op-001",
+      "operation": "setDocumentExtension",
+      "namespace": "scwbs",
+      "value": {
+        "profile": "Standard",
+        "governanceCost": {
+          "warningBudgets": {
+            "Standard": {
+              "governanceFiles": 700,
+              "governanceLines": 31000,
+              "governanceToSourceLineRatio": 2.0
+            }
+          }
+        }
+      }
+    }
+  ]
+}
