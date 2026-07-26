@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MS1XG864
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1XG864
+branchName: task/SCWBS-DRAFT-MS1XG864-issue-308-cli-reference-and-ai-docs-implementati
+allowedPaths:
+  - AGENTS.md
+  - docs/scwbs/README.md
+  - docs/scwbs/ai-agent-guide.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/wjs-operations-validation.md
+forbiddenPaths:
+  - wjs/**
+  - src/**
+  - tests/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+stopIf:
+  - CLI behavior、schema、test、依存関係、workflow、WBS正本の変更が必要
+  - 文書から現行実装を一意に説明できず仕様判断が必要
+  - Human ApprovalまたはHuman Reviewの権限境界を変更する必要
+doneCriteria:
+  - Issue 308の対象文書を現行CLI、schema、test、helpと照合し、確認できた挙動だけを記載する
+  - fixCommandの保証範囲、Task lifecycle、completion trust、mutation分類、終了コードを実装どおり説明する
+  - Human ApprovalとHuman Reviewの人間専用境界を明示し、AIに--actor humanを実行させない
+  - WJS changeset例、Markdown table、関連文書リンクを有効にする
+  - docs check、test、typecheck、build、scwbs check、check-diff、registry checkが成功する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/specs/SPEC-LITE-MS1XG864.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1XG864.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:1c482478eba584c3a9b79922a9bb5ec6e2604e04a04fb83886f956d299ffeee3
+  createdAt: "2026-07-26T15:04:06.794Z"
