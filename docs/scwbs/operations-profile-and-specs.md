@@ -6,7 +6,7 @@ Source: docs/sc-wbs-development.md split reference.
 
 運用の厳格さはプロジェクトに応じて選ぶ。
 
-| Profile | 用途 | 必須 | 管理ディレクトリ |
+| Profile | 用途 | 方法論上の要求 | 現行 `init` が作成するartifact directory |
 |---|---|---|---|
 | Lean | 個人開発、プロトタイプ | Task Contract、Evidence、path制約 | `contracts/tasks/`, `contracts/evidence/`, `contracts/approvals/`, `contracts/changesets/`, `contracts/wbs/` |
 | Standard | 通常の業務アプリ | WBS-JSON、Task Contract、Evidence、Human Gate、`scwbs check` | Lean + `contracts/reviews/` |
@@ -14,8 +14,10 @@ Source: docs/sc-wbs-development.md split reference.
 
 プロファイルを明示しない場合はStandardを適用する。
 
-`init` でプロファイルを指定すると、そのプロファイルに必要なディレクトリのみが作成される。
-`check` はアクティブなプロファイルに含まれないアーティファクト種別の検証をスキップする。
+上表の「方法論上の要求」と「現行CLIが機械的に強制する範囲」は同一ではない。現行実装のStrictは `contracts/specs/` と `contracts/spec-changes/` を追加し、LeanではSpec/Spec Changeのrepository-wide検証を省略する。Risk Registerと監査ログのscaffold/schema/check、Profile別Review種別の強制は未実装である。`contracts/reviews/` のrecordはTask別のreview/completion flowで検証されるが、`scwbs check` が全Review recordをProfile別に列挙して強制するわけではない。
+
+したがって `init --profile strict` や `profile set strict` の表示だけを、Risk Register、監査ログ、Human Reviewまで完備した証明として扱ってはならない。実装済みの強制範囲を広げる場合は、schema・check・migrationを別Taskで追加する。
+
 AI Work Packet にはプロファイル情報とアクティブなアーティファクトディレクトリ一覧が含まれる。
 
 ---

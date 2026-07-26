@@ -16,6 +16,23 @@ function captureHelp(args: string[], root: string): { exitCode: number; stdout: 
   }
 }
 
+function captureStderr(action: () => number): { exitCode: number; stderr: string } {
+  const output: string[] = [];
+  const originalWrite = process.stderr.write;
+  const originalError = console.error;
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    output.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
+  console.error = (message?: unknown) => output.push(`${String(message)}\n`);
+  try {
+    return { exitCode: action(), stderr: output.join("") };
+  } finally {
+    process.stderr.write = originalWrite;
+    console.error = originalError;
+  }
+}
+
 describe("CLI help lifecycle semantics", () => {
   test("describes status strict scope and finish preflight side effects", () => {
     const root = makeTempRepo();
@@ -31,5 +48,32 @@ describe("CLI help lifecycle semantics", () => {
     expect(finishText).toContain("without required checks or tracked artifact changes");
     expect(finishText).toContain("record a local lifecycle receipt");
     expect(finishText).not.toContain("without running checks or writing files");
+  });
+
+  test("does not advertise text and dry-run stubs as running services or agents", () => {
+    const root = makeTempRepo();
+
+    const topLevel = captureHelp(["--help"], root);
+    const topLevelText = topLevel.stdout.replace(/\s+/g, " ");
+    expect(topLevelText).toContain("ui Show the text dashboard");
+    expect(topLevelText).toContain("serve Report that the reserved API server is unavailable");
+    expect(topLevelText).not.toContain("Start web UI");
+    expect(topLevelText).not.toContain("Start API server");
+
+    const aiRun = captureHelp(["ai", "run", "--help"], root);
+    expect(aiRun.exitCode).toBe(0);
+    expect(aiRun.stdout.replace(/\s+/g, " ")).toContain("Print a dry-run AI task plan");
+  });
+
+  test("distinguishes Commander usage errors from action validation errors", () => {
+    const root = makeTempRepo();
+
+    const missingArgument = captureStderr(() => main(["wbs", "apply"], root));
+    expect(missingArgument.exitCode).toBe(1);
+    expect(missingArgument.stderr).toContain("missing required argument");
+
+    const missingTaskOption = captureStderr(() => main(["ai", "run"], root));
+    expect(missingTaskOption.exitCode).toBe(2);
+    expect(missingTaskOption.stderr).toContain("Missing --task");
   });
 });

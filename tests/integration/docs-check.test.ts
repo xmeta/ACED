@@ -1,11 +1,18 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+import { load } from "js-yaml";
 import { describe, expect, test } from "vitest";
 import { buildDocsCheckReport, runDocsCheck } from "../../src/commands/docs-check.js";
 import { collectCheckIssues } from "../../src/commands/check.js";
 import { main } from "../../src/cli.js";
 import { collectDocumentLifecycleIssues } from "../../src/core/document-lifecycle.js";
+import {
+  validateEvidence,
+  validateEvidenceSchema,
+  validateTaskContract,
+  validateTaskContractSchema
+} from "../../src/core/schema.js";
 import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
 
 type DocumentSetFixture = {
@@ -41,6 +48,14 @@ function writeFixture(root: string, documents: DocumentSetFixture[], standardEnt
     standardEntrypoints,
     documents
   });
+}
+
+function yamlExampleAfterHeading(markdown: string, heading: string): unknown {
+  const headingIndex = markdown.indexOf(heading);
+  if (headingIndex < 0) throw new Error(`missing heading: ${heading}`);
+  const match = markdown.slice(headingIndex).match(/```yaml\n([\s\S]*?)```/);
+  if (!match) throw new Error(`missing YAML example after: ${heading}`);
+  return load(match[1]);
 }
 
 describe("docs check", () => {
@@ -182,5 +197,19 @@ describe("docs check", () => {
     }
     expect(output.join("")).toContain("--json");
     expect(output.join("")).toContain("documentation status");
+  });
+
+  test("keeps normative Core Task and Evidence examples valid against current schemas", () => {
+    const markdown = readFileSync(
+      path.join(process.cwd(), "docs/sc-wbs-core/03-minimal-artifacts.md"),
+      "utf8"
+    );
+    const task = yamlExampleAfterHeading(markdown, "## Task Contract Core");
+    const evidence = yamlExampleAfterHeading(markdown, "## Evidence Core");
+
+    expect(validateTaskContractSchema(task, "Task Contract Core example")).toEqual([]);
+    expect(validateTaskContract(task, "Task Contract Core example")).toEqual([]);
+    expect(validateEvidenceSchema(evidence, "Evidence Core example")).toEqual([]);
+    expect(validateEvidence(evidence, "Evidence Core example")).toEqual([]);
   });
 });

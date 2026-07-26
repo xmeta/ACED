@@ -223,6 +223,8 @@ Review Profileは以下に分ける。
 | Independent AI Review | 別セッション、別モデル、または別プロンプトによるレビュー。Standardの最低条件とする |
 | Human Review | 人間によるレビュー。Human Gate対象またはStrictで必須とする |
 
+これはReview方法論上のpolicyである。現行CLIは `reviewProfile` が非空であることとReview recordのstatus/scopeを検証するが、project Profileに応じて `self-review` / `independent-ai-review` / `human-review` の値を強制しない。Standard/Strictの選択だけで独立性や人間による確認が機械的に証明されるわけではない。
+
 Review Agentは以下を守る。
 
 ```text

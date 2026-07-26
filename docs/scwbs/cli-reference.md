@@ -268,9 +268,9 @@ Generated contract commands must refuse to overwrite existing files unless an ex
 | `evidence collect --force` | 既存Evidenceファイルの置換を許可する | required checks、provenance検証、path検証、Human Gate |
 | `registry rebuild --force` | registry.yamlの再生成・書き込みを許可する | Task Contract / Evidence / Approvalの内容 |
 | `task index rebuild --force` | index全体のcanonical path・branch・WBS node・並び順の再構築を許可する | 既存のlifecycle status、`dependsOn`、`archivedAt` |
-| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする | changeset自体のバリデーション |
+| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする | changeset自体のバリデーション。Task/Approvalは参照しない |
 
-いずれの `--force` も、fail-closed設計上の安全境界（required checks、Human Gate、provenance検証）を無効化しない。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
+`evidence collect --force` と `task generate --force` は、それぞれの表に記載したfail-closed境界を無効化しない。一方、`wbs apply` はTask IDを受け取らずApproval recordも検証しないため、`--force`実行前のHuman GateはTask Contractと運用手順で別途保証する必要がある。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
 
 ## Review And Approval
 
@@ -453,6 +453,8 @@ npm run scwbs -- wbs apply change-set.json
 
 `wbs candidates` inspects `contracts/tasks/index.yaml` for active Task IDs that don't yet have a corresponding WBS node, and prints a dry-run `addNode` changeset (one node per such Task) for a human to review before applying with `wbs apply`. It writes nothing itself. `wbs verify-changesets` checks that replaying `--changeset <path>` (repeatable) on top of `--base <wbs.json>` reproduces `--head <wbs.json>` exactly; it is a reproducibility check for a changeset, not a general-purpose validator, and also writes nothing.
 
+`wbs apply` 自体が検証するのはchangesetとWBSであり、Task Contract、Evidence、Approvalは入力に取らない。`check-diff` のHuman Gateも対象Taskの `humanGateRequiredPaths` にWBS pathが一致するときだけ作動する。したがって「WBS書き込み前にHuman Gateを通す」は運用policyであり、現行CLIが全WBS変更へ一律に自動適用する保証ではない。機械強制が必要なTaskでは `contracts/wbs/project.wbs.json` をTask開始前から `humanGateRequiredPaths` に固定し、Approval scopeをEvidence/diffと一致させる。
+
 WBS operation details and validation commands are documented in `docs/scwbs/wjs-operations-validation.md`.
 
 ## Command And Required-Check Single-Flight
@@ -493,41 +495,53 @@ When task changes include tests, record test quality metadata with `--test-asser
 
 ## Mutation / Read-only 一覧
 
-各コマンドが完了後に何を残すかは、AIエージェントによる自動運用でも人間の運用でも重要な情報である。「read-only」を一律に扱うと `health` のようにtracked artifactは変えないがlocal metadataを書き込むコマンドを見落とすため、次の3分類を使う。全 `npm run scwbs -- ...` 呼び出しが実行中だけ作成し正常終了時に削除するcommand single-flight lockは、この永続side effect分類には含めない。
+各コマンドが完了後に何を残すかは、AIエージェントによる自動運用でも人間の運用でも重要な情報である。「read-only」を一律に扱うと `health` のようにtracked artifactは変えないがlocal metadataを書き込むコマンドを見落とすため、次の4分類を使う。全 `npm run scwbs -- ...` 呼び出しが実行中だけ作成し正常終了時に削除するcommand single-flight lockは、この永続side effect分類には含めない。
 
 - **repository-content read-only**：tracked files・contracts配下のYAML・registryなど、コミット対象になり得るものを一切変更しない。
 - **local-metadata write**：tracked artifactは変更しないが、git common dir配下へreceiptやwarning historyなど実行後も残るmetadataを書き込む。
 - **tracked-artifact mutation**：contracts配下やregistryなど、コミット対象のfileを変更する。
+- **external state read/write**：GitHub API等を読み取る、またはrepository外の状態を変更する。
 
 | Command | 分類 | 備考 |
 |---|---|---|
-| `check` / `check-diff` | repository-content read-only | |
-| `status` | repository-content read-only | tracked artifactもlocal receiptも書かない |
+| `check` / `docs check` / `check-diff` / `status` | repository-content read-only | `status`もlocal receiptを書かない |
+| `next` / `review-queue` / `trace` / `ui` | repository-content read-only | `ui`はtext dashboardをstdoutへ表示する |
+| `packet` / `ai packet` / `ai run` | repository-content read-only | `ai run`はdry-run planを表示し、外部AIを起動しない |
+| `ci plan` / `profile show` | repository-content read-only | |
+| `wbs validate` / `wbs candidates` / `wbs verify-changesets` | repository-content read-only | candidates/verifyもWBSを書かない |
+| `registry rebuild --check` / `task index rebuild --check` | repository-content read-only | |
+| `task refresh` / `completion apply`（`--apply`なし） | repository-content read-only | previewのみ |
 | `health`（`--governance-cost`の有無を問わない） | local-metadata write | active Task別health warning summaryをgit common dirへ保存する |
-| `metrics governance` | repository-content read-only（+ GitHub APIへの外部通信） | 永続artifactを作らない |
+| `metrics governance` | repository-content read-only + external state read | GitHub履歴をbounded取得するが永続artifactを作らない |
 | `checks run` | local-metadata write | 全check成功時だけcheck receiptをgit common dirへ保存する |
 | `finish --preflight` | local-metadata write | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する |
 | `finish` | tracked-artifact mutation + local-metadata write | Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
-| `evidence collect` | tracked-artifact mutation + local-metadata write | Evidence YAMLの書き込み、required-check receiptの利用/記録 |
+| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
 | `evidence annotate` | tracked-artifact mutation | 既存Evidenceの一部フィールドのみ更新 |
-| `fix` | tracked-artifact mutation | `contracts/registry.yaml` の再生成のみ |
-| `registry rebuild --force` | tracked-artifact mutation | |
-| `task new` / `task lock` / `task archive` / `task refresh --apply` | tracked-artifact mutation | |
-| `approval request` / `approval approve` | tracked-artifact mutation | |
+| `init` / `fix` / `doctor --fix` | tracked-artifact mutation | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する |
+| `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
+| `block` / `block resolve` / `ai block` | tracked-artifact mutation | Block、必要に応じSpec Change/changesetを更新する |
+| `start <goal>` / `plan` / `lite task` / `promote` | tracked-artifact mutation | 既存Task IDを指定した`start`だけはpreflight表示で書かない |
+| `registry rebuild --force` / `profile set` | tracked-artifact mutation | 現行`profile set`はWBS正本を直接更新する既知の制約がある |
+| `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation | |
+| `approval request` / `approval approve` / aliases | tracked-artifact mutation | |
 | `approval delegation prepare` | repository-content read-only | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない |
-| `review request` | tracked-artifact mutation | registryも同一操作内で同期する |
+| `review request` / `review route` / `review approve` / `review changes-requested` / `review close` | tracked-artifact mutation | registryも同一操作内で同期する |
 | `completion apply --apply` | tracked-artifact mutation | changeset書き込み、WBS適用、registry再構築 |
+| `wbs apply` | tracked-artifact mutation | `--output`で指定したWBSをWJS経由で更新する |
+| `merge --preflight-only` | external state read | GitHub PR metadata/checksを読む |
+| `merge` | external state read + external state write | 検証後にGitHub PRをsquash mergeしhead branchを削除する |
 | `serve` | 何もしない（stub） | |
 
 ## 終了コード
 
-このCLIが実際に使用する終了コードは次の3種類のみである（`src/cli.ts` および各commandの実装を根拠とする）。3以上の終了コードは現行実装には存在しない。
+CLI自身の主要経路は次の終了コードを使う。Commanderが構文解析時に返す値と、各actionが明示的に返すvalidation結果は同一ではない。また `wbs apply` のように子processのstatusを伝播するcommandでは、子process固有の値を返し得るため、0/1/2だけと仮定してはならない。
 
 | Exit code | 意味 |
 |---:|---|
 | 0 | 成功。要求された処理が完了した、またはcheckが全てpassした。 |
-| 1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち（`awaiting-human-approval`を含む）、`status --strict`の不整合などはすべてこのコードを返す。 |
-| 2 | CLI引数・使用方法エラー（必須optionの欠落、無効な値など）。 |
+| 1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち、`status --strict`不整合に加え、Commanderが検出するunknown command/optionや必須argument欠落も通常この値を返す。 |
+| 2 | action内でSC-WBSが明示検証する引数エラー。例: 必須 `--task` option欠落、無効なTask ID、無効な列挙値。 |
 
 **Human Gate待ちも通常のcheck失敗も同じexit code 1になる**ことに注意すること。CI等でHuman Gate待ちだけを別扱いしたい場合は、exit codeではなく `--json` の `outcome`（例: `awaiting-human-approval`）フィールドで判定すること。
 
