@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MS11S39Z
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS11S39Z
+branchName: task/SCWBS-DRAFT-MS11S39Z-issue-140-replacement-rolling-wave-planning
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/core/planning.ts
+  - src/commands/plan.ts
+  - src/cli.ts
+  - tests/integration/planning.test.ts
+  - docs/scwbs/schemas/rolling-wave-plan.schema.json
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 未承認Specからimplementation Taskを生成しない
+  - open unknownsがある場合はdelivery TaskではなくDiscovery Probeを生成する
+  - Ready Windowの1〜3件だけを狭いscopeのTask Contractとして生成し将来作業はApproach Mapの粗い候補に留める
+  - 再計画は既存計画との差分と理由をversioned plan artifactへ記録する
+  - text/JSON出力とschema、拒否経路、生成物をintegration testで検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/specs/SPEC-LITE-MS11S39Z.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 1.0.0
+  specRevision: sha256:dc3e32f5e012a39ae993e53a73147ae70026780f555c975696244f0b202378d7
+  createdAt: "2026-07-26T00:16:54.965Z"

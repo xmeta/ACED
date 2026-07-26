@@ -1,0 +1,74 @@
+id: EVD-SCWBS-DRAFT-MS11S39Z
+type: evidence
+taskId: SCWBS-DRAFT-MS11S39Z
+commit: c37dae995c869b83c5e7fe335fa6bf05420779af
+subjectHeadCommit: c37dae995c869b83c5e7fe335fa6bf05420779af
+diffHash: sha256:bd00336178d0f30afae9931a6b9ba4b666964d87f4c84f3382586797ea96c12b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: c37dae995c869b83c5e7fe335fa6bf05420779af
+    treeHash: 74e5a604efd1f0b2ee40576fe8a66f932bfa9439
+    diffHash: sha256:bd00336178d0f30afae9931a6b9ba4b666964d87f4c84f3382586797ea96c12b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:c37dae995c869b83c5e7fe335fa6bf05420779af
+git:
+  branch: task/SCWBS-DRAFT-MS11S39Z-issue-140-replacement-rolling-wave-planning
+  base: origin/main
+  baseCommit: dea7d8bb0e23279f7fe0d6859060d8d8a98390cb
+  changedFilesBasis: branch-diff
+  pullRequest: "298"
+  subjectHeadCommit: c37dae995c869b83c5e7fe335fa6bf05420779af
+  diffHash: sha256:bd00336178d0f30afae9931a6b9ba4b666964d87f4c84f3382586797ea96c12b
+  headCommit: c37dae995c869b83c5e7fe335fa6bf05420779af
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS11S39Z.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - docs/scwbs/schemas/rolling-wave-plan.schema.json
+  - src/cli.ts
+  - src/commands/plan.ts
+  - src/core/planning.ts
+  - src/core/schema/contracts.ts
+  - src/core/types.ts
+  - tests/integration/planning.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:839ee0bf223d1cf6906406ea01146ac01ff739e3f7a5de92dae5998cdea2f803
+    durationMilliseconds: 3933
+    executedAt: "2026-07-26T00:17:36.241Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:abfac8a69f32d5279572803c21b8723c3a3b272448758cc2e9f98b97ebf1d384
+    durationMilliseconds: 170700
+    executedAt: "2026-07-26T00:20:26.946Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:96e90d6fdf9749156c417b09c8d76f5ce292ed638658afb496e7d6838b049d72
+    durationMilliseconds: 9144
+    executedAt: "2026-07-26T00:20:36.096Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:f09c31794037473c7d8303fa08453ec4135cc57f7d5d75dfe8d5b6f3ce3659e7
+    durationMilliseconds: 4316
+    executedAt: "2026-07-26T00:20:40.416Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Rolling Wave Planning integration tests cover unapproved Specs, Probe-only uncertainty, concluded and inconclusive Probe results, bounded scoped Ready Windows, schema conformance, broad-scope rejection, and reasoned replanning diffs.
