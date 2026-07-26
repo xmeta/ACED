@@ -1,0 +1,17 @@
+id: SPEC-LITE-MS1EUK30
+type: spec-contract
+featureId: F-MS1EUK30
+title: "Issue #179: Standard warning-only governance budgetをchangesetで設定する"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-recommended-values
+approvedAt: "2026-07-26T00:00:00+09:00"
+summary: "観測済みbaselineから選定したStandard閾値を、WBS正本の直接編集を避ける監査可能なchangesetでwarning-only設定する"
+acceptanceCriteria:
+  - setDocumentExtension操作はroot extensionsの指定namespaceだけをatomicに置換し、WBS本体のidentity、nodes、relations、artifacts、resourcesを変更しない
+  - 操作のJSON Schema、仕様書、valid fixture、invalid fixture、apply testを同期する
+  - SC-WBS側のchangeset再現検証もsetDocumentExtensionを解釈する
+  - changesetはextensions.scwbs.profileのStandardを保持し、governanceCost.warningBudgets.StandardへgovernanceFiles 700、governanceLines 31000、governanceToSourceLineRatio 2.0を設定する
+  - metrics governance --jsonはwarningBudgets.status available、指定した3閾値、現行baselineでwarnings空を返す
+  - health --governance-cost --jsonはpassし、閾値超過だけではexit codeを非0にしない既存のwarning-only動作を保つ
+  - hard enforcement、CI workflow、profile、required checks、Human Gate policyは変更しない

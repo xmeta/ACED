@@ -1,0 +1,81 @@
+id: SCWBS-DRAFT-MS1EUK30
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1EUK30
+branchName: task/SCWBS-DRAFT-MS1EUK30-issue-179-standard-warning-only-governance-budge
+allowedPaths:
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - wjs/schema/wbs-operations.schema.json
+  - wjs/specification/operations/README.md
+  - wjs/specification/operations/document_operations/setDocumentExtension.md
+  - wjs/tools/apply/types.ts
+  - wjs/tools/apply/dispatch.ts
+  - wjs/tools/apply/document-operations.ts
+  - wjs/tests/apply/document-operations.test.ts
+  - wjs/tests/valid/set-document-extension.json
+  - wjs/tests/invalid/set-document-extension-missing-namespace.json
+  - contracts/changesets/SCWBS-DRAFT-MS1EUK30-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - docs/**
+  - src/core/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs/schema/wbs-operations.schema.json
+  - wjs/specification/operations/README.md
+  - wjs/specification/operations/document_operations/setDocumentExtension.md
+  - wjs/tools/apply/types.ts
+  - wjs/tools/apply/dispatch.ts
+  - wjs/tools/apply/document-operations.ts
+  - wjs/tests/apply/document-operations.test.ts
+  - wjs/tests/valid/set-document-extension.json
+  - wjs/tests/invalid/set-document-extension-missing-namespace.json
+  - contracts/changesets/SCWBS-DRAFT-MS1EUK30-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - test:integration
+  - test:wjs
+  - typecheck
+  - build
+doneCriteria:
+  - setDocumentExtension is an additive WBS-JSON operation that atomically replaces one root extension namespace without changing document identity, nodes, relations, artifacts, or resources
+  - operation schema, specification, valid and invalid fixtures, and apply tests are synchronized
+  - SC-WBS changeset reproduction supports setDocumentExtension
+  - the governed changeset retains profile Standard and configures governanceFiles 700, governanceLines 31000, and governanceToSourceLineRatio 2.0
+  - metrics governance JSON reports warningBudgets status available with the exact Standard thresholds and no warning at the current baseline
+  - health --governance-cost JSON passes and governance budget warnings remain warning-only
+  - CI enforcement, profile selection, required checks, and Human Gate behavior are unchanged
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - wjs-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1EUK30.yaml
+  - contracts/specs/SPEC-LITE-MS1EUK30.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1EUK30.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1EUK30.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1EUK30.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1EUK30.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0ed7e0ed6bd820a0c56c7ea2490553adf6e8b4b2fac2c5311dad3fc250c73653
+  createdAt: "2026-07-26T06:23:41.562Z"
