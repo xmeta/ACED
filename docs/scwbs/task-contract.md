@@ -50,6 +50,7 @@ requiredChecks:
   - lint
 submoduleDependencies:
   - path: vendor/dependency
+    authorityMode: upstream-release
     repository: example/dependency
     pullRequest: "#42"
     upstreamRef: refs/remotes/origin/main
@@ -75,7 +76,7 @@ contractLock:
 ```
 
 `wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
-Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。
+Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。ただしread-onlyかつwarning-onlyの `extensions.scwbs.governanceCost.warningBudgets` はTask authorityを変更しないためglobal revisionから除外する。`profile` とその他のSC-WBS policyは引き続き対象である。
 
 AI Work Packet生成時および `scwbs check` では、これらのrevisionと現在のWBS-JSON、Spec Contractの鮮度を比較する。旧 `wbsRevision` whole-file lockは読み取り互換を維持するが、`task refresh --affected` ではmigration対象として表示する。`task refresh --task <id> --apply` で個別移行し、全更新が意図される場合だけ `task refresh --all --apply` を使う。
 WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
@@ -105,6 +106,8 @@ archiveはrecordの物理移動や削除ではない。Task、Evidence、Approva
 `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
 
+`submoduleDependencies[].authorityMode: upstream-release` は、別repositoryでreview・merge・検証済みのrelease commitをgitlinkとして取り込むための明示authorityである。`repository`、`pullRequest`、`upstreamRef`、1件以上のpassed `checks` をTask開始時のauthority baselineへ固定し、Evidenceの値と完全一致し、head commitがupstream refからreachableな場合だけ、nested changed filesをACED repository path authorityから分離する。gitlink path自体は通常どおり `allowedPaths` とHuman Gateで評価し、nested filesはEvidenceとcheck coverageへ残す。未宣言、不完全、Evidence不一致、unreachable、failed check、dirty submoduleはfail-closedする。
+
 ## Authority baseline
 
 `check-diff` はworktree側のTask Contractだけを権限根拠にしない。`origin/main` とHEADのmerge-baseにある契約をbaselineとし、次のauthority fieldsを比較する。
@@ -115,6 +118,7 @@ archiveはrecordの物理移動や削除ではない。Task、Evidence、Approva
 - `requiredChecks`
 - `managedContractPaths`
 - `checkCoverageWaivers`
+- `submoduleDependencies`
 - `approvalPolicy`
 
 同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。

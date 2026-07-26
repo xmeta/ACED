@@ -14,6 +14,7 @@ export const TASK_AUTHORITY_FIELDS = [
   "requiredChecks",
   "managedContractPaths",
   "checkCoverageWaivers",
+  "submoduleDependencies",
   "approvalPolicy"
 ] as const;
 
@@ -51,6 +52,18 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
     checkCoverageWaivers: [...(task.checkCoverageWaivers ?? [])]
       .map((waiver) => ({ check: waiver.check, reason: waiver.reason }))
       .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`)),
+    submoduleDependencies: [...(task.submoduleDependencies ?? [])]
+      .map((dependency) => ({
+        path: dependency.path,
+        authorityMode: dependency.authorityMode,
+        repository: dependency.repository,
+        pullRequest: dependency.pullRequest,
+        upstreamRef: dependency.upstreamRef,
+        checks: [...(dependency.checks ?? [])]
+          .map((check) => ({ name: check.name, status: check.status, url: check.url }))
+          .sort((left, right) => `${left.name}\0${left.status}\0${left.url ?? ""}`.localeCompare(`${right.name}\0${right.status}\0${right.url ?? ""}`))
+      }))
+      .sort((left, right) => left.path.localeCompare(right.path)),
     approvalPolicy: task.approvalPolicy?.mode === "delegated"
       ? { ...task.approvalPolicy, scopes: normalizedStrings(task.approvalPolicy.scopes) }
       : { mode: "human-only" }

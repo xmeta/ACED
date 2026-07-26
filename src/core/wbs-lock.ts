@@ -73,7 +73,19 @@ export function wbsScopeRevision(wbs: WbsDocument, taskNodeId: string): string {
   return revision(buildWbsScopeSnapshot(wbs, taskNodeId));
 }
 
+function globalAuthorityScwbsPolicy(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const policy = structuredClone(value) as Record<string, unknown>;
+  const governanceCost = policy.governanceCost;
+  if (!governanceCost || typeof governanceCost !== "object" || Array.isArray(governanceCost)) return policy;
+  const authorityGovernanceCost = { ...(governanceCost as Record<string, unknown>) };
+  delete authorityGovernanceCost.warningBudgets;
+  if (Object.keys(authorityGovernanceCost).length === 0) delete policy.governanceCost;
+  else policy.governanceCost = authorityGovernanceCost;
+  return Object.keys(policy).length === 0 ? undefined : policy;
+}
+
 export function wbsGlobalRevision(wbs: WbsDocument): string {
-  const scwbsPolicy = wbs.extensions?.scwbs;
+  const scwbsPolicy = globalAuthorityScwbsPolicy(wbs.extensions?.scwbs);
   return revision({ schemaVersion: wbs.schemaVersion, wbsId: wbs.id, rootId: wbs.rootId, scwbsPolicy });
 }

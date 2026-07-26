@@ -136,6 +136,7 @@ const taskContractSchema = {
         additionalProperties: true,
         properties: {
           path: { type: "string", minLength: 1 },
+          authorityMode: { type: "string", enum: ["upstream-release"] },
           repository: { type: "string", minLength: 1 },
           pullRequest: { type: "string", minLength: 1 },
           upstreamRef: { type: "string", minLength: 1 },
@@ -152,7 +153,32 @@ const taskContractSchema = {
               }
             }
           }
-        }
+        },
+        allOf: [
+          {
+            if: {
+              required: ["authorityMode"],
+              properties: {
+                authorityMode: { const: "upstream-release" }
+              }
+            },
+            then: {
+              required: ["repository", "pullRequest", "upstreamRef", "checks"],
+              properties: {
+                checks: {
+                  minItems: 1,
+                  contains: {
+                    type: "object",
+                    required: ["status"],
+                    properties: {
+                      status: { const: "passed" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     },
     doneCriteria: stringArraySchema,
@@ -381,8 +407,30 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
       });
     }
   }
-  if (value.submoduleDependencies !== undefined && !Array.isArray(value.submoduleDependencies)) {
-    issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
+  if (value.submoduleDependencies !== undefined) {
+    if (!Array.isArray(value.submoduleDependencies)) {
+      issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
+    } else {
+      value.submoduleDependencies.forEach((dependency, index) => {
+        if (!isObject(dependency) || typeof dependency.path !== "string" || dependency.path.trim().length === 0) {
+          issues.push(issue("task.submoduleDependency", `${filePath}.submoduleDependencies[${index}] must include a non-empty path`));
+          return;
+        }
+        if (dependency.authorityMode !== undefined && dependency.authorityMode !== "upstream-release") {
+          issues.push(issue("task.submoduleDependency.authorityMode", `${filePath}.submoduleDependencies[${index}].authorityMode must be upstream-release when present`));
+        }
+        if (dependency.authorityMode === "upstream-release") {
+          for (const key of ["repository", "pullRequest", "upstreamRef"]) {
+            if (typeof dependency[key] !== "string" || dependency[key].trim().length === 0) {
+              issues.push(issue("task.submoduleDependency.upstreamRelease", `${filePath}.submoduleDependencies[${index}].${key} is required for upstream-release authority`));
+            }
+          }
+          if (!Array.isArray(dependency.checks) || dependency.checks.length === 0 || !dependency.checks.every((check) => isObject(check) && check.status === "passed")) {
+            issues.push(issue("task.submoduleDependency.upstreamRelease", `${filePath}.submoduleDependencies[${index}].checks must contain only passed checks for upstream-release authority`));
+          }
+        }
+      });
+    }
   }
   if (value.contractLock !== undefined) {
     if (!isObject(value.contractLock)) {
