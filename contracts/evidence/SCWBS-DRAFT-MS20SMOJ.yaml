@@ -1,0 +1,71 @@
+id: EVD-SCWBS-DRAFT-MS20SMOJ
+type: evidence
+taskId: SCWBS-DRAFT-MS20SMOJ
+commit: 8e4c56a1c012a8243710feb120ef9488be471c82
+subjectHeadCommit: 8e4c56a1c012a8243710feb120ef9488be471c82
+diffHash: sha256:e0ad4388387a2a22fc0cf5ae60c508c60acd284f7470f4f388e6c4b2c85e7540
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 8e4c56a1c012a8243710feb120ef9488be471c82
+    treeHash: ed9fa2e6e3e6662c726493a3314e8b4cee4cc101
+    diffHash: sha256:e0ad4388387a2a22fc0cf5ae60c508c60acd284f7470f4f388e6c4b2c85e7540
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:8e4c56a1c012a8243710feb120ef9488be471c82
+git:
+  branch: task/SCWBS-DRAFT-MS20SMOJ-issue-314-normative-docs-and-cli-contract-drift
+  base: origin/main
+  baseCommit: d4f62626d7ffe363593d67398ade41ceb71fd4c2
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 8e4c56a1c012a8243710feb120ef9488be471c82
+  diffHash: sha256:e0ad4388387a2a22fc0cf5ae60c508c60acd284f7470f4f388e6c4b2c85e7540
+  headCommit: 8e4c56a1c012a8243710feb120ef9488be471c82
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS20SMOJ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core/03-minimal-artifacts.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - src/cli.ts
+  - tests/integration/cli-help.test.ts
+  - tests/integration/docs-check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:680537c40a7aa4887788a1b701706973526ff2daa6cfe5f68a0dcdce000989c1
+    durationMilliseconds: 14256
+    executedAt: "2026-07-26T16:45:46.328Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:79a150fc6a0081109feae66990ecad4f4ea8ad849333d80781ece85f01b56f8b
+    durationMilliseconds: 172283
+    executedAt: "2026-07-26T16:48:38.614Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:35e79e3ae2c01f12ca3923e6eccca58512bafaea10fa75e79d6bb697a126aec1
+    durationMilliseconds: 8920
+    executedAt: "2026-07-26T16:48:47.538Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:20017eb9a3c36efdf134a3a8779e0d6a943d13bd6f03904d8dc2f8b49510c85e
+    durationMilliseconds: 4039
+    executedAt: "2026-07-26T16:48:51.581Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added schema example, CLI help, and exit-code regression assertions.
