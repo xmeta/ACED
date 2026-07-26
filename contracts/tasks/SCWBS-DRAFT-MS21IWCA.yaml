@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MS21IWCA
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS21IWCA
+branchName: task/SCWBS-DRAFT-MS21IWCA-issue-317-profile-set-wbs-changeset-migration
+allowedPaths:
+  - src/commands/profile.ts
+  - src/cli.ts
+  - tests/integration/misc.test.ts
+  - README.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/wbs-json.md
+  - docs/scwbs/wjs-operations-validation.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - Scope expansion required
+  - WJS schema change required
+  - Human Approval policy change required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - profile set writes a setDocumentExtension changeset before applying the WBS update through WJS
+  - the generated operation preserves existing scwbs fields and unrelated extension namespaces
+  - apply failure never falls back to direct WBS writes
+  - profile changes remain auditable and satisfy the WBS changeset gate
+  - CLI output and documentation explain changeset path and Task lock refresh impact
+  - WBS Human Gate documentation matches the Task Contract dependent implementation boundary
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/specs/SPEC-LITE-MS21IWCA.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS21IWCA.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:3a296412adf6346063a970059673b8033228cfc53d5865dfea6ff0f72cc3c7a3
+  createdAt: "2026-07-26T16:57:21.607Z"
