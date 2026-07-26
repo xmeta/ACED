@@ -1,0 +1,17 @@
+id: SPEC-LITE-MS11S39Z
+type: spec-contract
+featureId: F-MS11S39Z
+title: "Issue #140 replacement: Rolling Wave Planningを実装する"
+status: approved
+version: 1.0.0
+summary: "固定4タスクと広域scopeを廃止し、Specの不確実性と近接作業に基づくRolling Wave Planningへ置き換える。"
+acceptanceCriteria:
+  - 未承認Specは副作用なしで拒否する
+  - unresolved decisionsまたは高いuncertaintyがありconcluded Probeで閉じていない場合はProbeだけを生成する
+  - approved acceptance criteria、dependencies、gates、uncertainty、probe resultsを計画判断へ反映する
+  - Ready Windowは明示された狭いpathsを持つ1〜3件だけをTask Contract化する
+  - 将来作業はApproach Mapのcandidateに留めTask Contract化しない
+  - 再計画時は明示理由と前計画との差分を記録し暗黙上書きしない
+  - versioned JSON schema、text/JSON CLI、integration testを提供する
+approvedBy: repository-owner
+approvedAt: "2026-07-26T09:16:00+09:00"
