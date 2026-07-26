@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MS20SMOJ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS20SMOJ
+branchName: task/SCWBS-DRAFT-MS20SMOJ-issue-314-normative-docs-and-cli-contract-drift
+allowedPaths:
+  - docs/sc-wbs-core/03-minimal-artifacts.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - src/cli.ts
+  - tests/integration/cli-help.test.ts
+  - tests/integration/docs-check.test.ts
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - Scope expansion required
+  - Schema or API behavior change required
+  - Human Gate path change required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - normative Task Contract and Evidence examples validate against the current schema
+  - Profile and Review documentation distinguishes methodology policy from current CLI enforcement
+  - WBS Human Gate documentation states the current Task Contract dependent enforcement boundary
+  - CLI usage exit codes and persistent side effects match Commander and command implementations
+  - ui, serve, and ai run help describes the text dashboard, unavailable stub, and dry-run behavior
+  - regression tests protect schema examples and CLI help wording
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/specs/SPEC-LITE-MS20SMOJ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS20SMOJ.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:fec4fd47f2d429f309c060585635f923bcc9280c8456077df0f9daa14c790afa
+  createdAt: "2026-07-26T16:37:34.565Z"
