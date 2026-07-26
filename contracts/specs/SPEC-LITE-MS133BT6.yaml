@@ -1,0 +1,20 @@
+id: SPEC-LITE-MS133BT6
+type: spec-contract
+featureId: F-MS133BT6
+title: "Issue #185 replacement: fail-closed merge preflightを実装する"
+status: approved
+version: 1.0.0
+summary: "GitHub側保護を利用できない現状で、通常merge経路をaggregate validate成功、current origin、PR headへ拘束し保証限界を明示する。"
+acceptanceCriteria:
+  - open non-draft PR、base main、mergeable状態、current origin、aggregate validate成功を検証する
+  - validate missing pending failure cancelled timed-out neutral skipped duplicate wrong-workflow wrong-repositoryを拒否する
+  - merge時に検証したhead SHAをmatch-head-commitへ渡しsquashのみ使用する
+  - admin auto merge-commit rebase bypass optionを公開しない
+  - versioned text JSON preflight reportとschemaを提供する
+  - finishのchecks-success next actionを保護merge commandへ切り替える
+  - private Free planのbranch protection/ruleset 403とdirect/force/admin保証限界を文書化する
+  - AGENTS.md READMEに実際の強制レベルと必須commandを記載する
+  - safe fake-gh fixtureで拒否時にmerge subprocessが実行されないことを検証する
+  - repository visibility plan 外部費用は変更せずHuman Decisionへ送る
+approvedBy: repository-owner
+approvedAt: "2026-07-26T09:53:00+09:00"

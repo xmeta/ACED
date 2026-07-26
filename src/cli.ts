@@ -22,6 +22,7 @@ import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
 import { runInit } from "./commands/init.js";
 import { runLiteTask, runPromote } from "./commands/lite.js";
+import { runMerge } from "./commands/merge.js";
 import { runMetricsGovernance } from "./commands/metrics.js";
 import { runNext } from "./commands/next.js";
 import { runPlan } from "./commands/plan.js";
@@ -432,6 +433,25 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       }
       exitCode = runPlan(root, opts.spec, {
         replanReason: opts.replanReason,
+        json: opts.json ?? false
+      });
+    });
+
+  program
+    .command("merge")
+    .description("Fail-closed merge path requiring aggregate validate success")
+    .requiredOption("--pr <number>", "pull request number")
+    .option("--preflight-only", "verify without merging")
+    .option("--json", "output a versioned JSON report")
+    .action((opts) => {
+      const pullRequest = Number(opts.pr);
+      if (!Number.isSafeInteger(pullRequest) || pullRequest <= 0) {
+        console.error("Invalid --pr; expected a positive integer");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runMerge(root, pullRequest, {
+        preflightOnly: opts.preflightOnly ?? false,
         json: opts.json ?? false
       });
     });

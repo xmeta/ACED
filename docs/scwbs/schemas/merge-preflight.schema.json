@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/scwbs/merge-preflight.schema.json",
+  "title": "SC-WBS merge preflight report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "repository",
+    "pullRequest",
+    "base",
+    "headCommit",
+    "mergeState",
+    "validate",
+    "violations",
+    "enforcement",
+    "execution"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["pass", "blocked"] },
+    "repository": { "type": ["string", "null"] },
+    "pullRequest": { "type": "integer", "minimum": 1 },
+    "base": { "type": ["string", "null"] },
+    "headCommit": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        { "type": "null" }
+      ]
+    },
+    "mergeState": { "type": ["string", "null"] },
+    "validate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "conclusion", "workflow", "url"],
+      "properties": {
+        "status": { "enum": ["success", "missing", "pending", "failure"] },
+        "conclusion": { "type": ["string", "null"] },
+        "workflow": { "type": ["string", "null"] },
+        "url": { "type": ["string", "null"] }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "enforcement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "githubBranchProtection", "headBinding", "adminBypass"],
+      "properties": {
+        "mode": { "const": "local-command" },
+        "githubBranchProtection": { "const": "not-enforced" },
+        "headBinding": { "const": "match-head-commit" },
+        "adminBypass": { "const": false }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "executed", "command"],
+      "properties": {
+        "requested": { "type": "boolean" },
+        "executed": { "type": "boolean" },
+        "command": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

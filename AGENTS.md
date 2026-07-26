@@ -50,7 +50,17 @@ WBS正本 (`contracts/wbs/project.wbs.json`) は直接編集してはならな�
 
 Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。例外は、Task開始前からauthority baselineに固定された `approvalPolicy.mode: delegated` が要求scope（`human-gate` または `post-finish`）を許可し、有効期限内かつ32 bytes以上の `SCWBS_APPROVAL_DELEGATION_TOKEN` が契約のhashと一致する場合に、`--actor delegated-ai --scope <scope>` でdelegated Approvalを作成するときだけである。AIは `--actor human` を使用してはならず、policyやscopeをTask開始後に追加・拡張してはならない。
 
-CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
+CI が通るまでマージしてはいけない。通常のmain向けmergeは
+`npm run scwbs -- merge --pr <number>` を使う。このcommandはopen・non-draft・
+base main・mergeableなPRとaggregate `validate` のSUCCESSを検査し、検証した
+head SHAを `--match-head-commit` へ渡す。pending / failure / cancelled /
+missing / unknownはfail closedで拒否する。`gh pr merge` の直接実行、`--admin`、
+`--auto` は通常経路として使ってはいけない。
+
+現在のprivate repository planではGitHub branch protection / rulesetsを利用
+できないため、このcommandはdirect push、force push、管理者やAPIによる迂回を
+GitHub側で禁止しない。repository visibility・GitHub plan・外部費用・権限の
+変更はHuman Decisionであり、AIが実行してはいけない。
 
 ## 作業開始時
 

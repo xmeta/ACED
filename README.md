@@ -132,6 +132,28 @@ npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --
 
 `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
 
+After approval and successful CI, merge through the fail-closed SC-WBS path:
+
+```bash
+npm run scwbs -- merge --pr <number> --preflight-only --json
+npm run scwbs -- merge --pr <number>
+```
+
+The command requires an open, non-draft PR targeting `main`, a `CLEAN` merge
+state, the current checkout's GitHub `origin`, and exactly one successful
+aggregate `validate` check from the `scwbs` workflow and repository. It binds
+the merge to the checked PR head with
+`--match-head-commit`; pending, failed, cancelled, skipped, missing, or
+ambiguous `validate` results are rejected. Do not replace this normal path
+with direct `gh pr merge`, `--admin`, or `--auto`.
+
+This repository is currently private on a GitHub plan where branch protection
+and repository rulesets are unavailable. The local command therefore improves
+the normal merge path but cannot prevent direct/force pushes or privileged API
+and administrator bypasses. Changing repository visibility, GitHub plan,
+external cost, or permissions requires a Human Decision. See
+[`docs/scwbs/merge-protection.md`](docs/scwbs/merge-protection.md).
+
 Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
 
 ```bash
