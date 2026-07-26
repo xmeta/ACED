@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MS1FC8V3
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1FC8V3
+branchName: task/SCWBS-DRAFT-MS1FC8V3-issue-179-apply-standard-warning-only-governance
+allowedPaths:
+  - wjs
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - contracts/changesets/SCWBS-DRAFT-MS1FC8V3-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - docs/**
+  - src/core/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs
+  - contracts/changesets/SCWBS-DRAFT-MS1FC8V3-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - test:integration
+  - test:wjs
+  - typecheck
+  - build
+doneCriteria:
+  - ACED pins the merged WJS release commit that provides setDocumentExtension
+  - SC-WBS changeset reproduction supports setDocumentExtension
+  - the governed changeset retains profile Standard and configures governanceFiles 700, governanceLines 31000, and governanceToSourceLineRatio 2.0
+  - metrics governance JSON reports warningBudgets status available with the exact Standard thresholds and no warning at the current baseline
+  - health --governance-cost JSON passes and governance budget warnings remain warning-only
+  - CI enforcement, profile selection, required checks, and Human Gate behavior are unchanged
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - wjs-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1FC8V3.yaml
+  - contracts/specs/SPEC-LITE-MS1FC8V3.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1FC8V3.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1FC8V3.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1FC8V3.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1FC8V3.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7246091dde1880d1952238f82fc084de31f2edce9cc8158e9b4dbf19920cb934
+  createdAt: "2026-07-26T06:36:32.392Z"
