@@ -142,6 +142,7 @@ export type TaskContract = {
   checkCoverageWaivers?: Array<{ check: string; reason: string }>;
   submoduleDependencies?: Array<{
     path: string;
+    authorityMode?: "upstream-release";
     repository?: string;
     pullRequest?: string;
     upstreamRef?: string;

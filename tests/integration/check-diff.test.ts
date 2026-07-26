@@ -52,6 +52,14 @@ describe("check-diff", () => {
       requiredChecks: ["test"],
       managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
       checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }],
+      submoduleDependencies: [{
+        path: "vendor/dependency",
+        authorityMode: "upstream-release",
+        repository: "example/dependency",
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        checks: [{ name: "upstream-ci", status: "passed" }]
+      }],
       approvalPolicy: {
         mode: "delegated",
         delegatedBy: "owner",
@@ -70,6 +78,7 @@ describe("check-diff", () => {
       "requiredChecks",
       "managedContractPaths",
       "checkCoverageWaivers",
+      "submoduleDependencies",
       "approvalPolicy"
     ]);
   });
@@ -282,6 +291,84 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("vendor/dependency/security/key.txt"))).toBe(true);
     expect(issues.some((issue) => issue.code === "diff.submodule.upstreamReachable")).toBe(true);
     expect(issues.some((issue) => issue.code === "diff.submodule.check")).toBe(true);
+  });
+
+  test("check-diff authorizes a verified upstream release by gitlink while retaining nested coverage", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      rules: [{ id: "upstream-wjs", paths: ["vendor/dependency/**"], requires: ["test:wjs"] }]
+    });
+    const declaration = {
+      path: "vendor/dependency",
+      authorityMode: "upstream-release" as const,
+      repository: "example/dependency",
+      pullRequest: "#4",
+      upstreamRef: "refs/remotes/origin/main",
+      checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
+    };
+    const task = sampleTask({
+      allowedPaths: ["vendor/dependency"],
+      forbiddenPaths: ["vendor/dependency/**"],
+      humanGateRequiredPaths: [],
+      requiredChecks: ["test:wjs"],
+      submoduleDependencies: [declaration]
+    });
+    const evidence = sampleEvidence({
+      changedFiles: ["vendor/dependency"],
+      submodules: [{
+        path: "vendor/dependency",
+        repository: declaration.repository,
+        baseCommit: "1".repeat(40),
+        headCommit: "2".repeat(40),
+        changedFiles: ["schema/operation.json"],
+        pullRequest: declaration.pullRequest,
+        upstreamRef: declaration.upstreamRef,
+        upstreamReachable: true,
+        checks: declaration.checks
+      }]
+    });
+
+    const issues = collectDiffIssues(root, task, ["vendor/dependency"], evidence);
+    expect(issues.some((issue) => issue.code === "diff.allowedPaths" || issue.code === "diff.forbiddenPaths")).toBe(false);
+    expect(issues.some((issue) => issue.code === "diff.checkCoverage.missing")).toBe(false);
+    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamRelease")).toBe(false);
+  });
+
+  test("check-diff keeps mismatched upstream release nested files under forbidden path authority", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const task = sampleTask({
+      allowedPaths: ["vendor/dependency"],
+      forbiddenPaths: ["vendor/dependency/**"],
+      humanGateRequiredPaths: [],
+      submoduleDependencies: [{
+        path: "vendor/dependency",
+        authorityMode: "upstream-release",
+        repository: "example/dependency",
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        checks: [{ name: "upstream-ci", status: "passed" }]
+      }]
+    });
+    const evidence = sampleEvidence({
+      changedFiles: ["vendor/dependency"],
+      submodules: [{
+        path: "vendor/dependency",
+        repository: "attacker/dependency",
+        baseCommit: "1".repeat(40),
+        headCommit: "2".repeat(40),
+        changedFiles: ["secret.txt"],
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        upstreamReachable: true,
+        checks: [{ name: "upstream-ci", status: "passed" }]
+      }]
+    });
+
+    const issues = collectDiffIssues(root, task, ["vendor/dependency"], evidence);
+    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamRelease")).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.forbiddenPaths" && issue.message.includes("vendor/dependency/secret.txt"))).toBe(true);
   });
 
   test("check-diff requires nested Evidence for configured changed gitlinks", () => {

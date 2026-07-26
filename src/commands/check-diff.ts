@@ -31,6 +31,51 @@ function stashCommand(files: string[]): string {
   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
 }
 
+function normalizedSubmoduleChecks(checks: Array<{ name: string; status: string; url?: string }> | undefined): string {
+  return JSON.stringify([...(checks ?? [])]
+    .map((check) => ({ name: check.name, status: check.status, url: check.url }))
+    .sort((left, right) => `${left.name}\0${left.status}\0${left.url ?? ""}`.localeCompare(`${right.name}\0${right.status}\0${right.url ?? ""}`)));
+}
+
+function verifiedUpstreamReleasePaths(
+  task: TaskContract,
+  evidence: Evidence | undefined,
+  files: string[]
+): { paths: Set<string>; issues: Issue[] } {
+  const paths = new Set<string>();
+  const issues: Issue[] = [];
+  for (const dependency of task.submoduleDependencies ?? []) {
+    if (dependency.authorityMode !== "upstream-release" || !files.includes(dependency.path)) continue;
+    const checks = dependency.checks ?? [];
+    const complete = Boolean(
+      dependency.repository
+      && dependency.pullRequest
+      && dependency.upstreamRef
+      && checks.length > 0
+      && checks.every((check) => check.status === "passed")
+    );
+    const submodule = evidence?.submodules?.find((item) => item.path === dependency.path);
+    const matchesDeclaration = Boolean(
+      submodule
+      && submodule.repository === dependency.repository
+      && submodule.pullRequest === dependency.pullRequest
+      && submodule.upstreamRef === dependency.upstreamRef
+      && normalizedSubmoduleChecks(submodule.checks) === normalizedSubmoduleChecks(checks)
+    );
+    const validHead = Boolean(submodule && /^[0-9a-f]{40}$/.test(submodule.headCommit) && !/^0+$/.test(submodule.headCommit));
+    if (!complete || !matchesDeclaration || !validHead || submodule?.upstreamReachable !== true) {
+      issues.push({
+        severity: "error",
+        code: "diff.submodule.upstreamRelease",
+        message: `${dependency.path} upstream-release authority requires complete immutable declaration, matching Evidence, a non-zero head commit, and upstream reachability`
+      });
+      continue;
+    }
+    paths.add(dependency.path);
+  }
+  return { paths, issues };
+}
+
 export function evaluateWorkingTreeGuard(root: string, taskId: string): { state: WorkingTreeState; issues: Issue[] } {
   const state = workingTreeState(root, taskLifecycleMetadataPaths(taskId));
   const issues: Issue[] = [];
@@ -71,9 +116,16 @@ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state:
 export function collectDiffIssues(root: string, task: TaskContract, files: string[], evidenceOverride?: Evidence): Issue[] {
   const issues: Issue[] = [];
   const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
-  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
-  const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
-  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
+  const releaseAuthority = verifiedUpstreamReleasePaths(task, evidence, files);
+  issues.push(...releaseAuthority.issues);
+  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) =>
+    submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+  const authorityNestedFiles = (evidence?.submodules ?? [])
+    .filter((submodule) => !releaseAuthority.paths.has(submodule.path))
+    .flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+  const authorityFiles = Array.from(new Set([...files, ...authorityNestedFiles]));
+  const coverageFiles = Array.from(new Set([...files, ...nestedFiles]));
+  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, authorityFiles, root);
   for (const dependency of task.submoduleDependencies ?? []) {
     if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
       issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
@@ -87,7 +139,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
       if (check.status !== "passed") issues.push({ severity: "error", code: "diff.submodule.check", message: `${submodule.path} check ${check.name} is ${check.status}` });
     }
   }
-  for (const issue of collectWbsChangesetGateIssues(effectiveFiles)) {
+  for (const issue of collectWbsChangesetGateIssues(authorityFiles)) {
     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
   }
   const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
@@ -98,7 +150,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
       message: `${changeSet}: ${issue.message}`
     })));
   }
-  for (const file of effectiveFiles) {
+  for (const file of authorityFiles) {
     const managed = matchesManagedContractPath(task, file);
     if (!matchesAny(file, task.allowedPaths) && !managed) {
       issues.push({
@@ -132,7 +184,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     code: "diff.humanGate",
     message: `${issue.message} (${issue.code})`
   })));
-  issues.push(...collectCheckCoverageIssues(root, task, effectiveFiles).map((issue) => ({
+  issues.push(...collectCheckCoverageIssues(root, task, coverageFiles).map((issue) => ({
     ...issue,
     code: `diff.${issue.code}`
   })));

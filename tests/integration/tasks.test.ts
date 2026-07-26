@@ -12,6 +12,7 @@ import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh
 import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
 import { buildNextTask } from "../../src/commands/ai-queue.js";
 import { main } from "../../src/cli.js";
+import { validateTaskContract, validateTaskContractSchema } from "../../src/core/schema.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 const wjsValidatorModule = "../../wjs/tools/validate.js";
@@ -20,6 +21,30 @@ const { validateJsonWithSchema } = await import(wjsValidatorModule) as {
 };
 
 describe("task management", () => {
+  test("upstream-release submodule authority requires immutable provenance and passed checks", () => {
+    const incomplete = sampleTask({
+      submoduleDependencies: [{
+        path: "vendor/dependency",
+        authorityMode: "upstream-release"
+      }]
+    });
+    expect(validateTaskContractSchema(incomplete, "task.yaml").some((issue) => issue.code === "task.schema")).toBe(true);
+    expect(validateTaskContract(incomplete, "task.yaml").some((issue) => issue.code === "task.submoduleDependency.upstreamRelease")).toBe(true);
+
+    const complete = sampleTask({
+      submoduleDependencies: [{
+        path: "vendor/dependency",
+        authorityMode: "upstream-release",
+        repository: "example/dependency",
+        pullRequest: "#4",
+        upstreamRef: "refs/remotes/origin/main",
+        checks: [{ name: "upstream-ci", status: "passed" }]
+      }]
+    });
+    expect(validateTaskContractSchema(complete, "task.yaml")).toEqual([]);
+    expect(validateTaskContract(complete, "task.yaml")).toEqual([]);
+  });
+
   test("check errors when contract lock wbs node id is stale", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -128,10 +153,35 @@ describe("task management", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    const warningBudgetWbs = sampleWbs();
+    warningBudgetWbs.extensions = {
+      scwbs: {
+        governanceCost: {
+          warningBudgets: {
+            Standard: {
+              governanceFiles: 700,
+              governanceLines: 31000,
+              governanceToSourceLineRatio: 2
+            }
+          }
+        }
+      }
+    };
+    writeJson(root, "contracts/wbs/project.wbs.json", warningBudgetWbs);
+    expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsGlobalRevision")).toBe(false);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toEqual([]);
+
     const wbs = sampleWbs();
     wbs.extensions = { scwbs: { profile: "Strict" } };
     writeJson(root, "contracts/wbs/project.wbs.json", wbs);
     expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsGlobalRevision")).toBe(true);
+
+    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+    const otherPolicyWbs = sampleWbs();
+    otherPolicyWbs.extensions = { scwbs: { governanceCost: { enforcementMode: "strict" } } };
+    writeJson(root, "contracts/wbs/project.wbs.json", otherPolicyWbs);
+    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("WBS schema or global SC-WBS policy changed");
 
     writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
