@@ -185,6 +185,10 @@ npm run scwbs -- profile set strict
 
 Use `lean` for small local dogfood tasks, `standard` for normal repository
 work, and `strict` when broader governance checks are required.
+`profile set` writes a `setDocumentExtension` changeset under
+`contracts/changesets/` and applies it through WJS; it does not directly edit
+the canonical WBS. Because the profile participates in the global Task lock,
+review `npm run scwbs -- task refresh --affected` after changing it.
 
 ## 8. Common Errors
 

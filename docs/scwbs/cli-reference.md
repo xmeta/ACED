@@ -204,6 +204,8 @@ npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
 
+`profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
+
 `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
 
 `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
@@ -522,7 +524,7 @@ When task changes include tests, record test quality metadata with `--test-asser
 | `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
 | `block` / `block resolve` / `ai block` | tracked-artifact mutation | Block、必要に応じSpec Change/changesetを更新する |
 | `start <goal>` / `plan` / `lite task` / `promote` | tracked-artifact mutation | 既存Task IDを指定した`start`だけはpreflight表示で書かない |
-| `registry rebuild --force` / `profile set` | tracked-artifact mutation | 現行`profile set`はWBS正本を直接更新する既知の制約がある |
+| `registry rebuild --force` / `profile set` | tracked-artifact mutation | `profile set`はchangesetを書き、WJS経由でWBSを更新する |
 | `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation | |
 | `approval request` / `approval approve` / aliases | tracked-artifact mutation | |
 | `approval delegation prepare` | repository-content read-only | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない |

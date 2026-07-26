@@ -78,7 +78,6 @@ npm run scwbs -- wbs validate
 
 `dryRun: true` のchange setは、結果を確認するためのプレビューとして扱う。
 
-実際に書き込む場合のみ、Human Gateを通したうえで明示的に `--force --output contracts/wbs/project.wbs.json` を使う。
+実際に書き込む場合は、Taskの運用policyでHuman Gateが必要かを先に判断し、適用が許可されたchangesetだけに明示的な `--force --output contracts/wbs/project.wbs.json` を使う。現行 `wbs apply` はTask IDやApproval recordを入力に取らないため、Human Gateを一律に自動検証するcommandではない。機械強制が必要なTaskでは、Task開始前から `contracts/wbs/project.wbs.json` を `humanGateRequiredPaths` に含める。
 
 ---
-

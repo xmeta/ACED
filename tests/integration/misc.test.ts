@@ -4,7 +4,7 @@ import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../../src/commands/init.js";
-import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
+import { collectCheckIssues, collectWbsChangesetGateIssues, runCheck } from "../../src/commands/check.js";
 import { buildStartArtifacts } from "../../src/commands/start.js";
 import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
 import { readProfile, runProfileSet } from "../../src/commands/profile.js";
@@ -477,12 +477,69 @@ describe("misc", () => {
     expect(report).not.toContain("--fix execution:");
   });
 
-  test("profile set updates the WBS profile", () => {
+  test("profile set writes and applies a semantic WBS changeset", () => {
     const root = makeTempRepo();
-    writeScwbsProject(root);
+    const wbs = sampleWbs();
+    wbs.extensions = {
+      vendor: { retained: true },
+      scwbs: { profile: "Standard", retained: true }
+    };
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
     expect(readProfile(root)).toBe("Standard");
-    expect(runProfileSet(root, "lean")).toBe(0);
+
+    let appliedPath = "";
+    const apply = (applyRoot: string, changeSetPath: string, options: { force: boolean; output?: string }): number => {
+      appliedPath = changeSetPath;
+      expect(applyRoot).toBe(root);
+      expect(options).toEqual({ force: true, output: "contracts/wbs/project.wbs.json" });
+      const changeSet = JSON.parse(readFileSync(path.join(root, changeSetPath), "utf8"));
+      const operationSchema = JSON.parse(readFileSync(
+        path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"),
+        "utf8"
+      ));
+      const ajv = new Ajv2020({ strict: false });
+      expect(ajv.compile(operationSchema)(changeSet)).toBe(true);
+      const operation = changeSet.operations[0];
+      wbs.extensions = {
+        ...wbs.extensions,
+        [operation.namespace]: operation.value
+      };
+      writeJson(root, options.output!, wbs);
+      return 0;
+    };
+
+    expect(runProfileSet(root, "lean", {
+      now: "2026-07-27T01:00:00.000Z",
+      apply
+    })).toBe(0);
+    expect(appliedPath).toBe("contracts/changesets/profile-set-lean-20260727010000000.json");
     expect(readProfile(root)).toBe("Lean");
+    expect(JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).extensions).toEqual({
+      vendor: { retained: true },
+      scwbs: { profile: "Lean", retained: true }
+    });
+    expect(collectWbsChangesetGateIssues([
+      "contracts/wbs/project.wbs.json",
+      appliedPath
+    ])).toEqual([]);
+  });
+
+  test("profile set does not directly edit WBS when changeset apply fails", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs();
+    wbs.extensions = { scwbs: { profile: "Standard", retained: true } };
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    const before = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+
+    expect(runProfileSet(root, "strict", {
+      now: "2026-07-27T01:00:00.000Z",
+      apply: () => 1
+    })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).toBe(before);
+    expect(existsSync(path.join(
+      root,
+      "contracts/changesets/profile-set-strict-20260727010000000.json"
+    ))).toBe(true);
   });
 
   test("status summarizes WBS node status", () => {
