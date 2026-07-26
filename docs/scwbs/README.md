@@ -30,3 +30,5 @@ entrypoints or the task require detailed SC-WBS method or CLI reference.
 
 - `cli-reference.md` - detailed CLI examples.
 - `wjs-operations-validation.md` - WJS validate and operations schema workflow.
+- `merge-protection.md` - main branch merge enforcement boundary and fail-closed merge path.
+- `integration-testing.md` - integration test runner parallelism, isolation, and duration reporting.

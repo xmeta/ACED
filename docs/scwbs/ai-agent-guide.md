@@ -126,8 +126,16 @@ Review questions:
 - Are tests appropriate for the risk of the change?
 - Did the branch add metadata without updating registry?
 
-If the answer is unclear, do not approve. Use `changes_requested` or
-`needs_human_decision`.
+If the answer is unclear, do not approve. Report the findings to the human
+reviewer. The `review approve`, `review changes-requested`, and `review close`
+transitions require `--actor human`; an AI agent must not run them or claim that
+identity.
+
+If the work needs a Human Decision rather than a code fix, block instead:
+
+```bash
+npm run scwbs -- ai block --task <task-id> --reason "<reason>"
+```
 
 ## Commands To Prefer
 
@@ -152,6 +160,8 @@ running and can interfere with each other if run in parallel.
 - Do not edit YAML/JSON contract files by hand unless the Task Contract allows
   contract or registry updates.
 - Do not mark Approval as `approved`.
+- Do not run `review approve`, `review changes-requested`, or `review close`
+  with the human-only actor.
 - Do not complete WBS nodes directly.
 - Do not edit `contracts/wbs/project.wbs.json` directly. The canonical WBS is
   updated only through a changeset under `contracts/changesets/` applied with
@@ -161,4 +171,3 @@ running and can interfere with each other if run in parallel.
 - Do not use future Core shorthand from draft docs when the current CLI docs
   specify a different command.
 - Do not ignore `review-queue` just because `next` suggests a planned task.
-
