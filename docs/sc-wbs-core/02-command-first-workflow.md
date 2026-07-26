@@ -94,6 +94,54 @@ delivery Task に関連付けられたProbeは `concluded` になるまで `scwb
 を失敗させ、Tiny Packetにも停止指示を表示する。`inconclusive` は正常な終端
 だが、delivery開始を許可する根拠にはならない。
 
+### Rolling Wave Planning
+
+`scwbs plan` は固定的な実装・テスト・文書化Taskを一括生成しない。approved
+Specの `planning` 入力から、遠い作業を粗い `approachCandidates` として残し、
+直近の1〜3件だけを `readyWindow` としてTask Contract化する。
+
+```yaml
+planning:
+  unresolvedDecisions: []
+  dependencies:
+    - API contract is approved
+  gates:
+    - no database migration
+  uncertainty: low
+  probeIds:
+    - PROBE-cache-strategy
+  readyWindow:
+    - id: cache-adapter
+      title: Implement the bounded cache adapter
+      paths:
+        - src/cache/**
+        - tests/cache/**
+      requiredChecks:
+        - test
+        - typecheck
+  approachCandidates:
+    - Evaluate distributed invalidation after usage data exists
+```
+
+```bash
+scwbs plan --spec SPEC-CACHE --json
+```
+
+未承認Specは拒否する。`unresolvedDecisions` が残る、または `uncertainty: high`
+であり、関連する全Probeが `concluded` でなければdelivery Taskを生成せず、
+Discovery Probeを作る。Ready Windowのpathには `src/**` などの広域scopeを
+指定できない。
+
+計画正本は `contracts/plans/PLAN-*.json` であり、同じSpecの暗黙上書きを
+禁止する。再計画では理由を必須とし、前計画hashとTaskのadded/removed/retained
+差分を記録する。removedは履歴保護のため既存Taskを自動削除しない。
+
+```bash
+scwbs plan --spec SPEC-CACHE \
+  --replan-reason "Probe結果により実装順序を変更" \
+  --json
+```
+
 ### 4. 完了処理をする
 
 手動確認でrequired checksを先に実行する場合は、正規入口からprovenance付きreceiptを作る。

@@ -61,6 +61,24 @@ export type ApprovalPolicy =
 export type SpecContractStatus = "draft" | "approved" | "superseded";
 export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
 
+export type PlanningWorkItem = {
+  id: string;
+  title: string;
+  paths: string[];
+  requiredChecks?: string[];
+  doneCriteria?: string[];
+};
+
+export type SpecPlanning = {
+  unresolvedDecisions?: string[];
+  dependencies?: string[];
+  gates?: string[];
+  uncertainty?: "low" | "medium" | "high";
+  probeIds?: string[];
+  readyWindow?: PlanningWorkItem[];
+  approachCandidates?: string[];
+};
+
 export type SpecContract = {
   id: string;
   type: "spec-contract";
@@ -73,6 +91,7 @@ export type SpecContract = {
   acceptanceCriteria: string[];
   approvedBy?: string;
   approvedAt?: string;
+  planning?: SpecPlanning;
 };
 
 export type SpecChangeProposal = {

@@ -20,7 +20,36 @@ const specContractSchema = {
     sourcePaths: stringArraySchema,
     acceptanceCriteria: stringArraySchema,
     approvedBy: { type: "string" },
-    approvedAt: { type: "string" }
+    approvedAt: { type: "string" },
+    planning: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        unresolvedDecisions: stringArraySchema,
+        dependencies: stringArraySchema,
+        gates: stringArraySchema,
+        uncertainty: { enum: ["low", "medium", "high"] },
+        probeIds: stringArraySchema,
+        readyWindow: {
+          type: "array",
+          minItems: 1,
+          maxItems: 3,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["id", "title", "paths"],
+            properties: {
+              id: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+              title: { type: "string", minLength: 1 },
+              paths: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
+              requiredChecks: stringArraySchema,
+              doneCriteria: stringArraySchema
+            }
+          }
+        },
+        approachCandidates: stringArraySchema
+      }
+    }
   }
 };
 

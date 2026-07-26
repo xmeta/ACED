@@ -420,15 +420,20 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("plan")
-    .description("Plan from a spec")
+    .description("Build an Approach Map and a 1-3 Task Ready Window from an approved spec")
     .option("--spec <id>", "spec id")
+    .option("--replan-reason <text>", "required reason when replacing an existing plan")
+    .option("--json", "output a versioned JSON result")
     .action((opts) => {
       if (!opts.spec) {
         console.error("Missing --spec <spec-id>");
         exitCode = 2;
         return;
       }
-      exitCode = runPlan(root, opts.spec);
+      exitCode = runPlan(root, opts.spec, {
+        replanReason: opts.replanReason,
+        json: opts.json ?? false
+      });
     });
 
   program
