@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MS1ZEDKY
+type: evidence
+taskId: SCWBS-DRAFT-MS1ZEDKY
+commit: 17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+subjectHeadCommit: 17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+diffHash: sha256:d919fde4cf7f051698ba790d27613eb19046f885b10594fcb0b2d16ce0b6d639
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+    treeHash: 63e1d9e87c52fea8c02fa63c2523cb6f4e12407b
+    diffHash: sha256:d919fde4cf7f051698ba790d27613eb19046f885b10594fcb0b2d16ce0b6d639
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+git:
+  branch: task/SCWBS-DRAFT-MS1ZEDKY-issue-311-align-finish-and-status-cli-help-with-
+  base: origin/main
+  baseCommit: 79dc412986e9d3f88fd63a7dc4a107af8ff846e8
+  changedFilesBasis: branch-diff
+  pullRequest: "312"
+  subjectHeadCommit: 17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+  diffHash: sha256:d919fde4cf7f051698ba790d27613eb19046f885b10594fcb0b2d16ce0b6d639
+  headCommit: 17903c2d8fd32a7066e99f78b0b5eb98a023c8b9
+changedFiles:
+  - contracts/evidence/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS1ZEDKY.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/tasks/index.yaml
+  - src/cli.ts
+  - tests/integration/cli-help.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:819bf073c4762079f7fbfe96a7bfdd42cdc28f286e4896dc17949cec11278ff9
+    durationMilliseconds: 15087
+    executedAt: "2026-07-26T16:00:44.652Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2480c8c629cbf59b9c3b1d0acc39d6348ecabc3abe911234817bb98609b9ea45
+    durationMilliseconds: 178917
+    executedAt: "2026-07-26T16:03:43.572Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:f13c1a71354658444b7002967897fb37fdbcd018b04cb58b2b5b35bfeb7b6439
+    durationMilliseconds: 8873
+    executedAt: "2026-07-26T16:03:52.450Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a821714d042bd119eca7743702d68ceda52d0991c2ee292b95575b8bd715feff
+    durationMilliseconds: 4165
+    executedAt: "2026-07-26T16:03:56.620Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added CLI help regression assertions for status strict scope and finish preflight side effects
