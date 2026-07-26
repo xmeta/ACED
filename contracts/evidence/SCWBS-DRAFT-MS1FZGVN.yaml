@@ -1,0 +1,71 @@
+id: EVD-SCWBS-DRAFT-MS1FZGVN
+type: evidence
+taskId: SCWBS-DRAFT-MS1FZGVN
+commit: 53100f31f8657700762858eaff106a21c05e8217
+subjectHeadCommit: 53100f31f8657700762858eaff106a21c05e8217
+diffHash: sha256:a51891ba632a164ec66d397c7798939fc776aeb6635d03ceaf4f223432a6809c
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 53100f31f8657700762858eaff106a21c05e8217
+    treeHash: 28e522bd126987c2d77fec1d9d59eda2d58f457d
+    diffHash: sha256:a51891ba632a164ec66d397c7798939fc776aeb6635d03ceaf4f223432a6809c
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:53100f31f8657700762858eaff106a21c05e8217
+git:
+  branch: task/SCWBS-DRAFT-MS1FZGVN-issue-303-verified-upstream-release-gitlink-auth
+  base: origin/main
+  baseCommit: f180aa12efc3b69447796c6a7d10b948181ffd60
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 53100f31f8657700762858eaff106a21c05e8217
+  diffHash: sha256:a51891ba632a164ec66d397c7798939fc776aeb6635d03ceaf4f223432a6809c
+  headCommit: 53100f31f8657700762858eaff106a21c05e8217
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS1FZGVN.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml
+  - docs/scwbs/task-contract.md
+  - src/commands/check-diff.ts
+  - src/core/schema/contracts.ts
+  - src/core/task-authority.ts
+  - src/core/types.ts
+  - src/core/wbs-lock.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:00ef8487fe849b81308b0edf38131a2054da3a65bbf69bd9ceb0b6b8c99cc4ee
+    durationMilliseconds: 3965
+    executedAt: "2026-07-26T07:00:17.393Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e59bc5395bab0036baf995afb6de1e390e501bbed6bad8a25a61bf063a0c9fbc
+    durationMilliseconds: 174914
+    executedAt: "2026-07-26T07:03:12.313Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:0aed20f54538fb438dc035b9dbb5a59a4c9a99d8656edf0287c184440bc627a2
+    durationMilliseconds: 8411
+    executedAt: "2026-07-26T07:03:20.729Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:541f693061806d153ea1c88df853540327df9e854b9f7d696e487ab98db3ebdb
+    durationMilliseconds: 4018
+    executedAt: "2026-07-26T07:03:24.751Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added fail-closed coverage for immutable upstream-release authority, nested path separation, mismatch rejection, and warning budget lock isolation.
