@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MS1FZGVN
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1FZGVN
+branchName: task/SCWBS-DRAFT-MS1FZGVN-issue-303-verified-upstream-release-gitlink-auth
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/core/task-authority.ts
+  - src/core/wbs-lock.ts
+  - src/commands/check-diff.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/tasks.test.ts
+  - docs/scwbs/task-contract.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/core/task-authority.ts
+  - src/core/wbs-lock.ts
+  - src/commands/check-diff.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/tasks.test.ts
+  - docs/scwbs/task-contract.md
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - upstream-release is an explicit immutable Task authority mode requiring repository, merged PR, upstream ref, and at least one passed check
+  - verified upstream-release gitlinks are authorized by the gitlink path while nested files remain in Evidence and check coverage
+  - undeclared, incomplete, unreachable, failed-check, or dirty submodule changes fail closed
+  - forbiddenPaths remains authoritative for normal files and unverified nested submodule changes
+  - warningBudgets changes do not change wbsGlobalRevision
+  - profile, WBS identity, root identity, schema version, and other SC-WBS policy changes still change wbsGlobalRevision
+  - CI, required checks, profile, Human Gate, and warning-only exit behavior are unchanged
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/specs/SPEC-LITE-MS1FZGVN.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1FZGVN.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0d4fbcd55e895284d848692f6a5b884350e910d91eb06755b80b0d9b3f8ca686
+  createdAt: "2026-07-26T06:54:37.511Z"

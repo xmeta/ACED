@@ -1,0 +1,19 @@
+id: SPEC-LITE-MS1FZGVN
+type: spec-contract
+featureId: F-MS1FZGVN
+title: "Issue #303: upstream release gitlink authorityとwarning budget lock境界を実装する"
+status: approved
+version: 0.1.0
+approvedBy: user-delegated-tool-improvement
+approvedAt: "2026-07-26T00:00:00+09:00"
+summary: "上流でmerge・検証済みのsubmodule releaseだけをgitlink権限で取り込み、warning-only budgetをTask authority lockから分離する"
+acceptanceCriteria:
+  - authorityMode upstream-releaseはrepository、pullRequest、upstreamRef、1件以上のpassed checkを必須にする
+  - submoduleDependenciesをTask authority baselineへ含め、Task開始後の自己拡張を拒否する
+  - upstream-releaseのEvidenceが宣言と一致しheadがupstream reachableな場合だけnested filesをrepository path authority判定から分離する
+  - nested filesはEvidenceとcheck coverageに保持し、gitlink path自体はallowedPathsとHuman Gateで評価する
+  - 未宣言、不完全、Evidence不一致、unreachable、failed check、dirty submoduleはfail-closedする
+  - 通常ファイルと未検証nested filesではforbiddenPathsを最優先のまま維持する
+  - extensions.scwbs.governanceCost.warningBudgetsだけの変更ではwbsGlobalRevisionを変えない
+  - profile、WBS identity、root identity、schema version、その他SC-WBS policy変更ではwbsGlobalRevisionを変える
+  - CI、required checks、profile、Human Gate、warning-only exit behaviorを変更しない
