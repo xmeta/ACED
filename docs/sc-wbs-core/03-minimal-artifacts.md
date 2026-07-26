@@ -49,18 +49,16 @@ contracts/
 
 ## Task Contract Core
 
-Task Contract は、AIが実行してよい作業範囲を定義する。Lite/Core では、まず `allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`stopIf`、`checks` を最優先で持てばよい。
+Task Contract は、AIが実行してよい作業範囲を定義する。Lite/Core では、まず `allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`stopIf`、`requiredChecks` を最優先で持つ。
 
 最小フィールド:
 
 ```yaml
 id: WBS-001
 type: task-contract
-title: staff search API implementation
-branch: task/WBS-001-staff-search
-
-goal: >
-  Implement staff search API according to the approved acceptance criteria.
+wbsNodeId: node-staff-search
+featureId: F-STAFF-SEARCH
+branchName: task/WBS-001-staff-search
 
 allowedPaths:
   - src/features/staff-search/**
@@ -85,14 +83,16 @@ stopIf:
   - allowedPaths are insufficient
   - business rule is unclear
 
-checks:
+requiredChecks:
   - test
   - typecheck
 
-lock:
-  specHash: sha256:...
-  taskHash: sha256:...
-  createdAt: 2026-07-03T10:00:00+09:00
+doneCriteria:
+  - Staff search API satisfies the approved acceptance criteria
+
+evidenceRequired:
+  - test-result
+  - typecheck-result
 ```
 
 ### Task Contractの注意
@@ -100,7 +100,7 @@ lock:
 - `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
 - `forbiddenPaths` は常に `allowedPaths` より優先する。
 - `humanGateRequiredPaths` に触る差分は、承認なしではPR readyにしてはいけない。
-- `lock` は最初からWBS全体hashにしない。無関係な変更でstaleになりすぎるためである。
+- CLIが生成する `contractLock` v2 はWBS全体hashではなく、対象scopeとglobal policyを分離する。無関係なsibling変更でstaleになりすぎないためである。
 - 小さい導入では、Task Contract 自身と対象Specだけを固定できれば十分である。
 
 ## Evidence Core
@@ -113,15 +113,17 @@ Evidence は、作業がDone条件を満たしたことを示す機械証跡で�
 id: EVD-WBS-001
 type: evidence
 taskId: WBS-001
+subjectHeadCommit: abc1234
+evidenceCommit: def5678
+diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 git:
   branch: task/WBS-001-staff-search
   base: origin/main
   baseCommit: def5678
   subjectHeadCommit: abc1234
-  evidenceCommit: null
   changedFilesBasis: branch-diff
-  diffHash: sha256:...
+  diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   pullRequest: "#42"
 
 changedFiles:
@@ -141,7 +143,7 @@ checks:
 testQuality:
   assertionsAdded: true
   testsDisabled: false
-  coverageDecreased: unknown
+  coverageDecreased: false
 ```
 
 ### Evidenceの注意

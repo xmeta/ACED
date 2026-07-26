@@ -254,12 +254,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("ui")
-    .description("Start web UI")
+    .description("Show the text dashboard")
     .action(() => { exitCode = runUi(root); });
 
   program
     .command("serve")
-    .description("Start API server")
+    .description("Report that the reserved API server is unavailable")
     .action(() => { exitCode = runServe(); });
 
   program
@@ -521,7 +521,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   ai
     .command("run")
-    .description("Run AI on a task")
+    .description("Print a dry-run AI task plan")
     .option("--task <id>", "task id")
     .option("--agent <agent>", "agent type")
     .action((opts) => {
