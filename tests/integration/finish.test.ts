@@ -355,7 +355,7 @@ describe("finish", () => {
     ["draft", "gh pr ready 42"],
     ["checks-pending", "gh pr checks 42 --watch"],
     ["checks-failure", "gh pr checks 42"],
-    ["checks-success", "gh pr merge 42 --squash --delete-branch"],
+    ["checks-success", "npm run scwbs -- merge --pr 42"],
     ["closed", "gh pr reopen 42"],
     ["merged", "git switch main && git pull --ff-only origin main"],
     ["unavailable", "gh pr checks 42 --watch"]

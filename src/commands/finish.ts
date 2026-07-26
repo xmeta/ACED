@@ -257,7 +257,7 @@ function pullRequestNextAction(taskId: string, pullRequest: number | undefined, 
     case "checks-failure":
       return { label: `Inspect failing checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest}` };
     case "checks-success":
-      return { label: `Merge pull request #${pullRequest}:`, command: `gh pr merge ${pullRequest} --squash --delete-branch` };
+      return { label: `Merge pull request #${pullRequest} through the validate preflight:`, command: `npm run scwbs -- merge --pr ${pullRequest}` };
     case "closed":
       return { label: `Reopen closed pull request #${pullRequest} or reconcile its recorded metadata:`, command: `gh pr reopen ${pullRequest}` };
     case "merged":
