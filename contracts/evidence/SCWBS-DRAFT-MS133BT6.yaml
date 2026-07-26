@@ -1,0 +1,75 @@
+id: EVD-SCWBS-DRAFT-MS133BT6
+type: evidence
+taskId: SCWBS-DRAFT-MS133BT6
+commit: a47bfb01d577b7e526675def7c06b3c2012bd90b
+subjectHeadCommit: a47bfb01d577b7e526675def7c06b3c2012bd90b
+diffHash: sha256:df22b6080cae3fba8a4de745d429810f28d3a3fc41a51d1ec81648f7bcdedfbc
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: a47bfb01d577b7e526675def7c06b3c2012bd90b
+    treeHash: bcd666af48661f4aa11a50518432cf6b01b48562
+    diffHash: sha256:df22b6080cae3fba8a4de745d429810f28d3a3fc41a51d1ec81648f7bcdedfbc
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:a47bfb01d577b7e526675def7c06b3c2012bd90b
+git:
+  branch: task/SCWBS-DRAFT-MS133BT6-issue-185-replacement-merge-preflight
+  base: origin/main
+  baseCommit: 58806f34f952acd30a34a7444c71ba4f4d0cf4da
+  changedFilesBasis: branch-diff
+  pullRequest: "300"
+  subjectHeadCommit: a47bfb01d577b7e526675def7c06b3c2012bd90b
+  diffHash: sha256:df22b6080cae3fba8a4de745d429810f28d3a3fc41a51d1ec81648f7bcdedfbc
+  headCommit: a47bfb01d577b7e526675def7c06b3c2012bd90b
+changedFiles:
+  - AGENTS.md
+  - README.md
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS133BT6.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml
+  - docs/scwbs/merge-protection.md
+  - docs/scwbs/schemas/merge-preflight.schema.json
+  - src/cli.ts
+  - src/commands/finish.ts
+  - src/commands/merge.ts
+  - src/core/merge-preflight.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/merge.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:4568bd33da20280563c86ac4c0d73b1a5a93f6f5de75aee807baa793ad42040f
+    durationMilliseconds: 3585
+    executedAt: "2026-07-26T00:56:02.148Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a4e75d289524900bcd3c100473aeeeafa7500511542aef77fbbf64e168973b46
+    durationMilliseconds: 164981
+    executedAt: "2026-07-26T00:58:47.135Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:86ec172b470f33b49b6c04ac04dfd1359b09fbff0a5d590d6c5ec334c4bb85bc
+    durationMilliseconds: 8782
+    executedAt: "2026-07-26T00:58:55.922Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:331e1564809135806f4464660f57d71a6f675e6771ffd7cdfe09df8f95666212
+    durationMilliseconds: 3828
+    executedAt: "2026-07-26T00:58:59.754Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Merge preflight integration tests cover exact successful validate provenance, missing/pending/failure/cancelled/timed-out/skipped/neutral/duplicate checks, PR state and base rejection, unavailable GitHub, merge failure, no merge subprocess on rejection, and match-head-commit execution.
