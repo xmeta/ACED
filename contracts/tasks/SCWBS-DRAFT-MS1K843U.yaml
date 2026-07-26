@@ -1,0 +1,77 @@
+id: SCWBS-DRAFT-MS1K843U
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1K843U
+branchName: task/SCWBS-DRAFT-MS1K843U-issue-179-apply-verified-wjs-release-and-standar
+allowedPaths:
+  - wjs
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - docs/**
+  - src/core/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
+  - contracts/wbs/project.wbs.json
+requiredChecks:
+  - test
+  - test:integration
+  - test:wjs
+  - typecheck
+  - build
+doneCriteria:
+  - ACED pins WJS PR
+  - SC-WBS changeset reproduction supports setDocumentExtension
+  - the governed changeset retains profile Standard and configures governanceFiles 700, governanceLines 31000, and governanceToSourceLineRatio 2.0
+  - metrics governance JSON reports warningBudgets status available with the exact Standard thresholds and no warning at the current baseline
+  - health --governance-cost JSON passes and governance budget warnings remain warning-only
+  - CI enforcement, profile selection, required checks, and Human Gate behavior are unchanged
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - wjs-test-result
+  - typecheck-result
+  - build-result
+submoduleDependencies:
+  - path: wjs
+    authorityMode: upstream-release
+    repository: https://github.com/xmeta/WJS
+    pullRequest: "#5"
+    upstreamRef: refs/remotes/origin/main
+    checks:
+      - name: npm test
+        status: passed
+        url: https://github.com/xmeta/WJS/pull/5
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/specs/SPEC-LITE-MS1K843U.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1K843U.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:8c82a98b528f45a50ccb1b20809d3fb2e5f92490de4593ab803c9775040818e2
+  createdAt: "2026-07-26T08:53:55.062Z"

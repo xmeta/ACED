@@ -1,0 +1,16 @@
+id: SPEC-LITE-MS1K843U
+type: spec-contract
+featureId: F-MS1K843U
+title: "Issue #179: WJSリリースを取り込みStandard warning-only budgetを設定する"
+status: approved
+version: 0.1.0
+approvedBy: user-authorized-wjs-release-and-recommended-values
+approvedAt: "2026-07-26T00:00:00+09:00"
+summary: "WJSのsetDocumentExtension確定commitを取り込み、観測済みStandard閾値を監査可能なchangesetでwarning-only設定する"
+acceptanceCriteria:
+  - WJS PR #5のmerged commit e3fbe8863dc21f9c7c9fa98fd2aa068e038e7e04をACED submoduleで固定する
+  - SC-WBS側のchangeset再現検証もsetDocumentExtensionを解釈する
+  - changesetはextensions.scwbs.profileのStandardを保持し、governanceCost.warningBudgets.StandardへgovernanceFiles 700、governanceLines 31000、governanceToSourceLineRatio 2.0を設定する
+  - metrics governance --jsonはwarningBudgets.status available、指定した3閾値、現行baselineでwarnings空を返す
+  - health --governance-cost --jsonはpassし、閾値超過だけではexit codeを非0にしない既存のwarning-only動作を保つ
+  - hard enforcement、CI workflow、profile、required checks、Human Gate policyは変更しない

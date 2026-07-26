@@ -1,0 +1,102 @@
+id: EVD-SCWBS-DRAFT-MS1K843U
+type: evidence
+taskId: SCWBS-DRAFT-MS1K843U
+commit: 6aee66982664f94322b922cd3b3697642e27633c
+subjectHeadCommit: 6aee66982664f94322b922cd3b3697642e27633c
+diffHash: sha256:0dddc6d03e5a212beafcabae051eee79b7b0c453b5211ee786fb8b060787bd70
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 6aee66982664f94322b922cd3b3697642e27633c
+    treeHash: 7ce7ebeba53e114c00d6043262e5b0d8e456cb07
+    diffHash: sha256:0dddc6d03e5a212beafcabae051eee79b7b0c453b5211ee786fb8b060787bd70
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:6aee66982664f94322b922cd3b3697642e27633c
+git:
+  branch: task/SCWBS-DRAFT-MS1K843U-issue-179-apply-verified-wjs-release-and-standar
+  base: origin/main
+  baseCommit: 24d402c737a5aab59c1ad9fb323336e4f62768de
+  changedFilesBasis: branch-diff
+  pullRequest: "305"
+  subjectHeadCommit: 6aee66982664f94322b922cd3b3697642e27633c
+  diffHash: sha256:0dddc6d03e5a212beafcabae051eee79b7b0c453b5211ee786fb8b060787bd70
+  headCommit: 6aee66982664f94322b922cd3b3697642e27633c
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
+  - contracts/evidence/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS1K843U.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/wbs/project.wbs.json
+  - src/commands/wbs.ts
+  - tests/integration/tasks.test.ts
+  - wjs
+submodules:
+  - path: wjs
+    repository: https://github.com/xmeta/WJS
+    baseCommit: cfcdcf8b1c44aac492e248eea4aa8fcb8ce7e212
+    headCommit: e3fbe8863dc21f9c7c9fa98fd2aa068e038e7e04
+    changedFiles:
+      - README.md
+      - examples/set-document-extension-change-set.json
+      - schema/wbs-operations.schema.json
+      - specification/operations/README.md
+      - specification/operations/document_operations/setDocumentExtension.md
+      - tests/apply/document-operations.test.ts
+      - tests/invalid/set-document-extension-missing-namespace.json
+      - tests/valid/set-document-extension.json
+      - tools/apply/dispatch.ts
+      - tools/apply/document-operations.ts
+      - tools/apply/types.ts
+    pullRequest: "#5"
+    upstreamRef: refs/remotes/origin/main
+    upstreamReachable: true
+    checks:
+      - name: npm test
+        status: passed
+        url: https://github.com/xmeta/WJS/pull/5
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b695abd85c8aa8e7f193faee1d8b795d0b06118aab2e2d4daa4fac00d3b57c45
+    durationMilliseconds: 4146
+    executedAt: "2026-07-26T08:58:07.923Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:20b14f430fed3ee4ed717d2ada37f648351c6ec5c3dcb14f0c88ac4c412d8156
+    durationMilliseconds: 185600
+    executedAt: "2026-07-26T09:01:13.527Z"
+  - name: test:wjs
+    status: passed
+    source: local
+    command: npm run test:wjs
+    cacheKey: sha256:feed429238df0c4ae34a33f316b079e087f24cedcd219294743e68ec2b6b105f
+    durationMilliseconds: 4821
+    executedAt: "2026-07-26T09:01:18.354Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:75b4370fbf76cd5b9aefd72dfae462c711c717778bbeb6ba9fc6968965b76883
+    durationMilliseconds: 9268
+    executedAt: "2026-07-26T09:01:27.627Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e7e4a5e0f7de64c9439224b8abf304b5a22532565fc128ac8e864d978201def2
+    durationMilliseconds: 4027
+    executedAt: "2026-07-26T09:01:31.660Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added replay coverage for setDocumentExtension while preserving unrelated namespaces, node structure, and input immutability; WJS release includes operation validation and apply coverage.
