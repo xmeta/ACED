@@ -67,8 +67,14 @@ Use dry-run change sets for preview and review:
 }
 ```
 
-Only write to `contracts/wbs/project.wbs.json` after Human Gate approval:
+When the governing Task requires Human Gate approval, record that requirement
+in the Task Contract before work starts and obtain approval before applying:
 
 ```bash
 npm run scwbs -- wbs apply contracts/changesets/change-set.json --force --output contracts/wbs/project.wbs.json
 ```
+
+`wbs apply` validates the WBS and operation document but does not accept a Task
+ID or inspect Approval records. Human Gate is therefore enforced by
+`check-diff` only when the governing Task's `humanGateRequiredPaths` matches the
+canonical WBS path; it is not an unconditional check inside WJS apply.

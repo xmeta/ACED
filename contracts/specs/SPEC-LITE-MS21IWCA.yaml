@@ -1,0 +1,16 @@
+id: SPEC-LITE-MS21IWCA
+type: spec-contract
+featureId: F-MS21IWCA
+title: "Issue #317: profile setをWBS changeset経由へ移行し直接編集を廃止する"
+status: approved
+version: 0.1.0
+summary: "profile変更をsetDocumentExtension changesetとWJS apply経路へ統一する"
+approvedBy: user-requested-issue-317
+approvedAt: "2026-07-27T01:56:52+09:00"
+acceptanceCriteria:
+  - profile set writes a setDocumentExtension changeset before applying the WBS update through WJS
+  - the generated operation preserves existing scwbs fields and unrelated extension namespaces
+  - apply failure never falls back to direct WBS writes
+  - profile changes remain auditable and satisfy the WBS changeset gate
+  - CLI output and documentation explain changeset path and Task lock refresh impact
+  - WBS Human Gate documentation matches the Task Contract dependent implementation boundary

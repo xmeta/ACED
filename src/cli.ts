@@ -727,7 +727,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   profile
     .command("set")
-    .description("Set profile")
+    .description("Set profile through a WBS changeset")
     .argument("<profile>", "profile name")
     .action((profileName: string) => {
       if (!profileName) {

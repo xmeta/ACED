@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MS21IWCA
+type: evidence
+taskId: SCWBS-DRAFT-MS21IWCA
+commit: 161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+subjectHeadCommit: 161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+diffHash: sha256:af68522edd89250bcb98618c8289af464fc6ab05b9ebd2c9f25a6ce96551ef7a
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+    treeHash: 56812a04603a7b398a456954c4ce09f9408fab6f
+    diffHash: sha256:af68522edd89250bcb98618c8289af464fc6ab05b9ebd2c9f25a6ce96551ef7a
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: git-object
+    locator: git:161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+git:
+  branch: task/SCWBS-DRAFT-MS21IWCA-issue-317-profile-set-wbs-changeset-migration
+  base: origin/main
+  baseCommit: 4f9d776fff23626e4b90157ed9b0edc32f5daf29
+  changedFilesBasis: branch-diff
+  pullRequest: "318"
+  subjectHeadCommit: 161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+  diffHash: sha256:af68522edd89250bcb98618c8289af464fc6ab05b9ebd2c9f25a6ce96551ef7a
+  headCommit: 161a6c3ffdd40ce957d385df8200ff6224bf3b4c
+changedFiles:
+  - README.md
+  - contracts/evidence/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS21IWCA.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/wbs-json.md
+  - docs/scwbs/wjs-operations-validation.md
+  - src/cli.ts
+  - src/commands/profile.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:9a3e7037bc619cf59ccffbc0560686d200d55464b288b75a2ec769edca2be58e
+    durationMilliseconds: 13581
+    executedAt: "2026-07-26T17:02:42.846Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:719161b8ef76cfe1f983d5eed01969509c1a0caecfbf4ac400b4c5887da9994b
+    durationMilliseconds: 173992
+    executedAt: "2026-07-26T17:05:36.844Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e3c65ac2fd1ee58ea8b889772a0b5c5b0dd568bc52e257172859d93a4c74ead4
+    durationMilliseconds: 8886
+    executedAt: "2026-07-26T17:05:45.739Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:13db7513eeba64c103dff567bc7aba48d75e397dcf0cfc85dc5a1f85f8ab1186
+    durationMilliseconds: 3960
+    executedAt: "2026-07-26T17:05:49.704Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added profile changeset, apply-failure, schema, and WBS gate regression assertions.
