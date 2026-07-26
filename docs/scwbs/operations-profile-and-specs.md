@@ -7,7 +7,7 @@ Source: docs/sc-wbs-development.md split reference.
 運用の厳格さはプロジェクトに応じて選ぶ。
 
 | Profile | 用途 | 必須 | 管理ディレクトリ |
-|---|---|---|---|---|
+|---|---|---|---|
 | Lean | 個人開発、プロトタイプ | Task Contract、Evidence、path制約 | `contracts/tasks/`, `contracts/evidence/`, `contracts/approvals/`, `contracts/changesets/`, `contracts/wbs/` |
 | Standard | 通常の業務アプリ | WBS-JSON、Task Contract、Evidence、Human Gate、`scwbs check` | Lean + `contracts/reviews/` |
 | Strict | 個人情報、金融、行政、基幹業務 | Standardに加えて承認ログ、Traceability、Risk Register、監査ログ | Standard + `contracts/specs/`, `contracts/spec-changes/` |

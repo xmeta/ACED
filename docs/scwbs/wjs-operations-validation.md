@@ -58,7 +58,8 @@ Use dry-run change sets for preview and review:
 
 ```json
 {
-  "version": "1.0",
+  "schemaVersion": "0.1.0",
+  "targetWbsId": "scwbs",
   "changeSetId": "example-change",
   "reason": "Add implementation task",
   "dryRun": true,

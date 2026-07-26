@@ -130,4 +130,4 @@ Ground Truth は次だけである。
 - Evidence
 - Approval scope
 
-疑わしい場合は approve せず、`changes_requested` または `needs_human_decision` とする。
+疑わしい場合は approve せず、findings を人間のレビュアーへ報告する。`review approve` / `review changes-requested` / `review close` は `--actor human` を要求する人間専用操作であり、AI は実行してはならない。コード修正ではなく人間の判断が必要な場合は `npm run scwbs -- ai block --task <task-id> --reason "<理由>"` でブロックする。

@@ -177,7 +177,7 @@ rules:
     requires: [test:integration]
 ```
 
-`implementationRoots` を設定したpolicyでは、root配下の各実装ファイルは明示的なruleへ分類する。新しいcommand/core moduleが未分類なら、`npm run scwbs -- check -- --json` は `checkCoverage.unclassified` をpathごとに列挙して失敗する。`classification` と `rationale` は、behavior-criticalなworkflow実装とunit-onlyで十分な純粋型定義を区別する。広い `src/core/**` / `src/commands/**` ruleは、新規moduleの未分類検出を回避してしまうため使わない。
+`implementationRoots` を設定したpolicyでは、root配下の各実装ファイルは明示的なruleへ分類する。新しいcommand/core moduleが未分類なら、`npm run scwbs -- check --json` は `checkCoverage.unclassified` をpathごとに列挙して失敗する。`classification` と `rationale` は、behavior-criticalなworkflow実装とunit-onlyで十分な純粋型定義を区別する。広い `src/core/**` / `src/commands/**` ruleは、新規moduleの未分類検出を回避してしまうため使わない。
 
 `check-diff` と `finish` は実変更pathに必要なcheckがTask Contractの `requiredChecks` に無い場合に失敗する。実変更が未分類ならwaiverでは通らず、先にpolicy分類が必要になる。packetは `allowedPaths` からの予測と `origin/main` からの実差分の両方について、必要check・不足check・未分類implementation pathを表示する。
 
