@@ -1,0 +1,16 @@
+id: SPEC-LITE-MS1ZEDKY
+type: spec-contract
+featureId: F-MS1ZEDKY
+title: "Issue #311: finish/statusのCLI helpを実際のlifecycle挙動へ同期する"
+status: approved
+version: 0.1.0
+summary: "CLI helpの文言だけを現行behaviorへ同期しintegration testで固定する"
+approvedBy: user-requested-issue-311
+approvedAt: "2026-07-27T00:00:00+09:00"
+acceptanceCriteria:
+  - finish --preflight helpがrequired checksとtracked artifactを変更しないことを示す
+  - finish --preflight helpがlocal finish lifecycle receiptを記録することを隠さない
+  - status --strict helpがcompletedとarchived Taskを対象にすることを示す
+  - 両helpのintegration testが正確な文言を検証する
+  - CLI behavior、schema、completion trust母集団、Human Approval policyを変更しない
+  - test、test:integration、typecheck、build、scwbs checkが成功する

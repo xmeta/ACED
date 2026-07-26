@@ -1,0 +1,61 @@
+id: SCWBS-DRAFT-MS1ZEDKY
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS1ZEDKY
+branchName: task/SCWBS-DRAFT-MS1ZEDKY-issue-311-align-finish-and-status-cli-help-with-
+allowedPaths:
+  - src/cli.ts
+  - tests/integration/cli-help.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - docs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+stopIf:
+  - CLI behavior、completion trust母集団、finish side effect、schemaの変更が必要
+  - package、lockfile、workflow、WBS正本、Human Gate pathの変更が必要
+  - help以外の利用者向け仕様判断が必要
+doneCriteria:
+  - finish --preflight helpがrequired checksとtracked artifactを変更しない一方でlocal lifecycle receiptを記録することを正確に示す
+  - status --strict helpがcompletedとarchived Taskのcompletion trustを対象にすることを示す
+  - 両方のhelp文字列をintegration testで固定し将来のdriftを検出する
+  - CLI behavior、schema、Human Approval policyを変更しない
+  - test、test:integration、typecheck、build、scwbs check、check-diff、registry checkが成功する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/specs/SPEC-LITE-MS1ZEDKY.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS1ZEDKY.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:94ab3c261ecd8db9da442836573431d57f81d35b4b2312eacc1f97659f096012
+  createdAt: "2026-07-26T15:58:18.488Z"
