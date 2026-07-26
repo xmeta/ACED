@@ -1,0 +1,68 @@
+id: SCWBS-DRAFT-MS133BT6
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS133BT6
+branchName: task/SCWBS-DRAFT-MS133BT6-issue-185-replacement-merge-preflight
+allowedPaths:
+  - src/core/merge-preflight.ts
+  - src/commands/merge.ts
+  - src/commands/finish.ts
+  - src/cli.ts
+  - tests/integration/merge.test.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/schemas/merge-preflight.schema.json
+  - docs/scwbs/merge-protection.md
+  - README.md
+  - AGENTS.md
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - README.md
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - main向けopen PRだけを対象にaggregate validate成功をcurrent originとhead SHA付きで検証する
+  - validateがpending failure cancelled missingの場合はmerge実行をfail closedで拒否する
+  - merge実行は検証済みheadをmatch-head-commitで拘束しadmin bypassを提供しない
+  - private Free planではbranch protection direct push force push admin bypassをGitHub側強制できない限界を文書化する
+  - repository visibility plan 外部費用の変更を行わずHuman Decisionとして明示する
+  - AGENTS.md README finish経路を保護merge commandへ更新し安全なfixtureで拒否動作を検証する
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/specs/SPEC-LITE-MS133BT6.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/registry.yaml
+stopIf:
+  - GitHub plan repository visibility external service cost or permissions must change
+  - .github workflow or repository settings must change
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 1.0.0
+  specRevision: sha256:3bf2add3f42453b4608cb67d915f3ae08f2fc93cbf5f3cbc99cb693df81fb22b
+  createdAt: "2026-07-26T00:54:10.207Z"
