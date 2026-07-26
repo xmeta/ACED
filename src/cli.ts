@@ -230,7 +230,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("status")
     .description("Show repository status")
     .option("--json", "output a versioned JSON report")
-    .option("--strict", "fail when completed Task trust is not fully verified")
+    .option("--strict", "fail when completed or archived Task completion trust is not fully verified")
     .action((opts) => { exitCode = runStatus(root, { json: opts.json ?? false, strict: opts.strict ?? false }); });
 
   program
@@ -270,7 +270,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
     .option("--rerun-checks", "rerun required checks even when cached results are valid")
-    .option("--preflight", "validate finish readiness without running checks or writing files")
+    .option("--preflight", "validate readiness without required checks or tracked artifact changes; record a local lifecycle receipt")
     .option("--test-assertions-added <bool>", "test assertions added")
     .option("--tests-disabled <bool>", "tests disabled")
     .option("--coverage-decreased <bool>", "coverage decreased")
