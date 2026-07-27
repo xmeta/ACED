@@ -1,0 +1,53 @@
+id: SCWBS-DRAFT-MS332VMX
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS332VMX
+branchName: task/SCWBS-DRAFT-MS332VMX-issue-320-npm-audit-high-3
+allowedPaths:
+  - package.json
+  - package-lock.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - semver major dependency update is required
+  - source, test, documentation, or CI workflow changes are required
+  - scope expansion outside package.json and package-lock.json is required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - package.json requires js-yaml ^5.2.2 or newer within major 5
+  - package-lock.json resolves js-yaml 5.2.2, fast-uri 3.1.4 or newer, and postcss 8.5.18 or newer
+  - npm audit reports zero high and critical vulnerabilities
+  - required unit, integration, typecheck, and build checks pass
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+  - audit-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/specs/SPEC-LITE-MS332VMX.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS332VMX.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a12c6b8f1db4f771510dd7078c2b69bf7d663fbd45d00053eef9900d15066ca3
+  createdAt: "2026-07-27T10:29:04.203Z"

@@ -1,0 +1,15 @@
+id: SPEC-LITE-MS332VMX
+type: spec-contract
+featureId: F-MS332VMX
+title: "Issue #320: npm audit High脆弱性3件を最小依存更新で解消する"
+status: approved
+version: 0.1.0
+summary: "High脆弱性3件をsemver範囲内の最小依存更新で解消する"
+approvedBy: user-requested-issue-320
+approvedAt: "2026-07-27T19:30:00+09:00"
+acceptanceCriteria:
+  - package.json requires js-yaml ^5.2.2 or newer within major 5
+  - package-lock.json resolves js-yaml 5.2.2, fast-uri 3.1.4 or newer, and postcss 8.5.18 or newer
+  - npm audit reports zero high and critical vulnerabilities
+  - unit tests, integration tests, typecheck, build, scwbs check, and registry check pass
+  - no source, test, documentation, CI workflow, wjs, or semver major changes are included
