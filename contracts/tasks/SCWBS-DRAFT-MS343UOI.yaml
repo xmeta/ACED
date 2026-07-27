@@ -1,0 +1,89 @@
+id: SCWBS-DRAFT-MS343UOI
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS343UOI
+branchName: task/SCWBS-DRAFT-MS343UOI-issue-178-tracked-patch-payload-squash-evidence
+allowedPaths:
+  - src/cli.ts
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/evidence-retain.ts
+  - src/commands/health.ts
+  - src/commands/start.ts
+  - src/commands/status.ts
+  - src/commands/task-generate.ts
+  - src/commands/task-new.ts
+  - src/core/check-coverage.ts
+  - src/core/evidence-provenance.ts
+  - src/core/finish-lifecycle.ts
+  - src/core/git.ts
+  - src/core/human-gate.ts
+  - src/core/managed-contract-paths.ts
+  - src/core/paths.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/helpers.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/checks-run.test.ts
+  - tests/integration/ci-plan.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish-lifecycle.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/status.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/core-docs-samples.test.ts
+  - docs/implementation-gaps.md
+  - docs/sc-wbs-core/03-minimal-artifacts.md
+  - docs/sc-wbs-core/10-decisions.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS343UOI.patch
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - external artifact storage, credentials, or repository visibility changes are required
+  - Evidence schema compatibility cannot be preserved
+  - payload verification would require working tree mutation
+  - scope expansion outside the exact allowed paths is required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - evidence collect writes a deterministic tracked binary patch and records patch-artifact retention metadata
+  - health and status verify patch hash, reconstructed tree, and changed files without requiring the subject commit
+  - missing, tampered, unsafe, or unapplicable payloads fail closed with structured provenance issues
+  - legacy git-object Evidence remains backward compatible
+  - evidence retain can backfill one verifiable existing Evidence record without changing its subject, checks, or Approval scope
+  - Task generators govern the task-scoped payload path and lifecycle fixed points exclude it
+  - squash, deleted-branch, shallow, binary, rename, mode-change, and repeated-collection behavior is covered
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS343UOI.yaml
+  - contracts/specs/SPEC-LITE-MS343UOI.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS343UOI.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS343UOI.yaml
+  - contracts/approvals/SCWBS-DRAFT-MS343UOI.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS343UOI.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:e20cbb6d553c0407388175d3cf7e353eebdfe2017943c11f18e9488e98e02ba5
+  createdAt: "2026-07-27T10:58:19.765Z"
