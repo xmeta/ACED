@@ -1,0 +1,939 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 244f8ad..af59501 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -50,7 +50,17 @@ WBS正本 (`contracts/wbs/project.wbs.json`) は直接編集してはならな
+ 
+ Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。例外は、Task開始前からauthority baselineに固定された `approvalPolicy.mode: delegated` が要求scope（`human-gate` または `post-finish`）を許可し、有効期限内かつ32 bytes以上の `SCWBS_APPROVAL_DELEGATION_TOKEN` が契約のhashと一致する場合に、`--actor delegated-ai --scope <scope>` でdelegated Approvalを作成するときだけである。AIは `--actor human` を使用してはならず、policyやscopeをTask開始後に追加・拡張してはならない。
+ 
+-CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
++CI が通るまでマージしてはいけない。通常のmain向けmergeは
++`npm run scwbs -- merge --pr <number>` を使う。このcommandはopen・non-draft・
++base main・mergeableなPRとaggregate `validate` のSUCCESSを検査し、検証した
++head SHAを `--match-head-commit` へ渡す。pending / failure / cancelled /
++missing / unknownはfail closedで拒否する。`gh pr merge` の直接実行、`--admin`、
++`--auto` は通常経路として使ってはいけない。
++
++現在のprivate repository planではGitHub branch protection / rulesetsを利用
++できないため、このcommandはdirect push、force push、管理者やAPIによる迂回を
++GitHub側で禁止しない。repository visibility・GitHub plan・外部費用・権限の
++変更はHuman Decisionであり、AIが実行してはいけない。
+ 
+ ## 作業開始時
+ 
+diff --git a/README.md b/README.md
+index 63ed433..f96ec98 100644
+--- a/README.md
++++ b/README.md
+@@ -132,6 +132,28 @@ npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --
+ 
+ `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
+ 
++After approval and successful CI, merge through the fail-closed SC-WBS path:
++
++```bash
++npm run scwbs -- merge --pr <number> --preflight-only --json
++npm run scwbs -- merge --pr <number>
++```
++
++The command requires an open, non-draft PR targeting `main`, a `CLEAN` merge
++state, the current checkout's GitHub `origin`, and exactly one successful
++aggregate `validate` check from the `scwbs` workflow and repository. It binds
++the merge to the checked PR head with
++`--match-head-commit`; pending, failed, cancelled, skipped, missing, or
++ambiguous `validate` results are rejected. Do not replace this normal path
++with direct `gh pr merge`, `--admin`, or `--auto`.
++
++This repository is currently private on a GitHub plan where branch protection
++and repository rulesets are unavailable. The local command therefore improves
++the normal merge path but cannot prevent direct/force pushes or privileged API
++and administrator bypasses. Changing repository visibility, GitHub plan,
++external cost, or permissions requires a Human Decision. See
++[`docs/scwbs/merge-protection.md`](docs/scwbs/merge-protection.md).
++
+ Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
+ 
+ ```bash
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index e529016..055d0e5 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -42,6 +42,7 @@ rules:
+       - src/commands/init.ts
+       - src/commands/lite.ts
+       - src/commands/metrics.ts
++      - src/commands/merge.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
+       - src/commands/profile.ts
+@@ -85,6 +86,7 @@ rules:
+       - src/core/health-lifecycle.ts
+       - src/core/json.ts
+       - src/core/managed-contract-paths.ts
++      - src/core/merge-preflight.ts
+       - src/core/node-utils.ts
+       - src/core/paths.ts
+       - src/core/report.ts
+diff --git a/contracts/specs/SPEC-LITE-MS133BT6.yaml b/contracts/specs/SPEC-LITE-MS133BT6.yaml
+new file mode 100644
+index 0000000..96e4693
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS133BT6.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MS133BT6
++type: spec-contract
++featureId: F-MS133BT6
++title: "Issue #185 replacement: fail-closed merge preflightを実装する"
++status: approved
++version: 1.0.0
++summary: "GitHub側保護を利用できない現状で、通常merge経路をaggregate validate成功、current origin、PR headへ拘束し保証限界を明示する。"
++acceptanceCriteria:
++  - open non-draft PR、base main、mergeable状態、current origin、aggregate validate成功を検証する
++  - validate missing pending failure cancelled timed-out neutral skipped duplicate wrong-workflow wrong-repositoryを拒否する
++  - merge時に検証したhead SHAをmatch-head-commitへ渡しsquashのみ使用する
++  - admin auto merge-commit rebase bypass optionを公開しない
++  - versioned text JSON preflight reportとschemaを提供する
++  - finishのchecks-success next actionを保護merge commandへ切り替える
++  - private Free planのbranch protection/ruleset 403とdirect/force/admin保証限界を文書化する
++  - AGENTS.md READMEに実際の強制レベルと必須commandを記載する
++  - safe fake-gh fixtureで拒否時にmerge subprocessが実行されないことを検証する
++  - repository visibility plan 外部費用は変更せずHuman Decisionへ送る
++approvedBy: repository-owner
++approvedAt: "2026-07-26T09:53:00+09:00"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml b/contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml
+new file mode 100644
+index 0000000..f7d9051
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml
+@@ -0,0 +1,68 @@
++id: SCWBS-DRAFT-MS133BT6
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS133BT6
++branchName: task/SCWBS-DRAFT-MS133BT6-issue-185-replacement-merge-preflight
++allowedPaths:
++  - src/core/merge-preflight.ts
++  - src/commands/merge.ts
++  - src/commands/finish.ts
++  - src/cli.ts
++  - tests/integration/merge.test.ts
++  - tests/integration/finish.test.ts
++  - docs/scwbs/schemas/merge-preflight.schema.json
++  - docs/scwbs/merge-protection.md
++  - README.md
++  - AGENTS.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - README.md
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - main向けopen PRだけを対象にaggregate validate成功をcurrent originとhead SHA付きで検証する
++  - validateがpending failure cancelled missingの場合はmerge実行をfail closedで拒否する
++  - merge実行は検証済みheadをmatch-head-commitで拘束しadmin bypassを提供しない
++  - private Free planではbranch protection direct push force push admin bypassをGitHub側強制できない限界を文書化する
++  - repository visibility plan 外部費用の変更を行わずHuman Decisionとして明示する
++  - AGENTS.md README finish経路を保護merge commandへ更新し安全なfixtureで拒否動作を検証する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS133BT6.yaml
++  - contracts/specs/SPEC-LITE-MS133BT6.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS133BT6.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS133BT6.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS133BT6.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS133BT6.yaml
++  - contracts/registry.yaml
++stopIf:
++  - GitHub plan repository visibility external service cost or permissions must change
++  - .github workflow or repository settings must change
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 1.0.0
++  specRevision: sha256:3bf2add3f42453b4608cb67d915f3ae08f2fc93cbf5f3cbc99cb693df81fb22b
++  createdAt: "2026-07-26T00:54:10.207Z"
+diff --git a/docs/scwbs/merge-protection.md b/docs/scwbs/merge-protection.md
+new file mode 100644
+index 0000000..26650e6
+--- /dev/null
++++ b/docs/scwbs/merge-protection.md
+@@ -0,0 +1,92 @@
++# main merge protection and enforcement boundary
++
++## Current repository state
++
++2026-07-26時点のGitHub API観測では、このrepositoryはprivateである。
++`main` branch protectionとrepository rulesetsの読取は、どちらも次の403を返す。
++
++```text
++Upgrade to GitHub Pro or make this repository public to enable this feature.
++```
++
++repository設定ではmerge commit、squash merge、rebase mergeの3方式が有効である。
++したがってGitHub側のrequired status check、direct push禁止、force push禁止、
++administrator bypass禁止は確認も強制もできない。
++
++この状態で「GitHubがmainを保護している」と表現してはいけない。現行の強制
++レベルはrepository-local commandによる通常経路のfail-closed検査である。
++
++## Normal protected path
++
++PRの状態だけを検証する。
++
++```bash
++npm run scwbs -- merge --pr <number> --preflight-only
++npm run scwbs -- merge --pr <number> --preflight-only --json
++```
++
++検証後にmergeする。
++
++```bash
++npm run scwbs -- merge --pr <number>
++```
++
++commandは次をすべて要求する。
++
++- PR番号が取得結果と一致する
++- 対象repositoryがcurrent checkoutのGitHub `origin`と一致する
++- PRがopenかつnon-draft
++- base branchが`main`
++- headが40桁のcommit SHA
++- merge stateが`CLEAN`
++- `scwbs` workflow由来のaggregate `validate` checkがちょうど1件
++- `validate` statusが`COMPLETED`かつconclusionが`SUCCESS`
++- `validate` details URLが同じrepositoryのGitHub Actions runを指す
++
++条件を満たした場合だけ、次と同等のsquash mergeを実行する。
++
++```bash
++gh pr merge <number> --squash --delete-branch \
++  --match-head-commit <verified-head-sha>
++```
++
++`--match-head-commit` によりpreflight後のhead差替えはmergeを失敗させる。
++commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
++`finish`もchecks成功後のnext actionとしてこのcommandを案内する。
++
++## Fail-closed cases
++
++次の場合はmerge subprocessを起動しない。
++
++- GitHub CLIが利用不能、未認証、または不正JSONを返す
++- PRがclosed、merged、draft、main以外、またはmerge state不明
++- `validate`がmissingまたは複数存在する
++- `validate`がpending、failure、cancelled、timed out、skipped、neutral
++- `validate`が`scwbs`以外のworkflowから来ている
++
++integration testはfake `gh` fixtureを使い、これらの拒否時に
++`gh pr merge` が呼ばれないことを検証する。意図的なfailing PRは作らない。
++
++## Enforcement and audit boundary
++
++| Path | Current enforcement | Audit evidence |
++|---|---|---|
++| `npm run scwbs -- merge` | aggregate `validate`とhead SHAへfail closed | versioned preflight report、GitHub PR `mergedBy`、Actions run |
++| direct `gh pr merge` / API merge | repository-localには強制なし | GitHub PR timeline。迂回防止ではない |
++| direct push / force push | GitHub plan上の保護を確認・強制できない | GitHub commit/event履歴。拒否保証ではない |
++| `--admin` / ruleset bypass | SC-WBS commandは提供しないがprivileged actorを阻止できない | 利用可能なGitHub audit/event記録 |
++
++この境界では完全なmain保護を保証しない。AIと人間は通常経路としてSC-WBS
++merge commandを使い、迂回を許可してはならない。
++
++## Human Decision
++
++次のいずれかはrepository ownerが明示決定する。AIは実行しない。
++
++1. GitHub Pro/Team等へ変更し、`main` rulesetで`validate`をrequiredにする
++2. 情報公開が許容される場合だけrepositoryをpublic化して保護を有効にする
++3. merge権限を専用bot/Appへ限定し、server-sideで同じpreflightを実施する
++4. privateの現状を維持し、本書のlocal enforcementと保証限界を受容する
++
++どの選択でも、direct/force push、administrator/bypass、required
++`validate`、audit retentionを明示的に再評価し、決定理由を記録する。
+diff --git a/docs/scwbs/schemas/merge-preflight.schema.json b/docs/scwbs/schemas/merge-preflight.schema.json
+new file mode 100644
+index 0000000..505d3a0
+--- /dev/null
++++ b/docs/scwbs/schemas/merge-preflight.schema.json
+@@ -0,0 +1,78 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/merge-preflight.schema.json",
++  "title": "SC-WBS merge preflight report",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "schemaVersion",
++    "status",
++    "repository",
++    "pullRequest",
++    "base",
++    "headCommit",
++    "mergeState",
++    "validate",
++    "violations",
++    "enforcement",
++    "execution"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "status": { "enum": ["pass", "blocked"] },
++    "repository": { "type": ["string", "null"] },
++    "pullRequest": { "type": "integer", "minimum": 1 },
++    "base": { "type": ["string", "null"] },
++    "headCommit": {
++      "oneOf": [
++        { "type": "string", "pattern": "^[a-f0-9]{40}$" },
++        { "type": "null" }
++      ]
++    },
++    "mergeState": { "type": ["string", "null"] },
++    "validate": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["status", "conclusion", "workflow", "url"],
++      "properties": {
++        "status": { "enum": ["success", "missing", "pending", "failure"] },
++        "conclusion": { "type": ["string", "null"] },
++        "workflow": { "type": ["string", "null"] },
++        "url": { "type": ["string", "null"] }
++      }
++    },
++    "violations": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string", "minLength": 1 },
++          "message": { "type": "string", "minLength": 1 }
++        }
++      }
++    },
++    "enforcement": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["mode", "githubBranchProtection", "headBinding", "adminBypass"],
++      "properties": {
++        "mode": { "const": "local-command" },
++        "githubBranchProtection": { "const": "not-enforced" },
++        "headBinding": { "const": "match-head-commit" },
++        "adminBypass": { "const": false }
++      }
++    },
++    "execution": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["requested", "executed", "command"],
++      "properties": {
++        "requested": { "type": "boolean" },
++        "executed": { "type": "boolean" },
++        "command": { "type": ["string", "null"] }
++      }
++    }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index b2c4c65..3fc1a7a 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -22,6 +22,7 @@ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+ import { runInit } from "./commands/init.js";
+ import { runLiteTask, runPromote } from "./commands/lite.js";
++import { runMerge } from "./commands/merge.js";
+ import { runMetricsGovernance } from "./commands/metrics.js";
+ import { runNext } from "./commands/next.js";
+ import { runPlan } from "./commands/plan.js";
+@@ -436,6 +437,25 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
++  program
++    .command("merge")
++    .description("Fail-closed merge path requiring aggregate validate success")
++    .requiredOption("--pr <number>", "pull request number")
++    .option("--preflight-only", "verify without merging")
++    .option("--json", "output a versioned JSON report")
++    .action((opts) => {
++      const pullRequest = Number(opts.pr);
++      if (!Number.isSafeInteger(pullRequest) || pullRequest <= 0) {
++        console.error("Invalid --pr; expected a positive integer");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runMerge(root, pullRequest, {
++        preflightOnly: opts.preflightOnly ?? false,
++        json: opts.json ?? false
++      });
++    });
++
+   program
+     .command("promote")
+     .description("Promote a lite task")
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 9cb32d7..50dfaed 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -257,7 +257,7 @@ function pullRequestNextAction(taskId: string, pullRequest: number | undefined,
+     case "checks-failure":
+       return { label: `Inspect failing checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest}` };
+     case "checks-success":
+-      return { label: `Merge pull request #${pullRequest}:`, command: `gh pr merge ${pullRequest} --squash --delete-branch` };
++      return { label: `Merge pull request #${pullRequest} through the validate preflight:`, command: `npm run scwbs -- merge --pr ${pullRequest}` };
+     case "closed":
+       return { label: `Reopen closed pull request #${pullRequest} or reconcile its recorded metadata:`, command: `gh pr reopen ${pullRequest}` };
+     case "merged":
+diff --git a/src/commands/merge.ts b/src/commands/merge.ts
+new file mode 100644
+index 0000000..43e13c6
+--- /dev/null
++++ b/src/commands/merge.ts
+@@ -0,0 +1,108 @@
++import { spawnSync } from "node:child_process";
++import {
++  evaluateMergePreflight,
++  unavailableMergeReport,
++  type MergePreflightReport,
++  type MergePullRequestView
++} from "../core/merge-preflight.js";
++
++const VIEW_FIELDS = "number,state,isDraft,baseRefName,headRefOid,mergeStateStatus,statusCheckRollup";
++
++function githubRepository(root: string): string | undefined {
++  const result = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
++  if (result.status !== 0) return undefined;
++  return result.stdout.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/)?.[1];
++}
++
++function emit(report: MergePreflightReport, json: boolean): void {
++  if (json) {
++    console.log(JSON.stringify(report));
++    return;
++  }
++  console.log(`${report.status === "pass" ? "PASS" : "BLOCKED"} merge preflight PR #${report.pullRequest}`);
++  console.log(`repository: ${report.repository ?? "unknown"}`);
++  console.log(`base: ${report.base ?? "unknown"}`);
++  console.log(`head: ${report.headCommit ?? "unknown"}`);
++  console.log(`mergeState: ${report.mergeState ?? "unknown"}`);
++  console.log(`validate: ${report.validate.status}`);
++  for (const violation of report.violations) console.log(`- ${violation.code}: ${violation.message}`);
++  if (report.execution.executed) console.log(`merged: PR #${report.pullRequest}`);
++}
++
++function readPullRequest(root: string, repository: string, pullRequest: number): {
++  view?: MergePullRequestView;
++  report?: MergePreflightReport;
++} {
++  const result = spawnSync(
++    "gh",
++    ["pr", "view", String(pullRequest), "--repo", repository, "--json", VIEW_FIELDS],
++    { cwd: root, encoding: "utf8" }
++  );
++  if (result.status !== 0) {
++    return {
++      report: unavailableMergeReport(
++        pullRequest,
++        (result.stderr || "gh pr view failed").trim(),
++        repository
++      )
++    };
++  }
++  try {
++    const value: unknown = JSON.parse(result.stdout);
++    if (typeof value !== "object" || value === null || Array.isArray(value)) {
++      throw new Error("expected an object");
++    }
++    return { view: value as MergePullRequestView };
++  } catch (error) {
++    return {
++      report: unavailableMergeReport(
++        pullRequest,
++        `gh pr view returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
++        repository
++      )
++    };
++  }
++}
++
++export function runMerge(root: string, pullRequest: number, options: {
++  preflightOnly?: boolean;
++  json?: boolean;
++} = {}): number {
++  const repository = githubRepository(root);
++  if (!repository) {
++    const report = unavailableMergeReport(pullRequest, "origin is not a GitHub repository");
++    report.execution.requested = options.preflightOnly !== true;
++    emit(report, options.json ?? false);
++    return 1;
++  }
++  const lookup = readPullRequest(root, repository, pullRequest);
++  const report = lookup.report ?? evaluateMergePreflight(pullRequest, lookup.view!, repository);
++  report.execution.requested = options.preflightOnly !== true;
++  if (report.status === "blocked") {
++    emit(report, options.json ?? false);
++    return 1;
++  }
++  if (options.preflightOnly) {
++    emit(report, options.json ?? false);
++    return 0;
++  }
++
++  const command = [
++    "gh", "pr", "merge", String(pullRequest), "--squash", "--delete-branch",
++    "--match-head-commit", report.headCommit!, "--repo", repository
++  ];
++  report.execution.command = command.join(" ");
++  const mergeResult = spawnSync(command[0]!, command.slice(1), { cwd: root, encoding: "utf8" });
++  if (mergeResult.status !== 0) {
++    report.status = "blocked";
++    report.violations.push({
++      code: "merge.command.failed",
++      message: (mergeResult.stderr || "gh pr merge failed").trim()
++    });
++    emit(report, options.json ?? false);
++    return 1;
++  }
++  report.execution.executed = true;
++  emit(report, options.json ?? false);
++  return 0;
++}
+diff --git a/src/core/merge-preflight.ts b/src/core/merge-preflight.ts
+new file mode 100644
+index 0000000..45ab9a7
+--- /dev/null
++++ b/src/core/merge-preflight.ts
+@@ -0,0 +1,169 @@
++export type MergeStatusCheck = {
++  name?: string;
++  status?: string;
++  conclusion?: string;
++  workflowName?: string;
++  detailsUrl?: string;
++};
++
++export type MergePullRequestView = {
++  number?: number;
++  state?: string;
++  isDraft?: boolean;
++  baseRefName?: string;
++  headRefOid?: string;
++  mergeStateStatus?: string;
++  statusCheckRollup?: MergeStatusCheck[];
++};
++
++export type MergePreflightViolation = {
++  code: string;
++  message: string;
++};
++
++export type MergePreflightReport = {
++  schemaVersion: "1.0.0";
++  status: "pass" | "blocked";
++  repository: string | null;
++  pullRequest: number;
++  base: string | null;
++  headCommit: string | null;
++  mergeState: string | null;
++  validate: {
++    status: "success" | "missing" | "pending" | "failure";
++    conclusion: string | null;
++    workflow: string | null;
++    url: string | null;
++  };
++  violations: MergePreflightViolation[];
++  enforcement: {
++    mode: "local-command";
++    githubBranchProtection: "not-enforced";
++    headBinding: "match-head-commit";
++    adminBypass: false;
++  };
++  execution: {
++    requested: boolean;
++    executed: boolean;
++    command: string | null;
++  };
++};
++
++const SHA = /^[a-f0-9]{40}$/;
++
++export function unavailableMergeReport(
++  pullRequest: number,
++  message: string,
++  repository: string | null = null
++): MergePreflightReport {
++  return {
++    schemaVersion: "1.0.0",
++    status: "blocked",
++    repository,
++    pullRequest,
++    base: null,
++    headCommit: null,
++    mergeState: null,
++    validate: { status: "missing", conclusion: null, workflow: null, url: null },
++    violations: [{ code: "merge.github.unavailable", message }],
++    enforcement: {
++      mode: "local-command",
++      githubBranchProtection: "not-enforced",
++      headBinding: "match-head-commit",
++      adminBypass: false
++    },
++    execution: { requested: false, executed: false, command: null }
++  };
++}
++
++export function evaluateMergePreflight(
++  pullRequest: number,
++  view: MergePullRequestView,
++  repository: string | null = null
++): MergePreflightReport {
++  const violations: MergePreflightViolation[] = [];
++  if (view.number !== pullRequest) {
++    violations.push({ code: "merge.pr.number", message: `Expected PR #${pullRequest}, received #${view.number ?? "unknown"}` });
++  }
++  if (view.state !== "OPEN") {
++    violations.push({ code: "merge.pr.state", message: `PR #${pullRequest} must be OPEN, received ${view.state ?? "unknown"}` });
++  }
++  if (view.isDraft !== false) {
++    violations.push({ code: "merge.pr.draft", message: `PR #${pullRequest} must not be a draft` });
++  }
++  if (view.baseRefName !== "main") {
++    violations.push({ code: "merge.pr.base", message: `PR #${pullRequest} must target main, received ${view.baseRefName ?? "unknown"}` });
++  }
++  if (!view.headRefOid || !SHA.test(view.headRefOid)) {
++    violations.push({ code: "merge.pr.head", message: `PR #${pullRequest} has no valid 40-character head commit` });
++  }
++  if (view.mergeStateStatus !== "CLEAN") {
++    violations.push({
++      code: "merge.pr.mergeable",
++      message: `PR #${pullRequest} merge state must be CLEAN, received ${view.mergeStateStatus ?? "unknown"}`
++    });
++  }
++
++  const validateChecks = (view.statusCheckRollup ?? []).filter((check) => check.name === "validate");
++  if (validateChecks.length !== 1) {
++    violations.push({
++      code: "merge.validate.count",
++      message: `PR #${pullRequest} requires exactly one aggregate validate check, received ${validateChecks.length}`
++    });
++  }
++  const validate = validateChecks[0];
++  let validateStatus: MergePreflightReport["validate"]["status"] = "missing";
++  if (validate) {
++    if (validate.workflowName !== "scwbs") {
++      violations.push({
++        code: "merge.validate.workflow",
++        message: `validate must come from the scwbs workflow, received ${validate.workflowName ?? "unknown"}`
++      });
++    }
++    if (repository && !validate.detailsUrl?.startsWith(`https://github.com/${repository}/actions/runs/`)) {
++      violations.push({
++        code: "merge.validate.repository",
++        message: `validate details URL is not an Actions run for ${repository}`
++      });
++    }
++    if (validate.status !== "COMPLETED") {
++      validateStatus = "pending";
++      violations.push({
++        code: "merge.validate.pending",
++        message: `aggregate validate is ${validate.status ?? "pending"}`
++      });
++    } else if (validate.conclusion !== "SUCCESS") {
++      validateStatus = "failure";
++      violations.push({
++        code: "merge.validate.conclusion",
++        message: `aggregate validate conclusion must be SUCCESS, received ${validate.conclusion ?? "unknown"}`
++      });
++    } else {
++      validateStatus = "success";
++    }
++  }
++
++  return {
++    schemaVersion: "1.0.0",
++    status: violations.length === 0 ? "pass" : "blocked",
++    repository,
++    pullRequest,
++    base: view.baseRefName ?? null,
++    headCommit: view.headRefOid ?? null,
++    mergeState: view.mergeStateStatus ?? null,
++    validate: {
++      status: validateStatus,
++      conclusion: validate?.conclusion ?? null,
++      workflow: validate?.workflowName ?? null,
++      url: validate?.detailsUrl ?? null
++    },
++    violations,
++    enforcement: {
++      mode: "local-command",
++      githubBranchProtection: "not-enforced",
++      headBinding: "match-head-commit",
++      adminBypass: false
++    },
++    execution: { requested: false, executed: false, command: null }
++  };
++}
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 996fac2..304fedc 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -355,7 +355,7 @@ describe("finish", () => {
+     ["draft", "gh pr ready 42"],
+     ["checks-pending", "gh pr checks 42 --watch"],
+     ["checks-failure", "gh pr checks 42"],
+-    ["checks-success", "gh pr merge 42 --squash --delete-branch"],
++    ["checks-success", "npm run scwbs -- merge --pr 42"],
+     ["closed", "gh pr reopen 42"],
+     ["merged", "git switch main && git pull --ff-only origin main"],
+     ["unavailable", "gh pr checks 42 --watch"]
+diff --git a/tests/integration/merge.test.ts b/tests/integration/merge.test.ts
+new file mode 100644
+index 0000000..1a9142b
+--- /dev/null
++++ b/tests/integration/merge.test.ts
+@@ -0,0 +1,222 @@
++import { chmodSync, readFileSync } from "node:fs";
++import { execFileSync } from "node:child_process";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test, vi } from "vitest";
++import { main } from "../../src/cli.js";
++import { evaluateMergePreflight, type MergePullRequestView } from "../../src/core/merge-preflight.js";
++import { makeTempRepo, writeText } from "../helpers.js";
++
++const HEAD = "a".repeat(40);
++
++function successfulView(overrides: Partial<MergePullRequestView> = {}): MergePullRequestView {
++  return {
++    number: 42,
++    state: "OPEN",
++    isDraft: false,
++    baseRefName: "main",
++    headRefOid: HEAD,
++    mergeStateStatus: "CLEAN",
++    statusCheckRollup: [{
++      name: "validate",
++      status: "COMPLETED",
++      conclusion: "SUCCESS",
++      workflowName: "scwbs",
++      detailsUrl: "https://github.com/xmeta/ACED/actions/runs/1/job/2"
++    }],
++    ...overrides
++  };
++}
++
++function installFakeGh(root: string): { restore: () => void; log: string } {
++  const bin = path.join(root, "bin");
++  const log = path.join(root, "gh.log");
++  const executable = path.join(bin, "gh");
++  writeText(root, "bin/gh", [
++    "#!/usr/bin/env node",
++    "const { appendFileSync } = require('node:fs');",
++    "appendFileSync(process.env.SCWBS_TEST_GH_LOG, `${process.argv.slice(2).join(' ')}\\n`);",
++    "if (process.argv[2] === 'pr' && process.argv[3] === 'view') {",
++    "  if (process.env.SCWBS_TEST_GH_VIEW_ERROR) { process.stderr.write('view unavailable'); process.exit(1); }",
++    "  process.stdout.write(process.env.SCWBS_TEST_GH_VIEW);",
++    "  process.exit(0);",
++    "}",
++    "if (process.argv[2] === 'pr' && process.argv[3] === 'merge' && process.env.SCWBS_TEST_GH_MERGE_ERROR) {",
++    "  process.stderr.write('merge rejected');",
++    "  process.exit(1);",
++    "}"
++  ].join("\n"));
++  chmodSync(executable, 0o755);
++  const previousPath = process.env.PATH;
++  const previousLog = process.env.SCWBS_TEST_GH_LOG;
++  process.env.PATH = `${bin}:${previousPath ?? ""}`;
++  process.env.SCWBS_TEST_GH_LOG = log;
++  execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++  return {
++    log,
++    restore: () => {
++      process.env.PATH = previousPath;
++      if (previousLog === undefined) delete process.env.SCWBS_TEST_GH_LOG;
++      else process.env.SCWBS_TEST_GH_LOG = previousLog;
++      delete process.env.SCWBS_TEST_GH_VIEW;
++      delete process.env.SCWBS_TEST_GH_VIEW_ERROR;
++      delete process.env.SCWBS_TEST_GH_MERGE_ERROR;
++    }
++  };
++}
++
++describe("merge preflight", () => {
++  test("requires the exact main PR state and aggregate scwbs validate success", () => {
++    expect(evaluateMergePreflight(42, successfulView(), "xmeta/ACED")).toMatchObject({
++      status: "pass",
++      repository: "xmeta/ACED",
++      headCommit: HEAD,
++      validate: { status: "success", workflow: "scwbs" },
++      enforcement: {
++        githubBranchProtection: "not-enforced",
++        headBinding: "match-head-commit",
++        adminBypass: false
++      }
++    });
++
++    for (const [view, code] of [
++      [successfulView({ state: "CLOSED" }), "merge.pr.state"],
++      [successfulView({ isDraft: true }), "merge.pr.draft"],
++      [successfulView({ baseRefName: "release" }), "merge.pr.base"],
++      [successfulView({ headRefOid: "short" }), "merge.pr.head"],
++      [successfulView({ mergeStateStatus: "DIRTY" }), "merge.pr.mergeable"],
++      [successfulView({ statusCheckRollup: [] }), "merge.validate.count"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "IN_PROGRESS", conclusion: "", workflowName: "scwbs"
++      }] }), "merge.validate.pending"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "COMPLETED", conclusion: "FAILURE", workflowName: "scwbs"
++      }] }), "merge.validate.conclusion"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "COMPLETED", conclusion: "CANCELLED", workflowName: "scwbs"
++      }] }), "merge.validate.conclusion"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "COMPLETED", conclusion: "SKIPPED", workflowName: "scwbs"
++      }] }), "merge.validate.conclusion"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "COMPLETED", conclusion: "NEUTRAL", workflowName: "scwbs"
++      }] }), "merge.validate.conclusion"],
++      [successfulView({ statusCheckRollup: [
++        { name: "validate", status: "COMPLETED", conclusion: "SUCCESS", workflowName: "scwbs" },
++        { name: "validate", status: "COMPLETED", conclusion: "SUCCESS", workflowName: "scwbs" }
++      ] }), "merge.validate.count"],
++      [successfulView({ statusCheckRollup: [{
++        name: "validate", status: "COMPLETED", conclusion: "SUCCESS", workflowName: "other"
++      }] }), "merge.validate.workflow"]
++    ] as Array<[MergePullRequestView, string]>) {
++      expect(evaluateMergePreflight(42, view, "xmeta/ACED").violations.map((item) => item.code)).toContain(code);
++    }
++  });
++
++  test("blocked preflight never invokes gh pr merge", () => {
++    const root = makeTempRepo();
++    const fake = installFakeGh(root);
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView({
++        statusCheckRollup: [{
++          name: "validate",
++          status: "COMPLETED",
++          conclusion: "TIMED_OUT",
++          workflowName: "scwbs"
++        }]
++      }));
++      expect(main(["merge", "--pr", "42", "--json"], root)).toBe(1);
++      expect(JSON.parse(output.join(""))).toMatchObject({
++        status: "blocked",
++        validate: { status: "failure", conclusion: "TIMED_OUT" },
++        execution: { requested: true, executed: false, command: null }
++      });
++      expect(readFileSync(fake.log, "utf8")).toContain("pr view 42 --repo xmeta/ACED");
++      expect(readFileSync(fake.log, "utf8")).not.toContain("pr merge");
++    } finally {
++      log.mockRestore();
++      fake.restore();
++    }
++  });
++
++  test("preflight-only emits schema-conformant JSON without merging", () => {
++    const root = makeTempRepo();
++    const fake = installFakeGh(root);
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView());
++      expect(main(["merge", "--pr", "42", "--preflight-only", "--json"], root)).toBe(0);
++      const report = JSON.parse(output.join(""));
++      const schema = JSON.parse(readFileSync(
++        path.join(process.cwd(), "docs/scwbs/schemas/merge-preflight.schema.json"),
++        "utf8"
++      ));
++      expect(new Ajv2020({ strict: false }).compile(schema)(report)).toBe(true);
++      expect(report).toMatchObject({
++        status: "pass",
++        execution: { requested: false, executed: false, command: null }
++      });
++      expect(readFileSync(fake.log, "utf8")).not.toContain("pr merge");
++    } finally {
++      log.mockRestore();
++      fake.restore();
++    }
++  });
++
++  test("merge binds execution to the verified head without an admin bypass", () => {
++    const root = makeTempRepo();
++    const fake = installFakeGh(root);
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView());
++      expect(main(["merge", "--pr", "42", "--json"], root)).toBe(0);
++      expect(JSON.parse(output.join(""))).toMatchObject({
++        status: "pass",
++        execution: {
++          requested: true,
++          executed: true,
++          command: `gh pr merge 42 --squash --delete-branch --match-head-commit ${HEAD} --repo xmeta/ACED`
++        }
++      });
++      const calls = readFileSync(fake.log, "utf8");
++      expect(calls).toContain(`pr merge 42 --squash --delete-branch --match-head-commit ${HEAD} --repo xmeta/ACED`);
++      expect(calls).not.toContain("--admin");
++      expect(calls).not.toContain("--auto");
++    } finally {
++      log.mockRestore();
++      fake.restore();
++    }
++  });
++
++  test("GitHub lookup and merge command failures remain blocked", () => {
++    const root = makeTempRepo();
++    const fake = installFakeGh(root);
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      process.env.SCWBS_TEST_GH_VIEW_ERROR = "1";
++      expect(main(["merge", "--pr", "42", "--json"], root)).toBe(1);
++      expect(JSON.parse(output.pop()!)).toMatchObject({
++        status: "blocked",
++        violations: [{ code: "merge.github.unavailable" }]
++      });
++
++      delete process.env.SCWBS_TEST_GH_VIEW_ERROR;
++      process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView());
++      process.env.SCWBS_TEST_GH_MERGE_ERROR = "1";
++      expect(main(["merge", "--pr", "42", "--json"], root)).toBe(1);
++      expect(JSON.parse(output.pop()!)).toMatchObject({
++        status: "blocked",
++        violations: [{ code: "merge.command.failed" }],
++        execution: { requested: true, executed: false }
++      });
++    } finally {
++      log.mockRestore();
++      fake.restore();
++    }
++  });
++});
