@@ -1,0 +1,241 @@
+diff --git a/contracts/specs/SPEC-LITE-MRM5UH9Z.yaml b/contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
+new file mode 100644
+index 0000000..e0f30d9
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MRM5UH9Z
++type: spec-contract
++featureId: F-MRM5UH9Z
++title: "Issue #211: finish後のEvidence subjectをmetadata commitから分離する"
++status: approved
++version: 0.1.0
++summary: "Evidence自身と許可されたpost-Evidence metadata commitをsubject headから除外し、finishを固定点へ収束させる"
++approvedBy: user-requested-issue-211
++approvedAt: "2026-07-15T23:00:00+09:00"
++acceptanceCriteria:
++  - 初回収集では現在HEADをEvidence subjectとして記録する
++  - 既存subjectから現在HEADまでがEvidence、Approval、Review、RegistryのみでdiffHashが同一なら既存subjectを保持する
++  - 実装ファイルの追加変更またはdiffHash変更時は現在HEADへsubjectを進める
++  - Evidence commit後の再収集でEvidence YAMLが変化せずworktreeがcleanになる
++  - required checks、diff guard、Human Gate、review scopeの既存挙動を退行させない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml b/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+new file mode 100644
+index 0000000..2e58537
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MRM5UH9Z
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRM5UH9Z
++branchName: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRM5UH9Z.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRM5UH9Z.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRM5UH9Z.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRM5UH9Z.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRM5UH9Z.yaml
++allowedPaths:
++  - src/commands/evidence-collect.ts
++  - tests/integration/evidence.test.ts
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package.json package-lock.json .github wjs の変更が必要
++  - Evidence schemaの破壊的変更が必要
++  - 'metadata-only commitの判定をIssue #211の範囲外へ拡張する必要'
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 実装差分を収集したfinish後にEvidenceをcommitしても、次のfinishが同じsubject headを保持する
++  - Evidence、Approval、Review、Registryだけのmetadata-only descendantではcommit、subjectHeadCommit、git.subjectHeadCommit、git.headCommitを更新しない
++  - 実装差分またはdiffHashが変わった場合は現在HEADを新しいsubjectとして収集する
++  - 2回連続のfinishとEvidence commitを模した回帰テストで2回目のEvidence YAMLが不変になる
++  - plainとJSONのmutatedFilesが非冪等更新の有無を正確に反映する既存finish契約を維持する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a722094ea94edc618a6cf98652be21a15e7bd0fad78c37903018c883f4e27d71
++  createdAt: "2026-07-15T14:14:02.856Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 0920bf7..2fb244c 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -153,3 +153,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRM5UH9Z
++    path: contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
++    branchName: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 94a8e1c..4c4ccaf 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -4,7 +4,7 @@ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+ import { readEvidence, readTask } from "../core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+-import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
++import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+@@ -60,6 +60,33 @@ function postEvidenceMetadataFiles(taskId: string): string[] {
+   ];
+ }
+ 
++function stableSubjectHead(
++  root: string,
++  currentHead: string | undefined,
++  diffHash: string,
++  existingEvidence: Evidence | undefined,
++  metadataFiles: string[]
++): string | undefined {
++  const previousHead = existingEvidence?.subjectHeadCommit
++    ?? existingEvidence?.git?.subjectHeadCommit
++    ?? existingEvidence?.git?.headCommit
++    ?? existingEvidence?.commit;
++  const previousDiffHash = existingEvidence?.diffHash ?? existingEvidence?.git?.diffHash;
++  if (
++    !currentHead
++    || !previousHead
++    || previousHead === currentHead
++    || previousDiffHash !== diffHash
++    || !isCommitAncestor(root, previousHead, currentHead)
++  ) {
++    return currentHead;
++  }
++  const allowedMetadata = new Set(metadataFiles);
++  return changedFilesBetween(root, previousHead, currentHead).every((file) => allowedMetadata.has(file))
++    ? previousHead
++    : currentHead;
++}
++
+ function commandForCheck(check: string): string[] {
+   return resolveCheckCommand(check);
+ }
+@@ -114,9 +141,11 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const baseRef = options.baseRef ?? "origin/main";
+   const head = headCommit(root);
+   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
+-  const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
++  const metadataFiles = postEvidenceMetadataFiles(taskId);
++  const diffHash = branchDiffHash(root, baseRef, metadataFiles);
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
+   const changedFiles = branchChangedFiles(root, baseRef);
++  const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
+   const branch = currentBranch(root);
+   if (
+     existingEvidence?.git?.changedFilesBasis === "branch-diff"
+@@ -164,8 +193,8 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     id: `EVD-${taskId}`,
+     type: "evidence",
+     taskId,
+-    ...(head ? { commit: head } : {}),
+-    ...(head ? { subjectHeadCommit: head } : {}),
++    ...(subjectHead ? { commit: subjectHead } : {}),
++    ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+     diffHash,
+     git: {
+       ...(branch ? { branch } : {}),
+@@ -173,9 +202,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       ...(baseCommit ? { baseCommit } : {}),
+       changedFilesBasis: "branch-diff",
+       ...(pullRequest ? { pullRequest } : {}),
+-      ...(head ? { subjectHeadCommit: head } : {}),
++      ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+       diffHash,
+-      ...(head ? { headCommit: head } : {})
++      ...(subjectHead ? { headCommit: subjectHead } : {})
+     },
+     changedFiles,
+     ...(submodules.length > 0 ? { submodules } : {}),
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 5dae6e7..9535b01 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -228,6 +228,56 @@ describe("evidence collect", () => {
+     expect(first.diffHash).toBe(second.diffHash);
+   });
+ 
++  test("evidence subject stays stable across post-evidence metadata commits", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++    const subjectHead = headCommit(root);
++    const first = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", first as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested" });
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved" });
++    writeText(root, "contracts/registry.yaml", `${readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")}# metadata checkpoint\n`);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "record evidence metadata"], { cwd: root, stdio: "ignore" });
++
++    const second = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(second).toMatchObject({
++      commit: subjectHead,
++      subjectHeadCommit: subjectHead,
++      git: { subjectHeadCommit: subjectHead, headCommit: subjectHead }
++    });
++    expect(second.diffHash).toBe(first.diffHash);
++    expect(second.changedFiles).toEqual(expect.arrayContaining([
++      "contracts/evidence/WBS-001-004.yaml",
++      "contracts/approvals/WBS-001-004.yaml",
++      "contracts/reviews/WBS-001-004.yaml",
++      "contracts/registry.yaml"
++    ]));
++
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", second as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "refresh evidence checkpoint"], { cwd: root, stdio: "ignore" });
++    const fixedPoint = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(fixedPoint).toEqual(second);
++
++    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "change implementation"], { cwd: root, stdio: "ignore" });
++    const third = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(third.subjectHeadCommit).toBe(headCommit(root));
++    expect(third.subjectHeadCommit).not.toBe(subjectHead);
++    expect(third.diffHash).not.toBe(first.diffHash);
++  }, 15000);
++
+   test("evidence collect records explicit pull request metadata", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
