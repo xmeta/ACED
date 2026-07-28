@@ -1,0 +1,518 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml b/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
+new file mode 100644
+index 0000000..55009c6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
+@@ -0,0 +1,38 @@
++id: SCWBS-DRAFT-MRB0ZML9
++type: task-contract
++wbsNodeId: node-ci-integration
++featureId: F-MRB0ZML9
++branchName: task/SCWBS-DRAFT-MRB0ZML9-add-json-output-to-check-doctor-and-finish-comma
++allowedPaths:
++  - src/commands/check.ts
++  - src/commands/doctor.ts
++  - src/commands/finish.ts
++  - src/cli.ts
++  - tests/integration/check.test.ts
++  - tests/integration/doctor.test.ts
++  - tests/integration/finish.test.ts
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRB0ZML9.yaml
++  - contracts/registry.yaml
++  - contracts/tasks/index.yaml
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Complete Add JSON output to check, doctor, and finish commands
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 32b8abd..cae1d49 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -45,3 +45,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRB0ZML9
++    path: contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
++    branchName: task/SCWBS-DRAFT-MRB0ZML9-add-json-output-to-check-doctor-and-finish-comma
++    wbsNodeId: node-ci-integration
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index 7cee7eb..c63f3df 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -79,7 +79,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   program
+     .command("check")
+     .description("Check repository contracts")
+-    .action(() => { exitCode = runCheck(root); });
++    .option("--json", "output as JSON")
++    .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
+ 
+   program
+     .command("fix")
+@@ -90,7 +91,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .command("doctor")
+     .description("Diagnose and optionally fix repository issues")
+     .option("--fix", "apply auto-fixes")
+-    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false }); });
++    .option("--json", "output as JSON")
++    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, json: opts.json ?? false }); });
+ 
+   program
+     .command("health")
+@@ -129,12 +131,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--base <ref>", "base reference")
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
++    .option("--json", "output as JSON")
+     .action((opts) => {
+       exitCode = runFinish(root, {
+         taskId: opts.task,
+         baseRef: opts.base,
+         pullRequest: opts.pr ?? opts.pullRequest,
+-        force: true
++        force: true,
++        json: opts.json ?? false
+       });
+     });
+ 
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 989c931..1b999f3 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -246,8 +246,19 @@ export function collectCheckIssues(root: string): Issue[] {
+   return issues;
+ }
+ 
+-export function runCheck(root: string): number {
++export type CheckOptions = {
++  json?: boolean;
++};
++
++export function runCheck(root: string, options: CheckOptions = {}): number {
+   const issues = collectCheckIssues(root);
++  if (options.json) {
++    console.log(JSON.stringify({
++      status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
++      issues
++    }, null, 2));
++    return hasErrors(issues) ? 1 : 0;
++  }
+   if (issues.length === 0) {
+     console.log("PASS scwbs check");
+     return 0;
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index 5a9bcc4..69df463 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -18,6 +18,7 @@ export type DoctorDiagnostic = {
+ 
+ export type DoctorOptions = {
+   fix?: boolean;
++  json?: boolean;
+ };
+ 
+ export type DoctorFixStep = {
+@@ -227,6 +228,22 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
+ 
+ export function runDoctor(root: string, options: DoctorOptions = {}): number {
+   try {
++    if (options.json) {
++      const diagnostics = collectEnvironmentDiagnostics(root);
++      const contractIssues = [
++        ...collectCheckIssues(root).map((issue) => ({ source: "check", issue })),
++        ...collectHealthIssues(root).map((issue) => ({ source: "health", issue }))
++      ];
++      const envHasFailure = diagnostics.some((d) => d.status === "fail");
++      const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
++      console.log(JSON.stringify({
++        status: envHasFailure || hasContractErrors ? "fail" : "pass",
++        diagnostics,
++        contractIssues,
++        fixResults: options.fix ? applyDoctorFixes(root, diagnostics) : undefined
++      }, null, 2));
++      return envHasFailure || hasContractErrors ? 1 : 0;
++    }
+     process.stdout.write(buildDoctorReport(root, options));
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 8ba83be..91e0645 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -22,7 +22,7 @@ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
+   return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
+ }
+ 
+-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean } = {}): number {
++export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+     console.error("Missing --task <task-id> and current branch does not contain a task id");
+@@ -42,8 +42,13 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     pullRequest: options.pullRequest
+   });
+   if (evidenceExit !== 0) return evidenceExit;
+-  console.log("PASS required checks");
+-  console.log("PASS evidence collected");
++  if (options.json) {
++    console.error("PASS required checks");
++    console.error("PASS evidence collected");
++  } else {
++    console.log("PASS required checks");
++    console.log("PASS evidence collected");
++  }
+ 
+   const { evidence } = readEvidence(root, taskId);
+   const failedChecks = evidence?.checks.filter((check) => check.status !== "passed") ?? [];
+@@ -55,16 +60,38 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     return 1;
+   }
+ 
+-  const diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
++  let checkDiffOutput = "";
++  let diffExit: number;
++  if (options.json) {
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => { output.push(String(message)); };
++    try {
++      diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true });
++    } finally {
++      console.log = originalLog;
++    }
++    checkDiffOutput = output.join("\n");
++  } else {
++    diffExit = runCheckDiff(root, taskId, { baseRef: options.baseRef });
++  }
+   if (diffExit !== 0) return diffExit;
+-  console.log("PASS diff guard");
++  if (options.json) {
++    console.error("PASS diff guard");
++  } else {
++    console.log("PASS diff guard");
++  }
+ 
+   const registryExit = runRegistryRebuild(root, { check: true, force: false });
+   if (registryExit !== 0) {
+     console.log("fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish");
+     return registryExit;
+   }
+-  console.log("PASS registry check");
++  if (options.json) {
++    console.error("PASS registry check");
++  } else {
++    console.log("PASS registry check");
++  }
+ 
+   const profile: Profile = readProfile(root);
+ 
+@@ -76,28 +103,65 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+   const approval = readApproval(root, taskId).approval;
+   const needsHumanGate = humanGateFiles.length > 0 && !hasApprovedHumanGateApproval(root, taskId);
+ 
+-  console.log(`Profile: ${profile}`);
+-
+-  if (needsHumanGate) {
+-    console.log("");
+-    console.log("Human approval required:");
+-    for (const file of humanGateFiles) {
+-      console.log(`  - ${file}`);
++  let nextAction = "";
++  if (options.json) {
++    console.error(`Profile: ${profile}`);
++    if (needsHumanGate) {
++      console.error("");
++      console.error("Human approval required:");
++      for (const file of humanGateFiles) {
++        console.error(`  - ${file}`);
++      }
+     }
+-    console.log("");
+-    console.log("Next action:");
+-    console.log("  Human reviewer must run:");
+-    console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+-  } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
+-    console.log("");
+-    console.log("Next action:");
+-    console.log("  Human reviewer must review and approve:");
+-    console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
++    nextAction = needsHumanGate || (approval?.status === "requested" && humanGateFiles.length === 0)
++      ? `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`
++      : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+   } else {
+-    console.log("");
+-    console.log("Next action:");
+-    console.log("  Open a pull request and merge:");
+-    console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
++    console.log(`Profile: ${profile}`);
++    if (needsHumanGate) {
++      console.log("");
++      console.log("Human approval required:");
++      for (const file of humanGateFiles) {
++        console.log(`  - ${file}`);
++      }
++      console.log("");
++      console.log("Next action:");
++      console.log("  Human reviewer must run:");
++      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
++      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
++    } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
++      console.log("");
++      console.log("Next action:");
++      console.log("  Human reviewer must review and approve:");
++      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
++      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
++    } else {
++      console.log("");
++      console.log("Next action:");
++      console.log("  Open a pull request and merge:");
++      console.log(`  gh pr create --base main --title "feat: ${taskId}" --body ""`);
++      nextAction = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
++    }
++  }
++
++  if (options.json) {
++    let checkDiffResult: { status?: string; issues?: unknown[] } = {};
++    try {
++      checkDiffResult = JSON.parse(checkDiffOutput || "{}");
++    } catch {
++      checkDiffResult = {};
++    }
++    console.log(JSON.stringify({
++      status: "pass",
++      taskId,
++      requiresHumanApproval: needsHumanGate,
++      changedFiles: evidence?.changedFiles ?? [],
++      violations: checkDiffResult.issues ?? [],
++      requiredChecks: evidence?.checks ?? [],
++      evidencePath: `contracts/evidence/${taskId}.yaml`,
++      approvalStatus: approval?.status ?? "",
++      nextAction
++    }, null, 2));
+   }
+ 
+   return 0;
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+new file mode 100644
+index 0000000..61e2c79
+--- /dev/null
++++ b/tests/integration/check.test.ts
+@@ -0,0 +1,43 @@
++import { describe, expect, test } from "vitest";
++import { runCheck } from "../../src/commands/check.js";
++import { makeTempRepo, sampleApproval, sampleEvidence, writeScwbsProject, writeYaml } from "../helpers.js";
++
++describe("check", () => {
++  test("check --json outputs pass status with empty issues for a healthy repo", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "approved", approvedBy: "Lead", approvedAt: "2026-06-27T10:00:00+09:00" }) as unknown as Record<string, unknown>);
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runCheck(root, { json: true })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", issues: [] });
++  });
++
++  test("check --json outputs fail status with issues for an unhealthy repo", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      runCheck(root, { json: true });
++    } finally {
++      console.log = originalLog;
++    }
++    const parsed = JSON.parse(output.join("\n"));
++    expect(parsed).toMatchObject({ status: expect.stringMatching(/fail|warn/), issues: expect.any(Array) });
++    expect(parsed.issues.length).toBeGreaterThan(0);
++  });
++});
+diff --git a/tests/integration/doctor.test.ts b/tests/integration/doctor.test.ts
+new file mode 100644
+index 0000000..e0eafa0
+--- /dev/null
++++ b/tests/integration/doctor.test.ts
+@@ -0,0 +1,72 @@
++import { mkdirSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { runDoctor } from "../../src/commands/doctor.js";
++import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
++
++describe("doctor", () => {
++  test("doctor --json outputs pass status for a healthy repo", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    mkdirSync(path.join(root, "node_modules"), { recursive: true });
++    writeText(root, "node_modules/.keep", "");
++    mkdirSync(path.join(root, "wjs/node_modules"), { recursive: true });
++    writeText(root, "wjs/node_modules/.keep", "");
++    mkdirSync(path.join(root, "wjs/node_modules/@esbuild"), { recursive: true });
++    writeText(root, "wjs/node_modules/@esbuild/.keep", "");
++    writeText(root, "wjs/schema/wbs-json.schema.json", "{}");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runDoctor(root, { json: true })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++
++    const parsed = JSON.parse(output.join("\n"));
++    expect(parsed).toMatchObject({
++      status: "pass",
++      diagnostics: expect.any(Array),
++      contractIssues: expect.any(Array)
++    });
++
++    for (const diagnostic of parsed.diagnostics) {
++      expect(diagnostic).toMatchObject({
++        id: expect.any(String),
++        label: expect.any(String),
++        status: expect.stringMatching(/pass|fail/),
++        message: expect.any(String),
++        fix: expect.any(String)
++      });
++    }
++  });
++
++  test("doctor --json outputs fail status for an unhealthy repo", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runDoctor(root, { json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++
++    const parsed = JSON.parse(output.join("\n"));
++    expect(parsed).toMatchObject({
++      status: "fail",
++      diagnostics: expect.any(Array),
++      contractIssues: expect.any(Array)
++    });
++    expect(parsed.diagnostics.some((d: { status: string }) => d.status === "fail")).toBe(true);
++  });
++});
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+new file mode 100644
+index 0000000..f76fa51
+--- /dev/null
++++ b/tests/integration/finish.test.ts
+@@ -0,0 +1,70 @@
++import { execFileSync } from "node:child_process";
++import { describe, expect, test } from "vitest";
++import { runFinish } from "../../src/commands/finish.js";
++import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
++
++describe("finish", () => {
++  test("finish --json outputs summary JSON with all required fields", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      branchName: "master",
++      allowedPaths: ["src/**", "contracts/**"],
++      humanGateRequiredPaths: [],
++      requiredChecks: ["test"]
++    }) as unknown as Record<string, unknown>);
++    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        {
++          id: "EVD-WBS-001-004",
++          type: "evidence",
++          path: "contracts/evidence/WBS-001-004.yaml",
++          relatedTask: "WBS-001-004"
++        },
++        {
++          id: "SPEC-F001-API",
++          type: "spec",
++          path: "contracts/specs/SPEC-F001-API.yaml",
++          status: "approved",
++          version: "1.0.0",
++          featureId: "F001"
++        },
++        {
++          id: "TASK-WBS-001-004",
++          type: "task",
++          path: "contracts/tasks/WBS-001-004.yaml",
++          featureId: "F001"
++        }
++      ]
++    });
++    writeText(root, "src/feature.ts", "export const value = 1;\n");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output[output.length - 1])).toMatchObject({
++      status: "pass",
++      taskId: "WBS-001-004",
++      requiresHumanApproval: expect.any(Boolean),
++      changedFiles: expect.any(Array),
++      violations: expect.any(Array),
++      requiredChecks: expect.any(Array),
++      evidencePath: expect.any(String),
++      approvalStatus: expect.any(String),
++      nextAction: expect.any(String)
++    });
++  }, 30000);
++});
