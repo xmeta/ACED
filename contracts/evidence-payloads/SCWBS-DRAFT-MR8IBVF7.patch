@@ -1,0 +1,209 @@
+diff --git a/contracts/changesets/start-MR8IBVF7.json b/contracts/changesets/start-MR8IBVF7.json
+new file mode 100644
+index 0000000..e01c160
+--- /dev/null
++++ b/contracts/changesets/start-MR8IBVF7.json
+@@ -0,0 +1,25 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-start-MR8IBVF7",
++  "author": "scwbs",
++  "reason": "Start lightweight SC-WBS flow for: Fix review-queue completion readiness to require ready WBS status",
++  "dryRun": true,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "addNode",
++      "node": {
++        "id": "node-fix-review-queue-completion-readiness-to-require",
++        "parentId": "node-project",
++        "code": "draft",
++        "name": "Fix review-queue completion readiness to require ready WBS status",
++        "type": "workPackage",
++        "status": "draft"
++      },
++      "position": {
++        "mode": "last"
++      }
++    }
++  ]
++}
+diff --git a/contracts/specs/SPEC-LITE-MR8IBVF7.yaml b/contracts/specs/SPEC-LITE-MR8IBVF7.yaml
+new file mode 100644
+index 0000000..a96d78c
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR8IBVF7.yaml
+@@ -0,0 +1,11 @@
++id: SPEC-LITE-MR8IBVF7
++type: spec-contract
++featureId: F-MR8IBVF7
++title: Fix review-queue completion readiness to require ready WBS status
++status: approved
++version: 0.1.0
++approvedBy: codex
++approvedAt: "2026-07-06T01:03:00.000Z"
++summary: Fix review-queue completion readiness to require ready WBS status
++acceptanceCriteria:
++  - review-queue completion readiness requires ready WBS status
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+new file mode 100644
+index 0000000..1072e21
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+@@ -0,0 +1,33 @@
++id: SCWBS-DRAFT-MR8IBVF7
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MR8IBVF7
++branchName: task/SCWBS-DRAFT-MR8IBVF7-fix-review-queue-completion-readiness-to-require
++allowedPaths:
++  - src/commands/review-queue.ts
++  - tests/scwbs.test.ts
++  - contracts/specs/SPEC-LITE-MR8IBVF7.yaml
++  - contracts/changesets/start-MR8IBVF7.json
++  - contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++  - contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - review-queue does not list completion candidates as ready when their WBS node is not ready.
++  - next no longer recommends human completion review for candidates that completion apply would reject because the node is planned or inProgress.
++  - The regression covers a reviewed candidate on a non-ready WBS node.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index 4837153..b56d71c 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -113,6 +113,10 @@ function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readW
+     });
+ }
+ 
++function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): string | undefined {
++  return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
++}
++
+ export function buildReviewQueue(root: string): string {
+   const wbs = readWbs(root);
+   const entries: ReviewQueueEntry[] = [];
+@@ -132,6 +136,7 @@ export function buildReviewQueue(root: string): string {
+     const reasons: string[] = [];
+     const warnings: string[] = [];
+     const completionBlockedBy = incompleteDependencies(node.id, wbs);
++    const readinessBlocker = nodeReadinessBlocker(node);
+     const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
+     const { evidence, issues } = readEvidence(root, task.id);
+     const { approval, issues: approvalIssues } = readApproval(root, task.id);
+@@ -145,7 +150,7 @@ export function buildReviewQueue(root: string): string {
+ 
+     if (hasEvidence && !isDoneNode(node)) {
+       reasons.push(
+-        completionBlockedBy.length === 0
++        !readinessBlocker && completionBlockedBy.length === 0
+           ? "evidence exists and the WBS node is ready for human review"
+           : "evidence exists and the WBS node is not completed"
+       );
+@@ -156,6 +161,10 @@ export function buildReviewQueue(root: string): string {
+         warnings.push(`dependsOn node ${blockedBy} is not completed`);
+       }
+     }
++    if (readinessBlocker) {
++      completionBlockedBy.push(readinessBlocker);
++      warnings.push(readinessBlocker);
++    }
+     if (!isNodeCompletionTask(task) && (taskCountByNode.get(node.id) ?? 0) > 1) {
+       completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
+     }
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index fd3da8a..f846478 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -851,7 +851,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+ 
+   test("next does not request a duplicate review when review metadata exists", () => {
+     const root = makeTempRepo();
+-    writeScwbsProject(root, "planned");
++    writeScwbsProject(root, "ready");
+     writeYaml(
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
+@@ -2163,7 +2163,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+ 
+   test("review queue lists tasks with evidence awaiting review", () => {
+     const root = makeTempRepo();
+-    writeScwbsProject(root, "planned");
++    writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+     const queue = buildReviewQueue(root);
+     expect(queue).toContain("Review Queue:");
+@@ -2173,6 +2173,38 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
+   });
+ 
++  test("review queue blocks completion review when the WBS node is not ready", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({
++        git: {
++          branch: "task/WBS-001-004-api-implementation",
++          base: "main",
++          headCommit: "abc1234",
++          pullRequest: "#42"
++        }
++      }) as unknown as Record<string, unknown>
++    );
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "requested",
++      reviewProfile: "independent-ai-review",
++      pullRequest: "#42",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++
++    const queue = buildReviewQueue(root);
++    expect(queue).toContain("completionBlockedBy: WBS node status is planned; completion requires ready");
++    expect(queue).toContain("- 0 candidates ready for completion review");
++    expect(queue).toContain("Ready for completion review:\n- None");
++    expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
++  });
++
+   test("review queue reports incomplete dependencies that block completion", () => {
+     const root = makeTempRepo();
+     const wbs = sampleWbs("ready");
+@@ -2341,7 +2373,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+ 
+   test("review queue asks for review request when PR metadata exists but review is missing", () => {
+     const root = makeTempRepo();
+-    writeScwbsProject(root, "planned");
++    writeScwbsProject(root, "ready");
+     writeYaml(
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
+@@ -2362,7 +2394,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+ 
+   test("review queue shows review status when review metadata exists", () => {
+     const root = makeTempRepo();
+-    writeScwbsProject(root, "planned");
++    writeScwbsProject(root, "ready");
+     writeYaml(
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
