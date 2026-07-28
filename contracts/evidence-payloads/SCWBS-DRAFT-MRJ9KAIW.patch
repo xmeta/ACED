@@ -1,0 +1,712 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+new file mode 100644
+index 0000000..4813005
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+@@ -0,0 +1,55 @@
++id: SCWBS-DRAFT-MRJ9KAIW
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ9KAIW
++branchName: task/SCWBS-DRAFT-MRJ9KAIW-issue-154-submodule-nested-evidence-pr-provenanc
++allowedPaths:
++  - src/commands/ai-packet.ts
++  - src/commands/check-diff.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/review-queue.ts
++  - src/core/submodule-provenance.ts
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - tests/integration/ai.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/review.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/evidence-human-gate-review.md
++  - docs/scwbs/task-contract.md
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Evidence records changed submodule path repository base and head commits and nested changed files.
++  - Nested submodule files are validated against Task allowedPaths forbiddenPaths and humanGateRequiredPaths.
++  - Task Contract can declare upstream repository dependent pull request and submodule checks for Evidence collection.
++  - check-diff fails when a changed submodule head is not reachable from a configured upstream remote ref.
++  - Packet and review queue display dependent pull request merge order and reachability.
++  - Integration tests cover collection nested path enforcement reachability and queue output.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T13:35:36.747Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 6a5c5f4..78f7087 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -99,3 +99,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ9KAIW
++    path: contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
++    branchName: task/SCWBS-DRAFT-MRJ9KAIW-issue-154-submodule-nested-evidence-pr-provenanc
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 7682f99..4e28385 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -108,6 +108,8 @@ When `finish` requires Human Approval, its text output and JSON `nextAction` use
+ 
+ After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+ 
++For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
++
+ When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+ 
+ `completion apply` completes reviewed WBS nodes without hand-written YAML. By default it is a dry-run that prints the approvals and `changeNodeStatus` operations it would write. With `--apply`, it writes missing approved records, writes `contracts/changesets/<completion-task-id>-complete-reviewed-work.json`, applies the WBS changeset, and rebuilds the registry. It refuses root-node completion by default; use `--allow-root` only after explicit human decision.
+diff --git a/docs/scwbs/evidence-human-gate-review.md b/docs/scwbs/evidence-human-gate-review.md
+index 2d05e12..0620f05 100644
+--- a/docs/scwbs/evidence-human-gate-review.md
++++ b/docs/scwbs/evidence-human-gate-review.md
+@@ -28,6 +28,19 @@ git:
+   pullRequest: "#42"
+ changedFiles:
+   - src/features/staff-search/api.ts
++submodules:
++  - path: vendor/dependency
++    repository: example/dependency
++    baseCommit: 1111111111111111111111111111111111111111
++    headCommit: 2222222222222222222222222222222222222222
++    changedFiles:
++      - src/feature.ts
++    pullRequest: "#42"
++    upstreamRef: refs/remotes/origin/main
++    upstreamReachable: true
++    checks:
++      - name: upstream-ci
++        status: passed
+ checks:
+   - name: test
+     status: passed
+@@ -50,6 +63,8 @@ Evidenceは自己申告だけで完結させない。可能な限り、CIログ
+ 
+ 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
+ 
++branch diffにsubmodule gitlink変更がある場合、`evidence collect` はold/new commit、nested changed files、repository、merge target refへのhead到達可否を `submodules` に収集する。Task Contractの `submoduleDependencies` に依存PR、`upstreamRef`、submodule側checkを記録しておくと、それらもEvidenceへ関連付けられる。nested diffを収集できない場合は空差分として扱わず収集を失敗させる。`check-diff` はnested pathの契約違反、merge targetへ未到達のhead、未通過checkをerrorにする。依存PRを先にmergeし、そのheadが指定したmerge target refのancestorになってからparent PRをmergeする。
++
+ PR作成後は `--pull-request "#42"` を付けてEvidenceを再収集し、`git.pullRequest` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `git.pullRequest` は保持される。
+ 
+ テスト差分を含む場合は、`--test-assertions-added true|false`、`--tests-disabled true|false`、`--coverage-decreased true|false`、`--test-quality-note <text>` で `testQuality` を記録する。既存Evidenceを `--force` で再収集する場合、明示的な置換値がなければ既存の `testQuality` は保持される。
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index b41e9b9..2388cdf 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -48,6 +48,15 @@ requiredChecks:
+   - test
+   - typecheck
+   - lint
++submoduleDependencies:
++  - path: vendor/dependency
++    repository: example/dependency
++    pullRequest: "#42"
++    upstreamRef: refs/remotes/origin/main
++    checks:
++      - name: upstream-ci
++        status: passed
++        url: https://example.com/dependency/actions/runs/123
+ doneCriteria:
+   - Spec Contractを満たしている
+   - 正常系と異常系のテストが通る
+@@ -80,6 +89,8 @@ npm run scwbs -- task lock --task WBS-001-004
+ `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+ `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+ 
++submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
++
+ ## Required check coverage
+ 
+ リポジトリ固有のpath-to-check規則は `contracts/check-coverage.yaml` に置く。
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 082fd4d..0a3dce4 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -1,5 +1,5 @@
+ import { existsSync } from "node:fs";
+-import { readTask } from "../core/contracts.js";
++import { readEvidence, readTask } from "../core/contracts.js";
+ import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.js";
+ import { readProfile } from "./profile.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+@@ -7,6 +7,28 @@ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/type
+ import type { TaskContract } from "../core/types.js";
+ import { checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+ 
++function submodulePacket(root: string, task: TaskContract): string {
++  const evidence = readEvidence(root, task.id).evidence;
++  const entries = evidence?.submodules ?? (task.submoduleDependencies ?? []).map((item) => ({
++    ...item,
++    baseCommit: "pending collection",
++    headCommit: "pending collection",
++    changedFiles: [],
++    upstreamRef: item.upstreamRef ?? "refs/remotes/origin/HEAD",
++    upstreamReachable: false
++  }));
++  if (entries.length === 0) return "## Submodule Dependencies\n- None";
++  return `## Submodule Dependencies\n${entries.map((item) => [
++    `- ${item.path} | ${item.repository}`,
++    `  dependentPullRequest: ${item.pullRequest ?? "not recorded"}`,
++    `  mergeOrder: ${item.pullRequest ? `${item.pullRequest} before parent PR` : "record upstream PR before parent merge"}`,
++    `  upstreamReachable: ${item.upstreamReachable}`,
++    `  upstreamRef: ${item.upstreamRef}`,
++    `  commits: ${item.baseCommit} -> ${item.headCommit}`,
++    ...((item.checks ?? []).map((check) => `  check: ${check.name} = ${check.status}`))
++  ].join("\n")).join("\n")}`;
++}
++
+ function checkCoveragePacket(root: string, task: TaskContract): string {
+   const { policy, issues } = readCheckCoveragePolicy(root);
+   if (issues.length > 0) return `## Check Coverage\n- Policy error: ${issues.map((issue) => issue.message).join("; ")}`;
+@@ -100,6 +122,8 @@ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+ 
+ ${checkCoveragePacket(root, task)}
+ 
++${submodulePacket(root, task)}
++
+ ## Context Filter
+ - Profile: ${profile}
+ - Active artifact directories: ${artifactDirs.join(", ")}
+@@ -176,6 +200,7 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ ## Required Checks
+ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+ ${checkCoveragePacket(root, task)}
++${submodulePacket(root, task)}
+ ${formatHint}
+ 
+ ## Depends On
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index a9fd610..327ecc5 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -33,8 +33,24 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
+ 
+ export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+   const issues: Issue[] = [];
+-  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files, root);
+-  for (const issue of collectWbsChangesetGateIssues(files)) {
++  const evidence = readEvidence(root, task.id).evidence;
++  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
++  const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
++  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
++  for (const dependency of task.submoduleDependencies ?? []) {
++    if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
++      issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
++    }
++  }
++  for (const submodule of evidence?.submodules ?? []) {
++    if (!submodule.upstreamReachable) {
++      issues.push({ severity: "error", code: "diff.submodule.upstreamReachable", message: `${submodule.path} head ${submodule.headCommit} is not reachable from upstream target ${submodule.upstreamRef}` });
++    }
++    for (const check of submodule.checks ?? []) {
++      if (check.status !== "passed") issues.push({ severity: "error", code: "diff.submodule.check", message: `${submodule.path} check ${check.name} is ${check.status}` });
++    }
++  }
++  for (const issue of collectWbsChangesetGateIssues(effectiveFiles)) {
+     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
+   }
+   const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
+@@ -45,7 +61,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+       message: `${changeSet}: ${issue.message}`
+     })));
+   }
+-  for (const file of files) {
++  for (const file of effectiveFiles) {
+     const managed = isManagedContractPath(task, file);
+     if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
+       issues.push({
+@@ -79,7 +95,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     code: "diff.humanGate",
+     message: `${issue.message} (${issue.code})`
+   })));
+-  issues.push(...collectCheckCoverageIssues(root, task, files).map((issue) => ({
++  issues.push(...collectCheckCoverageIssues(root, task, effectiveFiles).map((issue) => ({
+     ...issue,
+     code: `diff.${issue.code}`
+   })));
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 988aa85..2c3d948 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -8,6 +8,7 @@ import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBas
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
++import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ 
+ const maxCheckOutputSummaryLength = 1000;
+ 
+@@ -85,6 +86,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     );
+     return !options.rerunChecks && cacheSubject?.reusable && reusable ? reusable : runCheck(root, check, cacheKey);
+   });
++  const submodules = collectSubmoduleProvenance(root, baseRef, task);
+   return {
+     id: `EVD-${taskId}`,
+     type: "evidence",
+@@ -103,6 +105,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       ...(head ? { headCommit: head } : {})
+     },
+     changedFiles: branchChangedFiles(root, baseRef),
++    ...(submodules.length > 0 ? { submodules } : {}),
+     checks,
+     ...(testQuality ? { testQuality } : {})
+   };
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index dfc782d..dda22c5 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -134,6 +134,14 @@ export function buildReviewQueue(root: string): string {
+     const hasApproval = Boolean(approval) && !missingApprovalOnly;
+     const hasReview = Boolean(review) && !missingReviewOnly;
+ 
++    for (const submodule of evidence?.submodules ?? []) {
++      warnings.push(`submodule ${submodule.path}: ${submodule.baseCommit} -> ${submodule.headCommit}; merge dependent PR ${submodule.pullRequest ?? "not recorded"} before parent PR; upstream target ${submodule.upstreamRef}`);
++      if (!submodule.upstreamReachable) completionBlockedBy.push(`submodule ${submodule.path} head is not upstream-reachable`);
++      for (const check of submodule.checks ?? []) {
++        if (check.status !== "passed") completionBlockedBy.push(`submodule ${submodule.path} check ${check.name} is ${check.status}`);
++      }
++    }
++
+     if (hasEvidence && !isDoneNode(node)) {
+       reasons.push(
+         !readinessBlocker && completionBlockedBy.length === 0
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index e3739b5..cac6d00 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -79,6 +79,33 @@ const taskContractSchema = {
+         }
+       }
+     },
++    submoduleDependencies: {
++      type: "array",
++      items: {
++        type: "object",
++        required: ["path"],
++        additionalProperties: true,
++        properties: {
++          path: { type: "string", minLength: 1 },
++          repository: { type: "string", minLength: 1 },
++          pullRequest: { type: "string", minLength: 1 },
++          upstreamRef: { type: "string", minLength: 1 },
++          checks: {
++            type: "array",
++            items: {
++              type: "object",
++              required: ["name", "status"],
++              additionalProperties: true,
++              properties: {
++                name: { type: "string", minLength: 1 },
++                status: { type: "string", minLength: 1 },
++                url: { type: "string", minLength: 1 }
++              }
++            }
++          }
++        }
++      }
++    },
+     doneCriteria: stringArraySchema,
+     evidenceRequired: stringArraySchema,
+     contractLock: {
+@@ -266,6 +293,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+       });
+     }
+   }
++  if (value.submoduleDependencies !== undefined && !Array.isArray(value.submoduleDependencies)) {
++    issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
++  }
+   if (value.contractLock !== undefined) {
+     if (!isObject(value.contractLock)) {
+       issues.push(issue("task.contractLock", `${filePath}.contractLock must be an object when present`));
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 04fe2b8..f4b7f5a 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -15,6 +15,37 @@ const evidenceSchema = {
+     evidenceCommit: { type: "string" },
+     diffHash: { type: "string" },
+     changedFiles: stringArraySchema,
++    submodules: {
++      type: "array",
++      items: {
++        type: "object",
++        required: ["path", "repository", "baseCommit", "headCommit", "changedFiles", "upstreamRef", "upstreamReachable"],
++        additionalProperties: true,
++        properties: {
++          path: { type: "string", minLength: 1 },
++          repository: { type: "string", minLength: 1 },
++          baseCommit: { type: "string", minLength: 1 },
++          headCommit: { type: "string", minLength: 1 },
++          changedFiles: stringArraySchema,
++          pullRequest: { type: "string", minLength: 1 },
++          upstreamRef: { type: "string", minLength: 1 },
++          upstreamReachable: { type: "boolean" },
++          checks: {
++            type: "array",
++            items: {
++              type: "object",
++              required: ["name", "status"],
++              additionalProperties: true,
++              properties: {
++                name: { type: "string", minLength: 1 },
++                status: { type: "string", minLength: 1 },
++                url: { type: "string", minLength: 1 }
++              }
++            }
++          }
++        }
++      }
++    },
+     git: {
+       type: "object",
+       additionalProperties: true,
+@@ -190,6 +221,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+   if (!isStringArray(value.changedFiles)) {
+     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+   }
++  if (value.submodules !== undefined && !Array.isArray(value.submodules)) {
++    issues.push(issue("evidence.submodules", `${filePath}.submodules must be an array when present`));
++  }
+   if (value.git !== undefined) {
+     if (!isObject(value.git)) {
+       issues.push(issue("evidence.git", `${filePath}.git must be an object when present`));
+diff --git a/src/core/submodule-provenance.ts b/src/core/submodule-provenance.ts
+new file mode 100644
+index 0000000..b5550eb
+--- /dev/null
++++ b/src/core/submodule-provenance.ts
+@@ -0,0 +1,74 @@
++import { spawnSync } from "node:child_process";
++import type { Evidence, TaskContract } from "./types.js";
++import { mergeBase, resolveCommit } from "./git.js";
++
++const zeroCommit = "0".repeat(40);
++
++function git(root: string, args: string[]): string | undefined {
++  const result = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding: "utf8" });
++  return result.status === 0 ? result.stdout.trim() : undefined;
++}
++
++function repositoryFor(root: string, submodulePath: string): string {
++  const paths = git(root, ["config", "-f", ".gitmodules", "--get-regexp", "^submodule\\..*\\.path$"]) ?? "";
++  const key = paths.split(/\r?\n/).find((line) => line.endsWith(` ${submodulePath}`))?.split(/\s+/, 1)[0];
++  const name = key?.slice("submodule.".length, -".path".length);
++  return (name ? git(root, ["config", "-f", ".gitmodules", "--get", `submodule.${name}.url`]) : undefined) ?? "unknown";
++}
++
++function submoduleGit(root: string, submodulePath: string, args: string[]): string | undefined {
++  return git(root, ["-C", submodulePath, ...args])
++    ?? git(root, [`--git-dir=.git/modules/${submodulePath}`, ...args]);
++}
++
++function nestedChangedFiles(root: string, submodulePath: string, baseCommit: string, headCommit: string): string[] {
++  const args = baseCommit === zeroCommit
++    ? ["ls-tree", "-r", "--name-only", headCommit]
++    : headCommit === zeroCommit
++      ? ["ls-tree", "-r", "--name-only", baseCommit]
++      : ["diff", "--name-only", `${baseCommit}..${headCommit}`];
++  const output = submoduleGit(root, submodulePath, args);
++  if (output === undefined) throw new Error(`Unable to collect nested changed files for submodule ${submodulePath} (${baseCommit} -> ${headCommit}); initialize the submodule and fetch both commits`);
++  return output.split(/\r?\n/).filter(Boolean);
++}
++
++function upstreamTarget(root: string, submodulePath: string, configured?: string): string {
++  if (configured) return configured;
++  for (const candidate of ["refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/remotes/origin/master"]) {
++    if (submoduleGit(root, submodulePath, ["rev-parse", "--verify", candidate]) !== undefined) return candidate;
++  }
++  return "refs/remotes/origin/HEAD";
++}
++
++function reachableFromUpstreamTarget(root: string, submodulePath: string, headCommit: string, upstreamRef: string): boolean {
++  if (headCommit === zeroCommit) return true;
++  const result = spawnSync("git", ["-C", submodulePath, "merge-base", "--is-ancestor", headCommit, upstreamRef], { cwd: root, encoding: "utf8" });
++  return result.status === 0;
++}
++
++export function collectSubmoduleProvenance(root: string, baseRef: string, task: TaskContract): NonNullable<Evidence["submodules"]> {
++  const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
++  if (!baseCommit) return [];
++  const raw = git(root, ["diff", "--raw", "--no-abbrev", `${baseCommit}..HEAD`]) ?? "";
++  const configs = new Map((task.submoduleDependencies ?? []).map((item) => [item.path, item]));
++  return raw.split(/\r?\n/).flatMap((line) => {
++    const match = /^:([0-7]{6}) ([0-7]{6}) ([0-9a-f]{40}) ([0-9a-f]{40}) [A-Z][0-9]*\t(.+)$/.exec(line);
++    if (!match || (match[1] !== "160000" && match[2] !== "160000")) return [];
++    const submodulePath = match[5]!;
++    const config = configs.get(submodulePath);
++    const oldCommit = match[3]!;
++    const newCommit = match[4]!;
++    const upstreamRef = upstreamTarget(root, submodulePath, config?.upstreamRef);
++    return [{
++      path: submodulePath,
++      repository: config?.repository ?? repositoryFor(root, submodulePath),
++      baseCommit: oldCommit,
++      headCommit: newCommit,
++      changedFiles: nestedChangedFiles(root, submodulePath, oldCommit, newCommit),
++      ...(config?.pullRequest ? { pullRequest: config.pullRequest } : {}),
++      upstreamRef,
++      upstreamReachable: reachableFromUpstreamTarget(root, submodulePath, newCommit, upstreamRef),
++      ...(config?.checks ? { checks: config.checks } : {})
++    }];
++  });
++}
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 93c75e7..afaea43 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -89,6 +89,17 @@ export type TaskContract = {
+   stopIf?: string[];
+   requiredChecks: string[];
+   checkCoverageWaivers?: Array<{ check: string; reason: string }>;
++  submoduleDependencies?: Array<{
++    path: string;
++    repository?: string;
++    pullRequest?: string;
++    upstreamRef?: string;
++    checks?: Array<{
++      name: string;
++      status: string;
++      url?: string;
++    }>;
++  }>;
+   doneCriteria: string[];
+   evidenceRequired: string[];
+   /**
+@@ -128,6 +139,21 @@ export type Evidence = {
+     pullRequest?: string;
+   };
+   changedFiles: string[];
++  submodules?: Array<{
++    path: string;
++    repository: string;
++    baseCommit: string;
++    headCommit: string;
++    changedFiles: string[];
++    pullRequest?: string;
++    upstreamRef: string;
++    upstreamReachable: boolean;
++    checks?: Array<{
++      name: string;
++      status: string;
++      url?: string;
++    }>;
++  }>;
+   checks: Array<{
+     name: string;
+     status: EvidenceCheckStatus;
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index f186495..cff1b17 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -21,6 +21,18 @@ describe("AI commands", () => {
+     expect(packet).toContain("Human Gate対象変更はLevel 0またはLevel 1に見えても停止する");
+   });
+ 
++  test("ai packet shows submodule dependent PR merge order", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency", pullRequest: "#4" }]
++    }) as unknown as Record<string, unknown>);
++    const packet = buildAiPacket(root, "WBS-001-004");
++    expect(packet).toContain("## Submodule Dependencies");
++    expect(packet).toContain("dependentPullRequest: #4");
++    expect(packet).toContain("mergeOrder: #4 before parent PR");
++  });
++
+   test("ai packet reports a direct subtree phase on the target node", () => {
+     const root = makeTempRepo();
+     const wbs = sampleWbs("planned");
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index bd95bc7..2048187 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -14,6 +14,49 @@ describe("check-diff", () => {
+     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
+   });
+ 
++  test("check-diff validates nested submodule paths and upstream provenance", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const task = sampleTask({
++      allowedPaths: ["vendor/dependency", "vendor/dependency/secret.txt", "vendor/dependency/security/**"],
++      forbiddenPaths: ["vendor/dependency/secret.txt"],
++      humanGateRequiredPaths: ["vendor/dependency/security/**"],
++      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency", pullRequest: "#4" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      changedFiles: ["vendor/dependency"],
++      submodules: [{
++        path: "vendor/dependency",
++        repository: "example/dependency",
++        baseCommit: "a".repeat(40),
++        headCommit: "b".repeat(40),
++        changedFiles: ["secret.txt", "security/key.txt", "outside.txt"],
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        upstreamReachable: false,
++        checks: [{ name: "upstream-ci", status: "failed" }]
++      }]
++    }) as unknown as Record<string, unknown>);
++
++    const issues = collectDiffIssues(root, task, ["vendor/dependency"]);
++    expect(issues.some((issue) => issue.code === "diff.forbiddenPaths" && issue.message.includes("vendor/dependency/secret.txt"))).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.allowedPaths" && issue.message.includes("vendor/dependency/outside.txt"))).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("vendor/dependency/security/key.txt"))).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamReachable")).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.submodule.check")).toBe(true);
++  });
++
++  test("check-diff requires nested Evidence for configured changed gitlinks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const task = sampleTask({
++      allowedPaths: ["vendor/dependency"],
++      submoduleDependencies: [{ path: "vendor/dependency", repository: "example/dependency" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["vendor/dependency"] }) as unknown as Record<string, unknown>);
++    expect(collectDiffIssues(root, task, ["vendor/dependency"]).some((issue) => issue.code === "diff.submodule.evidence.missing")).toBe(true);
++  });
++
+   test("check-diff enforces broad path policies with multiple required checks", () => {
+     const root = makeTempRepo();
+     writeYaml(root, "contracts/check-coverage.yaml", {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 070a00e..79e5855 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -1,5 +1,5 @@
+ import { execFileSync } from "node:child_process";
+-import { existsSync, readFileSync } from "node:fs";
++import { existsSync, readFileSync, rmSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+@@ -268,6 +268,64 @@ describe("evidence collect", () => {
+     expect(existsSync(marker)).toBe(true);
+   }, 60000);
+ 
++  test("evidence collect records nested submodule provenance and dependent PR metadata", () => {
++    const root = makeTempRepo();
++    const upstream = makeTempRepo();
++    writeText(upstream, "version.txt", "one\n");
++    execFileSync("git", ["add", "."], { cwd: upstream, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "submodule base"], { cwd: upstream, stdio: "ignore" });
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      requiredChecks: [],
++      allowedPaths: ["vendor/dependency", "vendor/dependency/version.txt"],
++      submoduleDependencies: [{
++        path: "vendor/dependency",
++        repository: upstream,
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/master",
++        checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
++      }]
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", upstream, "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    execFileSync("git", ["checkout", "-b", "feature"], { cwd: upstream, stdio: "ignore" });
++    writeText(upstream, "version.txt", "two\n");
++    execFileSync("git", ["add", "."], { cwd: upstream, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "submodule update"], { cwd: upstream, stdio: "ignore" });
++    execFileSync("git", ["fetch", "origin"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["checkout", "origin/feature"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "update gitlink"], { cwd: root, stdio: "ignore" });
++
++    const featureEvidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(featureEvidence.submodules?.[0]?.upstreamReachable).toBe(false);
++
++    execFileSync("git", ["checkout", "master"], { cwd: upstream, stdio: "ignore" });
++    execFileSync("git", ["merge", "--ff-only", "feature"], { cwd: upstream, stdio: "ignore" });
++    execFileSync("git", ["fetch", "origin", "master"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(evidence.changedFiles).toContain("vendor/dependency");
++    expect(evidence.submodules).toHaveLength(1);
++    expect(evidence.submodules?.[0]).toMatchObject({
++      path: "vendor/dependency",
++      repository: upstream,
++      changedFiles: ["version.txt"],
++      pullRequest: "#4",
++      upstreamRef: "refs/remotes/origin/master",
++      upstreamReachable: true,
++      checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
++    });
++    expect(evidence.submodules?.[0]?.baseCommit).toMatch(/^[0-9a-f]{40}$/);
++    expect(evidence.submodules?.[0]?.headCommit).toMatch(/^[0-9a-f]{40}$/);
++
++    execFileSync("git", ["submodule", "deinit", "-f", "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    rmSync(path.join(root, ".git/modules/vendor/dependency"), { recursive: true, force: true });
++    expect(() => buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" })).toThrow("Unable to collect nested changed files");
++  }, 60000);
++
+   test("a failed collection reuses passed checks and reruns failed checks", () => {
+     const root = makeTempRepo();
+     const passedMarker = path.join(path.dirname(root), `${path.basename(root)}-passed-count`);
+diff --git a/tests/integration/review.test.ts b/tests/integration/review.test.ts
+index d289ab2..56531a1 100644
+--- a/tests/integration/review.test.ts
++++ b/tests/integration/review.test.ts
+@@ -69,6 +69,27 @@ describe("review queue + review request", () => {
+     expect(queue).toContain("suggestedAction: create or record PR, then human review for completion");
+   });
+ 
++  test("review queue shows submodule merge order and blocks unreachable heads", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      submodules: [{
++        path: "vendor/dependency",
++        repository: "example/dependency",
++        baseCommit: "a".repeat(40),
++        headCommit: "b".repeat(40),
++        changedFiles: ["version.txt"],
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        upstreamReachable: false,
++        checks: [{ name: "upstream-ci", status: "passed" }]
++      }]
++    }) as unknown as Record<string, unknown>);
++    const queue = buildReviewQueue(root);
++    expect(queue).toContain("merge dependent PR #4 before parent PR");
++    expect(queue).toContain("completionBlockedBy: submodule vendor/dependency head is not upstream-reachable");
++  });
++
+   test("review queue blocks completion review when the WBS node is not ready", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
