@@ -1,0 +1,628 @@
+diff --git a/contracts/specs/SPEC-LITE-MRMAZ5CU.yaml b/contracts/specs/SPEC-LITE-MRMAZ5CU.yaml
+new file mode 100644
+index 0000000..71b78c5
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRMAZ5CU.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MRMAZ5CU
++type: spec-contract
++featureId: F-MRMAZ5CU
++title: "Issue #200: 直接integration実行のrepository-level single-flight"
++status: approved
++version: 0.1.0
++summary: "直接integration runnerとSC-WBS required checksで同じrepository-level lockを共有し、高コストsuiteの重複実行と競合timeoutを防ぐ"
++approvedBy: user-requested-issue-200
++approvedAt: "2026-07-16T00:00:00+09:00"
++acceptanceCriteria:
++  - 直接test:integrationを同時起動してもsuiteを重複実行しない
++  - finish実行中のintegrationと直接実行が同じlockで競合を検出する
++  - verboseとdefault modeが同じ排他を使う
++  - active PID、開始時刻、mode、worker数、経過時間をbounded表示する
++  - stale lockをPID検証付きで安全に回復する
++  - 正常終了、failure、signal interruptionで所有中のlockだけを解放する
++  - JSON reportとstdoutの既存互換性を壊さない
++  - fake integration actionで重複、継承、stale lock、failure cleanupを回帰検証する
++  - raw Vitest直接起動が排他を迂回できる保証限界を文書化する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml b/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+new file mode 100644
+index 0000000..e913305
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MRMAZ5CU
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRMAZ5CU
++branchName: task/SCWBS-DRAFT-MRMAZ5CU-issue-200-direct-integration-single-flight
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRMAZ5CU.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRMAZ5CU.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRMAZ5CU.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRMAZ5CU.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRMAZ5CU.yaml
++allowedPaths:
++  - scripts/integration-test-output.mjs
++  - scripts/integration-single-flight.mjs
++  - src/core/required-check-run.ts
++  - src/commands/checks-run.ts
++  - src/commands/evidence-collect.ts
++  - tests/unit/integration-test-output.test.ts
++  - tests/integration/evidence.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or lockfile change required
++  - workflow change required
++  - shared lock cannot preserve required-check ownership
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 直接test:integrationとtest:integration:verboseはrepository単位のrequired-check lockを共有し、同時起動でsuiteを重複実行しない
++  - finish、evidence collect、checks run配下のintegrationは親required-check leaseを検証して継承し、直接実行との競合を同じlockで検出する
++  - active PID、開始時刻、mode、worker数、経過時間をbounded outputで表示する
++  - PIDが存在しないstale lockを安全に回復し、正常終了、failure、signal interruptionで所有中のlockだけを解放する
++  - default、verbose、JSON reportの既存stdout互換性を維持する
++  - fake integration actionで重複、継承、stale lock、failure cleanupの回帰テストを追加する
++  - raw Vitest直接起動は排他を迂回できる保証限界を文書化する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:65e0b6e2426bf185f7940a52c673fbad9a2a8f6ef6c73a547442022aff957968
++  createdAt: "2026-07-15T16:43:48.042Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 272db90..9a6a133 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -171,3 +171,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRMAZ5CU
++    path: contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
++    branchName: task/SCWBS-DRAFT-MRMAZ5CU-issue-200-direct-integration-single-flight
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 10c233b..ab06aac 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -149,6 +149,8 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
+ 
+ `finish` と `evidence collect` のrequired checksは、さらにrepository-level single-flight lockを使う。各checkの開始・完了、cache hitをstderrへ1行で表示し、30秒以上継続するcheckは30秒ごとにtask ID、check index/name、PID、開始時刻、経過時間をheartbeatとして出す。成功ログ量はcheck自身の出力量に比例せず、JSON modeでもstdoutは単一のversioned JSONのまま維持される。同一subjectで待機後に再実行されたcommandは既存のcheck cacheを再利用し、required checkを重複実行しない。
+ 
++`npm run test:integration` と `npm run test:integration:verbose` も同じGit common directory内のrequired-check lockを取得するため、直接runner同士、および `checks run` / `evidence collect` / `finish` 配下のintegrationとsuiteを重複実行しない。既定は競合時にactive PID、開始時刻、mode、worker数、経過時間をbounded stderrへ表示して拒否し、待機する場合だけ `npm run test:integration -- --wait` を明示する。stale PID lockは回収し、所有中のlockは正常終了、failure、signal interruptionで解放する。worktreeはGit common directoryを共有し、独立cloneのCI jobは共有しない。`npx vitest run tests/integration` のようなraw Vitest直接起動はこのrunnerを通らないため、排他保証の対象外である。
++
+ For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
+ 
+ When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+diff --git a/scripts/integration-single-flight.mjs b/scripts/integration-single-flight.mjs
+new file mode 100644
+index 0000000..176a57f
+--- /dev/null
++++ b/scripts/integration-single-flight.mjs
+@@ -0,0 +1,160 @@
++import { randomUUID } from "node:crypto";
++import { spawnSync } from "node:child_process";
++import { closeSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { setTimeout as delay } from "node:timers/promises";
++
++const INVALID_LOCK_GRACE_MS = 5_000;
++const DEFAULT_WAIT_POLL_MS = 250;
++const DEFAULT_WAIT_REPORT_MS = 30_000;
++
++function processIsAlive(pid) {
++  if (!Number.isInteger(pid) || pid <= 0) return false;
++  try {
++    process.kill(pid, 0);
++    return true;
++  } catch (error) {
++    return error?.code === "EPERM";
++  }
++}
++
++function readState(lockPath) {
++  try {
++    return JSON.parse(readFileSync(lockPath, "utf8"));
++  } catch {
++    return undefined;
++  }
++}
++
++function staleOrInvalid(lockPath, state) {
++  if (state) return !processIsAlive(state.pid);
++  try {
++    return Date.now() - statSync(lockPath).mtimeMs >= INVALID_LOCK_GRACE_MS;
++  } catch {
++    return true;
++  }
++}
++
++function elapsedSeconds(state, now = Date.now()) {
++  const startedAt = Date.parse(state?.checkStartedAt ?? state?.startedAt ?? "");
++  return Number.isFinite(startedAt) ? Math.max(0, Math.floor((now - startedAt) / 1_000)) : 0;
++}
++
++export function formatActiveIntegration(state, prefix = "integration already active", now = Date.now()) {
++  if (!state) return `${prefix} state=pending`;
++  return [
++    prefix,
++    `task=${state.taskId ?? "direct-integration"}`,
++    `pid=${state.pid ?? "?"}`,
++    `startedAt=${state.startedAt ?? "?"}`,
++    `mode=${state.mode ?? "required-check"}`,
++    `workers=${state.workers ?? "?"}`,
++    `elapsed=${elapsedSeconds(state, now)}s`
++  ].join(" ");
++}
++
++export function integrationLockPath(root) {
++  const result = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
++  if (result.status !== 0) throw new Error(result.stderr || `Unable to resolve git common directory for ${root}`);
++  const gitDirectory = result.stdout.trim();
++  const commonDirectory = path.isAbsolute(gitDirectory) ? gitDirectory : path.resolve(root, gitDirectory);
++  return path.join(commonDirectory, "scwbs-required-checks.lock");
++}
++
++function inheritedLease(lockPath, options) {
++  const inheritedRunId = options.env?.SCWBS_REQUIRED_CHECK_RUN_ID;
++  const inheritedLockPath = options.env?.SCWBS_REQUIRED_CHECK_LOCK_PATH;
++  if (!inheritedRunId || !inheritedLockPath || path.resolve(inheritedLockPath) !== path.resolve(lockPath)) return undefined;
++  const state = readState(lockPath);
++  if (!state || state.runId !== inheritedRunId || state.check !== "test:integration" || !processIsAlive(state.pid)) {
++    throw new Error("integration lock inheritance is invalid or stale");
++  }
++  const enriched = { ...state, mode: options.mode, workers: options.workers };
++  writeFileSync(lockPath, `${JSON.stringify(enriched, null, 2)}\n`, "utf8");
++  return { lockPath, runId: state.runId, owned: false, state: enriched };
++}
++
++function tryAcquire(lockPath, options) {
++  const state = {
++    runId: randomUUID(),
++    pid: process.pid,
++    taskId: "direct-integration",
++    startedAt: new Date().toISOString(),
++    check: "test:integration",
++    checkIndex: 1,
++    checkTotal: 1,
++    checkStartedAt: new Date().toISOString(),
++    mode: options.mode,
++    workers: options.workers
++  };
++  try {
++    mkdirSync(path.dirname(lockPath), { recursive: true });
++    const descriptor = openSync(lockPath, "wx");
++    try {
++      writeFileSync(descriptor, `${JSON.stringify(state, null, 2)}\n`, "utf8");
++    } finally {
++      closeSync(descriptor);
++    }
++    return { lockPath, runId: state.runId, owned: true, state };
++  } catch (error) {
++    if (error?.code !== "EEXIST") throw error;
++    const active = readState(lockPath);
++    if (!staleOrInvalid(lockPath, active)) return { active };
++    try {
++      unlinkSync(lockPath);
++    } catch (unlinkError) {
++      if (unlinkError?.code !== "ENOENT") throw unlinkError;
++    }
++    return { retry: true };
++  }
++}
++
++export async function acquireIntegrationRun(root, options) {
++  const lockPath = options.lockPath ?? integrationLockPath(root);
++  const inherited = inheritedLease(lockPath, options);
++  if (inherited) return inherited;
++  let lastReport = 0;
++  for (;;) {
++    const result = tryAcquire(lockPath, options);
++    if (result.owned) return result;
++    if (result.retry) continue;
++    if (!options.wait) throw new Error(formatActiveIntegration(result.active));
++    const now = Date.now();
++    if (lastReport === 0 || now - lastReport >= (options.waitReportMs ?? DEFAULT_WAIT_REPORT_MS)) {
++      options.onWait?.(formatActiveIntegration(result.active, "integration waiting", now));
++      lastReport = now;
++    }
++    await delay(options.waitPollMs ?? DEFAULT_WAIT_POLL_MS);
++  }
++}
++
++export function releaseIntegrationRun(lease) {
++  if (!lease?.owned) return;
++  try {
++    const current = readState(lease.lockPath);
++    if (current?.runId === lease.runId) unlinkSync(lease.lockPath);
++  } catch (error) {
++    if (error?.code !== "ENOENT") throw error;
++  }
++}
++
++export async function runWithIntegrationSingleFlight(root, options, action) {
++  const lease = await acquireIntegrationRun(root, options);
++  const signals = process.platform === "win32" ? ["SIGINT", "SIGTERM"] : ["SIGINT", "SIGTERM", "SIGHUP"];
++  const handlers = new Map();
++  for (const signal of signals) {
++    const handler = () => {
++      releaseIntegrationRun(lease);
++      process.removeListener(signal, handler);
++      process.kill(process.pid, signal);
++    };
++    handlers.set(signal, handler);
++    process.once(signal, handler);
++  }
++  try {
++    return await action();
++  } finally {
++    for (const [signal, handler] of handlers) process.removeListener(signal, handler);
++    releaseIntegrationRun(lease);
++  }
++}
+diff --git a/scripts/integration-test-output.mjs b/scripts/integration-test-output.mjs
+index fcd72e4..b931308 100644
+--- a/scripts/integration-test-output.mjs
++++ b/scripts/integration-test-output.mjs
+@@ -12,6 +12,7 @@ import {
+   normalizeReport,
+   parseArgs as parseRunnerArgs
+ } from "./integration-test-run.mjs";
++import { runWithIntegrationSingleFlight } from "./integration-single-flight.mjs";
+ 
+ export const FAILURE_LIMIT = 5;
+ export const DIAGNOSTIC_EDGE_BYTES = 2_000;
+@@ -19,10 +20,11 @@ export const DIAGNOSTIC_CAPTURE_BYTES = DIAGNOSTIC_EDGE_BYTES * 2;
+ 
+ export function parseArgs(argv, env = process.env) {
+   const verbose = argv.includes("--verbose");
+-  const runnerArgs = argv.filter((argument) => argument !== "--verbose");
++  const wait = argv.includes("--wait");
++  const runnerArgs = argv.filter((argument) => argument !== "--verbose" && argument !== "--wait");
+   const options = parseRunnerArgs(runnerArgs, env);
+   if (verbose && options.reportPath) throw new Error("--verbose cannot be combined with --report");
+-  return { ...options, verbose };
++  return { ...options, verbose, wait };
+ }
+ 
+ function createBoundedCapture() {
+@@ -121,38 +123,51 @@ export async function main(argv = process.argv.slice(2)) {
+     console.error(error instanceof Error ? error.message : String(error));
+     return 2;
+   }
+-  if (options.verbose) return runVerbose(options.workers);
+-
+-  const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
+-  const rawOutputFile = path.join(directory, "vitest.json");
+   try {
+-    const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
+-    let raw;
+-    try {
+-      raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
+-    } catch (error) {
+-      console.error(`FAIL integration report unavailable: ${error instanceof Error ? error.message : String(error)}`);
+-      if (execution.stdout.text.trim()) console.error(`stdout bytes=${execution.stdout.totalBytes}\n${execution.stdout.text}`);
+-      if (execution.stderr.text.trim()) console.error(`stderr bytes=${execution.stderr.totalBytes}\n${execution.stderr.text}`);
+-      return execution.exitCode || 1;
+-    }
++    return await runWithIntegrationSingleFlight(process.cwd(), {
++      mode: options.verbose ? "verbose" : "default",
++      workers: options.workers,
++      wait: options.wait,
++      env: process.env,
++      onWait: (message) => console.error(message)
++    }, async () => {
++      if (options.verbose) return runVerbose(options.workers);
+ 
+-    const report = normalizeReport(raw, execution.wallDurationMs, options.workers);
+-    const summary = formatSummary(report, options.slowest);
+-    (report.success ? console.log : console.error)(summary);
+-    if (options.reportPath) {
+-      const destination = path.resolve(options.reportPath);
+-      await mkdir(path.dirname(destination), { recursive: true });
+-      await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+-      console.log(`duration report: ${path.relative(process.cwd(), destination) || destination}`);
+-    }
+-    if (!report.success || execution.exitCode !== 0) {
+-      const diagnostics = formatFailureDiagnostics(raw, execution.stdout, execution.stderr);
+-      if (diagnostics) console.error(diagnostics);
+-    }
+-    return execution.exitCode;
+-  } finally {
+-    await rm(directory, { recursive: true, force: true });
++      const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
++      const rawOutputFile = path.join(directory, "vitest.json");
++      try {
++        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
++        let raw;
++        try {
++          raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
++        } catch (error) {
++          console.error(`FAIL integration report unavailable: ${error instanceof Error ? error.message : String(error)}`);
++          if (execution.stdout.text.trim()) console.error(`stdout bytes=${execution.stdout.totalBytes}\n${execution.stdout.text}`);
++          if (execution.stderr.text.trim()) console.error(`stderr bytes=${execution.stderr.totalBytes}\n${execution.stderr.text}`);
++          return execution.exitCode || 1;
++        }
++
++        const report = normalizeReport(raw, execution.wallDurationMs, options.workers);
++        const summary = formatSummary(report, options.slowest);
++        (report.success ? console.log : console.error)(summary);
++        if (options.reportPath) {
++          const destination = path.resolve(options.reportPath);
++          await mkdir(path.dirname(destination), { recursive: true });
++          await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`, "utf8");
++          console.log(`duration report: ${path.relative(process.cwd(), destination) || destination}`);
++        }
++        if (!report.success || execution.exitCode !== 0) {
++          const diagnostics = formatFailureDiagnostics(raw, execution.stdout, execution.stderr);
++          if (diagnostics) console.error(diagnostics);
++        }
++        return execution.exitCode;
++      } finally {
++        await rm(directory, { recursive: true, force: true });
++      }
++    });
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
+   }
+ }
+ 
+diff --git a/src/commands/checks-run.ts b/src/commands/checks-run.ts
+index b605867..8fdede0 100644
+--- a/src/commands/checks-run.ts
++++ b/src/commands/checks-run.ts
+@@ -10,6 +10,7 @@ import {
+   acquireRequiredCheckRun,
+   formatRequiredCheckProgress,
+   releaseRequiredCheckRun,
++  requiredCheckChildEnv,
+   startRequiredCheckHeartbeat,
+   stopRequiredCheckHeartbeat,
+   updateRequiredCheckRun,
+@@ -76,6 +77,7 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
+     result = spawnSync(command[0] ?? "npm", command.slice(1), {
+       cwd: root,
+       encoding: "utf8",
++      env: requiredCheckChildEnv(lease),
+       shell: process.platform === "win32"
+     });
+   } finally {
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index ac57177..54fdda3 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -16,6 +16,7 @@ import {
+   acquireRequiredCheckRun,
+   formatRequiredCheckProgress,
+   releaseRequiredCheckRun,
++  requiredCheckChildEnv,
+   startRequiredCheckHeartbeat,
+   stopRequiredCheckHeartbeat,
+   updateRequiredCheckRun,
+@@ -110,6 +111,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
+     result = spawnSync(command[0] ?? "npm", command.slice(1), {
+       cwd: root,
+       encoding: "utf8",
++      env: requiredCheckChildEnv(lease),
+       shell: process.platform === "win32"
+     });
+   } finally {
+diff --git a/src/core/required-check-run.ts b/src/core/required-check-run.ts
+index 46adf05..fb89ed2 100644
+--- a/src/core/required-check-run.ts
++++ b/src/core/required-check-run.ts
+@@ -12,6 +12,8 @@ export type RequiredCheckRunState = {
+   checkIndex?: number;
+   checkTotal?: number;
+   checkStartedAt?: string;
++  mode?: string;
++  workers?: number;
+ };
+ 
+ export type RequiredCheckRunLease = {
+@@ -70,7 +72,17 @@ function activeRunMessage(state: RequiredCheckRunState | undefined): string {
+   const current = state.check
+     ? ` check=${state.checkIndex ?? "?"}/${state.checkTotal ?? "?"}:${state.check}`
+     : "";
+-  return `required checks already active task=${state.taskId}${current} pid=${state.pid} startedAt=${state.startedAt} elapsed=${elapsed}s`;
++  const mode = state.mode ? ` mode=${state.mode}` : "";
++  const workers = state.workers ? ` workers=${state.workers}` : "";
++  return `required checks already active task=${state.taskId}${current} pid=${state.pid} startedAt=${state.startedAt}${mode}${workers} elapsed=${elapsed}s`;
++}
++
++export function requiredCheckChildEnv(lease: RequiredCheckRunLease): NodeJS.ProcessEnv {
++  return {
++    ...process.env,
++    SCWBS_REQUIRED_CHECK_RUN_ID: lease.state.runId,
++    SCWBS_REQUIRED_CHECK_LOCK_PATH: lease.lockPath
++  };
+ }
+ 
+ export function acquireRequiredCheckRun(root: string, taskId: string, checkTotal: number): RequiredCheckRunLease {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 9535b01..a014c89 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -1,6 +1,7 @@
+ import { execFileSync, spawnSync } from "node:child_process";
+ import { existsSync, readFileSync, rmSync } from "node:fs";
+ import path from "node:path";
++import { pathToFileURL } from "node:url";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+@@ -12,6 +13,7 @@ import {
+   acquireRequiredCheckRun,
+   heartbeatScript,
+   releaseRequiredCheckRun,
++  requiredCheckChildEnv,
+   requiredCheckLockPath,
+   updateRequiredCheckRun
+ } from "../../src/core/required-check-run.js";
+@@ -84,6 +86,31 @@ describe("evidence collect", () => {
+     releaseRequiredCheckRun(recovered);
+   });
+ 
++  test("required-check integration child inherits the existing repository lease", () => {
++    const root = prepareEvidenceOutputRepo();
++    const lease = acquireRequiredCheckRun(root, "WBS-001-004", 1);
++    try {
++      updateRequiredCheckRun(lease, "test:integration", 1);
++      const helperUrl = pathToFileURL(path.resolve("scripts/integration-single-flight.mjs")).href;
++      const script = [
++        `import { acquireIntegrationRun, releaseIntegrationRun } from ${JSON.stringify(helperUrl)};`,
++        `const lease = await acquireIntegrationRun(process.cwd(), { mode: "default", workers: 4, env: process.env });`,
++        "process.stdout.write(JSON.stringify({ owned: lease.owned, runId: lease.runId, mode: lease.state.mode, workers: lease.state.workers }));",
++        "releaseIntegrationRun(lease);"
++      ].join("\n");
++      const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
++        cwd: root,
++        encoding: "utf8",
++        env: requiredCheckChildEnv(lease)
++      });
++      expect(result.status, result.stderr).toBe(0);
++      expect(JSON.parse(result.stdout)).toEqual({ owned: false, runId: lease.state.runId, mode: "default", workers: 4 });
++      expect(existsSync(lease.lockPath)).toBe(true);
++    } finally {
++      releaseRequiredCheckRun(lease);
++    }
++  });
++
+   test("heartbeat emits bounded progress on stderr with active check metadata", () => {
+     const result = spawnSync(process.execPath, ["-e", heartbeatScript()], {
+       encoding: "utf8",
+diff --git a/tests/unit/integration-test-output.test.ts b/tests/unit/integration-test-output.test.ts
+index 0e8f9dc..4c366ad 100644
+--- a/tests/unit/integration-test-output.test.ts
++++ b/tests/unit/integration-test-output.test.ts
+@@ -1,8 +1,25 @@
++import { execFileSync } from "node:child_process";
++import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
+ import { describe, expect, it } from "vitest";
+ // @ts-expect-error The production output controller is intentionally dependency-free ESM.
+ import { FAILURE_LIMIT, formatFailureDiagnostics, parseArgs } from "../../scripts/integration-test-output.mjs";
+ // @ts-expect-error The production runner is intentionally dependency-free ESM.
+ import { formatSummary, normalizeReport } from "../../scripts/integration-test-run.mjs";
++// @ts-expect-error The production lock helper is intentionally dependency-free ESM.
++import {
++  acquireIntegrationRun,
++  integrationLockPath,
++  releaseIntegrationRun,
++  runWithIntegrationSingleFlight
++} from "../../scripts/integration-single-flight.mjs";
++
++function temporaryRepository(): string {
++  const root = mkdtempSync(path.join(tmpdir(), "scwbs-integration-lock-"));
++  execFileSync("git", ["init", "-q"], { cwd: root });
++  return root;
++}
+ 
+ function result(status: "passed" | "failed", count = 32) {
+   return {
+@@ -60,8 +77,74 @@ describe("integration output controller", () => {
+   });
+ 
+   it("exposes full logs only through explicit verbose mode", () => {
+-    expect(parseArgs(["--verbose", "--workers", "2"], {})).toMatchObject({ verbose: true, workers: 2 });
+-    expect(parseArgs([], { SCWBS_INTEGRATION_WORKERS: "2" })).toMatchObject({ verbose: false, workers: 2 });
++    expect(parseArgs(["--verbose", "--wait", "--workers", "2"], {})).toMatchObject({ verbose: true, wait: true, workers: 2 });
++    expect(parseArgs([], { SCWBS_INTEGRATION_WORKERS: "2" })).toMatchObject({ verbose: false, wait: false, workers: 2 });
+     expect(() => parseArgs(["--verbose", "--report", "out.json"], {})).toThrow(/cannot be combined/);
+   });
++
++  it("shares one repository lock across direct and inherited required-check runs", async () => {
++    const root = temporaryRepository();
++    const lease = await acquireIntegrationRun(root, { mode: "default", workers: 4, env: {} });
++    try {
++      await expect(acquireIntegrationRun(root, { mode: "verbose", workers: 2, env: {} })).rejects.toThrow(
++        /integration already active.*pid=.*startedAt=.*mode=default workers=4 elapsed=/
++      );
++      const inherited = await acquireIntegrationRun(root, {
++        mode: "verbose",
++        workers: 2,
++        env: {
++          SCWBS_REQUIRED_CHECK_RUN_ID: lease.runId,
++          SCWBS_REQUIRED_CHECK_LOCK_PATH: lease.lockPath
++        }
++      });
++      expect(inherited).toMatchObject({ owned: false, runId: lease.runId, state: { mode: "verbose", workers: 2 } });
++      releaseIntegrationRun(inherited);
++      expect(existsSync(lease.lockPath)).toBe(true);
++    } finally {
++      releaseIntegrationRun(lease);
++      rmSync(root, { recursive: true, force: true });
++    }
++  });
++
++  it("waits for an active run and safely recovers a stale PID lock", async () => {
++    const root = temporaryRepository();
++    const first = await acquireIntegrationRun(root, { mode: "default", workers: 4, env: {} });
++    const messages: string[] = [];
++    setTimeout(() => releaseIntegrationRun(first), 20);
++    const waited = await acquireIntegrationRun(root, {
++      mode: "verbose",
++      workers: 2,
++      env: {},
++      wait: true,
++      waitPollMs: 5,
++      waitReportMs: 5,
++      onWait: (message: string) => messages.push(message)
++    });
++    expect(messages[0]).toMatch(/integration waiting.*mode=default workers=4/);
++    releaseIntegrationRun(waited);
++
++    const lockPath = integrationLockPath(root);
++    writeFileSync(lockPath, JSON.stringify({
++      runId: "stale",
++      pid: 999_999_999,
++      taskId: "direct-integration",
++      startedAt: "2026-01-01T00:00:00.000Z",
++      mode: "default",
++      workers: 4
++    }));
++    const recovered = await acquireIntegrationRun(root, { mode: "default", workers: 4, env: {} });
++    expect(recovered.owned).toBe(true);
++    releaseIntegrationRun(recovered);
++    rmSync(root, { recursive: true, force: true });
++  });
++
++  it("releases only its own lock after a failed fake integration action", async () => {
++    const root = temporaryRepository();
++    const lockPath = integrationLockPath(root);
++    await expect(runWithIntegrationSingleFlight(root, { mode: "default", workers: 4, env: {} }, async () => {
++      throw new Error("fake integration failure");
++    })).rejects.toThrow("fake integration failure");
++    expect(existsSync(lockPath)).toBe(false);
++    rmSync(root, { recursive: true, force: true });
++  });
+ });
