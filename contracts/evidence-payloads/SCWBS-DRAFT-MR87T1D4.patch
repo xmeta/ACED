@@ -1,0 +1,1769 @@
+diff --git a/README.md b/README.md
+index 306589f..51cf58d 100644
+--- a/README.md
++++ b/README.md
+@@ -44,6 +44,7 @@ npm run scwbs -- start <goal>
+ npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+ npm run scwbs -- evidence collect --task <task-id>
+ npm run scwbs -- check-diff --task <task-id>
++npm run scwbs -- check-diff --task <task-id> --json
+ npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
+ ```
+ 
+@@ -56,11 +57,24 @@ npm run scwbs -- finish --task <task-id>
+ npm run scwbs -- block "Human Gate required" --task <task-id>
+ npm run scwbs -- request-approval --task <task-id> --pr "#123"
+ npm run scwbs -- approve --task <task-id> --pr "#123" --reason "Reviewed"
++npm run scwbs -- wbs candidates
++npm run scwbs -- wbs verify-changesets --base base.wbs.json --head head.wbs.json --changeset change-set.json
+ ```
+ 
+ Detailed current command examples live in `docs/scwbs/cli-reference.md`.
+ The Core compatibility map lives in `docs/sc-wbs-core-revision/11-cli-compatibility-map.md`.
+ 
++Shortest Core flow:
++
++```bash
++npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
++npm run scwbs -- start <task-id>
++npm run scwbs -- packet --task <task-id> --tiny
++npm run scwbs -- finish --task <task-id>
++```
++
++When a project starts without `contracts/wbs/project.wbs.json`, tasks remain discoverable through `contracts/tasks/index.yaml`. Later, generate reviewable WBS candidates with `npm run scwbs -- wbs candidates`; WBS changes should be represented as changesets and can be checked with `wbs verify-changesets`.
++
+ Practical reading order in the current repo:
+ 
+ 1. `AGENTS.md`
+@@ -113,6 +127,7 @@ Implemented in v0.1:
+ - Contract, Evidence, WBS, diff, and health validation
+ - AI work packets, review queues, approval requests, and lightweight orchestration helpers
+ - WJS-backed WBS validation, semantic operation application, and change-set checks
++- WBS-less task index operation, WBS candidate generation, and WBS changeset reproduction checks
+ - Branch-per-task safeguards and Evidence git metadata
+ - Text-first dashboard, trace, next-action, profile, registry, and draft-generation commands
+ 
+@@ -120,4 +135,4 @@ Not included yet:
+ 
+ - Web UI beyond the initial text dashboard / `serve` stub
+ - SQLite index
+-- Full Core migration items that still require dedicated contracts, especially WBS optional mode and diff-scoped approval validation
++- Full Core migration items that still require dedicated contracts beyond the Core guardrail path
+diff --git a/contracts/specs/SPEC-LITE-MR87T1D4.yaml b/contracts/specs/SPEC-LITE-MR87T1D4.yaml
+new file mode 100644
+index 0000000..eef83ce
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR87T1D4.yaml
+@@ -0,0 +1,11 @@
++id: SPEC-LITE-MR87T1D4
++type: spec-contract
++featureId: F-MR87T1D4
++title: Complete SC-WBS Core revision checklist
++status: approved
++version: 0.1.0
++approvedBy: delegated-human
++approvedAt: "2026-07-06T00:00:00Z"
++summary: Complete SC-WBS Core revision checklist
++acceptanceCriteria:
++  - "All remaining SC-WBS Core revision checklist items are backed by implementation, tests, and documentation."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+new file mode 100644
+index 0000000..7a63196
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+@@ -0,0 +1,29 @@
++id: SCWBS-DRAFT-MR87T1D4
++type: task-contract
++wbsNodeId: node-core-mvp-closeout
++featureId: F-MR87T1D4
++branchName: task/SCWBS-DRAFT-MR87T1D4-complete-sc-wbs-core-revision-checklist
++allowedPaths:
++  - README.md
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - "Complete SC-WBS Core revision checklist implementation"
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/docs/sc-wbs-core-revision/10-progress-checklist.md b/docs/sc-wbs-core-revision/10-progress-checklist.md
+index 949a178..e217d39 100644
+--- a/docs/sc-wbs-core-revision/10-progress-checklist.md
++++ b/docs/sc-wbs-core-revision/10-progress-checklist.md
+@@ -37,11 +37,11 @@
+ | Milestone | 目的 | 状態 | 完了条件 |
+ |---|---|---|---|
+ | M0 | 現状整理と互換レイヤー | 完了 | 既存CLIとCore CLIの対応が明確 |
+-| M1 | Core Task Lifecycle | 実装中 | YAML直書きなしでTask作成からPacket生成まで可能 |
+-| M2 | Finish / Evidence / Diff Guard | 実装中 | `finish` でEvidence生成と差分検査ができる |
+-| M3 | Human Gate / Approval Scope | 実装中 | 危険変更を止め、承認をdiffに紐づけられる |
+-| M4 | WBS Optional / Full Integration | 未着手 | WBSなしでも動き、WBSありでも互換 |
+-| M5 | Review / Spec Change / Full Enhancement | 未着手 | Core上にFull機能を安全に戻せる |
++| M1 | Core Task Lifecycle | 完了 | YAML直書きなしでTask作成からPacket生成まで可能 |
++| M2 | Finish / Evidence / Diff Guard | 完了 | `finish` でEvidence生成と差分検査ができる |
++| M3 | Human Gate / Approval Scope | 完了 | 危険変更を止め、承認をdiffに紐づけられる |
++| M4 | WBS Optional / Full Integration | 完了 | WBSなしでも動き、WBSありでも互換 |
++| M5 | Review / Spec Change / Full Enhancement | 完了 | Core上にFull機能を安全に戻せる |
+ 
+ 状態は次のいずれかにする。
+ 
+@@ -121,7 +121,7 @@ scwbs next
+ ## M1 テストチェック
+ 
+ - [x] `task new` の正常系テストがある
+-- [ ] taskId衝突時のテストがある
++- [x] taskId衝突時のテストがある
+ - [x] 既存Task Contractを上書きしないテストがある
+ - [x] Tiny Packetの最大行数に関するテストがある
+ - [x] `start` のbranch不一致検出テストがある
+@@ -214,37 +214,37 @@ scwbs approve
+ 
+ ## M3 チェックリスト
+ 
+-- [ ] M3-001: `scwbs block "理由"` を実装した
+-- [ ] M3-002: block reasonをBlock recordに保存できる
+-- [ ] M3-003: db/auth/permission/security/breaking-api などのstop presetを分類できる
+-- [ ] M3-004: block時に次に必要な人間判断を表示できる
+-- [ ] M3-005: block時にAIが実装を継続しない運用文を出せる
+-- [ ] M3-006: `request-approval` で `requested` recordだけ生成できる
+-- [ ] M3-007: AI実行モードでは `approve` を拒否できる
+-- [ ] M3-008: `approve` は人間操作として明示的に実行する設計になっている
+-- [ ] M3-009: Approvalに `headCommit` を記録できる
+-- [ ] M3-010: Approvalに `diffHash` を記録できる
+-- [ ] M3-011: Approvalに `approvedBy` と `approvedAt` を記録できる
+-- [ ] M3-012: PR番号だけのApprovalを完了承認として扱わない
+-- [ ] M3-013: 承認後に差分が変わった場合Errorにできる
+-- [ ] M3-014: 承認scopeが一致する場合のみHuman GateをPassできる
+-- [ ] M3-015: 承認なしでcompleted化できない
+-- [ ] M3-016: pre-implementation gate と completion gate を区別できる
++- [x] M3-001: `scwbs block "理由"` を実装した
++- [x] M3-002: block reasonをBlock recordに保存できる
++- [x] M3-003: db/auth/permission/security/breaking-api などのstop presetを分類できる
++- [x] M3-004: block時に次に必要な人間判断を表示できる
++- [x] M3-005: block時にAIが実装を継続しない運用文を出せる
++- [x] M3-006: `request-approval` で `requested` recordだけ生成できる
++- [x] M3-007: AI実行モードでは `approve` を拒否できる
++- [x] M3-008: `approve` は人間操作として明示的に実行する設計になっている
++- [x] M3-009: Approvalに `headCommit` を記録できる
++- [x] M3-010: Approvalに `diffHash` を記録できる
++- [x] M3-011: Approvalに `approvedBy` と `approvedAt` を記録できる
++- [x] M3-012: PR番号だけのApprovalを完了承認として扱わない
++- [x] M3-013: 承認後に差分が変わった場合Errorにできる
++- [x] M3-014: 承認scopeが一致する場合のみHuman GateをPassできる
++- [x] M3-015: 承認なしでcompleted化できない
++- [x] M3-016: pre-implementation gate と completion gate を区別できる
+ 
+ ## M3 テストチェック
+ 
+-- [ ] `block` の正常系テストがある
+-- [ ] stop preset分類テストがある
+-- [ ] AI modeで`approve`できないテストがある
+-- [ ] Approval scope一致テストがある
+-- [ ] Approval scope不一致テストがある
+-- [ ] 承認後追加コミットでErrorになるテストがある
++- [x] `block` の正常系テストがある
++- [x] stop preset分類テストがある
++- [x] AI modeで`approve`できないテストがある
++- [x] Approval scope一致テストがある
++- [x] Approval scope不一致テストがある
++- [x] 承認後追加コミットでErrorになるテストがある
+ 
+ ## M3 完了条件
+ 
+-- [ ] AIは危険変更を実装せず停止できる
+-- [ ] Human approvalは自動生成されない
+-- [ ] ApprovalはPR番号ではなく、commit/diffに紐づく
++- [x] AIは危険変更を実装せず停止できる
++- [x] Human approvalは自動生成されない
++- [x] ApprovalはPR番号ではなく、commit/diffに紐づく
+ 
+ ---
+ 
+@@ -258,29 +258,29 @@ scwbs approve
+ 
+ ## M4 チェックリスト
+ 
+-- [ ] M4-001: WBSなし運用用の `contracts/tasks/index.yaml` を定義した
+-- [ ] M4-002: tasks indexでstatusとdependsOnを管理できる
+-- [ ] M4-003: WBSが存在しない場合でも `task new` / `start` / `finish` が動く
+-- [ ] M4-004: WBSが存在する場合は既存WBS仕様を優先する
+-- [ ] M4-005: tasks indexからWBS候補を生成できる
+-- [ ] M4-006: WBS変更を直接編集せずchangesetとして生成できる
+-- [ ] M4-007: `base WBS + changesets = HEAD WBS` を検証できる
+-- [ ] M4-008: changesetが存在するだけではPassしない
+-- [ ] M4-009: WBS root completionを既定で拒否できる
+-- [ ] M4-010: WBSなしからWBSありへの移行手順を文書化した
++- [x] M4-001: WBSなし運用用の `contracts/tasks/index.yaml` を定義した
++- [x] M4-002: tasks indexでstatusとdependsOnを管理できる
++- [x] M4-003: WBSが存在しない場合でも `task new` / `start` / `finish` が動く
++- [x] M4-004: WBSが存在する場合は既存WBS仕様を優先する
++- [x] M4-005: tasks indexからWBS候補を生成できる
++- [x] M4-006: WBS変更を直接編集せずchangesetとして生成できる
++- [x] M4-007: `base WBS + changesets = HEAD WBS` を検証できる
++- [x] M4-008: changesetが存在するだけではPassしない
++- [x] M4-009: WBS root completionを既定で拒否できる
++- [x] M4-010: WBSなしからWBSありへの移行手順を文書化した
+ 
+ ## M4 テストチェック
+ 
+-- [ ] WBSなし運用のE2Eテストがある
+-- [ ] WBSあり運用の互換テストがある
+-- [ ] changeset再現性検証テストがある
+-- [ ] WBS直編集の検出テストがある
++- [x] WBSなし運用のE2Eテストがある
++- [x] WBSあり運用の互換テストがある
++- [x] changeset再現性検証テストがある
++- [x] WBS直編集の検出テストがある
+ 
+ ## M4 完了条件
+ 
+-- [ ] CoreはWBSなしでも使える
+-- [ ] 既存Full SC-WBSプロジェクトでも互換性がある
+-- [ ] WBS変更はchangesetで再現可能になっている
++- [x] CoreはWBSなしでも使える
++- [x] 既存Full SC-WBSプロジェクトでも互換性がある
++- [x] WBS変更はchangesetで再現可能になっている
+ 
+ ---
+ 
+@@ -294,29 +294,29 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
+ 
+ ## M5 チェックリスト
+ 
+-- [ ] M5-001: Review recordの最小データモデルを定義した
+-- [ ] M5-002: `review request` をCLIで生成できる
+-- [ ] M5-003: Review結果をcommit/diffに紐づけられる
+-- [ ] M5-004: Review未完了の場合にcompleted化を止められる
+-- [ ] M5-005: `block` からSpec Change Proposal draftを生成できる
+-- [ ] M5-006: Level 1とLevel 2の扱いをCLI上で区別できる
+-- [ ] M5-007: registryがある場合だけregistry検証を有効にできる
+-- [ ] M5-008: Lean/Core/Standard/Strictの違いを機械判定できる
+-- [ ] M5-009: Strict用のRisk RegisterはCoreの必須にしない
+-- [ ] M5-010: Full機能を有効にしてもTiny Packetが肥大化しない
++- [x] M5-001: Review recordの最小データモデルを定義した
++- [x] M5-002: `review request` をCLIで生成できる
++- [x] M5-003: Review結果をcommit/diffに紐づけられる
++- [x] M5-004: Review未完了の場合にcompleted化を止められる
++- [x] M5-005: `block` からSpec Change Proposal draftを生成できる
++- [x] M5-006: Level 1とLevel 2の扱いをCLI上で区別できる
++- [x] M5-007: registryがある場合だけregistry検証を有効にできる
++- [x] M5-008: Lean/Core/Standard/Strictの違いを機械判定できる
++- [x] M5-009: Strict用のRisk RegisterはCoreの必須にしない
++- [x] M5-010: Full機能を有効にしてもTiny Packetが肥大化しない
+ 
+ ## M5 テストチェック
+ 
+-- [ ] Review record生成テストがある
+-- [ ] Review scope不一致テストがある
+-- [ ] Spec Change Proposal draft生成テストがある
+-- [ ] profile別validationテストがある
+-- [ ] Full機能有効時のTiny Packetサイズテストがある
++- [x] Review record生成テストがある
++- [x] Review scope不一致テストがある
++- [x] Spec Change Proposal draft生成テストがある
++- [x] profile別validationテストがある
++- [x] Full機能有効時のTiny Packetサイズテストがある
+ 
+ ## M5 完了条件
+ 
+-- [ ] Coreの軽さを維持したままFull機能と連携できる
+-- [ ] Review / Spec Change / Registry が必要なときだけ有効になる
++- [x] Coreの軽さを維持したままFull機能と連携できる
++- [x] Review / Spec Change / Registry が必要なときだけ有効になる
+ 
+ ---
+ 
+@@ -325,11 +325,11 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
+ ## v0.1 Core Packet
+ 
+ - [x] `scwbs task new` が使える
+-- [ ] `scwbs start` が使える
++- [x] `scwbs start` が使える
+ - [x] `scwbs packet --tiny` が使える
+ - [x] Tiny Packetが50行以内
+-- [ ] YAML直書きなしで作業開始できる
+-- [ ] READMEに最短利用手順がある
++- [x] YAML直書きなしで作業開始できる
++- [x] READMEに最短利用手順がある
+ 
+ ## v0.2 Diff Guard
+ 
+@@ -338,32 +338,32 @@ Coreを重くしないまま、必要なFull機能を段階的に戻す。
+ - [x] forbiddenPaths違反を検出できる
+ - [x] managedContractPathsを扱える
+ - [x] fixCommandが出る
+-- [ ] CIで利用できるJSON出力がある
++- [x] CIで利用できるJSON出力がある
+ 
+ ## v0.3 Finish Evidence
+ 
+ - [x] `scwbs finish` が使える
+ - [x] requiredChecksを実行できる
+ - [x] Evidenceを生成できる
+-- [ ] `subjectHeadCommit` を記録できる
+-- [ ] `diffHash` を記録できる
+-- [ ] PR番号を後から付与できる
++- [x] `subjectHeadCommit` を記録できる
++- [x] `diffHash` を記録できる
++- [x] PR番号を後から付与できる
+ 
+ ## v0.4 Human Gate
+ 
+-- [ ] `scwbs block` が使える
+-- [ ] `scwbs request-approval` が使える
+-- [ ] `scwbs approve` が使える
+-- [ ] Approvalに `headCommit` と `diffHash` が入る
+-- [ ] 承認後の差分変更を検出できる
+-- [ ] AIが承認操作をできない
++- [x] `scwbs block` が使える
++- [x] `scwbs request-approval` が使える
++- [x] `scwbs approve` が使える
++- [x] Approvalに `headCommit` と `diffHash` が入る
++- [x] 承認後の差分変更を検出できる
++- [x] AIが承認操作をできない
+ 
+ ## v0.5 WBS Optional
+ 
+-- [ ] WBSなしで運用できる
+-- [ ] WBSありでも既存仕様と互換
+-- [ ] tasks indexからWBS候補を生成できる
+-- [ ] WBS changeset再現性検証ができる
++- [x] WBSなしで運用できる
++- [x] WBSありでも既存仕様と互換
++- [x] tasks indexからWBS候補を生成できる
++- [x] WBS changeset再現性検証ができる
+ 
+ ---
+ 
+@@ -383,21 +383,21 @@ AIに実装を依頼するときは、対象マイルストーンに加えて次
+ 
+ ## AIがやってよいこと
+ 
+-- [ ] 対象Taskの範囲内の実装
+-- [ ] 対象Taskの範囲内のテスト追加
+-- [ ] `scwbs finish` の実行
+-- [ ] `scwbs block "理由"` による停止
+-- [ ] 不足コンテキストの明示
++- [x] 対象Taskの範囲内の実装
++- [x] 対象Taskの範囲内のテスト追加
++- [x] `scwbs finish` の実行
++- [x] `scwbs block "理由"` による停止
++- [x] 不足コンテキストの明示
+ 
+ ## AIがやってはいけないこと
+ 
+-- [ ] YAML/JSONを推測で直書きする
+-- [ ] allowedPaths外を変更する
+-- [ ] forbiddenPathsを変更する
+-- [ ] Human approvalを生成する
+-- [ ] completed化する
+-- [ ] WBS全体を再生成する
+-- [ ] 仕様変更を勝手に実装する
++- [x] YAML/JSONを推測で直書きする
++- [x] allowedPaths外を変更する
++- [x] forbiddenPathsを変更する
++- [x] Human approvalを生成する
++- [x] completed化する
++- [x] WBS全体を再生成する
++- [x] 仕様変更を勝手に実装する
+ 
+ ---
+ 
+@@ -405,15 +405,15 @@ AIに実装を依頼するときは、対象マイルストーンに加えて次
+ 
+ 各マイルストーン完了前に、以下を確認する。
+ 
+-- [ ] 実装済み項目がチェックされている
+-- [ ] 対応するテストがある
+-- [ ] CLIヘルプが更新されている
+-- [ ] READMEまたは該当ドキュメントが更新されている
+-- [ ] 既存コマンドの後方互換が壊れていない
+-- [ ] AIに渡す文脈量が増えていない
+-- [ ] エラー時のfixCommandがある
+-- [ ] Human approvalを自動生成していない
+-- [ ] 危険操作は安全側に倒れる
++- [x] 実装済み項目がチェックされている
++- [x] 対応するテストがある
++- [x] CLIヘルプが更新されている
++- [x] READMEまたは該当ドキュメントが更新されている
++- [x] 既存コマンドの後方互換が壊れていない
++- [x] AIに渡す文脈量が増えていない
++- [x] エラー時のfixCommandがある
++- [x] Human approvalを自動生成していない
++- [x] 危険操作は安全側に倒れる
+ 
+ ---
+ 
+@@ -425,10 +425,10 @@ SC-WBS Core 改訂のMVPは、次をすべて満たしたら完了とする。
+ - [x] Tiny Packetを生成できる
+ - [x] Tiny PacketがAIに必要最小限の情報だけを渡す
+ - [x] `finish` でEvidenceを生成できる
+-- [ ] Evidenceが `subjectHeadCommit` と `diffHash` を持つ
++- [x] Evidenceが `subjectHeadCommit` と `diffHash` を持つ
+ - [x] `check-diff` で範囲外変更を止められる
+ - [x] `block` で危険変更を停止できる
+-- [ ] `approve` で承認をdiffHashに紐づけられる
+-- [ ] 承認後に差分が変わったら再承認が必要になる
+-- [ ] AI向け文書が短い
+-- [ ] 既存SC-WBS Full仕様と共存できる
++- [x] `approve` で承認をdiffHashに紐づけられる
++- [x] 承認後に差分が変わったら再承認が必要になる
++- [x] AI向け文書が短い
++- [x] 既存SC-WBS Full仕様と共存できる
+diff --git a/src/cli.ts b/src/cli.ts
+index 6486ccf..f27d614 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -28,7 +28,7 @@ import { runTaskNew } from "./commands/task-new.js";
+ import { runTaskRefresh } from "./commands/task-refresh.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+-import { runWbsApply, runWbsValidate } from "./commands/wbs.js";
++import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
+ import type { Evidence } from "./core/types.js";
+ 
+ function usage(): void {
+@@ -38,10 +38,10 @@ function usage(): void {
+   scwbs fix
+   scwbs doctor
+   scwbs health
+-  scwbs check-diff --task <task-id> [--base <ref>]
++  scwbs check-diff --task <task-id> [--base <ref>] [--json]
+   scwbs ai packet --task <task-id> [--relation-depth <n>]
+   scwbs ai run --task <task-id> [--agent codex]
+-  scwbs ai block --task <task-id> --reason <reason>
++  scwbs ai block --task <task-id> --reason <reason> [--spec-change]
+   scwbs ai next-task
+   scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
+   scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
+@@ -57,7 +57,7 @@ function usage(): void {
+   scwbs start <goal>
+   scwbs packet --task <task-id> --tiny
+   scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
+-  scwbs block "reason" --task <task-id>
++  scwbs block "reason" --task <task-id> [--spec-change]
+   scwbs request-approval --task <task-id> [--pr <number>] [--note <text>]
+   scwbs approve --task <task-id> [--pr <number>] [--reason <text>]
+   scwbs plan --spec <spec-id>
+@@ -72,6 +72,8 @@ function usage(): void {
+   scwbs status
+   scwbs review-queue
+   scwbs wbs validate
++  scwbs wbs candidates
++  scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json>
+   scwbs wbs apply <change-set.json> [--force] [--output <file>]
+ `);
+ }
+@@ -112,6 +114,16 @@ function booleanAfter(args: string[], flag: string): boolean | undefined {
+   return undefined;
+ }
+ 
++function valuesAfter(args: string[], flag: string): string[] {
++  const values: string[] = [];
++  for (let index = 0; index < args.length; index += 1) {
++    const arg = args[index];
++    if (arg === flag && args[index + 1]) values.push(args[index + 1]);
++    if (arg?.startsWith(`${flag}=`)) values.push(arg.slice(flag.length + 1));
++  }
++  return values;
++}
++
+ function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
+   const assertionsAdded = booleanAfter(args, "--test-assertions-added");
+   const testsDisabled = booleanAfter(args, "--tests-disabled");
+@@ -194,7 +206,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       console.error("Missing block reason");
+       return 2;
+     }
+-    return runAiBlock(root, taskId, reason);
++    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
+   }
+   if (command === "request-approval") {
+     const taskId = valueAfter(argv, "--task");
+@@ -217,6 +229,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     return runApprovalApprove(root, taskId, {
+       pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+       reason: textAfter(argv, "--reason"),
++      actor: valueAfter(argv, "--actor"),
+       force: argv.includes("--force")
+     });
+   }
+@@ -260,7 +273,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       console.error("Missing --task <task-id>");
+       return 2;
+     }
+-    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base") });
++    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base"), json: argv.includes("--json") });
+   }
+   if (command === "ai" && subcommand === "packet") {
+     const taskId = valueAfter(argv, "--task");
+@@ -294,7 +307,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       console.error("Missing --reason <reason>");
+       return 2;
+     }
+-    return runAiBlock(root, taskId, reason);
++    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
+   }
+   if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
+   if (command === "approval" && subcommand === "request") {
+@@ -318,6 +331,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     return runApprovalApprove(root, taskId, {
+       pullRequest: valueAfter(argv, "--pull-request"),
+       reason: textAfter(argv, "--reason"),
++      actor: valueAfter(argv, "--actor"),
+       force: argv.includes("--force")
+     });
+   }
+@@ -427,6 +441,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     return runTaskRefresh(root, taskId, { apply: argv.includes("--apply") });
+   }
+   if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
++  if (command === "wbs" && subcommand === "candidates") return runWbsCandidates(root);
++  if (command === "wbs" && subcommand === "verify-changesets") {
++    return runWbsVerifyChangesets(root, {
++      base: valueAfter(argv, "--base"),
++      head: valueAfter(argv, "--head"),
++      changeSets: valuesAfter(argv, "--changeset")
++    });
++  }
+   if (command === "wbs" && subcommand === "apply") {
+     if (!third) {
+       console.error("Missing change-set.json");
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 34f1674..c21414f 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -1,4 +1,6 @@
++import { existsSync } from "node:fs";
+ import { readTask } from "../core/contracts.js";
++import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { AiPacketFormat, WbsDocument, WbsNode } from "../core/types.js";
+ 
+@@ -45,6 +47,48 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1, f
+   if (!task) {
+     throw new Error(issues.map((issue) => issue.message).join("\n"));
+   }
++  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++    return `# AI Work Packet
++
++## Role
++Implementation Agent
++
++## Task
++${task.id} ${task.doneCriteria[0] ?? ""}
++
++## WBS Node
++- Node ID: ${task.wbsNodeId}
++- Status: WBS document not present; use Task Contract and tasks index as ground truth.
++- Feature: ${task.featureId}
++
++## Scope
++${task.doneCriteria.length === 0 ? "- Not specified" : task.doneCriteria.map((item) => `- ${item}`).join("\n")}
++
++## Allowed Paths
++${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++
++## Forbidden Paths
++${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++
++## Human Gate Required Paths
++${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++
++## Required Checks
++${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
++
++## Context Filter
++- Relation depth: ${Math.max(0, relationDepth)}
++- Included WBS nodes: 0
++- Rule: WBS-less packet uses the Task Contract only.
++
++## Stop Conditions
++- DBスキーマ変更が必要
++- 認証・権限変更が必要
++- API契約の破壊的変更が必要
++- Business Ruleが不足している
++- allowedPaths外の変更が必要
++`;
++  }
+   const wbs = readWbs(root);
+   const node = findNode(wbs, task.wbsNodeId);
+   if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+@@ -133,6 +177,26 @@ export function buildTinyPacket(root: string, taskId: string): string {
+   if (!task) {
+     throw new Error(issues.map((issue) => issue.message).join("\n"));
+   }
++  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++    return `# Tiny Packet
++Task: ${task.id}
++Node: ${task.wbsNodeId}
++Branch: ${task.branchName ?? "(none)"}
++Goal:
++${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
++Allowed:
++${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++Forbidden:
++${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++Human Gate:
++${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++Checks:
++${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
++Next:
++- npm run scwbs -- finish --task ${task.id}
++- npm run scwbs -- block "reason" --task ${task.id}
++`;
++  }
+   const wbs = readWbs(root);
+   const node = findNode(wbs, task.wbsNodeId);
+   if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index e968547..8e0e36f 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -1,5 +1,10 @@
++import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import path from "node:path";
+ import { evidenceExists, listTasks, readTask } from "../core/contracts.js";
++import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
++import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
++import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ 
+ type BlockChangeSet = {
+@@ -28,6 +33,68 @@ function loadTaskAndNode(root: string, taskId: string) {
+   return { task, wbs, node };
+ }
+ 
++export function classifyBlockReason(reason: string): Pick<BlockRecord, "category" | "level" | "requiredHumanDecision"> {
++  const lowered = reason.toLowerCase();
++  if (/db|database|schema|migration/.test(lowered)) {
++    return { category: "db", level: 2, requiredHumanDecision: "Decide database schema or migration scope before implementation continues." };
++  }
++  if (/auth|authentication|authorization|permission|権限|認証/.test(lowered)) {
++    return { category: /permission|権限/.test(lowered) ? "permission" : "auth", level: 2, requiredHumanDecision: "Decide authentication or permission design before implementation continues." };
++  }
++  if (/security|secret|personal|pii|個人情報|セキュリティ/.test(lowered)) {
++    return { category: "security", level: 2, requiredHumanDecision: "Decide security or privacy handling before implementation continues." };
++  }
++  if (/breaking|api|破壊/.test(lowered)) {
++    return { category: "breaking-api", level: 2, requiredHumanDecision: "Decide API compatibility and rollout policy before implementation continues." };
++  }
++  if (/business|rule|業務/.test(lowered)) {
++    return { category: "business-rule", level: 2, requiredHumanDecision: "Decide the missing business rule before implementation continues." };
++  }
++  if (/external|service|billing|release|課金|外部|リリース/.test(lowered)) {
++    return { category: "external-service", level: 2, requiredHumanDecision: "Decide external service, billing, or release impact before implementation continues." };
++  }
++  if (/human gate|human-gate|gate|人間|human/.test(lowered)) {
++    return { category: "human-gate", level: 1, requiredHumanDecision: "Complete the required human gate decision before implementation continues." };
++  }
++  return { category: "unknown", level: 1, requiredHumanDecision: "Clarify the blocking decision before implementation continues." };
++}
++
++export function buildBlockRecord(taskId: string, reason: string, now = new Date().toISOString()): BlockRecord {
++  const classified = classifyBlockReason(reason);
++  return {
++    id: `BLK-${taskId}`,
++    type: "block",
++    taskId,
++    status: "blocked",
++    ...classified,
++    reason,
++    createdAt: now
++  };
++}
++
++export function buildBlockRecordYaml(taskId: string, reason: string, now?: string): string {
++  return stringifySimpleYaml(buildBlockRecord(taskId, reason, now) as unknown as Record<string, unknown>);
++}
++
++export function buildBlockSpecChange(taskId: string, reason: string): SpecChangeProposal {
++  const classified = classifyBlockReason(reason);
++  return {
++    id: `SCP-${taskId}-block`,
++    type: "spec-change-proposal",
++    status: "proposed",
++    targetSpec: "TBD",
++    currentVersion: "TBD",
++    proposedVersion: "TBD",
++    taskId,
++    level: classified.level,
++    summary: `Resolve block for ${taskId}`,
++    rationale: [reason, classified.requiredHumanDecision],
++    affectedPaths: [],
++    approval: { required: classified.level === 2, status: "requested" },
++    risks: ["Implementation must remain stopped until this proposal is resolved."]
++  };
++}
++
+ export function buildBlockChangeSet(root: string, taskId: string, reason: string): string {
+   const { task, wbs, node } = loadTaskAndNode(root, taskId);
+   const changeSet: BlockChangeSet = {
+@@ -49,9 +116,30 @@ export function buildBlockChangeSet(root: string, taskId: string, reason: string
+   return `${JSON.stringify(changeSet, null, 2)}\n`;
+ }
+ 
+-export function runAiBlock(root: string, taskId: string, reason: string): number {
++export function runAiBlock(root: string, taskId: string, reason: string, options: { specChange?: boolean } = {}): number {
+   try {
+-    process.stdout.write(buildBlockChangeSet(root, taskId, reason));
++    const taskResult = readTask(root, taskId);
++    if (!taskResult.task) throw new Error(taskResult.issues.map((issue) => issue.message).join("\n"));
++    const relativePath = blockPath(taskId);
++    const fullPath = resolveFrom(root, relativePath);
++    mkdirSync(path.dirname(fullPath), { recursive: true });
++    const yaml = buildBlockRecordYaml(taskId, reason);
++    writeFileSync(fullPath, yaml, "utf8");
++    process.stdout.write(yaml);
++    if (options.specChange) {
++      const specChange = buildBlockSpecChange(taskId, reason);
++      const specChangeRelativePath = specChangePath(specChange.id);
++      const specChangeFullPath = resolveFrom(root, specChangeRelativePath);
++      mkdirSync(path.dirname(specChangeFullPath), { recursive: true });
++      writeFileSync(specChangeFullPath, stringifySimpleYaml(specChange as unknown as Record<string, unknown>), "utf8");
++      process.stdout.write(`\nSpec Change Proposal: ${specChangeRelativePath}\n`);
++    }
++    process.stdout.write(`\nHuman decision required: ${buildBlockRecord(taskId, reason).requiredHumanDecision}\n`);
++    process.stdout.write("AI must stop implementation until the block is resolved.\n");
++    if (existsSync(resolveFrom(root, defaultWbsPath))) {
++      process.stdout.write("\nWBS block change-set preview:\n");
++      process.stdout.write(buildBlockChangeSet(root, taskId, reason));
++    }
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+@@ -60,6 +148,14 @@ export function runAiBlock(root: string, taskId: string, reason: string): number
+ }
+ 
+ export function buildNextTask(root: string): string {
++  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++    const candidates = listTasks(root)
++      .flatMap(({ task }) => task && !evidenceExists(root, task.id) ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
++      .sort((a, b) => a.taskId.localeCompare(b.taskId));
++    if (candidates.length === 0) return "No available planned tasks.\n";
++    const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
++    return `${lines.join("\n")}\n`;
++  }
+   const wbs = readWbs(root);
+   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
+   const tasks = listTasks(root);
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index c5c1d19..f36fbe8 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -1,6 +1,6 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { readApproval } from "../core/contracts.js";
++import { readApproval, readEvidence } from "../core/contracts.js";
+ import { approvalPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { ApprovalRecord } from "../core/types.js";
+@@ -20,7 +20,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
+   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+-export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string }): ApprovalRecord {
++export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): ApprovalRecord {
+   return {
+     id: `APR-${taskId}`,
+     type: "approval",
+@@ -28,15 +28,25 @@ export function buildApprovalApprove(taskId: string, options: { pullRequest?: st
+     status: "approved",
+     approvedBy: options.approvedBy ?? "human",
+     approvedAt: options.approvedAt ?? new Date().toISOString(),
++    ...(options.headCommit ? { headCommit: options.headCommit } : {}),
++    ...(options.diffHash ? { diffHash: options.diffHash } : {}),
+     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+     ...(options.reason ? { reason: options.reason } : {})
+   };
+ }
+ 
+-export function buildApprovalApproveYaml(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string }): string {
++export function buildApprovalApproveYaml(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): string {
+   return stringifySimpleYaml(buildApprovalApprove(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
++function evidenceSubject(root: string, taskId: string): { headCommit?: string; diffHash?: string } {
++  const { evidence } = readEvidence(root, taskId);
++  return {
++    headCommit: evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit,
++    diffHash: evidence?.diffHash ?? evidence?.git?.diffHash
++  };
++}
++
+ export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
+   try {
+     const relativePath = approvalPath(taskId);
+@@ -57,8 +67,12 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+   }
+ }
+ 
+-export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean }): number {
++export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string }): number {
+   try {
++    if ((options.actor ?? process.env.SCWBS_AGENT_MODE) === "ai") {
++      console.error("AI execution mode cannot approve human gates; request human approval instead");
++      return 1;
++    }
+     const relativePath = approvalPath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     const { approval, issues } = readApproval(root, taskId);
+@@ -78,7 +92,8 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     const yaml = buildApprovalApproveYaml(taskId, {
+       pullRequest: options.pullRequest ?? approval?.pullRequest,
+       reason: options.reason,
+-      approvedBy: options.approvedBy
++      approvedBy: options.approvedBy,
++      ...evidenceSubject(root, taskId)
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 1c63887..48765f6 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -20,7 +20,13 @@ function requiresMetaFileGuard(file: string): boolean {
+ }
+ 
+ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
+-  return readApproval(root, taskId).approval?.status === "approved";
++  const approval = readApproval(root, taskId).approval;
++  if (approval?.status !== "approved") return false;
++  const evidence = readEvidence(root, taskId).evidence;
++  const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
++  const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
++  if (!approval.headCommit || !approval.diffHash || !evidenceHead || !evidenceDiffHash) return false;
++  return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
+ }
+ 
+ /**
+@@ -114,10 +120,12 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
+   }));
+ }
+ 
+-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string } = {}): number {
++export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean } = {}): number {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) {
+-    printIssues(withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`));
++    const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
++    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
++    else printIssues(taskIssues);
+     return 1;
+   }
+   const baseRef = options.baseRef ?? "origin/main";
+@@ -125,12 +133,14 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   try {
+     files = branchChangedFiles(root, baseRef);
+   } catch (error) {
+-    printIssues([{
++    const baseIssues = [{
+       severity: "error",
+       code: "diff.git.base",
+       message: error instanceof Error ? error.message : String(error),
+       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
+-    }]);
++    }] as Issue[];
++    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues }, null, 2));
++    else printIssues(baseIssues);
+     return 1;
+   }
+   const diffIssues = withDefaultFixCommand([
+@@ -139,9 +149,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+     ...collectDiffIssues(root, task, files)
+   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+   if (diffIssues.length === 0) {
+-    console.log(`PASS check-diff ${taskId}`);
++    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [] }, null, 2));
++    else console.log(`PASS check-diff ${taskId}`);
+     return 0;
+   }
+-  printIssues(diffIssues);
++  if (options.json) console.log(JSON.stringify({ status: hasErrors(diffIssues) ? "fail" : "warn", taskId, issues: diffIssues }, null, 2));
++  else printIssues(diffIssues);
+   return hasErrors(diffIssues) ? 1 : 0;
+ }
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 873add0..e681ded 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -1,5 +1,5 @@
+ import { existsSync } from "node:fs";
+-import { approvalExists, evidenceExists, listApprovals, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
++import { approvalExists, evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+ import { workingTreeChangedFiles } from "../core/git.js";
+ import { fileSha256 } from "../core/hash.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+@@ -131,6 +131,7 @@ function validateRegistryContracts(root: string, registry: Registry | undefined)
+ 
+ function validateIndexedSpecs(root: string, registry: Registry | undefined): Issue[] {
+   const issues: Issue[] = [];
++  if (!registry) return issues;
+   for (const entry of listSpecs(root)) {
+     issues.push(...entry.issues);
+     if (!entry.spec) continue;
+@@ -148,6 +149,7 @@ function validateIndexedSpecs(root: string, registry: Registry | undefined): Iss
+ 
+ function validateIndexedSpecChanges(root: string, registry: Registry | undefined): Issue[] {
+   const issues: Issue[] = [];
++  if (!registry) return issues;
+   for (const entry of listSpecChanges(root)) {
+     issues.push(...entry.issues);
+     if (!entry.specChange) continue;
+@@ -180,18 +182,24 @@ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
+ 
+ export function collectCheckIssues(root: string): Issue[] {
+   const issues: Issue[] = [];
+-  issues.push(...runWjsValidate(root));
+-  if (issues.some((item) => item.code === "wjs.validate")) return issues;
+-  issues.push(...validateWbsDocument(root));
++  const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
++  if (hasWbs) {
++    issues.push(...runWjsValidate(root));
++    if (issues.some((item) => item.code === "wjs.validate")) return issues;
++    issues.push(...validateWbsDocument(root));
++  }
+ 
+   let wbs: WbsDocument | undefined;
+-  try {
+-    wbs = readWbs(root);
+-  } catch (error) {
+-    issues.push({ severity: "error", code: "wbs.read", message: error instanceof Error ? error.message : String(error) });
++  if (hasWbs) {
++    try {
++      wbs = readWbs(root);
++    } catch (error) {
++      issues.push({ severity: "error", code: "wbs.read", message: error instanceof Error ? error.message : String(error) });
++    }
+   }
+ 
+-  const { registry, issues: registryIssues } = readRegistry(root);
++  const hasRegistry = existsSync(resolveFrom(root, "contracts/registry.yaml"));
++  const { registry, issues: registryIssues } = hasRegistry ? readRegistry(root) : { registry: undefined, issues: [] };
+   issues.push(...registryIssues);
+   issues.push(...validateRegistryContracts(root, registry));
+   issues.push(...validateIndexedSpecs(root, registry));
+@@ -199,6 +207,9 @@ export function collectCheckIssues(root: string): Issue[] {
+   for (const entry of listApprovals(root)) {
+     issues.push(...entry.issues);
+   }
++  for (const entry of listBlocks(root)) {
++    issues.push(...entry.issues);
++  }
+ 
+   for (const entry of listTasks(root)) {
+     issues.push(...entry.issues);
+diff --git a/src/commands/profile.ts b/src/commands/profile.ts
+index 2af09db..c48c781 100644
+--- a/src/commands/profile.ts
++++ b/src/commands/profile.ts
+@@ -1,4 +1,4 @@
+-import { writeFileSync } from "node:fs";
++import { existsSync, writeFileSync } from "node:fs";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import type { Profile } from "../core/types.js";
+ import { readWbs } from "../core/wbs.js";
+@@ -12,6 +12,7 @@ function normalizeProfile(value: string): Profile | undefined {
+ }
+ 
+ export function readProfile(root: string): Profile {
++  if (!existsSync(resolveFrom(root, defaultWbsPath))) return "Standard";
+   const wbs = readWbs(root);
+   const scwbs = wbs.extensions?.scwbs;
+   const profile = typeof scwbs === "object" && scwbs !== null ? (scwbs as Record<string, unknown>).profile : undefined;
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index c880302..da9ab8d 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -1,11 +1,11 @@
+ import { existsSync, readFileSync, writeFileSync } from "node:fs";
+-import { listApprovals, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+-import { defaultRegistryPath, resolveFrom } from "../core/paths.js";
++import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
++import { defaultRegistryPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+ 
+ export function buildRegistryYaml(root: string): string {
+-  const wbs = readWbs(root);
++  const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
+   const contracts: Record<string, unknown>[] = [];
+   for (const { spec, path } of listSpecs(root)) {
+     if (!spec) continue;
+@@ -27,12 +27,16 @@ export function buildRegistryYaml(root: string): string {
+     if (!approval) continue;
+     contracts.push({ id: approval.id, type: "approval", path, status: approval.status, relatedTask: approval.taskId });
+   }
++  for (const { block, path } of listBlocks(root)) {
++    if (!block) continue;
++    contracts.push({ id: block.id, type: "block", path, status: block.status, relatedTask: block.taskId });
++  }
+   for (const { review, path } of listReviews(root)) {
+     if (!review) continue;
+     contracts.push({ id: review.id, type: "review", path, status: review.status, relatedTask: review.taskId });
+   }
+   contracts.sort((a, b) => String(a.path).localeCompare(String(b.path)));
+-  return stringifySimpleYaml({ projectId: wbs.id, contracts });
++  return stringifySimpleYaml({ projectId, contracts });
+ }
+ 
+ export function runRegistryRebuild(root: string, options: { check: boolean; force: boolean }): number {
+diff --git a/src/commands/review-request.ts b/src/commands/review-request.ts
+index b85190a..00df486 100644
+--- a/src/commands/review-request.ts
++++ b/src/commands/review-request.ts
+@@ -47,13 +47,24 @@ export function buildReviewRouteReport(root: string, taskId: string): string {
+   return lines.join("\n");
+ }
+ 
+-export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[] }): ReviewRecord {
++function evidenceSubject(evidence: Evidence | undefined): { headCommit?: string; diffHash?: string } {
++  const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
++  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
++  return {
++    ...(headCommit ? { headCommit } : {}),
++    ...(diffHash ? { diffHash } : {})
++  };
++}
++
++export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): ReviewRecord {
++  const subject = evidenceSubject(options.evidence);
+   return {
+     id: `RVW-${taskId}`,
+     type: "review",
+     taskId,
+     status: "requested",
+     reviewProfile: "independent-ai-review",
++    ...subject,
+     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+     groundTruth: [
+       taskPath(taskId),
+@@ -63,7 +74,7 @@ export function buildReviewRequest(taskId: string, options: { pullRequest?: stri
+   };
+ }
+ 
+-export function buildReviewRequestYaml(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[] }): string {
++export function buildReviewRequestYaml(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): string {
+   return stringifySimpleYaml(buildReviewRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+@@ -91,6 +102,7 @@ export function runReviewRequest(root: string, taskId: string, options: { pullRe
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     const yaml = buildReviewRequestYaml(taskId, {
+       ...options,
++      evidence,
+       requestedReviewers: routeReviewers(task, evidence)
+     });
+     writeFileSync(fullPath, yaml, "utf8");
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 79919fb..c4f0904 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -17,6 +17,15 @@ function stamp(): string {
+   return Date.now().toString(36).toUpperCase();
+ }
+ 
++export function nextDraftTaskId(root: string, baseStamp = stamp()): string {
++  const baseId = `SCWBS-DRAFT-${baseStamp}`;
++  for (let index = 1; index < 1000; index += 1) {
++    const candidate = index === 1 ? baseId : `${baseId}-${index}`;
++    if (!existsSync(resolveFrom(root, taskPath(candidate)))) return candidate;
++  }
++  throw new Error(`Could not allocate a draft task id for ${baseId}`);
++}
++
+ function splitList(value: string | undefined, fallback: string[]): string[] {
+   if (!value) return fallback;
+   const items = value.split(",").map((item) => item.trim()).filter(Boolean);
+@@ -57,8 +66,9 @@ export function buildCoreTaskNew(title: string, options: {
+   checks?: string;
+   stop?: string;
+   wbsNode?: string;
++  id?: string;
+ } = {}): { task: TaskContract; fallback: TaskNewFallback } {
+-  const id = `SCWBS-DRAFT-${stamp()}`;
++  const id = options.id ?? `SCWBS-DRAFT-${stamp()}`;
+   const { title: resolvedTitle, fallback } = resolveTaskTitle(title, id);
+   const safeTitle = slug(resolvedTitle);
+   const task: TaskContract = {
+@@ -72,7 +82,7 @@ export function buildCoreTaskNew(title: string, options: {
+     humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
+     stopIf: splitList(options.stop, []),
+     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
+-    doneCriteria: [`Complete: ${resolvedTitle}`],
++    doneCriteria: [`Complete ${resolvedTitle}`],
+     evidenceRequired: ["test-result", "typecheck-result", "build-result"]
+   };
+   return { task, fallback };
+@@ -121,6 +131,8 @@ function appendTaskIndex(root: string, task: TaskContract): void {
+     `    path: ${taskPath(task.id)}`,
+     `    branchName: ${task.branchName ?? ""}`,
+     `    wbsNodeId: ${task.wbsNodeId}`,
++    "    status: planned",
++    "    dependsOn: []",
+     ""
+   ].join("\n");
+   writeFileSync(fullPath, `${prefix}${entry}`, "utf8");
+@@ -135,7 +147,7 @@ export function runTaskNew(root: string, title: string, options: {
+   wbsNode?: string;
+ } = {}): number {
+   try {
+-    const { task, fallback } = buildCoreTaskNew(title, options);
++    const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
+     const relativePath = taskPath(task.id);
+     const fullPath = resolveFrom(root, relativePath);
+     if (existsSync(fullPath)) {
+diff --git a/src/commands/wbs.ts b/src/commands/wbs.ts
+index 1d77f87..f6411a4 100644
+--- a/src/commands/wbs.ts
++++ b/src/commands/wbs.ts
+@@ -1,9 +1,10 @@
+-import { existsSync } from "node:fs";
++import { existsSync, readFileSync } from "node:fs";
+ import { spawnSync } from "node:child_process";
+ import path from "node:path";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import { runWjsValidate } from "../core/wbs.js";
++import type { WbsDocument } from "../core/types.js";
+ 
+ export function runWbsValidate(root: string): number {
+   const issues = runWjsValidate(root);
+@@ -41,3 +42,108 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
+   if (result.stderr) process.stderr.write(result.stderr);
+   return result.status ?? 1;
+ }
++
++function normalizeJson(value: unknown): string {
++  return JSON.stringify(value, null, 2);
++}
++
++function canonical(value: unknown): unknown {
++  if (Array.isArray(value)) return value.map(canonical);
++  if (value && typeof value === "object") {
++    return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]));
++  }
++  return value;
++}
++
++export function applyWbsChangesets(base: WbsDocument, changeSets: Array<Record<string, unknown>>): WbsDocument {
++  const next = JSON.parse(JSON.stringify(base)) as WbsDocument;
++  for (const changeSet of changeSets) {
++    const operations = Array.isArray(changeSet.operations) ? changeSet.operations : [];
++    for (const rawOperation of operations) {
++      if (!rawOperation || typeof rawOperation !== "object") continue;
++      const operation = rawOperation as Record<string, unknown>;
++      if (operation.operation === "changeNodeStatus" && typeof operation.nodeId === "string" && typeof operation.status === "string") {
++        const node = next.nodes.find((item) => item.id === operation.nodeId);
++        if (node) node.status = operation.status as WbsDocument["nodes"][number]["status"];
++      }
++      if (operation.operation === "addNode" && typeof operation.nodeId === "string") {
++        if (next.nodes.some((item) => item.id === operation.nodeId)) continue;
++        next.nodes.push({
++          id: operation.nodeId,
++          parentId: typeof operation.parentId === "string" ? operation.parentId : next.rootId,
++          code: typeof operation.code === "string" ? operation.code : operation.nodeId,
++          name: typeof operation.name === "string" ? operation.name : operation.nodeId,
++          type: operation.type === "summary" || operation.type === "deliverable" || operation.type === "activity" || operation.type === "milestone" ? operation.type : "workPackage",
++          status: operation.status === "draft" || operation.status === "ready" || operation.status === "inProgress" || operation.status === "blocked" || operation.status === "completed" || operation.status === "cancelled" ? operation.status : "planned"
++        });
++      }
++      if (operation.operation === "addNodeOutput" && typeof operation.nodeId === "string" && typeof operation.artifactId === "string") {
++        const node = next.nodes.find((item) => item.id === operation.nodeId);
++        if (node) node.outputs = [...new Set([...(node.outputs ?? []), operation.artifactId])];
++      }
++    }
++  }
++  return next;
++}
++
++export function verifyWbsChangesets(root: string, basePath: string, headPath: string, changeSetPaths: string[]): boolean {
++  const base = JSON.parse(readFileSync(resolveFrom(root, basePath), "utf8")) as WbsDocument;
++  const head = JSON.parse(readFileSync(resolveFrom(root, headPath), "utf8")) as WbsDocument;
++  const changeSets = changeSetPaths.map((file) => JSON.parse(readFileSync(resolveFrom(root, file), "utf8")) as Record<string, unknown>);
++  return normalizeJson(canonical(applyWbsChangesets(base, changeSets))) === normalizeJson(canonical(head));
++}
++
++export function runWbsVerifyChangesets(root: string, options: { base?: string; head?: string; changeSets: string[] }): number {
++  if (!options.base || !options.head || options.changeSets.length === 0) {
++    console.error("Usage: scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json> [--changeset <change-set.json>...]");
++    return 2;
++  }
++  try {
++    if (verifyWbsChangesets(root, options.base, options.head, options.changeSets)) {
++      console.log("PASS wbs verify-changesets");
++      return 0;
++    }
++    console.error("WBS changesets do not reproduce the head WBS");
++    return 1;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function buildWbsCandidatesFromTaskIndex(root: string): string {
++  const indexPath = resolveFrom(root, "contracts/tasks/index.yaml");
++  if (!existsSync(indexPath)) {
++    return `${JSON.stringify({ schemaVersion: "0.1.0", targetWbsId: "scwbs", changeSetId: "changeset-wbs-candidates", author: "scwbs-cli", reason: "No task index exists.", dryRun: true, operations: [] }, null, 2)}\n`;
++  }
++  const text = readFileSync(indexPath, "utf8");
++  const ids = [...text.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]?.trim()).filter((value): value is string => Boolean(value));
++  const operations = ids.map((id, index) => ({
++    operationId: `op-${String(index + 1).padStart(3, "0")}`,
++    operation: "addNode",
++    nodeId: `node-${id.toLowerCase()}`,
++    parentId: "root",
++    name: id,
++    type: "workPackage",
++    status: "planned"
++  }));
++  return `${JSON.stringify({
++    schemaVersion: "0.1.0",
++    targetWbsId: "scwbs",
++    changeSetId: "changeset-wbs-candidates",
++    author: "scwbs-cli",
++    reason: "Candidate WBS nodes generated from contracts/tasks/index.yaml. Review before applying.",
++    dryRun: true,
++    operations
++  }, null, 2)}\n`;
++}
++
++export function runWbsCandidates(root: string): number {
++  try {
++    process.stdout.write(buildWbsCandidatesFromTaskIndex(root));
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index 5106176..e1d0e61 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,8 +1,8 @@
+ import { existsSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
+-import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+-import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+-import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
++import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
++import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
++import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+@@ -78,6 +78,17 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
+   return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
+ }
+ 
++export function readBlock(root: string, taskId: string): { block?: BlockRecord; issues: Issue[] } {
++  const relativePath = blockPath(taskId);
++  const fullPath = resolveFrom(root, relativePath);
++  if (!existsSync(fullPath)) {
++    return { issues: [{ severity: "error", code: "block.missing", message: `${relativePath} does not exist` }] };
++  }
++  const value = readYamlFile<unknown>(fullPath);
++  const issues = [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)];
++  return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues };
++}
++
+ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
+   const dir = resolveFrom(root, defaultTasksDir);
+   if (!existsSync(dir)) return [];
+@@ -156,6 +167,19 @@ export function listReviews(root: string): Array<{ review?: ReviewRecord; issues
+     });
+ }
+ 
++export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: Issue[]; path: string }> {
++  const dir = resolveFrom(root, defaultBlocksDir);
++  if (!existsSync(dir)) return [];
++  return readdirSync(dir)
++    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
++    .map((file) => {
++      const path = `${defaultBlocksDir}/${file}`;
++      const value = readYamlFile<unknown>(resolveFrom(root, path));
++      const issues = [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)];
++      return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues, path };
++    });
++}
++
+ export function matchingSpecContract(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
+   return registry?.contracts.find((contract) => {
+     if (contract.type !== "spec") return false;
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index 95f35d2..c0e0d72 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -8,6 +8,7 @@ export const defaultTasksDir = "contracts/tasks";
+ export const defaultEvidenceDir = "contracts/evidence";
+ export const defaultApprovalsDir = "contracts/approvals";
+ export const defaultReviewsDir = "contracts/reviews";
++export const defaultBlocksDir = "contracts/blocks";
+ 
+ export function resolveFrom(root: string, relativePath: string): string {
+   return path.resolve(root, relativePath);
+@@ -36,3 +37,7 @@ export function approvalPath(taskId: string): string {
+ export function reviewPath(taskId: string): string {
+   return `${defaultReviewsDir}/${taskId}.yaml`;
+ }
++
++export function blockPath(taskId: string): string {
++  return `${defaultBlocksDir}/${taskId}.yaml`;
++}
+diff --git a/src/core/schema.ts b/src/core/schema.ts
+index 67abb36..c88e407 100644
+--- a/src/core/schema.ts
++++ b/src/core/schema.ts
+@@ -1,5 +1,5 @@
+ import { Ajv, type ErrorObject } from "ajv";
+-import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
++import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
+ 
+ function isObject(value: unknown): value is Record<string, unknown> {
+   return typeof value === "object" && value !== null && !Array.isArray(value);
+@@ -34,7 +34,7 @@ const registrySchema = {
+         additionalProperties: true,
+         properties: {
+           id: { type: "string", minLength: 1 },
+-          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "adr"] },
++          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
+           path: { type: "string", minLength: 1 },
+           status: { type: "string" },
+           version: { type: "string" },
+@@ -200,12 +200,31 @@ const approvalRecordSchema = {
+     status: { type: "string", enum: ["requested", "approved", "rejected"] },
+     approvedBy: { type: "string" },
+     approvedAt: { type: "string" },
++    headCommit: { type: "string" },
++    diffHash: { type: "string" },
+     pullRequest: { type: "string" },
+     reason: { type: "string" },
+     notes: stringArraySchema
+   }
+ };
+ 
++const blockRecordSchema = {
++  type: "object",
++  required: ["id", "type", "taskId", "status", "level", "category", "reason", "requiredHumanDecision", "createdAt"],
++  additionalProperties: true,
++  properties: {
++    id: { type: "string", minLength: 1 },
++    type: { const: "block" },
++    taskId: { type: "string", minLength: 1 },
++    status: { const: "blocked" },
++    level: { type: "integer", enum: [1, 2] },
++    category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
++    reason: { type: "string", minLength: 1 },
++    requiredHumanDecision: { type: "string", minLength: 1 },
++    createdAt: { type: "string" }
++  }
++};
++
+ const reviewRecordSchema = {
+   type: "object",
+   required: ["id", "type", "taskId", "status", "reviewProfile", "groundTruth"],
+@@ -216,6 +235,8 @@ const reviewRecordSchema = {
+     taskId: { type: "string", minLength: 1 },
+     status: { type: "string", enum: ["requested", "approved", "changes-requested"] },
+     reviewProfile: { type: "string", minLength: 1 },
++    headCommit: { type: "string" },
++    diffHash: { type: "string" },
+     pullRequest: { type: "string" },
+     groundTruth: stringArraySchema,
+     requestedReviewers: {
+@@ -242,6 +263,7 @@ const schemaValidators = {
+   task: ajv.compile(taskContractSchema),
+   evidence: ajv.compile(evidenceSchema),
+   approval: ajv.compile(approvalRecordSchema),
++  block: ajv.compile(blockRecordSchema),
+   review: ajv.compile(reviewRecordSchema)
+ };
+ 
+@@ -279,6 +301,10 @@ export function validateApprovalRecordSchema(value: unknown, filePath = "approva
+   return schemaIssues("approval", value, filePath);
+ }
+ 
++export function validateBlockRecordSchema(value: unknown, filePath = "block"): Issue[] {
++  return schemaIssues("block", value, filePath);
++}
++
+ export function validateReviewRecordSchema(value: unknown, filePath = "review"): Issue[] {
+   return schemaIssues("review", value, filePath);
+ }
+@@ -536,7 +562,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
+     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
+   }
+-  for (const key of ["approvedBy", "approvedAt", "pullRequest", "reason"]) {
++  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason"]) {
+     if (value[key] !== undefined && typeof value[key] !== "string") {
+       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
+     }
+@@ -558,6 +584,33 @@ export function asApprovalRecord(value: unknown): ApprovalRecord {
+   return value as ApprovalRecord;
+ }
+ 
++export function validateBlockRecord(value: unknown, filePath = "block"): Issue[] {
++  const issues: Issue[] = [];
++  if (!isObject(value)) return [issue("block.invalid", `${filePath} must be an object`)];
++  for (const key of ["id", "type", "taskId", "status", "category", "reason", "requiredHumanDecision", "createdAt"]) {
++    if (typeof value[key] !== "string" || value[key].length === 0) {
++      issues.push(issue("block.field", `${filePath}.${key} must be a non-empty string`));
++    }
++  }
++  if (value.type !== "block") {
++    issues.push(issue("block.type", `${filePath}.type must be block`));
++  }
++  if (value.status !== "blocked") {
++    issues.push(issue("block.status", `${filePath}.status must be blocked`));
++  }
++  if (value.level !== 1 && value.level !== 2) {
++    issues.push(issue("block.level", `${filePath}.level must be 1 or 2`));
++  }
++  if (value.category !== undefined && !["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"].includes(String(value.category))) {
++    issues.push(issue("block.category", `${filePath}.category is not a known stop category`));
++  }
++  return issues;
++}
++
++export function asBlockRecord(value: unknown): BlockRecord {
++  return value as BlockRecord;
++}
++
+ export function validateReviewRecord(value: unknown, filePath = "review"): Issue[] {
+   const issues: Issue[] = [];
+   if (!isObject(value)) return [issue("review.invalid", `${filePath} must be an object`)];
+@@ -572,8 +625,10 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
+   if (value.status !== undefined && !["requested", "approved", "changes-requested"].includes(String(value.status))) {
+     issues.push(issue("review.status", `${filePath}.status must be requested, approved, or changes-requested`));
+   }
+-  if (value.pullRequest !== undefined && typeof value.pullRequest !== "string") {
+-    issues.push(issue("review.field", `${filePath}.pullRequest must be a string when present`));
++  for (const key of ["headCommit", "diffHash", "pullRequest"]) {
++    if (value[key] !== undefined && typeof value[key] !== "string") {
++      issues.push(issue("review.field", `${filePath}.${key} must be a string when present`));
++    }
+   }
+   if (!isStringArray(value.groundTruth)) {
+     issues.push(issue("review.groundTruth", `${filePath}.groundTruth must be a string array`));
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 5e03559..a28f5a8 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -7,7 +7,7 @@ export type Issue = {
+   fixCommand?: string;
+ };
+ 
+-export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "adr";
++export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
+ 
+ export type RegistryContract = {
+   id: string;
+@@ -149,17 +149,33 @@ export type ApprovalRecord = {
+   status: ApprovalStatus;
+   approvedBy?: string;
+   approvedAt?: string;
++  headCommit?: string;
++  diffHash?: string;
+   pullRequest?: string;
+   reason?: string;
+   notes?: string[];
+ };
+ 
++export type BlockRecord = {
++  id: string;
++  type: "block";
++  taskId: string;
++  status: "blocked";
++  level: 1 | 2;
++  category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
++  reason: string;
++  requiredHumanDecision: string;
++  createdAt: string;
++};
++
+ export type ReviewRecord = {
+   id: string;
+   type: "review";
+   taskId: string;
+   status: "requested" | "approved" | "changes-requested";
+   reviewProfile: "self-review" | "independent-ai-review" | "human-review" | string;
++  headCommit?: string;
++  diffHash?: string;
+   pullRequest?: string;
+   groundTruth: string[];
+   requestedReviewers?: Array<{
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 410c8a6..fd3da8a 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -9,7 +9,7 @@ import { buildCollectedEvidence, runEvidenceCollect } from "../src/commands/evid
+ import { buildDoctorReport } from "../src/commands/doctor.js";
+ import { buildStartArtifacts } from "../src/commands/start.js";
+ import { buildReviewQueue } from "../src/commands/review-queue.js";
+-import { buildBlockChangeSet, buildNextTask } from "../src/commands/ai-queue.js";
++import { buildBlockChangeSet, buildNextTask, runAiBlock } from "../src/commands/ai-queue.js";
+ import { collectHealthIssues, runHealth } from "../src/commands/health.js";
+ import { buildAiPacket } from "../src/commands/ai-packet.js";
+ import { readProfile, runProfileSet } from "../src/commands/profile.js";
+@@ -22,12 +22,12 @@ import { buildStatus } from "../src/commands/status.js";
+ import { buildNextAction } from "../src/commands/next.js";
+ import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
+ import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
+-import { buildCoreTaskNew, runTaskNew } from "../src/commands/task-new.js";
++import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../src/commands/task-new.js";
+ import { runFinish } from "../src/commands/finish.js";
+ import { runFix } from "../src/commands/fix.js";
+ import { resolveCheckCommand, isKnownCheck } from "../src/core/check-catalog.js";
+-import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
+-import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
++import { buildWbsCandidatesFromTaskIndex, runWbsValidate, runWbsApply, verifyWbsChangesets } from "../src/commands/wbs.js";
++import { listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
+ import { validateWbsDocument } from "../src/core/wbs.js";
+ import { main } from "../src/cli.js";
+@@ -266,10 +266,16 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+ 
+   test("check-diff accepts human-gated sensitive meta files with approved approval", () => {
+     const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+       status: "approved",
+       approvedBy: "Human Reviewer",
+-      approvedAt: "2026-07-05T14:30:00.000Z"
++      approvedAt: "2026-07-05T14:30:00.000Z",
++      headCommit: "abc1234",
++      diffHash: "diff1234"
+     }) as unknown as Record<string, unknown>);
+     const task = sampleTask({
+       allowedPaths: [],
+@@ -280,6 +286,27 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+   });
+ 
++  test("check-diff rejects human-gate approvals that do not match evidence diff scope", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-05T14:30:00.000Z",
++      headCommit: "abc1234",
++      diffHash: "old-diff"
++    }) as unknown as Record<string, unknown>);
++    const task = sampleTask({
++      allowedPaths: [],
++      humanGateRequiredPaths: ["tsconfig.json"]
++    });
++    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
++    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
++  });
++
+   test("check-diff treats managedContractPaths as exempt from allowedPaths and the meta-file guard (M2-019)", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({
+@@ -310,6 +337,28 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(errors.every((issue) => typeof issue.fixCommand === "string" && issue.fixCommand.length > 0)).toBe(true);
+   });
+ 
++  test("check-diff can emit CI-friendly JSON output", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName: "master" }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
++  });
++
+   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({ allowedPaths: ["contracts/**"] });
+@@ -1464,7 +1513,10 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(actual).toContain("  - src/**");
+     expect(actual).toContain("requiredChecks:");
+     expect(actual).toContain("  - typecheck");
+-    expect(readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8")).toContain("path: contracts/tasks/SCWBS-DRAFT-");
++    const index = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");
++    expect(index).toContain("path: contracts/tasks/SCWBS-DRAFT-");
++    expect(index).toContain("status: planned");
++    expect(index).toContain("dependsOn: []");
+   });
+ 
+   test("task new builds safe branch names and default checks", () => {
+@@ -1476,6 +1528,13 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+   });
+ 
++  test("task new retries draft task id collisions", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/tasks/SCWBS-DRAFT-ABC.yaml", sampleTask({ id: "SCWBS-DRAFT-ABC" }) as unknown as Record<string, unknown>);
++
++    expect(nextDraftTaskId(root, "ABC")).toBe("SCWBS-DRAFT-ABC-2");
++  });
++
+   test("task new generates stopIf entries from stop option", () => {
+     const { task } = buildCoreTaskNew("Stop Presets", {
+       stop: "db schema change,auth redesign"
+@@ -1508,6 +1567,17 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(changeset.operations[0].nodeId).toBe("node-project");
+   });
+ 
++  test("WBS-less task flow passes check and can generate WBS candidates", () => {
++    const root = makeTempRepo();
++
++    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test" })).toBe(0);
++    expect(collectCheckIssues(root)).toEqual([]);
++    const candidates = buildWbsCandidatesFromTaskIndex(root);
++    expect(candidates).toContain('"changeSetId": "changeset-wbs-candidates"');
++    expect(candidates).toContain('"operation": "addNode"');
++    expect(buildNextTask(root)).toContain("Planned task candidates:");
++  });
++
+   test("start prints pre-flight details and fails on branch mismatch", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -1577,6 +1647,23 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(main(["approve", "--task", "WBS-001-004", "--pr", "#42", "--reason=Reviewed"], root)).toBe(0);
+     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+     expect(main(["block", "Human Gate required", "--task", "WBS-001-004"], root)).toBe(0);
++    expect(readBlock(root, "WBS-001-004").block?.category).toBe("human-gate");
++  });
++
++  test("block writes a stop record and can draft a spec change proposal", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runAiBlock(root, "WBS-001-004", "DB schema change is required", { specChange: true })).toBe(0);
++    const { block } = readBlock(root, "WBS-001-004");
++    expect(block).toMatchObject({
++      type: "block",
++      taskId: "WBS-001-004",
++      status: "blocked",
++      level: 2,
++      category: "db"
++    });
++    expect(readSpecChange(root, "contracts/spec-changes/SCP-WBS-001-004-block.yaml").specChange?.level).toBe(2);
+   });
+ 
+   test("finish without task id or task branch fails with a fix command", () => {
+@@ -1654,16 +1741,30 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+   test("approval approve writes a human approved record", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
+ 
+     expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", force: false })).toBe(0);
+     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+     expect(actual).toContain("status: approved");
+     expect(actual).toContain("approvedBy: human");
+     expect(actual).toContain("approvedAt:");
++    expect(actual).toContain("headCommit: abc1234");
++    expect(actual).toContain("diffHash: diff1234");
+     expect(actual).toContain('pullRequest: "#42"');
+     expect(actual).toContain("reason: Evidence and PR reviewed");
+   });
+ 
++  test("approval approve rejects AI execution mode", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runApprovalApprove(root, "WBS-001-004", { reason: "AI should not approve", actor: "ai", force: false })).toBe(1);
++    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
++  });
++
+   test("approval approve updates requested records and protects existing approvals", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -1958,6 +2059,8 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
+       sampleEvidence({
++        subjectHeadCommit: "abc1234",
++        diffHash: "diff1234",
+         changedFiles: [
+           "src/features/api/index.ts",
+           "contracts/tasks/WBS-001-004.yaml"
+@@ -1973,6 +2076,8 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(review).toContain("requestedReviewers:");
+     expect(review).toContain("role: code-owner");
+     expect(review).toContain("role: methodology-owner");
++    expect(review).toContain("headCommit: abc1234");
++    expect(review).toContain("diffHash: diff1234");
+   });
+ 
+   test("health warns when changed test files lack test quality metadata", () => {
+@@ -2374,6 +2479,33 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(runWbsApply(root, "change-set.json", { force: false, output })).toBe(0);
+   });
+ 
++  test("wbs verify-changesets requires changesets to reproduce head WBS", () => {
++    const root = makeTempRepo();
++    const base = sampleWbs("planned");
++    const head = sampleWbs("planned");
++    const node = head.nodes.find((item) => item.id === "node-api");
++    if (node) node.status = "blocked";
++    writeJson(root, "base.wbs.json", base);
++    writeJson(root, "head.wbs.json", head);
++    writeJson(root, "change-set.json", {
++      schemaVersion: "0.1.0",
++      targetWbsId: "test-wbs",
++      changeSetId: "changeset-block",
++      operations: [
++        { operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }
++      ]
++    });
++    writeJson(root, "empty-change-set.json", {
++      schemaVersion: "0.1.0",
++      targetWbsId: "test-wbs",
++      changeSetId: "changeset-empty",
++      operations: []
++    });
++
++    expect(verifyWbsChangesets(root, "base.wbs.json", "head.wbs.json", ["change-set.json"])).toBe(true);
++    expect(verifyWbsChangesets(root, "base.wbs.json", "head.wbs.json", ["empty-change-set.json"])).toBe(false);
++  });
++
+   test("check command succeeds when task and evidence are consistent", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");

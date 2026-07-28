@@ -1,0 +1,128 @@
+diff --git a/contracts/changesets/SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow.json b/contracts/changesets/SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow.json
+new file mode 100644
+index 0000000..7a1597c
+--- /dev/null
++++ b/contracts/changesets/SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow.json
+@@ -0,0 +1,30 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow",
++  "author": "codex",
++  "reason": "Add a scoped M2 acceptance criterion for reducing metadata-only finish workflow overhead while preserving Evidence, Review, Registry, and check-diff guarantees.",
++  "dryRun": false,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "updateNode",
++      "nodeId": "node-core-evidence-diff-guard-completion",
++      "changes": {
++        "acceptanceCriteria": [
++          "M2-003: Check Catalog is explicitly defined.",
++          "M2-009: Evidence records subjectHeadCommit.",
++          "M2-011: diffHash is generated from the subject diff.",
++          "M2-012: Evidence file commits do not make subject evidence stale.",
++          "M2-018: humanGateRequiredPaths changes without approval are errors.",
++          "M2-019: managedContractPaths are modeled as controlled exceptions.",
++          "M2-022: all errors include fixCommand.",
++          "M2-023: scwbs fix runs only safe automatic repairs.",
++          "M2-024: metadata-only finish workflow avoids repeated Evidence, review request, registry rebuild, and check-diff work while preserving final Evidence and review metadata.",
++          "M2 test checks: human gate approval error, managedContractPaths, subjectHeadCommit stale handling, and stable diffHash are covered.",
++          "M2 completion checks: Evidence commit design avoids self-reference loops and AI out-of-scope changes are mechanically blocked."
++        ]
++      }
++    }
++  ]
++}
+diff --git a/contracts/specs/SPEC-LITE-MR8H6KXW.yaml b/contracts/specs/SPEC-LITE-MR8H6KXW.yaml
+new file mode 100644
+index 0000000..3e02bd2
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR8H6KXW.yaml
+@@ -0,0 +1,13 @@
++id: SPEC-LITE-MR8H6KXW
++type: spec-contract
++featureId: F-MR8H6KXW
++title: Plan metadata-only finish workflow optimization
++status: approved
++version: 0.1.0
++summary: Add a WBS-backed plan for reducing metadata-only finish workflow overhead.
++approvedBy: delegated-human
++approvedAt: "2026-07-06T00:00:00Z"
++acceptanceCriteria:
++  - A WBS changeset captures metadata-only finish workflow optimization under the existing Finish Evidence and Diff Guard work.
++  - Implementation backlog defines a narrow follow-up that avoids repeated Evidence/check/review/registry work for metadata-only tasks.
++  - The plan preserves Evidence, review, registry, and check-diff guarantees.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+new file mode 100644
+index 0000000..122c399
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+@@ -0,0 +1,39 @@
++id: SCWBS-DRAFT-MR8H6KXW
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-MR8H6KXW
++branchName: task/SCWBS-DRAFT-MR8H6KXW-plan-metadata-only-finish-workflow-optimization
++allowedPaths:
++  - contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
++  - contracts/specs/SPEC-LITE-MR8H6KXW.yaml
++  - contracts/evidence/SCWBS-DRAFT-MR8H6KXW.yaml
++  - contracts/reviews/SCWBS-DRAFT-MR8H6KXW.yaml
++  - contracts/registry.yaml
++  - contracts/changesets/SCWBS-DRAFT-MR8H6KXW-metadata-only-finish-workflow.json
++  - docs/sc-wbs-core/09-implementation-backlog.md
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - WBS changeset captures a scoped plan for metadata-only finish workflow optimization.
++  - Core implementation backlog describes the minimal command behavior and acceptance checks.
++  - Evidence and check-diff prove this planning task stayed within contract scope.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  specVersion: 0.1.0
++  specRevision: "sha256:90d9452c86c633cf1a19dedc50502fb92ba21a354404177087ef8aa2d5454d14"
++  createdAt: "2026-07-06T00:35:09.936Z"
+diff --git a/docs/sc-wbs-core/09-implementation-backlog.md b/docs/sc-wbs-core/09-implementation-backlog.md
+index 28f5dd5..f74783d 100644
+--- a/docs/sc-wbs-core/09-implementation-backlog.md
++++ b/docs/sc-wbs-core/09-implementation-backlog.md
+@@ -65,6 +65,23 @@ Evidence生成、checks実行、check-diffを1コマンドにまとめる。
+ - check-diff実行
+ - fixCommand表示
+ 
++### CORE-003a: metadata-only finish workflow
++
++目的:
++
++```text
++Task Contract / Evidence / Review / Registry だけを更新する小規模作業で、
++Evidence収集や検証を何度も繰り返さずに完了できるようにする。
++```
++
++必須:
++
++- `finish` が PR 番号を受け取り、Evidence の `git.pullRequest` を最終更新できる
++- Review request と registry rebuild を finish 後処理としてまとめられる
++- metadata-only 作業では required checks の重複実行を避ける実行計画を表示できる
++- 最終状態では Evidence、Review、Registry、check-diff が通常タスクと同じ保証を持つ
++- Evidence 自身や Review record の追加で `subjectHeadCommit` / `diffHash` が不要に揺れない
++
+ ### CORE-004: Evidenceの `subjectHeadCommit` / `diffHash`
+ 
+ 目的:

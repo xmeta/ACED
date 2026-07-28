@@ -3,7 +3,7 @@ type: evidence
 taskId: SCWBS-CORE-M2-HEALTH
 commit: abc598496099d7be05f07f7818e19596551906fb
 subjectHeadCommit: abc598496099d7be05f07f7818e19596551906fb
-diffHash: "sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd"
+diffHash: sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd
 git:
   branch: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
   base: origin/main
@@ -11,7 +11,7 @@ git:
   changedFilesBasis: branch-diff
   pullRequest: "#76"
   subjectHeadCommit: abc598496099d7be05f07f7818e19596551906fb
-  diffHash: "sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd"
+  diffHash: sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd
   headCommit: abc598496099d7be05f07f7818e19596551906fb
 changedFiles:
   - contracts/evidence/SCWBS-CORE-M2-HEALTH.yaml
@@ -41,3 +41,14 @@ testQuality:
   coverageDecreased: false
   notes:
     - Added regression coverage so historical Evidence without diffHash does not flood health, while active branches still warn.
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: abc598496099d7be05f07f7818e19596551906fb
+    treeHash: 2dbb8150e50fd70e08c2c58fe3ca3cd0c51796b8
+    diffHash: sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-CORE-M2-HEALTH.patch
+    manifestHash: sha256:5d3bad0c5462fae2d6b879b04a66a0d205b578729341c538c24f704ad1f0c4bd

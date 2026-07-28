@@ -1,0 +1,430 @@
+diff --git a/contracts/tasks/SCWBS-CORE-M2.yaml b/contracts/tasks/SCWBS-CORE-M2.yaml
+new file mode 100644
+index 0000000..515e428
+--- /dev/null
++++ b/contracts/tasks/SCWBS-CORE-M2.yaml
+@@ -0,0 +1,37 @@
++id: SCWBS-CORE-M2
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-1-10-1-2
++branchName: task/SCWBS-CORE-M2-evidence-diff-guard
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  createdAt: "2026-07-05T13:45:00.000Z"
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/tasks/SCWBS-CORE-M2.yaml
++  - contracts/evidence/SCWBS-CORE-M2.yaml
++  - contracts/reviews/SCWBS-CORE-M2.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - M2-009 - Evidence records subjectHeadCommit.
++  - M2-011 - diffHash is generated from the subject diff.
++  - M2-012 - Evidence file commits do not make subject evidence stale.
++  - M2 test checks - subjectHeadCommit self-stale handling and stable diffHash are covered.
++  - M2 completion checks - Evidence commit design avoids self-reference loops for metadata-only follow-up commits.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/docs/sc-wbs-core-revision/10-progress-checklist.md b/docs/sc-wbs-core-revision/10-progress-checklist.md
+index 326086a..18ceadb 100644
+--- a/docs/sc-wbs-core-revision/10-progress-checklist.md
++++ b/docs/sc-wbs-core-revision/10-progress-checklist.md
+@@ -160,10 +160,10 @@ scwbs check-diff
+ - [x] M2-006: check失敗時にEvidenceを成功扱いにしない
+ - [x] M2-007: `base...HEAD` のchangedFilesを収集できる
+ - [x] M2-008: `--base <ref>` を指定できる
+-- [ ] M2-009: `subjectHeadCommit` をEvidenceに記録できる
++- [x] M2-009: `subjectHeadCommit` をEvidenceに記録できる
+ - [x] M2-010: `baseCommit` をEvidenceに記録できる
+-- [ ] M2-011: `diffHash` を生成できる
+-- [ ] M2-012: Evidenceファイル自身のコミットでstale判定にならない
++- [x] M2-011: `diffHash` を生成できる
++- [x] M2-012: Evidenceファイル自身のコミットでstale判定にならない
+ - [x] M2-013: `changedFiles` をEvidenceに記録できる
+ - [x] M2-014: `checks` のstatus、command、executedAtを記録できる
+ - [x] M2-015: `--pr <number>` をEvidenceに記録できる
+@@ -183,15 +183,15 @@ scwbs check-diff
+ - [x] forbiddenPaths変更はErrorになる
+ - [ ] humanGateRequiredPaths変更はApprovalなしでErrorになる
+ - [ ] managedContractPathsは必要なものだけPassする
+-- [ ] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
+-- [ ] diffHashが同じ差分で安定する
++- [x] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
++- [x] diffHashが同じ差分で安定する
+ - [x] check失敗時にfinishが失敗する
+ - [x] fixCommandが出る
+ 
+ ## M2 完了条件
+ 
+ - [x] `scwbs finish` だけで checks -> Evidence -> check-diff まで実行できる
+-- [ ] Evidenceのcommit設計が自己参照ループを起こさない
++- [x] Evidenceのcommit設計が自己参照ループを起こさない
+ - [ ] AIの範囲外変更を機械的に止められる
+ 
+ ---
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 7a296ff..42f3a52 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { spawnSync } from "node:child_process";
+ import { readEvidence, readTask } from "../core/contracts.js";
+-import { branchChangedFiles, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
++import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+@@ -11,6 +11,15 @@ const maxCheckOutputSummaryLength = 1000;
+ 
+ type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
+ 
++function postEvidenceMetadataFiles(taskId: string): string[] {
++  return [
++    `contracts/evidence/${taskId}.yaml`,
++    `contracts/approvals/${taskId}.yaml`,
++    `contracts/reviews/${taskId}.yaml`,
++    "contracts/registry.yaml"
++  ];
++}
++
+ function commandForCheck(check: string): string[] {
+   if (check === "test") return ["npm", "test"];
+   if (check === "typecheck") return ["npm", "run", "typecheck"];
+@@ -58,6 +67,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const baseRef = options.baseRef ?? "origin/main";
+   const head = headCommit(root);
+   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
++  const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
+   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
+   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+@@ -66,12 +76,16 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     type: "evidence",
+     taskId,
+     ...(head ? { commit: head } : {}),
++    ...(head ? { subjectHeadCommit: head } : {}),
++    diffHash,
+     git: {
+       ...(currentBranch(root) ? { branch: currentBranch(root) } : {}),
+       base: baseRef,
+       ...(baseCommit ? { baseCommit } : {}),
+       changedFilesBasis: "branch-diff",
+       ...(pullRequest ? { pullRequest } : {}),
++      ...(head ? { subjectHeadCommit: head } : {}),
++      diffHash,
+       ...(head ? { headCommit: head } : {})
+     },
+     changedFiles: branchChangedFiles(root, baseRef),
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 8141632..f145fe2 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,5 +1,5 @@
+ import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
+-import { baseBranchStatus, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+@@ -28,6 +28,15 @@ function isPostEvidenceMetadataFile(taskId: string, file: string): boolean {
+     || normalized === "contracts/registry.yaml";
+ }
+ 
++function postEvidenceMetadataFiles(taskId: string): string[] {
++  return [
++    `contracts/evidence/${taskId}.yaml`,
++    `contracts/approvals/${taskId}.yaml`,
++    `contracts/reviews/${taskId}.yaml`,
++    "contracts/registry.yaml"
++  ];
++}
++
+ function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string, evidenceHead: string, currentHead: string): boolean {
+   if (evidenceHead === currentHead) return false;
+   try {
+@@ -38,6 +47,14 @@ function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string,
+   }
+ }
+ 
++function evidenceSubjectHead(evidence: Evidence): string | undefined {
++  return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit;
++}
++
++function evidenceDiffHash(evidence: Evidence): string | undefined {
++  return evidence.diffHash ?? evidence.git?.diffHash;
++}
++
+ function shouldCheckEvidenceHeadStaleness(currentBranchName: string | undefined, task: TaskContract, evidence: Evidence): boolean {
+   if (!currentBranchName) return false;
+   return currentBranchName === evidence.git?.branch || currentBranchName === task.branchName;
+@@ -86,16 +103,17 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   if (!evidence.git?.branch && !task.branchName) {
+     issues.push({ severity: "warn", code: "health.evidence.git.branch.missing", message: `${task.id} evidence has no branch metadata` });
+   }
+-  if (!evidence.git?.headCommit) {
+-    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.missing", message: `${task.id} evidence has no git.headCommit` });
+-  } else if (!commitExists(root, evidence.git.headCommit)) {
+-    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.unknown", message: `${task.id} evidence git.headCommit was not found: ${evidence.git.headCommit}` });
++  const subjectHead = evidenceSubjectHead(evidence);
++  if (!subjectHead) {
++    issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
++  } else if (!commitExists(root, subjectHead)) {
++    issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
+   } else if (
+     currentHead
+     && shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)
+-    && evidenceHeadHasStaleImplementationChanges(root, task.id, evidence.git.headCommit, currentHead)
++    && evidenceHeadHasStaleImplementationChanges(root, task.id, subjectHead, currentHead)
+   ) {
+-    issues.push({ severity: "warn", code: "health.evidence.git.headCommit.stale", message: `${task.id} evidence git.headCommit ${evidence.git.headCommit} is behind implementation changes in current HEAD ${currentHead}` });
++    issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.stale", message: `${task.id} evidence subjectHeadCommit ${subjectHead} is behind implementation changes in current HEAD ${currentHead}` });
+   }
+   if (!evidence.git?.changedFilesBasis) {
+     issues.push({ severity: "warn", code: "health.evidence.git.changedFilesBasis.missing", message: `${task.id} evidence has no git.changedFilesBasis` });
+@@ -109,6 +127,20 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+     } else if (!commitExists(root, evidence.git.baseCommit)) {
+       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
+     }
++    const actualDiffHash = evidenceDiffHash(evidence);
++    if (!actualDiffHash) {
++      issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
++    } else if (shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)) {
++      const expectedFiles = branchChangedFiles(root, evidence.git.base);
++      const expectedDiffHash = branchDiffHash(root, evidence.git.base, postEvidenceMetadataFiles(task.id));
++      const actualFiles = [...evidence.changedFiles].sort();
++      if (JSON.stringify(actualFiles) !== JSON.stringify([...expectedFiles].sort())) {
++        issues.push({ severity: "warn", code: "health.evidence.changedFiles.stale", message: `${task.id} evidence changedFiles do not match current branch diff` });
++      }
++      if (actualDiffHash !== expectedDiffHash) {
++        issues.push({ severity: "warn", code: "health.evidence.diffHash.stale", message: `${task.id} evidence diffHash does not match current branch diff` });
++      }
++    }
+   }
+   if (node && !isDoneNode(node) && !evidence.git?.pullRequest && !approvalPullRequest) {
+     issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });
+diff --git a/src/core/git.ts b/src/core/git.ts
+index 0852d9c..7f190aa 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -1,5 +1,6 @@
+ import { spawnSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
++import { createHash } from "node:crypto";
+ 
+ const TEXT_FILE_PATTERN = /\.(cjs|js|json|md|ts|tsx|yaml|yml)$/;
+ 
+@@ -36,6 +37,22 @@ export function branchChangedFiles(root: string, baseRef = "origin/main"): strin
+   return gitLines(root, ["diff", "--name-only", `${baseRef}...HEAD`], "git diff failed");
+ }
+ 
++export function branchDiffHash(root: string, baseRef = "origin/main", excludeFiles: string[] = []): string {
++  const pathspecs = excludeFiles.length > 0
++    ? ["--", ".", ...excludeFiles.map((file) => `:(exclude)${file}`)]
++    : [];
++  const result = spawnSync("git", ["diff", "--binary", "--no-ext-diff", `${baseRef}...HEAD`, ...pathspecs], {
++    cwd: root,
++    encoding: "buffer"
++  });
++  if (result.status !== 0) {
++    throw new Error(result.stderr?.toString("utf8") || "git diff failed");
++  }
++  const hash = createHash("sha256");
++  hash.update(result.stdout);
++  return `sha256:${hash.digest("hex")}`;
++}
++
+ export function changedFilesSince(root: string, ref: string): string[] {
+   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
+ }
+diff --git a/src/core/schema.ts b/src/core/schema.ts
+index d38cc5e..67abb36 100644
+--- a/src/core/schema.ts
++++ b/src/core/schema.ts
+@@ -136,6 +136,9 @@ const evidenceSchema = {
+     type: { const: "evidence" },
+     taskId: { type: "string", minLength: 1 },
+     commit: { type: "string" },
++    subjectHeadCommit: { type: "string" },
++    evidenceCommit: { type: "string" },
++    diffHash: { type: "string" },
+     changedFiles: stringArraySchema,
+     git: {
+       type: "object",
+@@ -143,6 +146,10 @@ const evidenceSchema = {
+       properties: {
+         branch: { type: "string" },
+         base: { type: "string" },
++        baseCommit: { type: "string" },
++        changedFilesBasis: { type: "string" },
++        subjectHeadCommit: { type: "string" },
++        diffHash: { type: "string" },
+         headCommit: { type: "string" },
+         pullRequest: { type: "string" }
+       }
+@@ -457,6 +464,11 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+   if (value.type !== "evidence") {
+     issues.push(issue("evidence.type", `${filePath}.type must be evidence`));
+   }
++  for (const key of ["commit", "subjectHeadCommit", "evidenceCommit", "diffHash"]) {
++    if (value[key] !== undefined && typeof value[key] !== "string") {
++      issues.push(issue("evidence.field", `${filePath}.${key} must be a string when present`));
++    }
++  }
+   if (!isStringArray(value.changedFiles)) {
+     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+   }
+@@ -464,7 +476,7 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+     if (!isObject(value.git)) {
+       issues.push(issue("evidence.git", `${filePath}.git must be an object when present`));
+     } else {
+-      for (const key of ["branch", "base", "baseCommit", "changedFilesBasis", "headCommit", "pullRequest"]) {
++      for (const key of ["branch", "base", "baseCommit", "changedFilesBasis", "subjectHeadCommit", "diffHash", "headCommit", "pullRequest"]) {
+         if (value.git[key] !== undefined && typeof value.git[key] !== "string") {
+           issues.push(issue("evidence.git", `${filePath}.git.${key} must be a string when present`));
+         }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 389ba8d..032823c 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -96,11 +96,16 @@ export type Evidence = {
+   type: "evidence";
+   taskId: string;
+   commit?: string;
++  subjectHeadCommit?: string;
++  evidenceCommit?: string;
++  diffHash?: string;
+   git?: {
+     branch?: string;
+     base?: string;
+     baseCommit?: string;
+     changedFilesBasis?: "working-tree" | "branch-diff" | string;
++    subjectHeadCommit?: string;
++    diffHash?: string;
+     headCommit?: string;
+     pullRequest?: string;
+   };
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 22e9232..ed86547 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -26,7 +26,7 @@ import { buildCoreTaskNew, runTaskNew } from "../src/commands/task-new.js";
+ import { runFinish } from "../src/commands/finish.js";
+ import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
+ import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
+-import { baseBranchStatus, branchChangedFiles, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
+ import { validateWbsDocument } from "../src/core/wbs.js";
+ import { main } from "../src/cli.js";
+ import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+@@ -352,10 +352,32 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(evidence.git?.base).toBe("base");
+     expect(evidence.git?.baseCommit).toBeTruthy();
+     expect(evidence.git?.headCommit).toBe(headCommit(root));
++    expect(evidence.subjectHeadCommit).toBe(headCommit(root));
++    expect(evidence.git?.subjectHeadCommit).toBe(headCommit(root));
+     expect(evidence.git?.changedFilesBasis).toBe("branch-diff");
++    expect(evidence.diffHash).toBe(branchDiffHash(root, "base"));
++    expect(evidence.git?.diffHash).toBe(branchDiffHash(root, "base"));
+     expect(evidence.changedFiles).toContain("src/features/api/index.ts");
+   });
+ 
++  test("evidence diffHash is stable for the same subject diff", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++
++    const first = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    const second = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(first.diffHash).toMatch(/^sha256:/);
++    expect(first.diffHash).toBe(second.diffHash);
++  });
++
+   test("evidence collect records explicit pull request metadata", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -871,7 +893,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+       }) as unknown as Record<string, unknown>
+     );
+     const issues = collectHealthIssues(root);
+-    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.missing")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.evidence.subjectHeadCommit.missing")).toBe(true);
+     expect(issues.some((issue) => issue.code === "health.evidence.git.pullRequest.missing")).toBe(true);
+   });
+ 
+@@ -927,7 +949,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+       }) as unknown as Record<string, unknown>
+     );
+     const issues = collectHealthIssues(root);
+-    expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.evidence.subjectHeadCommit.stale")).toBe(true);
+   }, 15000);
+ 
+   test("health ignores historical stale evidence on other branches", () => {
+@@ -1000,6 +1022,43 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(issues.some((issue) => issue.code === "health.evidence.git.headCommit.stale")).toBe(false);
+   }, 30000);
+ 
++  test("health accepts post-evidence metadata-only commits with subjectHeadCommit", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "evidence"], { cwd: root, stdio: "ignore" });
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        {
++          id: "TASK-WBS-001-004",
++          type: "task",
++          path: "contracts/tasks/WBS-001-004.yaml",
++          featureId: "F001"
++        },
++        {
++          id: "EVD-WBS-001-004",
++          type: "evidence",
++          path: "contracts/evidence/WBS-001-004.yaml",
++          relatedTask: "WBS-001-004"
++        }
++      ]
++    });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "registry"], { cwd: root, stdio: "ignore" });
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.subjectHeadCommit.stale")).toBe(false);
++    expect(issues.some((issue) => issue.code === "health.evidence.diffHash.stale")).toBe(false);
++  }, 30000);
++
+   test("health accepts approval pull request metadata when evidence pull request is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");

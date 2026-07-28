@@ -1,0 +1,140 @@
+diff --git a/contracts/tasks/SCWBS-CORE-M2-GATE.yaml b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+new file mode 100644
+index 0000000..32330d9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+@@ -0,0 +1,35 @@
++id: SCWBS-CORE-M2-GATE
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-1-10-1-2
++branchName: task/SCWBS-CORE-M2-GATE-human-gate-diff-error
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  createdAt: "2026-07-05T14:30:00.000Z"
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/tasks/SCWBS-CORE-M2-GATE.yaml
++  - contracts/evidence/SCWBS-CORE-M2-GATE.yaml
++  - contracts/reviews/SCWBS-CORE-M2-GATE.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - M2-018 - humanGateRequiredPaths changes without approved approval records are check-diff errors.
++  - M2 test checks - human gate approval error behavior is covered.
++  - Human gate diff errors show the next approval command to run.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/docs/sc-wbs-core-revision/10-progress-checklist.md b/docs/sc-wbs-core-revision/10-progress-checklist.md
+index 18ceadb..1c93b62 100644
+--- a/docs/sc-wbs-core-revision/10-progress-checklist.md
++++ b/docs/sc-wbs-core-revision/10-progress-checklist.md
+@@ -169,7 +169,7 @@ scwbs check-diff
+ - [x] M2-015: `--pr <number>` をEvidenceに記録できる
+ - [x] M2-016: `allowedPaths` 外変更をErrorにできる
+ - [x] M2-017: `forbiddenPaths` 変更をErrorにできる
+-- [ ] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
++- [x] M2-018: `humanGateRequiredPaths` 変更で承認なしの場合Errorにできる
+ - [ ] M2-019: `managedContractPaths` を例外として扱える
+ - [x] M2-020: Evidence、Block、Approvalなどの生成ファイルを過剰にErrorにしない
+ - [x] M2-021: メタファイル変更を安全側で検出できる
+@@ -181,7 +181,7 @@ scwbs check-diff
+ - [x] allowedPaths内変更はPassする
+ - [x] allowedPaths外変更はErrorになる
+ - [x] forbiddenPaths変更はErrorになる
+-- [ ] humanGateRequiredPaths変更はApprovalなしでErrorになる
++- [x] humanGateRequiredPaths変更はApprovalなしでErrorになる
+ - [ ] managedContractPathsは必要なものだけPassする
+ - [x] Evidenceコミット後にsubjectHeadCommitがstale扱いされない
+ - [x] diffHashが同じ差分で安定する
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 28591b7..12dfe8e 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -1,4 +1,4 @@
+-import { approvalExists, readEvidence, readTask } from "../core/contracts.js";
++import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+@@ -19,8 +19,13 @@ function requiresMetaFileGuard(file: string): boolean {
+   return matchesAny(file, SENSITIVE_META_PATHS);
+ }
+ 
++function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
++  return readApproval(root, taskId).approval?.status === "approved";
++}
++
+ export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+   const issues: Issue[] = [];
++  const hasHumanGateApproval = task.humanGateRequiredPaths.length > 0 ? hasApprovedHumanGateApproval(root, task.id) : false;
+   for (const issue of collectWbsChangesetGateIssues(files)) {
+     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
+   }
+@@ -44,8 +49,12 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     if (requiresMetaFileGuard(file) && !explicitlyAllowed && !humanGateRequired) {
+       issues.push({ severity: "error", code: "diff.metaFile", message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}` });
+     }
+-    if (humanGateRequired && !approvalExists(root, task.id)) {
+-      issues.push({ severity: "warn", code: "diff.humanGate", message: `${file} requires human gate approval for ${task.id}` });
++    if (humanGateRequired && !hasHumanGateApproval) {
++      issues.push({
++        severity: "error",
++        code: "diff.humanGate",
++        message: `${file} requires approved human gate approval for ${task.id}; fixCommand: npm run scwbs -- approval request --task ${task.id}`
++      });
+     }
+   }
+   return issues;
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 6c8d3b8..78ec986 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -250,14 +250,31 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+   });
+ 
+-  test("check-diff warns on human-gated sensitive meta files without adding a meta-file error", () => {
++  test("check-diff errors on human-gated sensitive meta files without approved approval", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({
+       allowedPaths: [],
+       humanGateRequiredPaths: ["tsconfig.json"]
+     });
+     const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
+-    expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
++    expect(issues.find((issue) => issue.code === "diff.humanGate")?.message).toContain("fixCommand: npm run scwbs -- approval request --task WBS-001-004");
++    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
++  });
++
++  test("check-diff accepts human-gated sensitive meta files with approved approval", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-05T14:30:00.000Z"
++    }) as unknown as Record<string, unknown>);
++    const task = sampleTask({
++      allowedPaths: [],
++      humanGateRequiredPaths: ["tsconfig.json"]
++    });
++    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
++    expect(issues.some((issue) => issue.code === "diff.humanGate")).toBe(false);
+     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+   });
+ 

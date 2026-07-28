@@ -1,0 +1,127 @@
+diff --git a/contracts/specs/SPEC-LITE-MR8VSYBM.yaml b/contracts/specs/SPEC-LITE-MR8VSYBM.yaml
+new file mode 100644
+index 0000000..5a96a94
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR8VSYBM.yaml
+@@ -0,0 +1,13 @@
++id: SPEC-LITE-MR8VSYBM
++type: spec-contract
++featureId: F-MR8VSYBM
++title: Backfill missing contractLock metadata for health warnings
++status: approved
++version: 0.1.0
++summary: Add missing contractLock metadata for the current health warnings without changing implementation behavior.
++approvedBy: delegated-human
++approvedAt: "2026-07-06T07:15:00Z"
++acceptanceCriteria:
++  - Only the target Task Contracts, this task's contract artifacts, Evidence, and registry are modified.
++  - Existing implementation, tests, docs, package metadata, WBS JSON, and CI configuration are not changed.
++  - scwbs health no longer reports contractLock.missing for the target tasks.
+diff --git a/contracts/tasks/SCWBS-CORE-M1.yaml b/contracts/tasks/SCWBS-CORE-M1.yaml
+index 202dcb5..3ef4fb2 100644
+--- a/contracts/tasks/SCWBS-CORE-M1.yaml
++++ b/contracts/tasks/SCWBS-CORE-M1.yaml
+@@ -35,3 +35,7 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-task-lifecycle-completion
++  createdAt: "2026-07-06T07:25:49.588Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+index 52c88b5..05063ed 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+@@ -26,3 +26,7 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-06T07:25:53.378Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+index a3f1ee5..1de0668 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+@@ -30,3 +30,7 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-06T07:25:57.940Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+index d7f1c9a..e17b22c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+@@ -29,3 +29,7 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-06T07:26:01.974Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+index 7dcdc62..3ec3748 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+@@ -27,3 +27,7 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-06T07:26:05.889Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+new file mode 100644
+index 0000000..d22389c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+@@ -0,0 +1,42 @@
++id: SCWBS-DRAFT-MR8VSYBM
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MR8VSYBM
++branchName: task/SCWBS-DRAFT-MR8VSYBM-backfill-missing-contractlock-metadata-for-healt
++allowedPaths:
++  - contracts/specs/SPEC-LITE-MR8VSYBM.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
++  - contracts/evidence/SCWBS-DRAFT-MR8VSYBM.yaml
++  - contracts/registry.yaml
++  - contracts/tasks/SCWBS-CORE-M1.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - contractLock metadata is added for SCWBS-CORE-M1.
++  - contractLock metadata is added for SCWBS-DRAFT-MR7R46OO, SCWBS-DRAFT-MR7RFNZS, SCWBS-DRAFT-MR7RR147, and SCWBS-DRAFT-MR7S032T.
++  - scwbs health no longer reports contractLock.missing warnings for those tasks.
++  - Evidence and check-diff prove the metadata-only task stayed within contract scope.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: "sha256:c29e6df8f69d2ceafdd7a79b408683ecf98b2fe67a98c4fc36bbf4f586030d2a"
++  createdAt: "2026-07-06T07:26:09.795Z"
