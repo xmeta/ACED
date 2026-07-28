@@ -1,0 +1,141 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml b/contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+new file mode 100644
+index 0000000..9256ed5
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+@@ -0,0 +1,52 @@
++id: SCWBS-DRAFT-MRQLDIK2
++type: task-contract
++wbsNodeId: wbs-less
++featureId: F-MRQLDIK2
++branchName: task/SCWBS-DRAFT-MRQLDIK2-issue-243-npm-bin-symlink
++allowedPaths:
++  - src/cli.ts
++  - tests/integration/packaging.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外の変更が必要
++  - humanGateRequiredPathsへの変更が必要
++  - package metadataまたはrelease/publish判断が必要
++  - 仕様変更レベルの判断が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Issue #243 npm bin symlink経由の無出力終了を修正'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRQLDIK2.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRQLDIK2.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRQLDIK2.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRQLDIK2.yaml
++contractLock:
++  lockVersion: "2"
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: wbs-less
++  createdAt: "2026-07-18T16:39:26.981Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 460c641..8ca6ad1 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -273,3 +273,9 @@ tasks:
+     wbsNodeId: wbs-less
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRQLDIK2
++    path: contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
++    branchName: task/SCWBS-DRAFT-MRQLDIK2-issue-243-npm-bin-symlink
++    wbsNodeId: wbs-less
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index 2f5fa57..3f68624 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env node
+ import { Command, CommanderError } from "commander";
+-import { pathToFileURL } from "node:url";
++import { fileURLToPath } from "node:url";
++import { realpathSync } from "node:fs";
+ import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
+ import { runAiRun } from "./commands/ai-run.js";
+@@ -864,7 +865,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   return exitCode;
+ }
+ 
+-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
++if (
++  process.argv[1] &&
++  realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
++) {
+   const exitCode = main();
+   process.exit(exitCode);
+ }
+diff --git a/tests/integration/packaging.test.ts b/tests/integration/packaging.test.ts
+new file mode 100644
+index 0000000..6336e6d
+--- /dev/null
++++ b/tests/integration/packaging.test.ts
+@@ -0,0 +1,38 @@
++import { execFileSync, spawnSync } from "node:child_process";
++import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { describe, expect, it } from "vitest";
++
++describe("npm bin entrypoint", () => {
++  const symlinkTest = process.platform === "win32" ? it.skip : it;
++
++  symlinkTest("runs the CLI through an npm-style symlink", () => {
++    execFileSync("npm", ["run", "build"], {
++      cwd: process.cwd(),
++      stdio: "pipe"
++    });
++
++    const consumer = mkdtempSync(path.join(tmpdir(), "scwbs-bin-"));
++    const binDir = path.join(consumer, "node_modules", ".bin");
++    mkdirSync(binDir, { recursive: true });
++    const binPath = path.join(binDir, "scwbs");
++    const cliPath = path.join(process.cwd(), "dist", "cli.js");
++
++    symlinkSync(cliPath, binPath);
++
++    const linked = spawnSync(process.execPath, [binPath, "--version"], {
++      cwd: consumer,
++      encoding: "utf8"
++    });
++    const direct = spawnSync(process.execPath, [cliPath, "--version"], {
++      cwd: consumer,
++      encoding: "utf8"
++    });
++
++    expect(linked.status).toBe(direct.status);
++    expect(linked.stdout).toBe(direct.stdout);
++    expect(linked.stderr).toBe(direct.stderr);
++    expect(linked.stdout.trim()).toBe("0.1.0");
++  });
++});
