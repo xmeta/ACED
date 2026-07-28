@@ -1,0 +1,178 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index be74a06..698b02f 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -7,21 +7,83 @@ on:
+       - main
+ 
+ jobs:
+-  validate:
++  core:
+     runs-on: ubuntu-latest
+     steps:
+-      - uses: actions/checkout@v4
++      - name: Checkout repository
++        uses: actions/checkout@v4
+         with:
+           submodules: recursive
+-      - uses: actions/setup-node@v4
++      - name: Set up Node.js
++        uses: actions/setup-node@v4
+         with:
+           node-version: 24
+           cache: npm
+-      - run: npm ci --no-audit --no-fund
+-      - run: npm ls --workspaces --depth=0
+-      - run: npm test
+-      - run: npm run typecheck
+-      - run: npm run build
+-      - run: npm run scwbs -- check
+-      - run: npm run scwbs -- health
+-      - run: npm run scwbs -- registry rebuild --check
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: Verify npm workspaces
++        run: npm ls --workspaces --depth=0
++      - name: Unit tests
++        run: npm test
++      - name: Typecheck
++        run: npm run typecheck
++      - name: Build
++        run: npm run build
++      - name: Contract check
++        run: npm run scwbs -- check
++      - name: Contract health
++        run: npm run scwbs -- health
++      - name: Registry check
++        run: npm run scwbs -- registry rebuild --check
++
++  integration:
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v4
++        with:
++          submodules: recursive
++      - name: Set up Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: 24
++          cache: npm
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: Integration tests
++        run: npm run test:integration
++
++  wjs:
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v4
++        with:
++          submodules: recursive
++      - name: Set up Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: 24
++          cache: npm
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: WJS tests
++        run: npm run test:wjs
++
++  validate:
++    if: ${{ always() }}
++    needs:
++      - core
++      - integration
++      - wjs
++    runs-on: ubuntu-latest
++    steps:
++      - name: Require all validation jobs
++        env:
++          CORE_RESULT: ${{ needs.core.result }}
++          INTEGRATION_RESULT: ${{ needs.integration.result }}
++          WJS_RESULT: ${{ needs.wjs.result }}
++        run: |
++          test "$CORE_RESULT" = "success"
++          test "$INTEGRATION_RESULT" = "success"
++          test "$WJS_RESULT" = "success"
+diff --git a/contracts/specs/SPEC-LITE-MRITE4UK.yaml b/contracts/specs/SPEC-LITE-MRITE4UK.yaml
+new file mode 100644
+index 0000000..13cde7e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRITE4UK.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MRITE4UK
++type: spec-contract
++featureId: F-MRITE4UK
++title: "Fix Issue #131: require integration and WJS tests in CI"
++status: approved
++version: 0.1.0
++approvedBy: human
++approvedAt: "2026-07-13T06:06:51.497Z"
++summary: "Require the root unit and integration suites plus the WJS suite to run as mandatory, distinguishable pull-request checks."
++acceptanceCriteria:
++  - "Every pull request runs the root unit suite and reports all 14 tests."
++  - "Every pull request runs the root integration suite and reports all 144 tests."
++  - "Every pull request runs the WJS test suite."
++  - "Any unit, integration, or WJS test failure fails its pull-request check."
++  - "CI logs identify each test group, its count, and its result."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml b/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
+new file mode 100644
+index 0000000..43eeae1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
+@@ -0,0 +1,36 @@
++id: SCWBS-DRAFT-MRITE4UK
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRITE4UK
++branchName: task/SCWBS-DRAFT-MRITE4UK-fix-issue-131-require-integration-and-wjs-tests-
++allowedPaths:
++  - package.json
++  - .github/workflows/scwbs.yml
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - test:wjs
++  - typecheck
++  - build
++doneCriteria:
++  - PR CI runs the root unit suite and reports all 14 tests.
++  - PR CI runs the root integration suite and reports all 144 tests.
++  - PR CI runs the WJS test suite and reports its test count and result.
++  - A failure in unit, integration, or WJS tests fails the corresponding PR check.
++  - CI logs clearly distinguish unit, integration, WJS, static, and contract validation results.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:698c9ffe726a8c8a88912c31712e690b300f481e14cf6b4cfca77dd60d8996ca
++  createdAt: "2026-07-13T06:16:24.694Z"
+diff --git a/package.json b/package.json
+index 6b130c9..fc94d46 100644
+--- a/package.json
++++ b/package.json
+@@ -12,9 +12,9 @@
+     "build": "tsc -p tsconfig.json",
+     "typecheck": "tsc -p tsconfig.json --noEmit",
+     "test": "vitest run tests/unit",
+-    "test:integration": "vitest run tests/integration",
++    "test:integration": "vitest run tests/integration --maxWorkers=1 --testTimeout=10000",
+     "test:wjs": "npm test -w wjs",
+-    "test:all": "vitest run",
++    "test:all": "npm run test && npm run test:integration && npm run test:wjs",
+     "scwbs": "tsc -p tsconfig.json && node dist/cli.js"
+   },
+   "devDependencies": {
