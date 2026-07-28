@@ -1,0 +1,892 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 698b02f..cbd960a 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -1,5 +1,10 @@
+ name: scwbs
+ 
++permissions:
++  contents: read
++  checks: read
++  actions: read
++
+ on:
+   pull_request:
+   push:
+@@ -7,7 +12,136 @@ on:
+       - main
+ 
+ jobs:
++  plan:
++    runs-on: ubuntu-latest
++    outputs:
++      mode: ${{ steps.final.outputs.mode }}
++      task_id: ${{ steps.final.outputs.task_id }}
++      subject: ${{ steps.final.outputs.subject }}
++    steps:
++      - name: Checkout exact head with full history
++        uses: actions/checkout@v4
++        with:
++          ref: ${{ github.event.pull_request.head.sha || github.sha }}
++          fetch-depth: 0
++          submodules: recursive
++      - name: Restore branch identity and base reference
++        env:
++          CI_BRANCH: ${{ github.head_ref || github.ref_name }}
++        run: |
++          git switch -C "$CI_BRANCH" HEAD
++          git fetch origin main:refs/remotes/origin/main
++      - name: Set up Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: 24
++          cache: npm
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: Build structural CI plan
++        id: candidate
++        env:
++          CI_BRANCH: ${{ github.head_ref || github.ref_name }}
++        run: |
++          npm run --silent scwbs -- ci plan --branch "$CI_BRANCH" --base origin/main --json > "$RUNNER_TEMP/ci-plan-candidate.json"
++          node -e 'const p=require(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`); const fs=require("fs"); fs.appendFileSync(process.env.GITHUB_OUTPUT, `decision=${p.decision}\ntask_id=${p.taskId ?? ""}\nsubject=${p.subjectHeadCommit ?? ""}\n`)'
++      - name: Verify successful full CI for implementation subject
++        id: subject-checks
++        if: steps.candidate.outputs.decision == 'metadata-candidate'
++        uses: actions/github-script@v7
++        env:
++          SUBJECT: ${{ steps.candidate.outputs.subject }}
++        with:
++          script: |
++            const required = ["core", "integration", "wjs", "validate"];
++            const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
++            let selected = [];
++            let workflowRun = null;
++            for (let attempt = 0; attempt < 12; attempt += 1) {
++              const runs = await github.paginate(github.rest.checks.listForRef, {
++                owner: context.repo.owner,
++                repo: context.repo.repo,
++                ref: process.env.SUBJECT,
++                per_page: 100
++              });
++              selected = required.map((name) => runs
++                .filter((run) => run.name === name && run.app?.slug === "github-actions")
++                .sort((left, right) => Number(right.id) - Number(left.id))[0])
++                .filter(Boolean);
++              const runIds = new Set(selected.map((run) => /\/actions\/runs\/(\d+)/.exec(run.details_url ?? "")?.[1]).filter(Boolean));
++              if (selected.length === required.length && runIds.size === 1) {
++                const runId = Number([...runIds][0]);
++                workflowRun = (await github.rest.actions.getWorkflowRun({
++                  owner: context.repo.owner,
++                  repo: context.repo.repo,
++                  run_id: runId
++                })).data;
++              }
++              const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
++                && workflowRun?.head_sha === process.env.SUBJECT
++                && workflowRun?.conclusion === "success";
++              if (trustedRun && selected.every((run) => run.conclusion === "success")) break;
++              if (selected.length === required.length && selected.every((run) => run.status === "completed")) break;
++              if (attempt < 11) await sleep(10000);
++            }
++            const eligible = selected.length === required.length
++              && selected.every((run) => run.conclusion === "success")
++              && workflowRun?.path === ".github/workflows/scwbs.yml"
++              && workflowRun?.head_sha === process.env.SUBJECT
++              && workflowRun?.conclusion === "success";
++            core.setOutput("eligible", String(eligible));
++            core.setOutput("checks", JSON.stringify(selected.map((run) => ({
++              id: run.id,
++              name: run.name,
++              conclusion: run.conclusion,
++              detailsUrl: run.details_url,
++              workflowRunId: workflowRun?.id ?? null,
++              workflowPath: workflowRun?.path ?? null
++            }))));
++      - name: Finalize auditable CI plan
++        id: final
++        env:
++          SUBJECT_CHECKS_ELIGIBLE: ${{ steps.subject-checks.outputs.eligible }}
++          SUBJECT_CHECKS_JSON: ${{ steps.subject-checks.outputs.checks }}
++        run: |
++          node <<'NODE'
++          const fs = require("fs");
++          const candidate = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`, "utf8"));
++          const verified = candidate.decision === "metadata-candidate"
++            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true";
++          const plan = {
++            ...candidate,
++            mode: verified ? "metadata-fast-path" : "full",
++            subjectFullChecks: process.env.SUBJECT_CHECKS_JSON
++              ? JSON.parse(process.env.SUBJECT_CHECKS_JSON)
++              : [],
++            reasons: candidate.decision === "metadata-candidate" && !verified
++              ? [...candidate.reasons, {
++                  code: "ci.subjectChecks.unverified",
++                  message: "The implementation subject has no verified successful core, integration, wjs, and validate check set"
++                }]
++              : candidate.reasons
++          };
++          fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
++          fs.appendFileSync(process.env.GITHUB_OUTPUT,
++            `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\n`);
++          process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
++          NODE
++      - name: Validate schemas and check coverage on metadata fast path
++        if: steps.final.outputs.mode == 'metadata-fast-path'
++        run: npm run scwbs -- check
++      - name: Validate governed diff on metadata fast path
++        if: steps.final.outputs.mode == 'metadata-fast-path'
++        env:
++          TASK_ID: ${{ steps.final.outputs.task_id }}
++        run: npm run scwbs -- check-diff --task "$TASK_ID" --base origin/main
++      - name: Validate registry consistency on metadata fast path
++        if: steps.final.outputs.mode == 'metadata-fast-path'
++        run: npm run scwbs -- registry rebuild --check
++
+   core:
++    needs: plan
++    if: always() && needs.plan.outputs.mode == 'full'
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+@@ -37,6 +171,8 @@ jobs:
+         run: npm run scwbs -- registry rebuild --check
+ 
+   integration:
++    needs: plan
++    if: always() && needs.plan.outputs.mode == 'full'
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+@@ -54,6 +190,8 @@ jobs:
+         run: npm run test:integration
+ 
+   wjs:
++    needs: plan
++    if: always() && needs.plan.outputs.mode == 'full'
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+@@ -73,6 +211,7 @@ jobs:
+   validate:
+     if: ${{ always() }}
+     needs:
++      - plan
+       - core
+       - integration
+       - wjs
+@@ -80,10 +219,20 @@ jobs:
+     steps:
+       - name: Require all validation jobs
+         env:
++          MODE: ${{ needs.plan.outputs.mode }}
++          PLAN_RESULT: ${{ needs.plan.result }}
+           CORE_RESULT: ${{ needs.core.result }}
+           INTEGRATION_RESULT: ${{ needs.integration.result }}
+           WJS_RESULT: ${{ needs.wjs.result }}
+         run: |
+-          test "$CORE_RESULT" = "success"
+-          test "$INTEGRATION_RESULT" = "success"
+-          test "$WJS_RESULT" = "success"
++          test "$PLAN_RESULT" = "success"
++          if test "$MODE" = "metadata-fast-path"; then
++            test "$CORE_RESULT" = "skipped"
++            test "$INTEGRATION_RESULT" = "skipped"
++            test "$WJS_RESULT" = "skipped"
++          else
++            test "$MODE" = "full"
++            test "$CORE_RESULT" = "success"
++            test "$INTEGRATION_RESULT" = "success"
++            test "$WJS_RESULT" = "success"
++          fi
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 2a8f417..6c9410c 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -27,6 +27,7 @@ rules:
+       - src/commands/approval-request.ts
+       - src/commands/check-diff.ts
+       - src/commands/check.ts
++      - src/commands/ci-plan.ts
+       - src/commands/completion.ts
+       - src/commands/doctor.ts
+       - src/commands/evidence-annotate.ts
+diff --git a/contracts/specs/SPEC-LITE-MRM7AEPJ.yaml b/contracts/specs/SPEC-LITE-MRM7AEPJ.yaml
+new file mode 100644
+index 0000000..7259479
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRM7AEPJ.yaml
+@@ -0,0 +1,18 @@
++id: SPEC-LITE-MRM7AEPJ
++type: spec-contract
++featureId: F-MRM7AEPJ
++title: "Issue #203: provenance検証付きmetadata-only CI fast path"
++status: approved
++version: 0.1.0
++summary: "固定されたimplementation subjectと現在HEAD間のprovenanceをfail-closedで検証し、安全なmetadata descendantだけ重いCI jobを省略する"
++approvedBy: user-requested-issue-203
++approvedAt: "2026-07-15T23:55:00+09:00"
++acceptanceCriteria:
++  - Evidenceのimplementation subject、diffHash、subjectからHEADまでのcommit ancestryを検証する
++  - Evidence、Approval、Review、Registryだけのmetadata descendantをfast path候補にする
++  - trusted Task Contract authority baseline、record schema、check-diff、registry consistency、check-coverage分類を維持する
++  - 未分類path、shallow history、merge-base不明、provenance不明では軽量化せずfull CIへfallbackする
++  - package、lockfile、submodule、workflow、implementation、tests、Task authority変更ではfull CIを実行する
++  - aggregate validateはfull CIとmetadata fast pathの両方を集約するrequired checkとして残す
++  - 判定mode、subject、metadata files、選択理由、fallback理由をversioned JSONで出力する
++  - metadata-only、偽metadata、scope改ざん、implementation変更を回帰テストする
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml b/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+new file mode 100644
+index 0000000..0568264
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MRM7AEPJ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRM7AEPJ
++branchName: task/SCWBS-DRAFT-MRM7AEPJ-issue-203-provenance-verified-metadata-only-ci-f
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRM7AEPJ.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRM7AEPJ.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRM7AEPJ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRM7AEPJ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRM7AEPJ.yaml
++allowedPaths:
++  - .github/workflows/scwbs.yml
++  - src/cli.ts
++  - src/commands/ci-plan.ts
++  - src/core/ci-plan.ts
++  - src/core/git.ts
++  - src/core/types.ts
++  - contracts/check-coverage.yaml
++  - tests/integration/ci-plan.test.ts
++  - docs/scwbs/schemas/ci-plan.schema.json
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or lockfile change required
++  - submodule change required
++  - breaking Evidence Review Approval or Registry schema change required
++  - metadata fast path cannot fail closed
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - implementation subjectのdiffHashと現在HEADまでのancestryを検証し、許可済みmetadata descendantだけをfast path候補にする
++  - Task Contract authority baseline、schema、check-diff、registry consistency、check-coverage分類をfast pathでも検証する
++  - 未分類path、shallow history、merge-base不明、Evidence provenance不整合はfail-closedでfull CIへfallbackする
++  - package、lockfile、submodule、workflow、implementation、tests、Task authority変更ではfull core integration wjsを維持する
++  - aggregate validate required checkを維持し、fast path選択理由とfallback理由をversioned JSONで監査できる
++  - metadata-only、偽metadata、scope改ざん、implementation変更の回帰テストを追加する
++  - 同一implementation subject後のmetadata-only full CI追加実行を3回から0回へ削減できる
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5b47e83409d3b453ec1ae5ce3a30a99d8b1b993660d7fbbbc7aead48ebb8b98a
++  createdAt: "2026-07-15T14:54:24.528Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 2fb244c..e01e08d 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -159,3 +159,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRM7AEPJ
++    path: contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
++    branchName: task/SCWBS-DRAFT-MRM7AEPJ-issue-203-provenance-verified-metadata-only-ci-f
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/schemas/ci-plan.schema.json b/docs/scwbs/schemas/ci-plan.schema.json
+new file mode 100644
+index 0000000..029da03
+--- /dev/null
++++ b/docs/scwbs/schemas/ci-plan.schema.json
+@@ -0,0 +1,62 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/ci-plan.schema.json",
++  "title": "SC-WBS CI plan",
++  "type": "object",
++  "required": [
++    "schemaVersion",
++    "decision",
++    "taskId",
++    "baseRef",
++    "baseCommit",
++    "headCommit",
++    "subjectHeadCommit",
++    "diffHash",
++    "metadataFiles",
++    "changedFilesSinceSubject",
++    "reasons"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "decision": { "enum": ["full", "metadata-candidate"] },
++    "mode": { "enum": ["full", "metadata-fast-path"] },
++    "taskId": { "type": ["string", "null"] },
++    "baseRef": { "type": "string" },
++    "baseCommit": { "type": ["string", "null"] },
++    "headCommit": { "type": ["string", "null"] },
++    "subjectHeadCommit": { "type": ["string", "null"] },
++    "diffHash": { "type": ["string", "null"] },
++    "metadataFiles": { "type": "array", "items": { "type": "string" } },
++    "changedFilesSinceSubject": { "type": "array", "items": { "type": "string" } },
++    "subjectFullChecks": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["id", "name", "conclusion", "detailsUrl", "workflowRunId", "workflowPath"],
++        "properties": {
++          "id": { "type": "number" },
++          "name": { "type": "string" },
++          "conclusion": { "type": ["string", "null"] },
++          "detailsUrl": { "type": "string" },
++          "workflowRunId": { "type": ["number", "null"] },
++          "workflowPath": { "type": ["string", "null"] }
++        },
++        "additionalProperties": false
++      }
++    },
++    "reasons": {
++      "type": "array",
++      "minItems": 1,
++      "items": {
++        "type": "object",
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string" },
++          "message": { "type": "string" }
++        },
++        "additionalProperties": false
++      }
++    }
++  },
++  "additionalProperties": false
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 9f2d71f..b133015 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -7,6 +7,7 @@ import { runAiRun } from "./commands/ai-run.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+ import { runCheck } from "./commands/check.js";
+ import { runCheckDiff } from "./commands/check-diff.js";
++import { runCiPlan } from "./commands/ci-plan.js";
+ import { runCompletionApply } from "./commands/completion.js";
+ import { runDoctor } from "./commands/doctor.js";
+ import { runEvidenceCollect } from "./commands/evidence-collect.js";
+@@ -83,6 +84,23 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json", "output as JSON")
+     .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
+ 
++  const ci = program.command("ci");
++  ci
++    .command("plan")
++    .description("Plan full or provenance-verified metadata CI")
++    .option("--task <id>", "task id")
++    .option("--branch <name>", "branchName used to discover the task")
++    .option("--base <ref>", "base reference")
++    .option("--json", "output a versioned JSON plan")
++    .action((opts) => {
++      exitCode = runCiPlan(root, {
++        taskId: opts.task,
++        branch: opts.branch,
++        baseRef: opts.base,
++        json: opts.json ?? false
++      });
++    });
++
+   program
+     .command("fix")
+     .description("Fix auto-fixable issues")
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+new file mode 100644
+index 0000000..5958cf6
+--- /dev/null
++++ b/src/commands/ci-plan.ts
+@@ -0,0 +1,242 @@
++import { existsSync } from "node:fs";
++import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
++import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
++import {
++  branchChangedFiles,
++  branchDiffHash,
++  changedFilesBetween,
++  headCommit,
++  isCommitAncestor,
++  isShallowRepository,
++  mergeBase,
++  resolveCommit
++} from "../core/git.js";
++import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
++import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
++import { collectTaskAuthorityIssues } from "../core/task-authority.js";
++import type { Issue, TaskContract } from "../core/types.js";
++import { collectDiffIssues } from "./check-diff.js";
++
++export type CiPlanReason = {
++  code: string;
++  message: string;
++};
++
++export type CiPlan = {
++  schemaVersion: "1.0.0";
++  decision: "full" | "metadata-candidate";
++  taskId: string | null;
++  baseRef: string;
++  baseCommit: string | null;
++  headCommit: string | null;
++  subjectHeadCommit: string | null;
++  diffHash: string | null;
++  metadataFiles: string[];
++  changedFilesSinceSubject: string[];
++  reasons: CiPlanReason[];
++};
++
++export type CiPlanOptions = {
++  taskId?: string;
++  branch?: string;
++  baseRef?: string;
++  json?: boolean;
++};
++
++function reason(code: string, message: string): CiPlanReason {
++  return { code, message };
++}
++
++function issueReasons(issues: Issue[], prefix: string): CiPlanReason[] {
++  return issues.map((issue) => reason(`${prefix}.${issue.code}`, issue.message));
++}
++
++function uniqueReasons(reasons: CiPlanReason[]): CiPlanReason[] {
++  const seen = new Set<string>();
++  return reasons.filter((item) => {
++    const key = `${item.code}\0${item.message}`;
++    if (seen.has(key)) return false;
++    seen.add(key);
++    return true;
++  });
++}
++
++function resolveTask(root: string, options: CiPlanOptions): { task?: TaskContract; reasons: CiPlanReason[] } {
++  if (options.taskId) {
++    const result = readTask(root, options.taskId);
++    return result.task
++      ? { task: result.task, reasons: [] }
++      : { reasons: issueReasons(result.issues, "task") };
++  }
++  if (!options.branch) {
++    return { reasons: [reason("task.branch.missing", "No task id or branch was supplied for CI task discovery")] };
++  }
++  const matches = listTasks(root).filter((entry) => entry.task?.branchName === options.branch);
++  if (matches.length !== 1 || !matches[0]?.task) {
++    return {
++      reasons: [reason(
++        matches.length === 0 ? "task.branch.notFound" : "task.branch.ambiguous",
++        matches.length === 0
++          ? `No Task Contract declares branchName ${options.branch}`
++          : `Multiple Task Contracts declare branchName ${options.branch}`
++      )]
++    };
++  }
++  return { task: matches[0].task, reasons: [] };
++}
++
++function optionalRecordIssues(root: string, taskId: string): Issue[] {
++  const issues: Issue[] = [];
++  if (existsSync(resolveFrom(root, approvalPath(taskId)))) issues.push(...readApproval(root, taskId).issues);
++  if (existsSync(resolveFrom(root, reviewPath(taskId)))) issues.push(...readReview(root, taskId).issues);
++  return issues;
++}
++
++function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons: CiPlanReason[]): CiPlan {
++  return {
++    schemaVersion: "1.0.0",
++    decision: "full",
++    taskId,
++    baseRef,
++    baseCommit: resolveCommit(root, baseRef) ?? null,
++    headCommit: null,
++    subjectHeadCommit: null,
++    diffHash: null,
++    metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
++    changedFilesSinceSubject: [],
++    reasons
++  };
++}
++
++export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
++  const baseRef = options.baseRef ?? "origin/main";
++  const taskResult = resolveTask(root, options);
++  const task = taskResult.task;
++  const currentHead = headCommit(root) ?? null;
++  const baseCommit = resolveCommit(root, baseRef) ?? null;
++  if (!task) {
++    return {
++      ...emptyPlan(root, baseRef, options.taskId ?? null, taskResult.reasons),
++      baseCommit,
++      headCommit: currentHead
++    };
++  }
++
++  const metadataFiles = taskLifecycleMetadataPaths(task.id);
++  const reasons: CiPlanReason[] = [...taskResult.reasons];
++  let branchFiles: string[] = [];
++  if (isShallowRepository(root)) reasons.push(reason("git.shallow", "Repository history is shallow; provenance cannot be verified"));
++  if (!baseCommit) reasons.push(reason("git.base.missing", `${baseRef} does not resolve to a commit`));
++  if (baseCommit && !mergeBase(root, baseRef, "HEAD")) {
++    reasons.push(reason("git.mergeBase.missing", `${baseRef} and HEAD have no resolvable merge base`));
++  }
++  try {
++    branchFiles = branchChangedFiles(root, baseRef);
++  } catch (error) {
++    reasons.push(reason("git.diff.failed", error instanceof Error ? error.message : String(error)));
++  }
++
++  const registry = readRegistry(root);
++  reasons.push(...issueReasons(registry.issues, "schema"));
++  reasons.push(...issueReasons(optionalRecordIssues(root, task.id), "schema"));
++  reasons.push(...issueReasons(collectCheckCoveragePolicyIssues(root), "coverage"));
++  if (branchFiles.length > 0) {
++    reasons.push(...issueReasons(collectTaskAuthorityIssues(root, task, baseRef, branchFiles), "authority"));
++    const diffIssues = collectDiffIssues(root, task, branchFiles)
++      .filter((issue) => issue.code !== "diff.humanGate");
++    reasons.push(...issueReasons(diffIssues, "scope"));
++    reasons.push(...issueReasons(collectCheckCoverageIssues(root, task, branchFiles), "coverage"));
++  }
++
++  const evidenceResult = readEvidence(root, task.id);
++  const evidence = evidenceResult.evidence;
++  if (!evidence) reasons.push(...issueReasons(evidenceResult.issues, "schema"));
++  const subjectHead = evidence?.subjectHeadCommit
++    ?? evidence?.git?.subjectHeadCommit
++    ?? evidence?.git?.headCommit
++    ?? evidence?.commit
++    ?? null;
++  const recordedDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? null;
++  let changedFilesSinceSubject: string[] = [];
++
++  if (evidence && evidence.taskId !== task.id) {
++    reasons.push(reason("provenance.taskId", `Evidence taskId ${evidence.taskId} does not match ${task.id}`));
++  }
++  if (!subjectHead) reasons.push(reason("provenance.subject.missing", "Evidence has no implementation subjectHeadCommit"));
++  if (!recordedDiffHash) reasons.push(reason("provenance.diffHash.missing", "Evidence has no implementation diffHash"));
++  if (subjectHead && !resolveCommit(root, subjectHead)) {
++    reasons.push(reason("provenance.subject.unknown", `Evidence subject ${subjectHead} is not available in repository history`));
++  }
++  if (subjectHead && currentHead && resolveCommit(root, subjectHead)) {
++    if (!isCommitAncestor(root, subjectHead, currentHead)) {
++      reasons.push(reason("provenance.subject.notAncestor", `Evidence subject ${subjectHead} is not an ancestor of HEAD ${currentHead}`));
++    } else if (subjectHead === currentHead) {
++      reasons.push(reason("provenance.noMetadataDescendant", "HEAD is the implementation subject, so full CI is required"));
++    } else {
++      changedFilesSinceSubject = changedFilesBetween(root, subjectHead, currentHead);
++      const unexpected = changedFilesSinceSubject.filter((file) => !metadataFiles.includes(file));
++      if (unexpected.length > 0) {
++        reasons.push(reason(
++          "provenance.nonMetadataDescendant",
++          `Files changed after the implementation subject are not approved metadata: ${unexpected.join(", ")}`
++        ));
++      }
++    }
++  }
++  if (recordedDiffHash && baseCommit) {
++    try {
++      const currentDiffHash = branchDiffHash(root, baseRef, metadataFiles);
++      if (currentDiffHash !== recordedDiffHash) {
++        reasons.push(reason(
++          "provenance.diffHash.mismatch",
++          `Evidence diffHash ${recordedDiffHash} does not match current implementation diffHash ${currentDiffHash}`
++        ));
++      }
++    } catch (error) {
++      reasons.push(reason("provenance.diffHash.failed", error instanceof Error ? error.message : String(error)));
++    }
++  }
++
++  const normalizedReasons = uniqueReasons(reasons);
++  const decision = normalizedReasons.length === 0 ? "metadata-candidate" : "full";
++  return {
++    schemaVersion: "1.0.0",
++    decision,
++    taskId: task.id,
++    baseRef,
++    baseCommit,
++    headCommit: currentHead,
++    subjectHeadCommit: subjectHead,
++    diffHash: recordedDiffHash,
++    metadataFiles,
++    changedFilesSinceSubject,
++    reasons: decision === "metadata-candidate"
++      ? [reason("provenance.metadataOnly", "Only approved metadata files changed after the verified implementation subject")]
++      : normalizedReasons
++  };
++}
++
++function formatPlan(plan: CiPlan): string {
++  const lines = [
++    `CI plan: ${plan.decision}`,
++    `task: ${plan.taskId ?? "(not resolved)"}`,
++    `subject: ${plan.subjectHeadCommit ?? "(not recorded)"}`,
++    "reasons:"
++  ];
++  for (const item of plan.reasons) lines.push(`- ${item.code}: ${item.message}`);
++  return `${lines.join("\n")}\n`;
++}
++
++export function runCiPlan(root: string, options: CiPlanOptions = {}): number {
++  try {
++    const plan = buildCiPlan(root, options);
++    process.stdout.write(options.json ? `${JSON.stringify(plan, null, 2)}\n` : formatPlan(plan));
++    return 0;
++  } catch (error) {
++    const plan = emptyPlan(root, options.baseRef ?? "origin/main", options.taskId ?? null, [
++      reason("planner.error", error instanceof Error ? error.message : String(error))
++    ]);
++    process.stdout.write(options.json ? `${JSON.stringify(plan, null, 2)}\n` : formatPlan(plan));
++    return 0;
++  }
++}
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+new file mode 100644
+index 0000000..f54dcc5
+--- /dev/null
++++ b/tests/integration/ci-plan.test.ts
+@@ -0,0 +1,211 @@
++import { execFileSync } from "node:child_process";
++import { mkdtempSync, readFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test } from "vitest";
++import { buildCiPlan, runCiPlan } from "../../src/commands/ci-plan.js";
++import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
++import { taskLifecycleMetadataPaths } from "../../src/core/managed-contract-paths.js";
++import { makeTempRepo, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++
++const taskId = "WBS-001-004";
++
++function commit(root: string, message: string): void {
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++}
++
++function prepareSubject(): { root: string; subject: string } {
++  const root = makeTempRepo();
++  writeScwbsProject(root);
++  writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
++    branchName: "task/WBS-001-004-ci-plan",
++    allowedPaths: ["src/**"],
++    forbiddenPaths: ["wjs/**"],
++    humanGateRequiredPaths: [".github/**"],
++    requiredChecks: ["test", "test:integration", "typecheck", "build"],
++    managedContractPaths: [
++      `contracts/tasks/${taskId}.yaml`,
++      `contracts/evidence/${taskId}.yaml`,
++      `contracts/approvals/${taskId}.yaml`,
++      `contracts/reviews/${taskId}.yaml`,
++      "contracts/registry.yaml"
++    ]
++  }) as unknown as Record<string, unknown>);
++  writeYaml(root, "contracts/check-coverage.yaml", {
++    implementationRoots: ["src"],
++    rules: [{
++      id: "source-integration",
++      classification: "behavior-critical",
++      rationale: "Runtime source changes require integration coverage.",
++      paths: ["src/**"],
++      requires: ["test:integration"]
++    }]
++  });
++  writeText(root, "src/existing.ts", "export const existing = true;\n");
++  commit(root, "base");
++  execFileSync("git", ["branch", "base"], { cwd: root });
++
++  writeText(root, "src/feature.ts", "export const feature = 1;\n");
++  commit(root, "implementation subject");
++  return { root, subject: headCommit(root)! };
++}
++
++function commitEvidence(root: string, subject: string): void {
++  const diffHash = branchDiffHash(root, "base", taskLifecycleMetadataPaths(taskId));
++  writeYaml(root, `contracts/evidence/${taskId}.yaml`, sampleEvidence({
++    id: `EVD-${taskId}`,
++    taskId,
++    commit: subject,
++    subjectHeadCommit: subject,
++    diffHash,
++    changedFiles: ["src/feature.ts"],
++    git: {
++      branch: "task/WBS-001-004-ci-plan",
++      base: "base",
++      baseCommit: mergeBase(root, "base")!,
++      changedFilesBasis: "branch-diff",
++      subjectHeadCommit: subject,
++      diffHash,
++      headCommit: subject
++    },
++    checks: [
++      { name: "test", status: "passed" },
++      { name: "test:integration", status: "passed" },
++      { name: "typecheck", status: "passed" },
++      { name: "build", status: "passed" }
++    ]
++  }) as unknown as Record<string, unknown>);
++  commit(root, "evidence metadata");
++}
++
++describe("CI plan", () => {
++  test("selects a metadata candidate only for a verified implementation descendant", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan).toMatchObject({
++      schemaVersion: "1.0.0",
++      decision: "metadata-candidate",
++      taskId,
++      subjectHeadCommit: subject,
++      changedFilesSinceSubject: [`contracts/evidence/${taskId}.yaml`],
++      reasons: [{ code: "provenance.metadataOnly" }]
++    });
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ci-plan.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(plan)).toBe(true);
++  });
++
++  test("falls back to full CI when Evidence is absent at the implementation subject", () => {
++    const { root } = prepareSubject();
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.map((item) => item.code)).toContain("schema.evidence.missing");
++  });
++
++  test("rejects implementation changes disguised as later metadata", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++    writeText(root, "src/feature.ts", "export const feature = 2;\n");
++    commit(root, "fake metadata with implementation change");
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.map((item) => item.code)).toEqual(expect.arrayContaining([
++      "provenance.nonMetadataDescendant",
++      "provenance.diffHash.mismatch"
++    ]));
++  });
++
++  test("rejects Task authority changes even when Evidence provenance is rewritten", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++    const taskPath = `contracts/tasks/${taskId}.yaml`;
++    const current = readFileSync(path.join(root, taskPath), "utf8");
++    writeText(root, taskPath, current.replace("  - src/**\n", "  - src/**\n  - secrets/**\n"));
++    commit(root, "self widen task authority");
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.some((item) => item.code === "authority.diff.taskAuthority.change")).toBe(true);
++  });
++
++  test("rejects an unclassified implementation path", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      implementationRoots: ["src"],
++      rules: [{
++        id: "other-only",
++        classification: "unit-only",
++        rationale: "Only the named declaration is unit-only.",
++        paths: ["src/other.ts"],
++        requires: ["test"]
++      }]
++    });
++    commit(root, "remove source classification");
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.some((item) => item.code.includes("checkCoverage.unclassified"))).toBe(true);
++  });
++
++  test("rejects malformed Approval metadata instead of trusting its path", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++    writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
++      id: `APR-${taskId}`,
++      type: "approval",
++      taskId,
++      status: "approved"
++    });
++    commit(root, "malformed approval metadata");
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.some((item) => item.code.includes("approval.status"))).toBe(true);
++  });
++
++  test("fails closed when repository history is shallow", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++    const parent = mkdtempSync(path.join(tmpdir(), "scwbs-shallow-"));
++    const shallow = path.join(parent, "repo");
++    execFileSync("git", ["clone", "--depth", "1", `file://${root}`, shallow], { stdio: "ignore" });
++
++    const plan = buildCiPlan(shallow, { taskId, baseRef: "HEAD" });
++    expect(plan.decision).toBe("full");
++    expect(plan.reasons.some((item) => item.code === "git.shallow")).toBe(true);
++  });
++
++  test("discovers the task by exact branch and emits fallback JSON with exit zero", () => {
++    const { root } = prepareSubject();
++    const chunks: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      chunks.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(runCiPlan(root, { branch: "task/WBS-001-004-ci-plan", baseRef: "base", json: true })).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(JSON.parse(chunks.join(""))).toMatchObject({ decision: "full", taskId });
++  });
++
++  test("workflow preserves aggregate validate and gates heavy jobs on the final plan", () => {
++    const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
++    expect(workflow).toContain("Verify successful full CI for implementation subject");
++    expect(workflow).toContain("npm run --silent scwbs -- ci plan");
++    expect(workflow).toContain('$RUNNER_TEMP/ci-plan-candidate.json');
++    expect(workflow).toContain('workflowRun?.path === ".github/workflows/scwbs.yml"');
++    expect(workflow).toContain("workflowRun?.head_sha === process.env.SUBJECT");
++    expect(workflow).toContain('if: always() && needs.plan.outputs.mode == \'full\'');
++    expect(workflow).toContain('if test "$MODE" = "metadata-fast-path"; then');
++    expect(workflow).toContain('test "$CORE_RESULT" = "skipped"');
++    expect(workflow).toContain('test "$CORE_RESULT" = "success"');
++  });
++});
