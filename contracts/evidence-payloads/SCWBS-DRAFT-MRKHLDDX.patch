@@ -1,0 +1,304 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml b/contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml
+index b884e11..82a1ca3 100644
+--- a/contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml
++++ b/contracts/blocks/SCWBS-DRAFT-MRKHLDDX.yaml
+@@ -1,7 +1,7 @@
+ id: BLK-SCWBS-DRAFT-MRKHLDDX
+ type: block
+ taskId: SCWBS-DRAFT-MRKHLDDX
+-status: blocked
++status: resolved
+ category: human-gate
+ level: 1
+ requiredHumanDecision: Complete the required human gate decision before implementation continues.
+@@ -12,3 +12,10 @@ history:
+     at: "2026-07-14T10:07:57.869Z"
+     reason: "Human Gate required: package.json must change to make bounded integration output the default and add an explicit verbose mode for Issue #175"
+     by: ai-agent
++  - status: resolved
++    at: "2026-07-14T10:33:38.712Z"
++    reason: Authorize package.json changes for bounded default integration output and explicit verbose mode
++    by: human
++resolvedAt: "2026-07-14T10:33:38.712Z"
++resolvedBy: human
++resolution: Authorize package.json changes for bounded default integration output and explicit verbose mode
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml b/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+index abe4bb9..65031f4 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+@@ -51,4 +51,4 @@ contractLock:
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:795d942336d89cf2d2ed18f747efd02b0ad87250a3302b0c679a86885084d317
+-  createdAt: "2026-07-14T10:07:35.545Z"
++  createdAt: "2026-07-14T11:00:48.792Z"
+diff --git a/docs/scwbs/integration-testing.md b/docs/scwbs/integration-testing.md
+index 90388cf..7db030f 100644
+--- a/docs/scwbs/integration-testing.md
++++ b/docs/scwbs/integration-testing.md
+@@ -22,4 +22,12 @@ npm run test:integration -- --report /tmp/scwbs-integration-duration.json
+ 
+ Use `--slowest 0..20` to change each bounded list and `--workers N` (`2 <= N <= 4`) or `SCWBS_INTEGRATION_WORKERS=N` to reproduce a worker setting.
+ 
++On failure, the default mode prints at most five failed test names, a bounded one-line cause, a copyable single-test rerun command, and bounded stdout/stderr with their original byte counts. Full Vitest and CLI output is available only when explicitly requested:
++
++```bash
++npm run test:integration:verbose
++```
++
++The unit regression suite fixes the representative successful output budget at 11 lines / 2,048 bytes and the representative failure diagnostics at 10 lines / 6,000 bytes. This prevents successful CLI output and large failure payloads from growing AI or CI logs without a reviewable test change.
++
+ The pre-change local baseline recorded for Issue #190 was 276.02–277.33 seconds with one worker. The final four-worker validation completed all 257 tests in 116.99 seconds, a 57.6% reduction from the 276.02-second baseline. GitHub Actions continues to call the same `test:integration` script, so the full integration coverage gate is unchanged.
+diff --git a/package.json b/package.json
+index 35da570..68e0a7b 100644
+--- a/package.json
++++ b/package.json
+@@ -12,7 +12,8 @@
+     "build": "tsc -p tsconfig.json",
+     "typecheck": "tsc -p tsconfig.json --noEmit",
+     "test": "vitest run tests/unit",
+-    "test:integration": "node scripts/integration-test-run.mjs",
++    "test:integration": "node scripts/integration-test-output.mjs",
++    "test:integration:verbose": "node scripts/integration-test-output.mjs --verbose",
+     "test:wjs": "npm test -w wjs",
+     "test:all": "npm run test && npm run test:integration && npm run test:wjs",
+     "scwbs": "node scripts/scwbs-run.mjs"
+diff --git a/scripts/integration-test-output.mjs b/scripts/integration-test-output.mjs
+new file mode 100644
+index 0000000..fcd72e4
+--- /dev/null
++++ b/scripts/integration-test-output.mjs
+@@ -0,0 +1,160 @@
++#!/usr/bin/env node
++
++import { spawn } from "node:child_process";
++import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import {
++  buildVitestArgs,
++  defaultWorkerCount,
++  formatSummary,
++  normalizeReport,
++  parseArgs as parseRunnerArgs
++} from "./integration-test-run.mjs";
++
++export const FAILURE_LIMIT = 5;
++export const DIAGNOSTIC_EDGE_BYTES = 2_000;
++export const DIAGNOSTIC_CAPTURE_BYTES = DIAGNOSTIC_EDGE_BYTES * 2;
++
++export function parseArgs(argv, env = process.env) {
++  const verbose = argv.includes("--verbose");
++  const runnerArgs = argv.filter((argument) => argument !== "--verbose");
++  const options = parseRunnerArgs(runnerArgs, env);
++  if (verbose && options.reportPath) throw new Error("--verbose cannot be combined with --report");
++  return { ...options, verbose };
++}
++
++function createBoundedCapture() {
++  let totalBytes = 0;
++  let complete = Buffer.alloc(0);
++  let head = Buffer.alloc(0);
++  let tail = Buffer.alloc(0);
++  return {
++    add(chunk) {
++      const value = Buffer.from(chunk);
++      totalBytes += value.length;
++      if (complete.length < DIAGNOSTIC_CAPTURE_BYTES) {
++        complete = Buffer.concat([complete, value]).subarray(0, DIAGNOSTIC_CAPTURE_BYTES);
++      }
++      if (head.length < DIAGNOSTIC_EDGE_BYTES) {
++        head = Buffer.concat([head, value]).subarray(0, DIAGNOSTIC_EDGE_BYTES);
++      }
++      tail = Buffer.concat([tail, value]).subarray(-DIAGNOSTIC_EDGE_BYTES);
++    },
++    value() {
++      if (totalBytes <= DIAGNOSTIC_CAPTURE_BYTES) return { totalBytes, text: complete.toString("utf8") };
++      return {
++        totalBytes,
++        text: `${head.toString("utf8")}\n... ${totalBytes - head.length - tail.length} bytes omitted ...\n${tail.toString("utf8")}`
++      };
++    }
++  };
++}
++
++function compactReason(value) {
++  const normalized = String(value || "No failure message reported").replace(/\s+/g, " ").trim();
++  return normalized.length <= 1_000 ? normalized : `${normalized.slice(0, 997)}...`;
++}
++
++function rerunCommand(file, name) {
++  return `npx vitest run ${file} --pool=forks --maxWorkers=1 --testTimeout=10000 -t ${JSON.stringify(name)}`;
++}
++
++export function formatFailureDiagnostics(raw, stdout, stderr) {
++  const failures = raw.testResults.flatMap((result) => result.assertionResults
++    .filter((test) => test.status === "failed")
++    .map((test) => ({
++      file: path.relative(process.cwd(), result.name).split(path.sep).join("/"),
++      name: test.fullName,
++      reason: compactReason(test.failureMessages?.[0])
++    })));
++  const lines = [];
++  for (const failure of failures.slice(0, FAILURE_LIMIT)) {
++    lines.push(`failed test=${failure.file} :: ${failure.name}`);
++    lines.push(`cause=${failure.reason}`);
++    lines.push(`rerun=${rerunCommand(failure.file, failure.name)}`);
++  }
++  if (failures.length > FAILURE_LIMIT) lines.push(`failed tests omitted=${failures.length - FAILURE_LIMIT}`);
++  if (stdout.text.trim()) lines.push(`stdout bytes=${stdout.totalBytes}\n${stdout.text.trimEnd()}`);
++  if (stderr.text.trim()) lines.push(`stderr bytes=${stderr.totalBytes}\n${stderr.text.trimEnd()}`);
++  return lines.join("\n");
++}
++
++async function runCaptured(args) {
++  const stdout = createBoundedCapture();
++  const stderr = createBoundedCapture();
++  const startedAt = performance.now();
++  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: ["ignore", "pipe", "pipe"] });
++  child.stdout.on("data", (chunk) => stdout.add(chunk));
++  child.stderr.on("data", (chunk) => stderr.add(chunk));
++  const exitCode = await new Promise((resolve, reject) => {
++    child.on("error", reject);
++    child.on("close", (code) => resolve(code ?? 1));
++  });
++  return { exitCode, wallDurationMs: performance.now() - startedAt, stdout: stdout.value(), stderr: stderr.value() };
++}
++
++async function runVerbose(workers) {
++  const args = [
++    path.join("node_modules", "vitest", "vitest.mjs"),
++    "run",
++    "tests/integration",
++    `--maxWorkers=${workers}`,
++    "--pool=forks",
++    "--fileParallelism",
++    "--testTimeout=10000",
++    "--reporter=verbose"
++  ];
++  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: "inherit" });
++  return new Promise((resolve, reject) => {
++    child.on("error", reject);
++    child.on("close", (code) => resolve(code ?? 1));
++  });
++}
++
++export async function main(argv = process.argv.slice(2)) {
++  let options;
++  try {
++    options = parseArgs(argv);
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 2;
++  }
++  if (options.verbose) return runVerbose(options.workers);
++
++  const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
++  const rawOutputFile = path.join(directory, "vitest.json");
++  try {
++    const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
++    let raw;
++    try {
++      raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
++    } catch (error) {
++      console.error(`FAIL integration report unavailable: ${error instanceof Error ? error.message : String(error)}`);
++      if (execution.stdout.text.trim()) console.error(`stdout bytes=${execution.stdout.totalBytes}\n${execution.stdout.text}`);
++      if (execution.stderr.text.trim()) console.error(`stderr bytes=${execution.stderr.totalBytes}\n${execution.stderr.text}`);
++      return execution.exitCode || 1;
++    }
++
++    const report = normalizeReport(raw, execution.wallDurationMs, options.workers);
++    const summary = formatSummary(report, options.slowest);
++    (report.success ? console.log : console.error)(summary);
++    if (options.reportPath) {
++      const destination = path.resolve(options.reportPath);
++      await mkdir(path.dirname(destination), { recursive: true });
++      await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`, "utf8");
++      console.log(`duration report: ${path.relative(process.cwd(), destination) || destination}`);
++    }
++    if (!report.success || execution.exitCode !== 0) {
++      const diagnostics = formatFailureDiagnostics(raw, execution.stdout, execution.stderr);
++      if (diagnostics) console.error(diagnostics);
++    }
++    return execution.exitCode;
++  } finally {
++    await rm(directory, { recursive: true, force: true });
++  }
++}
++
++const isDirectExecution = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
++if (isDirectExecution) process.exitCode = await main();
+diff --git a/tests/unit/integration-test-output.test.ts b/tests/unit/integration-test-output.test.ts
+new file mode 100644
+index 0000000..0e8f9dc
+--- /dev/null
++++ b/tests/unit/integration-test-output.test.ts
+@@ -0,0 +1,67 @@
++import { describe, expect, it } from "vitest";
++// @ts-expect-error The production output controller is intentionally dependency-free ESM.
++import { FAILURE_LIMIT, formatFailureDiagnostics, parseArgs } from "../../scripts/integration-test-output.mjs";
++// @ts-expect-error The production runner is intentionally dependency-free ESM.
++import { formatSummary, normalizeReport } from "../../scripts/integration-test-run.mjs";
++
++function result(status: "passed" | "failed", count = 32) {
++  return {
++    success: status === "passed",
++    numTotalTests: count,
++    numPassedTests: status === "passed" ? count : count - 1,
++    numFailedTests: status === "failed" ? 1 : 0,
++    numPendingTests: 0,
++    numTodoTests: 0,
++    testResults: [{
++      name: `${process.cwd()}/tests/integration/misc.test.ts`,
++      status,
++      startTime: 0,
++      endTime: 1_500,
++      assertionResults: Array.from({ length: count }, (_, index) => ({
++        fullName: `representative test ${index + 1}`,
++        status: status === "failed" && index === 0 ? "failed" : "passed",
++        duration: 10,
++        failureMessages: status === "failed" && index === 0 ? [`expected value\n${"x".repeat(2_000)}`] : []
++      }))
++    }]
++  };
++}
++
++describe("integration output controller", () => {
++  it("keeps a representative successful suite within the line and byte budget", () => {
++    const output = formatSummary(normalizeReport(result("passed"), 2_000, 4), 5);
++    expect(output.split("\n").length).toBeLessThanOrEqual(11);
++    expect(Buffer.byteLength(output)).toBeLessThanOrEqual(2_048);
++  });
++
++  it("shows a bounded cause and copyable rerun command on failure", () => {
++    const raw = result("failed");
++    const output = formatFailureDiagnostics(raw, { totalBytes: 12_000, text: "stdout head\n... 8000 bytes omitted ...\nstdout tail" }, { totalBytes: 20, text: "stderr detail" });
++    expect(output).toContain("failed test=tests/integration/misc.test.ts :: representative test 1");
++    expect(output).toContain("cause=expected value");
++    expect(output).toContain("rerun=npx vitest run tests/integration/misc.test.ts");
++    expect(output).toContain("stdout bytes=12000");
++    expect(output.split("\n").length).toBeLessThanOrEqual(10);
++    expect(Buffer.byteLength(output)).toBeLessThanOrEqual(6_000);
++  });
++
++  it("limits diagnostics when several tests fail", () => {
++    const raw = result("passed", FAILURE_LIMIT + 2);
++    raw.success = false;
++    raw.numPassedTests = 0;
++    raw.numFailedTests = FAILURE_LIMIT + 2;
++    for (const assertion of raw.testResults[0].assertionResults) {
++      assertion.status = "failed";
++      assertion.failureMessages = ["failure"];
++    }
++    const output = formatFailureDiagnostics(raw, { totalBytes: 0, text: "" }, { totalBytes: 0, text: "" });
++    expect(output).toContain("failed tests omitted=2");
++    expect(output.match(/^failed test=/gm)).toHaveLength(FAILURE_LIMIT);
++  });
++
++  it("exposes full logs only through explicit verbose mode", () => {
++    expect(parseArgs(["--verbose", "--workers", "2"], {})).toMatchObject({ verbose: true, workers: 2 });
++    expect(parseArgs([], { SCWBS_INTEGRATION_WORKERS: "2" })).toMatchObject({ verbose: false, workers: 2 });
++    expect(() => parseArgs(["--verbose", "--report", "out.json"], {})).toThrow(/cannot be combined/);
++  });
++});
