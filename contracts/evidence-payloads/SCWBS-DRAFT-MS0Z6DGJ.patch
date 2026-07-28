@@ -1,0 +1,425 @@
+diff --git a/contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml b/contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml
+new file mode 100644
+index 0000000..dbd7730
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml
+@@ -0,0 +1,18 @@
++id: SPEC-LITE-MS0Z6DGJ
++type: spec-contract
++featureId: F-MS0Z6DGJ
++title: "Issue #178: Evidence subject provenance manifest v1でsquash後の検証状態を構造化する"
++status: approved
++version: 0.1.0
++summary: "Evidence subjectのcanonical identityとretention状態を後方互換で記録し、履歴消失時を検証済みと誤認しない"
++approvedBy: user-requested-baseline-continuation
++approvedAt: "2026-07-26T00:00:00+09:00"
++acceptanceCriteria:
++  - provenance.subject schemaVersion 1.0.0はcommit、treeHash、diffHash、canonicalizationを持つ
++  - provenance.retentionはgit-object、patch-artifact、bundleのmode vocabularyとlocator、任意manifestHashを持つ
++  - 現行evidence collectはgit-object modeを収集しsubject commitのtree hashを記録する
++  - hashはsha256またはGit object idとして形式検証され、未知modeと未知canonicalizationは拒否される
++  - healthはlegacy manifest欠落をwarning、到達可能git-objectをverified、未実装external payloadをnot-evaluated、locator欠落またはcommit消失をunverifiableとして構造化する
++  - diffHash単独ではpayload再検証済みと扱わない
++  - patch-artifactまたはbundleの生成、保存期間、機密情報除外は後続Human Decisionまで非目標とする
++  - 既存Evidenceの読込とcheckは後方互換である
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml b/contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml
+new file mode 100644
+index 0000000..164f8d0
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml
+@@ -0,0 +1,66 @@
++id: SCWBS-DRAFT-MS0Z6DGJ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS0Z6DGJ
++branchName: codex/SCWBS-DRAFT-MS0Z6DGJ-issue-178-subject-manifest
++allowedPaths:
++  - src/core/types.ts
++  - src/core/git.ts
++  - src/core/schema/records.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/health.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/health.test.ts
++  - docs/scwbs/evidence-human-gate-review.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Evidenceへversioned subject manifestを後方互換で追加する
++  - subject manifestはcommit、treeHash、diffHash、canonicalization、retention modeとlocatorを記録する
++  - evidence collectがGit objectを既定retentionとして決定的に収集する
++  - schemaが不正なhash、mode、canonicalizationを拒否する
++  - healthがmanifest欠落、commit到達可能、payload未評価、検証不能を構造化して区別する
++  - commitが失われてもdiffHashだけから再検証済みとは判定しない
++  - git-object以外の永続payload保存は本Taskでは導入せずtrade-offを文書化する
++  - test、integration、typecheck、buildが成功する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS0Z6DGJ.yaml
++  - contracts/specs/SPEC-LITE-MS0Z6DGJ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS0Z6DGJ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS0Z6DGJ.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS0Z6DGJ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS0Z6DGJ.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:8be702086ff1d4fcac15cd01a48aed24db2dc6cef68eba501583b7c016e51ded
++  createdAt: "2026-07-25T23:04:32.098Z"
+diff --git a/docs/scwbs/evidence-human-gate-review.md b/docs/scwbs/evidence-human-gate-review.md
+index 0620f05..25d3281 100644
+--- a/docs/scwbs/evidence-human-gate-review.md
++++ b/docs/scwbs/evidence-human-gate-review.md
+@@ -61,6 +61,26 @@ notes:
+ 
+ Evidenceは自己申告だけで完結させない。可能な限り、CIログ、テスト結果、コミットID、差分、レビュー結果と結びつける。
+ 
++### Evidence subject provenance
++
++新規に収集するEvidenceは `provenance.schemaVersion: 1.0.0` を持ち、
++subjectのcommit、tree hash、`diffHash`、および
++`git-diff-binary-v1` canonicalizationを記録する。既定retentionは
++`git-object` であり、locatorは `git:<commit>` とする。これは対象Git
++objectが取得可能な間だけ再検証可能であることを明示するもので、長期保存を
++保証しない。
++
++`patch-artifact` と `bundle` は将来のretention modeとしてschemaで予約する。
++現行CLIはそれらのpayloadを生成・取得・検証せず、healthでは
++`notEvaluated` とする。保存期間、repository肥大化、削除済みsecretや個人情報を
++patchに残す危険、外部artifactのアクセス制御をHuman Decisionで決めるまで、
++巨大patchをEvidence本文へ埋め込まない。
++
++subject commitが失われた `git-object` recordは `unverifiable` である。
++`diffHash` は同一性の識別子であり、payloadなしに元差分を復元できないため、
++digestが残っているだけで再検証成功とは扱わない。manifestを持たない既存の
++terminal Evidenceは後方互換で読めるが、active Evidenceでは移行warningを出す。
++
+ 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
+ 
+ branch diffにsubmodule gitlink変更がある場合、`evidence collect` はold/new commit、nested changed files、repository、merge target refへのhead到達可否を `submodules` に収集する。Task Contractの `submoduleDependencies` に依存PR、`upstreamRef`、submodule側checkを記録しておくと、それらもEvidenceへ関連付けられる。nested diffを収集できない場合は空差分として扱わず収集を失敗させる。`check-diff` はnested pathの契約違反、merge targetへ未到達のhead、未通過checkをerrorにする。依存PRを先にmergeし、そのheadが指定したmerge target refのancestorになってからparent PRをmergeする。
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 92711ef..37b000c 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -5,7 +5,7 @@ import { readEvidence, readTask } from "../core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
+-import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
++import { branchChangedFiles, branchDiffHash, changedFilesBetween, commitTreeHash, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+@@ -284,6 +284,10 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
+   const changedFiles = branchChangedFiles(root, baseRef);
+   const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
++  const subjectTreeHash = subjectHead ? commitTreeHash(root, subjectHead) : undefined;
++  if (subjectHead && !subjectTreeHash) {
++    throw new Error(`Unable to resolve tree hash for Evidence subject ${subjectHead}`);
++  }
+   const branch = currentBranch(root);
+   if (
+     existingEvidence?.git?.changedFilesBasis === "branch-diff"
+@@ -374,6 +378,21 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     ...(subjectHead ? { commit: subjectHead } : {}),
+     ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+     diffHash,
++    ...(subjectHead && subjectTreeHash ? {
++      provenance: {
++        schemaVersion: "1.0.0" as const,
++        subject: {
++          commit: subjectHead,
++          treeHash: subjectTreeHash,
++          diffHash,
++          canonicalization: "git-diff-binary-v1" as const
++        },
++        retention: {
++          mode: "git-object" as const,
++          locator: `git:${subjectHead}`
++        }
++      }
++    } : {}),
+     git: {
+       ...(branch ? { branch } : {}),
+       base: baseRef,
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 8d2b0b2..83c2db4 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,5 +1,5 @@
+ import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+@@ -123,6 +123,52 @@ export function collectEvidenceTrustIssues(
+   const approvalPullRequest = approval?.pullRequest;
+   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+ 
++  if (!evidence.provenance) {
++    if (!completed) {
++      issues.push({
++        severity: "warn",
++        code: "health.evidence.provenance.missing",
++        message: `${task.id} active Evidence has no versioned subject provenance manifest`
++      });
++    }
++  } else if (
++    evidence.provenance.subject.commit !== evidenceSubjectHead(evidence)
++    || evidence.provenance.subject.diffHash !== evidenceDiffHash(evidence)
++  ) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.provenance.unverifiable",
++      message: `${task.id} provenance subject does not match the legacy Evidence subject fields`
++    });
++  } else if (evidence.provenance.retention.mode !== "git-object") {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.provenance.notEvaluated",
++      message: `${task.id} ${evidence.provenance.retention.mode} payload verification is not evaluated by this CLI version`
++    });
++  } else if (evidence.provenance.retention.locator !== `git:${evidence.provenance.subject.commit}`) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.provenance.unverifiable",
++      message: `${task.id} git-object retention locator is invalid`
++    });
++  } else if (checkCommitReachability && !evidenceCommitExists(evidence.provenance.subject.commit)) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.provenance.unverifiable",
++      message: `${task.id} retained git object is unavailable; diffHash alone cannot reverify the subject`
++    });
++  } else if (
++    checkCommitReachability
++    && commitTreeHash(root, evidence.provenance.subject.commit) !== evidence.provenance.subject.treeHash
++  ) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.provenance.treeHash",
++      message: `${task.id} retained subject tree hash does not match Evidence`
++    });
++  }
++
+   if (completed && strongestEvidenceLevel(evidence) === "C") {
+     issues.push({
+       severity: "warn",
+diff --git a/src/core/git.ts b/src/core/git.ts
+index 6c4ce8e..503777f 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -103,6 +103,14 @@ export function resolveCommit(root: string, ref: string): string | undefined {
+   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
+ }
+ 
++export function commitTreeHash(root: string, commit: string): string | undefined {
++  const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{tree}`], {
++    cwd: root,
++    encoding: "utf8"
++  });
++  return result.status === 0 ? result.stdout.trim() || undefined : undefined;
++}
++
+ export function mergeBase(root: string, baseRef: string, headRef = "HEAD"): string | undefined {
+   const result = spawnSync("git", ["merge-base", baseRef, headRef], {
+     cwd: root,
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 26e9f3f..954175d 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -15,6 +15,35 @@ const evidenceSchema = {
+     subjectHeadCommit: { type: "string" },
+     evidenceCommit: { type: "string" },
+     diffHash: { type: "string" },
++    provenance: {
++      type: "object",
++      required: ["schemaVersion", "subject", "retention"],
++      additionalProperties: false,
++      properties: {
++        schemaVersion: { const: "1.0.0" },
++        subject: {
++          type: "object",
++          required: ["commit", "treeHash", "diffHash", "canonicalization"],
++          additionalProperties: false,
++          properties: {
++            commit: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
++            treeHash: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
++            diffHash: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
++            canonicalization: { const: "git-diff-binary-v1" }
++          }
++        },
++        retention: {
++          type: "object",
++          required: ["mode", "locator"],
++          additionalProperties: false,
++          properties: {
++            mode: { enum: ["git-object", "patch-artifact", "bundle"] },
++            locator: { type: "string", minLength: 1 },
++            manifestHash: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" }
++          }
++        }
++      }
++    },
+     ciReceipt: {
+       type: "object",
+       required: [
+@@ -273,6 +302,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+       issues.push(issue("evidence.field", `${filePath}.${key} must be a string when present`));
+     }
+   }
++  if (value.provenance !== undefined && !isObject(value.provenance)) {
++    issues.push(issue("evidence.provenance", `${filePath}.provenance must be an object when present`));
++  }
+   if (!isStringArray(value.changedFiles)) {
+     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+   }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 4f62dea..588f9f8 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -201,6 +201,20 @@ export type Evidence = {
+   subjectHeadCommit?: string;
+   evidenceCommit?: string;
+   diffHash?: string;
++  provenance?: {
++    schemaVersion: "1.0.0";
++    subject: {
++      commit: string;
++      treeHash: string;
++      diffHash: string;
++      canonicalization: "git-diff-binary-v1";
++    };
++    retention: {
++      mode: "git-object" | "patch-artifact" | "bundle";
++      locator: string;
++      manifestHash?: string;
++    };
++  };
+   git?: {
+     branch?: string;
+     base?: string;
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 030e34a..52b8a14 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -127,7 +127,27 @@ describe("evidence collect", () => {
+       expect.objectContaining({ name: "build", source: "ci" })
+     ]));
+     expect(evidence.checks.every((check) => check.source === "ci" && check.command === undefined)).toBe(true);
++    expect(evidence.provenance).toEqual({
++      schemaVersion: "1.0.0",
++      subject: {
++        commit: evidence.subjectHeadCommit,
++        treeHash: expect.stringMatching(/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/),
++        diffHash: evidence.diffHash,
++        canonicalization: "git-diff-binary-v1"
++      },
++      retention: {
++        mode: "git-object",
++        locator: `git:${evidence.subjectHeadCommit}`
++      }
++    });
+     expect(validateEvidenceSchema(evidence)).toEqual([]);
++    expect(validateEvidenceSchema({
++      ...evidence,
++      provenance: {
++        ...evidence.provenance,
++        subject: { ...evidence.provenance?.subject, treeHash: "not-a-git-object" }
++      }
++    }).some((issue) => issue.code === "evidence.schema")).toBe(true);
+     expect(buildEvidenceCollectSummary(taskId, `contracts/evidence/${taskId}.yaml`, evidence).ciReceipt).toEqual({
+       verified: true,
+       workflowRunId: "12345",
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 264745f..db9ea2c 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -4,15 +4,55 @@ import os from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildCodeContextManifest } from "../../src/core/code-context.js";
+-import { buildHealthJsonOutput, buildHealthText, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
++import { buildHealthJsonOutput, buildHealthText, collectEvidenceTrustIssues, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+ import type { Issue } from "../../src/core/types.js";
+ import { main } from "../../src/cli.js";
+ import { headCommit } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
++import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("health", () => {
++  test("distinguishes legacy, unavailable git-object, and unevaluated external provenance", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
++
++    const task = sampleTask({ requiredChecks: [] });
++    const legacyIssues = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, sampleEvidence(), {
++      checkCommitReachability: false
++    });
++    expect(legacyIssues.some((issue) => issue.code === "health.evidence.provenance.missing")).toBe(true);
++
++    const evidence = buildCollectedEvidence(root, task.id, { baseRef: "base" });
++    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence, {
++      repositoryState: {
++        currentHead: headCommit(root),
++        currentBranchName: task.branchName,
++        commitExists: () => false
++      }
++    });
++    expect(unavailable.some((issue) =>
++      issue.code === "health.evidence.provenance.unverifiable"
++      && issue.message.includes("diffHash alone")
++    )).toBe(true);
++
++    const external = {
++      ...evidence,
++      provenance: {
++        ...evidence.provenance!,
++        retention: { mode: "patch-artifact" as const, locator: "artifact:example" }
++      }
++    };
++    const notEvaluated = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, external);
++    expect(notEvaluated.some((issue) => issue.code === "health.evidence.provenance.notEvaluated")).toBe(true);
++  });
++
+   test("health JSON keeps every issue in a versioned schema", () => {
+     const root = makeTempRepo();
+     const issues: Issue[] = Array.from({ length: 100 }, (_, index) => ({
