@@ -1,0 +1,248 @@
+diff --git a/contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json b/contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
+new file mode 100644
+index 0000000..58135b2
+--- /dev/null
++++ b/contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
+@@ -0,0 +1,28 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-SCWBS-DRAFT-MS1K843U-standard-warning-budget",
++  "author": "codex",
++  "createdAt": "2026-07-26T00:00:00+09:00",
++  "reason": "Configure the Issue #179 observed Standard governance budget as warning-only while retaining the Standard profile.",
++  "dryRun": true,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "setDocumentExtension",
++      "namespace": "scwbs",
++      "value": {
++        "profile": "Standard",
++        "governanceCost": {
++          "warningBudgets": {
++            "Standard": {
++              "governanceFiles": 700,
++              "governanceLines": 31000,
++              "governanceToSourceLineRatio": 2.0
++            }
++          }
++        }
++      }
++    }
++  ]
++}
+diff --git a/contracts/specs/SPEC-LITE-MS1K843U.yaml b/contracts/specs/SPEC-LITE-MS1K843U.yaml
+new file mode 100644
+index 0000000..3d2848e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS1K843U.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MS1K843U
++type: spec-contract
++featureId: F-MS1K843U
++title: "Issue #179: WJSリリースを取り込みStandard warning-only budgetを設定する"
++status: approved
++version: 0.1.0
++approvedBy: user-authorized-wjs-release-and-recommended-values
++approvedAt: "2026-07-26T00:00:00+09:00"
++summary: "WJSのsetDocumentExtension確定commitを取り込み、観測済みStandard閾値を監査可能なchangesetでwarning-only設定する"
++acceptanceCriteria:
++  - WJS PR #5のmerged commit e3fbe8863dc21f9c7c9fa98fd2aa068e038e7e04をACED submoduleで固定する
++  - SC-WBS側のchangeset再現検証もsetDocumentExtensionを解釈する
++  - changesetはextensions.scwbs.profileのStandardを保持し、governanceCost.warningBudgets.StandardへgovernanceFiles 700、governanceLines 31000、governanceToSourceLineRatio 2.0を設定する
++  - metrics governance --jsonはwarningBudgets.status available、指定した3閾値、現行baselineでwarnings空を返す
++  - health --governance-cost --jsonはpassし、閾値超過だけではexit codeを非0にしない既存のwarning-only動作を保つ
++  - hard enforcement、CI workflow、profile、required checks、Human Gate policyは変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml b/contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml
+new file mode 100644
+index 0000000..ead13d4
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml
+@@ -0,0 +1,77 @@
++id: SCWBS-DRAFT-MS1K843U
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS1K843U
++branchName: task/SCWBS-DRAFT-MS1K843U-issue-179-apply-verified-wjs-release-and-standar
++allowedPaths:
++  - wjs
++  - src/commands/wbs.ts
++  - tests/integration/tasks.test.ts
++  - contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
++  - contracts/wbs/project.wbs.json
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - docs/**
++  - src/core/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - wjs
++  - src/commands/wbs.ts
++  - tests/integration/tasks.test.ts
++  - contracts/changesets/SCWBS-DRAFT-MS1K843U-standard-warning-budget.json
++  - contracts/wbs/project.wbs.json
++requiredChecks:
++  - test
++  - test:integration
++  - test:wjs
++  - typecheck
++  - build
++doneCriteria:
++  - ACED pins WJS PR
++  - SC-WBS changeset reproduction supports setDocumentExtension
++  - the governed changeset retains profile Standard and configures governanceFiles 700, governanceLines 31000, and governanceToSourceLineRatio 2.0
++  - metrics governance JSON reports warningBudgets status available with the exact Standard thresholds and no warning at the current baseline
++  - health --governance-cost JSON passes and governance budget warnings remain warning-only
++  - CI enforcement, profile selection, required checks, and Human Gate behavior are unchanged
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - wjs-test-result
++  - typecheck-result
++  - build-result
++submoduleDependencies:
++  - path: wjs
++    authorityMode: upstream-release
++    repository: https://github.com/xmeta/WJS
++    pullRequest: "#5"
++    upstreamRef: refs/remotes/origin/main
++    checks:
++      - name: npm test
++        status: passed
++        url: https://github.com/xmeta/WJS/pull/5
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS1K843U.yaml
++  - contracts/specs/SPEC-LITE-MS1K843U.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS1K843U.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS1K843U.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS1K843U.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS1K843U.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:8c82a98b528f45a50ccb1b20809d3fb2e5f92490de4593ab803c9775040818e2
++  createdAt: "2026-07-26T08:53:55.062Z"
+diff --git a/contracts/wbs/project.wbs.json b/contracts/wbs/project.wbs.json
+index 789dda5..0a4064f 100644
+--- a/contracts/wbs/project.wbs.json
++++ b/contracts/wbs/project.wbs.json
+@@ -995,7 +995,16 @@
+   },
+   "extensions": {
+     "scwbs": {
+-      "profile": "Standard"
++      "profile": "Standard",
++      "governanceCost": {
++        "warningBudgets": {
++          "Standard": {
++            "governanceFiles": 700,
++            "governanceLines": 31000,
++            "governanceToSourceLineRatio": 2
++          }
++        }
++      }
+     }
+   }
+ }
+diff --git a/src/commands/wbs.ts b/src/commands/wbs.ts
+index fae5057..27cf4eb 100644
+--- a/src/commands/wbs.ts
++++ b/src/commands/wbs.ts
+@@ -63,6 +63,18 @@ export function applyWbsChangesets(base: WbsDocument, changeSets: Array<Record<s
+     for (const rawOperation of operations) {
+       if (!rawOperation || typeof rawOperation !== "object") continue;
+       const operation = rawOperation as Record<string, unknown>;
++      if (
++        operation.operation === "setDocumentExtension"
++        && typeof operation.namespace === "string"
++        && operation.value
++        && typeof operation.value === "object"
++        && !Array.isArray(operation.value)
++      ) {
++        next.extensions = {
++          ...(next.extensions ?? {}),
++          [operation.namespace]: JSON.parse(JSON.stringify(operation.value)) as Record<string, unknown>
++        };
++      }
+       if (operation.operation === "changeNodeStatus" && typeof operation.nodeId === "string" && typeof operation.status === "string") {
+         const node = next.nodes.find((item) => item.id === operation.nodeId);
+         if (node) node.status = operation.status as WbsDocument["nodes"][number]["status"];
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 8aebcbf..737120e 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -606,6 +606,52 @@ describe("task management", () => {
+ });
+ 
+ describe("WBS-less task flow", () => {
++  test("applyWbsChangesets processes setDocumentExtension atomically", () => {
++    const baseWbs = sampleWbs();
++    baseWbs.extensions = {
++      scwbs: { profile: "Lean", stale: true },
++      vendor: { retained: true }
++    };
++    const nodesBefore = structuredClone(baseWbs.nodes);
++
++    const result = applyWbsChangesets(baseWbs, [{
++      schemaVersion: "0.1.0",
++      targetWbsId: "scwbs",
++      operations: [{
++        operation: "setDocumentExtension",
++        namespace: "scwbs",
++        value: {
++          profile: "Standard",
++          governanceCost: {
++            warningBudgets: {
++              Standard: {
++                governanceFiles: 700,
++                governanceLines: 31000,
++                governanceToSourceLineRatio: 2
++              }
++            }
++          }
++        }
++      }]
++    }]);
++
++    expect(result.extensions?.vendor).toEqual({ retained: true });
++    expect(result.extensions?.scwbs).toEqual({
++      profile: "Standard",
++      governanceCost: {
++        warningBudgets: {
++          Standard: {
++            governanceFiles: 700,
++            governanceLines: 31000,
++            governanceToSourceLineRatio: 2
++          }
++        }
++      }
++    });
++    expect(result.nodes).toEqual(nodesBefore);
++    expect(baseWbs.extensions?.scwbs).toEqual({ profile: "Lean", stale: true });
++  });
++
+   test("applyWbsChangesets processes addNode operations with nested node object format", () => {
+     const baseWbs = sampleWbs();
+     const beforeCount = baseWbs.nodes.length;
+diff --git a/wjs b/wjs
+index cfcdcf8..e3fbe88 160000
+--- a/wjs
++++ b/wjs
+@@ -1 +1 @@
+-Subproject commit cfcdcf8b1c44aac492e248eea4aa8fcb8ce7e212
++Subproject commit e3fbe8863dc21f9c7c9fa98fd2aa068e038e7e04

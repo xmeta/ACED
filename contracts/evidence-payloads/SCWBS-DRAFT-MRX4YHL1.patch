@@ -1,0 +1,472 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 47a02b1..f005cdc 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -74,6 +74,7 @@ rules:
+       - src/core/github-actions.ts
+       - src/core/github-pull-requests.ts
+       - src/core/glob.ts
++      - src/core/governance-warning-budget.ts
+       - src/core/hash.ts
+       - src/core/human-gate.ts
+       - src/core/health-lifecycle.ts
+diff --git a/contracts/specs/SPEC-LITE-MRX4YHL1.yaml b/contracts/specs/SPEC-LITE-MRX4YHL1.yaml
+new file mode 100644
+index 0000000..9395172
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRX4YHL1.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MRX4YHL1
++type: spec-contract
++featureId: F-MRX4YHL1
++title: "Issue #179: baseline評価とwarning budget配線を追加する"
++status: approved
++version: 0.1.0
++summary: "観測不足をfail-closedに明示し、人間が設定したprofile別budgetだけをwarning-onlyで評価する"
++approvedBy: user-requested-issue-179
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - baselineはcompleted full finishを最低10 Task、requestedAtとapprovedAtを持つHuman Gateを最低2 Task要求する
++  - execution classはfull実装subjectとmetadata descendantを各最低2 Task要求し、満たさなければinsufficient-baselineとする
++  - profile別budgetはWBS任意extension extensions.scwbs.governanceCost.warningBudgets.<Profile>からread-onlyで選択する
++  - budget未設定はnot-configured、値が不正ならnot-configured理由付き、baseline不足はinsufficient-baselineを返す
++  - budget数値をコードやACED WBSへ自動採用せず、Lean/Standard/Strict選択はfixtureで検証する
++  - metrics governance JSONへwarningBudgetsを追加し、plain outputは5行以内を維持する
++  - health --governance-costは明示指定時だけbudget warningを追加し、budget超過だけではexit codeを非0にしない
++  - warningはgovernance files、lines、governance/source line ratioの任意閾値を超えた項目だけをboundedに返す
++  - CI failure、profile downgrade、required check省略、Human Gate緩和、WBS変更は行わない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml b/contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
+new file mode 100644
+index 0000000..53d5672
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
+@@ -0,0 +1,64 @@
++id: SCWBS-DRAFT-MRX4YHL1
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRX4YHL1
++branchName: codex/SCWBS-DRAFT-MRX4YHL1-issue-179-warning-budget
++allowedPaths:
++  - src/core/governance-warning-budget.ts
++  - src/commands/metrics.ts
++  - src/commands/health.ts
++  - src/cli.ts
++  - tests/integration/governance-warning-budget.test.ts
++  - tests/integration/health.test.ts
++  - tests/integration/metrics.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - completed Task 10件、Human Gate 2件、execution class各2件の観測条件を評価し不足時はinsufficient-baselineを返す
++  - profile別任意budgetをextensions.scwbs.governanceCost.warningBudgetsからread-onlyで選択する
++  - Standard未設定の現行ACEDはnot-configuredまたはinsufficient-baselineを明示し閾値を自動採用しない
++  - metrics governanceと明示指定health --governance-costはbudget超過をwarning-onlyで表示する
++  - budget warningはCI failure、profile downgrade、required check省略、Human Gate緩和を起こさない
++  - Lean/Standard/Strictのfixture、baseline不足、未設定、warning-only exit codeを検証する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
++  - contracts/specs/SPEC-LITE-MRX4YHL1.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRX4YHL1.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRX4YHL1.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRX4YHL1.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRX4YHL1.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:57c53964e0e229ed9bf3ed4de4fd2804e14068e1244280ffb93d9ab8173e55ad
++  createdAt: "2026-07-23T06:34:46.845Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8b09dae..cb06f64 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1224,3 +1224,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-23T06:30:10.681Z"
++  - id: SCWBS-DRAFT-MRX4YHL1
++    path: contracts/tasks/SCWBS-DRAFT-MRX4YHL1.yaml
++    branchName: codex/SCWBS-DRAFT-MRX4YHL1-issue-179-warning-budget
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 51153ad..ccf56cf 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -55,6 +55,8 @@ GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `hi
+ 
+ JSON schema `1.1.0` では `humanGate`、`historicalPullRequests`、`healthLifecycle` を加法的に追加する。新規Approval requestは `requestedAt` を記録しapprove後も保持するが、legacy recordの待ち時間は `null` のまま扱う。PR履歴は1回のbounded GitHub一覧取得からTask branchの作成・merge時刻と最大20 Taskのpublish loopを返し、取得不能は `unavailable`、未mergeは `null` とする。`health` はactive Task別warning summaryをgit common dirへ最大50 event/Task・最大100 Taskで保存し、履歴切捨てがなく最初と最後を比較できる場合だけwarning deltaを返す。plain metrics outputは変更しない。
+ 
++`warningBudgets` は任意の `extensions.scwbs.governanceCost.warningBudgets.<Profile>` からprofile別の `governanceFiles`、`governanceLines`、`governanceToSourceLineRatio` をread-onlyで選択する。未設定は `not-configured`、completed Task 10件・観測済みHuman Gate 2件・full/metadata descendant各2件に不足する場合は `insufficient-baseline` とし、閾値を推測しない。baseline充足後の超過もwarning-onlyで、hard failureやprofile変更を行わない。`health --governance-cost` は明示指定時だけ同じstatusと最大3 warningを追加し、budget warningだけではexit codeを変更しない。
++
+ 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。未計測項目はJSONへ明示し、hard limitやprofile downgradeは行わない。
+ 
+ ## AI Workflow
+diff --git a/src/cli.ts b/src/cli.ts
+index ca176f3..33249c0 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -163,7 +163,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .description("Check repository health")
+     .option("--json", "output a versioned JSON report")
+     .option("--verbose", "show every health issue")
+-    .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false }); });
++    .option("--governance-cost", "include warning-only governance cost budget status")
++    .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false, governanceCost: opts.governanceCost ?? false }); });
+ 
+   const metrics = program.command("metrics");
+   metrics
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 98c5c32..b826112 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -9,6 +9,8 @@ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
+ import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
++import { buildGovernanceCostSummary } from "./metrics.js";
++import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
+ 
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+@@ -16,6 +18,7 @@ export type HealthOptions = {
+   json?: boolean;
+   verbose?: boolean;
+   representativeLimit?: number;
++  governanceCost?: boolean;
+ };
+ 
+ export type HealthJsonOutput = {
+@@ -32,6 +35,7 @@ export type HealthJsonOutput = {
+     byCode: Array<{ code: string; severity: Issue["severity"]; count: number }>;
+   };
+   issues: Issue[];
++  governanceCost?: GovernanceWarningBudgets;
+ };
+ 
+ function evidenceCheckLevel(check: Evidence["checks"][number]): EvidenceLevel {
+@@ -619,7 +623,17 @@ export function runHealth(root: string, options: HealthOptions = {}): number {
+   } catch (error) {
+     console.error(`WARN health lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
+   }
+-  if (options.json) console.log(JSON.stringify(buildHealthJsonOutput(root, issues), null, 2));
+-  else process.stdout.write(buildHealthText(root, issues, options));
++  const governanceCost = options.governanceCost ? buildGovernanceCostSummary(root).warningBudgets : undefined;
++  if (options.json) {
++    console.log(JSON.stringify({
++      ...buildHealthJsonOutput(root, issues),
++      ...(governanceCost ? { governanceCost } : {})
++    }, null, 2));
++  } else {
++    process.stdout.write(buildHealthText(root, issues, options));
++    if (governanceCost) {
++      process.stdout.write(`Governance cost: ${governanceCost.status}; warnings=${governanceCost.warnings.length}${governanceCost.warnings.length > 0 ? ` (${governanceCost.warnings.join("; ")})` : ""}\n`);
++    }
++  }
+   return hasErrors(issues) ? 1 : 0;
+ }
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+index 3128b77..659af07 100644
+--- a/src/commands/metrics.ts
++++ b/src/commands/metrics.ts
+@@ -11,6 +11,8 @@ import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycl
+ import { readHistoricalPullRequests, type HistoricalPullRequests } from "../core/github-pull-requests.js";
+ import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycleReceipt } from "../core/health-lifecycle.js";
+ import { listApprovals } from "../core/contracts.js";
++import { evaluateGovernanceWarningBudgets, type GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
++import { readWbs } from "../core/wbs.js";
+ 
+ const GOVERNANCE_DIRS = [
+   "contracts/tasks",
+@@ -178,6 +180,7 @@ export type GovernanceCostSummary = {
+   humanGate: HumanGateSummary;
+   historicalPullRequests: HistoricalPullRequests;
+   healthLifecycle: HealthLifecycleSummary;
++  warningBudgets: GovernanceWarningBudgets;
+   unmeasured: string[];
+ };
+ 
+@@ -532,18 +535,35 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+     Standard: profileBucket(root, "Standard", categories),
+     Strict: profileBucket(root, "Strict", categories)
+   };
++  const profile = readProfile(root);
+   const historicalCi = readGithubActionsHistory(root);
+   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
+   const localLifecycle = buildLocalLifecycleSummary(root);
+   const humanGate = buildHumanGateSummary(root);
+   const historicalPullRequests = readHistoricalPullRequests(root);
+   const healthLifecycle = buildHealthLifecycleSummary(root);
++  const lifecycleItems = localLifecycle.status === "available" ? localLifecycle.taskTrend.items : [];
++  const warningBudgets = evaluateGovernanceWarningBudgets(readWbs(root), profile, {
++    completedTaskCount: lifecycleItems.filter((item) => item.fullAttemptCount > 0 && item.successfulCount > 0).length,
++    minimumCompletedTaskCount: 10,
++    observedHumanGateCount: humanGate.observedCompletedCount,
++    minimumObservedHumanGateCount: 2,
++    executionClasses: {
++      full: lifecycleItems.filter((item) => item.fullAttemptCount > 0 && item.successfulCount > 0).length,
++      metadataDescendant: lifecycleItems.filter((item) => (item.verifiedMetadataAncestryCount ?? 0) > 0).length,
++      minimumEach: 2
++    }
++  }, {
++    governanceFiles: governance.files,
++    governanceLines: governance.lines,
++    governanceToSourceLineRatio: ratio(governance.lines, source.lines)
++  });
+ 
+   return {
+     schemaVersion: "1.1.0",
+     metric: "governance-cost",
+     generatedAt: now.toISOString(),
+-    profile: readProfile(root),
++    profile,
+     definitions: {
+       lineCount: "UTF-8 newline count, plus one for a non-empty file without a trailing newline",
+       activeArchive: "active is the default; status: archived or an archive/archived directory is separated",
+@@ -570,8 +590,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+     humanGate,
+     historicalPullRequests,
+     healthLifecycle,
++    warningBudgets,
+     unmeasured: [
+-      "warning budgets and hard enforcement"
++      "hard enforcement"
+     ]
+   };
+ }
+@@ -587,7 +608,7 @@ export function runMetricsGovernance(root: string, options: MetricsOptions = {})
+     console.log(`- governance: ${summary.totals.governance.files} files, ${summary.totals.governance.lines} lines, ${summary.totals.governance.bytes} bytes`);
+     console.log(`- source: ${summary.totals.source.files} files, ${summary.totals.source.lines} lines`);
+     console.log(`- tests: ${summary.totals.tests.files} files, ${summary.totals.tests.lines} lines`);
+-    console.log(`- hard limit: not enforced; unmeasured dimensions: ${summary.unmeasured.length}`);
++    console.log(`- hard limit: not enforced; warning budget: ${summary.warningBudgets.status}, warnings=${summary.warningBudgets.warnings.length}; unmeasured dimensions: ${summary.unmeasured.length}`);
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/core/governance-warning-budget.ts b/src/core/governance-warning-budget.ts
+new file mode 100644
+index 0000000..9e46db0
+--- /dev/null
++++ b/src/core/governance-warning-budget.ts
+@@ -0,0 +1,107 @@
++import type { Profile, WbsDocument } from "./types.js";
++
++export type GovernanceWarningBudgetThresholds = {
++  governanceFiles?: number;
++  governanceLines?: number;
++  governanceToSourceLineRatio?: number;
++};
++
++export type GovernanceBaseline = {
++  completedTaskCount: number;
++  minimumCompletedTaskCount: 10;
++  observedHumanGateCount: number;
++  minimumObservedHumanGateCount: 2;
++  executionClasses: {
++    full: number;
++    metadataDescendant: number;
++    minimumEach: 2;
++  };
++};
++
++export type GovernanceWarningBudgets = {
++  status: "available" | "insufficient-baseline" | "not-configured";
++  source: "wbs-extension";
++  profile: Profile;
++  baseline: GovernanceBaseline;
++  thresholds: GovernanceWarningBudgetThresholds | null;
++  warnings: string[];
++  reason?: string;
++};
++
++type GovernanceMeasurement = {
++  governanceFiles: number;
++  governanceLines: number;
++  governanceToSourceLineRatio: number | null;
++};
++
++function nonNegativeNumber(value: unknown): number | undefined {
++  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
++}
++
++export function configuredWarningBudget(wbs: WbsDocument, profile: Profile): GovernanceWarningBudgetThresholds | undefined {
++  const scwbs = wbs.extensions?.scwbs;
++  if (typeof scwbs !== "object" || scwbs === null || Array.isArray(scwbs)) return undefined;
++  const governanceCost = (scwbs as Record<string, unknown>).governanceCost;
++  if (typeof governanceCost !== "object" || governanceCost === null || Array.isArray(governanceCost)) return undefined;
++  const warningBudgets = (governanceCost as Record<string, unknown>).warningBudgets;
++  if (typeof warningBudgets !== "object" || warningBudgets === null || Array.isArray(warningBudgets)) return undefined;
++  const selected = (warningBudgets as Record<string, unknown>)[profile];
++  if (typeof selected !== "object" || selected === null || Array.isArray(selected)) return undefined;
++  const record = selected as Record<string, unknown>;
++  const thresholds = {
++    governanceFiles: nonNegativeNumber(record.governanceFiles),
++    governanceLines: nonNegativeNumber(record.governanceLines),
++    governanceToSourceLineRatio: nonNegativeNumber(record.governanceToSourceLineRatio)
++  };
++  return Object.values(thresholds).some((value) => value !== undefined) ? thresholds : undefined;
++}
++
++function baselineReady(baseline: GovernanceBaseline): boolean {
++  return baseline.completedTaskCount >= baseline.minimumCompletedTaskCount
++    && baseline.observedHumanGateCount >= baseline.minimumObservedHumanGateCount
++    && baseline.executionClasses.full >= baseline.executionClasses.minimumEach
++    && baseline.executionClasses.metadataDescendant >= baseline.executionClasses.minimumEach;
++}
++
++export function evaluateGovernanceWarningBudgets(
++  wbs: WbsDocument,
++  profile: Profile,
++  baseline: GovernanceBaseline,
++  measurement: GovernanceMeasurement
++): GovernanceWarningBudgets {
++  const thresholds = configuredWarningBudget(wbs, profile);
++  if (!thresholds) {
++    return {
++      status: "not-configured",
++      source: "wbs-extension",
++      profile,
++      baseline,
++      thresholds: null,
++      warnings: [],
++      reason: `extensions.scwbs.governanceCost.warningBudgets.${profile} is not configured`
++    };
++  }
++  if (!baselineReady(baseline)) {
++    return {
++      status: "insufficient-baseline",
++      source: "wbs-extension",
++      profile,
++      baseline,
++      thresholds,
++      warnings: [],
++      reason: "requires 10 completed Tasks, 2 observed Human Gates, and 2 Tasks in each execution class"
++    };
++  }
++  const warnings: string[] = [];
++  if (thresholds.governanceFiles !== undefined && measurement.governanceFiles > thresholds.governanceFiles) {
++    warnings.push(`governance files ${measurement.governanceFiles} exceed ${thresholds.governanceFiles}`);
++  }
++  if (thresholds.governanceLines !== undefined && measurement.governanceLines > thresholds.governanceLines) {
++    warnings.push(`governance lines ${measurement.governanceLines} exceed ${thresholds.governanceLines}`);
++  }
++  if (thresholds.governanceToSourceLineRatio !== undefined && measurement.governanceToSourceLineRatio !== null
++    && measurement.governanceToSourceLineRatio > thresholds.governanceToSourceLineRatio) {
++    warnings.push(`governance/source line ratio ${measurement.governanceToSourceLineRatio} exceeds ${thresholds.governanceToSourceLineRatio}`);
++  }
++  return { status: "available", source: "wbs-extension", profile, baseline, thresholds, warnings: warnings.slice(0, 3) };
++}
+diff --git a/tests/integration/governance-warning-budget.test.ts b/tests/integration/governance-warning-budget.test.ts
+new file mode 100644
+index 0000000..b35eeb1
+--- /dev/null
++++ b/tests/integration/governance-warning-budget.test.ts
+@@ -0,0 +1,64 @@
++import { describe, expect, test } from "vitest";
++import { configuredWarningBudget, evaluateGovernanceWarningBudgets, type GovernanceBaseline } from "../../src/core/governance-warning-budget.js";
++import { main } from "../../src/cli.js";
++import { makeTempRepo, sampleWbs, writeScwbsProject } from "../helpers.js";
++
++const readyBaseline: GovernanceBaseline = {
++  completedTaskCount: 10,
++  minimumCompletedTaskCount: 10,
++  observedHumanGateCount: 2,
++  minimumObservedHumanGateCount: 2,
++  executionClasses: { full: 2, metadataDescendant: 2, minimumEach: 2 }
++};
++
++function configuredWbs() {
++  return {
++    ...sampleWbs(),
++    extensions: {
++      scwbs: {
++        profile: "Standard",
++        governanceCost: {
++          warningBudgets: {
++            Lean: { governanceFiles: 10 },
++            Standard: { governanceLines: 20 },
++            Strict: { governanceToSourceLineRatio: 3 }
++          }
++        }
++      }
++    }
++  };
++}
++
++describe("governance warning budgets", () => {
++  test("selects Lean, Standard, and Strict independently", () => {
++    const wbs = configuredWbs();
++    expect(configuredWarningBudget(wbs, "Lean")).toEqual({ governanceFiles: 10, governanceLines: undefined, governanceToSourceLineRatio: undefined });
++    expect(configuredWarningBudget(wbs, "Standard")?.governanceLines).toBe(20);
++    expect(configuredWarningBudget(wbs, "Strict")?.governanceToSourceLineRatio).toBe(3);
++  });
++
++  test("reports not-configured and insufficient-baseline without inventing thresholds", () => {
++    const unconfigured = evaluateGovernanceWarningBudgets(sampleWbs(), "Standard", readyBaseline, {
++      governanceFiles: 100, governanceLines: 100, governanceToSourceLineRatio: 1
++    });
++    expect(unconfigured).toMatchObject({ status: "not-configured", thresholds: null, warnings: [] });
++    const insufficient = evaluateGovernanceWarningBudgets(configuredWbs(), "Standard", {
++      ...readyBaseline,
++      completedTaskCount: 9
++    }, { governanceFiles: 100, governanceLines: 100, governanceToSourceLineRatio: 1 });
++    expect(insufficient).toMatchObject({ status: "insufficient-baseline", warnings: [] });
++  });
++
++  test("returns bounded warnings only after the baseline is sufficient", () => {
++    const result = evaluateGovernanceWarningBudgets(configuredWbs(), "Standard", readyBaseline, {
++      governanceFiles: 100, governanceLines: 21, governanceToSourceLineRatio: 4
++    });
++    expect(result).toMatchObject({ status: "available", warnings: ["governance lines 21 exceed 20"] });
++  });
++
++  test("health governance-cost is explicit and budget status never changes a clean exit code", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(["health", "--governance-cost", "--json"], root)).toBe(0);
++  });
++});
+diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
+index 8ecb211..6d8ca73 100644
+--- a/tests/integration/metrics.test.ts
++++ b/tests/integration/metrics.test.ts
+@@ -71,7 +71,8 @@ describe("governance metrics", () => {
+     expect(summary.localRequiredChecks).toMatchObject({ status: "available", receiptCount: 0, observedCheckCount: 0 });
+     if (summary.localRequiredChecks.status !== "available") throw new Error(summary.localRequiredChecks.reason);
+     expect(summary.localRequiredChecks.durationMilliseconds).toEqual({ total: null, average: null, minimum: null, maximum: null });
+-    expect(summary.unmeasured).toEqual(["warning budgets and hard enforcement"]);
++    expect(summary.warningBudgets).toMatchObject({ status: "not-configured", profile: "Strict", warnings: [] });
++    expect(summary.unmeasured).toEqual(["hard enforcement"]);
+     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
+   });
+ 

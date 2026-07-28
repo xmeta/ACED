@@ -1,0 +1,166 @@
+diff --git a/contracts/specs/SPEC-LITE-MS1ZEDKY.yaml b/contracts/specs/SPEC-LITE-MS1ZEDKY.yaml
+new file mode 100644
+index 0000000..396f52e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS1ZEDKY.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MS1ZEDKY
++type: spec-contract
++featureId: F-MS1ZEDKY
++title: "Issue #311: finish/statusのCLI helpを実際のlifecycle挙動へ同期する"
++status: approved
++version: 0.1.0
++summary: "CLI helpの文言だけを現行behaviorへ同期しintegration testで固定する"
++approvedBy: user-requested-issue-311
++approvedAt: "2026-07-27T00:00:00+09:00"
++acceptanceCriteria:
++  - finish --preflight helpがrequired checksとtracked artifactを変更しないことを示す
++  - finish --preflight helpがlocal finish lifecycle receiptを記録することを隠さない
++  - status --strict helpがcompletedとarchived Taskを対象にすることを示す
++  - 両helpのintegration testが正確な文言を検証する
++  - CLI behavior、schema、completion trust母集団、Human Approval policyを変更しない
++  - test、test:integration、typecheck、build、scwbs checkが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml b/contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
+new file mode 100644
+index 0000000..6f96859
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
+@@ -0,0 +1,61 @@
++id: SCWBS-DRAFT-MS1ZEDKY
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS1ZEDKY
++branchName: task/SCWBS-DRAFT-MS1ZEDKY-issue-311-align-finish-and-status-cli-help-with-
++allowedPaths:
++  - src/cli.ts
++  - tests/integration/cli-help.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - docs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - CLI behavior、completion trust母集団、finish side effect、schemaの変更が必要
++  - package、lockfile、workflow、WBS正本、Human Gate pathの変更が必要
++  - help以外の利用者向け仕様判断が必要
++doneCriteria:
++  - finish --preflight helpがrequired checksとtracked artifactを変更しない一方でlocal lifecycle receiptを記録することを正確に示す
++  - status --strict helpがcompletedとarchived Taskのcompletion trustを対象にすることを示す
++  - 両方のhelp文字列をintegration testで固定し将来のdriftを検出する
++  - CLI behavior、schema、Human Approval policyを変更しない
++  - test、test:integration、typecheck、build、scwbs check、check-diff、registry checkが成功する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
++  - contracts/specs/SPEC-LITE-MS1ZEDKY.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS1ZEDKY.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS1ZEDKY.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS1ZEDKY.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS1ZEDKY.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:94ab3c261ecd8db9da442836573431d57f81d35b4b2312eacc1f97659f096012
++  createdAt: "2026-07-26T15:58:18.488Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 1311404..17ec29e 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1301,3 +1301,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-26T15:18:04.007Z"
++  - id: SCWBS-DRAFT-MS1ZEDKY
++    path: contracts/tasks/SCWBS-DRAFT-MS1ZEDKY.yaml
++    branchName: task/SCWBS-DRAFT-MS1ZEDKY-issue-311-align-finish-and-status-cli-help-with-
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index 3fc1a7a..9266ad3 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -230,7 +230,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .command("status")
+     .description("Show repository status")
+     .option("--json", "output a versioned JSON report")
+-    .option("--strict", "fail when completed Task trust is not fully verified")
++    .option("--strict", "fail when completed or archived Task completion trust is not fully verified")
+     .action((opts) => { exitCode = runStatus(root, { json: opts.json ?? false, strict: opts.strict ?? false }); });
+ 
+   program
+@@ -270,7 +270,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
+     .option("--rerun-checks", "rerun required checks even when cached results are valid")
+-    .option("--preflight", "validate finish readiness without running checks or writing files")
++    .option("--preflight", "validate readiness without required checks or tracked artifact changes; record a local lifecycle receipt")
+     .option("--test-assertions-added <bool>", "test assertions added")
+     .option("--tests-disabled <bool>", "tests disabled")
+     .option("--coverage-decreased <bool>", "coverage decreased")
+diff --git a/tests/integration/cli-help.test.ts b/tests/integration/cli-help.test.ts
+new file mode 100644
+index 0000000..537112c
+--- /dev/null
++++ b/tests/integration/cli-help.test.ts
+@@ -0,0 +1,35 @@
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo } from "../helpers.js";
++
++function captureHelp(args: string[], root: string): { exitCode: number; stdout: string } {
++  const output: string[] = [];
++  const originalWrite = process.stdout.write;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { exitCode: main(args, root), stdout: output.join("") };
++  } finally {
++    process.stdout.write = originalWrite;
++  }
++}
++
++describe("CLI help lifecycle semantics", () => {
++  test("describes status strict scope and finish preflight side effects", () => {
++    const root = makeTempRepo();
++
++    const status = captureHelp(["status", "--help"], root);
++    expect(status.exitCode).toBe(0);
++    const statusText = status.stdout.replace(/\s+/g, " ");
++    expect(statusText).toContain("completed or archived Task completion trust");
++
++    const finish = captureHelp(["finish", "--help"], root);
++    expect(finish.exitCode).toBe(0);
++    const finishText = finish.stdout.replace(/\s+/g, " ");
++    expect(finishText).toContain("without required checks or tracked artifact changes");
++    expect(finishText).toContain("record a local lifecycle receipt");
++    expect(finishText).not.toContain("without running checks or writing files");
++  });
++});

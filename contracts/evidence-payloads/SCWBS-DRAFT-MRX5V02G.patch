@@ -1,0 +1,858 @@
+diff --git a/README.md b/README.md
+index 92e189a..474109e 100644
+--- a/README.md
++++ b/README.md
+@@ -57,6 +57,8 @@ Use `doctor` for setup diagnostics and `check` for contract/registry health:
+ npm run scwbs -- doctor
+ npm run scwbs -- doctor --fix
+ npm run scwbs -- check
++npm run scwbs -- status
++npm run scwbs -- status --strict
+ npm run scwbs -- registry rebuild --check
+ ```
+ 
+@@ -71,6 +73,11 @@ plus any check / health issues. Each FAIL prints a suggested fix command.
+ Run `doctor` before `check` whenever setup may be incomplete so failures
+ are diagnosed explicitly instead of surfacing as opaque errors.
+ 
++`status` keeps WBS lifecycle counts separate from completion trust. A completed
++or archived Task is only `verified` when its required checks, Evidence subject,
++and any Human Approval scope remain verifiable; `--strict` returns a non-zero
++status when terminal Task trust is degraded, unverifiable, or not evaluated.
++
+ ## 4. AI Minimum Flow
+ 
+ AI agents should start from the active Task Contract and avoid broad docs
+diff --git a/contracts/specs/SPEC-LITE-MRX5V02G.yaml b/contracts/specs/SPEC-LITE-MRX5V02G.yaml
+new file mode 100644
+index 0000000..1b9085e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRX5V02G.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MRX5V02G
++type: spec-contract
++featureId: F-MRX5V02G
++title: "Issue #177: statusへ完了信頼度を統合する"
++status: approved
++version: 0.1.0
++summary: "WBS lifecycleとは別にTask Evidenceの再検証可能性をhealthと共通判定で要約する"
++approvedBy: user-requested-baseline-continuation
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - statusの既存WBS status、Evidence Missing、Blocking Relations出力を維持しTask completion trust summaryを追加する
++  - archivedまたはcompletedのTask index entryだけを完了Task母集団としcancelledは除外する
++  - trustはverified、degraded、unverifiable、not-evaluatedを区別する
++  - required check欠落または非passed、Evidence subject欠落または到達不能、Human Gate approval不整合はunverifiableとする
++  - verifiable source metadata不足など補助metadataの低信頼はdegradedとする
++  - shallow cloneでcommit到達性だけが評価不能な場合はnot-evaluatedとし、確定的な欠落や不整合を隠さない
++  - Evidence trustとHuman Gate scopeはhealthと共通の判定関数を利用する
++  - status --jsonはversion scwbs.status.v1、repository評価状態、WBS status、completion trust summaryを返す
++  - status --strictはdegradedまたはunverifiableが1件以上なら非0、not-evaluatedだけの場合もfail-closedで非0を返す
++  - JSONとtextはTask ID一覧を既定で展開せず件数だけを返してboundedに保つ
++  - WBS、Evidence、Approval、Review、Task lifecycleの正本や意味は変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml b/contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
+new file mode 100644
+index 0000000..bba69d4
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MRX5V02G
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRX5V02G
++branchName: codex/SCWBS-DRAFT-MRX5V02G-issue-177-status-completion-trust
++allowedPaths:
++  - src/commands/status.ts
++  - src/commands/health.ts
++  - src/cli.ts
++  - tests/integration/status.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/status.schema.json
++  - README.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - WBS lifecycle statusとTask completion trustを別軸で表示する
++  - Evidenceの存在だけでverifiedにせずrequired checks、subject provenance、Human Approval scopeを評価する
++  - shallow cloneの未評価と真正なunverifiableを区別する
++  - healthと同じEvidence/Human Gate trust判定を共有し結果を矛盾させない
++  - status --jsonはversioned schemaとboundedなsummaryを返す
++  - status --strictはdegradedまたはunverifiableな完了Taskがあれば非0を返す
++  - missing Evidence、missing/failed required check、approval mismatch、low-trust check、shallow cloneを回帰テストする
++  - READMEとCLI referenceでcompleted lifecycleとverified trustの違いを説明する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
++  - contracts/specs/SPEC-LITE-MRX5V02G.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRX5V02G.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRX5V02G.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRX5V02G.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRX5V02G.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a0fcb51cf871d9e2c4399b648af63b3edba4b4ce055c6861145450735428a2a5
++  createdAt: "2026-07-23T07:00:27.921Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 287a544..02699d9 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1231,3 +1231,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-23T06:44:34.565Z"
++  - id: SCWBS-DRAFT-MRX5V02G
++    path: contracts/tasks/SCWBS-DRAFT-MRX5V02G.yaml
++    branchName: codex/SCWBS-DRAFT-MRX5V02G-issue-177-status-completion-trust
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index ccf56cf..378160f 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -20,12 +20,16 @@ npm run scwbs -- health --json
+ npm run scwbs -- health --verbose
+ npm run scwbs -- check-diff --task WBS-001-004
+ npm run scwbs -- status
++npm run scwbs -- status --json
++npm run scwbs -- status --strict
+ ```
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation; those always come with a `fixCommand` hint from `check` / `check-diff` / `finish` instead.
+ 
+ `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
+ 
++`status` はWBS nodeのlifecycle件数と、Task indexで `completed` / `archived` のTaskに対するcompletion trustを別軸で表示する。completion trustはEvidenceの存在だけではなく、required checks、Evidence subject provenance、Human Approval scopeを`health`と共通の判定で評価し、`verified` / `degraded` / `unverifiable` / `not-evaluated`へ分類する。`cancelled` Taskは母集団から除外する。`--json` はversioned schema `scwbs.status.v1` のbounded summaryを返し、Task ID一覧は展開しない。`--strict` はTask indexを評価できない場合、またはterminal Taskが完全な`verified`でない場合に非0を返す。shallow cloneはcommit到達性だけを`not-evaluated`とし、Evidence欠落やApproval不整合など確定的な問題を隠さない。
++
+ `health` はアクティブな（completed でない）Task Contractの `packet --context-json` manifestをread-onlyで診断し、次のWARN指標を報告する。これらは診断のみでexit codeを変更しない。指標はファイル単位またはwidening reason単位で全アクティブタスクを横断集約し、タスク数の爆発を防ぐ。
+ 
+ - `health.codeContext.fileTooLarge`：context内の単一file（mustRead/candidates）が 500 lines を超える、または 40,960 bytes を超える。一意な file path ごとに 1 issue、message に参照しているアクティブタスク数と代表例を含める。
+diff --git a/docs/scwbs/schemas/status.schema.json b/docs/scwbs/schemas/status.schema.json
+new file mode 100644
+index 0000000..acbf1e7
+--- /dev/null
++++ b/docs/scwbs/schemas/status.schema.json
+@@ -0,0 +1,81 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/status.schema.json",
++  "title": "SC-WBS status report",
++  "type": "object",
++  "required": [
++    "version",
++    "project",
++    "repository",
++    "wbsStatus",
++    "completionTrust",
++    "evidenceMissing",
++    "blockingRelations"
++  ],
++  "properties": {
++    "version": { "const": "scwbs.status.v1" },
++    "project": { "type": "string" },
++    "repository": {
++      "type": "object",
++      "required": ["shallow", "commitReachability"],
++      "properties": {
++        "shallow": { "type": "boolean" },
++        "commitReachability": { "enum": ["evaluated", "not-evaluated"] }
++      },
++      "additionalProperties": false
++    },
++    "wbsStatus": {
++      "type": "object",
++      "required": ["total", "counts"],
++      "properties": {
++        "total": { "type": "integer", "minimum": 0 },
++        "counts": {
++          "type": "object",
++          "additionalProperties": { "type": "integer", "minimum": 0 }
++        }
++      },
++      "additionalProperties": false
++    },
++    "completionTrust": {
++      "type": "object",
++      "required": [
++        "sourceStatus",
++        "source",
++        "reason",
++        "total",
++        "verified",
++        "degraded",
++        "unverifiable",
++        "notEvaluated"
++      ],
++      "properties": {
++        "sourceStatus": { "enum": ["available", "unavailable"] },
++        "source": { "const": "task-index" },
++        "reason": { "type": ["string", "null"] },
++        "total": { "type": "integer", "minimum": 0 },
++        "verified": { "type": "integer", "minimum": 0 },
++        "degraded": { "type": "integer", "minimum": 0 },
++        "unverifiable": { "type": "integer", "minimum": 0 },
++        "notEvaluated": { "type": "integer", "minimum": 0 }
++      },
++      "additionalProperties": false
++    },
++    "evidenceMissing": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "blockingRelations": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["source", "target"],
++        "properties": {
++          "source": { "type": "string" },
++          "target": { "type": "string" }
++        },
++        "additionalProperties": false
++      }
++    }
++  },
++  "additionalProperties": false
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 33249c0..01d9e6e 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -176,7 +176,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   program
+     .command("status")
+     .description("Show repository status")
+-    .action(() => { exitCode = runStatus(root); });
++    .option("--json", "output a versioned JSON report")
++    .option("--strict", "fail when completed Task trust is not fully verified")
++    .action((opts) => { exitCode = runStatus(root, { json: opts.json ?? false, strict: opts.strict ?? false }); });
+ 
+   program
+     .command("review-queue")
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index b826112..8d2b0b2 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -95,16 +95,35 @@ function hasTestQualityRationale(evidence: Evidence): boolean {
+   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
+ }
+ 
+-function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
++export type EvidenceTrustOptions = {
++  checkCommitReachability?: boolean;
++  completed?: boolean;
++  repositoryState?: {
++    currentHead: string | undefined;
++    currentBranchName: string | undefined;
++    commitExists: (commit: string) => boolean;
++  };
++};
++
++export function collectEvidenceTrustIssues(
++  root: string,
++  wbs: WbsDocument,
++  task: TaskContract,
++  evidence: Evidence,
++  options: EvidenceTrustOptions = {}
++): Issue[] {
+   const issues: Issue[] = [];
+   const node = findNode(wbs, task.wbsNodeId);
+-  const currentHead = headCommit(root);
+-  const currentBranchName = currentBranch(root);
++  const checkCommitReachability = options.checkCommitReachability ?? true;
++  const completed = options.completed ?? Boolean(node && isDoneNode(node));
++  const currentHead = options.repositoryState ? options.repositoryState.currentHead : headCommit(root);
++  const currentBranchName = options.repositoryState ? options.repositoryState.currentBranchName : currentBranch(root);
++  const evidenceCommitExists = options.repositoryState?.commitExists ?? ((commit: string) => commitExists(root, commit));
+   const { approval } = readApproval(root, task.id);
+   const approvalPullRequest = approval?.pullRequest;
+   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+ 
+-  if (node && isDoneNode(node) && strongestEvidenceLevel(evidence) === "C") {
++  if (completed && strongestEvidenceLevel(evidence) === "C") {
+     issues.push({
+       severity: "warn",
+       code: "health.evidence.lowTrust",
+@@ -115,7 +134,19 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   const checksByName = new Map(evidence.checks.map((check) => [check.name, check]));
+   for (const requiredCheck of task.requiredChecks) {
+     const check = checksByName.get(requiredCheck);
+-    if (check && evidenceCheckLevel(check) === "C") {
++    if (!check) {
++      issues.push({
++        severity: "warn",
++        code: "health.evidence.check.missing",
++        message: `${task.id} required check ${requiredCheck} is missing`
++      });
++    } else if (check.status !== "passed") {
++      issues.push({
++        severity: "warn",
++        code: "health.evidence.check.notPassed",
++        message: `${task.id} required check ${requiredCheck} status is ${check.status}`
++      });
++    } else if (evidenceCheckLevel(check) === "C") {
+       issues.push({
+         severity: "warn",
+         code: "health.evidence.check.lowTrust",
+@@ -126,7 +157,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+ 
+   if (!evidence.commit) {
+     issues.push({ severity: "warn", code: "health.evidence.commit.missing", message: `${task.id} evidence has no commit` });
+-  } else if (checkCommitReachability && !commitExists(root, evidence.commit)) {
++  } else if (checkCommitReachability && !evidenceCommitExists(evidence.commit)) {
+     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
+   }
+ 
+@@ -136,7 +167,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   const subjectHead = evidenceSubjectHead(evidence);
+   if (!subjectHead) {
+     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
+-  } else if (checkCommitReachability && !commitExists(root, subjectHead)) {
++  } else if (checkCommitReachability && !evidenceCommitExists(subjectHead)) {
+     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
+   } else if (
+     checkCommitReachability
+@@ -156,7 +187,7 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+     }
+     if (!evidence.git.baseCommit) {
+       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.missing", message: `${task.id} branch-diff evidence has no git.baseCommit` });
+-    } else if (checkCommitReachability && !commitExists(root, evidence.git.baseCommit)) {
++    } else if (checkCommitReachability && !evidenceCommitExists(evidence.git.baseCommit)) {
+       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
+     }
+     const actualDiffHash = evidenceDiffHash(evidence);
+@@ -303,7 +334,7 @@ export function collectTaskHealthIssues(root: string, taskId: string): Issue[] {
+   }
+   issues.push(...evidenceIssues.map((issue) => ({ ...issue, code: `health.${issue.code}` })));
+   const checkCommitReachability = !isShallowRepository(root);
+-  issues.push(...validateEvidenceTrust(root, wbs, task, evidence, checkCommitReachability));
++  issues.push(...collectEvidenceTrustIssues(root, wbs, task, evidence, { checkCommitReachability }));
+   issues.push(...validateReviewScope(root, task, evidence, checkCommitReachability));
+   return issues;
+ }
+@@ -524,7 +555,7 @@ export function collectHealthIssues(root: string): Issue[] {
+     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
+     if (missingEvidenceOnly) continue;
+     issues.push(...evidenceIssues);
+-    if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence, checkCommitReachability));
++    if (evidence) issues.push(...collectEvidenceTrustIssues(root, wbs, entry.task, evidence, { checkCommitReachability }));
+   }
+ 
+   issues.push(...collectCodeContextHealthIssues(root, wbs));
+diff --git a/src/commands/status.ts b/src/commands/status.ts
+index 49d4d0b..c03c7d3 100644
+--- a/src/commands/status.ts
++++ b/src/commands/status.ts
+@@ -1,7 +1,183 @@
+-import { evidenceExists, listTasks } from "../core/contracts.js";
++import { execFileSync } from "node:child_process";
++import { evidenceExists, listTasks, readEvidence } from "../core/contracts.js";
++import { currentBranch, headCommit, isShallowRepository } from "../core/git.js";
++import { readTaskIndex } from "../core/task-index.js";
++import type { Issue, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
++import { collectEvidenceTrustIssues, type EvidenceTrustOptions } from "./health.js";
+ 
+-export function buildStatus(root: string): string {
++export type CompletionTrustLevel = "verified" | "degraded" | "unverifiable" | "not-evaluated";
++
++export type CompletionTrustSummary = {
++  sourceStatus: "available" | "unavailable";
++  source: "task-index";
++  reason: string | null;
++  total: number;
++  verified: number;
++  degraded: number;
++  unverifiable: number;
++  notEvaluated: number;
++};
++
++export type StatusJsonOutput = {
++  version: "scwbs.status.v1";
++  project: string;
++  repository: {
++    shallow: boolean;
++    commitReachability: "evaluated" | "not-evaluated";
++  };
++  wbsStatus: {
++    total: number;
++    counts: Record<string, number>;
++  };
++  completionTrust: CompletionTrustSummary;
++  evidenceMissing: string[];
++  blockingRelations: Array<{ source: string; target: string }>;
++};
++
++export type StatusOptions = {
++  json?: boolean;
++  strict?: boolean;
++};
++
++const completedTaskStatuses = new Set(["completed", "archived"]);
++
++function isUnverifiableTrustIssue(issue: Issue): boolean {
++  return issue.code === "health.evidence.check.missing"
++    || issue.code === "health.evidence.check.notPassed"
++    || /^health\.evidence\.(commit|subjectHeadCommit|diffHash|changedFiles)\.(missing|unknown|stale|allowedPaths|forbiddenPaths)$/.test(issue.code)
++    || /^health\.evidence\.git\.(base|baseCommit)\.(missing|unknown)$/.test(issue.code)
++    || /^health\.approval\./.test(issue.code);
++}
++
++export function assessTaskCompletionTrust(
++  root: string,
++  wbs: WbsDocument,
++  task: TaskContract,
++  checkCommitReachability = !isShallowRepository(root),
++  repositoryState?: EvidenceTrustOptions["repositoryState"]
++): { level: CompletionTrustLevel; issueCodes: string[] } {
++  let evidenceResult: ReturnType<typeof readEvidence>;
++  try {
++    evidenceResult = readEvidence(root, task.id);
++  } catch {
++    return { level: "unverifiable", issueCodes: ["evidence.parse"] };
++  }
++  const { evidence, issues: evidenceIssues } = evidenceResult;
++  if (!evidence || evidenceIssues.length > 0) {
++    return {
++      level: "unverifiable",
++      issueCodes: evidenceIssues.map((issue) => issue.code)
++    };
++  }
++
++  const issues = collectEvidenceTrustIssues(root, wbs, task, evidence, {
++    checkCommitReachability,
++    completed: true,
++    repositoryState
++  });
++  const issueCodes = [...new Set(issues.map((issue) => issue.code))].sort();
++  if (issues.some(isUnverifiableTrustIssue)) return { level: "unverifiable", issueCodes };
++  if (issues.length > 0) return { level: "degraded", issueCodes };
++  if (!checkCommitReachability) return { level: "not-evaluated", issueCodes };
++  return { level: "verified", issueCodes };
++}
++
++function evidenceCommitReferences(root: string, tasks: TaskContract[]): string[] {
++  const references = new Set<string>();
++  for (const task of tasks) {
++    try {
++      const { evidence } = readEvidence(root, task.id);
++      if (!evidence) continue;
++      for (const value of [
++        evidence.commit,
++        evidence.subjectHeadCommit,
++        evidence.git?.subjectHeadCommit,
++        evidence.git?.headCommit,
++        evidence.git?.baseCommit
++      ]) {
++        if (value && /^[0-9a-f]{7,64}$/i.test(value)) references.add(value);
++      }
++    } catch {
++      // Malformed Evidence is classified as unverifiable by the assessment.
++    }
++  }
++  return [...references];
++}
++
++function batchCommitExistence(root: string, references: string[]): (commit: string) => boolean {
++  const existence = new Map<string, boolean>();
++  if (references.length > 0) {
++    try {
++      const output = execFileSync(
++        "git",
++        ["cat-file", "--batch-check=%(objectname) %(objecttype)"],
++        { cwd: root, input: `${references.join("\n")}\n`, encoding: "utf8" }
++      );
++      output.trimEnd().split("\n").forEach((line, index) => {
++        existence.set(references[index]!, /^[0-9a-f]+ commit$/.test(line));
++      });
++    } catch {
++      for (const reference of references) existence.set(reference, false);
++    }
++  }
++  return (commit: string): boolean => existence.get(commit) ?? false;
++}
++
++function collectCompletionTrust(root: string, wbs: WbsDocument): CompletionTrustSummary {
++  const indexResult = readTaskIndex(root);
++  const empty = {
++    source: "task-index" as const,
++    total: 0,
++    verified: 0,
++    degraded: 0,
++    unverifiable: 0,
++    notEvaluated: 0
++  };
++  if (!indexResult.index || indexResult.issues.length > 0) {
++    return {
++      sourceStatus: "unavailable",
++      ...empty,
++      reason: indexResult.issues[0]?.code ?? "task.index.unavailable"
++    };
++  }
++
++  const terminalEntries = indexResult.index.tasks.filter((entry) => completedTaskStatuses.has(entry.status));
++  const tasks = new Map(listTasks(root).flatMap((entry) => entry.task ? [[entry.task.id, entry.task] as const] : []));
++  const checkCommitReachability = !isShallowRepository(root);
++  const terminalTasks = terminalEntries.flatMap((entry) => {
++    const task = tasks.get(entry.id);
++    return task ? [task] : [];
++  });
++  const repositoryState: EvidenceTrustOptions["repositoryState"] = {
++    currentHead: headCommit(root),
++    currentBranchName: currentBranch(root),
++    commitExists: checkCommitReachability
++      ? batchCommitExistence(root, evidenceCommitReferences(root, terminalTasks))
++      : () => false
++  };
++  const summary: CompletionTrustSummary = {
++    sourceStatus: "available",
++    ...empty,
++    reason: null
++  };
++  for (const entry of terminalEntries) {
++    summary.total += 1;
++    const task = tasks.get(entry.id);
++    if (!task) {
++      summary.unverifiable += 1;
++      continue;
++    }
++    const result = assessTaskCompletionTrust(root, wbs, task, checkCommitReachability, repositoryState);
++    if (result.level === "verified") summary.verified += 1;
++    else if (result.level === "degraded") summary.degraded += 1;
++    else if (result.level === "unverifiable") summary.unverifiable += 1;
++    else summary.notEvaluated += 1;
++  }
++  return summary;
++}
++
++export function buildStatusJsonOutput(root: string): StatusJsonOutput {
+   const wbs = readWbs(root);
+   const counts = new Map<string, number>();
+   for (const node of wbs.nodes) {
+@@ -17,28 +193,77 @@ export function buildStatus(root: string): string {
+       evidenceMissing.push(entry.task.id);
+     }
+   }
++  evidenceMissing.sort();
+ 
+-  const blockers = (wbs.relations ?? []).filter((relation) => relation.type === "blocks");
++  const blockers = (wbs.relations ?? [])
++    .filter((relation) => relation.type === "blocks")
++    .map((relation) => ({ source: relation.source, target: relation.target }));
++  const shallow = isShallowRepository(root);
++  const sortedCounts = Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)));
++
++  return {
++    version: "scwbs.status.v1",
++    project: wbs.name,
++    repository: {
++      shallow,
++      commitReachability: shallow ? "not-evaluated" : "evaluated"
++    },
++    wbsStatus: {
++      total: wbs.nodes.length,
++      counts: sortedCounts
++    },
++    completionTrust: collectCompletionTrust(root, wbs),
++    evidenceMissing,
++    blockingRelations: blockers
++  };
++}
+ 
++function buildStatusText(report: StatusJsonOutput): string {
++  const trust = report.completionTrust;
+   const lines = [
+-    `Project: ${wbs.name}`,
++    `Project: ${report.project}`,
+     "",
+     "Status:",
+-    ...Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([status, count]) => `- ${status}: ${count}`),
++    ...Object.entries(report.wbsStatus.counts).map(([status, count]) => `- ${status}: ${count}`),
++    "",
++    "Completion Trust (terminal Tasks):",
++    ...(trust.sourceStatus === "available"
++      ? [
++          `- verified: ${trust.verified}`,
++          `- degraded: ${trust.degraded}`,
++          `- unverifiable: ${trust.unverifiable}`,
++          `- not-evaluated: ${trust.notEvaluated}`
++        ]
++      : [`- unavailable: ${trust.reason}`]),
+     "",
+     "Evidence Missing:",
+-    ...(evidenceMissing.length === 0 ? ["- None"] : evidenceMissing.map((item) => `- ${item}`)),
++    ...(report.evidenceMissing.length === 0 ? ["- None"] : report.evidenceMissing.map((item) => `- ${item}`)),
+     "",
+     "Blocking Relations:",
+-    ...(blockers.length === 0 ? ["- None"] : blockers.map((relation) => `- ${relation.source} blocks ${relation.target}`))
++    ...(report.blockingRelations.length === 0
++      ? ["- None"]
++      : report.blockingRelations.map((relation) => `- ${relation.source} blocks ${relation.target}`))
+   ];
+   return `${lines.join("\n")}\n`;
+ }
+ 
+-export function runStatus(root: string): number {
++export function buildStatus(root: string): string {
++  return buildStatusText(buildStatusJsonOutput(root));
++}
++
++export function runStatus(root: string, options: StatusOptions = {}): number {
+   try {
+-    process.stdout.write(buildStatus(root));
+-    return 0;
++    const report = buildStatusJsonOutput(root);
++    if (options.json) console.log(JSON.stringify(report, null, 2));
++    else process.stdout.write(buildStatusText(report));
++    if (!options.strict) return 0;
++    const trust = report.completionTrust;
++    return trust.sourceStatus !== "available"
++      || trust.degraded > 0
++      || trust.unverifiable > 0
++      || trust.notEvaluated > 0
++      ? 1
++      : 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+     return 1;
+diff --git a/tests/integration/status.test.ts b/tests/integration/status.test.ts
+new file mode 100644
+index 0000000..b89731a
+--- /dev/null
++++ b/tests/integration/status.test.ts
+@@ -0,0 +1,206 @@
++import { execFileSync } from "node:child_process";
++import { mkdtempSync, readFileSync } from "node:fs";
++import os from "node:os";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import {
++  assessTaskCompletionTrust,
++  buildStatus,
++  buildStatusJsonOutput,
++  runStatus
++} from "../../src/commands/status.js";
++import { readTask } from "../../src/core/contracts.js";
++import { headCommit } from "../../src/core/git.js";
++import { readWbs } from "../../src/core/wbs.js";
++import {
++  makeTempRepo,
++  sampleApproval,
++  sampleEvidence,
++  sampleTask,
++  writeScwbsProject,
++  writeText,
++  writeYaml
++} from "../helpers.js";
++
++function writeTerminalTaskIndex(root: string, status: "completed" | "archived" | "cancelled" = "archived"): void {
++  const task = sampleTask();
++  writeYaml(root, "contracts/tasks/index.yaml", {
++    tasks: [{
++      id: task.id,
++      path: `contracts/tasks/${task.id}.yaml`,
++      branchName: task.branchName,
++      wbsNodeId: task.wbsNodeId,
++      status,
++      dependsOn: [],
++      ...(status === "archived" ? { archivedAt: "2026-07-23T00:00:00.000Z" } : {})
++    }]
++  });
++}
++
++function commitAll(root: string, message: string): string {
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++  return headCommit(root)!;
++}
++
++function writeTrustEvidence(
++  root: string,
++  subject: string,
++  overrides: Parameters<typeof sampleEvidence>[0] = {}
++): void {
++  const base = sampleEvidence();
++  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++    commit: subject,
++    subjectHeadCommit: subject,
++    git: {
++      ...base.git,
++      changedFilesBasis: "legacy-recorded",
++      subjectHeadCommit: subject,
++      headCommit: subject
++    },
++    checks: [
++      { name: "test", status: "passed", source: "local", command: "npm test", executedAt: "2026-07-23T00:00:00.000Z" },
++      { name: "typecheck", status: "passed", source: "local", command: "npm run typecheck", executedAt: "2026-07-23T00:00:01.000Z" }
++    ],
++    ...overrides
++  }) as unknown as Record<string, unknown>);
++}
++
++describe("status completion trust", () => {
++  test("reports verified terminal Tasks separately from WBS lifecycle and validates the JSON schema", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeTerminalTaskIndex(root);
++    const subject = commitAll(root, "subject");
++    writeTrustEvidence(root, subject);
++
++    const report = buildStatusJsonOutput(root);
++    expect(report).toMatchObject({
++      version: "scwbs.status.v1",
++      repository: { shallow: false, commitReachability: "evaluated" },
++      wbsStatus: { counts: { completed: 1, planned: 1 } },
++      completionTrust: {
++        sourceStatus: "available",
++        total: 1,
++        verified: 1,
++        degraded: 0,
++        unverifiable: 0,
++        notEvaluated: 0
++      }
++    });
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/status.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(report)).toBe(true);
++    expect(buildStatus(root)).toContain("Completion Trust (terminal Tasks):\n- verified: 1");
++    expect(runStatus(root, { strict: true })).toBe(0);
++  });
++
++  test("treats missing Evidence and missing or failed required checks as unverifiable", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeTerminalTaskIndex(root, "completed");
++    const subject = commitAll(root, "subject");
++
++    expect(buildStatusJsonOutput(root).completionTrust.unverifiable).toBe(1);
++    expect(runStatus(root, { strict: true })).toBe(1);
++
++    writeTrustEvidence(root, subject, {
++      checks: [{ name: "test", status: "failed", source: "local", command: "npm test", executedAt: "2026-07-23T00:00:00.000Z" }]
++    });
++    const { task } = readTask(root, "WBS-001-004");
++    expect(task).toBeDefined();
++    expect(assessTaskCompletionTrust(root, readWbs(root), task!).issueCodes)
++      .toEqual(expect.arrayContaining(["health.evidence.check.missing", "health.evidence.check.notPassed"]));
++    expect(buildStatusJsonOutput(root).completionTrust.unverifiable).toBe(1);
++  });
++
++  test("classifies verifiable low-source checks as degraded", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeTerminalTaskIndex(root);
++    const subject = commitAll(root, "subject");
++    writeTrustEvidence(root, subject, {
++      checks: [
++        { name: "test", status: "passed" },
++        { name: "typecheck", status: "passed" }
++      ]
++    });
++
++    expect(buildStatusJsonOutput(root).completionTrust).toMatchObject({
++      verified: 0,
++      degraded: 1,
++      unverifiable: 0
++    });
++  });
++
++  test("classifies Human Gate approval mismatch as unverifiable", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeTerminalTaskIndex(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/security/**"],
++      humanGateRequiredPaths: ["src/security/**"]
++    }) as unknown as Record<string, unknown>);
++    const subject = commitAll(root, "subject");
++    writeTrustEvidence(root, subject, { changedFiles: ["src/security/policy.ts"] });
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "requested" }) as unknown as Record<string, unknown>);
++
++    expect(buildStatusJsonOutput(root).completionTrust.unverifiable).toBe(1);
++  });
++
++  test("marks commit reachability as not-evaluated in a shallow clone without hiding definite gaps", () => {
++    const source = makeTempRepo();
++    writeScwbsProject(source, "completed");
++    writeTerminalTaskIndex(source);
++    const subject = commitAll(source, "subject");
++    writeTrustEvidence(source, subject);
++    commitAll(source, "evidence");
++
++    const clone = mkdtempSync(path.join(os.tmpdir(), "scwbs-status-shallow-"));
++    execFileSync("git", ["clone", "--depth", "1", `file://${source}`, clone], { stdio: "ignore" });
++    const report = buildStatusJsonOutput(clone);
++    expect(report.repository).toEqual({ shallow: true, commitReachability: "not-evaluated" });
++    expect(report.completionTrust).toMatchObject({
++      verified: 0,
++      degraded: 0,
++      unverifiable: 0,
++      notEvaluated: 1
++    });
++
++    writeText(clone, "contracts/evidence/WBS-001-004.yaml", "");
++    expect(buildStatusJsonOutput(clone).completionTrust.unverifiable).toBe(1);
++  });
++
++  test("supports bounded JSON, strict mode, help, and excludes cancelled Tasks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeTerminalTaskIndex(root, "cancelled");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(main(["status", "--json"], root)).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    const parsed = JSON.parse(output.join("\n"));
++    expect(parsed.completionTrust.total).toBe(0);
++    expect(JSON.stringify(parsed.completionTrust)).not.toContain("WBS-001-004");
++
++    const help: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      help.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(main(["status", "--help"], root)).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(help.join("")).toContain("--strict");
++    expect(help.join("")).toContain("--json");
++  });
++});

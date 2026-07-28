@@ -1,0 +1,366 @@
+diff --git a/README.md b/README.md
+index f96ec98..6dee042 100644
+--- a/README.md
++++ b/README.md
+@@ -185,6 +185,10 @@ npm run scwbs -- profile set strict
+ 
+ Use `lean` for small local dogfood tasks, `standard` for normal repository
+ work, and `strict` when broader governance checks are required.
++`profile set` writes a `setDocumentExtension` changeset under
++`contracts/changesets/` and applies it through WJS; it does not directly edit
++the canonical WBS. Because the profile participates in the global Task lock,
++review `npm run scwbs -- task refresh --affected` after changing it.
+ 
+ ## 8. Common Errors
+ 
+diff --git a/contracts/specs/SPEC-LITE-MS21IWCA.yaml b/contracts/specs/SPEC-LITE-MS21IWCA.yaml
+new file mode 100644
+index 0000000..33fd50e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS21IWCA.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MS21IWCA
++type: spec-contract
++featureId: F-MS21IWCA
++title: "Issue #317: profile setをWBS changeset経由へ移行し直接編集を廃止する"
++status: approved
++version: 0.1.0
++summary: "profile変更をsetDocumentExtension changesetとWJS apply経路へ統一する"
++approvedBy: user-requested-issue-317
++approvedAt: "2026-07-27T01:56:52+09:00"
++acceptanceCriteria:
++  - profile set writes a setDocumentExtension changeset before applying the WBS update through WJS
++  - the generated operation preserves existing scwbs fields and unrelated extension namespaces
++  - apply failure never falls back to direct WBS writes
++  - profile changes remain auditable and satisfy the WBS changeset gate
++  - CLI output and documentation explain changeset path and Task lock refresh impact
++  - WBS Human Gate documentation matches the Task Contract dependent implementation boundary
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml b/contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
+new file mode 100644
+index 0000000..459c989
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MS21IWCA
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS21IWCA
++branchName: task/SCWBS-DRAFT-MS21IWCA-issue-317-profile-set-wbs-changeset-migration
++allowedPaths:
++  - src/commands/profile.ts
++  - src/cli.ts
++  - tests/integration/misc.test.ts
++  - README.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/wbs-json.md
++  - docs/scwbs/wjs-operations-validation.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - Scope expansion required
++  - WJS schema change required
++  - Human Approval policy change required
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - profile set writes a setDocumentExtension changeset before applying the WBS update through WJS
++  - the generated operation preserves existing scwbs fields and unrelated extension namespaces
++  - apply failure never falls back to direct WBS writes
++  - profile changes remain auditable and satisfy the WBS changeset gate
++  - CLI output and documentation explain changeset path and Task lock refresh impact
++  - WBS Human Gate documentation matches the Task Contract dependent implementation boundary
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
++  - contracts/specs/SPEC-LITE-MS21IWCA.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS21IWCA.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS21IWCA.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS21IWCA.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS21IWCA.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:3a296412adf6346063a970059673b8033228cfc53d5865dfea6ff0f72cc3c7a3
++  createdAt: "2026-07-26T16:57:21.607Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 5e7298f..f3c22ef 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1315,3 +1315,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-26T16:52:58.416Z"
++  - id: SCWBS-DRAFT-MS21IWCA
++    path: contracts/tasks/SCWBS-DRAFT-MS21IWCA.yaml
++    branchName: task/SCWBS-DRAFT-MS21IWCA-issue-317-profile-set-wbs-changeset-migration
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 49212e1..0e3da59 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -204,6 +204,8 @@ npm run scwbs -- profile show
+ npm run scwbs -- profile set lean
+ ```
+ 
++`profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
++
+ `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
+ 
+ `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
+@@ -522,7 +524,7 @@ When task changes include tests, record test quality metadata with `--test-asser
+ | `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
+ | `block` / `block resolve` / `ai block` | tracked-artifact mutation | Block、必要に応じSpec Change/changesetを更新する |
+ | `start <goal>` / `plan` / `lite task` / `promote` | tracked-artifact mutation | 既存Task IDを指定した`start`だけはpreflight表示で書かない |
+-| `registry rebuild --force` / `profile set` | tracked-artifact mutation | 現行`profile set`はWBS正本を直接更新する既知の制約がある |
++| `registry rebuild --force` / `profile set` | tracked-artifact mutation | `profile set`はchangesetを書き、WJS経由でWBSを更新する |
+ | `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation | |
+ | `approval request` / `approval approve` / aliases | tracked-artifact mutation | |
+ | `approval delegation prepare` | repository-content read-only | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない |
+diff --git a/docs/scwbs/wbs-json.md b/docs/scwbs/wbs-json.md
+index e1165c8..f0a10e1 100644
+--- a/docs/scwbs/wbs-json.md
++++ b/docs/scwbs/wbs-json.md
+@@ -78,7 +78,6 @@ npm run scwbs -- wbs validate
+ 
+ `dryRun: true` のchange setは、結果を確認するためのプレビューとして扱う。
+ 
+-実際に書き込む場合のみ、Human Gateを通したうえで明示的に `--force --output contracts/wbs/project.wbs.json` を使う。
++実際に書き込む場合は、Taskの運用policyでHuman Gateが必要かを先に判断し、適用が許可されたchangesetだけに明示的な `--force --output contracts/wbs/project.wbs.json` を使う。現行 `wbs apply` はTask IDやApproval recordを入力に取らないため、Human Gateを一律に自動検証するcommandではない。機械強制が必要なTaskでは、Task開始前から `contracts/wbs/project.wbs.json` を `humanGateRequiredPaths` に含める。
+ 
+ ---
+-
+diff --git a/docs/scwbs/wjs-operations-validation.md b/docs/scwbs/wjs-operations-validation.md
+index 4c590c3..f94161e 100644
+--- a/docs/scwbs/wjs-operations-validation.md
++++ b/docs/scwbs/wjs-operations-validation.md
+@@ -67,8 +67,14 @@ Use dry-run change sets for preview and review:
+ }
+ ```
+ 
+-Only write to `contracts/wbs/project.wbs.json` after Human Gate approval:
++When the governing Task requires Human Gate approval, record that requirement
++in the Task Contract before work starts and obtain approval before applying:
+ 
+ ```bash
+ npm run scwbs -- wbs apply contracts/changesets/change-set.json --force --output contracts/wbs/project.wbs.json
+ ```
++
++`wbs apply` validates the WBS and operation document but does not accept a Task
++ID or inspect Approval records. Human Gate is therefore enforced by
++`check-diff` only when the governing Task's `humanGateRequiredPaths` matches the
++canonical WBS path; it is not an unconditional check inside WJS apply.
+diff --git a/src/cli.ts b/src/cli.ts
+index 915d610..813c1c2 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -727,7 +727,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   profile
+     .command("set")
+-    .description("Set profile")
++    .description("Set profile through a WBS changeset")
+     .argument("<profile>", "profile name")
+     .action((profileName: string) => {
+       if (!profileName) {
+diff --git a/src/commands/profile.ts b/src/commands/profile.ts
+index c48c781..8c967dd 100644
+--- a/src/commands/profile.ts
++++ b/src/commands/profile.ts
+@@ -1,7 +1,8 @@
+-import { existsSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+-import type { Profile } from "../core/types.js";
++import type { Profile, WbsDocument } from "../core/types.js";
+ import { readWbs } from "../core/wbs.js";
++import { runWbsApply } from "./wbs.js";
+ 
+ function normalizeProfile(value: string): Profile | undefined {
+   const lowered = value.toLowerCase();
+@@ -29,7 +30,41 @@ export function runProfileShow(root: string): number {
+   }
+ }
+ 
+-export function runProfileSet(root: string, value: string): number {
++type ProfileSetOptions = {
++  now?: string;
++  apply?: typeof runWbsApply;
++};
++
++function profileChangeSetPath(profile: Profile, createdAt: string): string {
++  const stamp = createdAt.replace(/[^0-9]/g, "").slice(0, 17);
++  return `contracts/changesets/profile-set-${profile.toLowerCase()}-${stamp}.json`;
++}
++
++export function buildProfileChangeSet(wbs: WbsDocument, profile: Profile, createdAt: string): Record<string, unknown> {
++  const current = typeof wbs.extensions?.scwbs === "object" && wbs.extensions.scwbs !== null
++    ? wbs.extensions.scwbs as Record<string, unknown>
++    : {};
++  return {
++    schemaVersion: "0.1.0",
++    targetWbsId: wbs.id,
++    changeSetId: `changeset-profile-set-${profile.toLowerCase()}-${createdAt}`,
++    author: "scwbs",
++    createdAt,
++    reason: `Set SC-WBS operations profile to ${profile}`,
++    dryRun: true,
++    operations: [{
++      operationId: "op-001",
++      operation: "setDocumentExtension",
++      namespace: "scwbs",
++      value: {
++        ...current,
++        profile
++      }
++    }]
++  };
++}
++
++export function runProfileSet(root: string, value: string, options: ProfileSetOptions = {}): number {
+   try {
+     const profile = normalizeProfile(value);
+     if (!profile) {
+@@ -37,15 +72,25 @@ export function runProfileSet(root: string, value: string): number {
+       return 2;
+     }
+     const wbs = readWbs(root);
+-    wbs.extensions = {
+-      ...(wbs.extensions ?? {}),
+-      scwbs: {
+-        ...((typeof wbs.extensions?.scwbs === "object" && wbs.extensions.scwbs !== null ? wbs.extensions.scwbs : {}) as Record<string, unknown>),
+-        profile
+-      }
+-    };
+-    writeFileSync(resolveFrom(root, defaultWbsPath), `${JSON.stringify(wbs, null, 2)}\n`, "utf8");
++    const createdAt = options.now ?? new Date().toISOString();
++    const changeSetPath = profileChangeSetPath(profile, createdAt);
++    const fullChangeSetPath = resolveFrom(root, changeSetPath);
++    if (existsSync(fullChangeSetPath)) {
++      throw new Error(`${changeSetPath} already exists`);
++    }
++    mkdirSync(resolveFrom(root, "contracts/changesets"), { recursive: true });
++    writeFileSync(fullChangeSetPath, `${JSON.stringify(buildProfileChangeSet(wbs, profile, createdAt), null, 2)}\n`, "utf8");
++
++    const apply = options.apply ?? runWbsApply;
++    const applyStatus = apply(root, changeSetPath, { force: true, output: defaultWbsPath });
++    if (applyStatus !== 0) {
++      console.error(`Profile changeset was not applied; WBS remains unchanged. Review ${changeSetPath}`);
++      return applyStatus;
++    }
++
+     console.log(`Profile: ${profile}`);
++    console.log(`changeset: ${changeSetPath}`);
++    console.log("Task locks may be stale; run: npm run scwbs -- task refresh --affected");
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 5174f90..6dcee96 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -4,7 +4,7 @@ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { runInit } from "../../src/commands/init.js";
+-import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
++import { collectCheckIssues, collectWbsChangesetGateIssues, runCheck } from "../../src/commands/check.js";
+ import { buildStartArtifacts } from "../../src/commands/start.js";
+ import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
+ import { readProfile, runProfileSet } from "../../src/commands/profile.js";
+@@ -477,12 +477,69 @@ describe("misc", () => {
+     expect(report).not.toContain("--fix execution:");
+   });
+ 
+-  test("profile set updates the WBS profile", () => {
++  test("profile set writes and applies a semantic WBS changeset", () => {
+     const root = makeTempRepo();
+-    writeScwbsProject(root);
++    const wbs = sampleWbs();
++    wbs.extensions = {
++      vendor: { retained: true },
++      scwbs: { profile: "Standard", retained: true }
++    };
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+     expect(readProfile(root)).toBe("Standard");
+-    expect(runProfileSet(root, "lean")).toBe(0);
++
++    let appliedPath = "";
++    const apply = (applyRoot: string, changeSetPath: string, options: { force: boolean; output?: string }): number => {
++      appliedPath = changeSetPath;
++      expect(applyRoot).toBe(root);
++      expect(options).toEqual({ force: true, output: "contracts/wbs/project.wbs.json" });
++      const changeSet = JSON.parse(readFileSync(path.join(root, changeSetPath), "utf8"));
++      const operationSchema = JSON.parse(readFileSync(
++        path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"),
++        "utf8"
++      ));
++      const ajv = new Ajv2020({ strict: false });
++      expect(ajv.compile(operationSchema)(changeSet)).toBe(true);
++      const operation = changeSet.operations[0];
++      wbs.extensions = {
++        ...wbs.extensions,
++        [operation.namespace]: operation.value
++      };
++      writeJson(root, options.output!, wbs);
++      return 0;
++    };
++
++    expect(runProfileSet(root, "lean", {
++      now: "2026-07-27T01:00:00.000Z",
++      apply
++    })).toBe(0);
++    expect(appliedPath).toBe("contracts/changesets/profile-set-lean-20260727010000000.json");
+     expect(readProfile(root)).toBe("Lean");
++    expect(JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).extensions).toEqual({
++      vendor: { retained: true },
++      scwbs: { profile: "Lean", retained: true }
++    });
++    expect(collectWbsChangesetGateIssues([
++      "contracts/wbs/project.wbs.json",
++      appliedPath
++    ])).toEqual([]);
++  });
++
++  test("profile set does not directly edit WBS when changeset apply fails", () => {
++    const root = makeTempRepo();
++    const wbs = sampleWbs();
++    wbs.extensions = { scwbs: { profile: "Standard", retained: true } };
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
++    const before = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
++
++    expect(runProfileSet(root, "strict", {
++      now: "2026-07-27T01:00:00.000Z",
++      apply: () => 1
++    })).toBe(1);
++    expect(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).toBe(before);
++    expect(existsSync(path.join(
++      root,
++      "contracts/changesets/profile-set-strict-20260727010000000.json"
++    ))).toBe(true);
+   });
+ 
+   test("status summarizes WBS node status", () => {
