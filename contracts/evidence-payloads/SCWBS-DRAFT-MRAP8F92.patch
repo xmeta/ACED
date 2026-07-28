@@ -1,0 +1,1149 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml b/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
+new file mode 100644
+index 0000000..b1a5af9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
+@@ -0,0 +1,33 @@
++id: SCWBS-DRAFT-MRAP8F92
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRAP8F92
++branchName: task/SCWBS-DRAFT-MRAP8F92-refactor-migrate-cli-args-parser-to-commander
++allowedPaths:
++  - src/cli.ts
++  - src/core/args.ts
++  - package.json
++  - package-lock.json
++  - tests/**
++  - contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRAP8F92.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete refactor: migrate CLI args parser to commander'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/package-lock.json b/package-lock.json
+index ae67323..b4ba74c 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -10,6 +10,7 @@
+       "dependencies": {
+         "ajv": "^8.20.0",
+         "ajv-formats": "^3.0.1",
++        "commander": "^15.0.0",
+         "js-yaml": "^5.2.1"
+       },
+       "bin": {
+@@ -607,6 +608,14 @@
+         "node": ">=18"
+       }
+     },
++    "node_modules/commander": {
++      "version": "15.0.0",
++      "resolved": "https://registry.npmjs.org/commander/-/commander-15.0.0.tgz",
++      "integrity": "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==",
++      "engines": {
++        "node": ">=22.12.0"
++      }
++    },
+     "node_modules/convert-source-map": {
+       "version": "2.0.0",
+       "resolved": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz",
+diff --git a/package.json b/package.json
+index 7a603ce..ace33df 100644
+--- a/package.json
++++ b/package.json
+@@ -24,6 +24,7 @@
+   "dependencies": {
+     "ajv": "^8.20.0",
+     "ajv-formats": "^3.0.1",
++    "commander": "^15.0.0",
+     "js-yaml": "^5.2.1"
+   }
+ }
+diff --git a/src/cli.ts b/src/cli.ts
+index b34151d..7cee7eb 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env node
++import { Command, CommanderError } from "commander";
+ import { pathToFileURL } from "node:url";
+-import { valueAfter, textAfter, numberAfter, booleanAfter, valuesAfter, testQualityAfter } from "./core/args.js";
+ import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
+ import { runAiRun } from "./commands/ai-run.js";
+@@ -30,373 +30,637 @@ import { runTaskRefresh } from "./commands/task-refresh.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+ import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
++import type { Evidence } from "./core/types.js";
+ 
+-function usage(): void {
+-  console.log(`Usage:
+-  scwbs init [--profile lean|standard|strict] [--agent codex] [--lang ja|en]
+-  scwbs check
+-  scwbs fix
+-  scwbs doctor [--fix]
+-  scwbs health
+-  scwbs check-diff --task <task-id> [--base <ref>] [--json]
+-  scwbs ai packet --task <task-id> [--relation-depth <n>]
+-  scwbs ai run --task <task-id> [--agent codex]
+-  scwbs ai block --task <task-id> --reason <reason> [--spec-change]
+-  scwbs ai next-task
+-  scwbs approval request --task <task-id> [--pull-request <id>] [--note <text>] [--force]
+-  scwbs approval approve --task <task-id> [--pull-request <id>] [--reason <text>] [--force]
+-  scwbs completion apply --tasks <task-id[,task-id...]> --task <completion-task-id> [--reason <text>] [--apply] [--allow-root]
+-  scwbs evidence collect --task <task-id> [--base <ref>] [--pull-request <id>] [--test-assertions-added true|false] [--tests-disabled true|false] [--coverage-decreased true|false] [--test-quality-note <text>] [--force]
+-  scwbs registry rebuild [--check] [--force]
+-  scwbs profile show
+-  scwbs profile set <lean|standard|strict>
+-  scwbs review request --task <task-id> [--pull-request <id>] [--force]
+-  scwbs review route --task <task-id>
+-  scwbs next
+-  scwbs task new "title" [--paths <glob,glob>] [--forbid <glob,glob>] [--gate <glob,glob>] [--stop <reason,reason>] [--checks <name,name>] [--wbs-node <node-id>]
+-  scwbs start <goal>
+-  scwbs packet --task <task-id> [--tiny|--standard|--full]
+-  scwbs finish [--task <task-id>] [--base <ref>] [--pr <number>]
+-  scwbs block "reason" --task <task-id> [--spec-change]
+-  scwbs request-approval --task <task-id> [--pr <number>] [--note <text>]
+-  scwbs approve --task <task-id> [--pr <number>] [--reason <text>]
+-  scwbs plan --spec <spec-id>
+-  scwbs lite task <title>
+-  scwbs promote --task <task-id>
+-  scwbs trace --task <task-id>
+-  scwbs ui
+-  scwbs serve
+-  scwbs task generate --node <node-id> --task <task-id> [--force]
+-  scwbs task lock --task <task-id>
+-  scwbs task refresh --task <task-id> [--apply]
+-  scwbs status
+-  scwbs review-queue
+-  scwbs wbs validate
+-  scwbs wbs candidates
+-  scwbs wbs verify-changesets --base <base.wbs.json> --head <head.wbs.json> --changeset <change-set.json>
+-  scwbs wbs apply <change-set.json> [--force] [--output <file>]
+-`);
++function parseBool(val: unknown): boolean | undefined {
++  if (val === undefined || val === "") return undefined;
++  if (val === true || val === "true") return true;
++  if (val === false || val === "false") return false;
++  return undefined;
++}
++
++function parseTestQuality(opts: Record<string, unknown>): Evidence["testQuality"] | undefined {
++  const assertionsAdded = parseBool(opts.testAssertionsAdded);
++  const testsDisabled = parseBool(opts.testsDisabled);
++  const coverageDecreased = parseBool(opts.coverageDecreased);
++  const note = opts.testQualityNote as string | undefined;
++  if (assertionsAdded === undefined && testsDisabled === undefined && coverageDecreased === undefined && note === undefined) {
++    return undefined;
++  }
++  return {
++    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
++    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
++    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
++    ...(note ? { notes: [note] } : {})
++  };
+ }
+ 
+ export function main(argv = process.argv.slice(2), root = process.cwd()): number {
+-  const [command, subcommand, third] = argv;
++  let exitCode = 0;
+ 
+-  if (!command || argv.includes("--help") || argv.includes("-h")) {
+-    usage();
+-    return 0;
+-  }
++  const program = new Command();
++  program
++    .name("scwbs")
++    .description("SC-WBS CLI")
++    .version("0.1.0")
++    .exitOverride()
++    .showHelpAfterError(true)
++    .showSuggestionAfterError(true)
++    .allowExcessArguments(true);
++
++  program
++    .command("init")
++    .description("Initialize a new project")
++    .option("--profile <profile>", "profile lean|standard|strict")
++    .option("--agent <agent>", "agent type")
++    .option("--lang <lang>", "language ja|en")
++    .action((opts) => { exitCode = runInit(root, opts); });
++
++  program
++    .command("check")
++    .description("Check repository contracts")
++    .action(() => { exitCode = runCheck(root); });
++
++  program
++    .command("fix")
++    .description("Fix auto-fixable issues")
++    .action(() => { exitCode = runFix(root); });
+ 
+-  if (command === "init") return runInit(root, {
+-    profile: valueAfter(argv, "--profile"),
+-    agent: valueAfter(argv, "--agent"),
+-    lang: valueAfter(argv, "--lang")
+-  });
+-  if (command === "check") return runCheck(root);
+-  if (command === "fix") return runFix(root);
+-  if (command === "doctor") return runDoctor(root, { fix: argv.includes("--fix") });
+-  if (command === "health") return runHealth(root);
+-  if (command === "status") return runStatus(root);
+-  if (command === "review-queue") return runReviewQueue(root);
+-  if (command === "next") return runNext(root);
+-  if (command === "finish") {
+-    return runFinish(root, {
+-      taskId: valueAfter(argv, "--task"),
+-      baseRef: valueAfter(argv, "--base"),
+-      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+-      force: true
++  program
++    .command("doctor")
++    .description("Diagnose and optionally fix repository issues")
++    .option("--fix", "apply auto-fixes")
++    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false }); });
++
++  program
++    .command("health")
++    .description("Check repository health")
++    .action(() => { exitCode = runHealth(root); });
++
++  program
++    .command("status")
++    .description("Show repository status")
++    .action(() => { exitCode = runStatus(root); });
++
++  program
++    .command("review-queue")
++    .description("Show review queue")
++    .action(() => { exitCode = runReviewQueue(root); });
++
++  program
++    .command("next")
++    .description("Show next suggested action")
++    .action(() => { exitCode = runNext(root); });
++
++  program
++    .command("ui")
++    .description("Start web UI")
++    .action(() => { exitCode = runUi(root); });
++
++  program
++    .command("serve")
++    .description("Start API server")
++    .action(() => { exitCode = runServe(); });
++
++  program
++    .command("finish")
++    .description("Finish a task")
++    .option("--task <id>", "task id")
++    .option("--base <ref>", "base reference")
++    .option("--pr <number>", "pull request number")
++    .option("--pull-request <number>", "pull request number (legacy)")
++    .action((opts) => {
++      exitCode = runFinish(root, {
++        taskId: opts.task,
++        baseRef: opts.base,
++        pullRequest: opts.pr ?? opts.pullRequest,
++        force: true
++      });
+     });
+-  }
+-  if (command === "packet") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    if (argv.includes("--full") || argv.includes("--deep")) {
+-      return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1), "default");
+-    }
+-    if (argv.includes("--standard") || argv.includes("--normal")) {
+-      return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 0), "default");
+-    }
+-    // --tiny is the default
+-    try {
+-      process.stdout.write(buildTinyPacket(root, taskId));
+-      return 0;
+-    } catch (error) {
+-      console.error(error instanceof Error ? error.message : String(error));
+-      return 1;
+-    }
+-  }
+-  if (command === "block") {
+-    const taskId = valueAfter(argv, "--task");
+-    const reasonParts: string[] = [];
+-    for (const arg of argv.slice(1)) {
+-      if (arg.startsWith("--")) break;
+-      reasonParts.push(arg);
+-    }
+-    const reason = reasonParts.join(" ").trim() || valueAfter(argv, "--reason");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    if (!reason) {
+-      console.error("Missing block reason");
+-      return 2;
+-    }
+-    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
+-  }
+-  if (command === "request-approval") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runApprovalRequest(root, taskId, {
+-      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+-      note: textAfter(argv, "--note"),
+-      force: argv.includes("--force")
++
++  program
++    .command("packet")
++    .description("Build a task packet")
++    .option("--task <id>", "task id")
++    .option("--tiny", "tiny packet (default)")
++    .option("--standard", "standard packet")
++    .option("--full", "full packet")
++    .option("--deep", "deep packet (legacy)")
++    .option("--normal", "normal packet (legacy)")
++    .option("--relation-depth <n>", "relation depth", parseInt)
++    .action((opts) => {
++      const taskId = opts.task;
++      if (!taskId) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      if (opts.full || opts.deep) {
++        exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 1, "default");
++      } else if (opts.standard || opts.normal) {
++        exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 0, "default");
++      } else {
++        try {
++          process.stdout.write(buildTinyPacket(root, taskId));
++          exitCode = 0;
++        } catch (error) {
++          console.error(error instanceof Error ? error.message : String(error));
++          exitCode = 1;
++        }
++      }
+     });
+-  }
+-  if (command === "approve") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runApprovalApprove(root, taskId, {
+-      pullRequest: valueAfter(argv, "--pr") ?? valueAfter(argv, "--pull-request"),
+-      reason: textAfter(argv, "--reason"),
+-      actor: valueAfter(argv, "--actor"),
+-      force: argv.includes("--force")
++
++  program
++    .command("block")
++    .description("Block a task")
++    .argument("[reason...]", "block reason")
++    .option("--task <id>", "task id")
++    .option("--reason <text>", "block reason (alternative)")
++    .option("--spec-change", "spec change flag")
++    .action((reasonParts: string[], opts) => {
++      const taskId = opts.task;
++      if (!taskId) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      const reason = reasonParts.join(" ").trim() || (opts.reason as string) || "";
++      if (!reason) {
++        console.error("Missing block reason");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runAiBlock(root, taskId, reason, { specChange: opts.specChange ?? false });
+     });
+-  }
+-  if (command === "ui") return runUi(root);
+-  if (command === "serve") return runServe();
+-  if (command === "start") {
+-    const goal = argv.slice(1).join(" ").trim();
+-    if (!goal) {
+-      console.error("Missing goal text");
+-      return 2;
+-    }
+-    return runStart(root, goal);
+-  }
+-  if (command === "plan") {
+-    const specId = valueAfter(argv, "--spec");
+-    if (!specId) {
+-      console.error("Missing --spec <spec-id>");
+-      return 2;
+-    }
+-    return runPlan(root, specId);
+-  }
+-  if (command === "promote") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runPromote(root, taskId);
+-  }
+-  if (command === "trace") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runTrace(root, taskId);
+-  }
+-  if (command === "check-diff") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runCheckDiff(root, taskId, { baseRef: valueAfter(argv, "--base"), json: argv.includes("--json") });
+-  }
+-  if (command === "ai" && subcommand === "packet") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    const format = valueAfter(argv, "--format") ?? "default";
+-    if (!["default", "compact", "codex", "claude", "cursor"].includes(format)) {
+-      console.error("Invalid --format");
+-      return 2;
+-    }
+-    return runAiPacket(root, taskId, numberAfter(argv, "--relation-depth", 1), format as "default" | "compact" | "codex" | "claude" | "cursor");
+-  }
+-  if (command === "ai" && subcommand === "run") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runAiRun(root, taskId, valueAfter(argv, "--agent"));
+-  }
+-  if (command === "ai" && subcommand === "block") {
+-    const taskId = valueAfter(argv, "--task");
+-    const reason = valueAfter(argv, "--reason");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    if (!reason) {
+-      console.error("Missing --reason <reason>");
+-      return 2;
+-    }
+-    return runAiBlock(root, taskId, reason, { specChange: argv.includes("--spec-change") });
+-  }
+-  if (command === "ai" && subcommand === "next-task") return runAiNextTask(root);
+-  if (command === "approval" && subcommand === "request") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runApprovalRequest(root, taskId, {
+-      pullRequest: valueAfter(argv, "--pull-request"),
+-      note: textAfter(argv, "--note"),
+-      force: argv.includes("--force")
++
++  program
++    .command("request-approval")
++    .description("Request task approval")
++    .option("--task <id>", "task id")
++    .option("--pr <number>", "pull request number")
++    .option("--pull-request <number>", "pull request number (legacy)")
++    .option("--note <text>", "approval note")
++    .option("--force", "force request")
++    .action((opts) => {
++      const taskId = opts.task;
++      if (!taskId) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runApprovalRequest(root, taskId, {
++        pullRequest: opts.pr ?? opts.pullRequest,
++        note: opts.note,
++        force: opts.force ?? false
++      });
+     });
+-  }
+-  if (command === "approval" && subcommand === "approve") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runApprovalApprove(root, taskId, {
+-      pullRequest: valueAfter(argv, "--pull-request"),
+-      reason: textAfter(argv, "--reason"),
+-      actor: valueAfter(argv, "--actor"),
+-      force: argv.includes("--force")
++
++  program
++    .command("approve")
++    .description("Approve a task")
++    .option("--task <id>", "task id")
++    .option("--pr <number>", "pull request number")
++    .option("--pull-request <number>", "pull request number (legacy)")
++    .option("--reason <text>", "approval reason")
++    .option("--actor <text>", "approval actor")
++    .option("--force", "force approval")
++    .action((opts) => {
++      const taskId = opts.task;
++      if (!taskId) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runApprovalApprove(root, taskId, {
++        pullRequest: opts.pr ?? opts.pullRequest,
++        reason: opts.reason,
++        actor: opts.actor,
++        force: opts.force ?? false
++      });
+     });
+-  }
+-  if (command === "completion" && subcommand === "apply") {
+-    return runCompletionApply(root, valueAfter(argv, "--tasks"), valueAfter(argv, "--task"), {
+-      reason: textAfter(argv, "--reason"),
+-      apply: argv.includes("--apply"),
+-      allowRoot: argv.includes("--allow-root")
++
++  program
++    .command("start")
++    .description("Start a task with a goal")
++    .argument("<goal...>", "task goal text")
++    .action((goalParts: string[]) => {
++      const goal = goalParts.join(" ").trim();
++      if (!goal) {
++        console.error("Missing goal text");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runStart(root, goal);
+     });
+-  }
+-  if (command === "evidence" && subcommand === "collect") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runEvidenceCollect(root, taskId, {
+-      force: argv.includes("--force"),
+-      baseRef: valueAfter(argv, "--base"),
+-      pullRequest: valueAfter(argv, "--pull-request"),
+-      testQuality: testQualityAfter(argv)
++
++  program
++    .command("plan")
++    .description("Plan from a spec")
++    .option("--spec <id>", "spec id")
++    .action((opts) => {
++      if (!opts.spec) {
++        console.error("Missing --spec <spec-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runPlan(root, opts.spec);
+     });
+-  }
+-  if (command === "registry" && subcommand === "rebuild") {
+-    return runRegistryRebuild(root, { check: argv.includes("--check"), force: argv.includes("--force") });
+-  }
+-  if (command === "profile" && subcommand === "show") return runProfileShow(root);
+-  if (command === "profile" && subcommand === "set") {
+-    if (!third) {
+-      console.error("Missing profile");
+-      return 2;
+-    }
+-    return runProfileSet(root, third);
+-  }
+-  if (command === "review" && subcommand === "request") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runReviewRequest(root, taskId, {
+-      pullRequest: valueAfter(argv, "--pull-request"),
+-      force: argv.includes("--force")
++
++  program
++    .command("promote")
++    .description("Promote a lite task")
++    .option("--task <id>", "task id")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runPromote(root, opts.task);
+     });
+-  }
+-  if (command === "review" && subcommand === "route") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runReviewRoute(root, taskId);
+-  }
+-  if (command === "lite" && subcommand === "task") {
+-    const title = argv.slice(2).join(" ").trim();
+-    if (!title) {
+-      console.error("Missing lite task title");
+-      return 2;
+-    }
+-    return runLiteTask(root, title);
+-  }
+-  if (command === "task" && subcommand === "generate") {
+-    const nodeId = valueAfter(argv, "--node");
+-    const taskId = valueAfter(argv, "--task");
+-    if (!nodeId) {
+-      console.error("Missing --node <node-id>");
+-      return 2;
+-    }
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runTaskGenerate(root, nodeId, taskId, { force: argv.includes("--force") });
+-  }
+-  if (command === "task" && subcommand === "new") {
+-    const titleParts: string[] = [];
+-    for (const arg of argv.slice(2)) {
+-      if (arg.startsWith("--")) break;
+-      titleParts.push(arg);
+-    }
+-    const title = titleParts.join(" ").trim();
+-    return runTaskNew(root, title, {
+-      paths: valueAfter(argv, "--paths"),
+-      forbid: valueAfter(argv, "--forbid"),
+-      gate: valueAfter(argv, "--gate"),
+-      stop: valueAfter(argv, "--stop"),
+-      checks: valueAfter(argv, "--checks"),
+-      wbsNode: valueAfter(argv, "--wbs-node")
++
++  program
++    .command("trace")
++    .description("Trace task dependencies")
++    .option("--task <id>", "task id")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runTrace(root, opts.task);
+     });
+-  }
+-  if (command === "task" && subcommand === "lock") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runTaskLock(root, taskId);
+-  }
+-  if (command === "task" && subcommand === "refresh") {
+-    const taskId = valueAfter(argv, "--task");
+-    if (!taskId) {
+-      console.error("Missing --task <task-id>");
+-      return 2;
+-    }
+-    return runTaskRefresh(root, taskId, { apply: argv.includes("--apply") });
+-  }
+-  if (command === "wbs" && subcommand === "validate") return runWbsValidate(root);
+-  if (command === "wbs" && subcommand === "candidates") return runWbsCandidates(root);
+-  if (command === "wbs" && subcommand === "verify-changesets") {
+-    return runWbsVerifyChangesets(root, {
+-      base: valueAfter(argv, "--base"),
+-      head: valueAfter(argv, "--head"),
+-      changeSets: valuesAfter(argv, "--changeset")
++
++  program
++    .command("check-diff")
++    .description("Check diff against task contract")
++    .option("--task <id>", "task id")
++    .option("--base <ref>", "base reference")
++    .option("--json", "output as JSON")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runCheckDiff(root, opts.task, { baseRef: opts.base, json: opts.json ?? false });
++    });
++
++  const ai = program.command("ai");
++  ai
++    .command("packet")
++    .description("Build AI work packet")
++    .option("--task <id>", "task id")
++    .option("--relation-depth <n>", "relation depth", parseInt)
++    .option("--format <type>", "output format")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      const format: string = opts.format ?? "default";
++      if (!["default", "compact", "codex", "claude", "cursor"].includes(format)) {
++        console.error("Invalid --format");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runAiPacket(root, opts.task, opts.relationDepth ?? 1, format as "default" | "compact" | "codex" | "claude" | "cursor");
++    });
++
++  ai
++    .command("run")
++    .description("Run AI on a task")
++    .option("--task <id>", "task id")
++    .option("--agent <agent>", "agent type")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runAiRun(root, opts.task, opts.agent);
++    });
++
++  ai
++    .command("block")
++    .description("AI: block a task")
++    .option("--task <id>", "task id")
++    .option("--reason <text>", "block reason")
++    .option("--spec-change", "spec change flag")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      if (!opts.reason) {
++        console.error("Missing --reason <reason>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runAiBlock(root, opts.task, opts.reason, { specChange: opts.specChange ?? false });
++    });
++
++  ai
++    .command("next-task")
++    .description("Show next AI task")
++    .action(() => { exitCode = runAiNextTask(root); });
++
++  const approval = program.command("approval");
++  approval
++    .command("request")
++    .description("Request task approval")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--note <text>", "approval note")
++    .option("--force", "force request")
++    .action(function (this: Command, opts) {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      const trailing = (this.args as string[]).filter((a) => !a.startsWith("-"));
++      const note = trailing.length > 0 ? [opts.note, ...trailing].filter(Boolean).join(" ") : opts.note;
++      exitCode = runApprovalRequest(root, opts.task, {
++        pullRequest: opts.pullRequest,
++        note,
++        force: opts.force ?? false
++      });
++    });
++
++  approval
++    .command("approve")
++    .description("Approve a task")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--reason <text>", "approval reason")
++    .option("--actor <text>", "approval actor")
++    .option("--force", "force approval")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runApprovalApprove(root, opts.task, {
++        pullRequest: opts.pullRequest,
++        reason: opts.reason,
++        actor: opts.actor,
++        force: opts.force ?? false
++      });
++    });
++
++  const completion = program.command("completion");
++  completion
++    .command("apply")
++    .description("Apply completion")
++    .option("--tasks <ids>", "task ids (comma separated)")
++    .option("--task <id>", "completion task id")
++    .option("--reason <text>", "completion reason")
++    .option("--apply", "apply changes")
++    .option("--allow-root", "allow root changes")
++    .action((opts) => {
++      exitCode = runCompletionApply(root, opts.tasks, opts.task, {
++        reason: opts.reason,
++        apply: opts.apply ?? false,
++        allowRoot: opts.allowRoot ?? false
++      });
+     });
++
++  const evidence = program.command("evidence");
++  evidence
++    .command("collect")
++    .description("Collect evidence for a task")
++    .option("--task <id>", "task id")
++    .option("--base <ref>", "base reference")
++    .option("--pull-request <id>", "pull request id")
++    .option("--force", "force collection")
++    .option("--test-assertions-added <bool>", "test assertions added")
++    .option("--tests-disabled <bool>", "tests disabled")
++    .option("--coverage-decreased <bool>", "coverage decreased")
++    .option("--test-quality-note <text>", "test quality note")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runEvidenceCollect(root, opts.task, {
++        force: opts.force ?? false,
++        baseRef: opts.base,
++        pullRequest: opts.pullRequest,
++        testQuality: parseTestQuality(opts)
++      });
++    });
++
++  const registry = program.command("registry");
++  registry
++    .command("rebuild")
++    .description("Rebuild registry")
++    .option("--check", "check only")
++    .option("--force", "force rebuild")
++    .action((opts) => {
++      exitCode = runRegistryRebuild(root, { check: opts.check ?? false, force: opts.force ?? false });
++    });
++
++  const profile = program.command("profile");
++  profile
++    .command("show")
++    .description("Show profile")
++    .action(() => { exitCode = runProfileShow(root); });
++
++  profile
++    .command("set")
++    .description("Set profile")
++    .argument("<profile>", "profile name")
++    .action((profileName: string) => {
++      if (!profileName) {
++        console.error("Missing profile");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runProfileSet(root, profileName);
++    });
++
++  const review = program.command("review");
++  review
++    .command("request")
++    .description("Request a review")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--force", "force request")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runReviewRequest(root, opts.task, {
++        pullRequest: opts.pullRequest,
++        force: opts.force ?? false
++      });
++    });
++
++  review
++    .command("route")
++    .description("Route a review")
++    .option("--task <id>", "task id")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runReviewRoute(root, opts.task);
++    });
++
++  const lite = program.command("lite");
++  lite
++    .command("task")
++    .description("Create a lite task")
++    .argument("[title...]", "task title")
++    .action((titleParts: string[]) => {
++      const title = titleParts.join(" ").trim();
++      if (!title) {
++        console.error("Missing lite task title");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runLiteTask(root, title);
++    });
++
++  const task = program.command("task");
++  task
++    .command("generate")
++    .description("Generate a task")
++    .option("--node <id>", "WBS node id")
++    .option("--task <id>", "task id")
++    .option("--force", "force generation")
++    .action((opts) => {
++      if (!opts.node) {
++        console.error("Missing --node <node-id>");
++        exitCode = 2;
++        return;
++      }
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runTaskGenerate(root, opts.node, opts.task, { force: opts.force ?? false });
++    });
++
++  task
++    .command("new")
++    .description("Create a new task contract")
++    .argument("[title...]", "task title")
++    .option("--paths <paths>", "allowed paths (comma separated)")
++    .option("--forbid <paths>", "forbidden paths (comma separated)")
++    .option("--gate <paths>", "human gate paths (comma separated)")
++    .option("--stop <reasons>", "stop reasons (comma separated)")
++    .option("--checks <checks>", "required checks (comma separated)")
++    .option("--wbs-node <id>", "WBS node id")
++    .action((titleParts: string[], opts) => {
++      const title = titleParts.join(" ").trim();
++      exitCode = runTaskNew(root, title, {
++        paths: opts.paths,
++        forbid: opts.forbid,
++        gate: opts.gate,
++        stop: opts.stop,
++        checks: opts.checks,
++        wbsNode: opts.wbsNode
++      });
++    });
++
++  task
++    .command("lock")
++    .description("Lock a task")
++    .option("--task <id>", "task id")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runTaskLock(root, opts.task);
++    });
++
++  task
++    .command("refresh")
++    .description("Refresh a task")
++    .option("--task <id>", "task id")
++    .option("--apply", "apply changes")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runTaskRefresh(root, opts.task, { apply: opts.apply ?? false });
++    });
++
++  const wbs = program.command("wbs");
++  wbs
++    .command("validate")
++    .description("Validate WBS")
++    .action(() => { exitCode = runWbsValidate(root); });
++
++  wbs
++    .command("candidates")
++    .description("Show WBS candidates")
++    .action(() => { exitCode = runWbsCandidates(root); });
++
++  wbs
++    .command("verify-changesets")
++    .description("Verify WBS changesets")
++    .option("--base <path>", "base wbs.json path")
++    .option("--head <path>", "head wbs.json path")
++    .option("--changeset <path>", "changeset file path", (val: string, prev: string[]) => prev.concat(val), [] as string[])
++    .action((opts) => {
++      exitCode = runWbsVerifyChangesets(root, {
++        base: opts.base,
++        head: opts.head,
++        changeSets: opts.changeset ?? []
++      });
++    });
++
++  wbs
++    .command("apply")
++    .description("Apply a WBS changeset")
++    .argument("<change-set>", "changeset json file")
++    .option("--force", "force apply")
++    .option("--output <file>", "output file")
++    .option("-o <file>", "output file (short)")
++    .action((changeSet: string, opts) => {
++      if (!changeSet) {
++        console.error("Missing change-set.json");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runWbsApply(root, changeSet, {
++        force: opts.force ?? false,
++        output: opts.output ?? opts.O
++      });
++    });
++
++  if (argv.length === 0) {
++    program.outputHelp();
++    return 0;
+   }
+-  if (command === "wbs" && subcommand === "apply") {
+-    if (!third) {
+-      console.error("Missing change-set.json");
+-      return 2;
++
++  try {
++    program.parse(argv, { from: "user" });
++  } catch (err) {
++    if (err instanceof CommanderError) {
++      return err.exitCode;
+     }
+-    return runWbsApply(root, third, {
+-      force: argv.includes("--force"),
+-      output: valueAfter(argv, "--output") ?? valueAfter(argv, "-o")
+-    });
++    return 1;
+   }
+ 
+-  usage();
+-  return 2;
++  return exitCode;
+ }
+ 
+ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+diff --git a/src/core/args.ts b/src/core/args.ts
+deleted file mode 100644
+index 2e20255..0000000
+--- a/src/core/args.ts
++++ /dev/null
+@@ -1,68 +0,0 @@
+-import type { Evidence } from "./types.js";
+-
+-export function valueAfter(args: string[], flag: string): string | undefined {
+-  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
+-  if (inline) return inline.slice(flag.length + 1);
+-  const index = args.indexOf(flag);
+-  return index >= 0 ? args[index + 1] : undefined;
+-}
+-
+-export function textAfter(args: string[], flag: string): string | undefined {
+-  const inline = args.find((arg) => arg.startsWith(`${flag}=`));
+-  if (inline) return inline.slice(flag.length + 1);
+-  const index = args.indexOf(flag);
+-  if (index < 0) return undefined;
+-  const parts: string[] = [];
+-  for (let i = index + 1; i < args.length; i += 1) {
+-    const part = args[i];
+-    if (!part || part.startsWith("--")) break;
+-    parts.push(part);
+-  }
+-  return parts.length > 0 ? parts.join(" ") : undefined;
+-}
+-
+-export function numberAfter(args: string[], flag: string, fallback: number): number {
+-  const value = valueAfter(args, flag);
+-  if (value === undefined) return fallback;
+-  const parsed = Number(value);
+-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+-}
+-
+-export function booleanAfter(args: string[], flag: string): boolean | undefined {
+-  const value = valueAfter(args, flag);
+-  if (value === undefined) return undefined;
+-  if (value === "true") return true;
+-  if (value === "false") return false;
+-  return undefined;
+-}
+-
+-export function valuesAfter(args: string[], flag: string): string[] {
+-  const values: string[] = [];
+-  for (let index = 0; index < args.length; index += 1) {
+-    const arg = args[index];
+-    if (arg === flag && args[index + 1]) values.push(args[index + 1]);
+-    if (arg?.startsWith(`${flag}=`)) values.push(arg.slice(flag.length + 1));
+-  }
+-  return values;
+-}
+-
+-export function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
+-  const assertionsAdded = booleanAfter(args, "--test-assertions-added");
+-  const testsDisabled = booleanAfter(args, "--tests-disabled");
+-  const coverageDecreased = booleanAfter(args, "--coverage-decreased");
+-  const note = textAfter(args, "--test-quality-note");
+-  if (
+-    assertionsAdded === undefined
+-    && testsDisabled === undefined
+-    && coverageDecreased === undefined
+-    && note === undefined
+-  ) {
+-    return undefined;
+-  }
+-  return {
+-    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
+-    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
+-    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
+-    ...(note ? { notes: [note] } : {})
+-  };
+-}
