@@ -1,0 +1,114 @@
+id: SCWBS-DRAFT-MS4GV0OW
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS4GV0OW
+branchName: task/SCWBS-DRAFT-MS4GV0OW-issue-340-evidence-backfill-batch-6
+allowedPaths:
+  - contracts/evidence/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX4AQKB.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX4YHL1.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX5V02G.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX7OMZL.patch
+  - contracts/evidence/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS0XWKPS.patch
+  - contracts/evidence/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS0Z6DGJ.patch
+  - contracts/evidence/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS10536G.patch
+  - contracts/evidence/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS11S39Z.patch
+  - contracts/evidence/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS133BT6.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1FZGVN.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1K843U.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1XG864.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1ZEDKY.patch
+  - contracts/evidence/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS20SMOJ.patch
+  - contracts/evidence/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS21IWCA.patch
+  - contracts/evidence/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS332VMX.patch
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/evidence/SCWBS-DRAFT-MRX4AQKB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX4AQKB.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX4YHL1.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX4YHL1.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX5V02G.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX5V02G.patch
+  - contracts/evidence/SCWBS-DRAFT-MRX7OMZL.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MRX7OMZL.patch
+  - contracts/evidence/SCWBS-DRAFT-MS0XWKPS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS0XWKPS.patch
+  - contracts/evidence/SCWBS-DRAFT-MS0Z6DGJ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS0Z6DGJ.patch
+  - contracts/evidence/SCWBS-DRAFT-MS10536G.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS10536G.patch
+  - contracts/evidence/SCWBS-DRAFT-MS11S39Z.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS11S39Z.patch
+  - contracts/evidence/SCWBS-DRAFT-MS133BT6.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS133BT6.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1FZGVN.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1FZGVN.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1K843U.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1K843U.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1XG864.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1XG864.patch
+  - contracts/evidence/SCWBS-DRAFT-MS1ZEDKY.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS1ZEDKY.patch
+  - contracts/evidence/SCWBS-DRAFT-MS20SMOJ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS20SMOJ.patch
+  - contracts/evidence/SCWBS-DRAFT-MS21IWCA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS21IWCA.patch
+  - contracts/evidence/SCWBS-DRAFT-MS332VMX.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS332VMX.patch
+stopIf:
+  - any recorded subject, baseCommit, diffHash, or changedFiles cannot be reproduced exactly
+  - any target outside the listed 16 Evidence and payload paths would change
+  - historical checks, testQuality, or Approval scope would change
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - all 16 targets pass evidence retain preconditions before mutation
+  - only the listed Evidence records and payloads receive retroactive retention changes
+  - historical subject, git provenance, checks, testQuality, and Approval scope remain unchanged
+  - fresh clone verification reports zero patch provenance errors for all 16 targets
+  - Human Approval covers the exact retroactive Evidence diff
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS4GV0OW.yaml
+  - contracts/specs/SPEC-LITE-MS4GV0OW.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS4GV0OW.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS4GV0OW.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS4GV0OW.patch
+  - contracts/approvals/SCWBS-DRAFT-MS4GV0OW.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS4GV0OW.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:c9e2c6e39e1d09944be58e9c2ad581304739f5f93bab95b1248f43a2a99d6741
+  createdAt: "2026-07-28T09:42:38.566Z"
