@@ -1,0 +1,685 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+new file mode 100644
+index 0000000..bb5e1f1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+@@ -0,0 +1,53 @@
++id: SCWBS-DRAFT-MRJ7P78M
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ7P78M
++branchName: task/SCWBS-DRAFT-MRJ7P78M-issue-155-block-resolve-lifecycle-and-cli
++allowedPaths:
++  - src/cli.ts
++  - src/commands/ai-queue.ts
++  - src/commands/review-queue.ts
++  - src/commands/next.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - tests/integration/ai.test.ts
++  - tests/integration/misc.test.ts
++  - tests/integration/review.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/task-contract.md
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - The implementation would let AI create a human resolution record
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - A human can resolve a Block without deleting its record and must provide a non-empty reason.
++  - Block records preserve created and resolved lifecycle history including timestamps and human resolver identity.
++  - The AI block command cannot resolve a Block and project instructions identify resolve as human-only.
++  - Resolved Blocks do not block next or review queue while active Blocks do.
++  - Registry distinguishes blocked and resolved statuses.
++  - Reblocking a resolved Task preserves prior lifecycle history.
++  - Integration tests cover block creation resolution registry behavior queue behavior and reblocking.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T12:55:09.697Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 3025ebd..5ab21b1 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -87,3 +87,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ7P78M
++    path: contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
++    branchName: task/SCWBS-DRAFT-MRJ7P78M-issue-155-block-resolve-lifecycle-and-cli
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 88a2b42..c280180 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -38,6 +38,18 @@ npm run scwbs -- next
+ 
+ `scwbs next` is the local follow-up command. It prioritizes stale task locks, missing Evidence, and review queue work before falling back to planned-task candidates.
+ 
++### Block lifecycle
++
++`ai block` and the Core alias `block "<reason>"` create an active Block record. Active Blocks are excluded from `ai next-task` and appear as completion prerequisites in `review-queue`.
++
++Resolving a Block is an explicit human action. After making the required decision, a human runs:
++
++```bash
++npm run scwbs -- block resolve --task WBS-001-004 --reason "Human decision and outcome"
++```
++
++AI agents must not run `block resolve`. The command updates the existing record to `status: resolved`; it does not delete it. The record retains creation and resolution events in `history`, and the registry exposes the current status. A later `ai block` call reactivates the same record while preserving the earlier lifecycle history. Resolved Blocks no longer exclude a task from `ai next-task` and no longer block `review-queue` completion.
++
+ ## Contracts
+ 
+ ```bash
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 09237cb..ccad772 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -2,6 +2,18 @@
+ 
+ Source: docs/sc-wbs-development.md split reference.
+ 
++## Block lifecycle
++
++Blockは `contracts/blocks/<task-id>.yaml` に置くライフサイクル記録であり、使い捨ての停止マーカーではない。現在状態は `blocked` または `resolved` で、`history` に各停止・解決イベントの時刻、理由、実行者を保持する。
++
++AIは `ai block` でBlockを作成または再有効化できるが、activeな間は作業を停止し、解決操作を実行してはならない。必要な判断を行った人間だけが次を実行する。
++
++```bash
++npm run scwbs -- block resolve --task <task-id> --reason "<判断内容と結果>"
++```
++
++解決理由は空にできない。解決後も `createdAt` を保持し、`resolvedAt`、`resolvedBy: human`、`resolution` を記録する。active Blockは `ai next-task` の候補から除外され、`review-queue` の完了条件をblockする。resolved Blockはregistryに監査可能な形で残るが、両queueをblockしない。
++
+ ## 6. Task Contract
+ 
+ Task Contractは、AIが実装する1作業単位に対する契約である。
+diff --git a/src/cli.ts b/src/cli.ts
+index a17ab55..bc5be14 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env node
+ import { Command, CommanderError } from "commander";
+ import { pathToFileURL } from "node:url";
+-import { runAiBlock, runAiNextTask } from "./commands/ai-queue.js";
++import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
+ import { runAiRun } from "./commands/ai-run.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+@@ -178,7 +178,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   program
+     .command("block")
+-    .description("Block a task")
++    .description("Block a task, or resolve an active Block with the human-only `block resolve` form")
+     .argument("[reason...]", "block reason")
+     .option("--task <id>", "task id")
+     .option("--reason <text>", "block reason (alternative)")
+@@ -190,13 +190,16 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         exitCode = 2;
+         return;
+       }
+-      const reason = reasonParts.join(" ").trim() || (opts.reason as string) || "";
++      const resolveRequested = reasonParts.length === 1 && reasonParts[0] === "resolve" && typeof opts.reason === "string";
++      const reason = (resolveRequested ? reasonParts.slice(1) : reasonParts).join(" ").trim() || (opts.reason as string) || "";
+       if (!reason) {
+-        console.error("Missing block reason");
++        console.error(resolveRequested ? "Missing resolution reason" : "Missing block reason");
+         exitCode = 2;
+         return;
+       }
+-      exitCode = runAiBlock(root, taskId, reason, { specChange: opts.specChange ?? false });
++      exitCode = resolveRequested
++        ? runHumanBlockResolve(root, taskId, reason)
++        : runAiBlock(root, taskId, reason, { specChange: opts.specChange ?? false });
+     });
+ 
+   program
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index 8e0e36f..1112f81 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -1,6 +1,6 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { evidenceExists, listTasks, readTask } from "../core/contracts.js";
++import { evidenceExists, listTasks, readBlock, readTask } from "../core/contracts.js";
+ import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+@@ -68,12 +68,61 @@ export function buildBlockRecord(taskId: string, reason: string, now = new Date(
+     status: "blocked",
+     ...classified,
+     reason,
+-    createdAt: now
++    createdAt: now,
++    history: [{ status: "blocked", at: now, reason, by: "ai-agent" }]
+   };
+ }
+ 
+-export function buildBlockRecordYaml(taskId: string, reason: string, now?: string): string {
+-  return stringifySimpleYaml(buildBlockRecord(taskId, reason, now) as unknown as Record<string, unknown>);
++function blockHistory(block: BlockRecord): NonNullable<BlockRecord["history"]> {
++  const history = block.history ?? [{ status: "blocked", at: block.createdAt, reason: block.reason, by: "ai-agent" }];
++  if (block.status === "resolved" && history.at(-1)?.status !== "resolved") {
++    return [
++      ...history,
++      {
++        status: "resolved",
++        at: block.resolvedAt!,
++        reason: block.resolution!,
++        by: "human"
++      }
++    ];
++  }
++  return history;
++}
++
++export function buildBlockRecordYaml(taskId: string, reason: string, now?: string, previous?: BlockRecord): string {
++  const block = buildBlockRecord(taskId, reason, now);
++  if (previous) block.history = [...blockHistory(previous), ...block.history!];
++  return stringifySimpleYaml(block as unknown as Record<string, unknown>);
++}
++
++export function runHumanBlockResolve(root: string, taskId: string, reason: string, options: { now?: string; actor?: string } = {}): number {
++  try {
++    if ((options.actor ?? process.env.SCWBS_AGENT_MODE) === "ai") {
++      console.error("AI execution mode cannot resolve Blocks; request a human decision instead");
++      return 1;
++    }
++    const resolution = reason.trim();
++    if (!resolution) throw new Error("Resolution reason must be a non-empty string");
++    const { block, issues } = readBlock(root, taskId);
++    if (!block) throw new Error(issues.map((item) => item.message).join("\n"));
++    if (block.status === "resolved") throw new Error(`${taskId} block is already resolved`);
++    const resolvedAt = options.now ?? new Date().toISOString();
++    const resolved: BlockRecord = {
++      ...block,
++      status: "resolved",
++      resolvedAt,
++      resolvedBy: "human",
++      resolution,
++      history: [...blockHistory(block), { status: "resolved", at: resolvedAt, reason: resolution, by: "human" }]
++    };
++    const yaml = stringifySimpleYaml(resolved as unknown as Record<string, unknown>);
++    writeFileSync(resolveFrom(root, blockPath(taskId)), yaml, "utf8");
++    process.stdout.write(yaml);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
+ }
+ 
+ export function buildBlockSpecChange(taskId: string, reason: string): SpecChangeProposal {
+@@ -123,7 +172,13 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
+     const relativePath = blockPath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+-    const yaml = buildBlockRecordYaml(taskId, reason);
++    const previousResult = readBlock(root, taskId);
++    const missingBlockOnly = previousResult.issues.length === 1 && previousResult.issues[0]?.code === "block.missing";
++    if (!missingBlockOnly && !previousResult.block) {
++      throw new Error(previousResult.issues.map((item) => item.message).join("\n"));
++    }
++    const previous = previousResult.block;
++    const yaml = buildBlockRecordYaml(taskId, reason, undefined, previous);
+     writeFileSync(fullPath, yaml, "utf8");
+     process.stdout.write(yaml);
+     if (options.specChange) {
+@@ -150,7 +205,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
+ export function buildNextTask(root: string): string {
+   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+     const candidates = listTasks(root)
+-      .flatMap(({ task }) => task && !evidenceExists(root, task.id) ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
++      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
+       .sort((a, b) => a.taskId.localeCompare(b.taskId));
+     if (candidates.length === 0) return "No available planned tasks.\n";
+     const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
+@@ -163,6 +218,7 @@ export function buildNextTask(root: string): string {
+     .flatMap(({ task }) => {
+       if (!task || task.humanGateRequiredPaths.length > 0) return [];
+       if (evidenceExists(root, task.id)) return [];
++      if (readBlock(root, task.id).block?.status === "blocked") return [];
+       const node = findNode(wbs, task.wbsNodeId);
+       if (!node) return [];
+       const status = node.status ?? "planned";
+@@ -174,8 +230,9 @@ export function buildNextTask(root: string): string {
+     .sort((a, b) => a.taskId.localeCompare(b.taskId));
+ 
+   if (candidates.length === 0) {
+-    const hasMissingEvidence = tasks.some((entry) => entry.task && !evidenceExists(root, entry.task.id));
+-    const hasReviewCandidate = buildReviewQueue(root) !== "Review Queue:\n- None\n";
++    const hasMissingEvidence = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && !evidenceExists(root, entry.task.id));
++    const reviewQueue = buildReviewQueue(root);
++    const hasReviewCandidate = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && reviewQueue.includes(`- ${entry.task.id} |`));
+     const followUp = hasMissingEvidence || hasReviewCandidate
+       ? "\nFollow-up work remains for existing contracts. Run `scwbs next` for Evidence or review guidance.\n"
+       : "";
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index a867b9f..eb202e2 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -1,19 +1,27 @@
+ import { collectCheckIssues } from "./check.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ import { buildNextTask } from "./ai-queue.js";
+-import { listTasks, evidenceExists, readEvidence, reviewExists } from "../core/contracts.js";
++import { listTasks, evidenceExists, readBlock, readEvidence, reviewExists } from "../core/contracts.js";
++
++function hasActiveBlock(root: string, taskId: string): boolean {
++  return readBlock(root, taskId).block?.status === "blocked";
++}
+ 
+ function taskIdFromMessage(message: string): string | undefined {
+   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
+ }
+ 
+-function taskIdFromSection(queue: string, heading: string): string | undefined {
++function taskIdsFromSection(queue: string, heading: string): string[] {
+   const section = new RegExp(`${heading}:\\n([\\s\\S]*?)(?:\\n\\n|$)`).exec(queue)?.[1] ?? "";
+-  return /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(section)?.[1];
++  return [...section.matchAll(/^- ([A-Z]+-\d+(?:-\d+)?)/gm)].map((match) => match[1]!);
+ }
+ 
+ export function buildNextAction(root: string): string {
+-  const stale = collectCheckIssues(root).find((issue) => issue.code.startsWith("task.contractLock"));
++  const stale = collectCheckIssues(root).find((issue) => {
++    if (!issue.code.startsWith("task.contractLock")) return false;
++    const taskId = taskIdFromMessage(issue.message);
++    return !taskId || !hasActiveBlock(root, taskId);
++  });
+   if (stale) {
+     const taskId = taskIdFromMessage(stale.message) ?? "<task-id>";
+     return `Next suggested action:
+@@ -27,7 +35,7 @@ Command:
+ `;
+   }
+ 
+-  const missingEvidence = listTasks(root).find((entry) => entry.task && !evidenceExists(root, entry.task.id));
++  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+   if (missingEvidence?.task) {
+     return `Next suggested action:
+ 
+@@ -42,6 +50,7 @@ Command:
+ 
+   const failedCheck = listTasks(root).flatMap((entry) => {
+     if (!entry.task) return [];
++    if (hasActiveBlock(root, entry.task.id)) return [];
+     const { evidence } = readEvidence(root, entry.task.id);
+     const failed = evidence?.checks.find((check) => check.status === "failed");
+     return failed ? [{ task: entry.task, checkName: failed.name }] : [];
+@@ -59,7 +68,7 @@ Command:
+   }
+ 
+   const queue = buildReviewQueue(root);
+-  const reviewTask = taskIdFromSection(queue, "Ready for completion review");
++  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
+   if (reviewTask) {
+     if (reviewExists(root, reviewTask)) {
+       return `Next suggested action:
+@@ -82,7 +91,7 @@ Command:
+   scwbs review request --task ${reviewTask}
+ `;
+   }
+-  const blockedReviewTask = taskIdFromSection(queue, "Blocked review candidates");
++  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
+   if (blockedReviewTask) {
+     return `Next suggested action:
+ 
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index c6d0f2c..dfc782d 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -1,4 +1,4 @@
+-import { readApproval, listTasks, readEvidence, readReview } from "../core/contracts.js";
++import { readApproval, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+@@ -118,6 +118,10 @@ export function buildReviewQueue(root: string): string {
+     const reasons: string[] = [];
+     const warnings: string[] = [];
+     const completionBlockedBy = incompleteDependencies(node.id, wbs);
++    const { block } = readBlock(root, task.id);
++    if (block?.status === "blocked") {
++      completionBlockedBy.push(`active Block: ${block.reason}`);
++    }
+     const readinessBlocker = nodeReadinessBlocker(node);
+     const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
+     const { evidence, issues } = readEvidence(root, task.id);
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index b83a678..04fe2b8 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -92,12 +92,29 @@ const blockRecordSchema = {
+     id: { type: "string", minLength: 1 },
+     type: { const: "block" },
+     taskId: { type: "string", minLength: 1 },
+-    status: { const: "blocked" },
++    status: { type: "string", enum: ["blocked", "resolved"] },
+     level: { type: "integer", enum: [1, 2] },
+     category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
+     reason: { type: "string", minLength: 1 },
+     requiredHumanDecision: { type: "string", minLength: 1 },
+-    createdAt: { type: "string" }
++    createdAt: { type: "string", minLength: 1 },
++    resolvedAt: { type: "string", minLength: 1 },
++    resolvedBy: { const: "human" },
++    resolution: { type: "string", minLength: 1 },
++    history: {
++      type: "array",
++      items: {
++        type: "object",
++        required: ["status", "at", "reason", "by"],
++        additionalProperties: false,
++        properties: {
++          status: { type: "string", enum: ["blocked", "resolved"] },
++          at: { type: "string", minLength: 1 },
++          reason: { type: "string", minLength: 1 },
++          by: { type: "string", enum: ["ai-agent", "human"] }
++        }
++      }
++    }
+   }
+ };
+ 
+@@ -282,8 +299,8 @@ export function validateBlockRecord(value: unknown, filePath = "block"): Issue[]
+   if (value.type !== "block") {
+     issues.push(issue("block.type", `${filePath}.type must be block`));
+   }
+-  if (value.status !== "blocked") {
+-    issues.push(issue("block.status", `${filePath}.status must be blocked`));
++  if (value.status !== "blocked" && value.status !== "resolved") {
++    issues.push(issue("block.status", `${filePath}.status must be blocked or resolved`));
+   }
+   if (value.level !== 1 && value.level !== 2) {
+     issues.push(issue("block.level", `${filePath}.level must be 1 or 2`));
+@@ -291,6 +308,39 @@ export function validateBlockRecord(value: unknown, filePath = "block"): Issue[]
+   if (value.category !== undefined && !["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"].includes(String(value.category))) {
+     issues.push(issue("block.category", `${filePath}.category is not a known stop category`));
+   }
++  if (value.status === "resolved") {
++    for (const key of ["resolvedAt", "resolvedBy", "resolution"]) {
++      if (typeof value[key] !== "string" || value[key].trim().length === 0) {
++        issues.push(issue("block.resolution", `${filePath}.${key} must be present when status is resolved`));
++      }
++    }
++    if (value.resolvedBy !== "human") {
++      issues.push(issue("block.resolution", `${filePath}.resolvedBy must be human`));
++    }
++  }
++  if (value.history !== undefined) {
++    if (!Array.isArray(value.history)) {
++      issues.push(issue("block.history", `${filePath}.history must be an array when present`));
++    } else {
++      value.history.forEach((entry, index) => {
++        if (!isObject(entry)) {
++          issues.push(issue("block.history", `${filePath}.history[${index}] must be an object`));
++          return;
++        }
++        if (entry.status !== "blocked" && entry.status !== "resolved") {
++          issues.push(issue("block.history", `${filePath}.history[${index}].status must be blocked or resolved`));
++        }
++        if (entry.by !== "ai-agent" && entry.by !== "human") {
++          issues.push(issue("block.history", `${filePath}.history[${index}].by must be ai-agent or human`));
++        }
++        for (const key of ["at", "reason"]) {
++          if (typeof entry[key] !== "string" || entry[key].trim().length === 0) {
++            issues.push(issue("block.history", `${filePath}.history[${index}].${key} must be a non-empty string`));
++          }
++        }
++      });
++    }
++  }
+   return issues;
+ }
+ 
+diff --git a/src/core/types.ts b/src/core/types.ts
+index ad3503f..ccdf400 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -166,12 +166,21 @@ export type BlockRecord = {
+   id: string;
+   type: "block";
+   taskId: string;
+-  status: "blocked";
++  status: "blocked" | "resolved";
+   level: 1 | 2;
+   category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
+   reason: string;
+   requiredHumanDecision: string;
+   createdAt: string;
++  resolvedAt?: string;
++  resolvedBy?: "human";
++  resolution?: string;
++  history?: Array<{
++    status: "blocked" | "resolved";
++    at: string;
++    reason: string;
++    by: "ai-agent" | "human";
++  }>;
+ };
+ 
+ export type ReviewRecord = {
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 524b96d..f186495 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -153,6 +153,51 @@ describe("AI commands", () => {
+     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
+   });
+ 
++  test("ai next-task excludes active Blocks and includes resolved Blocks", () => {
++    const root = makeTempRepo();
++    const wbs = sampleWbs("planned");
++    wbs.nodes[0].status = "completed";
++    writeScwbsProject(root);
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++
++    expect(buildNextTask(root)).toContain("WBS-001-004");
++    expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
++    expect(buildNextTask(root)).not.toContain("WBS-001-004 | API Implementation");
++    expect(main(["block", "resolve", "--task", "WBS-001-004", "--reason", "Decision recorded"], root)).toBe(0);
++    expect(buildNextTask(root)).toContain("WBS-001-004 | API Implementation");
++  });
++
++  test("top-level next does not suggest work for an active Block", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
++    expect(buildNextAction(root)).not.toContain("Collect evidence for WBS-001-004");
++    expect(buildNextAction(root)).not.toContain("Review blocked candidates");
++    expect(buildNextAction(root)).not.toContain("Run `scwbs next`");
++  });
++
++  test("top-level next skips an active Block and still finds a later review candidate", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      branchName: "task/WBS-001-005-follow-up",
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
++    expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
++    expect(buildNextAction(root)).toContain("Review blocked candidates");
++  });
++
++  test("the legacy positional reason resolve remains a normal block reason", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(["block", "resolve", "--task", "WBS-001-004"], root)).toBe(0);
++    expect(readBlock(root, "WBS-001-004").block).toMatchObject({ status: "blocked", reason: "resolve" });
++  });
++
+   test("ai next-task excludes a planned task that already has evidence", () => {
+     const root = makeTempRepo();
+     const wbs = sampleWbs("planned");
+@@ -394,5 +439,7 @@ describe("AI commands", () => {
+     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+     expect(main(["block", "Human Gate required", "--task", "WBS-001-004"], root)).toBe(0);
+     expect(readBlock(root, "WBS-001-004").block?.category).toBe("human-gate");
++    expect(main(["block", "resolve", "--task", "WBS-001-004", "--reason", "Reviewed by a human"], root)).toBe(0);
++    expect(readBlock(root, "WBS-001-004").block?.status).toBe("resolved");
+   });
+ });
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 8c07f33..5f54898 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -10,7 +10,8 @@ import { readProfile, runProfileSet } from "../../src/commands/profile.js";
+ import { buildStatus } from "../../src/commands/status.js";
+ import { runFinish } from "../../src/commands/finish.js";
+ import { runFix } from "../../src/commands/fix.js";
+-import { runAiBlock } from "../../src/commands/ai-queue.js";
++import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
++import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+ import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
+ import { readBlock, readEvidence, readSpecChange, readTask } from "../../src/core/contracts.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
+@@ -134,6 +135,88 @@ describe("misc", () => {
+     expect(readSpecChange(root, "contracts/spec-changes/SCP-WBS-001-004-block.yaml").specChange?.level).toBe(2);
+   });
+ 
++  test("a human can resolve a Block without deletion and reblocking preserves lifecycle history", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
++    const createdAt = readBlock(root, "WBS-001-004").block?.createdAt;
++    expect(runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })).toBe(0);
++    const resolved = readBlock(root, "WBS-001-004").block;
++    expect(resolved).toMatchObject({
++      status: "resolved",
++      createdAt,
++      resolvedAt: "2026-07-13T01:00:00.000Z",
++      resolvedBy: "human",
++      resolution: "Human decision recorded"
++    });
++    expect(resolved?.history?.map((entry) => entry.status)).toEqual(["blocked", "resolved"]);
++    expect(buildRegistryYaml(root)).toContain("status: resolved");
++
++    expect(runAiBlock(root, "WBS-001-004", "A new decision is required")).toBe(0);
++    const reblocked = readBlock(root, "WBS-001-004").block;
++    expect(reblocked?.status).toBe("blocked");
++    expect(reblocked?.history?.map((entry) => entry.status)).toEqual(["blocked", "resolved", "blocked"]);
++    expect(reblocked?.history?.[1]).toMatchObject({
++      at: "2026-07-13T01:00:00.000Z",
++      reason: "Human decision recorded",
++      by: "human"
++    });
++  });
++
++  test("Block resolution requires an existing active Block and a non-empty reason", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(1);
++    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
++    expect(runHumanBlockResolve(root, "WBS-001-004", "   ")).toBe(1);
++    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(0);
++    expect(runHumanBlockResolve(root, "WBS-001-004", "Second decision")).toBe(1);
++  });
++
++  test("AI execution mode cannot create a human Block resolution", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
++    expect(runHumanBlockResolve(root, "WBS-001-004", "AI should not resolve", { actor: "ai" })).toBe(1);
++    expect(readBlock(root, "WBS-001-004").block?.status).toBe("blocked");
++  });
++
++  test("reblocking refuses to overwrite an invalid existing Block", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", { type: "block", status: "broken" });
++    expect(runAiBlock(root, "WBS-001-004", "New reason")).toBe(1);
++    expect(readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8")).toContain("status: broken");
++  });
++
++  test("reblocking a legacy resolved Block reconstructs its resolution history", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
++      id: "BLK-WBS-001-004",
++      type: "block",
++      taskId: "WBS-001-004",
++      status: "resolved",
++      level: 1,
++      category: "human-gate",
++      reason: "Original block",
++      requiredHumanDecision: "Decide",
++      createdAt: "2026-07-12T01:00:00.000Z",
++      resolvedAt: "2026-07-12T02:00:00.000Z",
++      resolvedBy: "human",
++      resolution: "Decision recorded"
++    });
++
++    expect(runAiBlock(root, "WBS-001-004", "New block")).toBe(0);
++    expect(readBlock(root, "WBS-001-004").block?.history).toEqual([
++      { status: "blocked", at: "2026-07-12T01:00:00.000Z", reason: "Original block", by: "ai-agent" },
++      { status: "resolved", at: "2026-07-12T02:00:00.000Z", reason: "Decision recorded", by: "human" },
++      expect.objectContaining({ status: "blocked", reason: "New block", by: "ai-agent" })
++    ]);
++  });
++
+   test("finish without task id or task branch fails with a fix command", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/review.test.ts b/tests/integration/review.test.ts
+index f38c782..d289ab2 100644
+--- a/tests/integration/review.test.ts
++++ b/tests/integration/review.test.ts
+@@ -6,6 +6,7 @@ import { buildReviewQueue } from "../../src/commands/review-queue.js";
+ import { buildReviewRequestYaml, buildReviewRouteReport, runReviewRequest } from "../../src/commands/review-request.js";
+ import { buildTrace } from "../../src/commands/trace.js";
+ import { buildNextAction } from "../../src/commands/next.js";
++import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+ import {
+   makeTempRepo,
+   sampleTask,
+@@ -100,6 +101,17 @@ describe("review queue + review request", () => {
+     expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
+   });
+ 
++  test("review queue blocks on active Blocks and ignores resolved Blocks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++
++    expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
++    expect(buildReviewQueue(root)).toContain("completionBlockedBy: active Block: Human Gate required");
++    expect(runHumanBlockResolve(root, "WBS-001-004", "Decision recorded")).toBe(0);
++    expect(buildReviewQueue(root)).not.toContain("completionBlockedBy: active Block");
++  });
++
+   test("review queue reports incomplete dependencies that block completion", () => {
+     const root = makeTempRepo();
+     const wbs = sampleWbs("ready");
