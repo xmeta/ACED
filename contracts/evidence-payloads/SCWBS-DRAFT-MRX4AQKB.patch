@@ -1,0 +1,862 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 0c256df..47a02b1 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -72,9 +72,11 @@ rules:
+       - src/core/git.ts
+       - src/core/finish-lifecycle.ts
+       - src/core/github-actions.ts
++      - src/core/github-pull-requests.ts
+       - src/core/glob.ts
+       - src/core/hash.ts
+       - src/core/human-gate.ts
++      - src/core/health-lifecycle.ts
+       - src/core/json.ts
+       - src/core/managed-contract-paths.ts
+       - src/core/node-utils.ts
+diff --git a/contracts/specs/SPEC-LITE-MRX4AQKB.yaml b/contracts/specs/SPEC-LITE-MRX4AQKB.yaml
+new file mode 100644
+index 0000000..aaffaac
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRX4AQKB.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MRX4AQKB
++type: spec-contract
++featureId: F-MRX4AQKB
++title: "Issue #179: Human Gate・publish・health観測を追加する"
++status: approved
++version: 0.1.0
++summary: "Approval待ち時間、Task PR publish loop、health warning deltaをboundedかつfail-openに観測する"
++approvedBy: user-requested-issue-179
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - 新規Approval requestはrequestedAtをISO timestampで保持し、human/delegated approveは既存requestedAtを保持する
++  - requestedAtのないlegacy Approvalは有効なrecordとして扱い、Human Gate wait durationをnullまたは未観測とし0へ推測しない
++  - GitHub PR取得は1 invocationあたりboundedな一覧取得1回だけとし、Task branchからTask ID、createdAt、mergedAt、publish-loop durationを集計する
++  - historicalPullRequestsはavailable/unavailable、取得上限、取得件数、最大20 Task trendを返し、取得不能や未mergeを0 durationへ変換しない
++  - health実行ごとにactive Task別warning countとcode summaryをgit common dirへatomic保存し、1 Task最大50 event・repository最大100 Taskとする
++  - health warning deltaは履歴切捨てがなく同一Taskの最初と最後を比較できる場合だけ返し、それ以外はnullとする
++  - metrics governance --json schemaVersionを1.1.0へ上げ、localLifecycle等の既存フィールドを保持したままhumanGate、historicalPullRequests、healthLifecycleを加法的に追加する
++  - plain metrics outputは5行以内かつ既存意味を維持し、Task trendは各source最大20件とする
++  - Approval/PR/healthのsource不明、壊れたreceipt、git common dir不能はunavailableまたはnullとし0へ推測しない
++  - warning budget、WBS extension、閾値採用、active/archive metrics classifier補正はこのTaskに含めない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml b/contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
+new file mode 100644
+index 0000000..a9333b2
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
+@@ -0,0 +1,69 @@
++id: SCWBS-DRAFT-MRX4AQKB
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRX4AQKB
++branchName: codex/SCWBS-DRAFT-MRX4AQKB-issue-179-gate-publish-health
++allowedPaths:
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/core/github-pull-requests.ts
++  - src/core/health-lifecycle.ts
++  - src/commands/approval-request.ts
++  - src/commands/health.ts
++  - src/commands/metrics.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/health.test.ts
++  - tests/integration/metrics.test.ts
++  - tests/integration/issue-179-observability.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Approval requestへ任意requestedAtを設定し、approve時に保持してlegacy recordを未観測として扱う
++  - boundedな1回のPR一覧取得からTask branchの作成・merge時刻とpublish-loop時間をhistoricalPullRequestsとして集計する
++  - health実行時のTask別warning summaryをgit common dir receiptへboundedに記録し、比較可能な最初と最後だけdeltaを返す
++  - metrics governance JSON schemaを加法的な1.1.0へ更新し、localLifecycleを含む既存フィールドの意味を変えない
++  - sourceはavailable/unavailableを明示し、legacy・取得不能・比較不能を0へ推測しない
++  - plain outputの既存行数とbytes budget、各JSON trend上限を維持する
++  - required checks、check-diff、Registry、finish固定点、PR CIを直列に確認する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
++  - contracts/specs/SPEC-LITE-MRX4AQKB.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRX4AQKB.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRX4AQKB.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRX4AQKB.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRX4AQKB.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:8825ee4d95754561d211dfcbc0646761c714efb51e47139b5f6c57c524d12c93
++  createdAt: "2026-07-23T06:17:14.197Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8f46dc5..41dd0e1 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1217,3 +1217,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-23T06:11:38.568Z"
++  - id: SCWBS-DRAFT-MRX4AQKB
++    path: contracts/tasks/SCWBS-DRAFT-MRX4AQKB.yaml
++    branchName: codex/SCWBS-DRAFT-MRX4AQKB-issue-179-gate-publish-health
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 9c67569..51153ad 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -53,6 +53,8 @@ GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `hi
+ 
+ `metrics governance --json` の `localLifecycle` はこのreceiptをread-onlyで集計し、source status、invalid receipt数、event数、最大20 Taskのattempt、successful/blocked/failed、収束時間、metadata-only descendant数を返す。履歴切捨て、未収束、subject不明、shallow history、壊れたreceipt、git common dir読取不能は `null` または `status: unavailable` とし、0へ推測しない。Human Gate wait、publish loop、health warning delta、warning budgetは引き続き未計測であり、hard limitは導入しない。
+ 
++JSON schema `1.1.0` では `humanGate`、`historicalPullRequests`、`healthLifecycle` を加法的に追加する。新規Approval requestは `requestedAt` を記録しapprove後も保持するが、legacy recordの待ち時間は `null` のまま扱う。PR履歴は1回のbounded GitHub一覧取得からTask branchの作成・merge時刻と最大20 Taskのpublish loopを返し、取得不能は `unavailable`、未mergeは `null` とする。`health` はactive Task別warning summaryをgit common dirへ最大50 event/Task・最大100 Taskで保存し、履歴切捨てがなく最初と最後を比較できる場合だけwarning deltaを返す。plain metrics outputは変更しない。
++
+ 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。未計測項目はJSONへ明示し、hard limitやprofile downgradeは行わない。
+ 
+ ## AI Workflow
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index 612143a..3fba358 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -7,27 +7,29 @@ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
+ 
+-export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string }): ApprovalRecord {
++export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
+   return {
+     id: `APR-${taskId}`,
+     type: "approval",
+     taskId,
+     status: "requested",
++    requestedAt: options.requestedAt ?? new Date().toISOString(),
+     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+     ...(options.note ? { notes: [options.note] } : {})
+   };
+ }
+ 
+-export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string }): string {
++export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): string {
+   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+-export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
++export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+   return {
+     id: `APR-${taskId}`,
+     type: "approval",
+     taskId,
+     status: "approved",
++    ...(options.requestedAt ? { requestedAt: options.requestedAt } : {}),
+     approvedBy: options.approvedBy ?? "human",
+     approvedAt: options.approvedAt ?? new Date().toISOString(),
+     approvalMode: options.approvalMode ?? "human",
+@@ -150,6 +152,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     }
+ 
+     const yaml = buildApprovalApproveYaml(taskId, {
++      requestedAt: approval?.requestedAt,
+       pullRequest: options.pullRequest ?? approval?.pullRequest,
+       reason: options.reason,
+       ...approvalExecution,
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index f189b45..98c5c32 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -8,6 +8,7 @@ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } fro
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
++import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
+ 
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+@@ -610,6 +611,14 @@ export function buildHealthText(root: string, issues = collectHealthIssues(root)
+ 
+ export function runHealth(root: string, options: HealthOptions = {}): number {
+   const issues = collectHealthIssues(root);
++  try {
++    for (const entry of listActiveTasks(root)) {
++      if (!entry.task) continue;
++      recordHealthLifecycleEvent(root, entry.task.id, buildHealthLifecycleEvent(collectTaskHealthIssues(root, entry.task.id)));
++    }
++  } catch (error) {
++    console.error(`WARN health lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
++  }
+   if (options.json) console.log(JSON.stringify(buildHealthJsonOutput(root, issues), null, 2));
+   else process.stdout.write(buildHealthText(root, issues, options));
+   return hasErrors(issues) ? 1 : 0;
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+index 9206cba..3128b77 100644
+--- a/src/commands/metrics.ts
++++ b/src/commands/metrics.ts
+@@ -8,6 +8,9 @@ import { readGithubActionsHistory, type GithubActionsHistory } from "../core/git
+ import { isCheckReceipt, type CheckReceipt } from "../core/check-receipt.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
+ import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycleEvent, type FinishLifecycleReceipt } from "../core/finish-lifecycle.js";
++import { readHistoricalPullRequests, type HistoricalPullRequests } from "../core/github-pull-requests.js";
++import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycleReceipt } from "../core/health-lifecycle.js";
++import { listApprovals } from "../core/contracts.js";
+ 
+ const GOVERNANCE_DIRS = [
+   "contracts/tasks",
+@@ -87,6 +90,54 @@ export type LocalLifecycleSummary = {
+   source: "git-common-dir-finish-lifecycle";
+   reason: string;
+ };
++
++export type HumanGateSummary = {
++  status: "available";
++  source: "approval-records";
++  recordCount: number;
++  invalidRecordCount: number;
++  observedRequestCount: number;
++  observedCompletedCount: number;
++  legacyUnobservedCount: number;
++  taskTrend: {
++    limit: 20;
++    totalCount: number;
++    truncated: boolean;
++    items: Array<{
++      taskId: string;
++      status: string;
++      requestedAt: string | null;
++      approvedAt: string | null;
++      waitingMilliseconds: number | null;
++    }>;
++  };
++};
++
++export type HealthLifecycleSummary = {
++  status: "available";
++  source: "git-common-dir-health-lifecycle";
++  receiptCount: number;
++  invalidReceiptCount: number;
++  eventCount: number;
++  taskTrend: {
++    limit: 20;
++    totalCount: number;
++    truncated: boolean;
++    items: Array<{
++      taskId: string;
++      latestObservedAt: string;
++      observationCount: number;
++      firstWarningCount: number | null;
++      latestWarningCount: number | null;
++      warningDelta: number | null;
++      historyTruncated: boolean;
++    }>;
++  };
++} | {
++  status: "unavailable";
++  source: "git-common-dir-health-lifecycle";
++  reason: string;
++};
+ type FileMeasurement = Bucket & {
+   activeFiles: number;
+   activeBytes: number;
+@@ -97,7 +148,7 @@ type FileMeasurement = Bucket & {
+ };
+ 
+ export type GovernanceCostSummary = {
+-  schemaVersion: "1.0.0";
++  schemaVersion: "1.1.0";
+   metric: "governance-cost";
+   generatedAt: string;
+   profile: Profile;
+@@ -107,6 +158,9 @@ export type GovernanceCostSummary = {
+     ratios: string;
+     localRequiredChecks: string;
+     localLifecycle: string;
++    humanGate: string;
++    historicalPullRequests: string;
++    healthLifecycle: string;
+     hardLimitEnforced: false;
+   };
+   categories: Record<string, FileMeasurement>;
+@@ -121,6 +175,9 @@ export type GovernanceCostSummary = {
+   historicalCi: GithubActionsHistory;
+   localRequiredChecks: LocalRequiredChecksSummary;
+   localLifecycle: LocalLifecycleSummary;
++  humanGate: HumanGateSummary;
++  historicalPullRequests: HistoricalPullRequests;
++  healthLifecycle: HealthLifecycleSummary;
+   unmeasured: string[];
+ };
+ 
+@@ -378,6 +435,84 @@ export function buildLocalLifecycleSummary(root: string): LocalLifecycleSummary
+   };
+ }
+ 
++export function buildHumanGateSummary(root: string): HumanGateSummary {
++  const entries = listApprovals(root);
++  const approvals = entries.flatMap((entry) => entry.approval ? [entry.approval] : []);
++  const items = approvals.map((approval) => {
++    const requested = approval.requestedAt ? Date.parse(approval.requestedAt) : Number.NaN;
++    const approved = approval.approvedAt ? Date.parse(approval.approvedAt) : Number.NaN;
++    return {
++      taskId: approval.taskId,
++      status: approval.status,
++      requestedAt: approval.requestedAt ?? null,
++      approvedAt: approval.approvedAt ?? null,
++      waitingMilliseconds: Number.isFinite(requested) && Number.isFinite(approved) && approved >= requested ? approved - requested : null
++    };
++  }).sort((left, right) =>
++    (right.requestedAt ?? right.approvedAt ?? "").localeCompare(left.requestedAt ?? left.approvedAt ?? "")
++    || left.taskId.localeCompare(right.taskId)
++  );
++  return {
++    status: "available",
++    source: "approval-records",
++    recordCount: approvals.length,
++    invalidRecordCount: entries.length - approvals.length,
++    observedRequestCount: approvals.filter((approval) => approval.requestedAt).length,
++    observedCompletedCount: items.filter((item) => item.waitingMilliseconds !== null).length,
++    legacyUnobservedCount: approvals.filter((approval) => !approval.requestedAt).length,
++    taskTrend: { limit: 20, totalCount: items.length, truncated: items.length > 20, items: items.slice(0, 20) }
++  };
++}
++
++export function buildHealthLifecycleSummary(root: string): HealthLifecycleSummary {
++  let directory: string;
++  try {
++    directory = healthLifecycleDirectory(root);
++  } catch (error) {
++    return { status: "unavailable", source: "git-common-dir-health-lifecycle", reason: error instanceof Error ? error.message : String(error) };
++  }
++  const receipts: HealthLifecycleReceipt[] = [];
++  let invalidReceiptCount = 0;
++  try {
++    if (existsSync(directory)) {
++      for (const entry of readdirSync(directory, { withFileTypes: true })) {
++        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
++        try {
++          const value: unknown = JSON.parse(readFileSync(path.join(directory, entry.name), "utf8"));
++          if (isHealthLifecycleReceipt(value) && entry.name === `${encodeURIComponent(value.taskId)}.json`) receipts.push(value);
++          else invalidReceiptCount += 1;
++        } catch {
++          invalidReceiptCount += 1;
++        }
++      }
++    }
++  } catch (error) {
++    return { status: "unavailable", source: "git-common-dir-health-lifecycle", reason: error instanceof Error ? error.message : String(error) };
++  }
++  const items = receipts.map((receipt) => {
++    const first = receipt.events[0];
++    const latest = receipt.events.at(-1);
++    const comparable = !receipt.historyTruncated && receipt.events.length >= 2 && first && latest;
++    return {
++      taskId: receipt.taskId,
++      latestObservedAt: latest?.observedAt ?? "",
++      observationCount: receipt.events.length,
++      firstWarningCount: first?.warningCount ?? null,
++      latestWarningCount: latest?.warningCount ?? null,
++      warningDelta: comparable ? latest.warningCount - first.warningCount : null,
++      historyTruncated: receipt.historyTruncated
++    };
++  }).sort((left, right) => right.latestObservedAt.localeCompare(left.latestObservedAt) || left.taskId.localeCompare(right.taskId));
++  return {
++    status: "available",
++    source: "git-common-dir-health-lifecycle",
++    receiptCount: receipts.length,
++    invalidReceiptCount,
++    eventCount: receipts.reduce((sum, receipt) => sum + receipt.events.length, 0),
++    taskTrend: { limit: 20, totalCount: items.length, truncated: items.length > 20, items: items.slice(0, 20) }
++  };
++}
++
+ export function buildGovernanceCostSummary(root: string, now = new Date()): GovernanceCostSummary {
+   const categories: Record<string, FileMeasurement> = {};
+   for (const directory of GOVERNANCE_DIRS) {
+@@ -400,9 +535,12 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+   const historicalCi = readGithubActionsHistory(root);
+   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
+   const localLifecycle = buildLocalLifecycleSummary(root);
++  const humanGate = buildHumanGateSummary(root);
++  const historicalPullRequests = readHistoricalPullRequests(root);
++  const healthLifecycle = buildHealthLifecycleSummary(root);
+ 
+   return {
+-    schemaVersion: "1.0.0",
++    schemaVersion: "1.1.0",
+     metric: "governance-cost",
+     generatedAt: now.toISOString(),
+     profile: readProfile(root),
+@@ -412,6 +550,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+       ratios: "governance lines divided by src TypeScript lines or test TypeScript lines; null means zero denominator",
+       localRequiredChecks: "current git-common-dir receipts only; latest successful canonical run per task, with missing legacy durations left unobserved",
+       localLifecycle: "bounded Task-local finish events from the current git common directory; missing history is not inferred as zero attempts",
++      humanGate: "Approval requestedAt through approvedAt when both timestamps are observed; legacy records remain unobserved",
++      historicalPullRequests: "one bounded GitHub pull request list request; unmerged and unavailable durations remain null",
++      healthLifecycle: "bounded Task-local health warning summaries from the current git common directory; delta requires comparable first and last events",
+       hardLimitEnforced: false
+     },
+     categories,
+@@ -426,9 +567,10 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+     historicalCi,
+     localRequiredChecks,
+     localLifecycle,
++    humanGate,
++    historicalPullRequests,
++    healthLifecycle,
+     unmeasured: [
+-      "finish attempts and metadata-only descendant count",
+-      "Human Gate wait time, publish-loop duration, and health warning delta",
+       "warning budgets and hard enforcement"
+     ]
+   };
+diff --git a/src/core/github-pull-requests.ts b/src/core/github-pull-requests.ts
+new file mode 100644
+index 0000000..8e23210
+--- /dev/null
++++ b/src/core/github-pull-requests.ts
+@@ -0,0 +1,132 @@
++import { spawnSync } from "node:child_process";
++
++export const historicalPullRequestLimit = 100;
++export const historicalPullRequestTrendLimit = 20;
++
++export type GithubPullRequest = {
++  number: number;
++  headBranch: string;
++  createdAt: string;
++  updatedAt: string;
++  mergedAt: string | null;
++};
++
++export type HistoricalPullRequests = {
++  status: "available";
++  source: "github-pull-requests";
++  repository: string;
++  retrievedPullRequestLimit: 100;
++  matchingPullRequestCount: number;
++  mergedPullRequestCount: number;
++  unmergedPullRequestCount: number;
++  taskTrend: {
++    limit: 20;
++    totalCount: number;
++    truncated: boolean;
++    items: Array<{
++      taskId: string;
++      pullRequestCount: number;
++      mergedPullRequestCount: number;
++      createdAt: string;
++      mergedAt: string | null;
++      publishLoopMilliseconds: number | null;
++      latestUpdatedAt: string;
++    }>;
++  };
++} | {
++  status: "unavailable";
++  source: "github-pull-requests";
++  reason: string;
++};
++
++function taskIdFromBranch(branch: string): string | undefined {
++  return branch.match(/^(?:task|codex)\/(SCWBS-(?:DRAFT-)?[A-Z0-9]+(?:-[A-Z0-9]+)*)/)?.[1];
++}
++
++function githubRepository(remote: string): string | undefined {
++  return remote.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/)?.[1];
++}
++
++function toPullRequest(value: unknown): GithubPullRequest | undefined {
++  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
++  const record = value as Record<string, unknown>;
++  const head = record.head;
++  if (typeof record.number !== "number" || typeof record.created_at !== "string"
++    || typeof record.updated_at !== "string" || typeof head !== "object" || head === null
++    || Array.isArray(head) || typeof (head as Record<string, unknown>).ref !== "string") return undefined;
++  return {
++    number: record.number,
++    headBranch: (head as Record<string, unknown>).ref as string,
++    createdAt: record.created_at,
++    updatedAt: record.updated_at,
++    mergedAt: typeof record.merged_at === "string" ? record.merged_at : null
++  };
++}
++
++export function summarizeGithubPullRequests(repository: string, pullRequests: GithubPullRequest[]): HistoricalPullRequests {
++  const tasks = new Map<string, Extract<HistoricalPullRequests, { status: "available" }>["taskTrend"]["items"][number]>();
++  let matchingPullRequestCount = 0;
++  let mergedPullRequestCount = 0;
++  for (const pullRequest of pullRequests) {
++    const taskId = taskIdFromBranch(pullRequest.headBranch);
++    if (!taskId) continue;
++    matchingPullRequestCount += 1;
++    if (pullRequest.mergedAt) mergedPullRequestCount += 1;
++    const item = tasks.get(taskId) ?? {
++      taskId,
++      pullRequestCount: 0,
++      mergedPullRequestCount: 0,
++      createdAt: pullRequest.createdAt,
++      mergedAt: null,
++      publishLoopMilliseconds: null,
++      latestUpdatedAt: pullRequest.updatedAt
++    };
++    item.pullRequestCount += 1;
++    if (pullRequest.mergedAt) item.mergedPullRequestCount += 1;
++    if (pullRequest.createdAt < item.createdAt) item.createdAt = pullRequest.createdAt;
++    if (pullRequest.mergedAt && (!item.mergedAt || pullRequest.mergedAt > item.mergedAt)) item.mergedAt = pullRequest.mergedAt;
++    if (pullRequest.updatedAt > item.latestUpdatedAt) item.latestUpdatedAt = pullRequest.updatedAt;
++    tasks.set(taskId, item);
++  }
++  const items = [...tasks.values()]
++    .map((item) => {
++      const started = Date.parse(item.createdAt);
++      const ended = item.mergedAt ? Date.parse(item.mergedAt) : Number.NaN;
++      return { ...item, publishLoopMilliseconds: Number.isFinite(started) && Number.isFinite(ended) && ended >= started ? ended - started : null };
++    })
++    .sort((left, right) => right.latestUpdatedAt.localeCompare(left.latestUpdatedAt) || left.taskId.localeCompare(right.taskId));
++  return {
++    status: "available",
++    source: "github-pull-requests",
++    repository,
++    retrievedPullRequestLimit: historicalPullRequestLimit,
++    matchingPullRequestCount,
++    mergedPullRequestCount,
++    unmergedPullRequestCount: matchingPullRequestCount - mergedPullRequestCount,
++    taskTrend: {
++      limit: historicalPullRequestTrendLimit,
++      totalCount: items.length,
++      truncated: items.length > historicalPullRequestTrendLimit,
++      items: items.slice(0, historicalPullRequestTrendLimit)
++    }
++  };
++}
++
++export function readHistoricalPullRequests(root: string): HistoricalPullRequests {
++  const remote = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
++  const repository = remote.status === 0 ? githubRepository(remote.stdout) : undefined;
++  if (!repository) return { status: "unavailable", source: "github-pull-requests", reason: "origin is not a GitHub repository" };
++  const result = spawnSync("gh", ["api", `repos/${repository}/pulls?state=all&per_page=${historicalPullRequestLimit}&sort=updated&direction=desc`], {
++    cwd: root,
++    encoding: "utf8",
++    maxBuffer: 10 * 1024 * 1024
++  });
++  if (result.status !== 0) return { status: "unavailable", source: "github-pull-requests", reason: (result.stderr || "GitHub pull requests could not be retrieved").trim() };
++  try {
++    const payload: unknown = JSON.parse(result.stdout);
++    if (!Array.isArray(payload)) throw new Error("GitHub pull request response is not an array");
++    return summarizeGithubPullRequests(repository, payload.map(toPullRequest).filter((value): value is GithubPullRequest => Boolean(value)));
++  } catch (error) {
++    return { status: "unavailable", source: "github-pull-requests", reason: error instanceof Error ? error.message : String(error) };
++  }
++}
+diff --git a/src/core/health-lifecycle.ts b/src/core/health-lifecycle.ts
+new file mode 100644
+index 0000000..99b0977
+--- /dev/null
++++ b/src/core/health-lifecycle.ts
+@@ -0,0 +1,110 @@
++import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import type { Issue } from "./types.js";
++import { gitCommonDir } from "./required-check-run.js";
++
++export const healthLifecycleEventLimit = 50;
++export const healthLifecycleTaskLimit = 100;
++
++export type HealthLifecycleEvent = {
++  observedAt: string;
++  warningCount: number;
++  errorCount: number;
++  byCode: Array<{ code: string; warningCount: number; errorCount: number }>;
++};
++
++export type HealthLifecycleReceipt = {
++  schemaVersion: "1.0.0";
++  taskId: string;
++  historyTruncated: boolean;
++  events: HealthLifecycleEvent[];
++};
++
++export function healthLifecycleDirectory(root: string): string {
++  return path.join(gitCommonDir(root), "scwbs-health-lifecycle");
++}
++
++function receiptPath(root: string, taskId: string): string {
++  return path.join(healthLifecycleDirectory(root), `${encodeURIComponent(taskId)}.json`);
++}
++
++export function buildHealthLifecycleEvent(issues: Issue[], observedAt = new Date()): HealthLifecycleEvent {
++  const grouped = new Map<string, { code: string; warningCount: number; errorCount: number }>();
++  for (const issue of issues) {
++    const item = grouped.get(issue.code) ?? { code: issue.code, warningCount: 0, errorCount: 0 };
++    if (issue.severity === "error") item.errorCount += 1;
++    else item.warningCount += 1;
++    grouped.set(issue.code, item);
++  }
++  return {
++    observedAt: observedAt.toISOString(),
++    warningCount: issues.filter((issue) => issue.severity === "warn").length,
++    errorCount: issues.filter((issue) => issue.severity === "error").length,
++    byCode: [...grouped.values()].sort((left, right) => left.code.localeCompare(right.code))
++  };
++}
++
++function isEvent(value: unknown): value is HealthLifecycleEvent {
++  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
++  const event = value as Record<string, unknown>;
++  return typeof event.observedAt === "string" && Number.isFinite(Date.parse(event.observedAt))
++    && Number.isInteger(event.warningCount) && (event.warningCount as number) >= 0
++    && Number.isInteger(event.errorCount) && (event.errorCount as number) >= 0
++    && Array.isArray(event.byCode);
++}
++
++export function isHealthLifecycleReceipt(value: unknown): value is HealthLifecycleReceipt {
++  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
++  const receipt = value as Record<string, unknown>;
++  return receipt.schemaVersion === "1.0.0" && typeof receipt.taskId === "string"
++    && typeof receipt.historyTruncated === "boolean" && Array.isArray(receipt.events)
++    && receipt.events.length <= healthLifecycleEventLimit && receipt.events.every(isEvent);
++}
++
++function prune(root: string, protectedFile: string): void {
++  const directory = healthLifecycleDirectory(root);
++  const files = readdirSync(directory, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
++    .map((entry) => {
++      const file = path.join(directory, entry.name);
++      let observedAt = statSync(file).mtime.toISOString();
++      try {
++        const value: unknown = JSON.parse(readFileSync(file, "utf8"));
++        if (isHealthLifecycleReceipt(value)) observedAt = value.events.at(-1)?.observedAt ?? observedAt;
++      } catch {}
++      return { file, observedAt, name: entry.name };
++    }).sort((left, right) => left.observedAt.localeCompare(right.observedAt) || left.name.localeCompare(right.name));
++  while (files.length > healthLifecycleTaskLimit) {
++    const index = files.findIndex((entry) => entry.file !== protectedFile);
++    if (index < 0) break;
++    const [removed] = files.splice(index, 1);
++    if (removed) unlinkSync(removed.file);
++  }
++}
++
++export function recordHealthLifecycleEvent(root: string, taskId: string, event: HealthLifecycleEvent): void {
++  const directory = healthLifecycleDirectory(root);
++  mkdirSync(directory, { recursive: true });
++  const file = receiptPath(root, taskId);
++  let existing: HealthLifecycleReceipt | undefined;
++  if (existsSync(file)) {
++    try {
++      const value: unknown = JSON.parse(readFileSync(file, "utf8"));
++      if (isHealthLifecycleReceipt(value) && value.taskId === taskId) existing = value;
++    } catch {}
++  }
++  const events = [...(existing?.events ?? []), event];
++  const receipt: HealthLifecycleReceipt = {
++    schemaVersion: "1.0.0",
++    taskId,
++    historyTruncated: (existsSync(file) && !existing) || existing?.historyTruncated === true || events.length > healthLifecycleEventLimit,
++    events: events.slice(-healthLifecycleEventLimit)
++  };
++  const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
++  try {
++    writeFileSync(temporary, `${JSON.stringify(receipt)}\n`, "utf8");
++    renameSync(temporary, file);
++  } finally {
++    if (existsSync(temporary)) unlinkSync(temporary);
++  }
++  prune(root, file);
++}
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 6eb096e..26e9f3f 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -150,6 +150,7 @@ const approvalRecordSchema = {
+     type: { const: "approval" },
+     taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     status: { type: "string", enum: ["requested", "approved", "rejected"] },
++    requestedAt: { type: "string" },
+     approvedBy: { type: "string" },
+     approvedAt: { type: "string" },
+     headCommit: { type: "string" },
+@@ -348,7 +349,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
+     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
+   }
+-  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
++  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+     if (value[key] !== undefined && typeof value[key] !== "string") {
+       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
+     }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index a0283c6..4f62dea 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -257,6 +257,7 @@ export type ApprovalRecord = {
+   type: "approval";
+   taskId: string;
+   status: ApprovalStatus;
++  requestedAt?: string;
+   approvedBy?: string;
+   approvedAt?: string;
+   headCommit?: string;
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index 8467483..316af04 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -35,8 +35,8 @@ describe("approval", () => {
+ 
+     expect(runApprovalRequest(root, "WBS-001-004", { pullRequest: "#42", note: "Awaiting human review", force: false })).toBe(0);
+     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+-    expect(actual).toBe(buildApprovalRequestYaml("WBS-001-004", { pullRequest: "#42", note: "Awaiting human review" }));
+     expect(actual).toContain("status: requested");
++    expect(actual).toContain("requestedAt:");
+     expect(actual).toContain('pullRequest: "#42"');
+   });
+ 
+@@ -89,6 +89,17 @@ describe("approval", () => {
+     expect(actual).toContain("reason: Evidence and PR reviewed");
+   });
+ 
++  test("approval approve preserves request time while legacy approval remains unobserved", () => {
++    const requestedAt = "2026-07-23T00:00:00.000Z";
++    expect(buildApprovalApproveYaml("WBS-001-004", {
++      requestedAt,
++      approvedAt: "2026-07-23T00:01:00.000Z"
++    })).toContain(`requestedAt: "${requestedAt}"`);
++    expect(buildApprovalApproveYaml("WBS-001-004", {
++      approvedAt: "2026-07-23T00:01:00.000Z"
++    })).not.toContain("requestedAt:");
++  });
++
+   test("approval approve rejects AI execution mode", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/issue-179-observability.test.ts b/tests/integration/issue-179-observability.test.ts
+new file mode 100644
+index 0000000..6754260
+--- /dev/null
++++ b/tests/integration/issue-179-observability.test.ts
+@@ -0,0 +1,79 @@
++import { mkdirSync, readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { summarizeGithubPullRequests } from "../../src/core/github-pull-requests.js";
++import { buildHealthLifecycleEvent, healthLifecycleDirectory, recordHealthLifecycleEvent } from "../../src/core/health-lifecycle.js";
++import { buildHealthLifecycleSummary, buildHumanGateSummary } from "../../src/commands/metrics.js";
++import { makeTempRepo, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++
++describe("issue 179 gate, publish, and health observability", () => {
++  test("summarizes bounded Task pull request publish loops and leaves unmerged duration null", () => {
++    const pullRequests = Array.from({ length: 22 }, (_, index) => ({
++      number: index + 1,
++      headBranch: `codex/SCWBS-DRAFT-${index.toString().padStart(3, "0")}-change`,
++      createdAt: `2026-07-${(index + 1).toString().padStart(2, "0")}T00:00:00Z`,
++      updatedAt: `2026-07-${(index + 1).toString().padStart(2, "0")}T00:00:20Z`,
++      mergedAt: index === 0 ? null : `2026-07-${(index + 1).toString().padStart(2, "0")}T00:00:10Z`
++    }));
++    const summary = summarizeGithubPullRequests("xmeta/ACED", pullRequests);
++    if (summary.status !== "available") throw new Error(summary.reason);
++    expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 22, truncated: true });
++    expect(summary.taskTrend.items).toHaveLength(20);
++    expect(summary.taskTrend.items[0]).toMatchObject({ taskId: "SCWBS-DRAFT-021", publishLoopMilliseconds: 10_000 });
++    expect(summary.unmergedPullRequestCount).toBe(1);
++  });
++
++  test("reports Approval wait only when requestedAt and approvedAt are both observed", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/OBSERVED.yaml", sampleApproval({
++      taskId: "OBSERVED",
++      requestedAt: "2026-07-23T00:00:00Z",
++      approvedAt: "2026-07-23T00:01:00Z"
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/LEGACY.yaml", sampleApproval({
++      taskId: "LEGACY",
++      approvedAt: "2026-07-23T00:01:00Z"
++    }) as unknown as Record<string, unknown>);
++    const summary = buildHumanGateSummary(root);
++    expect(summary).toMatchObject({ observedCompletedCount: 1, legacyUnobservedCount: 1 });
++    expect(summary.taskTrend.items.find((item) => item.taskId === "OBSERVED")?.waitingMilliseconds).toBe(60_000);
++    expect(summary.taskTrend.items.find((item) => item.taskId === "LEGACY")?.waitingMilliseconds).toBeNull();
++  });
++
++  test("health receipt is local, bounded, corrupt-aware, and only returns comparable delta", () => {
++    const root = makeTempRepo();
++    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
++      { severity: "warn", code: "health.a", message: "a" },
++      { severity: "warn", code: "health.b", message: "b" }
++    ], new Date("2026-07-23T00:00:00Z")));
++    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
++      { severity: "warn", code: "health.a", message: "a" }
++    ], new Date("2026-07-23T00:01:00Z")));
++    recordHealthLifecycleEvent(root, "TASK-B", buildHealthLifecycleEvent([], new Date("2026-07-23T00:02:00Z")));
++    mkdirSync(healthLifecycleDirectory(root), { recursive: true });
++    writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "corrupt.json")), "{broken\n");
++    const summary = buildHealthLifecycleSummary(root);
++    if (summary.status !== "available") throw new Error(summary.reason);
++    expect(summary).toMatchObject({ receiptCount: 2, invalidReceiptCount: 1, eventCount: 3 });
++    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-A")?.warningDelta).toBe(-1);
++    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-B")?.warningDelta).toBeNull();
++    expect(readFileSync(path.join(healthLifecycleDirectory(root), "TASK-A.json"), "utf8")).toContain("\"events\"");
++  });
++
++  test("health receipts retain at most 50 events for at most 100 Tasks", () => {
++    const root = makeTempRepo();
++    for (let index = 0; index < 51; index += 1) {
++      recordHealthLifecycleEvent(root, "EVENTS", buildHealthLifecycleEvent([], new Date(1_000 + index)));
++    }
++    for (let index = 0; index < 100; index += 1) {
++      recordHealthLifecycleEvent(root, `TASK-${index.toString().padStart(3, "0")}`, buildHealthLifecycleEvent([], new Date(10_000 + index)));
++    }
++    const summary = buildHealthLifecycleSummary(root);
++    if (summary.status !== "available") throw new Error(summary.reason);
++    expect(summary.receiptCount).toBe(100);
++    expect(summary.eventCount).toBe(100);
++    expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 100, truncated: true });
++    expect(summary.taskTrend.items).toHaveLength(20);
++  });
++});
+diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
+index 2e245fc..8ecb211 100644
+--- a/tests/integration/metrics.test.ts
++++ b/tests/integration/metrics.test.ts
+@@ -71,7 +71,7 @@ describe("governance metrics", () => {
+     expect(summary.localRequiredChecks).toMatchObject({ status: "available", receiptCount: 0, observedCheckCount: 0 });
+     if (summary.localRequiredChecks.status !== "available") throw new Error(summary.localRequiredChecks.reason);
+     expect(summary.localRequiredChecks.durationMilliseconds).toEqual({ total: null, average: null, minimum: null, maximum: null });
+-    expect(summary.unmeasured).toContain("finish attempts and metadata-only descendant count");
++    expect(summary.unmeasured).toEqual(["warning budgets and hard enforcement"]);
+     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
+   });
+ 
+@@ -179,7 +179,7 @@ describe("governance metrics", () => {
+     expect(output.result).toBe(0);
+     const summary = JSON.parse(output.stdout);
+     expect(summary).toMatchObject({
+-      schemaVersion: "1.0.0",
++      schemaVersion: "1.1.0",
+       metric: "governance-cost",
+       definitions: { hardLimitEnforced: false }
+     });
