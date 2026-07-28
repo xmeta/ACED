@@ -1,0 +1,149 @@
+diff --git a/README.md b/README.md
+index 8f8a02f..ffaf877 100644
+--- a/README.md
++++ b/README.md
+@@ -34,7 +34,6 @@ Install dependencies:
+ 
+ ```bash
+ npm install
+-npm install --prefix wjs
+ ```
+ 
+ Check the local installation:
+@@ -60,9 +59,7 @@ npm run scwbs -- registry rebuild --check
+ `contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
+ plus any check / health issues. Each FAIL prints a suggested fix command.
+ 
+-`doctor --fix` only runs safe repairs (for example `npm install` and
+-`npm install --prefix wjs`). It refuses destructive operations; for
+-anything risky, follow the printed suggested fix command instead.
++`doctor --fix` only runs safe repairs (for example `npm install`). It refuses destructive operations; for anything risky, follow the printed suggested fix command instead.
+ 
+ Run `doctor` before `check` whenever setup may be incomplete so failures
+ are diagnosed explicitly instead of surfacing as opaque errors.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml b/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+new file mode 100644
+index 0000000..8d246cf
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+@@ -0,0 +1,35 @@
++id: SCWBS-DRAFT-MRAWFMMQ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRAWFMMQ
++branchName: task/SCWBS-DRAFT-MRAWFMMQ-adopt-npm-workspaces-for-wjs-to-fix-issue-97
++allowedPaths:
++  - package.json
++  - src/commands/doctor.ts
++  - README.md
++  - docs/scwbs/getting-started.md
++  - tests/integration/misc.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRAWFMMQ.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRAWFMMQ.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Adopt npm workspaces for wjs to fix ISSUE #97'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 5857ad8..32b8abd 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -39,3 +39,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRAWFMMQ
++    path: contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
++    branchName: task/SCWBS-DRAFT-MRAWFMMQ-adopt-npm-workspaces-for-wjs-to-fix-issue-97
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/package.json b/package.json
+index ace33df..93dc265 100644
+--- a/package.json
++++ b/package.json
+@@ -3,6 +3,7 @@
+   "version": "0.1.0",
+   "description": "CLI for SC-WBS Development with WBS-JSON integration.",
+   "private": true,
++  "workspaces": ["wjs"],
+   "type": "module",
+   "bin": {
+     "scwbs": "./dist/cli.js"
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index bc74f09..5a9bcc4 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -28,8 +28,8 @@ export type DoctorFixStep = {
+ 
+ const FIX_RECIPES: Record<string, DoctorFixStep> = {
+   "root.node_modules": { command: "npm", args: ["install"], cwd: "." },
+-  "wjs.node_modules": { command: "npm", args: ["install", "--prefix", "wjs"], cwd: "." },
+-  "wjs.esbuild": { command: "npm", args: ["install", "--prefix", "wjs"], cwd: "." }
++  "wjs.node_modules": { command: "npm", args: ["install"], cwd: "." },
++  "wjs.esbuild": { command: "npm", args: ["install"], cwd: "." }
+ };
+ 
+ function runShellVersion(command: string, args: string[]): string {
+@@ -83,21 +83,24 @@ export function collectEnvironmentDiagnostics(root: string): DoctorDiagnostic[]
+   });
+ 
+   const wjsNm = resolveFrom(root, "wjs/node_modules");
++  const rootEsbuild = resolveFrom(root, "node_modules/@esbuild");
++  const wjsDepsOk = existsSync(wjsNm) || existsSync(rootEsbuild);
+   diagnostics.push({
+     id: "wjs.node_modules",
+     label: "wjs dependencies installed",
+-    status: existsSync(wjsNm) ? "pass" : "fail",
+-    message: existsSync(wjsNm) ? "wjs/node_modules present" : "wjs/node_modules is missing",
+-    fix: "Run: npm install --prefix wjs"
++    status: wjsDepsOk ? "pass" : "fail",
++    message: wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
++    fix: "Run: npm install"
+   });
+ 
+   const esbuildPkg = resolveFrom(root, "wjs/node_modules/@esbuild");
++  const esbuildOk = existsSync(esbuildPkg) || existsSync(rootEsbuild);
+   diagnostics.push({
+     id: "wjs.esbuild",
+     label: "wjs esbuild resolved",
+-    status: existsSync(esbuildPkg) ? "pass" : "fail",
+-    message: existsSync(esbuildPkg) ? "@esbuild present" : "@esbuild missing under wjs/node_modules",
+-    fix: "Run: npm install --prefix wjs"
++    status: esbuildOk ? "pass" : "fail",
++    message: esbuildOk ? "esbuild present" : "esbuild missing",
++    fix: "Run: npm install"
+   });
+ 
+   const registryPath = resolveFrom(root, "contracts/registry.yaml");
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 97ab1af..b39caa3 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -217,7 +217,7 @@ describe("misc", () => {
+     writeText(root, "node_modules/.keep", "");
+     const report = buildDoctorReport(root);
+     expect(report).toContain("[FAIL] wjs dependencies installed");
+-    expect(report).toContain("Fix: Run: npm install --prefix wjs");
++    expect(report).toContain("Fix: Run: npm install");
+   });
+ 
+   test("doctor --fix runs safe recipes and refuses destructive repairs", () => {
