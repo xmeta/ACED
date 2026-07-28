@@ -1,0 +1,76 @@
+diff --git a/.gitattributes b/.gitattributes
+index fc9e758..d813ea9 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -1,5 +1,6 @@
+ *.cjs text eol=lf
+ *.js text eol=lf
++*.mjs text eol=lf
+ *.json text eol=lf
+ *.md text eol=lf
+ *.ts text eol=lf
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml b/contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
+new file mode 100644
+index 0000000..a2cc518
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
+@@ -0,0 +1,45 @@
++id: SCWBS-DRAFT-MRQQ8J7W
++type: task-contract
++wbsNodeId: wbs-less
++featureId: F-MRQQ8J7W
++branchName: task/SCWBS-DRAFT-MRQQ8J7W-root-mjs-lf-checkout
++allowedPaths:
++  - .gitattributes
++  - contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - root .mjs attribute behavior cannot be verified
++  - submodule change is required
++  - scope expansion is required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Complete Root .mjs の LF checkout を固定
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRQQ8J7W.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRQQ8J7W.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRQQ8J7W.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRQQ8J7W.yaml
++contractLock:
++  lockVersion: "2"
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: wbs-less
++  createdAt: "2026-07-18T18:56:45.739Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8a7f8e9..b33a860 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -285,3 +285,9 @@ tasks:
+     wbsNodeId: wbs-less
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRQQ8J7W
++    path: contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
++    branchName: task/SCWBS-DRAFT-MRQQ8J7W-root-mjs-lf-checkout
++    wbsNodeId: wbs-less
++    status: planned
++    dependsOn: []
