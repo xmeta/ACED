@@ -1,0 +1,1179 @@
+diff --git a/README.md b/README.md
+index 16dfab7..63ed433 100644
+--- a/README.md
++++ b/README.md
+@@ -47,6 +47,7 @@ Check the local installation:
+ ```bash
+ npm run scwbs -- doctor
+ npm run scwbs -- check
++npm run scwbs -- docs check
+ ```
+ 
+ ## 3. Doctor And Check
+@@ -73,6 +74,11 @@ plus any check / health issues. Each FAIL prints a suggested fix command.
+ Run `doctor` before `check` whenever setup may be incomplete so failures
+ are diagnosed explicitly instead of surfacing as opaque errors.
+ 
++`docs check` validates `docs/document-lifecycle.json`, including document-set
++status, entrypoints, normative ownership, successor links, and compatibility
++with the current CLI version. Its `--json` output is suitable for CI tooling;
++the same errors are included in the aggregate `scwbs check`.
++
+ `status` keeps WBS lifecycle counts separate from completion trust. A completed
+ or archived Task is only `verified` when its required checks, Evidence subject,
+ and any Human Approval scope remain verifiable; `--strict` returns a non-zero
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index f005cdc..572c753 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -32,6 +32,7 @@ rules:
+       - src/commands/ci-plan.ts
+       - src/commands/completion.ts
+       - src/commands/doctor.ts
++      - src/commands/docs-check.ts
+       - src/commands/evidence-annotate.ts
+       - src/commands/evidence-collect.ts
+       - src/commands/finish.ts
+@@ -68,6 +69,7 @@ rules:
+       - src/core/check-receipt.ts
+       - src/core/check-coverage.ts
+       - src/core/code-context.ts
++      - src/core/document-lifecycle.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
+       - src/core/finish-lifecycle.ts
+diff --git a/contracts/specs/SPEC-LITE-MS0XWKPS.yaml b/contracts/specs/SPEC-LITE-MS0XWKPS.yaml
+new file mode 100644
+index 0000000..c14d301
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS0XWKPS.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MS0XWKPS
++type: spec-contract
++featureId: F-MS0XWKPS
++title: "Issue #180: 文書lifecycleを機械可読化しdocs checkで検証する"
++status: approved
++version: 0.1.0
++summary: "set単位manifest、versioned docs check、CI aggregate、AI context filterで正本とproposal境界を検証する"
++approvedBy: user-requested-baseline-continuation
++approvedAt: "2026-07-26T00:00:00+09:00"
++acceptanceCriteria:
++  - document lifecycle manifestはversioned JSON schemaでdocumentId、status、version、appliesToCli、entrypoint、paths、supersedesを検証する
++  - statusはnormative、informative、proposal、deprecated、superseded以外を拒否する
++  - entrypointとstandardEntrypointsの参照切れ、重複documentId、normative正本の競合を検出する
++  - supersedesの未知参照、自己参照、cycleを検出し、deprecatedまたはsuperseded文書から後継へ辿れない状態を拒否する
++  - package.jsonのCLI versionがappliesToCli範囲外なら構造化errorを返す
++  - proposal、deprecated、superseded文書をstandardEntrypointsへ入れた場合は構造化warningを返す
++  - docs check textとscwbs.docs-check.v1 JSONは決定的かつboundedである
++  - manifestが存在するrepositoryではscwbs checkが同じdocs issueをaggregateする
++  - packet --context-jsonはnon-current文書を既定除外し、明示optionでのみ含める
++  - 現行のREADME、docs/README、Core、proposal、detail文書群をset単位で登録し既存導線を壊さない
++  - test、integration、typecheck、buildが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml b/contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
+new file mode 100644
+index 0000000..7ca5ea1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
+@@ -0,0 +1,72 @@
++id: SCWBS-DRAFT-MS0XWKPS
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS0XWKPS
++branchName: codex/SCWBS-DRAFT-MS0XWKPS-issue-180-docs-lifecycle
++allowedPaths:
++  - src/core/document-lifecycle.ts
++  - src/core/code-context.ts
++  - src/commands/docs-check.ts
++  - src/cli.ts
++  - src/commands/check.ts
++  - tests/integration/docs-check.test.ts
++  - tests/integration/ai.test.ts
++  - docs/document-lifecycle.json
++  - docs/scwbs/schemas/document-lifecycle.schema.json
++  - docs/scwbs/schemas/docs-check.schema.json
++  - docs/README.md
++  - README.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - docs/scwbs/cli-reference.md
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - set単位manifestでdocumentId、status、version、appliesToCli、entrypoint、paths、supersedes、standardEntrypointsを機械可読化する
++  - status vocabularyをnormative、informative、proposal、deprecated、supersededへ限定する
++  - docs checkとdocs check --jsonがschema、参照切れ、normative競合、supersedes関係、CLI version適用範囲をfail-closedで検証する
++  - proposal、deprecated、superseded entrypointがstandardEntrypointsへ入った場合はwarningを返す
++  - deprecatedまたはsuperseded文書は後継documentIdへ到達できなければerrorにする
++  - scwbs checkがmanifest存在時にdocs validationをaggregateしCIで回帰を検出する
++  - packet --context-jsonはproposal、deprecated、superseded文書を既定除外し明示overrideだけで含める
++  - 現行docsの人間向けsource-of-truth順序を維持する
++  - schema、text、JSON、help、aggregate check、AI context filteringをintegration testする
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
++  - contracts/specs/SPEC-LITE-MS0XWKPS.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS0XWKPS.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS0XWKPS.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS0XWKPS.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS0XWKPS.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:7d00d77f6aad1dc01c72cee05e7b31690633086b22bcd245fe052ee5b55c389d
++  createdAt: "2026-07-25T22:30:36.926Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 0208625..89168ce 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1245,3 +1245,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-25T22:19:12.987Z"
++  - id: SCWBS-DRAFT-MS0XWKPS
++    path: contracts/tasks/SCWBS-DRAFT-MS0XWKPS.yaml
++    branchName: codex/SCWBS-DRAFT-MS0XWKPS-issue-180-docs-lifecycle
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/README.md b/docs/README.md
+index 6c6cd3d..9abbbb1 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -4,6 +4,8 @@ Status: current navigation entrypoint.
+ 
+ This file is the first stop for choosing which documentation set to read.
+ Do not treat every directory under `docs/` as equally current.
++The machine-readable status and CLI applicability of each set are recorded in
++`document-lifecycle.json` and validated by `npm run scwbs -- docs check`.
+ 
+ ## Source Of Truth Order
+ 
+@@ -26,6 +28,10 @@ If these disagree during implementation, the active Task Contract and
+ | `scwbs/` | legacy reference | Detailed SC-WBS method and CLI references; use when current docs or a task point here. |
+ | `sc-wbs-core-revision/` | proposal | Draft revision notes for future Core changes; not current execution rules. |
+ 
++The lifecycle vocabulary is `normative`, `informative`, `proposal`,
++`deprecated`, and `superseded`. Deprecated and superseded sets must name a
++successor in the manifest. Standard execution entrypoints must remain current.
++
+ ## AI Reading Path
+ 
+ Implementation agents should read only the smallest required context:
+@@ -40,6 +46,11 @@ target files named by the task
+ Use `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` only
+ when the Task Contract does not provide enough context.
+ 
++`packet --context-json` excludes proposal, deprecated, and superseded document
++sets by default. Use `--context-include-noncurrent-docs` only when a task
++explicitly requires historical or proposal context. This navigation filter
++does not change Task Contract edit authority.
++
+ ## Legacy And Proposal Boundaries
+ 
+ `docs/scwbs/` remains useful as a detailed reference, but it can describe
+diff --git a/docs/document-lifecycle.json b/docs/document-lifecycle.json
+new file mode 100644
+index 0000000..32203eb
+--- /dev/null
++++ b/docs/document-lifecycle.json
+@@ -0,0 +1,55 @@
++{
++  "schemaVersion": "1.0.0",
++  "standardEntrypoints": [
++    "README.md",
++    "docs/README.md",
++    "docs/sc-wbs-core/00-index.md"
++  ],
++  "documents": [
++    {
++      "documentId": "repository-overview",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "README.md",
++      "paths": ["README.md"],
++      "supersedes": []
++    },
++    {
++      "documentId": "documentation-map",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/README.md",
++      "paths": ["docs/README.md", "docs/document-lifecycle.json"],
++      "supersedes": []
++    },
++    {
++      "documentId": "sc-wbs-core",
++      "status": "normative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/sc-wbs-core/00-index.md",
++      "paths": ["docs/sc-wbs-core/**"],
++      "supersedes": []
++    },
++    {
++      "documentId": "scwbs-detailed-reference",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/scwbs/README.md",
++      "paths": ["docs/scwbs/**"],
++      "supersedes": []
++    },
++    {
++      "documentId": "sc-wbs-core-revision",
++      "status": "proposal",
++      "version": "0.1.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/sc-wbs-core-revision/00-index.md",
++      "paths": ["docs/sc-wbs-core-revision/**"],
++      "supersedes": []
++    }
++  ]
++}
+diff --git a/docs/scwbs/schemas/docs-check.schema.json b/docs/scwbs/schemas/docs-check.schema.json
+new file mode 100644
+index 0000000..f6d11b5
+--- /dev/null
++++ b/docs/scwbs/schemas/docs-check.schema.json
+@@ -0,0 +1,48 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/docs-check.schema.json",
++  "title": "SC-WBS docs check report",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "manifestPath", "cliVersion", "summary", "issues"],
++  "properties": {
++    "version": { "const": "scwbs.docs-check.v1" },
++    "status": { "enum": ["pass", "warn", "fail"] },
++    "manifestPath": { "const": "docs/document-lifecycle.json" },
++    "cliVersion": {
++      "oneOf": [
++        { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
++        { "type": "null" }
++      ]
++    },
++    "summary": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["documents", "normative", "informative", "proposal", "deprecated", "superseded", "errors", "warnings"],
++      "properties": {
++        "documents": { "type": "integer", "minimum": 0 },
++        "normative": { "type": "integer", "minimum": 0 },
++        "informative": { "type": "integer", "minimum": 0 },
++        "proposal": { "type": "integer", "minimum": 0 },
++        "deprecated": { "type": "integer", "minimum": 0 },
++        "superseded": { "type": "integer", "minimum": 0 },
++        "errors": { "type": "integer", "minimum": 0 },
++        "warnings": { "type": "integer", "minimum": 0 }
++      }
++    },
++    "issues": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["severity", "code", "message"],
++        "properties": {
++          "severity": { "enum": ["error", "warn"] },
++          "code": { "type": "string", "minLength": 1 },
++          "message": { "type": "string", "minLength": 1 },
++          "fixCommand": { "type": "string", "minLength": 1 }
++        }
++      }
++    }
++  }
++}
+diff --git a/docs/scwbs/schemas/document-lifecycle.schema.json b/docs/scwbs/schemas/document-lifecycle.schema.json
+new file mode 100644
+index 0000000..ab8b92b
+--- /dev/null
++++ b/docs/scwbs/schemas/document-lifecycle.schema.json
+@@ -0,0 +1,55 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/document-lifecycle.schema.json",
++  "title": "SC-WBS document lifecycle manifest",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "standardEntrypoints", "documents"],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "standardEntrypoints": {
++      "type": "array",
++      "minItems": 1,
++      "uniqueItems": true,
++      "items": { "$ref": "#/$defs/repositoryPath" }
++    },
++    "documents": {
++      "type": "array",
++      "minItems": 1,
++      "items": { "$ref": "#/$defs/documentSet" }
++    }
++  },
++  "$defs": {
++    "repositoryPath": {
++      "type": "string",
++      "minLength": 1,
++      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
++    },
++    "documentSet": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["documentId", "status", "version", "appliesToCli", "entrypoint", "paths", "supersedes"],
++      "properties": {
++        "documentId": { "type": "string", "minLength": 1 },
++        "status": { "enum": ["normative", "informative", "proposal", "deprecated", "superseded"] },
++        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
++        "appliesToCli": {
++          "type": "string",
++          "pattern": "^(?:(?:>=|<=|>|<|=)?\\d+\\.\\d+\\.\\d+)(?:\\s+(?:>=|<=|>|<|=)?\\d+\\.\\d+\\.\\d+)*$"
++        },
++        "entrypoint": { "$ref": "#/$defs/repositoryPath" },
++        "paths": {
++          "type": "array",
++          "minItems": 1,
++          "uniqueItems": true,
++          "items": { "$ref": "#/$defs/repositoryPath" }
++        },
++        "supersedes": {
++          "type": "array",
++          "uniqueItems": true,
++          "items": { "type": "string", "minLength": 1 }
++        }
++      }
++    }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 01d9e6e..0f5fe45 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -8,6 +8,7 @@ import { runAiRun } from "./commands/ai-run.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+ import { runApprovalDelegationPrepare } from "./commands/approval-delegation.js";
+ import { runCheck } from "./commands/check.js";
++import { runDocsCheck } from "./commands/docs-check.js";
+ import { runCheckDiff } from "./commands/check-diff.js";
+ import { runCiPlan } from "./commands/ci-plan.js";
+ import { runChecksRun } from "./commands/checks-run.js";
+@@ -108,6 +109,13 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json", "output as JSON")
+     .action((opts) => { exitCode = runCheck(root, { json: opts.json ?? false }); });
+ 
++  const docs = program.command("docs").description("Validate documentation lifecycle metadata");
++  docs
++    .command("check")
++    .description("Check documentation status, ownership, successors, and CLI applicability")
++    .option("--json", "output a versioned JSON report")
++    .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
++
+   const ci = program.command("ci");
+   ci
+     .command("plan")
+@@ -248,6 +256,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--context-json", "output a source-free read-only code context manifest")
+     .option("--context-max-files <n>", "maximum selected context files", parseInt)
+     .option("--context-max-bytes <n>", "maximum selected context bytes", parseInt)
++    .option("--context-include-noncurrent-docs", "include proposal, deprecated, and superseded docs")
+     .option("--relation-depth <n>", "relation depth", parseInt)
+     .action((opts) => {
+       const taskId = opts.task;
+@@ -259,7 +268,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       if (opts.contextJson) {
+         exitCode = runCodeContextManifest(root, taskId, {
+           maxFiles: opts.contextMaxFiles,
+-          maxBytes: opts.contextMaxBytes
++          maxBytes: opts.contextMaxBytes,
++          includeNonCurrentDocs: opts.contextIncludeNoncurrentDocs ?? false
+         });
+       } else if (opts.full || opts.deep) {
+         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 1, "default");
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index cb89206..fe1ea65 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -12,6 +12,7 @@ import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract
+ import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
++import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
+ 
+ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
+   if (!evidence) return [];
+@@ -267,6 +268,9 @@ function validateCompletionTaskIds(root: string): Issue[] {
+ 
+ export function collectCheckIssues(root: string): Issue[] {
+   const issues: Issue[] = [];
++  if (existsSync(resolveFrom(root, documentLifecyclePath))) {
++    issues.push(...collectDocumentLifecycleIssues(root, false).issues);
++  }
+   const profile: Profile = readProfile(root);
+   const coverage = readCheckCoveragePolicy(root);
+   issues.push(...coverage.issues);
+diff --git a/src/commands/docs-check.ts b/src/commands/docs-check.ts
+new file mode 100644
+index 0000000..f4b3523
+--- /dev/null
++++ b/src/commands/docs-check.ts
+@@ -0,0 +1,44 @@
++import { collectDocumentLifecycleIssues, documentStatuses, documentLifecyclePath } from "../core/document-lifecycle.js";
++import { hasErrors, printIssues } from "../core/report.js";
++
++export type DocsCheckOptions = {
++  json?: boolean;
++};
++
++export function buildDocsCheckReport(root: string) {
++  const result = collectDocumentLifecycleIssues(root, true);
++  const counts = Object.fromEntries(documentStatuses.map((status) => [
++    status,
++    result.manifest?.documents.filter((item) => item.status === status).length ?? 0
++  ])) as Record<typeof documentStatuses[number], number>;
++  const errors = result.issues.filter((item) => item.severity === "error").length;
++  const warnings = result.issues.length - errors;
++  return {
++    version: "scwbs.docs-check.v1",
++    status: errors > 0 ? "fail" as const : warnings > 0 ? "warn" as const : "pass" as const,
++    manifestPath: documentLifecyclePath,
++    cliVersion: result.cliVersion ?? null,
++    summary: {
++      documents: result.manifest?.documents.length ?? 0,
++      ...counts,
++      errors,
++      warnings
++    },
++    issues: result.issues
++  };
++}
++
++export function runDocsCheck(root: string, options: DocsCheckOptions = {}): number {
++  const report = buildDocsCheckReport(root);
++  if (options.json) {
++    console.log(JSON.stringify(report, null, 2));
++  } else if (report.issues.length === 0) {
++    console.log(`PASS docs check (${report.summary.documents} document sets)`);
++  } else {
++    printIssues(report.issues);
++    if (!hasErrors(report.issues)) {
++      console.log(`PASS docs check with ${report.summary.warnings} warning(s)`);
++    }
++  }
++  return report.status === "fail" ? 1 : 0;
++}
+diff --git a/src/core/code-context.ts b/src/core/code-context.ts
+index bbd24d0..6de3ef2 100644
+--- a/src/core/code-context.ts
++++ b/src/core/code-context.ts
+@@ -6,6 +6,12 @@ import { matchesAny } from "./glob.js";
+ import { gitObject, headCommit, trackedTextFiles } from "./git.js";
+ import { fileSha256 } from "./hash.js";
+ import { taskPath } from "./paths.js";
++import {
++  documentLifecyclePath,
++  documentStatusForPath,
++  isNonCurrentDocumentStatus,
++  parseDocumentLifecycleManifest
++} from "./document-lifecycle.js";
+ 
+ const DEFAULT_MAX_FILES = 40;
+ const DEFAULT_MAX_BYTES = 262_144;
+@@ -15,6 +21,7 @@ const SOURCE_PATTERN = /\.(?:cjs|js|mjs|ts|tsx)$/;
+ export type CodeContextOptions = {
+   maxFiles?: number;
+   maxBytes?: number;
++  includeNonCurrentDocs?: boolean;
+ };
+ 
+ export type CodeContextManifest = ReturnType<typeof buildCodeContextManifest>;
+@@ -167,6 +174,19 @@ export function buildCodeContextManifest(
+     gitObjectCache.set(cacheKey, content);
+     return content;
+   };
++  const lifecycleText = readGitObject(root, "HEAD", documentLifecyclePath);
++  const lifecycleResult = lifecycleText === undefined
++    ? undefined
++    : parseDocumentLifecycleManifest(lifecycleText);
++  if (lifecycleResult && !lifecycleResult.manifest) {
++    throw new Error(lifecycleResult.issues.map((issue) => issue.message).join("\n"));
++  }
++  const lifecycleManifest = lifecycleResult?.manifest;
++  const nonCurrentStatus = (file: string) => {
++    if (options.includeNonCurrentDocs || !lifecycleManifest) return undefined;
++    const status = documentStatusForPath(lifecycleManifest, file);
++    return isNonCurrentDocumentStatus(status) ? status : undefined;
++  };
+   const contractPath = taskPath(task.id);
+   const mustRead = new Map<string, ContextEntry>();
+   const candidateReasons = new Map<string, string[]>();
+@@ -190,6 +210,16 @@ export function buildCodeContextManifest(
+       widening.push({ code: "missing-seed", path: seed, detail: "exact allowedPath does not exist at HEAD" });
+       continue;
+     }
++    const status = nonCurrentStatus(seed);
++    if (status) {
++      excluded.push({ path: seed, reasons: [`document-status-${status}`], editable: false });
++      widening.push({
++        code: "non-current-document",
++        path: seed,
++        detail: `${status} document excluded; use --context-include-noncurrent-docs to include it`
++      });
++      continue;
++    }
+     const protectedPath = matchesAny(seed, task.forbiddenPaths) || matchesAny(seed, task.humanGateRequiredPaths);
+     if (protectedPath) {
+       excluded.push({ path: seed, reasons: ["protected-path-not-promoted"], editable: false });
+@@ -259,6 +289,20 @@ export function buildCodeContextManifest(
+       if (current) current.reasons = [...new Set([...current.reasons, ...reasons])].sort();
+       continue;
+     }
++    const status = nonCurrentStatus(candidatePath);
++    if (status) {
++      excluded.push({
++        path: candidatePath,
++        reasons: [`document-status-${status}`, ...new Set(reasons)].sort(),
++        editable: false
++      });
++      widening.push({
++        code: "non-current-document",
++        path: candidatePath,
++        detail: `${status} document excluded; use --context-include-noncurrent-docs to include it`
++      });
++      continue;
++    }
+     if (matchesAny(candidatePath, task.forbiddenPaths) || matchesAny(candidatePath, task.humanGateRequiredPaths)) {
+       excluded.push({ path: candidatePath, reasons: ["protected-path-not-promoted", ...new Set(reasons)].sort(), editable: false });
+       widening.push({ code: "protected-candidate", path: candidatePath, detail: "forbidden or Human Gate path is not promoted" });
+diff --git a/src/core/document-lifecycle.ts b/src/core/document-lifecycle.ts
+new file mode 100644
+index 0000000..e95afad
+--- /dev/null
++++ b/src/core/document-lifecycle.ts
+@@ -0,0 +1,325 @@
++import { existsSync, readFileSync } from "node:fs";
++import { matchesAny } from "./glob.js";
++import { resolveFrom } from "./paths.js";
++import type { Issue } from "./types.js";
++
++export const documentLifecyclePath = "docs/document-lifecycle.json";
++export const documentStatuses = ["normative", "informative", "proposal", "deprecated", "superseded"] as const;
++
++export type DocumentStatus = typeof documentStatuses[number];
++
++export type DocumentSet = {
++  documentId: string;
++  status: DocumentStatus;
++  version: string;
++  appliesToCli: string;
++  entrypoint: string;
++  paths: string[];
++  supersedes: string[];
++};
++
++export type DocumentLifecycleManifest = {
++  schemaVersion: "1.0.0";
++  standardEntrypoints: string[];
++  documents: DocumentSet[];
++};
++
++export type DocumentLifecycleResult = {
++  manifest?: DocumentLifecycleManifest;
++  cliVersion?: string;
++  issues: Issue[];
++};
++
++const NON_CURRENT = new Set<DocumentStatus>(["proposal", "deprecated", "superseded"]);
++const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
++const RANGE_CLAUSE = /^(>=|<=|>|<|=)?(\d+\.\d+\.\d+)$/;
++
++function record(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function stringArray(value: unknown): value is string[] {
++  return Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0);
++}
++
++function safeRepositoryPath(value: string): boolean {
++  const normalized = value.replace(/\\/g, "/");
++  const segments = normalized.split("/");
++  return normalized.length > 0
++    && !normalized.startsWith("/")
++    && !/^[A-Za-z]:/.test(normalized)
++    && !segments.some((segment) => segment === "." || segment === "..");
++}
++
++function error(code: string, message: string): Issue {
++  return {
++    severity: "error",
++    code,
++    message,
++    fixCommand: `Fix ${documentLifecyclePath}, then run: npm run scwbs -- docs check`
++  };
++}
++
++function warning(code: string, message: string): Issue {
++  return { severity: "warn", code, message };
++}
++
++function parseVersion(value: string): [number, number, number] | undefined {
++  const match = value.match(SEMVER);
++  if (!match) return undefined;
++  return [Number(match[1]), Number(match[2]), Number(match[3])];
++}
++
++function compareVersion(left: [number, number, number], right: [number, number, number]): number {
++  for (let index = 0; index < left.length; index += 1) {
++    if (left[index] !== right[index]) return left[index] - right[index];
++  }
++  return 0;
++}
++
++export function versionSatisfiesRange(version: string, range: string): boolean {
++  const parsedVersion = parseVersion(version);
++  if (!parsedVersion) return false;
++  const clauses = range.trim().split(/\s+/).filter(Boolean);
++  if (clauses.length === 0) return false;
++  return clauses.every((clause) => {
++    const match = clause.match(RANGE_CLAUSE);
++    if (!match) return false;
++    const target = parseVersion(match[2]);
++    if (!target) return false;
++    const comparison = compareVersion(parsedVersion, target);
++    switch (match[1] ?? "=") {
++      case ">=": return comparison >= 0;
++      case "<=": return comparison <= 0;
++      case ">": return comparison > 0;
++      case "<": return comparison < 0;
++      default: return comparison === 0;
++    }
++  });
++}
++
++export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleResult {
++  let raw: unknown;
++  try {
++    raw = JSON.parse(text);
++  } catch (parseError) {
++    return { issues: [error("docs.manifest.parse", parseError instanceof Error ? parseError.message : String(parseError))] };
++  }
++  if (!record(raw)) return { issues: [error("docs.manifest.shape", "document lifecycle manifest must be an object")] };
++
++  const issues: Issue[] = [];
++  if (raw.schemaVersion !== "1.0.0") {
++    issues.push(error("docs.manifest.schemaVersion", 'schemaVersion must be "1.0.0"'));
++  }
++  if (!stringArray(raw.standardEntrypoints) || raw.standardEntrypoints.length === 0) {
++    issues.push(error("docs.manifest.standardEntrypoints", "standardEntrypoints must be a non-empty string array"));
++  }
++  if (!Array.isArray(raw.documents) || raw.documents.length === 0) {
++    issues.push(error("docs.manifest.documents", "documents must be a non-empty array"));
++    return { issues };
++  }
++
++  const documents: DocumentSet[] = [];
++  for (const [index, value] of raw.documents.entries()) {
++    if (!record(value)) {
++      issues.push(error("docs.document.shape", `documents[${index}] must be an object`));
++      continue;
++    }
++    const prefix = `documents[${index}]`;
++    const documentId = typeof value.documentId === "string" ? value.documentId : "";
++    const status = typeof value.status === "string" ? value.status : "";
++    const version = typeof value.version === "string" ? value.version : "";
++    const appliesToCli = typeof value.appliesToCli === "string" ? value.appliesToCli : "";
++    const entrypoint = typeof value.entrypoint === "string" ? value.entrypoint : "";
++    const paths = stringArray(value.paths) ? value.paths : [];
++    const validSupersedes = Array.isArray(value.supersedes)
++      && value.supersedes.every((item) => typeof item === "string" && item.length > 0);
++    const supersedes = validSupersedes ? value.supersedes as string[] : [];
++
++    if (!documentId) issues.push(error("docs.document.documentId", `${prefix}.documentId must be a non-empty string`));
++    if (!documentStatuses.includes(status as DocumentStatus)) {
++      issues.push(error("docs.document.status", `${prefix}.status must be one of ${documentStatuses.join(", ")}`));
++    }
++    if (!parseVersion(version)) issues.push(error("docs.document.version", `${prefix}.version must be semantic version x.y.z`));
++    if (!appliesToCli || appliesToCli.split(/\s+/).some((clause) => !RANGE_CLAUSE.test(clause))) {
++      issues.push(error("docs.document.appliesToCli", `${prefix}.appliesToCli must be a supported semantic version range`));
++    }
++    if (!entrypoint || !safeRepositoryPath(entrypoint)) {
++      issues.push(error("docs.document.entrypoint", `${prefix}.entrypoint must be a safe repository-relative path`));
++    }
++    if (paths.length === 0 || paths.some((item) => !safeRepositoryPath(item))) {
++      issues.push(error("docs.document.paths", `${prefix}.paths must be a non-empty array of safe repository-relative paths`));
++    }
++    if (!validSupersedes) {
++      issues.push(error("docs.document.supersedes", `${prefix}.supersedes must be a string array`));
++    }
++
++    if (documentId && documentStatuses.includes(status as DocumentStatus) && parseVersion(version) && appliesToCli && entrypoint && paths.length > 0) {
++      documents.push({
++        documentId,
++        status: status as DocumentStatus,
++        version,
++        appliesToCli,
++        entrypoint,
++        paths,
++        supersedes
++      });
++    }
++  }
++
++  if (issues.some((item) => item.severity === "error")) return { issues };
++  return {
++    manifest: {
++      schemaVersion: "1.0.0",
++      standardEntrypoints: raw.standardEntrypoints as string[],
++      documents
++    },
++    issues
++  };
++}
++
++function validateSuccessorGraph(manifest: DocumentLifecycleManifest): Issue[] {
++  const issues: Issue[] = [];
++  const ids = new Set(manifest.documents.map((item) => item.documentId));
++  const successors = new Map<string, string[]>();
++  const graph = new Map<string, string[]>();
++  for (const document of manifest.documents) {
++    graph.set(document.documentId, [...document.supersedes]);
++    for (const predecessor of document.supersedes) {
++      if (!ids.has(predecessor)) {
++        issues.push(error("docs.supersedes.missing", `${document.documentId} supersedes unknown documentId ${predecessor}`));
++        continue;
++      }
++      if (predecessor === document.documentId) {
++        issues.push(error("docs.supersedes.self", `${document.documentId} cannot supersede itself`));
++      }
++      successors.set(predecessor, [...(successors.get(predecessor) ?? []), document.documentId]);
++    }
++  }
++
++  const visiting = new Set<string>();
++  const visited = new Set<string>();
++  const visit = (id: string): void => {
++    if (visiting.has(id)) {
++      issues.push(error("docs.supersedes.cycle", `supersedes cycle includes ${id}`));
++      return;
++    }
++    if (visited.has(id)) return;
++    visiting.add(id);
++    for (const predecessor of graph.get(id) ?? []) visit(predecessor);
++    visiting.delete(id);
++    visited.add(id);
++  };
++  for (const id of ids) visit(id);
++
++  for (const document of manifest.documents) {
++    if ((document.status === "deprecated" || document.status === "superseded")
++      && (successors.get(document.documentId)?.length ?? 0) === 0) {
++      issues.push(error(
++        "docs.successor.missing",
++        `${document.documentId} is ${document.status} but no successor document supersedes it`
++      ));
++    }
++  }
++  return issues;
++}
++
++function normativeConflict(left: DocumentSet, right: DocumentSet): boolean {
++  if (left.entrypoint === right.entrypoint) return true;
++  if (left.paths.some((pattern) => right.paths.includes(pattern))) return true;
++  return matchesAny(left.entrypoint, right.paths) || matchesAny(right.entrypoint, left.paths);
++}
++
++export function collectDocumentLifecycleIssues(root: string, required = true): DocumentLifecycleResult {
++  const absolutePath = resolveFrom(root, documentLifecyclePath);
++  if (!existsSync(absolutePath)) {
++    return {
++      issues: required
++        ? [error("docs.manifest.missing", `${documentLifecyclePath} does not exist`)]
++        : []
++    };
++  }
++
++  const parsed = parseDocumentLifecycleManifest(readFileSync(absolutePath, "utf8"));
++  if (!parsed.manifest) return parsed;
++  const manifest = parsed.manifest;
++  const issues = [...parsed.issues];
++
++  let cliVersion: string | undefined;
++  try {
++    const packageJson = JSON.parse(readFileSync(resolveFrom(root, "package.json"), "utf8")) as { version?: unknown };
++    if (typeof packageJson.version === "string" && parseVersion(packageJson.version)) {
++      cliVersion = packageJson.version;
++    } else {
++      issues.push(error("docs.cliVersion.invalid", "package.json version is missing or invalid"));
++    }
++  } catch (readError) {
++    issues.push(error("docs.cliVersion.read", readError instanceof Error ? readError.message : String(readError)));
++  }
++
++  const byId = new Map<string, DocumentSet>();
++  for (const document of manifest.documents) {
++    if (byId.has(document.documentId)) {
++      issues.push(error("docs.documentId.duplicate", `duplicate documentId ${document.documentId}`));
++    } else {
++      byId.set(document.documentId, document);
++    }
++    if (!existsSync(resolveFrom(root, document.entrypoint))) {
++      issues.push(error("docs.entrypoint.missing", `${document.documentId} entrypoint does not exist: ${document.entrypoint}`));
++    }
++    if (!matchesAny(document.entrypoint, document.paths)) {
++      issues.push(error("docs.entrypoint.scope", `${document.documentId} entrypoint is not covered by its paths: ${document.entrypoint}`));
++    }
++    if (cliVersion && !versionSatisfiesRange(cliVersion, document.appliesToCli)) {
++      issues.push(error(
++        "docs.appliesToCli.mismatch",
++        `${document.documentId} appliesToCli ${document.appliesToCli} does not include CLI ${cliVersion}`
++      ));
++    }
++  }
++
++  const normative = manifest.documents.filter((item) => item.status === "normative");
++  for (let leftIndex = 0; leftIndex < normative.length; leftIndex += 1) {
++    for (let rightIndex = leftIndex + 1; rightIndex < normative.length; rightIndex += 1) {
++      const left = normative[leftIndex];
++      const right = normative[rightIndex];
++      if (normativeConflict(left, right)) {
++        issues.push(error("docs.normative.conflict", `${left.documentId} and ${right.documentId} claim overlapping normative scope`));
++      }
++    }
++  }
++
++  const entrypointOwner = new Map(manifest.documents.map((item) => [item.entrypoint, item]));
++  for (const entrypoint of manifest.standardEntrypoints) {
++    if (!existsSync(resolveFrom(root, entrypoint))) {
++      issues.push(error("docs.standardEntrypoint.missing", `standard entrypoint does not exist: ${entrypoint}`));
++      continue;
++    }
++    const owner = entrypointOwner.get(entrypoint);
++    if (!owner) {
++      issues.push(error("docs.standardEntrypoint.unregistered", `standard entrypoint is not a document entrypoint: ${entrypoint}`));
++      continue;
++    }
++    if (NON_CURRENT.has(owner.status)) {
++      issues.push(warning(
++        "docs.standardEntrypoint.nonCurrent",
++        `${entrypoint} is ${owner.status} and should not be in the standard execution path`
++      ));
++    }
++  }
++  issues.push(...validateSuccessorGraph(manifest));
++
++  return { manifest, cliVersion, issues };
++}
++
++export function documentStatusForPath(manifest: DocumentLifecycleManifest, file: string): DocumentStatus | undefined {
++  const priority: DocumentStatus[] = ["superseded", "deprecated", "proposal", "informative", "normative"];
++  const matches = manifest.documents
++    .filter((document) => matchesAny(file.replace(/\\/g, "/"), document.paths))
++    .map((document) => document.status);
++  return priority.find((status) => matches.includes(status));
++}
++
++export function isNonCurrentDocumentStatus(status: DocumentStatus | undefined): boolean {
++  return status !== undefined && NON_CURRENT.has(status);
++}
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 35839a9..32fcafd 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -579,6 +579,77 @@ describe("AI commands", () => {
+     expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
+   });
+ 
++  test("context manifest excludes noncurrent documents by default and supports an explicit override", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "docs/current/index.md", "# Current\n");
++    writeText(root, "docs/proposal/index.md", "# Proposal\n");
++    writeJson(root, "package.json", { version: "0.1.0" });
++    writeJson(root, "docs/document-lifecycle.json", {
++      schemaVersion: "1.0.0",
++      standardEntrypoints: ["docs/current/index.md"],
++      documents: [
++        {
++          documentId: "current",
++          status: "normative",
++          version: "1.0.0",
++          appliesToCli: ">=0.1.0 <0.2.0",
++          entrypoint: "docs/current/index.md",
++          paths: ["docs/current/**"],
++          supersedes: []
++        },
++        {
++          documentId: "proposal",
++          status: "proposal",
++          version: "0.1.0",
++          appliesToCli: ">=0.1.0 <0.2.0",
++          entrypoint: "docs/proposal/index.md",
++          paths: ["docs/proposal/**"],
++          supersedes: []
++        }
++      ]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["docs/current/index.md", "docs/proposal/index.md"],
++      forbiddenPaths: [],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "document context fixture"], { cwd: root, stdio: "ignore" });
++
++    const filtered = buildCodeContextManifest(root, "WBS-001-004");
++    expect(filtered.candidates.map((item) => item.path)).toEqual(["docs/current/index.md"]);
++    expect(filtered.excluded.find((item) => item.path === "docs/proposal/index.md")?.reasons)
++      .toContain("document-status-proposal");
++    expect(filtered.completeness.reasons).toContain("non-current-document");
++
++    const included = buildCodeContextManifest(root, "WBS-001-004", { includeNonCurrentDocs: true });
++    expect(included.candidates.map((item) => item.path)).toEqual([
++      "docs/current/index.md",
++      "docs/proposal/index.md"
++    ]);
++
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(main([
++        "packet",
++        "--task",
++        "WBS-001-004",
++        "--context-json",
++        "--context-include-noncurrent-docs"
++      ], root)).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(JSON.parse(output.join("")).candidates.map((item: { path: string }) => item.path))
++      .toContain("docs/proposal/index.md");
++  });
++
+   test("packet --context-json manifest conforms to the versioned JSON schema", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/docs-check.test.ts b/tests/integration/docs-check.test.ts
+new file mode 100644
+index 0000000..48862dc
+--- /dev/null
++++ b/tests/integration/docs-check.test.ts
+@@ -0,0 +1,186 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test } from "vitest";
++import { buildDocsCheckReport, runDocsCheck } from "../../src/commands/docs-check.js";
++import { collectCheckIssues } from "../../src/commands/check.js";
++import { main } from "../../src/cli.js";
++import { collectDocumentLifecycleIssues } from "../../src/core/document-lifecycle.js";
++import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
++
++type DocumentSetFixture = {
++  documentId: string;
++  status: string;
++  version: string;
++  appliesToCli: string;
++  entrypoint: string;
++  paths: string[];
++  supersedes: string[];
++};
++
++function documentSet(overrides: Partial<DocumentSetFixture> = {}): DocumentSetFixture {
++  return {
++    documentId: "current",
++    status: "normative",
++    version: "1.0.0",
++    appliesToCli: ">=0.1.0 <0.2.0",
++    entrypoint: "docs/current/index.md",
++    paths: ["docs/current/**"],
++    supersedes: [],
++    ...overrides
++  };
++}
++
++function writeFixture(root: string, documents: DocumentSetFixture[], standardEntrypoints = [documents[0].entrypoint]): void {
++  writeJson(root, "package.json", { version: "0.1.0" });
++  for (const document of documents) {
++    writeText(root, document.entrypoint, `# ${document.documentId}\n`);
++  }
++  writeJson(root, "docs/document-lifecycle.json", {
++    schemaVersion: "1.0.0",
++    standardEntrypoints,
++    documents
++  });
++}
++
++describe("docs check", () => {
++  test("validates the lifecycle manifest and emits schema-conforming JSON", () => {
++    const root = makeTempRepo();
++    writeFixture(root, [
++      documentSet(),
++      documentSet({
++        documentId: "proposal",
++        status: "proposal",
++        entrypoint: "docs/proposal/index.md",
++        paths: ["docs/proposal/**"]
++      })
++    ]);
++
++    const report = buildDocsCheckReport(root);
++    expect(report.status).toBe("pass");
++    expect(report.summary).toMatchObject({ documents: 2, normative: 1, proposal: 1, errors: 0 });
++
++    const schema = JSON.parse(readFileSync(
++      path.join(process.cwd(), "docs/scwbs/schemas/docs-check.schema.json"),
++      "utf8"
++    ));
++    const ajv = new Ajv2020({ strict: false });
++    expect(ajv.compile(schema)(report)).toBe(true);
++
++    const manifestSchema = JSON.parse(readFileSync(
++      path.join(process.cwd(), "docs/scwbs/schemas/document-lifecycle.schema.json"),
++      "utf8"
++    ));
++    const manifest = JSON.parse(readFileSync(path.join(root, "docs/document-lifecycle.json"), "utf8"));
++    expect(ajv.compile(manifestSchema)(manifest)).toBe(true);
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runDocsCheck(root)).toBe(0);
++      expect(runDocsCheck(root, { json: true })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(output[0]).toBe("PASS docs check (2 document sets)");
++    expect(JSON.parse(output[1])).toEqual(report);
++  });
++
++  test("fails invalid status, entrypoint scope, CLI range, normative conflict, and successor graph", () => {
++    const root = makeTempRepo();
++    const documents = [
++      documentSet({ documentId: "first", paths: ["docs/shared/**"] }),
++      documentSet({
++        documentId: "second",
++        entrypoint: "docs/second/index.md",
++        paths: ["docs/shared/**"],
++        appliesToCli: ">=9.0.0",
++        supersedes: ["legacy"]
++      }),
++      documentSet({
++        documentId: "legacy",
++        status: "deprecated",
++        entrypoint: "docs/legacy/index.md",
++        paths: ["docs/legacy/**"],
++        supersedes: ["second"]
++      }),
++      documentSet({
++        documentId: "first",
++        status: "informative",
++        entrypoint: "docs/duplicate/index.md",
++        paths: ["docs/duplicate/**"]
++      }),
++      documentSet({
++        documentId: "bad-status",
++        status: "draft",
++        entrypoint: "docs/bad/index.md",
++        paths: ["docs/other/**"]
++      })
++    ];
++    writeFixture(root, documents);
++
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .toContain("docs.document.status");
++
++    writeFixture(
++      root,
++      documents.filter((document) => document.documentId !== "bad-status"),
++      ["docs/current/index.md", "docs/missing.md"]
++    );
++    const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
++    expect(codes).toEqual(expect.arrayContaining([
++      "docs.entrypoint.scope",
++      "docs.appliesToCli.mismatch",
++      "docs.normative.conflict",
++      "docs.supersedes.cycle",
++      "docs.standardEntrypoint.missing",
++      "docs.documentId.duplicate"
++    ]));
++    expect(runDocsCheck(root)).toBe(1);
++  });
++
++  test("warns when a noncurrent document is a standard entrypoint and requires successors", () => {
++    const root = makeTempRepo();
++    writeFixture(root, [
++      documentSet({
++        documentId: "old",
++        status: "superseded",
++        entrypoint: "docs/old/index.md",
++        paths: ["docs/old/**"]
++      })
++    ]);
++
++    const report = buildDocsCheckReport(root);
++    expect(report.status).toBe("fail");
++    expect(report.issues.map((issue) => issue.code)).toEqual(expect.arrayContaining([
++      "docs.standardEntrypoint.nonCurrent",
++      "docs.successor.missing"
++    ]));
++  });
++
++  test("is available in CLI help and aggregate scwbs check", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeFixture(root, [
++      documentSet({ appliesToCli: ">=9.0.0" })
++    ]);
++
++    const issues = collectCheckIssues(root);
++    expect(issues.some((issue) => issue.code === "docs.appliesToCli.mismatch")).toBe(true);
++
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(main(["docs", "check", "--help"], root)).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(output.join("")).toContain("--json");
++    expect(output.join("")).toContain("documentation status");
++  });
++});
