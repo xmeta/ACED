@@ -1,0 +1,1043 @@
+diff --git a/contracts/specs/SPEC-LITE-MRTH8LI4.yaml b/contracts/specs/SPEC-LITE-MRTH8LI4.yaml
+new file mode 100644
+index 0000000..b5d4f5b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRTH8LI4.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MRTH8LI4
++type: spec-contract
++featureId: F-MRTH8LI4
++title: "Issue #221: code-context manifest の versioned JSON schema 化と health WARN 指標公開"
++status: approved
++version: 0.1.0
++summary: "code-context manifest の versioned JSON schema を docs/scwbs/schemas/ に作成し packet --context-json 出力を schema 検証する。あわせて file lines/bytes, import fan-out, context plan bytes, widening を health の WARN 指標として公開し、既存 health JSON 構造の互換性を維持する"
++approvedBy: user-requested-issue-221
++approvedAt: "2026-07-21T00:00:00+09:00"
++acceptanceCriteria:
++  - docs/scwbs/schemas/code-context-manifest.schema.json が packet --context-json の versioned manifest を定義し、integration test が Ajv2020 で manifest を schema 検証して pass する
++  - health が code-context 由来の診断Issue（file lines/bytes・import fan-out・context plan bytes・widening）を WARN severity・codeContext 分類付きで公開し、manifest 生成不可（shallow clone 等）では fail せず明示的に skip する
++  - health 既定出力は bounded（代表件数制限・--verbose で全件）で、version/status/summary の既存構造と exit code の互換性を維持する
++  - 閾値は WARN 診断のみで fail 条件を新設せず、Issue #221 提案の再肥大化検出に必要な指標名と選定規則を docs へ記録する
++  - packet --context-json の決定性（同一HEAD・同一Task Contractで byte-identical）と既存 packet --tiny の互換性を維持する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml b/contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
+new file mode 100644
+index 0000000..62aa554
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
+@@ -0,0 +1,68 @@
++id: SCWBS-DRAFT-MRTH8LI4
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRTH8LI4
++branchName: task/SCWBS-DRAFT-MRTH8LI4-issue-221-code-context-manifest-versioned-json-s
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/specs/SPEC-LITE-MRTH8LI4.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRTH8LI4.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRTH8LI4.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRTH8LI4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRTH8LI4.yaml
++allowedPaths:
++  - src/core/code-context.ts
++  - src/commands/health.ts
++  - src/cli.ts
++  - tests/integration/health.test.ts
++  - tests/integration/ai.test.ts
++  - tests/unit/code-context.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/schemas/code-context-manifest.schema.json
++  - docs/scwbs/cli-reference.md
++  - docs/sc-wbs-core/04-ai-work-packet.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package・lockfile・tsconfig・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
++  - 新規dependency・persistent index・cache・検索DBが必要
++  - allowedPaths外の編集またはcheck-coverage分類をTask authorityへ含められない
++  - hard limit・fail閾値の新設・profile・risk policy・required check削減・Approval境界の変更が必要
++  - health JSONのversion/status/summary構造やpacket --tiny互換性の破壊的変更が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - docs/scwbs/schemas/code-context-manifest.schema.json が packet --context-json の versioned manifest を定義し、integration test が Ajv2020 で manifest を schema 検証して pass する
++  - health が code-context 由来の診断Issue（file lines/bytes・import fan-out・context plan bytes・widening）を WARN severity・codeContext 分類付きで公開し、manifest 生成不可（shallow clone 等）では fail せず明示的に skip する
++  - health 既定出力は bounded（代表件数制限・--verbose で全件）で、version/status/summary の既存構造と exit code の互換性を維持する
++  - 閾値は WARN 診断のみで fail 条件を新設せず、Issue
++  - packet --context-json の決定性（同一HEAD・同一Task Contractで byte-identical）と既存 packet --tiny の互換性を維持する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:16e80f48a745d98bce951c381b1d7826cc6e51162e874c25d918f414b912d446
++  createdAt: "2026-07-20T20:16:40.649Z"
+diff --git a/docs/sc-wbs-core/04-ai-work-packet.md b/docs/sc-wbs-core/04-ai-work-packet.md
+index a59fbf6..6499b6a 100644
+--- a/docs/sc-wbs-core/04-ai-work-packet.md
++++ b/docs/sc-wbs-core/04-ai-work-packet.md
+@@ -127,6 +127,19 @@ manifest v1はTask Contractと現在HEADから毎回再生成し、次をJSONで
+ 
+ 広いglobは全展開しない。dynamic import、re-export、path alias、unresolved import、cycle、budget超過、未分類pathはwidening理由として残す。manifestはナビゲーション情報であり、Task Contract、Approval、Evidence、required checksの代替ではない。
+ 
++versioned JSON schemaは [`docs/scwbs/schemas/code-context-manifest.schema.json`](../../docs/scwbs/schemas/code-context-manifest.schema.json) で定義する。schemaVersionは `1.0.0` で、追加・変更はchangeset経由のschema version bumpで行う。
++
++選定規則は以下の通りである。
++
++1. `mustRead` にTask Contractを常に含める。
++2. `allowedPaths` のexact path（globを含まない）で、HEADに存在し、forbiddenでもHuman Gateでもないものを `candidates` のseedとする。
++3. seedからdirect static relative importを再帰的に追跡し、解決できたものを `candidates` に加える。理由は `direct-static-import:<seed>:<line>` とする。
++4. repository内の全source fileからseedへのreverse importを追跡し、解決できたものを `candidates` に加える。理由は `reverse-importer:<seed>:<line>` とする。
++5. `candidates` の追加は `budget.maxFiles` と `budget.maxBytes` で打ち切り、打ち切られたものを `excluded` に `budget-exceeded` 理由で残す。
++6. broad glob、存在しないexact path、forbidden/Human Gate path、dynamic import、re-export、path alias、未解決import、import cycle、check coverage未分類・未対応は `widening` 診断として残す。
++7. `completeness.status` は `widening` が空なら `complete`、それ以外は `widening-required` とする。
++8. `constraints.sourceContentIncluded`、`grantsEditAuthority`、`permitsRequiredCheckOmission` は manifest v1 では常に `false` とする。
++
+ ## 実装AIに渡す標準プロンプト
+ 
+ ```text
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 6b32e40..7709647 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -26,6 +26,16 @@ npm run scwbs -- status
+ 
+ `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
+ 
++`health` はアクティブな（completed でない）Task Contractの `packet --context-json` manifestをread-onlyで診断し、次のWARN指標を報告する。これらは診断のみでexit codeを変更しない。指標はファイル単位またはwidening reason単位で全アクティブタスクを横断集約し、タスク数の爆発を防ぐ。
++
++- `health.codeContext.fileTooLarge`：context内の単一file（mustRead/candidates）が 500 lines を超える、または 40,960 bytes を超える。一意な file path ごとに 1 issue、message に参照しているアクティブタスク数と代表例を含める。
++- `health.codeContext.importFanOut`：context内の単一fileへのreverse importer数が 8 を超える。一意な file path ごとに 1 issue、message に最大importer数と参照タスク数を含める。
++- `health.codeContext.planBudget`：context plan が `budget.omitted >= 20` の候補を省略している（budget が飽和しスコープ過大）。message に省略件数と `selectedBytes/maxBytes` を含める。
++- `health.codeContext.widening`：`completeness.status` が `widening-required` 。widening reason code ごとに 1 issue、message に該当するアクティブタスク数と代表例を含める。
++- `health.codeContext.skipped`：shallow clone等でgit blobが読めずmanifest生成できない場合、failせずskipを明示する。
++
++これらの指標は既定で既存のhealth出力と同じbounded形式（代表2件、omitted件数）で集約され、`--verbose` で全件表示する。
++
+ ## Governance Cost Metrics
+ 
+ ```bash
+diff --git a/docs/scwbs/schemas/code-context-manifest.schema.json b/docs/scwbs/schemas/code-context-manifest.schema.json
+new file mode 100644
+index 0000000..2f02697
+--- /dev/null
++++ b/docs/scwbs/schemas/code-context-manifest.schema.json
+@@ -0,0 +1,153 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/code-context-manifest.schema.json",
++  "title": "SC-WBS code context manifest",
++  "description": "Read-only derived manifest for packet --context-json (schemaVersion 1.0.0).",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "schemaVersion",
++    "task",
++    "repository",
++    "mustRead",
++    "candidates",
++    "excluded",
++    "widening",
++    "coverage",
++    "budget",
++    "completeness",
++    "constraints"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "task": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "contractPath", "contractHash"],
++      "properties": {
++        "id": { "type": "string", "minLength": 1 },
++        "contractPath": { "type": "string", "minLength": 1 },
++        "contractHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
++      }
++    },
++    "repository": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["head"],
++      "properties": {
++        "head": { "type": "string", "minLength": 1 }
++      }
++    },
++    "mustRead": { "$ref": "#/$defs/contextEntryArray" },
++    "candidates": { "$ref": "#/$defs/contextEntryArray" },
++    "excluded": { "$ref": "#/$defs/excludedEntryArray" },
++    "widening": { "$ref": "#/$defs/wideningDiagnosticArray" },
++    "coverage": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["required", "missing", "unclassified"],
++      "properties": {
++        "required": { "type": "array", "items": { "type": "string" } },
++        "missing": { "type": "array", "items": { "type": "string" } },
++        "unclassified": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "budget": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["maxFiles", "maxBytes", "selectedFiles", "selectedBytes", "omitted"],
++      "properties": {
++        "maxFiles": { "type": "integer", "minimum": 1 },
++        "maxBytes": { "type": "integer", "minimum": 1 },
++        "selectedFiles": { "type": "integer", "minimum": 0 },
++        "selectedBytes": { "type": "integer", "minimum": 0 },
++        "omitted": { "type": "integer", "minimum": 0 }
++      }
++    },
++    "completeness": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["status", "reasons"],
++      "properties": {
++        "status": { "enum": ["complete", "widening-required"] },
++        "reasons": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "constraints": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["sourceContentIncluded", "grantsEditAuthority", "permitsRequiredCheckOmission"],
++      "properties": {
++        "sourceContentIncluded": { "type": "boolean" },
++        "grantsEditAuthority": { "type": "boolean" },
++        "permitsRequiredCheckOmission": { "type": "boolean" }
++      }
++    }
++  },
++  "$defs": {
++    "contextEntryArray": {
++      "type": "array",
++      "items": { "$ref": "#/$defs/contextEntry" }
++    },
++    "contextEntry": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["path", "contentHash", "bytes", "lines", "lineRanges", "reasons", "editable"],
++      "properties": {
++        "path": { "type": "string", "minLength": 1 },
++        "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++        "bytes": { "type": "integer", "minimum": 0 },
++        "lines": { "type": "integer", "minimum": 0 },
++        "lineRanges": {
++          "type": "array",
++          "items": {
++            "type": "object",
++            "additionalProperties": false,
++            "required": ["start", "end"],
++            "properties": {
++              "start": { "type": "integer", "minimum": 1 },
++              "end": { "type": "integer", "minimum": 1 }
++            }
++          }
++        },
++        "reasons": {
++          "type": "array",
++          "items": { "type": "string", "minLength": 1 }
++        },
++        "editable": { "type": "boolean" }
++      }
++    },
++    "excludedEntryArray": {
++      "type": "array",
++      "items": { "$ref": "#/$defs/excludedEntry" }
++    },
++    "excludedEntry": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["path", "reasons", "editable"],
++      "properties": {
++        "path": { "type": "string", "minLength": 1 },
++        "reasons": {
++          "type": "array",
++          "items": { "type": "string", "minLength": 1 }
++        },
++        "editable": { "const": false }
++      }
++    },
++    "wideningDiagnosticArray": {
++      "type": "array",
++      "items": { "$ref": "#/$defs/wideningDiagnostic" }
++    },
++    "wideningDiagnostic": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["code", "path", "detail"],
++      "properties": {
++        "code": { "type": "string", "minLength": 1 },
++        "path": { "type": "string", "minLength": 1 },
++        "line": { "type": "integer", "minimum": 1 },
++        "detail": { "type": "string", "minLength": 1 }
++      }
++    }
++  }
++}
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index b9f9109..880ff75 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,5 +1,5 @@
+ import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository } from "../core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+@@ -7,6 +7,7 @@ import { hasErrors } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
++import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
+ 
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+@@ -350,6 +351,137 @@ function validateRepositoryHealth(root: string): Issue[] {
+   return issues;
+ }
+ 
++const CODE_CONTEXT_FILE_LINES_WARN = 500;
++const CODE_CONTEXT_FILE_BYTES_WARN = 40_960;
++const CODE_CONTEXT_FAN_OUT_WARN = 8;
++const CODE_CONTEXT_PLAN_OMITTED_WARN = 20;
++
++function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefined): Issue[] {
++  const issues: Issue[] = [];
++  if (!wbs) return issues;
++
++  if (isShallowRepository(root)) {
++    return [{
++      severity: "warn",
++      code: "health.codeContext.skipped",
++      message: "codeContext check skipped (shallow repository)"
++    }];
++  }
++
++  const parseCache = new Map<string, ParsedImports>();
++  const gitObjectCache = new Map<string, string | undefined>();
++  const trackedFilesCache = trackedTextFiles(root);
++
++  type FileMetric = { lines: number; bytes: number; tasks: string[] };
++  const fileTooLarge = new Map<string, FileMetric>();
++  const importFanOut = new Map<string, { maxCount: number; tasks: string[] }>();
++  const planBudget = new Map<string, { omitted: number; selectedBytes: number; maxBytes: number }>();
++  const widening = new Map<string, string[]>();
++
++  for (const entry of listTasks(root)) {
++    if (!entry.task) continue;
++    const node = findNode(wbs, entry.task.wbsNodeId);
++    if (!node) continue;
++    if (isDoneNode(node)) continue;
++
++    let manifest;
++    try {
++      manifest = buildCodeContextManifest(root, entry.task.id, {}, { parse: parseCache, gitObject: gitObjectCache, trackedFiles: trackedFilesCache });
++    } catch (error) {
++      const detail = error instanceof Error ? error.message : String(error);
++      issues.push({
++        severity: "warn",
++        code: "health.codeContext.skipped",
++        message: `codeContext check skipped for ${entry.task.id}: ${detail}`
++      });
++      continue;
++    }
++
++    for (const file of [...manifest.mustRead, ...manifest.candidates]) {
++      if (file.lines > CODE_CONTEXT_FILE_LINES_WARN || file.bytes > CODE_CONTEXT_FILE_BYTES_WARN) {
++        const existing = fileTooLarge.get(file.path);
++        if (existing) {
++          if (file.bytes > existing.bytes) {
++            existing.lines = file.lines;
++            existing.bytes = file.bytes;
++          }
++          existing.tasks.push(entry.task.id);
++        } else {
++          fileTooLarge.set(file.path, { lines: file.lines, bytes: file.bytes, tasks: [entry.task.id] });
++        }
++      }
++    }
++
++    for (const [filePath, count] of reverseImporterCounts(manifest)) {
++      if (count > CODE_CONTEXT_FAN_OUT_WARN) {
++        const existing = importFanOut.get(filePath);
++        if (existing) {
++          if (count > existing.maxCount) existing.maxCount = count;
++          existing.tasks.push(entry.task.id);
++        } else {
++          importFanOut.set(filePath, { maxCount: count, tasks: [entry.task.id] });
++        }
++      }
++    }
++
++    if (manifest.budget.omitted >= CODE_CONTEXT_PLAN_OMITTED_WARN) {
++      planBudget.set(entry.task.id, {
++        omitted: manifest.budget.omitted,
++        selectedBytes: manifest.budget.selectedBytes,
++        maxBytes: manifest.budget.maxBytes
++      });
++    }
++
++    if (manifest.completeness.status === "widening-required") {
++      for (const reason of manifest.completeness.reasons) {
++        const tasks = widening.get(reason) ?? [];
++        tasks.push(entry.task.id);
++        widening.set(reason, tasks);
++      }
++    }
++  }
++
++  function formatExamples(tasks: string[]): string {
++    const examples = tasks.slice(0, 3).join(", ");
++    const suffix = tasks.length > 3 ? ` and ${tasks.length - 3} more` : "";
++    return `e.g., ${examples}${suffix}`;
++  }
++
++  for (const [path, metric] of fileTooLarge) {
++    issues.push({
++      severity: "warn",
++      code: "health.codeContext.fileTooLarge",
++      message: `context file ${path} is too large (${metric.lines} lines, ${metric.bytes} bytes); referenced by ${metric.tasks.length} active task plan${metric.tasks.length === 1 ? "" : "s"} (${formatExamples(metric.tasks)})`
++    });
++  }
++
++  for (const [path, metric] of importFanOut) {
++    issues.push({
++      severity: "warn",
++      code: "health.codeContext.importFanOut",
++      message: `context file ${path} has ${metric.maxCount} reverse importers; referenced by ${metric.tasks.length} active task plan${metric.tasks.length === 1 ? "" : "s"} (${formatExamples(metric.tasks)})`
++    });
++  }
++
++  for (const [taskId, metric] of planBudget) {
++    issues.push({
++      severity: "warn",
++      code: "health.codeContext.planBudget",
++      message: `${taskId} context plan omits ${metric.omitted} candidates (budget saturated at ${metric.selectedBytes}/${metric.maxBytes} bytes)`
++    });
++  }
++
++  for (const [reason, tasks] of widening) {
++    issues.push({
++      severity: "warn",
++      code: "health.codeContext.widening",
++      message: `${tasks.length} active task plan${tasks.length === 1 ? "" : "s"} require widening (${reason}): ${formatExamples(tasks)}`
++    });
++  }
++
++  return issues;
++}
++
+ export function collectHealthIssues(root: string): Issue[] {
+   const issues: Issue[] = [];
+   let wbs: WbsDocument | undefined;
+@@ -390,6 +522,8 @@ export function collectHealthIssues(root: string): Issue[] {
+     if (evidence) issues.push(...validateEvidenceTrust(root, wbs, entry.task, evidence, checkCommitReachability));
+   }
+ 
++  issues.push(...collectCodeContextHealthIssues(root, wbs));
++
+   return issues;
+ }
+ 
+diff --git a/src/core/code-context.ts b/src/core/code-context.ts
+index 7309d44..bbd24d0 100644
+--- a/src/core/code-context.ts
++++ b/src/core/code-context.ts
+@@ -17,6 +17,8 @@ export type CodeContextOptions = {
+   maxBytes?: number;
+ };
+ 
++export type CodeContextManifest = ReturnType<typeof buildCodeContextManifest>;
++
+ type LineRange = { start: number; end: number };
+ 
+ type ContextEntry = {
+@@ -57,8 +59,10 @@ function exactPath(value: string): boolean {
+   return !GLOB_PATTERN.test(value);
+ }
+ 
+-function entryFor(root: string, relativePath: string, reasons: string[], editable: boolean): ContextEntry {
+-  const content = gitObject(root, "HEAD", relativePath);
++type GitObjectReader = (root: string, ref: string, file: string) => string | undefined;
++
++function entryFor(root: string, relativePath: string, reasons: string[], editable: boolean, readGitObject: GitObjectReader = gitObject): ContextEntry {
++  const content = readGitObject(root, "HEAD", relativePath);
+   if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
+   const lines = lineCount(content);
+   const hash = createHash("sha256").update(content, "utf8").digest("hex");
+@@ -73,7 +77,9 @@ function entryFor(root: string, relativePath: string, reasons: string[], editabl
+   };
+ }
+ 
+-function parseRelativeImports(relativePath: string, content: string): { imports: RelativeImport[]; widening: WideningDiagnostic[] } {
++export type ParsedImports = { imports: RelativeImport[]; widening: WideningDiagnostic[] };
++
++function parseRelativeImports(relativePath: string, content: string): ParsedImports {
+   const imports: RelativeImport[] = [];
+   const widening: WideningDiagnostic[] = [];
+   const lines = content.split(/\r?\n/);
+@@ -100,7 +106,7 @@ function parseRelativeImports(relativePath: string, content: string): { imports:
+   return { imports, widening };
+ }
+ 
+-function resolveRelativeImport(root: string, importer: string, specifier: string): string | undefined {
++function resolveRelativeImport(root: string, importer: string, specifier: string, readGitObject: GitObjectReader = gitObject): string | undefined {
+   const base = normalizePath(path.posix.join(path.posix.dirname(importer), specifier));
+   if (base === ".." || base.startsWith("../") || path.posix.isAbsolute(base)) return undefined;
+   const extension = path.posix.extname(base);
+@@ -109,7 +115,7 @@ function resolveRelativeImport(root: string, importer: string, specifier: string
+     : extension.length > 0
+       ? [base]
+       : [base, `${base}.ts`, `${base}.tsx`, `${base}.js`, `${base}/index.ts`, `${base}/index.tsx`, `${base}/index.js`];
+-  return candidates.find((candidate) => gitObject(root, "HEAD", candidate) !== undefined);
++  return candidates.find((candidate) => readGitObject(root, "HEAD", candidate) !== undefined);
+ }
+ 
+ function diagnosticSort(left: WideningDiagnostic, right: WideningDiagnostic): number {
+@@ -123,7 +129,29 @@ function excludedSort(left: ExcludedEntry, right: ExcludedEntry): number {
+   return left.path.localeCompare(right.path) || left.reasons.join("\0").localeCompare(right.reasons.join("\0"));
+ }
+ 
+-export function buildCodeContextManifest(root: string, taskId: string, options: CodeContextOptions = {}) {
++export function reverseImporterCounts(manifest: CodeContextManifest): Map<string, number> {
++  const counts = new Map<string, number>();
++  const REVERSE_IMPORTER_PREFIX = "reverse-importer:";
++  for (const entry of [...manifest.mustRead, ...manifest.candidates]) {
++    const targets = new Set<string>();
++    for (const reason of entry.reasons) {
++      if (!reason.startsWith(REVERSE_IMPORTER_PREFIX)) continue;
++      const target = reason.slice(REVERSE_IMPORTER_PREFIX.length).split(":")[0];
++      if (target) targets.add(target);
++    }
++    for (const target of targets) {
++      counts.set(target, (counts.get(target) ?? 0) + 1);
++    }
++  }
++  return counts;
++}
++
++export function buildCodeContextManifest(
++  root: string,
++  taskId: string,
++  options: CodeContextOptions = {},
++  sharedCache?: { parse?: Map<string, ParsedImports>; gitObject?: Map<string, string | undefined>; trackedFiles?: string[] }
++) {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const head = headCommit(root);
+@@ -131,13 +159,21 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+ 
+   const maxFiles = Math.max(1, Math.floor(options.maxFiles ?? DEFAULT_MAX_FILES));
+   const maxBytes = Math.max(1, Math.floor(options.maxBytes ?? DEFAULT_MAX_BYTES));
++  const gitObjectCache = sharedCache?.gitObject ?? new Map<string, string | undefined>();
++  const readGitObject: GitObjectReader = (gitRoot, ref, file) => {
++    const cacheKey = `${ref}:${file}`;
++    if (gitObjectCache.has(cacheKey)) return gitObjectCache.get(cacheKey);
++    const content = gitObject(gitRoot, ref, file);
++    gitObjectCache.set(cacheKey, content);
++    return content;
++  };
+   const contractPath = taskPath(task.id);
+   const mustRead = new Map<string, ContextEntry>();
+   const candidateReasons = new Map<string, string[]>();
+   const excluded: ExcludedEntry[] = [];
+   const widening: WideningDiagnostic[] = [];
+ 
+-  const contractEntry = entryFor(root, contractPath, ["task-contract"], false);
++  const contractEntry = entryFor(root, contractPath, ["task-contract"], false, readGitObject);
+   if (fileSha256(root, contractPath) !== contractEntry.contentHash) {
+     throw new Error(`${contractPath} differs from repository HEAD`);
+   }
+@@ -149,7 +185,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+     widening.push({ code: "broad-glob", path: pattern, detail: "manifest v1 does not enumerate broad allowedPaths" });
+   }
+   for (const seed of seeds) {
+-    if (gitObject(root, "HEAD", seed) === undefined) {
++    if (readGitObject(root, "HEAD", seed) === undefined) {
+       excluded.push({ path: seed, reasons: ["exact-allowed-path-missing"], editable: false });
+       widening.push({ code: "missing-seed", path: seed, detail: "exact allowedPath does not exist at HEAD" });
+       continue;
+@@ -165,15 +201,15 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+   }
+ 
+   const seedPaths = activeSeeds.filter((item) => SOURCE_PATTERN.test(item));
+-  const repositorySources = trackedTextFiles(root)
++  const repositorySources = (sharedCache?.trackedFiles ?? trackedTextFiles(root))
+     .map(normalizePath)
+-    .filter((item) => SOURCE_PATTERN.test(item) && gitObject(root, "HEAD", item) !== undefined)
++    .filter((item) => SOURCE_PATTERN.test(item) && readGitObject(root, "HEAD", item) !== undefined)
+     .sort();
+-  const parsedByPath = new Map<string, ReturnType<typeof parseRelativeImports>>();
++  const parsedByPath = sharedCache?.parse ?? new Map<string, ParsedImports>();
+   const parse = (relativePath: string) => {
+     const existing = parsedByPath.get(relativePath);
+     if (existing) return existing;
+-    const content = gitObject(root, "HEAD", relativePath);
++    const content = readGitObject(root, "HEAD", relativePath);
+     if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
+     const parsed = parseRelativeImports(relativePath, content);
+     parsedByPath.set(relativePath, parsed);
+@@ -184,7 +220,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+     const parsed = parse(seed);
+     widening.push(...parsed.widening);
+     for (const item of parsed.imports) {
+-      const resolved = resolveRelativeImport(root, seed, item.specifier);
++      const resolved = resolveRelativeImport(root, seed, item.specifier, readGitObject);
+       if (!resolved) {
+         widening.push({ code: "unresolved-import", path: seed, line: item.line, detail: item.specifier });
+         continue;
+@@ -198,7 +234,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+     if (seedPaths.includes(importer)) continue;
+     const parsed = parse(importer);
+     for (const item of parsed.imports) {
+-      const resolved = resolveRelativeImport(root, importer, item.specifier);
++      const resolved = resolveRelativeImport(root, importer, item.specifier, readGitObject);
+       if (resolved && seedPaths.includes(resolved)) {
+         candidateReasons.set(importer, [...(candidateReasons.get(importer) ?? []), `reverse-importer:${resolved}:${item.line}`]);
+       }
+@@ -241,7 +277,7 @@ export function buildCodeContextManifest(root: string, taskId: string, options:
+     if (reasons.length > 8) {
+       widening.push({ code: "high-fan-out", path: candidatePath, detail: `${reasons.length} one-hop relations reference this candidate` });
+     }
+-    const entry = entryFor(root, candidatePath, reasons, matchesAny(candidatePath, task.allowedPaths));
++    const entry = entryFor(root, candidatePath, reasons, matchesAny(candidatePath, task.allowedPaths), readGitObject);
+     if (selectedFiles + 1 > maxFiles || selectedBytes + entry.bytes > maxBytes) {
+       omitted.push({ path: candidatePath, reasons: ["budget-exceeded", ...entry.reasons].sort(), editable: false });
+       continue;
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index a0457ca..35839a9 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -1,6 +1,7 @@
+ import { execFileSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
+ import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
+@@ -578,6 +579,49 @@ describe("AI commands", () => {
+     expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
+   });
+ 
++  test("packet --context-json manifest conforms to the versioned JSON schema", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const value = helper;\n");
++    writeText(root, "src/helper.ts", "export const helper = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/feature.ts"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/code-context-manifest.schema.json"), "utf8"));
++    const ajv = new Ajv2020({ strict: false });
++    expect(ajv.compile(schema)(manifest)).toBe(true);
++  });
++
++  test("schema rejects manifest with missing required fields", () => {
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/code-context-manifest.schema.json"), "utf8"));
++    const ajv = new Ajv2020({ strict: false });
++    const validate = ajv.compile(schema);
++
++    const base = {
++      schemaVersion: "1.0.0",
++      task: { id: "T", contractPath: "c.yaml", contractHash: `sha256:${"a".repeat(64)}` },
++      repository: { head: "h" },
++      mustRead: [],
++      candidates: [],
++      excluded: [],
++      widening: [],
++      coverage: { required: [], missing: [], unclassified: [] },
++      budget: { maxFiles: 10, maxBytes: 1000, selectedFiles: 0, selectedBytes: 0, omitted: 0 },
++      completeness: { status: "complete", reasons: [] },
++      constraints: { sourceContentIncluded: false, grantsEditAuthority: false, permitsRequiredCheckOmission: false }
++    };
++
++    expect(validate({ ...base, schemaVersion: undefined })).toBe(false);
++    expect(validate({ ...base, schemaVersion: "2.0.0" })).toBe(false);
++    expect(validate({ ...base, task: { id: "T" } })).toBe(false);
++    expect(validate({ ...base, completeness: { status: "bogus", reasons: [] } })).toBe(false);
++    expect(validate({ ...base, constraints: { sourceContentIncluded: "yes", grantsEditAuthority: false, permitsRequiredCheckOmission: false } })).toBe(false);
++    expect(validate({ ...base, extraField: "should fail" })).toBe(false);
++    expect(validate({ ...base, mustRead: [{ path: "x.ts", contentHash: "md5:abc", bytes: 1, lines: 1, lineRanges: [{ start: 1, end: 1 }], reasons: [], editable: false }] })).toBe(false);
++  });
++
+   test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 2305334..264745f 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
++import { buildCodeContextManifest } from "../../src/core/code-context.js";
+ import { buildHealthJsonOutput, buildHealthText, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+ import type { Issue } from "../../src/core/types.js";
+ import { main } from "../../src/cli.js";
+@@ -620,4 +621,269 @@ describe("health", () => {
+     expect(issues.some((issue) => issue.code === "health.review.scope.pullRequest")).toBe(true);
+     expect(issues.find((issue) => issue.code === "health.review.scope.diffHash")?.fixCommand).toContain("review request --task WBS-001-004");
+   });
++
++  test("health reports codeContext file too large warning", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
++    writeText(root, "src/large.ts", longLines);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/large.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "large file"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.codeContext.fileTooLarge" && issue.message.includes("src/large.ts"))).toBe(true);
++    expect(runHealth(root)).toBe(0);
++  });
++
++  test("health aggregates fileTooLarge across active tasks by unique file path", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
++    writeText(root, "src/shared.ts", longLines);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      id: "WBS-001-004",
++      allowedPaths: ["src/shared.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      wbsNodeId: "node-root",
++      branchName: "task/WBS-001-005",
++      allowedPaths: ["src/shared.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeJson(root, "contracts/wbs/project.wbs.json", {
++      schemaVersion: "0.1.0",
++      id: "test-wbs",
++      name: "Test WBS",
++      rootId: "node-root",
++      nodes: [
++        { id: "node-root", parentId: null, code: "1", name: "Root", type: "deliverable", status: "planned" },
++        { id: "node-api", parentId: "node-root", code: "1.1", name: "API", type: "workPackage", status: "planned" }
++      ]
++    });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "shared large file"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root).filter((issue) => issue.code === "health.codeContext.fileTooLarge");
++    expect(issues).toHaveLength(1);
++    expect(issues[0].message).toContain("src/shared.ts");
++    expect(issues[0].message).toContain("2 active task plans");
++    expect(issues[0].message).toContain("WBS-001-004");
++    expect(issues[0].message).toContain("WBS-001-005");
++  });
++
++  test("health reports codeContext widening warning", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "widening fixture"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.codeContext.widening" && issue.message.includes("dynamic-import"))).toBe(true);
++  });
++
++  test("health reports importFanOut when a seed is referenced by 9+ distinct importers", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/seed.ts", "export const value = 1;\n");
++    for (let index = 0; index < 10; index += 1) {
++      writeText(root, `src/caller${index}.ts`, `import { value } from "./seed.js";\nvoid value;\n`);
++    }
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/seed.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "fan-out fixture"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    const fanOutIssue = issues.find((issue) => issue.code === "health.codeContext.importFanOut");
++    expect(fanOutIssue).toBeDefined();
++    expect(fanOutIssue?.message).toContain("src/seed.ts");
++    expect(fanOutIssue?.message).toContain("10 reverse importers");
++    expect(fanOutIssue?.message).toContain("WBS-001-004");
++  });
++
++  test("health does not report importFanOut for repeated imports from the same importer file", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/seed.ts", "export const a = 1;\nexport const b = 2;\n");
++    writeText(root, "src/caller.ts", "import { a } from \"./seed.js\";\nimport { b } from \"./seed.js\";\nvoid a;\nvoid b;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/seed.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "same importer repeated imports"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.codeContext.importFanOut")).toBe(false);
++  });
++
++  test("health aggregates widening by reason code across active tasks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      id: "WBS-001-004",
++      allowedPaths: ["src/feature.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      wbsNodeId: "node-root",
++      branchName: "task/WBS-001-005",
++      allowedPaths: ["src/feature.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeJson(root, "contracts/wbs/project.wbs.json", {
++      schemaVersion: "0.1.0",
++      id: "test-wbs",
++      name: "Test WBS",
++      rootId: "node-root",
++      nodes: [
++        { id: "node-root", parentId: null, code: "1", name: "Root", type: "deliverable", status: "planned" },
++        { id: "node-api", parentId: "node-root", code: "1.1", name: "API", type: "workPackage", status: "planned" }
++      ]
++    });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "shared widening"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root).filter((issue) => issue.code === "health.codeContext.widening");
++    const dynamicIssue = issues.find((issue) => issue.message.includes("dynamic-import"));
++    expect(dynamicIssue).toBeDefined();
++    expect(dynamicIssue?.message).toContain("2 active task plans");
++    expect(dynamicIssue?.message).toContain("WBS-001-004");
++    expect(dynamicIssue?.message).toContain("WBS-001-005");
++  });
++
++  test("health reports planBudget when omitted candidates reach the threshold", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const featureCount = 60;
++    for (let index = 0; index < featureCount; index += 1) {
++      writeText(root, `src/feature${index}.ts`, `export const value${index} = ${index};\n`);
++    }
++    writeText(root, "src/seed.ts", Array.from({ length: featureCount }, (_, index) => `import { value${index} } from "./feature${index}.js";`).join("\n") + "\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/seed.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "budget fixture"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    const planBudgetIssue = issues.find((issue) => issue.code === "health.codeContext.planBudget");
++    expect(planBudgetIssue).toBeDefined();
++    expect(planBudgetIssue?.message).toMatch(/omits \d+ candidates \(budget saturated at \d+\/\d+ bytes\)/);
++    expect(planBudgetIssue?.message).toContain("WBS-001-004");
++  });
++
++  test("health planBudget boundary: omitted < 20 does not warn, omitted >= 20 does warn", () => {
++    // collectHealthIssues uses default maxFiles=40. Create enough candidates
++    // so the tight case overflows.
++    const FEATURE_COUNT_GENEROUS = 30;  // mustRead(1)+seed(1)+30 = 32 ≤ 40 → omitted=0
++    const FEATURE_COUNT_TIGHT = 80;     // mustRead(1)+seed(1)+80-fits = omitted >= 20
++
++    function setupRepo(featureCount: number): string {
++      const root = makeTempRepo();
++      writeScwbsProject(root);
++      for (let index = 0; index < featureCount; index += 1) {
++        writeText(root, `src/feature${index}.ts`, `export const value${index} = ${index};\n`);
++      }
++      writeText(root, "src/seed.ts", Array.from({ length: featureCount }, (_, index) => `import { value${index} } from "./feature${index}.js";`).join("\n") + "\n");
++      writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++        allowedPaths: ["src/seed.ts"],
++        humanGateRequiredPaths: []
++      }) as unknown as Record<string, unknown>);
++      execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++      execFileSync("git", ["commit", "-m", `budget fixture ${featureCount}`], { cwd: root, stdio: "ignore" });
++      return root;
++    }
++
++    // Case 1: few features → omitted < 20 → no planBudget warning
++    const generousRoot = setupRepo(FEATURE_COUNT_GENEROUS);
++    const generousIssues = collectHealthIssues(generousRoot);
++    expect(generousIssues.some((issue) => issue.code === "health.codeContext.planBudget")).toBe(false);
++
++    // Case 2: many features → omitted >= 20 → planBudget warning
++    const tightRoot = setupRepo(FEATURE_COUNT_TIGHT);
++    const tightIssues = collectHealthIssues(tightRoot);
++    expect(tightIssues.some((issue) => issue.code === "health.codeContext.planBudget")).toBe(true);
++  });
++
++  test("health verbose text output lists every codeContext issue individually without omission markers", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
++    writeText(root, "src/large.ts", longLines);
++    writeText(root, "src/feature.ts", "import(\"./dynamic.js\");\nexport const value = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/large.ts", "src/feature.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "verbose fixture"], { cwd: root, stdio: "ignore" });
++
++    const verboseText = buildHealthText(root, undefined, { verbose: true });
++
++    // Verbose output must not contain "more omitted" markers
++    expect(verboseText).not.toMatch(/more omitted/);
++    // Verbose must include all codeContext issue types individually
++    expect(verboseText).toContain("health.codeContext.fileTooLarge");
++    expect(verboseText).toContain("health.codeContext.widening");
++    // Verbose must include the issue messages directly (not aggregated by code)
++    expect(verboseText).toContain("src/large.ts");
++    expect(verboseText).toContain("dynamic-import");
++  });
++
++  test("health skips codeContext check in a shallow clone with an explicit note", () => {
++    const source = makeTempRepo();
++    writeScwbsProject(source);
++    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: source, stdio: "ignore" });
++    writeText(source, "README.md", "latest\n");
++    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "latest"], { cwd: source, stdio: "ignore" });
++    const clone = mkdtempSync(path.join(os.tmpdir(), "scwbs-shallow-"));
++    execFileSync("git", ["clone", "--depth", "1", `file://${source}`, clone], { stdio: "ignore" });
++
++    const issues = collectHealthIssues(clone);
++    expect(issues.some((issue) => issue.code === "health.codeContext.skipped" && issue.message.includes("shallow repository"))).toBe(true);
++  });
++
++  test("health --json keeps version/status/summary structure when codeContext issues exist", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const longLines = Array.from({ length: 502 }, (_, index) => `export const line${index} = ${index};`).join("\n") + "\n";
++    writeText(root, "src/large.ts", longLines);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/large.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "large file"], { cwd: root, stdio: "ignore" });
++
++    const issues = collectHealthIssues(root);
++    const report = buildHealthJsonOutput(root, issues);
++    expect(report.version).toBe("scwbs.health.v1");
++    expect(report.status).toBe("warn");
++    expect(report.summary).toMatchObject({
++      total: expect.any(Number),
++      errors: 0,
++      warnings: expect.any(Number),
++      byCode: expect.arrayContaining([{ code: "health.codeContext.fileTooLarge", severity: "warn", count: 1 }])
++    });
++    expect(report.issues.some((issue) => issue.code === "health.codeContext.fileTooLarge")).toBe(true);
++  });
+ });
+diff --git a/tests/unit/code-context.test.ts b/tests/unit/code-context.test.ts
+new file mode 100644
+index 0000000..e133b3a
+--- /dev/null
++++ b/tests/unit/code-context.test.ts
+@@ -0,0 +1,63 @@
++import { describe, expect, test } from "vitest";
++import { buildCodeContextManifest, reverseImporterCounts } from "../../src/core/code-context.js";
++import { makeTempRepo, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++import { execFileSync } from "node:child_process";
++
++describe("code-context helpers", () => {
++  function commit(root: string, message: string): void {
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++  }
++
++  test("reverseImporterCounts counts reverse importers per file", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const secretSourceBody = helper;\n");
++    writeText(root, "src/helper.ts", "export const helper = 1;\n");
++    writeText(root, "src/caller.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
++    writeText(root, "src/another.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      requiredChecks: ["test", "typecheck"]
++    }) as unknown as Record<string, unknown>);
++    commit(root, "context fixture");
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const counts = reverseImporterCounts(manifest);
++    expect(counts.get("src/feature.ts")).toBe(2);
++    expect(counts.get("src/helper.ts")).toBeUndefined();
++    expect(counts.get("src/caller.ts")).toBeUndefined();
++  });
++
++  test("reverseImporterCounts includes mustRead and candidates", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "export const value = 1;\n");
++    writeText(root, "src/caller.ts", "import { value } from \"./feature.js\";\nvoid value;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      requiredChecks: ["test", "typecheck"]
++    }) as unknown as Record<string, unknown>);
++    commit(root, "context fixture");
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const counts = reverseImporterCounts(manifest);
++    expect(counts.get("src/feature.ts")).toBe(1);
++  });
++
++  test("reverseImporterCounts counts unique importer files, not import statements", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "export const a = 1;\nexport const b = 2;\n");
++    writeText(root, "src/caller.ts", "import { a } from \"./feature.js\";\nimport { b } from \"./feature.js\";\nvoid a;\nvoid b;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      requiredChecks: ["test", "typecheck"]
++    }) as unknown as Record<string, unknown>);
++    commit(root, "context fixture");
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const counts = reverseImporterCounts(manifest);
++    expect(counts.get("src/feature.ts")).toBe(1);
++  });
++});
