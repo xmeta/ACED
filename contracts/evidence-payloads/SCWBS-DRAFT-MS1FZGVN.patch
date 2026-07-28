@@ -1,0 +1,583 @@
+diff --git a/contracts/specs/SPEC-LITE-MS1FZGVN.yaml b/contracts/specs/SPEC-LITE-MS1FZGVN.yaml
+new file mode 100644
+index 0000000..96ad3e4
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS1FZGVN.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MS1FZGVN
++type: spec-contract
++featureId: F-MS1FZGVN
++title: "Issue #303: upstream release gitlink authorityとwarning budget lock境界を実装する"
++status: approved
++version: 0.1.0
++approvedBy: user-delegated-tool-improvement
++approvedAt: "2026-07-26T00:00:00+09:00"
++summary: "上流でmerge・検証済みのsubmodule releaseだけをgitlink権限で取り込み、warning-only budgetをTask authority lockから分離する"
++acceptanceCriteria:
++  - authorityMode upstream-releaseはrepository、pullRequest、upstreamRef、1件以上のpassed checkを必須にする
++  - submoduleDependenciesをTask authority baselineへ含め、Task開始後の自己拡張を拒否する
++  - upstream-releaseのEvidenceが宣言と一致しheadがupstream reachableな場合だけnested filesをrepository path authority判定から分離する
++  - nested filesはEvidenceとcheck coverageに保持し、gitlink path自体はallowedPathsとHuman Gateで評価する
++  - 未宣言、不完全、Evidence不一致、unreachable、failed check、dirty submoduleはfail-closedする
++  - 通常ファイルと未検証nested filesではforbiddenPathsを最優先のまま維持する
++  - extensions.scwbs.governanceCost.warningBudgetsだけの変更ではwbsGlobalRevisionを変えない
++  - profile、WBS identity、root identity、schema version、その他SC-WBS policy変更ではwbsGlobalRevisionを変える
++  - CI、required checks、profile、Human Gate、warning-only exit behaviorを変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml b/contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml
+new file mode 100644
+index 0000000..78efcbc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml
+@@ -0,0 +1,72 @@
++id: SCWBS-DRAFT-MS1FZGVN
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS1FZGVN
++branchName: task/SCWBS-DRAFT-MS1FZGVN-issue-303-verified-upstream-release-gitlink-auth
++allowedPaths:
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/core/task-authority.ts
++  - src/core/wbs-lock.ts
++  - src/commands/check-diff.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/tasks.test.ts
++  - docs/scwbs/task-contract.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/core/task-authority.ts
++  - src/core/wbs-lock.ts
++  - src/commands/check-diff.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/tasks.test.ts
++  - docs/scwbs/task-contract.md
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - upstream-release is an explicit immutable Task authority mode requiring repository, merged PR, upstream ref, and at least one passed check
++  - verified upstream-release gitlinks are authorized by the gitlink path while nested files remain in Evidence and check coverage
++  - undeclared, incomplete, unreachable, failed-check, or dirty submodule changes fail closed
++  - forbiddenPaths remains authoritative for normal files and unverified nested submodule changes
++  - warningBudgets changes do not change wbsGlobalRevision
++  - profile, WBS identity, root identity, schema version, and other SC-WBS policy changes still change wbsGlobalRevision
++  - CI, required checks, profile, Human Gate, and warning-only exit behavior are unchanged
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS1FZGVN.yaml
++  - contracts/specs/SPEC-LITE-MS1FZGVN.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS1FZGVN.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS1FZGVN.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS1FZGVN.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS1FZGVN.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:0d4fbcd55e895284d848692f6a5b884350e910d91eb06755b80b0d9b3f8ca686
++  createdAt: "2026-07-26T06:54:37.511Z"
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index f63cc6f..e206f6a 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -50,6 +50,7 @@ requiredChecks:
+   - lint
+ submoduleDependencies:
+   - path: vendor/dependency
++    authorityMode: upstream-release
+     repository: example/dependency
+     pullRequest: "#42"
+     upstreamRef: refs/remotes/origin/main
+@@ -75,7 +76,7 @@ contractLock:
+ ```
+ 
+ `wbsNodeId` は `contracts/wbs/project.wbs.json` の `nodes[].id` を指す。
+-Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。
++Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。ただしread-onlyかつwarning-onlyの `extensions.scwbs.governanceCost.warningBudgets` はTask authorityを変更しないためglobal revisionから除外する。`profile` とその他のSC-WBS policyは引き続き対象である。
+ 
+ AI Work Packet生成時および `scwbs check` では、これらのrevisionと現在のWBS-JSON、Spec Contractの鮮度を比較する。旧 `wbsRevision` whole-file lockは読み取り互換を維持するが、`task refresh --affected` ではmigration対象として表示する。`task refresh --task <id> --apply` で個別移行し、全更新が意図される場合だけ `task refresh --all --apply` を使う。
+ WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
+@@ -105,6 +106,8 @@ archiveはrecordの物理移動や削除ではない。Task、Evidence、Approva
+ `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+ `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+ 
++`submoduleDependencies[].authorityMode: upstream-release` は、別repositoryでreview・merge・検証済みのrelease commitをgitlinkとして取り込むための明示authorityである。`repository`、`pullRequest`、`upstreamRef`、1件以上のpassed `checks` をTask開始時のauthority baselineへ固定し、Evidenceの値と完全一致し、head commitがupstream refからreachableな場合だけ、nested changed filesをACED repository path authorityから分離する。gitlink path自体は通常どおり `allowedPaths` とHuman Gateで評価し、nested filesはEvidenceとcheck coverageへ残す。未宣言、不完全、Evidence不一致、unreachable、failed check、dirty submoduleはfail-closedする。
++
+ ## Authority baseline
+ 
+ `check-diff` はworktree側のTask Contractだけを権限根拠にしない。`origin/main` とHEADのmerge-baseにある契約をbaselineとし、次のauthority fieldsを比較する。
+@@ -115,6 +118,7 @@ archiveはrecordの物理移動や削除ではない。Task、Evidence、Approva
+ - `requiredChecks`
+ - `managedContractPaths`
+ - `checkCoverageWaivers`
++- `submoduleDependencies`
+ - `approvalPolicy`
+ 
+ 同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 7185d50..8aea2e8 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -31,6 +31,51 @@ function stashCommand(files: string[]): string {
+   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
+ }
+ 
++function normalizedSubmoduleChecks(checks: Array<{ name: string; status: string; url?: string }> | undefined): string {
++  return JSON.stringify([...(checks ?? [])]
++    .map((check) => ({ name: check.name, status: check.status, url: check.url }))
++    .sort((left, right) => `${left.name}\0${left.status}\0${left.url ?? ""}`.localeCompare(`${right.name}\0${right.status}\0${right.url ?? ""}`)));
++}
++
++function verifiedUpstreamReleasePaths(
++  task: TaskContract,
++  evidence: Evidence | undefined,
++  files: string[]
++): { paths: Set<string>; issues: Issue[] } {
++  const paths = new Set<string>();
++  const issues: Issue[] = [];
++  for (const dependency of task.submoduleDependencies ?? []) {
++    if (dependency.authorityMode !== "upstream-release" || !files.includes(dependency.path)) continue;
++    const checks = dependency.checks ?? [];
++    const complete = Boolean(
++      dependency.repository
++      && dependency.pullRequest
++      && dependency.upstreamRef
++      && checks.length > 0
++      && checks.every((check) => check.status === "passed")
++    );
++    const submodule = evidence?.submodules?.find((item) => item.path === dependency.path);
++    const matchesDeclaration = Boolean(
++      submodule
++      && submodule.repository === dependency.repository
++      && submodule.pullRequest === dependency.pullRequest
++      && submodule.upstreamRef === dependency.upstreamRef
++      && normalizedSubmoduleChecks(submodule.checks) === normalizedSubmoduleChecks(checks)
++    );
++    const validHead = Boolean(submodule && /^[0-9a-f]{40}$/.test(submodule.headCommit) && !/^0+$/.test(submodule.headCommit));
++    if (!complete || !matchesDeclaration || !validHead || submodule?.upstreamReachable !== true) {
++      issues.push({
++        severity: "error",
++        code: "diff.submodule.upstreamRelease",
++        message: `${dependency.path} upstream-release authority requires complete immutable declaration, matching Evidence, a non-zero head commit, and upstream reachability`
++      });
++      continue;
++    }
++    paths.add(dependency.path);
++  }
++  return { paths, issues };
++}
++
+ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state: WorkingTreeState; issues: Issue[] } {
+   const state = workingTreeState(root, taskLifecycleMetadataPaths(taskId));
+   const issues: Issue[] = [];
+@@ -71,9 +116,16 @@ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state:
+ export function collectDiffIssues(root: string, task: TaskContract, files: string[], evidenceOverride?: Evidence): Issue[] {
+   const issues: Issue[] = [];
+   const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
+-  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+-  const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
+-  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
++  const releaseAuthority = verifiedUpstreamReleasePaths(task, evidence, files);
++  issues.push(...releaseAuthority.issues);
++  const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) =>
++    submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
++  const authorityNestedFiles = (evidence?.submodules ?? [])
++    .filter((submodule) => !releaseAuthority.paths.has(submodule.path))
++    .flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
++  const authorityFiles = Array.from(new Set([...files, ...authorityNestedFiles]));
++  const coverageFiles = Array.from(new Set([...files, ...nestedFiles]));
++  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, authorityFiles, root);
+   for (const dependency of task.submoduleDependencies ?? []) {
+     if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
+       issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
+@@ -87,7 +139,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+       if (check.status !== "passed") issues.push({ severity: "error", code: "diff.submodule.check", message: `${submodule.path} check ${check.name} is ${check.status}` });
+     }
+   }
+-  for (const issue of collectWbsChangesetGateIssues(effectiveFiles)) {
++  for (const issue of collectWbsChangesetGateIssues(authorityFiles)) {
+     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
+   }
+   const wbsChangeSets = files.filter((file) => /^contracts\/changesets\/.+\.json$/.test(file.replace(/\\/g, "/")));
+@@ -98,7 +150,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+       message: `${changeSet}: ${issue.message}`
+     })));
+   }
+-  for (const file of effectiveFiles) {
++  for (const file of authorityFiles) {
+     const managed = matchesManagedContractPath(task, file);
+     if (!matchesAny(file, task.allowedPaths) && !managed) {
+       issues.push({
+@@ -132,7 +184,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     code: "diff.humanGate",
+     message: `${issue.message} (${issue.code})`
+   })));
+-  issues.push(...collectCheckCoverageIssues(root, task, effectiveFiles).map((issue) => ({
++  issues.push(...collectCheckCoverageIssues(root, task, coverageFiles).map((issue) => ({
+     ...issue,
+     code: `diff.${issue.code}`
+   })));
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index aa5120a..30cab48 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -136,6 +136,7 @@ const taskContractSchema = {
+         additionalProperties: true,
+         properties: {
+           path: { type: "string", minLength: 1 },
++          authorityMode: { type: "string", enum: ["upstream-release"] },
+           repository: { type: "string", minLength: 1 },
+           pullRequest: { type: "string", minLength: 1 },
+           upstreamRef: { type: "string", minLength: 1 },
+@@ -152,7 +153,32 @@ const taskContractSchema = {
+               }
+             }
+           }
+-        }
++        },
++        allOf: [
++          {
++            if: {
++              required: ["authorityMode"],
++              properties: {
++                authorityMode: { const: "upstream-release" }
++              }
++            },
++            then: {
++              required: ["repository", "pullRequest", "upstreamRef", "checks"],
++              properties: {
++                checks: {
++                  minItems: 1,
++                  contains: {
++                    type: "object",
++                    required: ["status"],
++                    properties: {
++                      status: { const: "passed" }
++                    }
++                  }
++                }
++              }
++            }
++          }
++        ]
+       }
+     },
+     doneCriteria: stringArraySchema,
+@@ -381,8 +407,30 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+       });
+     }
+   }
+-  if (value.submoduleDependencies !== undefined && !Array.isArray(value.submoduleDependencies)) {
+-    issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
++  if (value.submoduleDependencies !== undefined) {
++    if (!Array.isArray(value.submoduleDependencies)) {
++      issues.push(issue("task.submoduleDependencies", `${filePath}.submoduleDependencies must be an array when present`));
++    } else {
++      value.submoduleDependencies.forEach((dependency, index) => {
++        if (!isObject(dependency) || typeof dependency.path !== "string" || dependency.path.trim().length === 0) {
++          issues.push(issue("task.submoduleDependency", `${filePath}.submoduleDependencies[${index}] must include a non-empty path`));
++          return;
++        }
++        if (dependency.authorityMode !== undefined && dependency.authorityMode !== "upstream-release") {
++          issues.push(issue("task.submoduleDependency.authorityMode", `${filePath}.submoduleDependencies[${index}].authorityMode must be upstream-release when present`));
++        }
++        if (dependency.authorityMode === "upstream-release") {
++          for (const key of ["repository", "pullRequest", "upstreamRef"]) {
++            if (typeof dependency[key] !== "string" || dependency[key].trim().length === 0) {
++              issues.push(issue("task.submoduleDependency.upstreamRelease", `${filePath}.submoduleDependencies[${index}].${key} is required for upstream-release authority`));
++            }
++          }
++          if (!Array.isArray(dependency.checks) || dependency.checks.length === 0 || !dependency.checks.every((check) => isObject(check) && check.status === "passed")) {
++            issues.push(issue("task.submoduleDependency.upstreamRelease", `${filePath}.submoduleDependencies[${index}].checks must contain only passed checks for upstream-release authority`));
++          }
++        }
++      });
++    }
+   }
+   if (value.contractLock !== undefined) {
+     if (!isObject(value.contractLock)) {
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+index f9c635e..0debed3 100644
+--- a/src/core/task-authority.ts
++++ b/src/core/task-authority.ts
+@@ -14,6 +14,7 @@ export const TASK_AUTHORITY_FIELDS = [
+   "requiredChecks",
+   "managedContractPaths",
+   "checkCoverageWaivers",
++  "submoduleDependencies",
+   "approvalPolicy"
+ ] as const;
+ 
+@@ -51,6 +52,18 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
+     checkCoverageWaivers: [...(task.checkCoverageWaivers ?? [])]
+       .map((waiver) => ({ check: waiver.check, reason: waiver.reason }))
+       .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`)),
++    submoduleDependencies: [...(task.submoduleDependencies ?? [])]
++      .map((dependency) => ({
++        path: dependency.path,
++        authorityMode: dependency.authorityMode,
++        repository: dependency.repository,
++        pullRequest: dependency.pullRequest,
++        upstreamRef: dependency.upstreamRef,
++        checks: [...(dependency.checks ?? [])]
++          .map((check) => ({ name: check.name, status: check.status, url: check.url }))
++          .sort((left, right) => `${left.name}\0${left.status}\0${left.url ?? ""}`.localeCompare(`${right.name}\0${right.status}\0${right.url ?? ""}`))
++      }))
++      .sort((left, right) => left.path.localeCompare(right.path)),
+     approvalPolicy: task.approvalPolicy?.mode === "delegated"
+       ? { ...task.approvalPolicy, scopes: normalizedStrings(task.approvalPolicy.scopes) }
+       : { mode: "human-only" }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 936712b..f05fe21 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -142,6 +142,7 @@ export type TaskContract = {
+   checkCoverageWaivers?: Array<{ check: string; reason: string }>;
+   submoduleDependencies?: Array<{
+     path: string;
++    authorityMode?: "upstream-release";
+     repository?: string;
+     pullRequest?: string;
+     upstreamRef?: string;
+diff --git a/src/core/wbs-lock.ts b/src/core/wbs-lock.ts
+index feed616..282b992 100644
+--- a/src/core/wbs-lock.ts
++++ b/src/core/wbs-lock.ts
+@@ -73,7 +73,19 @@ export function wbsScopeRevision(wbs: WbsDocument, taskNodeId: string): string {
+   return revision(buildWbsScopeSnapshot(wbs, taskNodeId));
+ }
+ 
++function globalAuthorityScwbsPolicy(value: unknown): unknown {
++  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
++  const policy = structuredClone(value) as Record<string, unknown>;
++  const governanceCost = policy.governanceCost;
++  if (!governanceCost || typeof governanceCost !== "object" || Array.isArray(governanceCost)) return policy;
++  const authorityGovernanceCost = { ...(governanceCost as Record<string, unknown>) };
++  delete authorityGovernanceCost.warningBudgets;
++  if (Object.keys(authorityGovernanceCost).length === 0) delete policy.governanceCost;
++  else policy.governanceCost = authorityGovernanceCost;
++  return Object.keys(policy).length === 0 ? undefined : policy;
++}
++
+ export function wbsGlobalRevision(wbs: WbsDocument): string {
+-  const scwbsPolicy = wbs.extensions?.scwbs;
++  const scwbsPolicy = globalAuthorityScwbsPolicy(wbs.extensions?.scwbs);
+   return revision({ schemaVersion: wbs.schemaVersion, wbsId: wbs.id, rootId: wbs.rootId, scwbsPolicy });
+ }
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 3a7716b..93194ac 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -52,6 +52,14 @@ describe("check-diff", () => {
+       requiredChecks: ["test"],
+       managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
+       checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }],
++      submoduleDependencies: [{
++        path: "vendor/dependency",
++        authorityMode: "upstream-release",
++        repository: "example/dependency",
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        checks: [{ name: "upstream-ci", status: "passed" }]
++      }],
+       approvalPolicy: {
+         mode: "delegated",
+         delegatedBy: "owner",
+@@ -70,6 +78,7 @@ describe("check-diff", () => {
+       "requiredChecks",
+       "managedContractPaths",
+       "checkCoverageWaivers",
++      "submoduleDependencies",
+       "approvalPolicy"
+     ]);
+   });
+@@ -284,6 +293,84 @@ describe("check-diff", () => {
+     expect(issues.some((issue) => issue.code === "diff.submodule.check")).toBe(true);
+   });
+ 
++  test("check-diff authorizes a verified upstream release by gitlink while retaining nested coverage", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      rules: [{ id: "upstream-wjs", paths: ["vendor/dependency/**"], requires: ["test:wjs"] }]
++    });
++    const declaration = {
++      path: "vendor/dependency",
++      authorityMode: "upstream-release" as const,
++      repository: "example/dependency",
++      pullRequest: "#4",
++      upstreamRef: "refs/remotes/origin/main",
++      checks: [{ name: "upstream-ci", status: "passed", url: "https://example.test/check/4" }]
++    };
++    const task = sampleTask({
++      allowedPaths: ["vendor/dependency"],
++      forbiddenPaths: ["vendor/dependency/**"],
++      humanGateRequiredPaths: [],
++      requiredChecks: ["test:wjs"],
++      submoduleDependencies: [declaration]
++    });
++    const evidence = sampleEvidence({
++      changedFiles: ["vendor/dependency"],
++      submodules: [{
++        path: "vendor/dependency",
++        repository: declaration.repository,
++        baseCommit: "1".repeat(40),
++        headCommit: "2".repeat(40),
++        changedFiles: ["schema/operation.json"],
++        pullRequest: declaration.pullRequest,
++        upstreamRef: declaration.upstreamRef,
++        upstreamReachable: true,
++        checks: declaration.checks
++      }]
++    });
++
++    const issues = collectDiffIssues(root, task, ["vendor/dependency"], evidence);
++    expect(issues.some((issue) => issue.code === "diff.allowedPaths" || issue.code === "diff.forbiddenPaths")).toBe(false);
++    expect(issues.some((issue) => issue.code === "diff.checkCoverage.missing")).toBe(false);
++    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamRelease")).toBe(false);
++  });
++
++  test("check-diff keeps mismatched upstream release nested files under forbidden path authority", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const task = sampleTask({
++      allowedPaths: ["vendor/dependency"],
++      forbiddenPaths: ["vendor/dependency/**"],
++      humanGateRequiredPaths: [],
++      submoduleDependencies: [{
++        path: "vendor/dependency",
++        authorityMode: "upstream-release",
++        repository: "example/dependency",
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        checks: [{ name: "upstream-ci", status: "passed" }]
++      }]
++    });
++    const evidence = sampleEvidence({
++      changedFiles: ["vendor/dependency"],
++      submodules: [{
++        path: "vendor/dependency",
++        repository: "attacker/dependency",
++        baseCommit: "1".repeat(40),
++        headCommit: "2".repeat(40),
++        changedFiles: ["secret.txt"],
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        upstreamReachable: true,
++        checks: [{ name: "upstream-ci", status: "passed" }]
++      }]
++    });
++
++    const issues = collectDiffIssues(root, task, ["vendor/dependency"], evidence);
++    expect(issues.some((issue) => issue.code === "diff.submodule.upstreamRelease")).toBe(true);
++    expect(issues.some((issue) => issue.code === "diff.forbiddenPaths" && issue.message.includes("vendor/dependency/secret.txt"))).toBe(true);
++  });
++
+   test("check-diff requires nested Evidence for configured changed gitlinks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 7281aed..8aebcbf 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -12,6 +12,7 @@ import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh
+ import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
+ import { buildNextTask } from "../../src/commands/ai-queue.js";
+ import { main } from "../../src/cli.js";
++import { validateTaskContract, validateTaskContractSchema } from "../../src/core/schema.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ const wjsValidatorModule = "../../wjs/tools/validate.js";
+@@ -20,6 +21,30 @@ const { validateJsonWithSchema } = await import(wjsValidatorModule) as {
+ };
+ 
+ describe("task management", () => {
++  test("upstream-release submodule authority requires immutable provenance and passed checks", () => {
++    const incomplete = sampleTask({
++      submoduleDependencies: [{
++        path: "vendor/dependency",
++        authorityMode: "upstream-release"
++      }]
++    });
++    expect(validateTaskContractSchema(incomplete, "task.yaml").some((issue) => issue.code === "task.schema")).toBe(true);
++    expect(validateTaskContract(incomplete, "task.yaml").some((issue) => issue.code === "task.submoduleDependency.upstreamRelease")).toBe(true);
++
++    const complete = sampleTask({
++      submoduleDependencies: [{
++        path: "vendor/dependency",
++        authorityMode: "upstream-release",
++        repository: "example/dependency",
++        pullRequest: "#4",
++        upstreamRef: "refs/remotes/origin/main",
++        checks: [{ name: "upstream-ci", status: "passed" }]
++      }]
++    });
++    expect(validateTaskContractSchema(complete, "task.yaml")).toEqual([]);
++    expect(validateTaskContract(complete, "task.yaml")).toEqual([]);
++  });
++
+   test("check errors when contract lock wbs node id is stale", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -128,11 +153,36 @@ describe("task management", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
++    const warningBudgetWbs = sampleWbs();
++    warningBudgetWbs.extensions = {
++      scwbs: {
++        governanceCost: {
++          warningBudgets: {
++            Standard: {
++              governanceFiles: 700,
++              governanceLines: 31000,
++              governanceToSourceLineRatio: 2
++            }
++          }
++        }
++      }
++    };
++    writeJson(root, "contracts/wbs/project.wbs.json", warningBudgetWbs);
++    expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsGlobalRevision")).toBe(false);
++    expect(taskRefreshReasons(root, "WBS-001-004")).toEqual([]);
++
+     const wbs = sampleWbs();
+     wbs.extensions = { scwbs: { profile: "Strict" } };
+     writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+     expect(collectCheckIssues(root).some((issue) => issue.code === "task.contractLock.wbsGlobalRevision")).toBe(true);
+ 
++    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
++    const otherPolicyWbs = sampleWbs();
++    otherPolicyWbs.extensions = { scwbs: { governanceCost: { enforcementMode: "strict" } } };
++    writeJson(root, "contracts/wbs/project.wbs.json", otherPolicyWbs);
++    expect(taskRefreshReasons(root, "WBS-001-004")).toContain("WBS schema or global SC-WBS policy changed");
++
+     writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", buildLockedTask(root, "WBS-001-004") as unknown as Record<string, unknown>);
+     const schemaWbs = sampleWbs();
