@@ -1,0 +1,78 @@
+diff --git a/contracts/specs/SPEC-LITE-MRIVCPVS.yaml b/contracts/specs/SPEC-LITE-MRIVCPVS.yaml
+new file mode 100644
+index 0000000..5c602ed
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRIVCPVS.yaml
+@@ -0,0 +1,14 @@
++id: SPEC-LITE-MRIVCPVS
++type: spec-contract
++featureId: F-MRIVCPVS
++title: "Issue #132 WJS run-tsのnested import変換を修正しapply CLI runnerを復旧する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-07-13T16:03:36+09:00"
++version: 0.1.0
++summary: "Issue #132 WJS run-tsのnested import変換を修正しapply CLI runnerを復旧する"
++acceptanceCriteria:
++  - npm test -w wjs completes with all tests passing when Bun is disabled.
++  - npm run apply -- <wbs> <changeset> produces the expected output.
++  - npm run scwbs -- wbs apply <changeset> succeeds from the ACED root.
++  - The apply CLI runner regression test exercises a nested import under tools/apply.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml b/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
+new file mode 100644
+index 0000000..b7e7973
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
+@@ -0,0 +1,33 @@
++id: SCWBS-DRAFT-MRIVCPVS
++type: task-contract
++wbsNodeId: node-project
++featureId: F-MRIVCPVS
++branchName: task/SCWBS-DRAFT-MRIVCPVS-issue-132-wjs-run-ts-nested-import-apply-cli-run
++allowedPaths:
++  - package.json
++  - wjs
++  - wjs/tools/run-ts.mjs
++  - wjs/tests/apply/cli-runner.test.ts
++  - contracts/**
++forbiddenPaths: []
++humanGateRequiredPaths:
++  - package.json
++requiredChecks:
++  - test
++  - test:wjs
++  - typecheck
++  - build
++doneCriteria:
++  - WJS run-ts preserves nested tool imports when emitting temporary JavaScript.
++  - npm test -w wjs passes without Bun.
++  - npm run apply succeeds for a representative WBS changeset.
++  - The root scwbs wbs apply command succeeds through the WJS runner.
++  - A regression test covers nested imports used by the apply CLI runner.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-project
++  createdAt: "2026-07-13T07:03:58.088Z"
+diff --git a/package.json b/package.json
+index 93dc265..6b130c9 100644
+--- a/package.json
++++ b/package.json
+@@ -13,6 +13,7 @@
+     "typecheck": "tsc -p tsconfig.json --noEmit",
+     "test": "vitest run tests/unit",
+     "test:integration": "vitest run tests/integration",
++    "test:wjs": "npm test -w wjs",
+     "test:all": "vitest run",
+     "scwbs": "tsc -p tsconfig.json && node dist/cli.js"
+   },
+diff --git a/wjs b/wjs
+index ca4b0ee..cfcdcf8 160000
+--- a/wjs
++++ b/wjs
+@@ -1 +1 @@
+-Subproject commit ca4b0eec4e3645ea73fc97b825fa2caabfc1ecc3
++Subproject commit cfcdcf8b1c44aac492e248eea4aa8fcb8ce7e212
