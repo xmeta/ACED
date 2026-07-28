@@ -1,0 +1,4699 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 29cc26b..cb92d04 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -15,7 +15,7 @@ jobs:
+         with:
+           node-version: 24
+           cache: npm
+-      - run: npm install --no-audit --no-fund
++      - run: npm ci --no-audit --no-fund
+       - run: npm test
+       - run: npm run typecheck
+       - run: npm run build
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRHVJE4O.yaml b/contracts/blocks/SCWBS-DRAFT-MRHVJE4O.yaml
+new file mode 100644
+index 0000000..ff9dc28
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRHVJE4O.yaml
+@@ -0,0 +1,9 @@
++id: BLK-SCWBS-DRAFT-MRHVJE4O
++type: block
++taskId: SCWBS-DRAFT-MRHVJE4O
++status: blocked
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Issue #130 requires changes to package.json, package-lock.json, and .github workflow; these paths are human-gated and outside the generated contract allowedPaths. Expand the contract and approve the human gate before implementation."
++createdAt: "2026-07-12T14:14:08.377Z"
+diff --git a/contracts/changesets/start-MRHVJE4O.json b/contracts/changesets/start-MRHVJE4O.json
+new file mode 100644
+index 0000000..15c28a0
+--- /dev/null
++++ b/contracts/changesets/start-MRHVJE4O.json
+@@ -0,0 +1,25 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-start-MRHVJE4O",
++  "author": "scwbs",
++  "reason": "Start lightweight SC-WBS flow for: Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI",
++  "dryRun": true,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "addNode",
++      "node": {
++        "id": "node-fix-issue-130-synchronize-package-lock-json-with",
++        "parentId": "node-project",
++        "code": "draft",
++        "name": "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI",
++        "type": "workPackage",
++        "status": "draft"
++      },
++      "position": {
++        "mode": "last"
++      }
++    }
++  ]
++}
+diff --git a/contracts/specs/SPEC-LITE-MRHVJE4O.yaml b/contracts/specs/SPEC-LITE-MRHVJE4O.yaml
+new file mode 100644
+index 0000000..a82f635
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRHVJE4O.yaml
+@@ -0,0 +1,14 @@
++id: SPEC-LITE-MRHVJE4O
++type: spec-contract
++featureId: F-MRHVJE4O
++title: "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI"
++status: approved
++approvedBy: human
++approvedAt: "2026-07-13T12:13:00+09:00"
++version: 0.1.0
++summary: "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI"
++acceptanceCriteria:
++  - "A clean checkout succeeds with npm ci."
++  - "The root lockfile records the wjs workspace and all required workspace dependencies, including wbs-json-spec and esbuild platform packages."
++  - "Running npm ci leaves no Git diff."
++  - "CI installs dependencies with npm ci rather than npm install."
+diff --git a/contracts/tasks/LITE-001.yaml b/contracts/tasks/LITE-001.yaml
+index 7c9ebab..0094983 100644
+--- a/contracts/tasks/LITE-001.yaml
++++ b/contracts/tasks/LITE-001.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:23.287Z"
++  createdAt: "2026-07-12T15:06:25.829Z"
+diff --git a/contracts/tasks/LITE-002.yaml b/contracts/tasks/LITE-002.yaml
+index 29a0c10..8c270d8 100644
+--- a/contracts/tasks/LITE-002.yaml
++++ b/contracts/tasks/LITE-002.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:23.554Z"
++  createdAt: "2026-07-12T15:06:30.086Z"
+diff --git a/contracts/tasks/LITE-003.yaml b/contracts/tasks/LITE-003.yaml
+index 8eddffc..0f45531 100644
+--- a/contracts/tasks/LITE-003.yaml
++++ b/contracts/tasks/LITE-003.yaml
+@@ -40,6 +40,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:23.815Z"
++  createdAt: "2026-07-12T15:06:34.246Z"
+diff --git a/contracts/tasks/SCWBS-001.yaml b/contracts/tasks/SCWBS-001.yaml
+index 5d273f0..e0105c8 100644
+--- a/contracts/tasks/SCWBS-001.yaml
++++ b/contracts/tasks/SCWBS-001.yaml
+@@ -31,8 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+-  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+-  createdAt: "2026-07-06T10:33:24.103Z"
++  specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
++  createdAt: "2026-07-12T15:06:38.153Z"
+diff --git a/contracts/tasks/SCWBS-002.yaml b/contracts/tasks/SCWBS-002.yaml
+index 04df525..588ffcc 100644
+--- a/contracts/tasks/SCWBS-002.yaml
++++ b/contracts/tasks/SCWBS-002.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-spec-contracts
+-  createdAt: "2026-07-06T10:33:24.395Z"
++  createdAt: "2026-07-12T15:06:44.399Z"
+diff --git a/contracts/tasks/SCWBS-003.yaml b/contracts/tasks/SCWBS-003.yaml
+index ef4b8df..16f7861 100644
+--- a/contracts/tasks/SCWBS-003.yaml
++++ b/contracts/tasks/SCWBS-003.yaml
+@@ -28,6 +28,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-test-quality
+-  createdAt: "2026-07-06T10:33:24.747Z"
++  createdAt: "2026-07-12T15:06:48.987Z"
+diff --git a/contracts/tasks/SCWBS-004.yaml b/contracts/tasks/SCWBS-004.yaml
+index 0cc9e1e..1124dee 100644
+--- a/contracts/tasks/SCWBS-004.yaml
++++ b/contracts/tasks/SCWBS-004.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-task-generate
+-  createdAt: "2026-07-06T10:33:25.105Z"
++  createdAt: "2026-07-12T15:06:52.701Z"
+diff --git a/contracts/tasks/SCWBS-005.yaml b/contracts/tasks/SCWBS-005.yaml
+index a5d223c..33e28ca 100644
+--- a/contracts/tasks/SCWBS-005.yaml
++++ b/contracts/tasks/SCWBS-005.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-wbs-merge
+-  createdAt: "2026-07-06T10:33:25.436Z"
++  createdAt: "2026-07-12T15:06:55.838Z"
+diff --git a/contracts/tasks/SCWBS-006.yaml b/contracts/tasks/SCWBS-006.yaml
+index 0b08d26..cdbd049 100644
+--- a/contracts/tasks/SCWBS-006.yaml
++++ b/contracts/tasks/SCWBS-006.yaml
+@@ -31,6 +31,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-meta-file-safety
+-  createdAt: "2026-07-06T10:33:25.842Z"
++  createdAt: "2026-07-12T15:06:59.441Z"
+diff --git a/contracts/tasks/SCWBS-007.yaml b/contracts/tasks/SCWBS-007.yaml
+index 0d808db..0649943 100644
+--- a/contracts/tasks/SCWBS-007.yaml
++++ b/contracts/tasks/SCWBS-007.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-bootstrap-subtree
+-  createdAt: "2026-07-06T10:33:26.158Z"
++  createdAt: "2026-07-12T15:07:03.039Z"
+diff --git a/contracts/tasks/SCWBS-008.yaml b/contracts/tasks/SCWBS-008.yaml
+index fde9d02..a83aa2e 100644
+--- a/contracts/tasks/SCWBS-008.yaml
++++ b/contracts/tasks/SCWBS-008.yaml
+@@ -32,6 +32,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-orchestration
+-  createdAt: "2026-07-06T10:33:26.493Z"
++  createdAt: "2026-07-12T15:07:06.377Z"
+diff --git a/contracts/tasks/SCWBS-009.yaml b/contracts/tasks/SCWBS-009.yaml
+index 171142e..eb4bfaf 100644
+--- a/contracts/tasks/SCWBS-009.yaml
++++ b/contracts/tasks/SCWBS-009.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-doctor
+-  createdAt: "2026-07-06T10:33:26.774Z"
++  createdAt: "2026-07-12T15:07:09.553Z"
+diff --git a/contracts/tasks/SCWBS-010.yaml b/contracts/tasks/SCWBS-010.yaml
+index 34bb26b..ee45763 100644
+--- a/contracts/tasks/SCWBS-010.yaml
++++ b/contracts/tasks/SCWBS-010.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-06T10:33:27.115Z"
++  createdAt: "2026-07-12T15:07:13.057Z"
+diff --git a/contracts/tasks/SCWBS-011.yaml b/contracts/tasks/SCWBS-011.yaml
+index b54dc2d..c5cdd10 100644
+--- a/contracts/tasks/SCWBS-011.yaml
++++ b/contracts/tasks/SCWBS-011.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-task-refresh
+-  createdAt: "2026-07-06T10:33:27.413Z"
++  createdAt: "2026-07-12T15:07:16.318Z"
+diff --git a/contracts/tasks/SCWBS-012.yaml b/contracts/tasks/SCWBS-012.yaml
+index 436e564..e88d0f1 100644
+--- a/contracts/tasks/SCWBS-012.yaml
++++ b/contracts/tasks/SCWBS-012.yaml
+@@ -32,6 +32,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-registry-profile
+-  createdAt: "2026-07-06T10:33:27.720Z"
++  createdAt: "2026-07-12T15:07:19.832Z"
+diff --git a/contracts/tasks/SCWBS-013.yaml b/contracts/tasks/SCWBS-013.yaml
+index 7794ea7..5ca1cbb 100644
+--- a/contracts/tasks/SCWBS-013.yaml
++++ b/contracts/tasks/SCWBS-013.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-ai-run
+-  createdAt: "2026-07-06T10:33:27.998Z"
++  createdAt: "2026-07-12T15:07:46.891Z"
+diff --git a/contracts/tasks/SCWBS-014.yaml b/contracts/tasks/SCWBS-014.yaml
+index 084aa5b..b9bf722 100644
+--- a/contracts/tasks/SCWBS-014.yaml
++++ b/contracts/tasks/SCWBS-014.yaml
+@@ -33,6 +33,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-review-request
+-  createdAt: "2026-07-06T10:33:28.328Z"
++  createdAt: "2026-07-12T15:07:27.578Z"
+diff --git a/contracts/tasks/SCWBS-015.yaml b/contracts/tasks/SCWBS-015.yaml
+index 100e985..01cd7aa 100644
+--- a/contracts/tasks/SCWBS-015.yaml
++++ b/contracts/tasks/SCWBS-015.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-next
+-  createdAt: "2026-07-06T10:33:28.618Z"
++  createdAt: "2026-07-12T15:07:33.808Z"
+diff --git a/contracts/tasks/SCWBS-016.yaml b/contracts/tasks/SCWBS-016.yaml
+index fbed0d1..6eee4e2 100644
+--- a/contracts/tasks/SCWBS-016.yaml
++++ b/contracts/tasks/SCWBS-016.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-ai-packet-format
+-  createdAt: "2026-07-06T10:33:28.898Z"
++  createdAt: "2026-07-12T15:07:38.004Z"
+diff --git a/contracts/tasks/SCWBS-017.yaml b/contracts/tasks/SCWBS-017.yaml
+index 0f6a315..b61af76 100644
+--- a/contracts/tasks/SCWBS-017.yaml
++++ b/contracts/tasks/SCWBS-017.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-start-plan
+-  createdAt: "2026-07-06T10:33:29.176Z"
++  createdAt: "2026-07-12T15:07:41.711Z"
+diff --git a/contracts/tasks/SCWBS-018.yaml b/contracts/tasks/SCWBS-018.yaml
+index 89534a9..dc25311 100644
+--- a/contracts/tasks/SCWBS-018.yaml
++++ b/contracts/tasks/SCWBS-018.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-lite-promote
+-  createdAt: "2026-07-06T10:33:29.502Z"
++  createdAt: "2026-07-12T15:07:47.228Z"
+diff --git a/contracts/tasks/SCWBS-019.yaml b/contracts/tasks/SCWBS-019.yaml
+index 7707cd3..4a647a5 100644
+--- a/contracts/tasks/SCWBS-019.yaml
++++ b/contracts/tasks/SCWBS-019.yaml
+@@ -31,6 +31,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-trace
+-  createdAt: "2026-07-06T10:33:29.783Z"
++  createdAt: "2026-07-12T15:07:51.222Z"
+diff --git a/contracts/tasks/SCWBS-020.yaml b/contracts/tasks/SCWBS-020.yaml
+index 0c35cbe..de66157 100644
+--- a/contracts/tasks/SCWBS-020.yaml
++++ b/contracts/tasks/SCWBS-020.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-ui-serve
+-  createdAt: "2026-07-06T10:33:30.079Z"
++  createdAt: "2026-07-12T15:07:54.977Z"
+diff --git a/contracts/tasks/SCWBS-021.yaml b/contracts/tasks/SCWBS-021.yaml
+index 2912d6b..585fffd 100644
+--- a/contracts/tasks/SCWBS-021.yaml
++++ b/contracts/tasks/SCWBS-021.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-branch-guard
+-  createdAt: "2026-07-06T10:33:30.345Z"
++  createdAt: "2026-07-12T15:08:00.023Z"
+diff --git a/contracts/tasks/SCWBS-022.yaml b/contracts/tasks/SCWBS-022.yaml
+index 3c90be2..b274c05 100644
+--- a/contracts/tasks/SCWBS-022.yaml
++++ b/contracts/tasks/SCWBS-022.yaml
+@@ -29,6 +29,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-review-routing
+-  createdAt: "2026-07-06T10:33:30.615Z"
++  createdAt: "2026-07-12T15:08:06.418Z"
+diff --git a/contracts/tasks/SCWBS-023.yaml b/contracts/tasks/SCWBS-023.yaml
+index 282bfb3..de6bc5b 100644
+--- a/contracts/tasks/SCWBS-023.yaml
++++ b/contracts/tasks/SCWBS-023.yaml
+@@ -34,6 +34,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-wbs-tool-only
+-  createdAt: "2026-07-06T10:33:30.931Z"
++  createdAt: "2026-07-12T15:08:11.117Z"
+diff --git a/contracts/tasks/SCWBS-024.yaml b/contracts/tasks/SCWBS-024.yaml
+index aa68aff..940904f 100644
+--- a/contracts/tasks/SCWBS-024.yaml
++++ b/contracts/tasks/SCWBS-024.yaml
+@@ -31,8 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+-  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+-  createdAt: "2026-07-06T10:33:31.334Z"
++  specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
++  createdAt: "2026-07-12T15:08:16.576Z"
+diff --git a/contracts/tasks/SCWBS-025.yaml b/contracts/tasks/SCWBS-025.yaml
+index 486b382..ed50f95 100644
+--- a/contracts/tasks/SCWBS-025.yaml
++++ b/contracts/tasks/SCWBS-025.yaml
+@@ -32,6 +32,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-yaml-json-schema-validation
+-  createdAt: "2026-07-06T10:33:31.616Z"
++  createdAt: "2026-07-12T15:08:21.850Z"
+diff --git a/contracts/tasks/SCWBS-026.yaml b/contracts/tasks/SCWBS-026.yaml
+index 82377d9..d383d95 100644
+--- a/contracts/tasks/SCWBS-026.yaml
++++ b/contracts/tasks/SCWBS-026.yaml
+@@ -34,6 +34,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-yaml-json-schema-validation
+-  createdAt: "2026-07-06T10:33:31.891Z"
++  createdAt: "2026-07-12T15:08:26.919Z"
+diff --git a/contracts/tasks/SCWBS-027.yaml b/contracts/tasks/SCWBS-027.yaml
+index 4af75f7..4141be0 100644
+--- a/contracts/tasks/SCWBS-027.yaml
++++ b/contracts/tasks/SCWBS-027.yaml
+@@ -45,6 +45,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-06T10:33:32.162Z"
++  createdAt: "2026-07-12T15:08:32.301Z"
+diff --git a/contracts/tasks/SCWBS-028.yaml b/contracts/tasks/SCWBS-028.yaml
+index 9109fab..c7b8774 100644
+--- a/contracts/tasks/SCWBS-028.yaml
++++ b/contracts/tasks/SCWBS-028.yaml
+@@ -30,8 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+-  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+-  createdAt: "2026-07-06T10:33:32.482Z"
++  specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
++  createdAt: "2026-07-12T15:08:39.208Z"
+diff --git a/contracts/tasks/SCWBS-029.yaml b/contracts/tasks/SCWBS-029.yaml
+index 0e6d81f..23ea238 100644
+--- a/contracts/tasks/SCWBS-029.yaml
++++ b/contracts/tasks/SCWBS-029.yaml
+@@ -37,6 +37,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-meta-health-audit-hygiene
+-  createdAt: "2026-07-06T10:33:32.954Z"
++  createdAt: "2026-07-12T15:08:44.536Z"
+diff --git a/contracts/tasks/SCWBS-030.yaml b/contracts/tasks/SCWBS-030.yaml
+index 2bca236..2640378 100644
+--- a/contracts/tasks/SCWBS-030.yaml
++++ b/contracts/tasks/SCWBS-030.yaml
+@@ -31,6 +31,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-conflict-cost-guardrails
+-  createdAt: "2026-07-06T10:33:33.325Z"
++  createdAt: "2026-07-12T15:08:50.120Z"
+diff --git a/contracts/tasks/SCWBS-031.yaml b/contracts/tasks/SCWBS-031.yaml
+index 0bfc49c..ce60e92 100644
+--- a/contracts/tasks/SCWBS-031.yaml
++++ b/contracts/tasks/SCWBS-031.yaml
+@@ -23,8 +23,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+-  specRevision: "sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9"
+-  createdAt: "2026-07-06T10:33:33.594Z"
++  specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
++  createdAt: "2026-07-12T15:08:56.016Z"
+diff --git a/contracts/tasks/SCWBS-032.yaml b/contracts/tasks/SCWBS-032.yaml
+index a74be61..89f707a 100644
+--- a/contracts/tasks/SCWBS-032.yaml
++++ b/contracts/tasks/SCWBS-032.yaml
+@@ -33,6 +33,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-06T10:33:33.917Z"
++  createdAt: "2026-07-12T15:09:03.022Z"
+diff --git a/contracts/tasks/SCWBS-033.yaml b/contracts/tasks/SCWBS-033.yaml
+index 1cdab4b..7b060c5 100644
+--- a/contracts/tasks/SCWBS-033.yaml
++++ b/contracts/tasks/SCWBS-033.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-06T10:33:34.246Z"
++  createdAt: "2026-07-12T15:09:09.576Z"
+diff --git a/contracts/tasks/SCWBS-034.yaml b/contracts/tasks/SCWBS-034.yaml
+index b47509c..4b274fd 100644
+--- a/contracts/tasks/SCWBS-034.yaml
++++ b/contracts/tasks/SCWBS-034.yaml
+@@ -33,6 +33,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-next
+-  createdAt: "2026-07-06T10:33:34.571Z"
++  createdAt: "2026-07-12T15:09:15.790Z"
+diff --git a/contracts/tasks/SCWBS-035.yaml b/contracts/tasks/SCWBS-035.yaml
+index 13303e8..a0e8b61 100644
+--- a/contracts/tasks/SCWBS-035.yaml
++++ b/contracts/tasks/SCWBS-035.yaml
+@@ -32,6 +32,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-06T10:33:34.847Z"
++  createdAt: "2026-07-12T15:09:22.055Z"
+diff --git a/contracts/tasks/SCWBS-036.yaml b/contracts/tasks/SCWBS-036.yaml
+index 7e9409d..470ab09 100644
+--- a/contracts/tasks/SCWBS-036.yaml
++++ b/contracts/tasks/SCWBS-036.yaml
+@@ -25,6 +25,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-06T10:33:35.181Z"
++  createdAt: "2026-07-12T15:09:31.411Z"
+diff --git a/contracts/tasks/SCWBS-037.yaml b/contracts/tasks/SCWBS-037.yaml
+index 95a4468..8b76fe0 100644
+--- a/contracts/tasks/SCWBS-037.yaml
++++ b/contracts/tasks/SCWBS-037.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-06T10:33:35.508Z"
++  createdAt: "2026-07-12T15:09:37.916Z"
+diff --git a/contracts/tasks/SCWBS-038.yaml b/contracts/tasks/SCWBS-038.yaml
+index 6f73aab..f8f5bae 100644
+--- a/contracts/tasks/SCWBS-038.yaml
++++ b/contracts/tasks/SCWBS-038.yaml
+@@ -25,6 +25,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-test-quality
+-  createdAt: "2026-07-06T10:33:35.782Z"
++  createdAt: "2026-07-12T15:09:43.280Z"
+diff --git a/contracts/tasks/SCWBS-039.yaml b/contracts/tasks/SCWBS-039.yaml
+index 0fd3c31..1f1ae08 100644
+--- a/contracts/tasks/SCWBS-039.yaml
++++ b/contracts/tasks/SCWBS-039.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:36.053Z"
++  createdAt: "2026-07-12T15:09:49.223Z"
+diff --git a/contracts/tasks/SCWBS-040.yaml b/contracts/tasks/SCWBS-040.yaml
+index 01902ff..871f7e4 100644
+--- a/contracts/tasks/SCWBS-040.yaml
++++ b/contracts/tasks/SCWBS-040.yaml
+@@ -28,6 +28,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:36.318Z"
++  createdAt: "2026-07-12T15:10:01.979Z"
+diff --git a/contracts/tasks/SCWBS-041.yaml b/contracts/tasks/SCWBS-041.yaml
+index cfb04f6..f57cc34 100644
+--- a/contracts/tasks/SCWBS-041.yaml
++++ b/contracts/tasks/SCWBS-041.yaml
+@@ -31,6 +31,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:36.610Z"
++  createdAt: "2026-07-12T15:10:08.172Z"
+diff --git a/contracts/tasks/SCWBS-042.yaml b/contracts/tasks/SCWBS-042.yaml
+index 23190ef..cf02a70 100644
+--- a/contracts/tasks/SCWBS-042.yaml
++++ b/contracts/tasks/SCWBS-042.yaml
+@@ -25,6 +25,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:36.898Z"
++  createdAt: "2026-07-12T15:10:14.347Z"
+diff --git a/contracts/tasks/SCWBS-043.yaml b/contracts/tasks/SCWBS-043.yaml
+index 0d4622d..2ec7bd8 100644
+--- a/contracts/tasks/SCWBS-043.yaml
++++ b/contracts/tasks/SCWBS-043.yaml
+@@ -25,6 +25,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:37.259Z"
++  createdAt: "2026-07-12T15:10:19.837Z"
+diff --git a/contracts/tasks/SCWBS-044.yaml b/contracts/tasks/SCWBS-044.yaml
+index babf4e8..95a15d3 100644
+--- a/contracts/tasks/SCWBS-044.yaml
++++ b/contracts/tasks/SCWBS-044.yaml
+@@ -24,6 +24,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:37.590Z"
++  createdAt: "2026-07-12T15:10:26.219Z"
+diff --git a/contracts/tasks/SCWBS-045.yaml b/contracts/tasks/SCWBS-045.yaml
+index d8b211d..b3bb3fe 100644
+--- a/contracts/tasks/SCWBS-045.yaml
++++ b/contracts/tasks/SCWBS-045.yaml
+@@ -25,6 +25,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:37.936Z"
++  createdAt: "2026-07-12T15:10:27.256Z"
+diff --git a/contracts/tasks/SCWBS-046.yaml b/contracts/tasks/SCWBS-046.yaml
+index bf1a8fc..89608d6 100644
+--- a/contracts/tasks/SCWBS-046.yaml
++++ b/contracts/tasks/SCWBS-046.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:38.240Z"
++  createdAt: "2026-07-12T15:10:31.262Z"
+diff --git a/contracts/tasks/SCWBS-047.yaml b/contracts/tasks/SCWBS-047.yaml
+index 30130b9..8e9476a 100644
+--- a/contracts/tasks/SCWBS-047.yaml
++++ b/contracts/tasks/SCWBS-047.yaml
+@@ -24,6 +24,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:38.507Z"
++  createdAt: "2026-07-12T15:10:36.066Z"
+diff --git a/contracts/tasks/SCWBS-048.yaml b/contracts/tasks/SCWBS-048.yaml
+index b73ee4e..9190d6a 100644
+--- a/contracts/tasks/SCWBS-048.yaml
++++ b/contracts/tasks/SCWBS-048.yaml
+@@ -39,6 +39,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:38.782Z"
++  createdAt: "2026-07-12T15:10:44.884Z"
+diff --git a/contracts/tasks/SCWBS-049.yaml b/contracts/tasks/SCWBS-049.yaml
+index 0ed60ef..8b4d94b 100644
+--- a/contracts/tasks/SCWBS-049.yaml
++++ b/contracts/tasks/SCWBS-049.yaml
+@@ -38,6 +38,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:39.068Z"
++  createdAt: "2026-07-12T15:10:49.989Z"
+diff --git a/contracts/tasks/SCWBS-050.yaml b/contracts/tasks/SCWBS-050.yaml
+index 6ed4643..0b08604 100644
+--- a/contracts/tasks/SCWBS-050.yaml
++++ b/contracts/tasks/SCWBS-050.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:39.409Z"
++  createdAt: "2026-07-12T15:10:54.479Z"
+diff --git a/contracts/tasks/SCWBS-051.yaml b/contracts/tasks/SCWBS-051.yaml
+index 83f1f17..811953d 100644
+--- a/contracts/tasks/SCWBS-051.yaml
++++ b/contracts/tasks/SCWBS-051.yaml
+@@ -23,13 +23,13 @@ requiredChecks:
+   - build
+ doneCriteria:
+   - SCWBS-041 through SCWBS-045 have approved human review records tied to their PRs.
+-  - SCWBS-046 has an approved human review record tied to PR #48.
++  - SCWBS-046 has an approved human review record tied to PR
+   - review-queue no longer reports no approval for SCWBS-046 completion targets.
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:39.740Z"
++  createdAt: "2026-07-12T15:10:59.256Z"
+diff --git a/contracts/tasks/SCWBS-052.yaml b/contracts/tasks/SCWBS-052.yaml
+index 6634eed..d0091f7 100644
+--- a/contracts/tasks/SCWBS-052.yaml
++++ b/contracts/tasks/SCWBS-052.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:40.059Z"
++  createdAt: "2026-07-12T15:11:04.571Z"
+diff --git a/contracts/tasks/SCWBS-053.yaml b/contracts/tasks/SCWBS-053.yaml
+index 6d40b0e..bceb1f0 100644
+--- a/contracts/tasks/SCWBS-053.yaml
++++ b/contracts/tasks/SCWBS-053.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:40.335Z"
++  createdAt: "2026-07-12T15:11:05.160Z"
+diff --git a/contracts/tasks/SCWBS-054.yaml b/contracts/tasks/SCWBS-054.yaml
+index c347803..217702e 100644
+--- a/contracts/tasks/SCWBS-054.yaml
++++ b/contracts/tasks/SCWBS-054.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:40.629Z"
++  createdAt: "2026-07-12T15:11:09.123Z"
+diff --git a/contracts/tasks/SCWBS-055.yaml b/contracts/tasks/SCWBS-055.yaml
+index c261bcc..ef83235 100644
+--- a/contracts/tasks/SCWBS-055.yaml
++++ b/contracts/tasks/SCWBS-055.yaml
+@@ -24,6 +24,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:40.941Z"
++  createdAt: "2026-07-12T15:11:13.380Z"
+diff --git a/contracts/tasks/SCWBS-056.yaml b/contracts/tasks/SCWBS-056.yaml
+index e469119..2ce19c8 100644
+--- a/contracts/tasks/SCWBS-056.yaml
++++ b/contracts/tasks/SCWBS-056.yaml
+@@ -33,6 +33,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:41.275Z"
++  createdAt: "2026-07-12T15:11:17.508Z"
+diff --git a/contracts/tasks/SCWBS-057.yaml b/contracts/tasks/SCWBS-057.yaml
+index e2449ca..4990fd1 100644
+--- a/contracts/tasks/SCWBS-057.yaml
++++ b/contracts/tasks/SCWBS-057.yaml
+@@ -19,13 +19,13 @@ requiredChecks:
+   - build
+ doneCriteria:
+   - LITE-003 has a review request record aligned with its existing PR metadata.
+-  - SCWBS-056 has a review request record aligned with pull request #58.
++  - SCWBS-056 has a review request record aligned with pull request
+   - review-queue no longer warns that LITE-003 or SCWBS-056 is missing a review request.
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:41.552Z"
++  createdAt: "2026-07-12T15:11:21.409Z"
+diff --git a/contracts/tasks/SCWBS-058.yaml b/contracts/tasks/SCWBS-058.yaml
+index b6a08e8..83532ea 100644
+--- a/contracts/tasks/SCWBS-058.yaml
++++ b/contracts/tasks/SCWBS-058.yaml
+@@ -29,7 +29,7 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - SCWBS-057 has a review request record aligned with pull request #61.
++  - SCWBS-057 has a review request record aligned with pull request
+   - SCWBS-058 is recorded as the dedicated node-level completion task for node-project.
+   - review-queue no longer reports the node-project review candidates as blocked only because a dedicated node-level completion task is missing.
+ evidenceRequired:
+@@ -37,6 +37,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:41.819Z"
++  createdAt: "2026-07-12T15:11:26.381Z"
+diff --git a/contracts/tasks/SCWBS-059.yaml b/contracts/tasks/SCWBS-059.yaml
+index 78e639a..c25fc63 100644
+--- a/contracts/tasks/SCWBS-059.yaml
++++ b/contracts/tasks/SCWBS-059.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:42.097Z"
++  createdAt: "2026-07-12T15:11:31.697Z"
+diff --git a/contracts/tasks/SCWBS-060.yaml b/contracts/tasks/SCWBS-060.yaml
+index 7ee54bd..149fa83 100644
+--- a/contracts/tasks/SCWBS-060.yaml
++++ b/contracts/tasks/SCWBS-060.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:42.366Z"
++  createdAt: "2026-07-12T15:11:36.351Z"
+diff --git a/contracts/tasks/SCWBS-061.yaml b/contracts/tasks/SCWBS-061.yaml
+index 314f697..fc4455d 100644
+--- a/contracts/tasks/SCWBS-061.yaml
++++ b/contracts/tasks/SCWBS-061.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-06T10:33:42.638Z"
++  createdAt: "2026-07-12T15:11:39.743Z"
+diff --git a/contracts/tasks/SCWBS-062.yaml b/contracts/tasks/SCWBS-062.yaml
+index 8090591..606a941 100644
+--- a/contracts/tasks/SCWBS-062.yaml
++++ b/contracts/tasks/SCWBS-062.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-project
+-  createdAt: "2026-07-06T10:33:42.907Z"
++  createdAt: "2026-07-12T15:11:43.344Z"
+diff --git a/contracts/tasks/SCWBS-063.yaml b/contracts/tasks/SCWBS-063.yaml
+index 5b6a4a2..5f32f3c 100644
+--- a/contracts/tasks/SCWBS-063.yaml
++++ b/contracts/tasks/SCWBS-063.yaml
+@@ -26,6 +26,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-06T10:33:43.194Z"
++  createdAt: "2026-07-12T15:11:47.040Z"
+diff --git a/contracts/tasks/SCWBS-CORE-M1.yaml b/contracts/tasks/SCWBS-CORE-M1.yaml
+index 59d3df9..ddd3608 100644
+--- a/contracts/tasks/SCWBS-CORE-M1.yaml
++++ b/contracts/tasks/SCWBS-CORE-M1.yaml
+@@ -36,6 +36,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-task-lifecycle-completion
+-  createdAt: "2026-07-06T10:33:43.466Z"
++  createdAt: "2026-07-12T15:12:00.134Z"
+diff --git a/contracts/tasks/SCWBS-CORE-M2-GATE.yaml b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+index c7dc346..6d28d22 100644
+--- a/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+@@ -4,9 +4,9 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-GATE-human-gate-diff-error
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-06T10:33:43.732Z"
++  createdAt: "2026-07-12T15:12:07.609Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+index 2c54361..c9302ae 100644
+--- a/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+@@ -4,9 +4,9 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-06T10:33:44.001Z"
++  createdAt: "2026-07-12T15:12:11.148Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-CORE-M2.yaml b/contracts/tasks/SCWBS-CORE-M2.yaml
+index 5e21007..fb8abf2 100644
+--- a/contracts/tasks/SCWBS-CORE-M2.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2.yaml
+@@ -4,9 +4,9 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-evidence-diff-guard
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-06T10:33:44.269Z"
++  createdAt: "2026-07-12T15:12:04.157Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml b/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
+index 5337699..c3dd913 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
+@@ -28,6 +28,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:44.538Z"
++  createdAt: "2026-07-12T15:12:14.728Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml b/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
+index f1f115f..63724a2 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:44.805Z"
++  createdAt: "2026-07-12T15:12:28.164Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+index f034cfe..52f5d64 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+@@ -27,6 +27,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:45.075Z"
++  createdAt: "2026-07-12T15:12:31.873Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+index 9f74a03..44a667a 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+@@ -31,6 +31,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:45.346Z"
++  createdAt: "2026-07-12T15:12:35.802Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+index b9378f8..caadab4 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+@@ -30,6 +30,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:45.614Z"
++  createdAt: "2026-07-12T15:12:39.628Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+index 9b1d929..29a985e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+@@ -28,6 +28,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T10:33:45.885Z"
++  createdAt: "2026-07-12T15:12:43.358Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+index 323177d..5e91bde 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+ managedContractPaths:
+   - contracts/changesets/SCWBS-DRAFT-MR7XMGQ2-link-wbs-node.json
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-06T10:33:46.162Z"
++  createdAt: "2026-07-12T15:12:56.904Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+index ac53473..965a9ef 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+@@ -27,8 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+   specVersion: 0.1.0
+-  specRevision: "sha256:a6269d3516cf4a26f57ddcc450023e9be12a6cb6895e5b8c0504c518894df6bb"
+-  createdAt: "2026-07-06T10:33:46.514Z"
++  specRevision: sha256:a6269d3516cf4a26f57ddcc450023e9be12a6cb6895e5b8c0504c518894df6bb
++  createdAt: "2026-07-12T15:13:00.583Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+index 335aa9f..70b90aa 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+@@ -28,8 +28,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-mvp-closeout
+   specVersion: 0.1.0
+-  specRevision: "sha256:97c5298704a576244fc31f2a8cf0b69d200a8379728fb677953ce0c71baa31bd"
+-  createdAt: "2026-07-06T10:33:46.830Z"
++  specRevision: sha256:97c5298704a576244fc31f2a8cf0b69d200a8379728fb677953ce0c71baa31bd
++  createdAt: "2026-07-12T15:13:04.738Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml b/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+index e556033..7637359 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+@@ -30,8 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-mvp-closeout
+   specVersion: 0.1.0
+-  specRevision: "sha256:660214dc0ac6976640c4a7a102651d9dcfb0ca002364f6576b633d929869c0c1"
+-  createdAt: "2026-07-06T10:33:47.101Z"
++  specRevision: sha256:660214dc0ac6976640c4a7a102651d9dcfb0ca002364f6576b633d929869c0c1
++  createdAt: "2026-07-12T15:13:08.502Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+index e889cb9..13e9afe 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+@@ -32,8 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-core-evidence-diff-guard-completion
+   specVersion: 0.1.0
+-  specRevision: "sha256:90d9452c86c633cf1a19dedc50502fb92ba21a354404177087ef8aa2d5454d14"
+-  createdAt: "2026-07-06T10:33:47.390Z"
++  specRevision: sha256:90d9452c86c633cf1a19dedc50502fb92ba21a354404177087ef8aa2d5454d14
++  createdAt: "2026-07-12T15:13:11.871Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+index 27fa68f..dfe426d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+@@ -32,8 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+-  specRevision: "sha256:6d48dd7c4d24643f62887952eba12c4c9e4264b36ac08ac360199483f61be50c"
+-  createdAt: "2026-07-06T10:33:47.700Z"
++  specRevision: sha256:6d48dd7c4d24643f62887952eba12c4c9e4264b36ac08ac360199483f61be50c
++  createdAt: "2026-07-12T15:13:25.333Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+index b49c6ad..53a7a7e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+@@ -32,8 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+-  specRevision: "sha256:4031592a1cdce2ba1024436cb835dcdd23a7824c853632d0ba02059c9cb3100f"
+-  createdAt: "2026-07-06T10:33:48.232Z"
++  specRevision: sha256:4031592a1cdce2ba1024436cb835dcdd23a7824c853632d0ba02059c9cb3100f
++  createdAt: "2026-07-12T15:13:28.986Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml b/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
+index 9e73bb4..180e258 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
+@@ -29,8 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+-  specRevision: "sha256:4670070b63124fdf76637f2363817e8c82ccd21a223675d9b36df8dff41ef73e"
+-  createdAt: "2026-07-06T10:33:48.630Z"
++  specRevision: sha256:4670070b63124fdf76637f2363817e8c82ccd21a223675d9b36df8dff41ef73e
++  createdAt: "2026-07-12T15:13:32.674Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+index 96db5eb..3ea153b 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+@@ -35,8 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+-  specRevision: "sha256:c29e6df8f69d2ceafdd7a79b408683ecf98b2fe67a98c4fc36bbf4f586030d2a"
+-  createdAt: "2026-07-06T10:33:48.954Z"
++  specRevision: sha256:c29e6df8f69d2ceafdd7a79b408683ecf98b2fe67a98c4fc36bbf4f586030d2a
++  createdAt: "2026-07-12T15:13:36.231Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml b/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
+index e7a7516..11cdcdb 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
+@@ -35,8 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: "sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead"
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+-  specRevision: "sha256:7d25b2bab3c7dc13532402e5743dbceca4aac9e45f6dedef7b6c1a0560e66565"
+-  createdAt: "2026-07-06T10:33:49.240Z"
++  specRevision: sha256:7d25b2bab3c7dc13532402e5743dbceca4aac9e45f6dedef7b6c1a0560e66565
++  createdAt: "2026-07-12T15:13:39.753Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml b/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
+index 6d897c1..77a22e0 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
+@@ -29,8 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:1332e54e3eed7285b1dff3748581ab8dfe3e8a359631ad0340080f4e705fd735
+-  createdAt: "2026-07-06T13:01:36.986Z"
++  createdAt: "2026-07-12T15:13:53.178Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml b/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
+index 62abe47..e142399 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-06T13:07:29.982Z"
++  specVersion: 0.1.0
++  specRevision: sha256:10bf448315196d5c26490d4472d6ace57c6ad4a9ed82d8a7395b5d2ac041ea6f
++  createdAt: "2026-07-12T15:13:56.689Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml b/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
+index b3487f3..4f8defe 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
+@@ -35,6 +35,6 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:e8635526bf3a99861d590e2554e0e1bb8b57ce486e47bd5e50111d8ed4e84ead
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-07T09:39:51.989Z"
++  createdAt: "2026-07-12T15:14:00.139Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml b/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
+new file mode 100644
+index 0000000..30d502f
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
+@@ -0,0 +1,37 @@
++id: SCWBS-DRAFT-MRHVJE4O
++type: task-contract
++wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++featureId: F-MRHVJE4O
++branchName: task/SCWBS-DRAFT-MRHVJE4O-fix-issue-130-synchronize-package-lock-json-with
++allowedPaths:
++  - package.json
++  - package-lock.json
++  - .github/workflows/scwbs.yml
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - 'Plan and implement: Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++  specVersion: 0.1.0
++  specRevision: sha256:89c4d6a849a61ce991a5bd77db7ee6641665cbd24a333efa2e62c47eab77d81e
++  createdAt: "2026-07-12T15:14:51.610Z"
+diff --git a/contracts/wbs/project.wbs.json b/contracts/wbs/project.wbs.json
+index a93b9cb..78d8160 100644
+--- a/contracts/wbs/project.wbs.json
++++ b/contracts/wbs/project.wbs.json
+@@ -565,6 +565,18 @@
+       "name": "Governance and specification maintenance",
+       "type": "workPackage"
+     },
++    {
++      "status": "draft",
++      "assignees": [],
++      "acceptanceCriteria": [],
++      "outputs": [],
++      "tags": [],
++      "id": "node-fix-issue-130-synchronize-package-lock-json-with",
++      "parentId": "node-project",
++      "code": "draft",
++      "name": "Fix Issue #130: synchronize package-lock.json with npm workspaces and use npm ci in CI",
++      "type": "workPackage"
++    },
+     {
+       "status": "planned",
+       "assignees": [],
+diff --git a/package-lock.json b/package-lock.json
+index b4ba74c..dfc48c9 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -7,6 +7,9 @@
+     "": {
+       "name": "scwbs",
+       "version": "0.1.0",
++      "workspaces": [
++        "wjs"
++      ],
+       "dependencies": {
+         "ajv": "^8.20.0",
+         "ajv-formats": "^3.0.1",
+@@ -57,1381 +60,2337 @@
+         "tslib": "^2.4.0"
+       }
+     },
+-    "node_modules/@jridgewell/sourcemap-codec": {
+-      "version": "1.5.5",
+-      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz",
+-      "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==",
++    "node_modules/@esbuild/aix-ppc64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz",
++      "integrity": "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==",
++      "cpu": [
++        "ppc64"
++      ],
+       "dev": true,
+-      "license": "MIT"
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
++      }
+     },
+-    "node_modules/@napi-rs/wasm-runtime": {
+-      "version": "1.1.6",
+-      "resolved": "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-1.1.6.tgz",
+-      "integrity": "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==",
++    "node_modules/@esbuild/android-arm": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.1.tgz",
++      "integrity": "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==",
++      "cpu": [
++        "arm"
++      ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+-      "dependencies": {
+-        "@tybys/wasm-util": "^0.10.3"
+-      },
+-      "funding": {
+-        "type": "github",
+-        "url": "https://github.com/sponsors/Brooooooklyn"
+-      },
+-      "peerDependencies": {
+-        "@emnapi/core": "^1.7.1",
+-        "@emnapi/runtime": "^1.7.1"
++      "os": [
++        "android"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@oxc-project/types": {
+-      "version": "0.137.0",
+-      "resolved": "https://registry.npmjs.org/@oxc-project/types/-/types-0.137.0.tgz",
+-      "integrity": "sha512-WT+Gb24i8hmvo85AIv2oEYouEXkRlKAlT9WaCa3TfLgNCN+GhrJOGZuIlMouAh38Qe4QOx26eUOVsq70qXrywA==",
++    "node_modules/@esbuild/android-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz",
++      "integrity": "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "license": "MIT",
+-      "funding": {
+-        "url": "https://github.com/sponsors/Boshen"
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-android-arm64": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm64/-/binding-android-arm64-1.1.3.tgz",
+-      "integrity": "sha512-DT6Z3PhvioeHMvxo+xHc3KtqggrI7CCTXCmC2h/5zUlp5jVitv7XEy+9q5/7v8IolhlioawpMo8Kg0EEBy7J0g==",
++    "node_modules/@esbuild/android-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.1.tgz",
++      "integrity": "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==",
+       "cpu": [
+-        "arm64"
++        "x64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "android"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-darwin-arm64": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.1.3.tgz",
+-      "integrity": "sha512-0NwgwsjM7LrsuVnXMK3koTpagBNOhloc/BNjKqZjv4V5zI5r13qx69uVhRx+o5Z0yy4Hzq+lpy7TAgUG/ocvrw==",
++    "node_modules/@esbuild/darwin-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz",
++      "integrity": "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "darwin"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-darwin-x64": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.1.3.tgz",
+-      "integrity": "sha512-YtiBp4disu6V560loT6PjMdiRaWmVvDNrUunAalbiFx2ggeJwxdAsgZMcoGP17uyAsTwAj5V1niksxlHnVQ1Sw==",
++    "node_modules/@esbuild/darwin-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz",
++      "integrity": "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "darwin"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-freebsd-x64": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.1.3.tgz",
+-      "integrity": "sha512-yD3EkEdXk2LypPxnf/kSZHirarsI8gcPzc62SukhR9VJTyvV+F9Q/GxWNuCojc7sXyuVC4DxRGhdDK4X8VSsbw==",
++    "node_modules/@esbuild/freebsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz",
++      "integrity": "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "freebsd"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-arm-gnueabihf": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.1.3.tgz",
+-      "integrity": "sha512-c+8vieQbsD7HNAHKIA34w0GJ9FedFFuJGD+7E6vz7Q3uqAIugL5p45fhlsj4UaAsHpcmlqugBWMhA0/j7o0sIg==",
++    "node_modules/@esbuild/linux-arm": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz",
++      "integrity": "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==",
+       "cpu": [
+         "arm"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-arm64-gnu": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.1.3.tgz",
+-      "integrity": "sha512-50jD0uUwLvur7Zz9LHz17kaAdTPjn5wN93hEgjvmYFRZwiR7ZJYovTd5ipyWJDAnXKvZ+wgc+/Ika6dwSF5OcA==",
++    "node_modules/@esbuild/linux-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz",
++      "integrity": "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-arm64-musl": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.1.3.tgz",
+-      "integrity": "sha512-BO9+oPL8K9poZJBfYPsXNtYjPE5uM3qeehT3aFcW4LITOl+iSqhp0abzjR2nWBUNjIZeKXjAEWBZ64WjNoHd6w==",
++    "node_modules/@esbuild/linux-ia32": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz",
++      "integrity": "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==",
+       "cpu": [
+-        "arm64"
++        "ia32"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-ppc64-gnu": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.1.3.tgz",
+-      "integrity": "sha512-f3VpLB1vQ0Eo6ecr/6cekLnvYMFF4YBFoVGkfkvPLq1bAkbAwHYQPZKoAmG6OJyTcxxoC+AvezGx/S1obNC0Mw==",
++    "node_modules/@esbuild/linux-loong64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz",
++      "integrity": "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==",
+       "cpu": [
+-        "ppc64"
++        "loong64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-s390x-gnu": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.1.3.tgz",
+-      "integrity": "sha512-AmurZ26Pqx/RI9N1gzEOCklkKXl927yjfXWUUS0O7Puh8ARM/Ob8qfrD3qnWksScdw6cSrW5PSHE9DyLu7+PtA==",
++    "node_modules/@esbuild/linux-mips64el": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz",
++      "integrity": "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==",
+       "cpu": [
+-        "s390x"
++        "mips64el"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-x64-gnu": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.1.3.tgz",
+-      "integrity": "sha512-JJpqs8bRGITDOdbkNKnlojzBabbOHrqjSvDr0IVsZObE1lBcPjxItUEY9eWIDbxaJ3cGrXPWGfGkIxFijg/URg==",
++    "node_modules/@esbuild/linux-ppc64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz",
++      "integrity": "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==",
+       "cpu": [
+-        "x64"
++        "ppc64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-linux-x64-musl": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.1.3.tgz",
+-      "integrity": "sha512-rSJcdjPxzA/by/6/rYs+v+bXU7UjvnbUWz8MJb6kh6+knqB1dCrtHg0uu7C/4haqJvqdkYHQ5IGn+tCH9GLW/g==",
++    "node_modules/@esbuild/linux-riscv64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz",
++      "integrity": "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==",
+       "cpu": [
+-        "x64"
++        "riscv64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+         "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-openharmony-arm64": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.1.3.tgz",
+-      "integrity": "sha512-hQ3/PYkDJICgevvyNcVrihVeqq7k1Pp3VZ9lY+dauAYUJKO+auqApvANhvR1An9BhmqYKvW2Mu1F9u4DXSMLxQ==",
++    "node_modules/@esbuild/linux-s390x": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz",
++      "integrity": "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==",
+       "cpu": [
+-        "arm64"
++        "s390x"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+-        "openharmony"
++        "linux"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-wasm32-wasi": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-wasm32-wasi/-/binding-wasm32-wasi-1.1.3.tgz",
+-      "integrity": "sha512-Elcv/BtML9lXrV6JuKITc/grN2kYV9gjsQpW8Jfw4ioK0TOkjBjye0nnyqQNy9STNaI20lXNaQBRrD5gSgR0Yg==",
++    "node_modules/@esbuild/linux-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz",
++      "integrity": "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==",
+       "cpu": [
+-        "wasm32"
++        "x64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+-      "dependencies": {
+-        "@emnapi/core": "1.11.1",
+-        "@emnapi/runtime": "1.11.1",
+-        "@napi-rs/wasm-runtime": "^1.1.6"
+-      },
++      "os": [
++        "linux"
++      ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-wasm32-wasi/node_modules/@emnapi/core": {
+-      "version": "1.11.1",
+-      "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.11.1.tgz",
+-      "integrity": "sha512-RSvbQmHzdKzNsLYa/wHrbc3KN4sYLKAdPZxqiM2HATqv/SBk2/ENSHpvXGaLOMcsAyz0poEGqkmmKYG3OWiJEQ==",
++    "node_modules/@esbuild/netbsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+       "optional": true,
+-      "dependencies": {
+-        "@emnapi/wasi-threads": "1.2.2",
+-        "tslib": "^2.4.0"
++      "os": [
++        "netbsd"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-wasm32-wasi/node_modules/@emnapi/runtime": {
+-      "version": "1.11.1",
+-      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.11.1.tgz",
+-      "integrity": "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw==",
++    "node_modules/@esbuild/netbsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz",
++      "integrity": "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+       "optional": true,
+-      "dependencies": {
+-        "tslib": "^2.4.0"
++      "os": [
++        "netbsd"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-win32-arm64-msvc": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.1.3.tgz",
+-      "integrity": "sha512-2DrEfhluH9yhiaFApmsjsjwrSYbNcY1oFTzYSP1a535jDbV98zCFanA/96TBUd0iDFcxGmw9QRExwGCXz3U+/g==",
++    "node_modules/@esbuild/openbsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+-        "win32"
++        "openbsd"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/binding-win32-x64-msvc": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.1.3.tgz",
+-      "integrity": "sha512-OL4OMk7UPXOeVGGd3qo5zJyPIljf4AFgk5QAkPPS+OoLuOOozhuaQGC18MxVTnw/06q93gShAJzlwnSCY9YtqA==",
++    "node_modules/@esbuild/openbsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz",
++      "integrity": "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
+-      "license": "MIT",
+       "optional": true,
+       "os": [
+-        "win32"
++        "openbsd"
+       ],
++      "peer": true,
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@rolldown/pluginutils": {
+-      "version": "1.0.1",
+-      "resolved": "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz",
+-      "integrity": "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==",
++    "node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz",
++      "integrity": "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/@standard-schema/spec": {
+-      "version": "1.1.0",
+-      "resolved": "https://registry.npmjs.org/@standard-schema/spec/-/spec-1.1.0.tgz",
+-      "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==",
+-      "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/@tybys/wasm-util": {
+-      "version": "0.10.3",
+-      "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz",
+-      "integrity": "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==",
+-      "dev": true,
+-      "license": "MIT",
+       "optional": true,
+-      "dependencies": {
+-        "tslib": "^2.4.0"
++      "os": [
++        "openharmony"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@types/chai": {
+-      "version": "5.2.3",
+-      "resolved": "https://registry.npmjs.org/@types/chai/-/chai-5.2.3.tgz",
+-      "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==",
++    "node_modules/@esbuild/sunos-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz",
++      "integrity": "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "@types/deep-eql": "*",
+-        "assertion-error": "^2.0.1"
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@types/deep-eql": {
+-      "version": "4.0.2",
+-      "resolved": "https://registry.npmjs.org/@types/deep-eql/-/deep-eql-4.0.2.tgz",
+-      "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==",
++    "node_modules/@esbuild/win32-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz",
++      "integrity": "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "license": "MIT"
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
++      }
+     },
+-    "node_modules/@types/estree": {
+-      "version": "1.0.9",
+-      "resolved": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
+-      "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==",
++    "node_modules/@esbuild/win32-ia32": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz",
++      "integrity": "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==",
++      "cpu": [
++        "ia32"
++      ],
+       "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/@types/js-yaml": {
+-      "version": "4.0.9",
+-      "resolved": "https://registry.npmjs.org/@types/js-yaml/-/js-yaml-4.0.9.tgz",
+-      "integrity": "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==",
+-      "dev": true
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
++      }
+     },
+-    "node_modules/@types/node": {
+-      "version": "26.0.1",
+-      "resolved": "https://registry.npmjs.org/@types/node/-/node-26.0.1.tgz",
+-      "integrity": "sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw==",
++    "node_modules/@esbuild/win32-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz",
++      "integrity": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "undici-types": "~8.3.0"
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "peer": true,
++      "engines": {
++        "node": ">=18"
+       }
+     },
+-    "node_modules/@vitest/expect": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/expect/-/expect-4.1.9.tgz",
+-      "integrity": "sha512-vl/rYsUKcBr3SnQn166+XR5ZQcgMx3DQhFWdfli/cWpLnLUmbxZvyrJZotLFUryib+LtArYMSTJ5RbQ57ZqrlA==",
++    "node_modules/@jridgewell/sourcemap-codec": {
++      "version": "1.5.5",
++      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz",
++      "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==",
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "@standard-schema/spec": "^1.1.0",
+-        "@types/chai": "^5.2.2",
+-        "@vitest/spy": "4.1.9",
+-        "@vitest/utils": "4.1.9",
+-        "chai": "^6.2.2",
+-        "tinyrainbow": "^3.1.0"
+-      },
+-      "funding": {
+-        "url": "https://opencollective.com/vitest"
+-      }
++      "license": "MIT"
+     },
+-    "node_modules/@vitest/mocker": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/mocker/-/mocker-4.1.9.tgz",
+-      "integrity": "sha512-EVkXzBjrPGM+cK8/ANWgBrkUCfJfb38/EfTSO8h7pWvKkyPkpWxvR7BkD2MyItMF62C97zAEoqdpUixwR/e+Rw==",
++    "node_modules/@napi-rs/wasm-runtime": {
++      "version": "1.1.6",
++      "resolved": "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-1.1.6.tgz",
++      "integrity": "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==",
+       "dev": true,
+       "license": "MIT",
++      "optional": true,
+       "dependencies": {
+-        "@vitest/spy": "4.1.9",
+-        "estree-walker": "^3.0.3",
+-        "magic-string": "^0.30.21"
++        "@tybys/wasm-util": "^0.10.3"
+       },
+       "funding": {
+-        "url": "https://opencollective.com/vitest"
++        "type": "github",
++        "url": "https://github.com/sponsors/Brooooooklyn"
+       },
+       "peerDependencies": {
+-        "msw": "^2.4.9",
+-        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+-      },
+-      "peerDependenciesMeta": {
+-        "msw": {
+-          "optional": true
+-        },
+-        "vite": {
+-          "optional": true
+-        }
++        "@emnapi/core": "^1.7.1",
++        "@emnapi/runtime": "^1.7.1"
+       }
+     },
+-    "node_modules/@vitest/pretty-format": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/pretty-format/-/pretty-format-4.1.9.tgz",
+-      "integrity": "sha512-s0iufns3iIFitdgm+YR7g1whCAaGtXz459VS9/PqyKDEEFgYIhsHOQmXgIgDuYCt7DeQmiZT0Qe2OA2p4ZPu5A==",
++    "node_modules/@oxc-project/types": {
++      "version": "0.137.0",
++      "resolved": "https://registry.npmjs.org/@oxc-project/types/-/types-0.137.0.tgz",
++      "integrity": "sha512-WT+Gb24i8hmvo85AIv2oEYouEXkRlKAlT9WaCa3TfLgNCN+GhrJOGZuIlMouAh38Qe4QOx26eUOVsq70qXrywA==",
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "tinyrainbow": "^3.1.0"
+-      },
+       "funding": {
+-        "url": "https://opencollective.com/vitest"
++        "url": "https://github.com/sponsors/Boshen"
+       }
+     },
+-    "node_modules/@vitest/runner": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/runner/-/runner-4.1.9.tgz",
+-      "integrity": "sha512-KXLMDtc7oe70+3mJfGrPUWPesswH+3sTxAMAMl8DG7I8IUQT4XW718dY5ID3vPUcmlu27CcKfY4P3h3I29SLJg==",
++    "node_modules/@rolldown/binding-android-arm64": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm64/-/binding-android-arm64-1.1.3.tgz",
++      "integrity": "sha512-DT6Z3PhvioeHMvxo+xHc3KtqggrI7CCTXCmC2h/5zUlp5jVitv7XEy+9q5/7v8IolhlioawpMo8Kg0EEBy7J0g==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "@vitest/utils": "4.1.9",
+-        "pathe": "^2.0.3"
+-      },
+-      "funding": {
+-        "url": "https://opencollective.com/vitest"
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/@vitest/snapshot": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/snapshot/-/snapshot-4.1.9.tgz",
+-      "integrity": "sha512-Jc7RKGNBo8Z28WYIm0Niej4xdSPByRf6mU58VpHQkd6Zh05rlnA+twjbK5HyeIGHxrzsc3mJgS43uM0CZKzaIA==",
++    "node_modules/@rolldown/binding-darwin-arm64": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.1.3.tgz",
++      "integrity": "sha512-0NwgwsjM7LrsuVnXMK3koTpagBNOhloc/BNjKqZjv4V5zI5r13qx69uVhRx+o5Z0yy4Hzq+lpy7TAgUG/ocvrw==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "@vitest/pretty-format": "4.1.9",
+-        "@vitest/utils": "4.1.9",
+-        "magic-string": "^0.30.21",
+-        "pathe": "^2.0.3"
+-      },
+-      "funding": {
+-        "url": "https://opencollective.com/vitest"
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/@vitest/spy": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/spy/-/spy-4.1.9.tgz",
+-      "integrity": "sha512-fHpsS6mIi+PiEW+vcRVOMkX1oSaPKne3VOclSFICPcGOmfKgXPU5iAah+wcNcj2xPrCCmfq99IDGf+EojhhvhA==",
++    "node_modules/@rolldown/binding-darwin-x64": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.1.3.tgz",
++      "integrity": "sha512-YtiBp4disu6V560loT6PjMdiRaWmVvDNrUunAalbiFx2ggeJwxdAsgZMcoGP17uyAsTwAj5V1niksxlHnVQ1Sw==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+       "license": "MIT",
+-      "funding": {
+-        "url": "https://opencollective.com/vitest"
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/@vitest/utils": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/@vitest/utils/-/utils-4.1.9.tgz",
+-      "integrity": "sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==",
++    "node_modules/@rolldown/binding-freebsd-x64": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.1.3.tgz",
++      "integrity": "sha512-yD3EkEdXk2LypPxnf/kSZHirarsI8gcPzc62SukhR9VJTyvV+F9Q/GxWNuCojc7sXyuVC4DxRGhdDK4X8VSsbw==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "@vitest/pretty-format": "4.1.9",
+-        "convert-source-map": "^2.0.0",
+-        "tinyrainbow": "^3.1.0"
+-      },
+-      "funding": {
+-        "url": "https://opencollective.com/vitest"
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/ajv": {
+-      "version": "8.20.0",
+-      "resolved": "https://registry.npmjs.org/ajv/-/ajv-8.20.0.tgz",
+-      "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
++    "node_modules/@rolldown/binding-linux-arm-gnueabihf": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.1.3.tgz",
++      "integrity": "sha512-c+8vieQbsD7HNAHKIA34w0GJ9FedFFuJGD+7E6vz7Q3uqAIugL5p45fhlsj4UaAsHpcmlqugBWMhA0/j7o0sIg==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "fast-deep-equal": "^3.1.3",
+-        "fast-uri": "^3.0.1",
+-        "json-schema-traverse": "^1.0.0",
+-        "require-from-string": "^2.0.2"
+-      },
+-      "funding": {
+-        "type": "github",
+-        "url": "https://github.com/sponsors/epoberezkin"
+-      }
+-    },
+-    "node_modules/ajv-formats": {
+-      "version": "3.0.1",
+-      "resolved": "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz",
+-      "integrity": "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "ajv": "^8.0.0"
+-      },
+-      "peerDependencies": {
+-        "ajv": "^8.0.0"
+-      },
+-      "peerDependenciesMeta": {
+-        "ajv": {
+-          "optional": true
+-        }
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/argparse": {
+-      "version": "2.0.1",
+-      "resolved": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz",
+-      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
+-    },
+-    "node_modules/assertion-error": {
+-      "version": "2.0.1",
+-      "resolved": "https://registry.npmjs.org/assertion-error/-/assertion-error-2.0.1.tgz",
+-      "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==",
++    "node_modules/@rolldown/binding-linux-arm64-gnu": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.1.3.tgz",
++      "integrity": "sha512-50jD0uUwLvur7Zz9LHz17kaAdTPjn5wN93hEgjvmYFRZwiR7ZJYovTd5ipyWJDAnXKvZ+wgc+/Ika6dwSF5OcA==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+       "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=12"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/chai": {
+-      "version": "6.2.2",
+-      "resolved": "https://registry.npmjs.org/chai/-/chai-6.2.2.tgz",
+-      "integrity": "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==",
++    "node_modules/@rolldown/binding-linux-arm64-musl": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.1.3.tgz",
++      "integrity": "sha512-BO9+oPL8K9poZJBfYPsXNtYjPE5uM3qeehT3aFcW4LITOl+iSqhp0abzjR2nWBUNjIZeKXjAEWBZ64WjNoHd6w==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+       "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=18"
+-      }
+-    },
+-    "node_modules/commander": {
+-      "version": "15.0.0",
+-      "resolved": "https://registry.npmjs.org/commander/-/commander-15.0.0.tgz",
+-      "integrity": "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==",
+-      "engines": {
+-        "node": ">=22.12.0"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/convert-source-map": {
+-      "version": "2.0.0",
+-      "resolved": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz",
+-      "integrity": "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==",
+-      "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/detect-libc": {
+-      "version": "2.1.2",
+-      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
+-      "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
++    "node_modules/@rolldown/binding-linux-ppc64-gnu": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.1.3.tgz",
++      "integrity": "sha512-f3VpLB1vQ0Eo6ecr/6cekLnvYMFF4YBFoVGkfkvPLq1bAkbAwHYQPZKoAmG6OJyTcxxoC+AvezGx/S1obNC0Mw==",
++      "cpu": [
++        "ppc64"
++      ],
+       "dev": true,
+-      "license": "Apache-2.0",
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=8"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/es-module-lexer": {
+-      "version": "2.1.0",
+-      "resolved": "https://registry.npmjs.org/es-module-lexer/-/es-module-lexer-2.1.0.tgz",
+-      "integrity": "sha512-n27zTYMjYu1aj4MjCWzSP7G9r75utsaoc8m61weK+W8JMBGGQybd43GstCXZ3WNmSFtGT9wi59qQTW6mhTR5LQ==",
+-      "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/estree-walker": {
+-      "version": "3.0.3",
+-      "resolved": "https://registry.npmjs.org/estree-walker/-/estree-walker-3.0.3.tgz",
+-      "integrity": "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==",
++    "node_modules/@rolldown/binding-linux-s390x-gnu": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.1.3.tgz",
++      "integrity": "sha512-AmurZ26Pqx/RI9N1gzEOCklkKXl927yjfXWUUS0O7Puh8ARM/Ob8qfrD3qnWksScdw6cSrW5PSHE9DyLu7+PtA==",
++      "cpu": [
++        "s390x"
++      ],
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "@types/estree": "^1.0.0"
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/expect-type": {
+-      "version": "1.4.0",
+-      "resolved": "https://registry.npmjs.org/expect-type/-/expect-type-1.4.0.tgz",
+-      "integrity": "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==",
++    "node_modules/@rolldown/binding-linux-x64-gnu": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.1.3.tgz",
++      "integrity": "sha512-JJpqs8bRGITDOdbkNKnlojzBabbOHrqjSvDr0IVsZObE1lBcPjxItUEY9eWIDbxaJ3cGrXPWGfGkIxFijg/URg==",
++      "cpu": [
++        "x64"
++      ],
+       "dev": true,
+-      "license": "Apache-2.0",
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=12.0.0"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/fast-deep-equal": {
+-      "version": "3.1.3",
+-      "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
+-      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
+-      "license": "MIT"
+-    },
+-    "node_modules/fast-uri": {
+-      "version": "3.1.2",
+-      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.2.tgz",
+-      "integrity": "sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==",
+-      "funding": [
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/fastify"
+-        },
+-        {
+-          "type": "opencollective",
+-          "url": "https://opencollective.com/fastify"
+-        }
++    "node_modules/@rolldown/binding-linux-x64-musl": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.1.3.tgz",
++      "integrity": "sha512-rSJcdjPxzA/by/6/rYs+v+bXU7UjvnbUWz8MJb6kh6+knqB1dCrtHg0uu7C/4haqJvqdkYHQ5IGn+tCH9GLW/g==",
++      "cpu": [
++        "x64"
+       ],
+-      "license": "BSD-3-Clause"
+-    },
+-    "node_modules/fdir": {
+-      "version": "6.5.0",
+-      "resolved": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
+-      "integrity": "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==",
+       "dev": true,
+       "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=12.0.0"
+-      },
+-      "peerDependencies": {
+-        "picomatch": "^3 || ^4"
+-      },
+-      "peerDependenciesMeta": {
+-        "picomatch": {
+-          "optional": true
+-        }
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/fsevents": {
+-      "version": "2.3.3",
+-      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+-      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++    "node_modules/@rolldown/binding-openharmony-arm64": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.1.3.tgz",
++      "integrity": "sha512-hQ3/PYkDJICgevvyNcVrihVeqq7k1Pp3VZ9lY+dauAYUJKO+auqApvANhvR1An9BhmqYKvW2Mu1F9u4DXSMLxQ==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "hasInstallScript": true,
+       "license": "MIT",
+       "optional": true,
+       "os": [
+-        "darwin"
++        "openharmony"
+       ],
+       "engines": {
+-        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/js-yaml": {
+-      "version": "5.2.1",
+-      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-5.2.1.tgz",
+-      "integrity": "sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==",
+-      "funding": [
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/puzrin"
+-        },
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/nodeca"
+-        }
++    "node_modules/@rolldown/binding-wasm32-wasi": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-wasm32-wasi/-/binding-wasm32-wasi-1.1.3.tgz",
++      "integrity": "sha512-Elcv/BtML9lXrV6JuKITc/grN2kYV9gjsQpW8Jfw4ioK0TOkjBjye0nnyqQNy9STNaI20lXNaQBRrD5gSgR0Yg==",
++      "cpu": [
++        "wasm32"
+       ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
+       "dependencies": {
+-        "argparse": "^2.0.1"
++        "@emnapi/core": "1.11.1",
++        "@emnapi/runtime": "1.11.1",
++        "@napi-rs/wasm-runtime": "^1.1.6"
+       },
+-      "bin": {
+-        "js-yaml": "bin/js-yaml.mjs"
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/json-schema-traverse": {
+-      "version": "1.0.0",
+-      "resolved": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz",
+-      "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==",
+-      "license": "MIT"
+-    },
+-    "node_modules/lightningcss": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.32.0.tgz",
+-      "integrity": "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ==",
++    "node_modules/@rolldown/binding-wasm32-wasi/node_modules/@emnapi/core": {
++      "version": "1.11.1",
++      "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.11.1.tgz",
++      "integrity": "sha512-RSvbQmHzdKzNsLYa/wHrbc3KN4sYLKAdPZxqiM2HATqv/SBk2/ENSHpvXGaLOMcsAyz0poEGqkmmKYG3OWiJEQ==",
+       "dev": true,
+-      "license": "MPL-2.0",
++      "optional": true,
+       "dependencies": {
+-        "detect-libc": "^2.0.3"
+-      },
+-      "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
+-      },
+-      "optionalDependencies": {
+-        "lightningcss-android-arm64": "1.32.0",
+-        "lightningcss-darwin-arm64": "1.32.0",
+-        "lightningcss-darwin-x64": "1.32.0",
+-        "lightningcss-freebsd-x64": "1.32.0",
+-        "lightningcss-linux-arm-gnueabihf": "1.32.0",
+-        "lightningcss-linux-arm64-gnu": "1.32.0",
+-        "lightningcss-linux-arm64-musl": "1.32.0",
+-        "lightningcss-linux-x64-gnu": "1.32.0",
+-        "lightningcss-linux-x64-musl": "1.32.0",
+-        "lightningcss-win32-arm64-msvc": "1.32.0",
+-        "lightningcss-win32-x64-msvc": "1.32.0"
++        "@emnapi/wasi-threads": "1.2.2",
++        "tslib": "^2.4.0"
+       }
+     },
+-    "node_modules/lightningcss-android-arm64": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-android-arm64/-/lightningcss-android-arm64-1.32.0.tgz",
+-      "integrity": "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==",
+-      "cpu": [
+-        "arm64"
+-      ],
++    "node_modules/@rolldown/binding-wasm32-wasi/node_modules/@emnapi/runtime": {
++      "version": "1.11.1",
++      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.11.1.tgz",
++      "integrity": "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw==",
+       "dev": true,
+-      "license": "MPL-2.0",
+       "optional": true,
+-      "os": [
+-        "android"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++      "dependencies": {
++        "tslib": "^2.4.0"
+       }
+     },
+-    "node_modules/lightningcss-darwin-arm64": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.32.0.tgz",
+-      "integrity": "sha512-RzeG9Ju5bag2Bv1/lwlVJvBE3q6TtXskdZLLCyfg5pt+HLz9BqlICO7LZM7VHNTTn/5PRhHFBSjk5lc4cmscPQ==",
++    "node_modules/@rolldown/binding-win32-arm64-msvc": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.1.3.tgz",
++      "integrity": "sha512-2DrEfhluH9yhiaFApmsjsjwrSYbNcY1oFTzYSP1a535jDbV98zCFanA/96TBUd0iDFcxGmw9QRExwGCXz3U+/g==",
+       "cpu": [
+         "arm64"
+       ],
+       "dev": true,
+-      "license": "MPL-2.0",
++      "license": "MIT",
+       "optional": true,
+       "os": [
+-        "darwin"
++        "win32"
+       ],
+       "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/lightningcss-darwin-x64": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.32.0.tgz",
+-      "integrity": "sha512-U+QsBp2m/s2wqpUYT/6wnlagdZbtZdndSmut/NJqlCcMLTWp5muCrID+K5UJ6jqD2BFshejCYXniPDbNh73V8w==",
++    "node_modules/@rolldown/binding-win32-x64-msvc": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.1.3.tgz",
++      "integrity": "sha512-OL4OMk7UPXOeVGGd3qo5zJyPIljf4AFgk5QAkPPS+OoLuOOozhuaQGC18MxVTnw/06q93gShAJzlwnSCY9YtqA==",
+       "cpu": [
+         "x64"
+       ],
+       "dev": true,
+-      "license": "MPL-2.0",
++      "license": "MIT",
+       "optional": true,
+       "os": [
+-        "darwin"
++        "win32"
+       ],
+       "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "node": "^20.19.0 || >=22.12.0"
+       }
+     },
+-    "node_modules/lightningcss-freebsd-x64": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.32.0.tgz",
+-      "integrity": "sha512-JCTigedEksZk3tHTTthnMdVfGf61Fky8Ji2E4YjUTEQX14xiy/lTzXnu1vwiZe3bYe0q+SpsSH/CTeDXK6WHig==",
+-      "cpu": [
+-        "x64"
+-      ],
++    "node_modules/@rolldown/pluginutils": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz",
++      "integrity": "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==",
+       "dev": true,
+-      "license": "MPL-2.0",
++      "license": "MIT"
++    },
++    "node_modules/@standard-schema/spec": {
++      "version": "1.1.0",
++      "resolved": "https://registry.npmjs.org/@standard-schema/spec/-/spec-1.1.0.tgz",
++      "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@tybys/wasm-util": {
++      "version": "0.10.3",
++      "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz",
++      "integrity": "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==",
++      "dev": true,
++      "license": "MIT",
+       "optional": true,
+-      "os": [
+-        "freebsd"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++      "dependencies": {
++        "tslib": "^2.4.0"
+       }
+     },
+-    "node_modules/lightningcss-linux-arm-gnueabihf": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.32.0.tgz",
+-      "integrity": "sha512-x6rnnpRa2GL0zQOkt6rts3YDPzduLpWvwAF6EMhXFVZXD4tPrBkEFqzGowzCsIWsPjqSK+tyNEODUBXeeVHSkw==",
+-      "cpu": [
+-        "arm"
+-      ],
++    "node_modules/@types/chai": {
++      "version": "5.2.3",
++      "resolved": "https://registry.npmjs.org/@types/chai/-/chai-5.2.3.tgz",
++      "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "linux"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++      "license": "MIT",
++      "dependencies": {
++        "@types/deep-eql": "*",
++        "assertion-error": "^2.0.1"
+       }
+     },
+-    "node_modules/lightningcss-linux-arm64-gnu": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.32.0.tgz",
+-      "integrity": "sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ==",
+-      "cpu": [
+-        "arm64"
+-      ],
++    "node_modules/@types/deep-eql": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@types/deep-eql/-/deep-eql-4.0.2.tgz",
++      "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "linux"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++      "license": "MIT"
++    },
++    "node_modules/@types/estree": {
++      "version": "1.0.9",
++      "resolved": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
++      "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@types/js-yaml": {
++      "version": "4.0.9",
++      "resolved": "https://registry.npmjs.org/@types/js-yaml/-/js-yaml-4.0.9.tgz",
++      "integrity": "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==",
++      "dev": true
++    },
++    "node_modules/@types/node": {
++      "version": "26.0.1",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-26.0.1.tgz",
++      "integrity": "sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "undici-types": "~8.3.0"
+       }
+     },
+-    "node_modules/lightningcss-linux-arm64-musl": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.32.0.tgz",
+-      "integrity": "sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg==",
+-      "cpu": [
+-        "arm64"
+-      ],
++    "node_modules/@vitest/expect": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/expect/-/expect-4.1.9.tgz",
++      "integrity": "sha512-vl/rYsUKcBr3SnQn166+XR5ZQcgMx3DQhFWdfli/cWpLnLUmbxZvyrJZotLFUryib+LtArYMSTJ5RbQ57ZqrlA==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "linux"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
++      "license": "MIT",
++      "dependencies": {
++        "@standard-schema/spec": "^1.1.0",
++        "@types/chai": "^5.2.2",
++        "@vitest/spy": "4.1.9",
++        "@vitest/utils": "4.1.9",
++        "chai": "^6.2.2",
++        "tinyrainbow": "^3.1.0"
+       },
+       "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/lightningcss-linux-x64-gnu": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz",
+-      "integrity": "sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==",
+-      "cpu": [
+-        "x64"
+-      ],
++    "node_modules/@vitest/mocker": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/mocker/-/mocker-4.1.9.tgz",
++      "integrity": "sha512-EVkXzBjrPGM+cK8/ANWgBrkUCfJfb38/EfTSO8h7pWvKkyPkpWxvR7BkD2MyItMF62C97zAEoqdpUixwR/e+Rw==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "linux"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/spy": "4.1.9",
++        "estree-walker": "^3.0.3",
++        "magic-string": "^0.30.21"
+       },
+       "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "msw": "^2.4.9",
++        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
++      },
++      "peerDependenciesMeta": {
++        "msw": {
++          "optional": true
++        },
++        "vite": {
++          "optional": true
++        }
+       }
+     },
+-    "node_modules/lightningcss-linux-x64-musl": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.32.0.tgz",
+-      "integrity": "sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg==",
+-      "cpu": [
+-        "x64"
+-      ],
++    "node_modules/@vitest/pretty-format": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/pretty-format/-/pretty-format-4.1.9.tgz",
++      "integrity": "sha512-s0iufns3iIFitdgm+YR7g1whCAaGtXz459VS9/PqyKDEEFgYIhsHOQmXgIgDuYCt7DeQmiZT0Qe2OA2p4ZPu5A==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "linux"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
++      "license": "MIT",
++      "dependencies": {
++        "tinyrainbow": "^3.1.0"
+       },
+       "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/lightningcss-win32-arm64-msvc": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.32.0.tgz",
+-      "integrity": "sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==",
+-      "cpu": [
+-        "arm64"
+-      ],
++    "node_modules/@vitest/runner": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/runner/-/runner-4.1.9.tgz",
++      "integrity": "sha512-KXLMDtc7oe70+3mJfGrPUWPesswH+3sTxAMAMl8DG7I8IUQT4XW718dY5ID3vPUcmlu27CcKfY4P3h3I29SLJg==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "win32"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/utils": "4.1.9",
++        "pathe": "^2.0.3"
+       },
+       "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/lightningcss-win32-x64-msvc": {
+-      "version": "1.32.0",
+-      "resolved": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.32.0.tgz",
+-      "integrity": "sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q==",
+-      "cpu": [
+-        "x64"
+-      ],
++    "node_modules/@vitest/snapshot": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/snapshot/-/snapshot-4.1.9.tgz",
++      "integrity": "sha512-Jc7RKGNBo8Z28WYIm0Niej4xdSPByRf6mU58VpHQkd6Zh05rlnA+twjbK5HyeIGHxrzsc3mJgS43uM0CZKzaIA==",
+       "dev": true,
+-      "license": "MPL-2.0",
+-      "optional": true,
+-      "os": [
+-        "win32"
+-      ],
+-      "engines": {
+-        "node": ">= 12.0.0"
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/pretty-format": "4.1.9",
++        "@vitest/utils": "4.1.9",
++        "magic-string": "^0.30.21",
++        "pathe": "^2.0.3"
+       },
+       "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/parcel"
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/magic-string": {
+-      "version": "0.30.21",
+-      "resolved": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz",
+-      "integrity": "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==",
++    "node_modules/@vitest/spy": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/spy/-/spy-4.1.9.tgz",
++      "integrity": "sha512-fHpsS6mIi+PiEW+vcRVOMkX1oSaPKne3VOclSFICPcGOmfKgXPU5iAah+wcNcj2xPrCCmfq99IDGf+EojhhvhA==",
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "@jridgewell/sourcemap-codec": "^1.5.5"
++      "funding": {
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/nanoid": {
+-      "version": "3.3.15",
+-      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.15.tgz",
+-      "integrity": "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==",
++    "node_modules/@vitest/utils": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/@vitest/utils/-/utils-4.1.9.tgz",
++      "integrity": "sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==",
+       "dev": true,
+-      "funding": [
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/ai"
+-        }
+-      ],
+       "license": "MIT",
+-      "bin": {
+-        "nanoid": "bin/nanoid.cjs"
++      "dependencies": {
++        "@vitest/pretty-format": "4.1.9",
++        "convert-source-map": "^2.0.0",
++        "tinyrainbow": "^3.1.0"
+       },
+-      "engines": {
+-        "node": "^10 || ^12 || ^13.7 || ^14 || >=15.0.1"
++      "funding": {
++        "url": "https://opencollective.com/vitest"
+       }
+     },
+-    "node_modules/obug": {
+-      "version": "2.1.3",
+-      "resolved": "https://registry.npmjs.org/obug/-/obug-2.1.3.tgz",
+-      "integrity": "sha512-9miFgM2OFba7hB+pRgvtV84pYTBaoTHohvmIgiRt6dRIzbwEOIaNaP+dIlGs2fNFoB0SeISs0Jz5WFVRid6Xyg==",
+-      "dev": true,
+-      "funding": [
+-        "https://github.com/sponsors/sxzz",
+-        "https://opencollective.com/debug"
+-      ],
++    "node_modules/ajv": {
++      "version": "8.20.0",
++      "resolved": "https://registry.npmjs.org/ajv/-/ajv-8.20.0.tgz",
++      "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
+       "license": "MIT",
+-      "engines": {
+-        "node": ">=12.20.0"
++      "dependencies": {
++        "fast-deep-equal": "^3.1.3",
++        "fast-uri": "^3.0.1",
++        "json-schema-traverse": "^1.0.0",
++        "require-from-string": "^2.0.2"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/epoberezkin"
+       }
+     },
+-    "node_modules/pathe": {
+-      "version": "2.0.3",
+-      "resolved": "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz",
+-      "integrity": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
+-      "dev": true,
+-      "license": "MIT"
++    "node_modules/ajv-formats": {
++      "version": "3.0.1",
++      "resolved": "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz",
++      "integrity": "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==",
++      "license": "MIT",
++      "dependencies": {
++        "ajv": "^8.0.0"
++      },
++      "peerDependencies": {
++        "ajv": "^8.0.0"
++      },
++      "peerDependenciesMeta": {
++        "ajv": {
++          "optional": true
++        }
++      }
+     },
+-    "node_modules/picocolors": {
+-      "version": "1.1.1",
+-      "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+-      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
+-      "dev": true,
+-      "license": "ISC"
++    "node_modules/argparse": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz",
++      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
+     },
+-    "node_modules/picomatch": {
+-      "version": "4.0.4",
+-      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.4.tgz",
+-      "integrity": "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==",
++    "node_modules/assertion-error": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/assertion-error/-/assertion-error-2.0.1.tgz",
++      "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==",
+       "dev": true,
+       "license": "MIT",
+       "engines": {
+         "node": ">=12"
+-      },
+-      "funding": {
+-        "url": "https://github.com/sponsors/jonschlinkert"
+       }
+     },
+-    "node_modules/postcss": {
+-      "version": "8.5.15",
+-      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.15.tgz",
+-      "integrity": "sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==",
++    "node_modules/chai": {
++      "version": "6.2.2",
++      "resolved": "https://registry.npmjs.org/chai/-/chai-6.2.2.tgz",
++      "integrity": "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==",
+       "dev": true,
+-      "funding": [
+-        {
+-          "type": "opencollective",
+-          "url": "https://opencollective.com/postcss/"
+-        },
+-        {
+-          "type": "tidelift",
+-          "url": "https://tidelift.com/funding/github/npm/postcss"
+-        },
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/ai"
+-        }
+-      ],
+       "license": "MIT",
+-      "dependencies": {
+-        "nanoid": "^3.3.12",
+-        "picocolors": "^1.1.1",
+-        "source-map-js": "^1.2.1"
+-      },
+       "engines": {
+-        "node": "^10 || ^12 || >=14"
++        "node": ">=18"
+       }
+     },
+-    "node_modules/require-from-string": {
+-      "version": "2.0.2",
+-      "resolved": "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz",
+-      "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==",
+-      "license": "MIT",
++    "node_modules/commander": {
++      "version": "15.0.0",
++      "resolved": "https://registry.npmjs.org/commander/-/commander-15.0.0.tgz",
++      "integrity": "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==",
+       "engines": {
+-        "node": ">=0.10.0"
++        "node": ">=22.12.0"
+       }
+     },
+-    "node_modules/rolldown": {
+-      "version": "1.1.3",
+-      "resolved": "https://registry.npmjs.org/rolldown/-/rolldown-1.1.3.tgz",
+-      "integrity": "sha512-1F1eEtUBtFvcGm1HQ9TiUIUHPQG7mSAODrhIzjxoUEFuo8OcbrGLiVLkevNgj84TE4lnHvnumwFjhJO5Eu135g==",
++    "node_modules/convert-source-map": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz",
++      "integrity": "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==",
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "@oxc-project/types": "=0.137.0",
+-        "@rolldown/pluginutils": "^1.0.0"
+-      },
++      "license": "MIT"
++    },
++    "node_modules/detect-libc": {
++      "version": "2.1.2",
++      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
++      "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/es-module-lexer": {
++      "version": "2.1.0",
++      "resolved": "https://registry.npmjs.org/es-module-lexer/-/es-module-lexer-2.1.0.tgz",
++      "integrity": "sha512-n27zTYMjYu1aj4MjCWzSP7G9r75utsaoc8m61weK+W8JMBGGQybd43GstCXZ3WNmSFtGT9wi59qQTW6mhTR5LQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/esbuild": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz",
++      "integrity": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "optional": true,
++      "peer": true,
+       "bin": {
+-        "rolldown": "bin/cli.mjs"
++        "esbuild": "bin/esbuild"
+       },
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">=18"
+       },
+       "optionalDependencies": {
+-        "@rolldown/binding-android-arm64": "1.1.3",
+-        "@rolldown/binding-darwin-arm64": "1.1.3",
+-        "@rolldown/binding-darwin-x64": "1.1.3",
+-        "@rolldown/binding-freebsd-x64": "1.1.3",
+-        "@rolldown/binding-linux-arm-gnueabihf": "1.1.3",
+-        "@rolldown/binding-linux-arm64-gnu": "1.1.3",
+-        "@rolldown/binding-linux-arm64-musl": "1.1.3",
+-        "@rolldown/binding-linux-ppc64-gnu": "1.1.3",
+-        "@rolldown/binding-linux-s390x-gnu": "1.1.3",
+-        "@rolldown/binding-linux-x64-gnu": "1.1.3",
+-        "@rolldown/binding-linux-x64-musl": "1.1.3",
+-        "@rolldown/binding-openharmony-arm64": "1.1.3",
+-        "@rolldown/binding-wasm32-wasi": "1.1.3",
+-        "@rolldown/binding-win32-arm64-msvc": "1.1.3",
+-        "@rolldown/binding-win32-x64-msvc": "1.1.3"
++        "@esbuild/aix-ppc64": "0.28.1",
++        "@esbuild/android-arm": "0.28.1",
++        "@esbuild/android-arm64": "0.28.1",
++        "@esbuild/android-x64": "0.28.1",
++        "@esbuild/darwin-arm64": "0.28.1",
++        "@esbuild/darwin-x64": "0.28.1",
++        "@esbuild/freebsd-arm64": "0.28.1",
++        "@esbuild/freebsd-x64": "0.28.1",
++        "@esbuild/linux-arm": "0.28.1",
++        "@esbuild/linux-arm64": "0.28.1",
++        "@esbuild/linux-ia32": "0.28.1",
++        "@esbuild/linux-loong64": "0.28.1",
++        "@esbuild/linux-mips64el": "0.28.1",
++        "@esbuild/linux-ppc64": "0.28.1",
++        "@esbuild/linux-riscv64": "0.28.1",
++        "@esbuild/linux-s390x": "0.28.1",
++        "@esbuild/linux-x64": "0.28.1",
++        "@esbuild/netbsd-arm64": "0.28.1",
++        "@esbuild/netbsd-x64": "0.28.1",
++        "@esbuild/openbsd-arm64": "0.28.1",
++        "@esbuild/openbsd-x64": "0.28.1",
++        "@esbuild/openharmony-arm64": "0.28.1",
++        "@esbuild/sunos-x64": "0.28.1",
++        "@esbuild/win32-arm64": "0.28.1",
++        "@esbuild/win32-ia32": "0.28.1",
++        "@esbuild/win32-x64": "0.28.1"
+       }
+     },
+-    "node_modules/siginfo": {
+-      "version": "2.0.0",
+-      "resolved": "https://registry.npmjs.org/siginfo/-/siginfo-2.0.0.tgz",
+-      "integrity": "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==",
++    "node_modules/estree-walker": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/estree-walker/-/estree-walker-3.0.3.tgz",
++      "integrity": "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==",
+       "dev": true,
+-      "license": "ISC"
++      "license": "MIT",
++      "dependencies": {
++        "@types/estree": "^1.0.0"
++      }
+     },
+-    "node_modules/source-map-js": {
+-      "version": "1.2.1",
+-      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+-      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
++    "node_modules/expect-type": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/expect-type/-/expect-type-1.4.0.tgz",
++      "integrity": "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==",
+       "dev": true,
+-      "license": "BSD-3-Clause",
++      "license": "Apache-2.0",
+       "engines": {
+-        "node": ">=0.10.0"
++        "node": ">=12.0.0"
+       }
+     },
+-    "node_modules/stackback": {
+-      "version": "0.0.2",
+-      "resolved": "https://registry.npmjs.org/stackback/-/stackback-0.0.2.tgz",
+-      "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==",
+-      "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/std-env": {
+-      "version": "4.1.0",
+-      "resolved": "https://registry.npmjs.org/std-env/-/std-env-4.1.0.tgz",
+-      "integrity": "sha512-Rq7ybcX2RuC55r9oaPVEW7/xu3tj8u4GeBYHBWCychFtzMIr86A7e3PPEBPT37sHStKX3+TiX/Fr/ACmJLVlLQ==",
+-      "dev": true,
+-      "license": "MIT"
+-    },
+-    "node_modules/tinybench": {
+-      "version": "2.9.0",
+-      "resolved": "https://registry.npmjs.org/tinybench/-/tinybench-2.9.0.tgz",
+-      "integrity": "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==",
+-      "dev": true,
++    "node_modules/fast-deep-equal": {
++      "version": "3.1.3",
++      "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
++      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
+       "license": "MIT"
+     },
+-    "node_modules/tinyexec": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/tinyexec/-/tinyexec-1.2.4.tgz",
+-      "integrity": "sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg==",
+-      "dev": true,
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=18"
+-      }
++    "node_modules/fast-uri": {
++      "version": "3.1.2",
++      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.2.tgz",
++      "integrity": "sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==",
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/fastify"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/fastify"
++        }
++      ],
++      "license": "BSD-3-Clause"
+     },
+-    "node_modules/tinyglobby": {
+-      "version": "0.2.17",
+-      "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+-      "integrity": "sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==",
++    "node_modules/fdir": {
++      "version": "6.5.0",
++      "resolved": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
++      "integrity": "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==",
+       "dev": true,
+       "license": "MIT",
+-      "dependencies": {
+-        "fdir": "^6.5.0",
+-        "picomatch": "^4.0.4"
+-      },
+       "engines": {
+         "node": ">=12.0.0"
+       },
+-      "funding": {
+-        "url": "https://github.com/sponsors/SuperchupuDev"
++      "peerDependencies": {
++        "picomatch": "^3 || ^4"
++      },
++      "peerDependenciesMeta": {
++        "picomatch": {
++          "optional": true
++        }
+       }
+     },
+-    "node_modules/tinyrainbow": {
+-      "version": "3.1.0",
+-      "resolved": "https://registry.npmjs.org/tinyrainbow/-/tinyrainbow-3.1.0.tgz",
+-      "integrity": "sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==",
++    "node_modules/fsevents": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
++      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
+       "dev": true,
++      "hasInstallScript": true,
+       "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
+       "engines": {
+-        "node": ">=14.0.0"
++        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
+       }
+     },
+-    "node_modules/tslib": {
+-      "version": "2.8.1",
+-      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+-      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
+-      "dev": true,
+-      "license": "0BSD",
+-      "optional": true
+-    },
+-    "node_modules/typescript": {
+-      "version": "6.0.3",
+-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-6.0.3.tgz",
+-      "integrity": "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
+-      "dev": true,
+-      "license": "Apache-2.0",
+-      "bin": {
+-        "tsc": "bin/tsc",
+-        "tsserver": "bin/tsserver"
++    "node_modules/js-yaml": {
++      "version": "5.2.1",
++      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-5.2.1.tgz",
++      "integrity": "sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==",
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/puzrin"
++        },
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/nodeca"
++        }
++      ],
++      "dependencies": {
++        "argparse": "^2.0.1"
+       },
+-      "engines": {
+-        "node": ">=14.17"
++      "bin": {
++        "js-yaml": "bin/js-yaml.mjs"
+       }
+     },
+-    "node_modules/undici-types": {
+-      "version": "8.3.0",
+-      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-8.3.0.tgz",
+-      "integrity": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",
+-      "dev": true,
++    "node_modules/json-schema-traverse": {
++      "version": "1.0.0",
++      "resolved": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz",
++      "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==",
+       "license": "MIT"
+     },
+-    "node_modules/vite": {
+-      "version": "8.1.0",
+-      "resolved": "https://registry.npmjs.org/vite/-/vite-8.1.0.tgz",
+-      "integrity": "sha512-BuJcQK/56NQTWDGn4ABea3q4SSBdNPWwNZKTkkUpcMPnLoquSYH8llRtSUIgoL1KSCpHt5eghLShn50mH36y7Q==",
++    "node_modules/lightningcss": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.32.0.tgz",
++      "integrity": "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ==",
+       "dev": true,
+-      "license": "MIT",
++      "license": "MPL-2.0",
+       "dependencies": {
+-        "lightningcss": "^1.32.0",
+-        "picomatch": "^4.0.4",
+-        "postcss": "^8.5.15",
+-        "rolldown": "~1.1.2",
+-        "tinyglobby": "^0.2.17"
+-      },
+-      "bin": {
+-        "vite": "bin/vite.js"
++        "detect-libc": "^2.0.3"
+       },
+       "engines": {
+-        "node": "^20.19.0 || >=22.12.0"
++        "node": ">= 12.0.0"
+       },
+       "funding": {
+-        "url": "https://github.com/vitejs/vite?sponsor=1"
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
+       },
+       "optionalDependencies": {
+-        "fsevents": "~2.3.3"
+-      },
+-      "peerDependencies": {
+-        "@types/node": "^20.19.0 || >=22.12.0",
+-        "@vitejs/devtools": "^0.3.0",
+-        "esbuild": "^0.27.0 || ^0.28.0",
+-        "jiti": ">=1.21.0",
+-        "less": "^4.0.0",
+-        "sass": "^1.70.0",
+-        "sass-embedded": "^1.70.0",
+-        "stylus": ">=0.54.8",
+-        "sugarss": "^5.0.0",
+-        "terser": "^5.16.0",
+-        "tsx": "^4.8.1",
+-        "yaml": "^2.4.2"
++        "lightningcss-android-arm64": "1.32.0",
++        "lightningcss-darwin-arm64": "1.32.0",
++        "lightningcss-darwin-x64": "1.32.0",
++        "lightningcss-freebsd-x64": "1.32.0",
++        "lightningcss-linux-arm-gnueabihf": "1.32.0",
++        "lightningcss-linux-arm64-gnu": "1.32.0",
++        "lightningcss-linux-arm64-musl": "1.32.0",
++        "lightningcss-linux-x64-gnu": "1.32.0",
++        "lightningcss-linux-x64-musl": "1.32.0",
++        "lightningcss-win32-arm64-msvc": "1.32.0",
++        "lightningcss-win32-x64-msvc": "1.32.0"
++      }
++    },
++    "node_modules/lightningcss-android-arm64": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-android-arm64/-/lightningcss-android-arm64-1.32.0.tgz",
++      "integrity": "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
+-      "peerDependenciesMeta": {
+-        "@types/node": {
+-          "optional": true
+-        },
+-        "@vitejs/devtools": {
+-          "optional": true
+-        },
+-        "esbuild": {
+-          "optional": true
+-        },
+-        "jiti": {
+-          "optional": true
+-        },
+-        "less": {
+-          "optional": true
+-        },
+-        "sass": {
+-          "optional": true
+-        },
+-        "sass-embedded": {
+-          "optional": true
+-        },
+-        "stylus": {
+-          "optional": true
+-        },
+-        "sugarss": {
+-          "optional": true
+-        },
+-        "terser": {
+-          "optional": true
+-        },
+-        "tsx": {
+-          "optional": true
+-        },
+-        "yaml": {
+-          "optional": true
+-        }
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
+       }
+     },
+-    "node_modules/vitest": {
+-      "version": "4.1.9",
+-      "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.1.9.tgz",
+-      "integrity": "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ==",
++    "node_modules/lightningcss-darwin-arm64": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.32.0.tgz",
++      "integrity": "sha512-RzeG9Ju5bag2Bv1/lwlVJvBE3q6TtXskdZLLCyfg5pt+HLz9BqlICO7LZM7VHNTTn/5PRhHFBSjk5lc4cmscPQ==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "@vitest/expect": "4.1.9",
+-        "@vitest/mocker": "4.1.9",
+-        "@vitest/pretty-format": "4.1.9",
+-        "@vitest/runner": "4.1.9",
+-        "@vitest/snapshot": "4.1.9",
+-        "@vitest/spy": "4.1.9",
+-        "@vitest/utils": "4.1.9",
+-        "es-module-lexer": "^2.0.0",
+-        "expect-type": "^1.3.0",
+-        "magic-string": "^0.30.21",
+-        "obug": "^2.1.1",
+-        "pathe": "^2.0.3",
+-        "picomatch": "^4.0.3",
+-        "std-env": "^4.0.0-rc.1",
+-        "tinybench": "^2.9.0",
+-        "tinyexec": "^1.0.2",
+-        "tinyglobby": "^0.2.15",
+-        "tinyrainbow": "^3.1.0",
+-        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0",
+-        "why-is-node-running": "^2.3.0"
+-      },
+-      "bin": {
+-        "vitest": "vitest.mjs"
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-darwin-x64": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.32.0.tgz",
++      "integrity": "sha512-U+QsBp2m/s2wqpUYT/6wnlagdZbtZdndSmut/NJqlCcMLTWp5muCrID+K5UJ6jqD2BFshejCYXniPDbNh73V8w==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
+       "engines": {
+-        "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
++        "node": ">= 12.0.0"
+       },
+       "funding": {
+-        "url": "https://opencollective.com/vitest"
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-freebsd-x64": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.32.0.tgz",
++      "integrity": "sha512-JCTigedEksZk3tHTTthnMdVfGf61Fky8Ji2E4YjUTEQX14xiy/lTzXnu1vwiZe3bYe0q+SpsSH/CTeDXK6WHig==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
+-      "peerDependencies": {
+-        "@edge-runtime/vm": "*",
+-        "@opentelemetry/api": "^1.9.0",
+-        "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0",
+-        "@vitest/browser-playwright": "4.1.9",
+-        "@vitest/browser-preview": "4.1.9",
+-        "@vitest/browser-webdriverio": "4.1.9",
+-        "@vitest/coverage-istanbul": "4.1.9",
+-        "@vitest/coverage-v8": "4.1.9",
+-        "@vitest/ui": "4.1.9",
+-        "happy-dom": "*",
+-        "jsdom": "*",
+-        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-arm-gnueabihf": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.32.0.tgz",
++      "integrity": "sha512-x6rnnpRa2GL0zQOkt6rts3YDPzduLpWvwAF6EMhXFVZXD4tPrBkEFqzGowzCsIWsPjqSK+tyNEODUBXeeVHSkw==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
+-      "peerDependenciesMeta": {
+-        "@edge-runtime/vm": {
+-          "optional": true
+-        },
+-        "@opentelemetry/api": {
+-          "optional": true
+-        },
+-        "@types/node": {
+-          "optional": true
+-        },
+-        "@vitest/browser-playwright": {
+-          "optional": true
+-        },
+-        "@vitest/browser-preview": {
+-          "optional": true
+-        },
+-        "@vitest/browser-webdriverio": {
+-          "optional": true
+-        },
+-        "@vitest/coverage-istanbul": {
+-          "optional": true
+-        },
+-        "@vitest/coverage-v8": {
+-          "optional": true
+-        },
+-        "@vitest/ui": {
+-          "optional": true
+-        },
+-        "happy-dom": {
+-          "optional": true
+-        },
+-        "jsdom": {
+-          "optional": true
+-        },
+-        "vite": {
+-          "optional": false
+-        }
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
+       }
+     },
+-    "node_modules/why-is-node-running": {
+-      "version": "2.3.0",
+-      "resolved": "https://registry.npmjs.org/why-is-node-running/-/why-is-node-running-2.3.0.tgz",
+-      "integrity": "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==",
++    "node_modules/lightningcss-linux-arm64-gnu": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.32.0.tgz",
++      "integrity": "sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ==",
++      "cpu": [
++        "arm64"
++      ],
+       "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "siginfo": "^2.0.0",
+-        "stackback": "0.0.2"
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
+-      "bin": {
+-        "why-is-node-running": "cli.js"
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-arm64-musl": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.32.0.tgz",
++      "integrity": "sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
+       },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-x64-gnu": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.32.0.tgz",
++      "integrity": "sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
+       "engines": {
+-        "node": ">=8"
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-x64-musl": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.32.0.tgz",
++      "integrity": "sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-win32-arm64-msvc": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.32.0.tgz",
++      "integrity": "sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-win32-x64-msvc": {
++      "version": "1.32.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.32.0.tgz",
++      "integrity": "sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/magic-string": {
++      "version": "0.30.21",
++      "resolved": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz",
++      "integrity": "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/sourcemap-codec": "^1.5.5"
++      }
++    },
++    "node_modules/nanoid": {
++      "version": "3.3.15",
++      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.15.tgz",
++      "integrity": "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/ai"
++        }
++      ],
++      "license": "MIT",
++      "bin": {
++        "nanoid": "bin/nanoid.cjs"
++      },
++      "engines": {
++        "node": "^10 || ^12 || ^13.7 || ^14 || >=15.0.1"
++      }
++    },
++    "node_modules/obug": {
++      "version": "2.1.3",
++      "resolved": "https://registry.npmjs.org/obug/-/obug-2.1.3.tgz",
++      "integrity": "sha512-9miFgM2OFba7hB+pRgvtV84pYTBaoTHohvmIgiRt6dRIzbwEOIaNaP+dIlGs2fNFoB0SeISs0Jz5WFVRid6Xyg==",
++      "dev": true,
++      "funding": [
++        "https://github.com/sponsors/sxzz",
++        "https://opencollective.com/debug"
++      ],
++      "license": "MIT",
++      "engines": {
++        "node": ">=12.20.0"
++      }
++    },
++    "node_modules/pathe": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz",
++      "integrity": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/picocolors": {
++      "version": "1.1.1",
++      "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
++      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/picomatch": {
++      "version": "4.0.4",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.4.tgz",
++      "integrity": "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/jonschlinkert"
++      }
++    },
++    "node_modules/postcss": {
++      "version": "8.5.15",
++      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.15.tgz",
++      "integrity": "sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/postcss/"
++        },
++        {
++          "type": "tidelift",
++          "url": "https://tidelift.com/funding/github/npm/postcss"
++        },
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/ai"
++        }
++      ],
++      "license": "MIT",
++      "dependencies": {
++        "nanoid": "^3.3.12",
++        "picocolors": "^1.1.1",
++        "source-map-js": "^1.2.1"
++      },
++      "engines": {
++        "node": "^10 || ^12 || >=14"
++      }
++    },
++    "node_modules/require-from-string": {
++      "version": "2.0.2",
++      "resolved": "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz",
++      "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/rolldown": {
++      "version": "1.1.3",
++      "resolved": "https://registry.npmjs.org/rolldown/-/rolldown-1.1.3.tgz",
++      "integrity": "sha512-1F1eEtUBtFvcGm1HQ9TiUIUHPQG7mSAODrhIzjxoUEFuo8OcbrGLiVLkevNgj84TE4lnHvnumwFjhJO5Eu135g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@oxc-project/types": "=0.137.0",
++        "@rolldown/pluginutils": "^1.0.0"
++      },
++      "bin": {
++        "rolldown": "bin/cli.mjs"
++      },
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      },
++      "optionalDependencies": {
++        "@rolldown/binding-android-arm64": "1.1.3",
++        "@rolldown/binding-darwin-arm64": "1.1.3",
++        "@rolldown/binding-darwin-x64": "1.1.3",
++        "@rolldown/binding-freebsd-x64": "1.1.3",
++        "@rolldown/binding-linux-arm-gnueabihf": "1.1.3",
++        "@rolldown/binding-linux-arm64-gnu": "1.1.3",
++        "@rolldown/binding-linux-arm64-musl": "1.1.3",
++        "@rolldown/binding-linux-ppc64-gnu": "1.1.3",
++        "@rolldown/binding-linux-s390x-gnu": "1.1.3",
++        "@rolldown/binding-linux-x64-gnu": "1.1.3",
++        "@rolldown/binding-linux-x64-musl": "1.1.3",
++        "@rolldown/binding-openharmony-arm64": "1.1.3",
++        "@rolldown/binding-wasm32-wasi": "1.1.3",
++        "@rolldown/binding-win32-arm64-msvc": "1.1.3",
++        "@rolldown/binding-win32-x64-msvc": "1.1.3"
++      }
++    },
++    "node_modules/siginfo": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/siginfo/-/siginfo-2.0.0.tgz",
++      "integrity": "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/source-map-js": {
++      "version": "1.2.1",
++      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
++      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
++      "dev": true,
++      "license": "BSD-3-Clause",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/stackback": {
++      "version": "0.0.2",
++      "resolved": "https://registry.npmjs.org/stackback/-/stackback-0.0.2.tgz",
++      "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/std-env": {
++      "version": "4.1.0",
++      "resolved": "https://registry.npmjs.org/std-env/-/std-env-4.1.0.tgz",
++      "integrity": "sha512-Rq7ybcX2RuC55r9oaPVEW7/xu3tj8u4GeBYHBWCychFtzMIr86A7e3PPEBPT37sHStKX3+TiX/Fr/ACmJLVlLQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tinybench": {
++      "version": "2.9.0",
++      "resolved": "https://registry.npmjs.org/tinybench/-/tinybench-2.9.0.tgz",
++      "integrity": "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tinyexec": {
++      "version": "1.2.4",
++      "resolved": "https://registry.npmjs.org/tinyexec/-/tinyexec-1.2.4.tgz",
++      "integrity": "sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/tinyglobby": {
++      "version": "0.2.17",
++      "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
++      "integrity": "sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "fdir": "^6.5.0",
++        "picomatch": "^4.0.4"
++      },
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/SuperchupuDev"
++      }
++    },
++    "node_modules/tinyrainbow": {
++      "version": "3.1.0",
++      "resolved": "https://registry.npmjs.org/tinyrainbow/-/tinyrainbow-3.1.0.tgz",
++      "integrity": "sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=14.0.0"
++      }
++    },
++    "node_modules/tslib": {
++      "version": "2.8.1",
++      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
++      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
++      "dev": true,
++      "license": "0BSD",
++      "optional": true
++    },
++    "node_modules/typescript": {
++      "version": "6.0.3",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-6.0.3.tgz",
++      "integrity": "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    },
++    "node_modules/undici-types": {
++      "version": "8.3.0",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-8.3.0.tgz",
++      "integrity": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/vite": {
++      "version": "8.1.0",
++      "resolved": "https://registry.npmjs.org/vite/-/vite-8.1.0.tgz",
++      "integrity": "sha512-BuJcQK/56NQTWDGn4ABea3q4SSBdNPWwNZKTkkUpcMPnLoquSYH8llRtSUIgoL1KSCpHt5eghLShn50mH36y7Q==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "lightningcss": "^1.32.0",
++        "picomatch": "^4.0.4",
++        "postcss": "^8.5.15",
++        "rolldown": "~1.1.2",
++        "tinyglobby": "^0.2.17"
++      },
++      "bin": {
++        "vite": "bin/vite.js"
++      },
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      },
++      "funding": {
++        "url": "https://github.com/vitejs/vite?sponsor=1"
++      },
++      "optionalDependencies": {
++        "fsevents": "~2.3.3"
++      },
++      "peerDependencies": {
++        "@types/node": "^20.19.0 || >=22.12.0",
++        "@vitejs/devtools": "^0.3.0",
++        "esbuild": "^0.27.0 || ^0.28.0",
++        "jiti": ">=1.21.0",
++        "less": "^4.0.0",
++        "sass": "^1.70.0",
++        "sass-embedded": "^1.70.0",
++        "stylus": ">=0.54.8",
++        "sugarss": "^5.0.0",
++        "terser": "^5.16.0",
++        "tsx": "^4.8.1",
++        "yaml": "^2.4.2"
++      },
++      "peerDependenciesMeta": {
++        "@types/node": {
++          "optional": true
++        },
++        "@vitejs/devtools": {
++          "optional": true
++        },
++        "esbuild": {
++          "optional": true
++        },
++        "jiti": {
++          "optional": true
++        },
++        "less": {
++          "optional": true
++        },
++        "sass": {
++          "optional": true
++        },
++        "sass-embedded": {
++          "optional": true
++        },
++        "stylus": {
++          "optional": true
++        },
++        "sugarss": {
++          "optional": true
++        },
++        "terser": {
++          "optional": true
++        },
++        "tsx": {
++          "optional": true
++        },
++        "yaml": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/vitest": {
++      "version": "4.1.9",
++      "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.1.9.tgz",
++      "integrity": "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@vitest/expect": "4.1.9",
++        "@vitest/mocker": "4.1.9",
++        "@vitest/pretty-format": "4.1.9",
++        "@vitest/runner": "4.1.9",
++        "@vitest/snapshot": "4.1.9",
++        "@vitest/spy": "4.1.9",
++        "@vitest/utils": "4.1.9",
++        "es-module-lexer": "^2.0.0",
++        "expect-type": "^1.3.0",
++        "magic-string": "^0.30.21",
++        "obug": "^2.1.1",
++        "pathe": "^2.0.3",
++        "picomatch": "^4.0.3",
++        "std-env": "^4.0.0-rc.1",
++        "tinybench": "^2.9.0",
++        "tinyexec": "^1.0.2",
++        "tinyglobby": "^0.2.15",
++        "tinyrainbow": "^3.1.0",
++        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0",
++        "why-is-node-running": "^2.3.0"
++      },
++      "bin": {
++        "vitest": "vitest.mjs"
++      },
++      "engines": {
++        "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "@edge-runtime/vm": "*",
++        "@opentelemetry/api": "^1.9.0",
++        "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0",
++        "@vitest/browser-playwright": "4.1.9",
++        "@vitest/browser-preview": "4.1.9",
++        "@vitest/browser-webdriverio": "4.1.9",
++        "@vitest/coverage-istanbul": "4.1.9",
++        "@vitest/coverage-v8": "4.1.9",
++        "@vitest/ui": "4.1.9",
++        "happy-dom": "*",
++        "jsdom": "*",
++        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
++      },
++      "peerDependenciesMeta": {
++        "@edge-runtime/vm": {
++          "optional": true
++        },
++        "@opentelemetry/api": {
++          "optional": true
++        },
++        "@types/node": {
++          "optional": true
++        },
++        "@vitest/browser-playwright": {
++          "optional": true
++        },
++        "@vitest/browser-preview": {
++          "optional": true
++        },
++        "@vitest/browser-webdriverio": {
++          "optional": true
++        },
++        "@vitest/coverage-istanbul": {
++          "optional": true
++        },
++        "@vitest/coverage-v8": {
++          "optional": true
++        },
++        "@vitest/ui": {
++          "optional": true
++        },
++        "happy-dom": {
++          "optional": true
++        },
++        "jsdom": {
++          "optional": true
++        },
++        "vite": {
++          "optional": false
++        }
++      }
++    },
++    "node_modules/wbs-json-spec": {
++      "resolved": "wjs",
++      "link": true
++    },
++    "node_modules/why-is-node-running": {
++      "version": "2.3.0",
++      "resolved": "https://registry.npmjs.org/why-is-node-running/-/why-is-node-running-2.3.0.tgz",
++      "integrity": "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "siginfo": "^2.0.0",
++        "stackback": "0.0.2"
++      },
++      "bin": {
++        "why-is-node-running": "cli.js"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "wjs": {
++      "version": "0.1.0",
++      "dependencies": {
++        "ajv": "^8.17.1",
++        "ajv-formats": "^3.0.1"
++      },
++      "devDependencies": {
++        "esbuild": "^0.25.0"
++      }
++    },
++    "wjs/node_modules/@esbuild/aix-ppc64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.25.12.tgz",
++      "integrity": "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/android-arm": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.25.12.tgz",
++      "integrity": "sha512-VJ+sKvNA/GE7Ccacc9Cha7bpS8nyzVv0jdVgwNDaR4gDMC/2TTRc33Ip8qrNYUcpkOHUT5OZ0bUcNNVZQ9RLlg==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/android-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.25.12.tgz",
++      "integrity": "sha512-6AAmLG7zwD1Z159jCKPvAxZd4y/VTO0VkprYy+3N2FtJ8+BQWFXU+OxARIwA46c5tdD9SsKGZ/1ocqBS/gAKHg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/android-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.25.12.tgz",
++      "integrity": "sha512-5jbb+2hhDHx5phYR2By8GTWEzn6I9UqR11Kwf22iKbNpYrsmRB18aX/9ivc5cabcUiAT/wM+YIZ6SG9QO6a8kg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/darwin-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.25.12.tgz",
++      "integrity": "sha512-N3zl+lxHCifgIlcMUP5016ESkeQjLj/959RxxNYIthIg+CQHInujFuXeWbWMgnTo4cp5XVHqFPmpyu9J65C1Yg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/darwin-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.25.12.tgz",
++      "integrity": "sha512-HQ9ka4Kx21qHXwtlTUVbKJOAnmG1ipXhdWTmNXiPzPfWKpXqASVcWdnf2bnL73wgjNrFXAa3yYvBSd9pzfEIpA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/freebsd-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.25.12.tgz",
++      "integrity": "sha512-gA0Bx759+7Jve03K1S0vkOu5Lg/85dou3EseOGUes8flVOGxbhDDh/iZaoek11Y8mtyKPGF3vP8XhnkDEAmzeg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/freebsd-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.25.12.tgz",
++      "integrity": "sha512-TGbO26Yw2xsHzxtbVFGEXBFH0FRAP7gtcPE7P5yP7wGy7cXK2oO7RyOhL5NLiqTlBh47XhmIUXuGciXEqYFfBQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-arm": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.25.12.tgz",
++      "integrity": "sha512-lPDGyC1JPDou8kGcywY0YILzWlhhnRjdof3UlcoqYmS9El818LLfJJc3PXXgZHrHCAKs/Z2SeZtDJr5MrkxtOw==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.25.12.tgz",
++      "integrity": "sha512-8bwX7a8FghIgrupcxb4aUmYDLp8pX06rGh5HqDT7bB+8Rdells6mHvrFHHW2JAOPZUbnjUpKTLg6ECyzvas2AQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-ia32": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.25.12.tgz",
++      "integrity": "sha512-0y9KrdVnbMM2/vG8KfU0byhUN+EFCny9+8g202gYqSSVMonbsCfLjUO+rCci7pM0WBEtz+oK/PIwHkzxkyharA==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-loong64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.25.12.tgz",
++      "integrity": "sha512-h///Lr5a9rib/v1GGqXVGzjL4TMvVTv+s1DPoxQdz7l/AYv6LDSxdIwzxkrPW438oUXiDtwM10o9PmwS/6Z0Ng==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-mips64el": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.25.12.tgz",
++      "integrity": "sha512-iyRrM1Pzy9GFMDLsXn1iHUm18nhKnNMWscjmp4+hpafcZjrr2WbT//d20xaGljXDBYHqRcl8HnxbX6uaA/eGVw==",
++      "cpu": [
++        "mips64el"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-ppc64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.25.12.tgz",
++      "integrity": "sha512-9meM/lRXxMi5PSUqEXRCtVjEZBGwB7P/D4yT8UG/mwIdze2aV4Vo6U5gD3+RsoHXKkHCfSxZKzmDssVlRj1QQA==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-riscv64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.25.12.tgz",
++      "integrity": "sha512-Zr7KR4hgKUpWAwb1f3o5ygT04MzqVrGEGXGLnj15YQDJErYu/BGg+wmFlIDOdJp0PmB0lLvxFIOXZgFRrdjR0w==",
++      "cpu": [
++        "riscv64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-s390x": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.25.12.tgz",
++      "integrity": "sha512-MsKncOcgTNvdtiISc/jZs/Zf8d0cl/t3gYWX8J9ubBnVOwlk65UIEEvgBORTiljloIWnBzLs4qhzPkJcitIzIg==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/linux-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz",
++      "integrity": "sha512-uqZMTLr/zR/ed4jIGnwSLkaHmPjOjJvnm6TVVitAa08SLS9Z0VM8wIRx7gWbJB5/J54YuIMInDquWyYvQLZkgw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/netbsd-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.25.12.tgz",
++      "integrity": "sha512-xXwcTq4GhRM7J9A8Gv5boanHhRa/Q9KLVmcyXHCTaM4wKfIpWkdXiMog/KsnxzJ0A1+nD+zoecuzqPmCRyBGjg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/netbsd-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.25.12.tgz",
++      "integrity": "sha512-Ld5pTlzPy3YwGec4OuHh1aCVCRvOXdH8DgRjfDy/oumVovmuSzWfnSJg+VtakB9Cm0gxNO9BzWkj6mtO1FMXkQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/openbsd-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.25.12.tgz",
++      "integrity": "sha512-fF96T6KsBo/pkQI950FARU9apGNTSlZGsv1jZBAlcLL1MLjLNIWPBkj5NlSz8aAzYKg+eNqknrUJ24QBybeR5A==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/openbsd-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.25.12.tgz",
++      "integrity": "sha512-MZyXUkZHjQxUvzK7rN8DJ3SRmrVrke8ZyRusHlP+kuwqTcfWLyqMOE3sScPPyeIXN/mDJIfGXvcMqCgYKekoQw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.25.12.tgz",
++      "integrity": "sha512-rm0YWsqUSRrjncSXGA7Zv78Nbnw4XL6/dzr20cyrQf7ZmRcsovpcRBdhD43Nuk3y7XIoW2OxMVvwuRvk9XdASg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/sunos-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.25.12.tgz",
++      "integrity": "sha512-3wGSCDyuTHQUzt0nV7bocDy72r2lI33QL3gkDNGkod22EsYl04sMf0qLb8luNKTOmgF/eDEDP5BFNwoBKH441w==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/win32-arm64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.25.12.tgz",
++      "integrity": "sha512-rMmLrur64A7+DKlnSuwqUdRKyd3UE7oPJZmnljqEptesKM8wx9J8gx5u0+9Pq0fQQW8vqeKebwNXdfOyP+8Bsg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/win32-ia32": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.25.12.tgz",
++      "integrity": "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/@esbuild/win32-x64": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz",
++      "integrity": "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "wjs/node_modules/esbuild": {
++      "version": "0.25.12",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
++      "integrity": "sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==",
++      "dev": true,
++      "hasInstallScript": true,
++      "bin": {
++        "esbuild": "bin/esbuild"
++      },
++      "engines": {
++        "node": ">=18"
++      },
++      "optionalDependencies": {
++        "@esbuild/aix-ppc64": "0.25.12",
++        "@esbuild/android-arm": "0.25.12",
++        "@esbuild/android-arm64": "0.25.12",
++        "@esbuild/android-x64": "0.25.12",
++        "@esbuild/darwin-arm64": "0.25.12",
++        "@esbuild/darwin-x64": "0.25.12",
++        "@esbuild/freebsd-arm64": "0.25.12",
++        "@esbuild/freebsd-x64": "0.25.12",
++        "@esbuild/linux-arm": "0.25.12",
++        "@esbuild/linux-arm64": "0.25.12",
++        "@esbuild/linux-ia32": "0.25.12",
++        "@esbuild/linux-loong64": "0.25.12",
++        "@esbuild/linux-mips64el": "0.25.12",
++        "@esbuild/linux-ppc64": "0.25.12",
++        "@esbuild/linux-riscv64": "0.25.12",
++        "@esbuild/linux-s390x": "0.25.12",
++        "@esbuild/linux-x64": "0.25.12",
++        "@esbuild/netbsd-arm64": "0.25.12",
++        "@esbuild/netbsd-x64": "0.25.12",
++        "@esbuild/openbsd-arm64": "0.25.12",
++        "@esbuild/openbsd-x64": "0.25.12",
++        "@esbuild/openharmony-arm64": "0.25.12",
++        "@esbuild/sunos-x64": "0.25.12",
++        "@esbuild/win32-arm64": "0.25.12",
++        "@esbuild/win32-ia32": "0.25.12",
++        "@esbuild/win32-x64": "0.25.12"
+       }
+     }
+   }

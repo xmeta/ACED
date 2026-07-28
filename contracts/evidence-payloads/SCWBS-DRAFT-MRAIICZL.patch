@@ -1,0 +1,58 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index a621c21..27e8559 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -49,6 +49,8 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明
+ 
+ Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
+ 
++CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
++
+ ## 作業開始時
+ 
+ 1. 対象 Task Contract を読む。
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml b/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
+new file mode 100644
+index 0000000..07e077b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
+@@ -0,0 +1,32 @@
++id: SCWBS-DRAFT-MRAIICZL
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRAIICZL
++branchName: task/SCWBS-DRAFT-MRAIICZL-agents-md-governance-rules-and-wjs-submodule-upd
++allowedPaths:
++  - AGENTS.md
++  - wjs
++  - contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRAIICZL.yaml
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
++  - contracts/evidence/
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Complete AGENTS.md governance rules and wjs submodule update
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/wjs b/wjs
+index 774e011..ca4b0ee 160000
+--- a/wjs
++++ b/wjs
+@@ -1 +1 @@
+-Subproject commit 774e01122b5e882e3a1d99b1ec8d51fb784667e2
++Subproject commit ca4b0eec4e3645ea73fc97b825fa2caabfc1ecc3

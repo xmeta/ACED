@@ -1,0 +1,371 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
+new file mode 100644
+index 0000000..ef5aebe
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
+@@ -0,0 +1,51 @@
++id: SCWBS-DRAFT-MRJ5041G
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ5041G
++branchName: task/SCWBS-DRAFT-MRJ5041G-issue-152-preserve-human-approval-across-metadat
++allowedPaths:
++  - src/core/human-gate.ts
++  - src/core/git.ts
++  - src/commands/check.ts
++  - src/commands/check-diff.ts
++  - src/commands/finish.ts
++  - src/commands/health.ts
++  - tests/integration/human-gate.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/health.test.ts
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changing Approval provenance or identity semantics.
++  - The fix requires changes outside allowedPaths.
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Matching diffHash Approval remains valid when its head is an ancestor and intervening changes are task Evidence Approval Review or registry metadata only.
++  - Gate implementation test dependency or submodule changes always invalidate Approval.
++  - Non-ancestor Approval heads are invalid.
++  - check check-diff finish and health use the same metadata-aware Approval scope validator.
++  - Approval headCommit and diffHash continue to audit the originally reviewed scope.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T11:26:56.396Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8759192..37ed946 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -69,3 +69,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ5041G
++    path: contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
++    branchName: task/SCWBS-DRAFT-MRJ5041G-issue-152-preserve-human-approval-across-metadat
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 9d4a23f..ce4232c 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -32,7 +32,7 @@ function isManagedContractPath(task: TaskContract, file: string): boolean {
+ 
+ export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+   const issues: Issue[] = [];
+-  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files);
++  const gate = validateHumanGateApproval(task, readEvidence(root, task.id).evidence, readApproval(root, task.id).approval, files, root);
+   for (const issue of collectWbsChangesetGateIssues(files)) {
+     issues.push({ ...issue, code: `diff.${issue.code}`, message: `${issue.message} (for ${task.id})` });
+   }
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index a0665a5..968b256 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -107,7 +107,7 @@ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocum
+     issues.push(...evidenceIssues);
+     issues.push(...validateRequiredChecks(task, evidence));
+     if (done && evidence) {
+-      issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval).issues);
++      issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, evidence.changedFiles, root).issues);
+     }
+   }
+ 
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 89deb1e..d2a5bad 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -121,7 +121,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+   const profile: Profile = readProfile(root);
+ 
+   const approval = readApproval(root, taskId).approval;
+-  const humanGate = validateHumanGateApproval(task, evidence, approval);
++  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence?.changedFiles, root);
+   const humanGateFiles = humanGate.requiredFiles;
+   const needsHumanGate = humanGate.required && !humanGate.approved;
+ 
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 89a1ee2..4fdbf44 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,6 +1,7 @@
+-import { approvalExists, listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
++import { listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
++import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+@@ -73,10 +74,9 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   const node = findNode(wbs, task.wbsNodeId);
+   const currentHead = headCommit(root);
+   const currentBranchName = currentBranch(root);
+-  const { approval, issues: approvalIssues } = readApproval(root, task.id);
+-  const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
++  const { approval } = readApproval(root, task.id);
+   const approvalPullRequest = approval?.pullRequest;
+-  const hasApproval = Boolean(approval) && !missingApprovalOnly;
++  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+ 
+   if (node && isDoneNode(node) && strongestEvidenceLevel(evidence) === "C") {
+     issues.push({
+@@ -159,10 +159,12 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+     if (matchesAny(file, task.forbiddenPaths)) {
+       issues.push({ severity: "error", code: "health.evidence.changedFiles.forbiddenPaths", message: `${file} is forbidden by ${task.id}` });
+     }
+-    if (matchesAny(file, task.humanGateRequiredPaths) && !hasApproval) {
+-      issues.push({ severity: "warn", code: "health.evidence.changedFiles.humanGate", message: `${file} requires human gate approval for ${task.id}` });
+-    }
+   }
++  issues.push(...humanGate.issues.map((issue) => ({
++    ...issue,
++    severity: "warn" as const,
++    code: `health.${issue.code}`
++  })));
+ 
+   const changedTests = evidence.changedFiles.some((file) => /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/.test(file));
+   if (changedTests) {
+diff --git a/src/core/git.ts b/src/core/git.ts
+index 7f190aa..60ddd28 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -57,6 +57,18 @@ export function changedFilesSince(root: string, ref: string): string[] {
+   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
+ }
+ 
++export function changedFilesBetween(root: string, fromRef: string, toRef: string): string[] {
++  return Array.from(new Set(gitLines(root, ["log", "--format=", "--name-only", `${fromRef}..${toRef}`], "git log failed")));
++}
++
++export function isCommitAncestor(root: string, ancestorRef: string, descendantRef: string): boolean {
++  const result = spawnSync("git", ["merge-base", "--is-ancestor", ancestorRef, descendantRef], {
++    cwd: root,
++    encoding: "utf8"
++  });
++  return result.status === 0;
++}
++
+ export function resolveCommit(root: string, ref: string): string | undefined {
+   const result = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], {
+     cwd: root,
+diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
+index ee2e16d..cfd6a3e 100644
+--- a/src/core/human-gate.ts
++++ b/src/core/human-gate.ts
+@@ -1,4 +1,5 @@
+ import { matchesAny } from "./glob.js";
++import { changedFilesBetween, isCommitAncestor } from "./git.js";
+ import type { ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
+ 
+ export type HumanGateValidation = {
+@@ -16,11 +17,20 @@ function evidenceDiffHash(evidence: Evidence): string | undefined {
+   return evidence.diffHash ?? evidence.git?.diffHash;
+ }
+ 
++function isApprovalMetadataFile(taskId: string, file: string): boolean {
++  const normalized = file.replace(/\\/g, "/");
++  return normalized === `contracts/evidence/${taskId}.yaml`
++    || normalized === `contracts/approvals/${taskId}.yaml`
++    || normalized === `contracts/reviews/${taskId}.yaml`
++    || normalized === "contracts/registry.yaml";
++}
++
+ export function validateHumanGateApproval(
+   task: TaskContract,
+   evidence: Evidence | undefined,
+   approval: ApprovalRecord | undefined,
+-  changedFiles: string[] = evidence?.changedFiles ?? []
++  changedFiles: string[] = evidence?.changedFiles ?? [],
++  root?: string
+ ): HumanGateValidation {
+   const requiredFiles = changedFiles.filter((file) => matchesAny(file, task.humanGateRequiredPaths));
+   if (requiredFiles.length === 0) {
+@@ -68,12 +78,26 @@ export function validateHumanGateApproval(
+       fixCommand: approvalCommand
+     });
+   } else if (approval.headCommit && subjectHead && approval.headCommit !== subjectHead) {
+-    issues.push({
+-      severity: "error",
+-      code: "approval.scope.headCommit",
+-      message: `${task.id} approved headCommit does not match Evidence subjectHeadCommit`,
+-      fixCommand: approvalCommand
+-    });
++    let metadataOnlyDescendant = false;
++    const matchingAuditableDiff = !legacyUnscoped
++      && Boolean(approval.diffHash)
++      && approval.diffHash === subjectDiffHash;
++    if (root && matchingAuditableDiff && isCommitAncestor(root, approval.headCommit, subjectHead)) {
++      try {
++        const interveningFiles = changedFilesBetween(root, approval.headCommit, subjectHead);
++        metadataOnlyDescendant = interveningFiles.every((file) => isApprovalMetadataFile(task.id, file));
++      } catch {
++        metadataOnlyDescendant = false;
++      }
++    }
++    if (!metadataOnlyDescendant) {
++      issues.push({
++        severity: "error",
++        code: "approval.scope.headCommit",
++        message: `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`,
++        fixCommand: approvalCommand
++      });
++    }
+   }
+   if ((!approval.diffHash || !subjectDiffHash) && !legacyUnscoped) {
+     issues.push({
+diff --git a/tests/integration/human-gate.test.ts b/tests/integration/human-gate.test.ts
+index 0c909a2..b25de1a 100644
+--- a/tests/integration/human-gate.test.ts
++++ b/tests/integration/human-gate.test.ts
+@@ -1,6 +1,22 @@
++import { execFileSync } from "node:child_process";
+ import { describe, expect, test } from "vitest";
+ import { validateHumanGateApproval } from "../../src/core/human-gate.js";
+-import { sampleApproval, sampleEvidence, sampleTask } from "../helpers.js";
++import { headCommit } from "../../src/core/git.js";
++import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeText } from "../helpers.js";
++
++function commitAll(root: string, message: string): string {
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++  return headCommit(root)!;
++}
++
++function addTaskMetadata(root: string, taskId: string): string {
++  writeText(root, `contracts/evidence/${taskId}.yaml`, "metadata\n");
++  writeText(root, `contracts/approvals/${taskId}.yaml`, "metadata\n");
++  writeText(root, `contracts/reviews/${taskId}.yaml`, "metadata\n");
++  writeText(root, "contracts/registry.yaml", "metadata\n");
++  return commitAll(root, "metadata");
++}
+ 
+ describe("Human Gate approval scope", () => {
+   const task = sampleTask({ humanGateRequiredPaths: ["package.json", ".github/**"] });
+@@ -120,4 +136,102 @@ describe("Human Gate approval scope", () => {
+     );
+     expect(result).toMatchObject({ required: true, approved: true, issues: [] });
+   });
++
++  test("preserves Approval across metadata-only descendant commits", () => {
++    const root = makeTempRepo();
++    writeText(root, "README.md", "base\n");
++    commitAll(root, "base");
++    writeText(root, "package.json", "{}\n");
++    const approvedHead = commitAll(root, "implementation");
++    const subjectHead = addTaskMetadata(root, task.id);
++    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
++    const scopedApproval = sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-13T00:00:00.000Z",
++      headCommit: approvedHead,
++      diffHash: "same-diff"
++    });
++
++    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root))
++      .toMatchObject({ required: true, approved: true, issues: [] });
++
++    const unscopedEvidence = { ...scopedEvidence, diffHash: undefined, git: undefined };
++    const unscopedApproval = { ...scopedApproval, diffHash: undefined };
++    expect(validateHumanGateApproval(task, unscopedEvidence, unscopedApproval, unscopedEvidence.changedFiles, root).issues)
++      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
++  });
++
++  test.each([
++    ["Gate", "package.json"],
++    ["implementation", "src/feature.ts"],
++    ["test", "tests/feature.test.ts"],
++    ["dependency", "package-lock.json"],
++    ["submodule", "wjs/nested-change.txt"]
++  ])("invalidates Approval after %s changes", (_kind, changedPath) => {
++    const root = makeTempRepo();
++    writeText(root, "README.md", "base\n");
++    commitAll(root, "base");
++    writeText(root, "package.json", "{}\n");
++    const approvedHead = commitAll(root, "implementation");
++    addTaskMetadata(root, task.id);
++    writeText(root, changedPath, "changed\n");
++    const subjectHead = commitAll(root, "non-metadata change");
++    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
++    const scopedApproval = sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-13T00:00:00.000Z",
++      headCommit: approvedHead,
++      diffHash: "same-diff"
++    });
++
++    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
++      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
++  });
++
++  test("rejects Approval heads that are not ancestors of Evidence", () => {
++    const root = makeTempRepo();
++    writeText(root, "README.md", "base\n");
++    commitAll(root, "base");
++    writeText(root, "package.json", "{}\n");
++    const approvedHead = commitAll(root, "approved branch");
++    execFileSync("git", ["switch", "-c", "other", "HEAD~1"], { cwd: root, stdio: "ignore" });
++    const subjectHead = addTaskMetadata(root, task.id);
++    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
++    const scopedApproval = sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-13T00:00:00.000Z",
++      headCommit: approvedHead,
++      diffHash: "same-diff"
++    });
++
++    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
++      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
++  });
++
++  test("invalidates Approval when implementation changed and was later reverted", () => {
++    const root = makeTempRepo();
++    writeText(root, "README.md", "base\n");
++    commitAll(root, "base");
++    writeText(root, "package.json", "{}\n");
++    const approvedHead = commitAll(root, "implementation");
++    addTaskMetadata(root, task.id);
++    writeText(root, "src/feature.ts", "changed\n");
++    commitAll(root, "temporary implementation change");
++    execFileSync("git", ["rm", "src/feature.ts"], { cwd: root, stdio: "ignore" });
++    const subjectHead = commitAll(root, "revert implementation change");
++    const scopedEvidence = { ...evidence, changedFiles: ["package.json"], subjectHeadCommit: subjectHead, diffHash: "same-diff" };
++    const scopedApproval = sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-13T00:00:00.000Z",
++      headCommit: approvedHead,
++      diffHash: "same-diff"
++    });
++
++    expect(validateHumanGateApproval(task, scopedEvidence, scopedApproval, scopedEvidence.changedFiles, root).issues)
++      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.scope.headCommit" })]));
++  }, 15000);
+ });
