@@ -1,0 +1,92 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml b/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
+new file mode 100644
+index 0000000..d48716a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
+@@ -0,0 +1,31 @@
++id: SCWBS-DRAFT-MR99YIZH
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MR99YIZH
++branchName: task/SCWBS-DRAFT-MR99YIZH-fix-help-flags-for-mutating-commands
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/tasks/**
++  - contracts/evidence/**
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Complete Fix help flags for mutating commands
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index ae905cb..bb3bcf8 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -9,3 +9,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MR99YIZH
++    path: contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
++    branchName: task/SCWBS-DRAFT-MR99YIZH-fix-help-flags-for-mutating-commands
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index f27d614..1850bd2 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -148,7 +148,7 @@ function testQualityAfter(args: string[]): Evidence["testQuality"] | undefined {
+ export function main(argv = process.argv.slice(2), root = process.cwd()): number {
+   const [command, subcommand, third] = argv;
+ 
+-  if (!command || command === "--help" || command === "-h") {
++  if (!command || argv.includes("--help") || argv.includes("-h")) {
+     usage();
+     return 0;
+   }
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 1e41d3b..edadcf7 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -1,4 +1,4 @@
+-import { mkdirSync, readdirSync, readFileSync } from "node:fs";
++import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+@@ -728,6 +728,17 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(task?.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+   });
+ 
++  test("help flags do not run mutating commands", () => {
++    const root = makeTempRepo();
++
++    expect(main(["start", "--help"], root)).toBe(0);
++    expect(main(["task", "new", "--help"], root)).toBe(0);
++
++    expect(existsSync(path.join(root, "contracts/specs"))).toBe(false);
++    expect(existsSync(path.join(root, "contracts/tasks"))).toBe(false);
++    expect(existsSync(path.join(root, "contracts/changesets"))).toBe(false);
++  });
++
+   test("ai packet includes WBS node, task contract, and stop conditions", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
