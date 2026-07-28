@@ -1,0 +1,158 @@
+diff --git a/contracts/evidence/SCWBS-DRAFT-MR7XMGQ2.yaml b/contracts/evidence/SCWBS-DRAFT-MR7XMGQ2.yaml
+index e065b7f..6805239 100644
+--- a/contracts/evidence/SCWBS-DRAFT-MR7XMGQ2.yaml
++++ b/contracts/evidence/SCWBS-DRAFT-MR7XMGQ2.yaml
+@@ -47,3 +47,9 @@ checks:
+     source: local
+     command: npm run build
+     executedAt: "2026-07-05T18:27:38.777Z"
++testQuality:
++  assertionsAdded: true
++  testsDisabled: false
++  coverageDecreased: false
++  notes:
++    - Added regression assertions for managedContractPaths, fixCommand coverage, and scwbs fix behavior.
+diff --git a/contracts/specs/SPEC-LITE-MR84NCDI.yaml b/contracts/specs/SPEC-LITE-MR84NCDI.yaml
+new file mode 100644
+index 0000000..510958a
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR84NCDI.yaml
+@@ -0,0 +1,11 @@
++id: SPEC-LITE-MR84NCDI
++type: spec-contract
++featureId: F-MR84NCDI
++title: Backfill SCWBS-DRAFT-MR7XMGQ2 health metadata
++status: approved
++version: 0.1.0
++approvedBy: delegated-human
++approvedAt: "2026-07-05T18:36:00Z"
++summary: Backfill SCWBS-DRAFT-MR7XMGQ2 health metadata
++acceptanceCriteria:
++  - "Define acceptance criteria for Backfill SCWBS-DRAFT-MR7XMGQ2 health metadata"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+index 7ef7188..7017aff 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+@@ -23,14 +23,18 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - "M2-003 - a Check Catalog maps check names to executable commands."
+-  - "M2-019 - managedContractPaths is treated as an exception to allowedPaths/meta-file guard for CLI-generated contract files only."
+-  - "M2-022 - every check-diff/finish error includes a fixCommand."
+-  - "M2-023 - `scwbs fix` runs only safe, well-defined automatic fixes."
+-  - "M2 test checks - managedContractPaths passes only intended paths, and fixCommand is present on all errors."
++  - M2-003 - a Check Catalog maps check names to executable commands.
++  - M2-019 - managedContractPaths is treated as an exception to allowedPaths/meta-file guard for CLI-generated contract files only.
++  - M2-022 - every check-diff/finish error includes a fixCommand.
++  - M2-023 - `scwbs fix` runs only safe, well-defined automatic fixes.
++  - M2 test checks - managedContractPaths passes only intended paths, and fixCommand is present on all errors.
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
+ managedContractPaths:
+   - contracts/changesets/SCWBS-DRAFT-MR7XMGQ2-link-wbs-node.json
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  createdAt: "2026-07-05T18:32:24.863Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+new file mode 100644
+index 0000000..bf92fcf
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+@@ -0,0 +1,34 @@
++id: SCWBS-DRAFT-MR84NCDI
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-MR84NCDI
++branchName: task/SCWBS-DRAFT-MR84NCDI-backfill-scwbs-draft-mr7xmgq2-health-metadata
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Backfill SCWBS-DRAFT-MR7XMGQ2 health metadata
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  specVersion: 0.1.0
++  specRevision: "sha256:a6269d3516cf4a26f57ddcc450023e9be12a6cb6895e5b8c0504c518894df6bb"
++  createdAt: "2026-07-05T19:33:33.348Z"
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index b4a261d..89a1ee2 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -64,6 +64,10 @@ function hasTestQualityRationale(evidence: Evidence): boolean {
+   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
+ }
+ 
++function isManagedContractPath(task: TaskContract, file: string): boolean {
++  return matchesAny(file, task.managedContractPaths ?? []);
++}
++
+ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence): Issue[] {
+   const issues: Issue[] = [];
+   const node = findNode(wbs, task.wbsNodeId);
+@@ -148,7 +152,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   }
+ 
+   for (const file of evidence.changedFiles) {
+-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths)) {
++    const managed = isManagedContractPath(task, file);
++    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
+       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
+     }
+     if (matchesAny(file, task.forbiddenPaths)) {
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index b9c37b9..410c8a6 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -920,6 +920,29 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(runHealth(root)).toBe(1);
+   });
+ 
++  test("health treats managed contract paths as allowed path exceptions", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({
++        allowedPaths: ["src/**"],
++        managedContractPaths: ["contracts/changesets/WBS-001-004-link-wbs-node.json"]
++      }) as unknown as Record<string, unknown>
++    );
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({
++        changedFiles: ["contracts/changesets/WBS-001-004-link-wbs-node.json"]
++      }) as unknown as Record<string, unknown>
++    );
++
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths")).toBe(false);
++  });
++
+   test("health warns when evidence commit is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
