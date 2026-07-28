@@ -1,0 +1,109 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index bc45982..19715d4 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -46,6 +46,8 @@ npm run scwbs -- registry rebuild --check
+ 
+ YAML/JSONを直接編集してはならない。ただし、ユーザーが明示的に「スキーマや仕様の実装」または「Task Contract / Evidence / registry の更新」を依頼した場合は、その契約範囲内でのみ編集してよい。
+ 
++WBS正本 (`contracts/wbs/project.wbs.json`) は直接編集してはならない。変更は必ず `contracts/changesets/*.json` 経由で行い、`npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json` で適用する。`scwbs check` / `scwbs check-diff` は対応する changeset がないWBS直接編集を `wbs.changeset.required` で fail させる。
++
+ Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
+ 
+ CI が通るまでマージしてはいけない。merge 前に CI status を確認し、failure がある場合は修正してからマージする。
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml b/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
+new file mode 100644
+index 0000000..b89b46a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
+@@ -0,0 +1,29 @@
++id: SCWBS-DRAFT-MRAX22BF
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRAX22BF
++branchName: task/SCWBS-DRAFT-MRAX22BF-enforce-wbs-direct-edit-prohibition-in-check-dif
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/**
++  - AGENTS.md
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - 'Plan and implement: Enforce WBS direct-edit prohibition in check-diff and check (ISSUE #106)'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/docs/scwbs/ai-agent-guide.md b/docs/scwbs/ai-agent-guide.md
+index e601651..15d80d6 100644
+--- a/docs/scwbs/ai-agent-guide.md
++++ b/docs/scwbs/ai-agent-guide.md
+@@ -153,6 +153,11 @@ running and can interfere with each other if run in parallel.
+   contract or registry updates.
+ - Do not mark Approval as `approved`.
+ - Do not complete WBS nodes directly.
++- Do not edit `contracts/wbs/project.wbs.json` directly. The canonical WBS is
++  updated only through a changeset under `contracts/changesets/` applied with
++  `npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json`.
++  `scwbs check` and `scwbs check-diff` fail with `wbs.changeset.required` when
++  the WBS is edited without a corresponding changeset.
+ - Do not use future Core shorthand from draft docs when the current CLI docs
+   specify a different command.
+ - Do not ignore `review-queue` just because `next` suggests a planned task.
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 4dd2596..989c931 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -175,7 +175,8 @@ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
+     issues.push({
+       severity: "error",
+       code: "wbs.changeset.required",
+-      message: "contracts/wbs/project.wbs.json was modified without a corresponding contracts/changesets/*.json; run scwbs wbs apply instead of editing the WBS directly"
++      message: "WBS direct edit detected: contracts/wbs/project.wbs.json was modified directly. Create a changeset under contracts/changesets/ and apply it via `npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json` instead of editing the WBS canonical file by hand.",
++      fixCommand: "Create a changeset under contracts/changesets/ then run: npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json"
+     });
+   }
+   return issues;
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index f3fe9c6..aca740b 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -160,7 +160,11 @@ describe("check-diff", () => {
+   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({ allowedPaths: ["contracts/**"] });
+-    expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(true);
++    const issues = collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json"]);
++    expect(issues.some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(true);
++    const wbsIssue = issues.find((issue) => issue.code === "diff.wbs.changeset.required");
++    expect(wbsIssue?.fixCommand).toContain("wbs apply contracts/changesets/");
++    expect(wbsIssue?.message).toContain("WBS direct edit detected");
+     expect(collectDiffIssues(root, task, ["contracts/wbs/project.wbs.json", "contracts/changesets/change.json"]).some((issue) => issue.code === "diff.wbs.changeset.required")).toBe(false);
+   });
+ 
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index b39caa3..8c07f33 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -40,6 +40,9 @@ describe("misc", () => {
+ 
+     const issues = collectCheckIssues(root);
+     expect(issues.some((issue) => issue.code === "wbs.changeset.required")).toBe(true);
++    const wbsIssue = issues.find((issue) => issue.code === "wbs.changeset.required");
++    expect(wbsIssue?.message).toContain("WBS direct edit detected");
++    expect(wbsIssue?.fixCommand).toContain("wbs apply contracts/changesets/");
+ 
+     writeJson(root, "contracts/changesets/SCWBS-023-wbs-tool-only.json", {
+       schemaVersion: "0.1.0",
