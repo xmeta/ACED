@@ -7,6 +7,7 @@ export const defaultSpecsDir = "contracts/specs";
 export const defaultSpecChangesDir = "contracts/spec-changes";
 export const defaultTasksDir = "contracts/tasks";
 export const defaultEvidenceDir = "contracts/evidence";
+export const defaultEvidencePayloadsDir = "contracts/evidence-payloads";
 export const defaultApprovalsDir = "contracts/approvals";
 export const defaultReviewsDir = "contracts/reviews";
 export const defaultBlocksDir = "contracts/blocks";
@@ -79,6 +80,11 @@ export function specChangePath(specChangeId: string): string {
 
 export function evidencePath(taskId: string): string {
   return taskContractPath(defaultEvidenceDir, taskId);
+}
+
+export function evidencePayloadPath(taskId: string): string {
+  assertValidTaskId(taskId);
+  return `${defaultEvidencePayloadsDir}/${taskId}.patch`;
 }
 
 export function approvalPath(taskId: string): string {

@@ -108,7 +108,7 @@ const taskContractSchema = {
       items: {
         type: "string",
         minLength: 1,
-        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
+        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|evidence-payloads/[^/*?\\[\\]{}]+\\.patch|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
       }
     },
     allowedPaths: stringArraySchema,

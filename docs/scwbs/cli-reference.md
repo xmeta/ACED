@@ -66,7 +66,7 @@ fieldがある場合も、値には2種類ある。
 - active Task別のwarning summaryをgit common dirへ保存する（tracked artifactではないがlocal metadataとして書き込みが発生する）。
 - `--governance-cost` を明示指定した場合、governance cost baselineのwarning判定を追加する。
 
-`status` はWBS nodeのlifecycle件数と、Task indexで `completed` / `archived` のTaskに対するcompletion trustを別軸で表示する。completion trustはEvidenceの存在だけではなく、required checks、Evidence subject provenance、Human Approval scopeを`health`と共通の判定で評価し、`verified` / `degraded` / `unverifiable` / `not-evaluated`へ分類する。`cancelled` Taskは母集団から除外する。`--json` はversioned schema `scwbs.status.v1` のbounded summaryを返し、Task ID一覧は展開しない。`--strict` はTask indexを評価できない場合、またはterminal Taskが完全な`verified`でない場合に非0を返す。shallow cloneはcommit到達性だけを`not-evaluated`とし、Evidence欠落やApproval不整合など確定的な問題を隠さない。
+`status` はWBS nodeのlifecycle件数と、Task indexで `completed` / `archived` のTaskに対するcompletion trustを別軸で表示する。completion trustはEvidenceの存在だけではなく、required checks、Evidence subject provenance、Human Approval scopeを`health`と共通の判定で評価し、`verified` / `degraded` / `unverifiable` / `not-evaluated`へ分類する。`patch-artifact` Evidenceは元subject commitがなくても、tracked payloadからtree、diffHash、changedFilesを再構築できればverifiedになり得る。`cancelled` Taskは母集団から除外する。`--json` はversioned schema `scwbs.status.v1` のbounded summaryを返し、Task ID一覧は展開しない。`--strict` はTask indexを評価できない場合、またはterminal Taskが完全な`verified`でない場合に非0を返す。shallow cloneでpatchのbaseCommitだけが取得できない場合は`not-evaluated`とし、Evidence欠落やApproval不整合など確定的な問題を隠さない。
 
 #### `status --strict` の terminal Task 定義
 
@@ -393,9 +393,20 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
 
 `evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
 
+`evidence collect` と `finish` はEvidence YAMLに加えて
+`contracts/evidence-payloads/<task-id>.patch` を生成する。payloadは
+`git-diff-binary-v1` のtracked retention artifactであり、Evidence管理fileと
+payload自身を除外するため、metadata-only descendantや再収集でhashが循環しない。
+`finish` はpayload、Evidence、Registryを同じrollback unitでcheckpointする。
+
+既存Evidenceの限定backfillには
+`evidence retain --task <id> [--fetch-pr-head]` を使う。recorded subject、
+base、diffHash、changedFilesが再現できない場合は書き込まない。
+`--fetch-pr-head` はrecorded PRのhead refだけを取得し、subject ancestryを検証する。
+
 `evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
 
-`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存EvidenceとRegistryを上書きしない。検証済みcandidateはEvidenceとRegistryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は両fileを開始前の内容へ戻す。
+`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
 
 完了時のnext actionはEvidenceとReviewのPR metadataを正規化して決定する。両方のPR番号が不一致なら修正command付きで停止し、PR番号がなければ新規PR作成、既存PRがあればdraft、checks pending、checks failure、checks success、未mergeのclosed、mergedの状態に応じてready化、checks監視、failure確認、merge、reopen、main同期を案内する。未mergeのclosed PRでは過去のchecks結果にかかわらずmergeやchecks watchへ進まず、`gh pr reopen <number>`を案内するため、必要に応じてEvidence / ReviewのPR metadataを確認してから再開する。`gh pr view`が未導入・未認証などで状態を取得できない場合も、新規PR作成へ戻らず、repository-local metadataの既存PR番号を使ったchecks確認へ安全にdegradeする。plain出力とJSONの `nextAction` / `resumeCommand` は同じcommandを返す。
 
@@ -517,8 +528,9 @@ When task changes include tests, record test quality metadata with `--test-asser
 | `metrics governance` | repository-content read-only + external state read | GitHub履歴をbounded取得するが永続artifactを作らない |
 | `checks run` | local-metadata write | 全check成功時だけcheck receiptをgit common dirへ保存する |
 | `finish --preflight` | local-metadata write | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する |
-| `finish` | tracked-artifact mutation + local-metadata write | Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
-| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
+| `finish` | tracked-artifact mutation + local-metadata write | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
+| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
+| `evidence retain` | tracked-artifact mutation + optional external state read | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
 | `evidence annotate` | tracked-artifact mutation | 既存Evidenceの一部フィールドのみ更新 |
 | `init` / `fix` / `doctor --fix` | tracked-artifact mutation | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する |
 | `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |

@@ -5,12 +5,28 @@ import { readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
 import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
-import { branchChangedFiles, branchDiffHash, changedFilesBetween, commitTreeHash, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
+import {
+  branchChangedFiles,
+  branchDiffHash,
+  buildPatchArtifact,
+  changedFilesBetween,
+  changedFilesBetweenRefs,
+  commitExists,
+  currentBranch,
+  diffBinary,
+  hashDiffBinary,
+  headCommit,
+  isCommitAncestor,
+  mergeBase,
+  resolveCommit,
+  workingTreeState
+} from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { printIssues } from "../core/report.js";
 import { evaluateWorkingTreeGuard } from "./check-diff.js";
 import { taskAuthorityFingerprint } from "./ci-plan.js";
@@ -80,12 +96,7 @@ export type EvidenceCollectOptions = {
 };
 
 function postEvidenceMetadataFiles(taskId: string): string[] {
-  return [
-    `contracts/evidence/${taskId}.yaml`,
-    `contracts/approvals/${taskId}.yaml`,
-    `contracts/reviews/${taskId}.yaml`,
-    "contracts/registry.yaml"
-  ];
+  return taskLifecycleMetadataPaths(taskId);
 }
 
 const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
@@ -284,10 +295,6 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
   const { evidence: existingEvidence } = readEvidence(root, taskId);
   const changedFiles = branchChangedFiles(root, baseRef);
   const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
-  const subjectTreeHash = subjectHead ? commitTreeHash(root, subjectHead) : undefined;
-  if (subjectHead && !subjectTreeHash) {
-    throw new Error(`Unable to resolve tree hash for Evidence subject ${subjectHead}`);
-  }
   const branch = currentBranch(root);
   if (
     existingEvidence?.git?.changedFilesBasis === "branch-diff"
@@ -371,6 +378,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     if (lease) releaseRequiredCheckRun(lease);
   }
   const submodules = collectSubmoduleProvenance(root, baseRef, task);
+  const patchArtifact = subjectHead && baseCommit
+    ? buildPatchArtifact(root, taskId, baseCommit, subjectHead)
+    : undefined;
   return {
     id: `EVD-${taskId}`,
     type: "evidence",
@@ -378,16 +388,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     ...(subjectHead ? { commit: subjectHead } : {}),
     ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
     diffHash,
-    ...(subjectHead && subjectTreeHash ? {
+    ...(subjectHead && patchArtifact ? {
       provenance: {
         schemaVersion: "1.0.0" as const,
         subject: {
           commit: subjectHead,
-          treeHash: subjectTreeHash,
+          treeHash: patchArtifact.treeHash,
           diffHash,
           canonicalization: "git-diff-binary-v1" as const
         },
-        retention: {
+        retention: patchArtifact ? {
+          mode: "patch-artifact" as const,
+          locator: patchArtifact.locator,
+          manifestHash: patchArtifact.manifestHash
+        } : {
           mode: "git-object" as const,
           locator: `git:${subjectHead}`
         }
@@ -490,6 +504,18 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
       rerunChecks: options.rerunChecks,
       ciReceipt
     });
+    const baseCommit = evidence.git?.baseCommit;
+    const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;
+    if (
+      evidence.provenance?.retention.mode === "patch-artifact"
+      && baseCommit
+      && subjectCommit
+    ) {
+      const artifact = buildPatchArtifact(root, taskId, baseCommit, subjectCommit);
+      const artifactPath = resolveFrom(root, artifact.relativePath);
+      mkdirSync(path.dirname(artifactPath), { recursive: true });
+      writeFileSync(artifactPath, artifact.bytes);
+    }
     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
     writeFileSync(fullPath, yaml, "utf8");
     syncRegistry(root);
@@ -504,6 +530,110 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
         if (options.verbose) process.stdout.write(yaml);
       }
     }
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+function retainedSubjectHead(evidence: Evidence): string | undefined {
+  return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+}
+
+function retainedDiffHash(evidence: Evidence): string | undefined {
+  return evidence.diffHash ?? evidence.git?.diffHash;
+}
+
+function sortedRetainedPaths(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.replace(/\\/g, "/")))].sort();
+}
+
+function retainedPullRequestNumber(value: string | undefined): string | undefined {
+  const match = value?.trim().match(/^#?([1-9][0-9]*)$/);
+  return match?.[1];
+}
+
+function fetchRecordedPullRequestHead(root: string, pullRequest: string, subject: string): void {
+  const fetch = spawnSync(
+    "git",
+    ["fetch", "--no-tags", "origin", `refs/pull/${pullRequest}/head`],
+    { cwd: root, encoding: "utf8" }
+  );
+  if (fetch.status !== 0) throw new Error(`Unable to fetch recorded PR #${pullRequest} head`);
+  const fetchedHead = resolveCommit(root, "FETCH_HEAD");
+  if (!fetchedHead || !commitExists(root, subject) || !isCommitAncestor(root, subject, fetchedHead)) {
+    throw new Error(`Recorded Evidence subject is not reachable from PR #${pullRequest} head`);
+  }
+}
+
+export function runEvidenceRetain(
+  root: string,
+  taskId: string,
+  options: { fetchPrHead?: boolean } = {}
+): number {
+  try {
+    const { task, issues: taskIssues } = readTask(root, taskId);
+    if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
+    const workingTree = workingTreeState(root);
+    if (workingTree.changedFiles.length > 0) {
+      throw new Error(`Evidence retention requires a clean working tree: ${workingTree.changedFiles.join(", ")}`);
+    }
+    const { evidence, issues } = readEvidence(root, taskId);
+    if (!evidence) throw new Error(issues.map((issue) => issue.message).join("\n"));
+    const subject = retainedSubjectHead(evidence);
+    const baseCommit = evidence.git?.baseCommit;
+    const recordedDiffHash = retainedDiffHash(evidence);
+    if (!subject || !baseCommit || !recordedDiffHash) {
+      throw new Error(`${taskId} Evidence must record subjectHeadCommit, git.baseCommit, and diffHash`);
+    }
+    if (!commitExists(root, subject)) {
+      if (!options.fetchPrHead) {
+        throw new Error(`${taskId} subject commit is unavailable; retry with --fetch-pr-head when Evidence records a GitHub PR`);
+      }
+      const pullRequest = retainedPullRequestNumber(evidence.git?.pullRequest);
+      if (!pullRequest) throw new Error(`${taskId} Evidence does not record a valid pull request number`);
+      fetchRecordedPullRequestHead(root, pullRequest, subject);
+    }
+    if (!commitExists(root, baseCommit)) throw new Error(`${taskId} base commit is unavailable: ${baseCommit}`);
+    const metadataFiles = taskLifecycleMetadataPaths(taskId);
+    const actualDiffHash = hashDiffBinary(diffBinary(root, baseCommit, subject, metadataFiles));
+    if (actualDiffHash !== recordedDiffHash) {
+      throw new Error(`${taskId} reconstructed implementation diffHash does not match existing Evidence`);
+    }
+    const actualChangedFiles = changedFilesBetweenRefs(root, baseCommit, subject, metadataFiles);
+    const recordedChangedFiles = evidence.changedFiles.filter((file) => !metadataFiles.includes(file.replace(/\\/g, "/")));
+    if (JSON.stringify(sortedRetainedPaths(actualChangedFiles)) !== JSON.stringify(sortedRetainedPaths(recordedChangedFiles))) {
+      throw new Error(`${taskId} reconstructed changed files do not match existing Evidence`);
+    }
+    const artifact = buildPatchArtifact(root, taskId, baseCommit, subject);
+    const artifactPath = resolveFrom(root, artifact.relativePath);
+    mkdirSync(path.dirname(artifactPath), { recursive: true });
+    writeFileSync(artifactPath, artifact.bytes);
+
+    const updatedEvidence = {
+      ...evidence,
+      provenance: {
+        schemaVersion: "1.0.0" as const,
+        subject: {
+          commit: subject,
+          treeHash: artifact.treeHash,
+          diffHash: recordedDiffHash,
+          canonicalization: "git-diff-binary-v1" as const
+        },
+        retention: {
+          mode: "patch-artifact" as const,
+          locator: artifact.locator,
+          manifestHash: artifact.manifestHash
+        }
+      }
+    };
+    const relativeEvidencePath = evidencePath(taskId);
+    const fullEvidencePath = resolveFrom(root, relativeEvidencePath);
+    if (!existsSync(fullEvidencePath)) throw new Error(`${relativeEvidencePath} does not exist`);
+    writeFileSync(fullEvidencePath, stringifySimpleYaml(updatedEvidence as unknown as Record<string, unknown>), "utf8");
+    syncRegistry(root);
+    console.log(`retained ${taskId} provenance at ${artifact.relativePath}`);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

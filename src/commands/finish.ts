@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
-import { branchChangedFiles, currentBranch } from "../core/git.js";
+import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { gitCommonDir } from "../core/required-check-run.js";
-import { defaultRegistryPath, evidencePath, resolveFrom } from "../core/paths.js";
+import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
 import { buildCollectedEvidence } from "./evidence-collect.js";
@@ -96,10 +96,10 @@ export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequ
   }
 };
 
-export type AtomicFileWrite = { path: string; content: string };
+export type AtomicFileWrite = { path: string; content: string | Buffer };
 type AtomicWriteJournal = {
   schemaVersion: "1.0.0";
-  files: Array<{ path: string; existed: boolean; previous?: string }>;
+  files: Array<{ path: string; existed: boolean; previous?: string; previousEncoding?: "base64" }>;
 };
 
 function removeIfPresent(file: string): void {
@@ -110,7 +110,10 @@ function restoreJournal(journal: AtomicWriteJournal): string[] {
   for (const file of journal.files) {
     if (file.existed) {
       mkdirSync(path.dirname(file.path), { recursive: true });
-      writeFileSync(file.path, file.previous ?? "", "utf8");
+      const previous = file.previousEncoding === "base64"
+        ? Buffer.from(file.previous ?? "", "base64")
+        : file.previous ?? "";
+      writeFileSync(file.path, previous);
     } else {
       removeIfPresent(file.path);
     }
@@ -145,7 +148,7 @@ export function writeFilesAtomically(
       ...file,
       tempPath,
       existed: existsSync(file.path),
-      previous: existsSync(file.path) ? readFileSync(file.path, "utf8") : undefined
+      previous: existsSync(file.path) ? readFileSync(file.path) : undefined
     };
   });
   const committed: typeof staged = [];
@@ -157,7 +160,7 @@ export function writeFilesAtomically(
         files: staged.map(({ path: filePath, existed, previous }) => ({
           path: filePath,
           existed,
-          ...(previous !== undefined ? { previous } : {})
+          ...(previous !== undefined ? { previous: previous.toString("base64"), previousEncoding: "base64" as const } : {})
         }))
       };
       const journalTemp = `${options.journalPath}.${token}.tmp`;
@@ -172,7 +175,7 @@ export function writeFilesAtomically(
     return files.map((file) => file.path);
   } catch (error) {
     for (const file of committed.reverse()) {
-      if (file.existed) writeFileSync(file.path, file.previous ?? "", "utf8");
+      if (file.existed) writeFileSync(file.path, file.previous ?? Buffer.alloc(0));
       else removeIfPresent(file.path);
     }
     if (options.journalPath) removeIfPresent(options.journalPath);
@@ -363,8 +366,29 @@ function emitJson(output: FinishJsonOutput, enabled: boolean): void {
 
 function checkpointFinishMetadata(root: string, evidence: Evidence, writer: CheckpointWriter): string[] {
   const evidenceRelativePath = evidencePath(evidence.taskId);
+  const payloadRelativePath = evidencePayloadPath(evidence.taskId);
+  const baseCommit = evidence.git?.baseCommit;
+  const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;
+  const artifact = evidence.provenance?.retention.mode === "patch-artifact" && baseCommit && subjectCommit
+    ? buildPatchArtifact(root, evidence.taskId, baseCommit, subjectCommit)
+    : undefined;
+  if (
+    artifact
+    && (
+      artifact.locator !== evidence.provenance?.retention.locator
+      || artifact.manifestHash !== evidence.provenance.retention.manifestHash
+      || artifact.treeHash !== evidence.provenance.subject.treeHash
+    )
+  ) {
+    throw new Error(`${evidence.taskId} patch artifact does not match the Evidence candidate`);
+  }
   const registryYaml = buildRegistryYaml(root, { evidence });
   const writes = [
+    ...(artifact ? [{
+      relativePath: payloadRelativePath,
+      path: resolveFrom(root, payloadRelativePath),
+      content: artifact.bytes
+    }] : []),
     {
       relativePath: evidenceRelativePath,
       path: resolveFrom(root, evidenceRelativePath),
@@ -376,7 +400,10 @@ function checkpointFinishMetadata(root: string, evidence: Evidence, writer: Chec
       content: registryYaml
     }
   ];
-  const changedWrites = writes.filter((file) => !existsSync(file.path) || readFileSync(file.path, "utf8") !== file.content);
+  const changedWrites = writes.filter((file) =>
+    !existsSync(file.path)
+    || !readFileSync(file.path).equals(Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content))
+  );
   writer(changedWrites.map(({ path, content }) => ({ path, content })));
   return changedWrites.map((file) => file.relativePath);
 }
@@ -438,6 +465,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
   if (!options.preflight) {
     try {
       const recovered = recoverAtomicFileWrites(journalPath, [
+        resolveFrom(root, evidencePayloadPath(taskId)),
         resolveFrom(root, evidenceRelativePath),
         resolveFrom(root, defaultRegistryPath)
       ]);
@@ -505,7 +533,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
     const nextAction = resumeFinishCommand(taskId);
     if (!json) {
       console.log(`PASS finish preflight ${taskId}`);
-      console.log(`plannedMutations: ${evidenceRelativePath}, ${defaultRegistryPath}`);
+      console.log(`plannedMutations: ${evidencePayloadPath(taskId)}, ${evidenceRelativePath}, ${defaultRegistryPath}`);
       console.log(`nextAction: ${nextAction}`);
     }
     emitJson(finishOutput({

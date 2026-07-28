@@ -1,10 +1,11 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { main } from "../../src/cli.js";
+import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
 import {
   assessTaskCompletionTrust,
   buildStatus,
@@ -20,6 +21,7 @@ import {
   sampleEvidence,
   sampleTask,
   writeScwbsProject,
+  writeJson,
   writeText,
   writeYaml
 } from "../helpers.js";
@@ -170,6 +172,42 @@ describe("status completion trust", () => {
 
     writeText(clone, "contracts/evidence/WBS-001-004.yaml", "");
     expect(buildStatusJsonOutput(clone).completionTrust.unverifiable).toBe(1);
+  });
+
+  test("keeps a terminal Task verified from its patch when a fresh clone lacks the subject object", () => {
+    const source = makeTempRepo();
+    writeScwbsProject(source, "completed");
+    writeTerminalTaskIndex(source, "completed");
+    writeYaml(source, "contracts/tasks/WBS-001-004.yaml", sampleTask() as unknown as Record<string, unknown>);
+    writeJson(source, "package.json", {
+      scripts: {
+        test: "node -e \"process.exit(0)\"",
+        typecheck: "node -e \"process.exit(0)\""
+      }
+    });
+    commitAll(source, "base");
+    execFileSync("git", ["branch", "base"], { cwd: source, stdio: "ignore" });
+    writeText(source, "src/features/api/retained-status.ts", "export const retained = true;\n");
+    const subject = commitAll(source, "subject");
+    expect(runEvidenceCollect(source, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: source, stdio: "ignore" });
+    commitAll(source, "tracked patch evidence");
+
+    const clone = `${source}-status-fresh`;
+    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", source, clone], { stdio: "ignore" });
+    expect(spawnSync("git", ["cat-file", "-e", `${subject}^{commit}`], {
+      cwd: clone,
+      stdio: "ignore"
+    }).status).not.toBe(0);
+    const clonedTask = readTask(clone, "WBS-001-004").task!;
+    const trust = assessTaskCompletionTrust(clone, readWbs(clone), clonedTask);
+    expect(buildStatusJsonOutput(clone).completionTrust, JSON.stringify(trust)).toMatchObject({
+      verified: 1,
+      degraded: 0,
+      unverifiable: 0,
+      notEvaluated: 0
+    });
+    rmSync(clone, { recursive: true, force: true });
   });
 
   test("supports bounded JSON, strict mode, help, and excludes cancelled Tasks", () => {

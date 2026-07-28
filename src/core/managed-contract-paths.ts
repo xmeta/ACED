@@ -1,4 +1,5 @@
 import { matchesGlob } from "./glob.js";
+import { evidencePayloadPath } from "./paths.js";
 import type { TaskContract } from "./types.js";
 
 const TASK_SCOPED_DIRECTORIES = new Set(["tasks", "evidence", "approvals", "reviews", "blocks"]);
@@ -15,6 +16,7 @@ export function isKnownManagedContractPath(input: string): boolean {
   if (/^contracts\/changesets\/[^/]+\.json$/.test(path)) return true;
   if (/^contracts\/specs\/[^/]+\.yaml$/.test(path)) return true;
   if (/^contracts\/(?:tasks|evidence|approvals|reviews|blocks)\/[^/]+\.yaml$/.test(path)) return true;
+  if (/^contracts\/evidence-payloads\/[^/]+\.patch$/.test(path)) return true;
 
   // Kept as a harmless legacy value: without a glob this matches only the
   // directory name itself and cannot exempt any generated Evidence file.
@@ -24,6 +26,7 @@ export function isKnownManagedContractPath(input: string): boolean {
 export function isManagedContractPathForTask(input: string, taskId: string): boolean {
   if (!isKnownManagedContractPath(input)) return false;
   const path = normalizePath(input);
+  if (path.startsWith("contracts/evidence-payloads/")) return path === evidencePayloadPath(taskId);
   const match = /^contracts\/([^/]+)\/([^/]+)\.yaml$/.exec(path);
   if (!match || !TASK_SCOPED_DIRECTORIES.has(match[1])) return true;
   return match[1] === "tasks" ? match[2] === taskId || match[2] === "index" : match[2] === taskId;
@@ -43,6 +46,7 @@ export function matchesManagedContractPath(task: TaskContract, file: string): bo
 export function taskLifecycleMetadataPaths(taskId: string): string[] {
   return [
     `contracts/evidence/${taskId}.yaml`,
+    evidencePayloadPath(taskId),
     `contracts/approvals/${taskId}.yaml`,
     `contracts/reviews/${taskId}.yaml`,
     "contracts/registry.yaml"

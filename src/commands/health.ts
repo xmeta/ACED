@@ -11,6 +11,8 @@ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } f
 import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
 import { buildGovernanceCostSummary } from "./metrics.js";
 import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
+import { verifyPatchArtifact } from "../core/git.js";
+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -53,19 +55,11 @@ function strongestEvidenceLevel(evidence: Evidence): EvidenceLevel {
 
 function isPostEvidenceMetadataFile(taskId: string, file: string): boolean {
   const normalized = file.replace(/\\/g, "/");
-  return normalized === `contracts/evidence/${taskId}.yaml`
-    || normalized === `contracts/approvals/${taskId}.yaml`
-    || normalized === `contracts/reviews/${taskId}.yaml`
-    || normalized === "contracts/registry.yaml";
+  return taskLifecycleMetadataPaths(taskId).includes(normalized);
 }
 
 function postEvidenceMetadataFiles(taskId: string): string[] {
-  return [
-    `contracts/evidence/${taskId}.yaml`,
-    `contracts/approvals/${taskId}.yaml`,
-    `contracts/reviews/${taskId}.yaml`,
-    "contracts/registry.yaml"
-  ];
+  return taskLifecycleMetadataPaths(taskId);
 }
 
 function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string, evidenceHead: string, currentHead: string): boolean {
@@ -122,6 +116,7 @@ export function collectEvidenceTrustIssues(
   const { approval } = readApproval(root, task.id);
   const approvalPullRequest = approval?.pullRequest;
   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+  let patchVerified = false;
 
   if (!evidence.provenance) {
     if (!completed) {
@@ -140,6 +135,19 @@ export function collectEvidenceTrustIssues(
       code: "health.evidence.provenance.unverifiable",
       message: `${task.id} provenance subject does not match the legacy Evidence subject fields`
     });
+  } else if (evidence.provenance.retention.mode === "patch-artifact") {
+    const verification = verifyPatchArtifact(root, task.id, evidence, { shallow: !checkCommitReachability });
+    if (verification.status === "verified") {
+      patchVerified = true;
+    } else {
+      issues.push({
+        severity: "warn",
+        code: verification.status === "not-evaluated"
+          ? `health.evidence.provenance.notEvaluated.${verification.code}`
+          : `health.evidence.provenance.${verification.code}`,
+        message: verification.message
+      });
+    }
   } else if (evidence.provenance.retention.mode !== "git-object") {
     issues.push({
       severity: "warn",
@@ -203,7 +211,7 @@ export function collectEvidenceTrustIssues(
 
   if (!evidence.commit) {
     issues.push({ severity: "warn", code: "health.evidence.commit.missing", message: `${task.id} evidence has no commit` });
-  } else if (checkCommitReachability && !evidenceCommitExists(evidence.commit)) {
+  } else if (checkCommitReachability && !patchVerified && !evidenceCommitExists(evidence.commit)) {
     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
   }
 
@@ -213,7 +221,7 @@ export function collectEvidenceTrustIssues(
   const subjectHead = evidenceSubjectHead(evidence);
   if (!subjectHead) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
-  } else if (checkCommitReachability && !evidenceCommitExists(subjectHead)) {
+  } else if (checkCommitReachability && !patchVerified && !evidenceCommitExists(subjectHead)) {
     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
   } else if (
     checkCommitReachability
@@ -241,9 +249,10 @@ export function collectEvidenceTrustIssues(
     if (!actualDiffHash && shouldCheckCurrentBranchEvidence) {
       issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
     } else if (actualDiffHash && shouldCheckCurrentBranchEvidence) {
-      const expectedFiles = branchChangedFiles(root, evidence.git.base);
-      const expectedDiffHash = branchDiffHash(root, evidence.git.base, postEvidenceMetadataFiles(task.id));
-      const actualFiles = [...evidence.changedFiles].sort();
+      const metadataFiles = postEvidenceMetadataFiles(task.id);
+      const expectedFiles = branchChangedFiles(root, evidence.git.base).filter((file) => !metadataFiles.includes(file));
+      const expectedDiffHash = branchDiffHash(root, evidence.git.base, metadataFiles);
+      const actualFiles = evidence.changedFiles.filter((file) => !metadataFiles.includes(file)).sort();
       if (JSON.stringify(actualFiles) !== JSON.stringify([...expectedFiles].sort())) {
         issues.push({ severity: "warn", code: "health.evidence.changedFiles.stale", message: `${task.id} evidence changedFiles do not match current branch diff` });
       }

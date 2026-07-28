@@ -113,15 +113,27 @@ Evidence は、作業がDone条件を満たしたことを示す機械証跡で�
 id: EVD-WBS-001
 type: evidence
 taskId: WBS-001
-subjectHeadCommit: abc1234
+subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 evidenceCommit: def5678
 diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    treeHash: 0123456789abcdef0123456789abcdef01234567
+    diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/WBS-001.patch
+    manifestHash: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
 
 git:
   branch: task/WBS-001-staff-search
   base: origin/main
   baseCommit: def5678
-  subjectHeadCommit: abc1234
+  subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   changedFilesBasis: branch-diff
   diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   pullRequest: "#42"
@@ -153,6 +165,13 @@ Evidenceファイル自体をコミットするとHEADが変わるため、`subj
 
 `diffHash` は、baseからsubjectHeadCommitまでの差分を正規化して計算する。
 Approval はこの `diffHash` に紐づける。
+
+`evidence collect` は同じ正規差分を
+`contracts/evidence-payloads/<task-id>.patch` に保存する。Evidence、Approval、
+Review、Registry、payload自身は正規差分から除外する。`treeHash` はこのpatchを
+`baseCommit`へ一時index上で適用して再構築したtreeを指す。したがってsquash後に
+元commit objectが取得できなくても、payload hash、diffHash、treeHash、
+changedFilesがすべて一致した場合だけsubjectを再検証できる。
 
 ## Approval Core
 

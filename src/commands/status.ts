@@ -45,6 +45,10 @@ const completedTaskStatuses = new Set(["completed", "archived"]);
 function isUnverifiableTrustIssue(issue: Issue): boolean {
   return issue.code === "health.evidence.check.missing"
     || issue.code === "health.evidence.check.notPassed"
+    || (
+      issue.code.startsWith("health.evidence.provenance.")
+      && !issue.code.startsWith("health.evidence.provenance.notEvaluated")
+    )
     || /^health\.evidence\.(commit|subjectHeadCommit|diffHash|changedFiles)\.(missing|unknown|stale|allowedPaths|forbiddenPaths)$/.test(issue.code)
     || /^health\.evidence\.git\.(base|baseCommit)\.(missing|unknown)$/.test(issue.code)
     || /^health\.approval\./.test(issue.code);
@@ -78,6 +82,9 @@ export function assessTaskCompletionTrust(
   });
   const issueCodes = [...new Set(issues.map((issue) => issue.code))].sort();
   if (issues.some(isUnverifiableTrustIssue)) return { level: "unverifiable", issueCodes };
+  if (issues.some((issue) => issue.code.startsWith("health.evidence.provenance.notEvaluated"))) {
+    return { level: "not-evaluated", issueCodes };
+  }
   if (issues.length > 0) return { level: "degraded", issueCodes };
   if (!checkCommitReachability) return { level: "not-evaluated", issueCodes };
   return { level: "verified", issueCodes };

@@ -18,6 +18,9 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Base/head-aware Evidence changed file collection
 - Evidence PR metadata capture and refresh preservation
 - Evidence testQuality metadata capture and refresh preservation
+- Tracked patch Evidence retention and subject reconstruction after squash merge
+- Fail-closed patch provenance verification in health/status
+- Bounded legacy Evidence migration through `evidence retain`
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Sensitive meta/config file guardrails in check-diff
@@ -35,7 +38,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
 | Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
-| Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
+| Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
 | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
 | Test quality | Diff-aware assertion and coverage inspection | `testQuality` can be recorded as Evidence metadata, but source diffs and coverage reports are not parsed yet |
 | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
@@ -53,5 +56,5 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
-- Add a provenance-aware evidence verifier that can correlate Evidence with PR and CI metadata, then fail publish readiness when the current task's PR metadata is absent after a PR exists.
+- Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
 - Add PR feedback and CI run metadata capture for Evidence once the contract model stabilizes.

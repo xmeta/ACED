@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readTask } from "../core/contracts.js";
 import { currentBranch } from "../core/git.js";
-import { resolveFrom, specPath, taskPath } from "../core/paths.js";
+import { evidencePayloadPath, resolveFrom, specPath, taskPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
 
@@ -60,7 +60,8 @@ export function buildStartArtifacts(goal: string): Record<string, string> {
       humanGateRequiredPaths: ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"],
       requiredChecks: ["test", "typecheck", "build"],
       doneCriteria: [`Plan and implement: ${goal}`],
-      evidenceRequired: ["test-result", "typecheck-result", "build-result"]
+      evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+      managedContractPaths: [evidencePayloadPath(taskId)]
     })
   };
 }

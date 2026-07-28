@@ -317,6 +317,19 @@ describe("contracts / schema", () => {
     expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
   });
 
+  test("managedContractPaths semantic validation rejects another task's Evidence payload", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask(),
+      managedContractPaths: ["contracts/evidence-payloads/OTHER-TASK.patch"]
+    });
+
+    const { task, issues } = readTask(root, "WBS-001-004");
+    expect(task).toBeUndefined();
+    expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
+  });
+
   test("managedContractPaths accepts concrete known files for the same task", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -327,6 +340,7 @@ describe("contracts / schema", () => {
         "contracts/evidence/WBS-001-004.yaml",
         "contracts/approvals/WBS-001-004.yaml",
         "contracts/reviews/WBS-001-004.yaml",
+        "contracts/evidence-payloads/WBS-001-004.patch",
         "contracts/registry.yaml",
         "contracts/changesets/change-WBS-001-004.json"
       ]

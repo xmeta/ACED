@@ -15,7 +15,7 @@ import { runChecksRun } from "./commands/checks-run.js";
 import { runCompletionApply } from "./commands/completion.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "./commands/discovery.js";
-import { runEvidenceCollect } from "./commands/evidence-collect.js";
+import { runEvidenceCollect, runEvidenceRetain } from "./commands/evidence-collect.js";
 import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
 import { runFinish } from "./commands/finish.js";
 import { runFix } from "./commands/fix.js";
@@ -695,6 +695,22 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       exitCode = runEvidenceAnnotate(root, opts.task, {
         pullRequest: opts.pullRequest,
         testQuality: parseTestQuality(opts)
+      });
+    });
+
+  evidence
+    .command("retain")
+    .description("Retain an existing Evidence subject as a tracked patch payload")
+    .option("--task <id>", "task id")
+    .option("--fetch-pr-head", "fetch the recorded GitHub pull request head when the subject is unavailable")
+    .action((opts) => {
+      if (!opts.task) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runEvidenceRetain(root, opts.task, {
+        fetchPrHead: opts.fetchPrHead ?? false
       });
     });
 

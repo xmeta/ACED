@@ -815,13 +815,19 @@ describe("finish", () => {
       phase: "checkpoint",
       outcome: "awaiting-human-approval",
       requiresHumanApproval: true,
-      mutatedFiles: ["contracts/evidence/WBS-001-004.yaml", "contracts/registry.yaml"],
+      mutatedFiles: [
+        "contracts/evidence-payloads/WBS-001-004.patch",
+        "contracts/evidence/WBS-001-004.yaml",
+        "contracts/registry.yaml"
+      ],
       resumeCommand: buildHumanApprovalCommand("WBS-001-004")
     });
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
     expect(readFileSync(registryFile, "utf8")).not.toBe(beforeRegistry);
-    expect(gitStatus(root)).toBe(beforeStatus);
+    const afterStatus = gitStatus(root);
+    expect(afterStatus).toContain("?? contracts/evidence-payloads/");
+    expect(afterStatus.replace("?? contracts/evidence-payloads/\n", "")).toBe(beforeStatus);
   }, 30000);
 
   test("finish synchronizes Approval status and can force valid checks to rerun", () => {

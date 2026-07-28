@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -10,9 +11,101 @@ import { main } from "../../src/cli.js";
 import { headCommit } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+import { verifyPatchArtifact } from "../../src/core/git.js";
 import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("health", () => {
+  test("patch provenance fails closed for missing, tampered, unsafe, or inconsistent artifacts", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ requiredChecks: [] });
+    writeScwbsProject(root);
+    writeYaml(root, `contracts/tasks/${task.id}.yaml`, task as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/features/api/index.ts", "export const retained = true;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
+    expect(runEvidenceCollect(root, task.id, { baseRef: "base", force: true })).toBe(0);
+
+    const evidence = readEvidence(root, task.id).evidence!;
+    const payloadPath = path.join(root, `contracts/evidence-payloads/${task.id}.patch`);
+    const payload = readFileSync(payloadPath);
+    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false }).status).toBe("verified");
+
+    rmSync(payloadPath);
+    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "payload.missing"
+    });
+    expect(collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence).some(
+      (issue) => issue.code === "health.evidence.provenance.payload.missing"
+    )).toBe(true);
+    writeFileSync(payloadPath, payload);
+
+    const traversal = {
+      ...evidence,
+      provenance: {
+        ...evidence.provenance!,
+        retention: { ...evidence.provenance!.retention, locator: "repo:../outside.patch" }
+      }
+    };
+    expect(verifyPatchArtifact(root, task.id, traversal, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "locator"
+    });
+
+    writeFileSync(payloadPath, Buffer.from("tampered"));
+    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "payload.hash"
+    });
+
+    const invalidPatch = Buffer.from("not a git patch\n");
+    writeFileSync(payloadPath, invalidPatch);
+    const applyFailure = {
+      ...evidence,
+      provenance: {
+        ...evidence.provenance!,
+        retention: {
+          ...evidence.provenance!.retention,
+          manifestHash: `sha256:${createHash("sha256").update(invalidPatch).digest("hex")}`
+        }
+      }
+    };
+    expect(verifyPatchArtifact(root, task.id, applyFailure, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "apply"
+    });
+    writeFileSync(payloadPath, payload);
+
+    const treeMismatch = {
+      ...evidence,
+      provenance: {
+        ...evidence.provenance!,
+        subject: { ...evidence.provenance!.subject, treeHash: "0".repeat(40) }
+      }
+    };
+    expect(verifyPatchArtifact(root, task.id, treeMismatch, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "tree"
+    });
+
+    const baseMissing = {
+      ...evidence,
+      git: { ...evidence.git!, baseCommit: "0".repeat(40) }
+    };
+    expect(verifyPatchArtifact(root, task.id, baseMissing, { shallow: false })).toMatchObject({
+      status: "unverifiable",
+      code: "base.unavailable"
+    });
+    expect(verifyPatchArtifact(root, task.id, baseMissing, { shallow: true })).toMatchObject({
+      status: "not-evaluated",
+      code: "base.unavailable"
+    });
+  });
+
   test("distinguishes legacy, unavailable git-object, and unevaluated external provenance", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -30,7 +123,17 @@ describe("health", () => {
     expect(legacyIssues.some((issue) => issue.code === "health.evidence.provenance.missing")).toBe(true);
 
     const evidence = buildCollectedEvidence(root, task.id, { baseRef: "base" });
-    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence, {
+    const gitObjectEvidence = {
+      ...evidence,
+      provenance: {
+        ...evidence.provenance!,
+        retention: {
+          mode: "git-object" as const,
+          locator: `git:${evidence.subjectHeadCommit}`
+        }
+      }
+    };
+    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, gitObjectEvidence, {
       repositoryState: {
         currentHead: headCommit(root),
         currentBranchName: task.branchName,
@@ -46,7 +149,7 @@ describe("health", () => {
       ...evidence,
       provenance: {
         ...evidence.provenance!,
-        retention: { mode: "patch-artifact" as const, locator: "artifact:example" }
+        retention: { mode: "bundle" as const, locator: "artifact:example" }
       }
     };
     const notEvaluated = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, external);

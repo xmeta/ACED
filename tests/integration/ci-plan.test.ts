@@ -28,6 +28,7 @@ function prepareSubject(): { root: string; subject: string } {
     managedContractPaths: [
       `contracts/tasks/${taskId}.yaml`,
       `contracts/evidence/${taskId}.yaml`,
+      `contracts/evidence-payloads/${taskId}.patch`,
       `contracts/approvals/${taskId}.yaml`,
       `contracts/reviews/${taskId}.yaml`,
       "contracts/registry.yaml"
@@ -77,6 +78,7 @@ function commitEvidence(root: string, subject: string): void {
       { name: "build", status: "passed" }
     ]
   }) as unknown as Record<string, unknown>);
+  writeText(root, `contracts/evidence-payloads/${taskId}.patch`, "tracked patch metadata\n");
   commit(root, "evidence metadata");
 }
 
@@ -91,8 +93,11 @@ describe("CI plan", () => {
       decision: "metadata-candidate",
       taskId,
       subjectHeadCommit: subject,
-      metadataAncestry: [{ sha: expect.any(String), changedFiles: [`contracts/evidence/${taskId}.yaml`] }],
-      changedFilesSinceSubject: [`contracts/evidence/${taskId}.yaml`],
+      metadataAncestry: [{
+        sha: expect.any(String),
+        changedFiles: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`]
+      }],
+      changedFilesSinceSubject: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`],
       reasons: [{ code: "provenance.metadataOnly" }]
     });
     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ci-plan.schema.json"), "utf8"));
@@ -110,6 +115,7 @@ describe("CI plan", () => {
       managedContractPaths: [
         `contracts/tasks/${taskId}.yaml`,
         `contracts/evidence/${taskId}.yaml`,
+        `contracts/evidence-payloads/${taskId}.patch`,
         `contracts/approvals/${taskId}.yaml`,
         `contracts/reviews/${taskId}.yaml`,
         "contracts/registry.yaml"
@@ -125,7 +131,7 @@ describe("CI plan", () => {
     expect(plan.metadataAncestry).toHaveLength(1);
     expect(plan.metadataAncestry[0]).toMatchObject({
       sha: headCommit(root),
-      changedFiles: [`contracts/evidence/${taskId}.yaml`]
+      changedFiles: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`]
     });
     expect(plan.metadataAncestry.every((candidate) => candidate.sha !== subject)).toBe(true);
   });

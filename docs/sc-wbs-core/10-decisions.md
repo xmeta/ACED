@@ -64,6 +64,25 @@ git:
 - 単純なHEAD一致チェックではEvidenceがstaleになりやすい
 - 承認対象差分を固定する必要がある
 
+## DEC-004A: Evidence subjectをtracked patchで保持する
+
+採用:
+
+```yaml
+provenance:
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/<task-id>.patch
+    manifestHash: sha256:...
+```
+
+理由:
+
+- squash mergeとbranch削除を維持したまま、元のsubject commitへのref消失に耐える
+- Evidence管理fileをcanonical patchから除外し、再収集をbyte-identicalにする
+- working treeへ適用せず、一時indexでtree、diffHash、changedFilesを再検証する
+- payload欠落、改ざん、path逸脱、適用失敗、base欠落、tree不一致をfail closedにする
+
 ## DEC-005: ApprovalはPR番号だけに紐づけない
 
 採用:

@@ -48,6 +48,7 @@ function receiptReason(root: string): string {
     baseRef: "base",
     excludedMetadataFiles: [
       `contracts/evidence/${taskId}.yaml`,
+      `contracts/evidence-payloads/${taskId}.patch`,
       `contracts/approvals/${taskId}.yaml`,
       `contracts/reviews/${taskId}.yaml`,
       "contracts/registry.yaml"

@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { matchesAny } from "./glob.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
+import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
 import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
@@ -132,10 +133,7 @@ function evidenceDiffHash(evidence: Evidence): string | undefined {
 
 function isApprovalMetadataFile(taskId: string, file: string): boolean {
   const normalized = file.replace(/\\/g, "/");
-  return normalized === `contracts/evidence/${taskId}.yaml`
-    || normalized === `contracts/approvals/${taskId}.yaml`
-    || normalized === `contracts/reviews/${taskId}.yaml`
-    || normalized === "contracts/registry.yaml";
+  return taskLifecycleMetadataPaths(taskId).includes(normalized);
 }
 
 export function validateHumanGateApproval(
