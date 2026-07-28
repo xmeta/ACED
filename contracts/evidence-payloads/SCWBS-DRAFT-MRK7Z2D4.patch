@@ -1,0 +1,839 @@
+diff --git a/contracts/specs/SPEC-LITE-MRK7Z2D4.yaml b/contracts/specs/SPEC-LITE-MRK7Z2D4.yaml
+new file mode 100644
+index 0000000..e141224
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRK7Z2D4.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MRK7Z2D4
++type: spec-contract
++featureId: F-MRK7Z2D4
++title: "Issue #176: review-queueとEvidence収集の既定出力をbounded summary化する"
++status: approved
++version: 0.1.0
++summary: "Issue #176: review-queueとEvidence収集の既定出力をbounded summary化する"
++approvedBy: user-delegated-planning-request
++approvedAt: "2026-07-14T14:45:53+09:00"
++acceptanceCriteria:
++  - review-queueの既定出力は100件以上のcandidateでも固定長で、review health、主要blocker、ready件数、上位候補、omitted count、next actionを表示する
++  - review-queue --verboseは従来相当の全候補を表示し、--limitは既定出力の表示件数を制御する
++  - review-queue --jsonはversioned schemaに従う全候補の機械可読データを返す
++  - evidence collectの既定成功出力はpath、checks、changedFiles、pullRequestを含む固定長summaryで、Evidence YAML全文を表示しない
++  - evidence collect --verboseまたは--output -は全YAMLを取得でき、--jsonはversioned schemaに従う
++  - finishはEvidence YAMLを重複表示せず、failure、Human Gate、failed checkの診断を保持する
++  - CLI help、CLI reference、integration tests、line/byte budget testを更新する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml b/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
+new file mode 100644
+index 0000000..a6858aa
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
+@@ -0,0 +1,48 @@
++id: SCWBS-DRAFT-MRK7Z2D4
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRK7Z2D4
++branchName: task/SCWBS-DRAFT-MRK7Z2D4-issue-176-review-queue-evidence-bounded-summary
++allowedPaths:
++  - src/cli.ts
++  - src/commands/review-queue.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/finish.ts
++  - tests/integration/review.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/finish.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/review-queue-summary.schema.json
++  - docs/scwbs/schemas/evidence-collect-summary.schema.json
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - review-queueの既定出力は候補数に比例せず、health counts、主要blocker、ready/上位候補、omitted count、next commandを保持する
++  - review-queueは--verbose、--json、--limitを提供し、JSON schemaを文書化する
++  - evidence collectの既定成功出力はEvidence YAML全文ではなく固定長summaryを返す
++  - evidence collectは--verboseまたは--output -で全YAMLを明示取得でき、--jsonはversioned schemaに従う
++  - finishはEvidence収集をquietに実行し、重要なerror、Human Gate、failed checkを抑制しない
++  - integration testsで100件以上の候補とEvidence出力のline/byte budgetを回帰検証する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
++  - contracts/specs/SPEC-LITE-MRK7Z2D4.yaml
++  - contracts/registry.yaml
++  - contracts/tasks/index.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRK7Z2D4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRK7Z2D4.yaml
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index fbf5345..b061868 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -63,6 +63,9 @@ npm run scwbs -- task refresh --all --apply
+ npm run scwbs -- evidence collect --task WBS-001-004
+ npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
+ npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage" --force
++npm run scwbs -- evidence collect --task WBS-001-004 --json --force
++npm run scwbs -- evidence collect --task WBS-001-004 --verbose --force
++npm run scwbs -- evidence collect --task WBS-001-004 --output - --force
+ npm run scwbs -- registry rebuild --check
+ npm run scwbs -- profile show
+ npm run scwbs -- profile set lean
+@@ -87,6 +90,9 @@ Generated contract commands must refuse to overwrite existing files unless an ex
+ 
+ ```bash
+ npm run scwbs -- review-queue
++npm run scwbs -- review-queue --limit 10
++npm run scwbs -- review-queue --json
++npm run scwbs -- review-queue --verbose
+ npm run scwbs -- review route --task WBS-001-004
+ npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
+ npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+@@ -95,7 +101,7 @@ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reaso
+ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted" --apply
+ ```
+ 
+-`review-queue` prints tasks that are likely waiting on human review next, distinguishes nodes ready for review from nodes still blocked by unfinished dependencies, surfaces branch and PR metadata, shows approval status from `contracts/approvals/*.yaml`, warns when review metadata is missing, adds a `suggestedAction` per candidate, and includes a compact review-health summary.
++`review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
+ 
+ `review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers`.
+ 
+@@ -117,6 +123,8 @@ When `finish` requires Human Approval, its text output and JSON `nextAction` use
+ 
+ After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+ 
++`evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
++
+ For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
+ 
+ When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+diff --git a/docs/scwbs/schemas/evidence-collect-summary.schema.json b/docs/scwbs/schemas/evidence-collect-summary.schema.json
+new file mode 100644
+index 0000000..30e3365
+--- /dev/null
++++ b/docs/scwbs/schemas/evidence-collect-summary.schema.json
+@@ -0,0 +1,26 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/evidence-collect-summary.schema.json",
++  "title": "SC-WBS Evidence collect summary",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "status", "taskId", "path", "checks", "changedFiles", "pullRequest"],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "status": { "const": "pass" },
++    "taskId": { "type": "string", "minLength": 1 },
++    "path": { "type": "string", "pattern": "^contracts/evidence/.+\\.yaml$" },
++    "checks": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["total", "passed", "failed"],
++      "properties": {
++        "total": { "type": "integer", "minimum": 0 },
++        "passed": { "type": "integer", "minimum": 0 },
++        "failed": { "type": "integer", "minimum": 0 }
++      }
++    },
++    "changedFiles": { "type": "integer", "minimum": 0 },
++    "pullRequest": { "type": ["string", "null"] }
++  }
++}
+diff --git a/docs/scwbs/schemas/review-queue-summary.schema.json b/docs/scwbs/schemas/review-queue-summary.schema.json
+new file mode 100644
+index 0000000..282ebcc
+--- /dev/null
++++ b/docs/scwbs/schemas/review-queue-summary.schema.json
+@@ -0,0 +1,40 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/review-queue-summary.schema.json",
++  "title": "SC-WBS review queue summary",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "health", "blockerCounts", "candidates", "omitted", "limit"],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "health": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["candidates", "missingPullRequest", "blocked", "ready"],
++      "properties": {
++        "candidates": { "type": "integer", "minimum": 0 },
++        "missingPullRequest": { "type": "integer", "minimum": 0 },
++        "blocked": { "type": "integer", "minimum": 0 },
++        "ready": { "type": "integer", "minimum": 0 }
++      }
++    },
++    "blockerCounts": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["code", "count"],
++        "properties": {
++          "code": { "type": "string", "minLength": 1 },
++          "count": { "type": "integer", "minimum": 1 }
++        }
++      }
++    },
++    "candidates": {
++      "type": "array",
++      "items": { "type": "object" }
++    },
++    "omitted": { "type": "integer", "minimum": 0 },
++    "limit": { "type": ["integer", "null"], "minimum": 1 }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index a3248e7..382a97c 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -107,7 +107,16 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   program
+     .command("review-queue")
+     .description("Show review queue")
+-    .action(() => { exitCode = runReviewQueue(root); });
++    .option("--verbose", "show every candidate with full review details")
++    .option("--json", "print a versioned JSON summary")
++    .option("--limit <count>", "limit candidates in summary or JSON output")
++    .action((opts) => {
++      exitCode = runReviewQueue(root, {
++        verbose: opts.verbose ?? false,
++        json: opts.json ?? false,
++        limit: opts.limit === undefined ? undefined : Number(opts.limit)
++      });
++    });
+ 
+   program
+     .command("next")
+@@ -452,6 +461,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--coverage-decreased <bool>", "coverage decreased")
+     .option("--test-quality-note <text>", "test quality note")
+     .option("--rerun-checks", "rerun required checks even when cached results are valid")
++    .option("--json", "print a versioned JSON summary")
++    .option("--verbose", "print the summary and full Evidence YAML")
++    .option("--output <target>", "print full Evidence YAML; target must be -")
+     .action((opts) => {
+       if (!opts.task) {
+         console.error("Missing --task <task-id>");
+@@ -463,7 +475,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         baseRef: opts.base,
+         pullRequest: opts.pullRequest,
+         testQuality: parseTestQuality(opts),
+-        rerunChecks: opts.rerunChecks ?? false
++        rerunChecks: opts.rerunChecks ?? false,
++        json: opts.json ?? false,
++        verbose: opts.verbose ?? false,
++        output: opts.output
+       });
+     });
+ 
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 2c3d948..83564e2 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -14,6 +14,32 @@ const maxCheckOutputSummaryLength = 1000;
+ 
+ type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
+ 
++export type EvidenceCollectSummary = {
++  schemaVersion: "1.0.0";
++  status: "pass";
++  taskId: string;
++  path: string;
++  checks: {
++    total: number;
++    passed: number;
++    failed: number;
++  };
++  changedFiles: number;
++  pullRequest: string | null;
++};
++
++export type EvidenceCollectOptions = {
++  force: boolean;
++  baseRef?: string;
++  pullRequest?: string;
++  testQuality?: TestQualityOptions;
++  rerunChecks?: boolean;
++  json?: boolean;
++  verbose?: boolean;
++  output?: string;
++  quiet?: boolean;
++};
++
+ function postEvidenceMetadataFiles(taskId: string): string[] {
+   return [
+     `contracts/evidence/${taskId}.yaml`,
+@@ -115,8 +141,45 @@ export function buildCollectedEvidenceYaml(root: string, taskId: string, options
+   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+-export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean }): number {
++export function buildEvidenceCollectSummary(taskId: string, relativePath: string, evidence: Evidence): EvidenceCollectSummary {
++  const passed = evidence.checks.filter((check) => check.status === "passed").length;
++  const failed = evidence.checks.length - passed;
++  return {
++    schemaVersion: "1.0.0",
++    status: "pass",
++    taskId,
++    path: relativePath,
++    checks: {
++      total: evidence.checks.length,
++      passed,
++      failed
++    },
++    changedFiles: evidence.changedFiles.length,
++    pullRequest: evidence.git?.pullRequest ?? null
++  };
++}
++
++export function formatEvidenceCollectSummary(summary: EvidenceCollectSummary): string {
++  return [
++    "PASS evidence collected",
++    `path: ${summary.path}`,
++    `checks: ${summary.checks.passed} passed, ${summary.checks.failed} failed`,
++    `changedFiles: ${summary.changedFiles}`,
++    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`
++  ].join("\n") + "\n";
++}
++
++export function runEvidenceCollect(root: string, taskId: string, options: EvidenceCollectOptions): number {
+   try {
++    const outputModes = [options.json, options.verbose, options.output !== undefined].filter(Boolean).length;
++    if (outputModes > 1) {
++      console.error("Choose one of --json, --verbose, or --output -");
++      return 2;
++    }
++    if (options.output !== undefined && options.output !== "-") {
++      console.error("--output target must be -");
++      return 2;
++    }
+     const relativePath = evidencePath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     if (existsSync(fullPath) && !options.force) {
+@@ -124,14 +187,25 @@ export function runEvidenceCollect(root: string, taskId: string, options: { forc
+       return 1;
+     }
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+-    const yaml = buildCollectedEvidenceYaml(root, taskId, {
++    const evidence = buildCollectedEvidence(root, taskId, {
+       baseRef: options.baseRef,
+       pullRequest: options.pullRequest,
+       testQuality: options.testQuality,
+       rerunChecks: options.rerunChecks
+     });
++    const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
+     writeFileSync(fullPath, yaml, "utf8");
+-    process.stdout.write(yaml);
++    const summary = buildEvidenceCollectSummary(taskId, relativePath, evidence);
++    if (!options.quiet) {
++      if (options.json) {
++        process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
++      } else if (options.output === "-") {
++        process.stdout.write(yaml);
++      } else {
++        process.stdout.write(formatEvidenceCollectSummary(summary));
++        if (options.verbose) process.stdout.write(yaml);
++      }
++    }
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index a1e8db6..26a1cab 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -66,32 +66,36 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     return 1;
+   }
+ 
+-  const { result: evidenceExit } = runSilentIfJson(options.json ?? false, () =>
+-    runEvidenceCollect(root, taskId, {
+-      force: options.force ?? true,
+-      baseRef: options.baseRef,
+-      pullRequest: options.pullRequest,
+-      rerunChecks: options.rerunChecks
+-    })
+-  );
++  const evidenceExit = runEvidenceCollect(root, taskId, {
++    force: options.force ?? true,
++    baseRef: options.baseRef,
++    pullRequest: options.pullRequest,
++    rerunChecks: options.rerunChecks,
++    quiet: true
++  });
+   if (evidenceExit !== 0) return evidenceExit;
++
++  const { evidence } = readEvidence(root, taskId);
+   if (options.json) {
+-    console.error("PASS required checks");
+     console.error("PASS evidence collected");
+   } else {
+-    console.log("PASS required checks");
+     console.log("PASS evidence collected");
+   }
+-
+-  const { evidence } = readEvidence(root, taskId);
+   const failedChecks = evidence?.checks.filter((check) => check.status !== "passed") ?? [];
+   if (failedChecks.length > 0) {
+     for (const check of failedChecks) {
+       console.error(`Check failed: ${check.name} (${check.command})`);
++      if (check.stdoutSummary) console.error(`stdout:\n${check.stdoutSummary}`);
++      if (check.stderrSummary) console.error(`stderr:\n${check.stderrSummary}`);
+     }
+     console.error("fixCommand: fix the failing checks, then run npm run scwbs -- finish --task <task-id>");
+     return 1;
+   }
++  if (options.json) {
++    console.error("PASS required checks");
++  } else {
++    console.log("PASS required checks");
++  }
+ 
+   const { result: diffExit, output: checkDiffOutput } = runSilentIfJson(options.json ?? false, () =>
+     runCheckDiff(root, taskId, { baseRef: options.baseRef, json: options.json ?? false })
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index ad5e607..a9901dc 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -19,6 +19,26 @@ type ReviewQueueEntry = {
+   suggestedAction: string;
+ };
+ 
++export type ReviewQueueOptions = {
++  verbose?: boolean;
++  json?: boolean;
++  limit?: number;
++};
++
++export type ReviewQueueSummary = {
++  schemaVersion: "1.0.0";
++  health: {
++    candidates: number;
++    missingPullRequest: number;
++    blocked: number;
++    ready: number;
++  };
++  blockerCounts: Array<{ code: string; count: number }>;
++  candidates: ReviewQueueEntry[];
++  omitted: number;
++  limit: number | null;
++};
++
+ type NodeCompletionTarget = {
+   taskId: string;
+   nodeCode: string;
+@@ -99,7 +119,7 @@ function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): s
+   return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
+ }
+ 
+-export function buildReviewQueue(root: string): string {
++function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+   const wbs = readWbs(root);
+   const entries: ReviewQueueEntry[] = [];
+   const tasks = listTasks(root);
+@@ -223,13 +243,110 @@ export function buildReviewQueue(root: string): string {
+     }
+   }
+ 
++  return entries.sort((a, b) => a.taskId.localeCompare(b.taskId));
++}
++
++function blockerCode(blocker: string): string {
++  if (blocker.startsWith("active Block:")) return "active-block";
++  if (blocker.startsWith("WBS node status is")) return "node-not-ready";
++  if (blocker.includes("multiple Task Contracts")) return "shared-node-completion-task-required";
++  if (blocker.includes("missing completion target task")) return "completion-target-missing";
++  if (blocker.includes("references missing WBS node")) return "wbs-node-missing";
++  if (blocker.includes("targets WBS node")) return "completion-target-node-mismatch";
++  if (blocker.includes("is missing evidence")) return "evidence-missing";
++  if (blocker.includes("is missing pull request metadata")) return "pull-request-missing";
++  if (blocker.includes("is missing review metadata")) return "review-missing";
++  if (blocker.includes("changed human gate paths")) return "human-approval-missing";
++  if (blocker.includes("approval is still requested")) return "human-approval-requested";
++  if (blocker.includes("approval was rejected")) return "human-approval-rejected";
++  if (blocker.startsWith("submodule ")) return "submodule-not-ready";
++  return "dependency-not-completed";
++}
++
++function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count: number }> {
++  const counts = new Map<string, number>();
++  for (const entry of entries) {
++    for (const blocker of entry.completionBlockedBy) {
++      const code = blockerCode(blocker);
++      counts.set(code, (counts.get(code) ?? 0) + 1);
++    }
++  }
++  const missingPullRequestCount = entries.filter((entry) => !entry.pullRequest).length;
++  if (missingPullRequestCount > 0) counts.set("pull-request-missing", (counts.get("pull-request-missing") ?? 0) + missingPullRequestCount);
++  return [...counts.entries()]
++    .map(([code, count]) => ({ code, count }))
++    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
++}
++
++function prioritizeEntries(entries: ReviewQueueEntry[]): ReviewQueueEntry[] {
++  return [...entries].sort((a, b) => {
++    const readyDifference = Number(a.completionBlockedBy.length > 0) - Number(b.completionBlockedBy.length > 0);
++    if (readyDifference !== 0) return readyDifference;
++    const pullRequestDifference = Number(!a.pullRequest) - Number(!b.pullRequest);
++    return pullRequestDifference || a.taskId.localeCompare(b.taskId);
++  });
++}
++
++function candidateNextCommand(entry: ReviewQueueEntry): string {
++  if (!entry.pullRequest) return `scwbs evidence collect --task ${entry.taskId} --pull-request <number>`;
++  if (!entry.reviewStatus) return `scwbs review request --task ${entry.taskId}`;
++  if (entry.reviewStatus === "requested" && entry.completionBlockedBy.length === 0) {
++    return `scwbs review approve --task ${entry.taskId} --actor human`;
++  }
++  return "scwbs review-queue --verbose";
++}
++
++export function buildReviewQueueSummary(root: string, limit?: number): ReviewQueueSummary {
++  const entries = collectReviewQueueEntries(root);
++  const prioritized = prioritizeEntries(entries);
++  const selected = limit === undefined ? prioritized : prioritized.slice(0, limit);
++  const blocked = entries.filter((entry) => entry.completionBlockedBy.length > 0).length;
++  return {
++    schemaVersion: "1.0.0",
++    health: {
++      candidates: entries.length,
++      missingPullRequest: entries.filter((entry) => !entry.pullRequest).length,
++      blocked,
++      ready: entries.length - blocked
++    },
++    blockerCounts: blockerCounts(entries),
++    candidates: selected,
++    omitted: entries.length - selected.length,
++    limit: limit ?? null
++  };
++}
++
++function formatReviewQueueSummary(summary: ReviewQueueSummary): string {
++  const lines = ["Review Queue:", "", "Review Health:"];
++  lines.push(`- ${summary.health.candidates} review candidates`);
++  lines.push(`- ${summary.health.missingPullRequest} candidates missing pull request metadata`);
++  lines.push(`- ${summary.health.blocked} candidates blocked by completion prerequisites`);
++  lines.push(`- ${summary.health.ready} candidates ready for completion review`);
++  lines.push("", "Major blockers:");
++  if (summary.blockerCounts.length === 0) lines.push("- None");
++  else for (const blocker of summary.blockerCounts.slice(0, 5)) lines.push(`- ${blocker.code}: ${blocker.count}`);
++  lines.push("", `Top candidates (limit ${summary.limit ?? summary.candidates.length}):`);
++  if (summary.candidates.length === 0) lines.push("- None");
++  else {
++    for (const entry of summary.candidates) {
++      const state = entry.completionBlockedBy.length === 0 ? "ready" : "blocked";
++      lines.push(`- ${entry.taskId} | ${state} | ${entry.suggestedAction}`);
++      lines.push(`  next: ${candidateNextCommand(entry)}`);
++    }
++  }
++  lines.push(`- ${summary.omitted} additional candidates omitted`);
++  lines.push("", "Next command:", "  scwbs review-queue --verbose");
++  return `${lines.join("\n")}\n`;
++}
++
++export function buildReviewQueue(root: string): string {
++  const sortedEntries = collectReviewQueueEntries(root);
+   const lines = ["Review Queue:"];
+-  if (entries.length === 0) {
++  if (sortedEntries.length === 0) {
+     lines.push("- None");
+     return `${lines.join("\n")}\n`;
+   }
+ 
+-  const sortedEntries = entries.sort((a, b) => a.taskId.localeCompare(b.taskId));
+   const missingPullRequestCount = sortedEntries.filter((item) => !item.pullRequest).length;
+   const blockedCount = sortedEntries.filter((item) => item.completionBlockedBy.length > 0).length;
+   const readyCount = sortedEntries.length - blockedCount;
+@@ -313,9 +430,23 @@ export function buildReviewQueue(root: string): string {
+   return `${lines.join("\n")}\n`;
+ }
+ 
+-export function runReviewQueue(root: string): number {
++export function runReviewQueue(root: string, options: ReviewQueueOptions = {}): number {
+   try {
+-    process.stdout.write(buildReviewQueue(root));
++    if (options.json && options.verbose) {
++      console.error("Choose one of --json or --verbose");
++      return 2;
++    }
++    if (options.limit !== undefined && (!Number.isInteger(options.limit) || options.limit < 1)) {
++      console.error("--limit must be a positive integer");
++      return 2;
++    }
++    if (options.verbose) {
++      process.stdout.write(buildReviewQueue(root));
++      return 0;
++    }
++    const summary = buildReviewQueueSummary(root, options.limit ?? (options.json ? undefined : 5));
++    if (options.json) console.log(JSON.stringify(summary));
++    else process.stdout.write(formatReviewQueueSummary(summary));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 79e5855..df6f9d1 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -1,6 +1,7 @@
+ import { execFileSync } from "node:child_process";
+ import { existsSync, readFileSync, rmSync } from "node:fs";
+ import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+ import { branchDiffHash, headCommit } from "../../src/core/git.js";
+@@ -8,7 +9,83 @@ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
++function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
++  const stdout: string[] = [];
++  const stderr: string[] = [];
++  const originalError = console.error;
++  const originalWrite = process.stdout.write;
++  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { result: action(), stdout: stdout.join(""), stderr: stderr.join("\n") };
++  } finally {
++    console.error = originalError;
++    process.stdout.write = originalWrite;
++  }
++}
++
++function prepareEvidenceOutputRepo(): string {
++  const root = makeTempRepo();
++  writeScwbsProject(root);
++  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["branch", "base"], { cwd: root });
++  return root;
++}
++
+ describe("evidence collect", () => {
++  test("evidence collect defaults to a bounded success summary", () => {
++    const root = prepareEvidenceOutputRepo();
++    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { force: true, baseRef: "base" }));
++
++    expect(output).toMatchObject({ result: 0, stderr: "" });
++    expect(output.stdout.trim().split("\n")).toEqual([
++      "PASS evidence collected",
++      "path: contracts/evidence/WBS-001-004.yaml",
++      "checks: 0 passed, 0 failed",
++      "changedFiles: 0",
++      "pullRequest: (not recorded)"
++    ]);
++    expect(output.stdout).not.toContain("id: EVD-");
++  });
++
++  test("evidence collect supports versioned JSON verbose and YAML-only output", () => {
++    const root = prepareEvidenceOutputRepo();
++
++    const jsonOutput = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
++      force: true, baseRef: "base", pullRequest: "#42", json: true
++    }));
++    const json = JSON.parse(jsonOutput.stdout);
++    expect(json).toEqual({
++      schemaVersion: "1.0.0",
++      status: "pass",
++      taskId: "WBS-001-004",
++      path: "contracts/evidence/WBS-001-004.yaml",
++      checks: { total: 0, passed: 0, failed: 0 },
++      changedFiles: 0,
++      pullRequest: "#42"
++    });
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/evidence-collect-summary.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
++
++    const verbose = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
++      force: true, baseRef: "base", verbose: true
++    }));
++    expect(verbose.stdout).toContain("PASS evidence collected");
++    expect(verbose.stdout).toContain("id: EVD-WBS-001-004");
++    expect(verbose.stdout.length).toBeGreaterThan(jsonOutput.stdout.length);
++
++    const yaml = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
++      force: true, baseRef: "base", output: "-"
++    }));
++    expect(yaml.stdout).toMatch(/^id: EVD-WBS-001-004/m);
++    expect(yaml.stdout).not.toContain("PASS evidence collected");
++  }, 30000);
++
+   test("evidence collect records branch diff provenance from the requested base", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 2a956d2..f195206 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -155,12 +155,45 @@ describe("finish", () => {
+ 
+     const command = buildHumanApprovalCommand("WBS-001-004");
+     expect(output).toContain("PASS registry synchronized");
++    expect(output.join("\n")).not.toContain("id: EVD-WBS-001-004");
+     expect(output).not.toContain(`  ${command}`);
+     expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
+     expect(command).not.toContain("--approved-by");
+     expect(command).not.toContain("--human-confirm");
+   }, 30000);
+ 
++  test("finish keeps failed check diagnostics while Evidence collection stays quiet", () => {
++    const root = prepareFinishRepo();
++    writeJson(root, "package.json", {
++      scripts: {
++        test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
++      }
++    });
++    const stdout: string[] = [];
++    const stderr: string[] = [];
++    const originalLog = console.log;
++    const originalError = console.error;
++    const originalWrite = process.stdout.write;
++    console.log = (...args: unknown[]) => stdout.push(args.map(String).join(" "));
++    console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      stdout.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
++    } finally {
++      console.log = originalLog;
++      console.error = originalError;
++      process.stdout.write = originalWrite;
++    }
++
++    expect(stdout.join("\n")).not.toContain("id: EVD-WBS-001-004");
++    expect(stderr.join("\n")).toContain("Check failed: test (npm test)");
++    expect(stderr.join("\n")).toContain("bounded stdout detail");
++    expect(stderr.join("\n")).toContain("actionable stderr detail");
++  }, 30000);
++
+   test("a first finish creates Evidence and synchronizes registry in one run", () => {
+     const root = prepareFinishRepo();
+     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
+diff --git a/tests/integration/review.test.ts b/tests/integration/review.test.ts
+index 1d1d735..bf06802 100644
+--- a/tests/integration/review.test.ts
++++ b/tests/integration/review.test.ts
+@@ -1,8 +1,9 @@
+ import { execFileSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+-import { buildReviewQueue } from "../../src/commands/review-queue.js";
++import { buildReviewQueue, runReviewQueue } from "../../src/commands/review-queue.js";
+ import { buildNextAction } from "../../src/commands/next.js";
+ import { buildReviewRequestYaml, buildReviewRouteReport, runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest } from "../../src/commands/review-request.js";
+ import { buildTrace } from "../../src/commands/trace.js";
+@@ -18,7 +19,92 @@ import {
+   writeYaml
+ } from "../helpers.js";
+ 
++function captureReviewQueue(root: string, options: { verbose?: boolean; json?: boolean; limit?: number } = {}): { result: number; stdout: string; stderr: string } {
++  const stdout: string[] = [];
++  const stderr: string[] = [];
++  const originalLog = console.log;
++  const originalError = console.error;
++  const originalWrite = process.stdout.write;
++  console.log = (...args: unknown[]) => stdout.push(`${args.map(String).join(" ")}\n`);
++  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { result: runReviewQueue(root, options), stdout: stdout.join(""), stderr: stderr.join("\n") };
++  } finally {
++    console.log = originalLog;
++    console.error = originalError;
++    process.stdout.write = originalWrite;
++  }
++}
++
++function prepareLargeReviewQueue(count = 120): string {
++  const root = makeTempRepo();
++  writeScwbsProject(root, "ready");
++  for (let index = 0; index < count; index += 1) {
++    const taskId = `WBS-QUEUE-${String(index).padStart(3, "0")}`;
++    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
++      id: taskId,
++      branchName: `task/${taskId.toLowerCase()}`,
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, `contracts/evidence/${taskId}.yaml`, sampleEvidence({
++      id: `EVD-${taskId}`,
++      taskId,
++      git: { branch: `task/${taskId.toLowerCase()}`, base: "main", headCommit: `head-${index}` }
++    }) as unknown as Record<string, unknown>);
++  }
++  return root;
++}
++
+ describe("review queue + review request", () => {
++  test("review queue default output stays bounded for more than 100 candidates", () => {
++    const root = prepareLargeReviewQueue();
++    const output = captureReviewQueue(root, { limit: 5 });
++
++    expect(output).toMatchObject({ result: 0, stderr: "" });
++    expect(output.stdout).toContain("120 review candidates");
++    expect(output.stdout).toContain("115 additional candidates omitted");
++    expect(output.stdout).toContain("scwbs review-queue --verbose");
++    expect(output.stdout.split("\n").length).toBeLessThanOrEqual(80);
++    expect(Buffer.byteLength(output.stdout, "utf8")).toBeLessThanOrEqual(8192);
++  }, 30000);
++
++  test("review queue supports verbose and versioned JSON output", () => {
++    const root = prepareLargeReviewQueue(12);
++    const bounded = captureReviewQueue(root, { limit: 3 });
++    const verbose = captureReviewQueue(root, { verbose: true });
++    expect(verbose.result).toBe(0);
++    expect(verbose.stdout).toContain("WBS-QUEUE-011");
++    expect(verbose.stdout.length).toBeGreaterThan(bounded.stdout.length);
++
++    const jsonOutput = captureReviewQueue(root, { json: true, limit: 3 });
++    const json = JSON.parse(jsonOutput.stdout);
++    expect(json).toMatchObject({
++      schemaVersion: "1.0.0",
++      health: { candidates: 12, missingPullRequest: 12, blocked: 12, ready: 0 },
++      omitted: 9,
++      limit: 3
++    });
++    expect(json.candidates).toHaveLength(3);
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/review-queue-summary.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
++  });
++
++  test("review queue rejects conflicting modes and invalid limits", () => {
++    const root = prepareLargeReviewQueue(1);
++    expect(captureReviewQueue(root, { json: true, verbose: true })).toMatchObject({
++      result: 2,
++      stderr: "Choose one of --json or --verbose"
++    });
++    expect(captureReviewQueue(root, { limit: 0 })).toMatchObject({
++      result: 2,
++      stderr: "--limit must be a positive integer"
++    });
++  });
++
+   test("review request writes a review record and trace shows missing links", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);

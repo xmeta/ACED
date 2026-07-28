@@ -1,0 +1,879 @@
+diff --git a/contracts/specs/SPEC-LITE-MRK9OEJJ.yaml b/contracts/specs/SPEC-LITE-MRK9OEJJ.yaml
+new file mode 100644
+index 0000000..734273f
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRK9OEJJ.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MRK9OEJJ
++type: spec-contract
++featureId: F-MRK9OEJJ
++title: "Issue #191 finishでtask固有health readinessをmerge前に検証する"
++status: approved
++version: 0.1.0
++summary: "Issue #191 finishでtask固有health readinessをmerge前に検証する"
++approvedBy: user-delegated-planning-request
++approvedAt: "2026-07-14T15:39:32+09:00"
++acceptanceCriteria:
++  - finishは対象Taskに限定したreadiness warningをmerge前に検出し、repository全体のlegacy warningを結果へ混在させない
++  - contractLock missingまたはstale、tests変更時のtestQuality missing、PR metadata missing、Evidence provenance不整合、ApprovalまたはReview scope driftを検査する
++  - readiness warningがある場合はmerge-readyを表示せず、plain textとJSONの両方でfix commandを返す
++  - Evidence metadata-only更新はsubject provenanceと成功済みchecksを保持する
++  - post-merge branchでのEvidence再収集は空差分で既存実装provenanceを上書きしない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml b/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+new file mode 100644
+index 0000000..803b290
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRK9OEJJ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRK9OEJJ
++branchName: task/SCWBS-DRAFT-MRK9OEJJ-issue-191-finish-task-health-readiness-merge
++allowedPaths:
++  - src/cli.ts
++  - src/commands/finish.ts
++  - src/commands/health.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/evidence-annotate.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/health.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/misc.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/finish-summary.schema.json
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - finishはrepository全体のlegacy warningと分離して対象TaskのcontractLock、testQuality、PR metadata、Evidence provenance、Approval、Review scopeを検査する
++  - task固有readiness warningが残る場合はmerge-readyを表示せず、実行可能なfix commandを返す
++  - finish --jsonはreadiness warningsとfix commandsをversioned summaryで返す
++  - Evidence annotateは既存commit、diffHash、changedFiles、checksを保持してPRとtestQuality metadataだけを更新する
++  - post-mergeの空branch diffによるEvidence collectは既存の実装provenanceを上書きしない
++  - integration testでtask固有warningの検出、解消、legacy warning分離、metadata-only更新を検証する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
++  - contracts/specs/SPEC-LITE-MRK9OEJJ.yaml
++  - contracts/registry.yaml
++  - contracts/tasks/index.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRK9OEJJ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRK9OEJJ.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:63b9d6739e50271c39ae8e3d8af2a19b66deb8f9bb18f9859e4bc8b2b6373aeb
++  createdAt: "2026-07-14T06:46:27.426Z"
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index b061868..e557d3d 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -66,6 +66,7 @@ npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added tru
+ npm run scwbs -- evidence collect --task WBS-001-004 --json --force
+ npm run scwbs -- evidence collect --task WBS-001-004 --verbose --force
+ npm run scwbs -- evidence collect --task WBS-001-004 --output - --force
++npm run scwbs -- evidence annotate --task WBS-001-004 --pull-request "#42" --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage"
+ npm run scwbs -- registry rebuild --check
+ npm run scwbs -- profile show
+ npm run scwbs -- profile set lean
+@@ -125,6 +126,10 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
+ 
+ `evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
+ 
++`evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
++
++`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、Evidence・diff・registry検証後に対象Taskだけのhealth readinessを確認する。contractLock、tests変更時のtestQuality、PR metadata、Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。repository全体のlegacy warningはこの判定へ含めない。`finish --json` の正式なshapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
++
+ For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
+ 
+ When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+diff --git a/docs/scwbs/schemas/finish-summary.schema.json b/docs/scwbs/schemas/finish-summary.schema.json
+new file mode 100644
+index 0000000..5d106ac
+--- /dev/null
++++ b/docs/scwbs/schemas/finish-summary.schema.json
+@@ -0,0 +1,49 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.example/scwbs/finish-summary.schema.json",
++  "title": "SC-WBS finish summary",
++  "type": "object",
++  "required": [
++    "schemaVersion",
++    "status",
++    "taskId",
++    "requiresHumanApproval",
++    "changedFiles",
++    "violations",
++    "requiredChecks",
++    "evidencePath",
++    "approvalStatus",
++    "nextAction",
++    "readinessWarnings",
++    "fixCommands"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "status": { "enum": ["pass", "blocked"] },
++    "taskId": { "type": "string" },
++    "requiresHumanApproval": { "type": "boolean" },
++    "changedFiles": { "type": "array", "items": { "type": "string" } },
++    "violations": { "type": "array" },
++    "requiredChecks": { "type": "array", "items": { "type": "object" } },
++    "evidencePath": { "type": "string" },
++    "approvalStatus": { "type": "string" },
++    "nextAction": { "type": "string" },
++    "humanGateFiles": { "type": "array", "items": { "type": "string" } },
++    "diffHash": { "type": "string" },
++    "readinessWarnings": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string" },
++          "message": { "type": "string" },
++          "fixCommand": { "type": "string" }
++        },
++        "additionalProperties": false
++      }
++    },
++    "fixCommands": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
++  },
++  "additionalProperties": false
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 382a97c..aa6a284 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -10,6 +10,7 @@ import { runCheckDiff } from "./commands/check-diff.js";
+ import { runCompletionApply } from "./commands/completion.js";
+ import { runDoctor } from "./commands/doctor.js";
+ import { runEvidenceCollect } from "./commands/evidence-collect.js";
++import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
+ import { runFinish } from "./commands/finish.js";
+ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+@@ -141,6 +142,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
+     .option("--rerun-checks", "rerun required checks even when cached results are valid")
++    .option("--test-assertions-added <bool>", "test assertions added")
++    .option("--tests-disabled <bool>", "tests disabled")
++    .option("--coverage-decreased <bool>", "coverage decreased")
++    .option("--test-quality-note <text>", "test quality note")
+     .option("--json", "output as JSON")
+     .action((opts) => {
+       exitCode = runFinish(root, {
+@@ -149,7 +154,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         pullRequest: opts.pr ?? opts.pullRequest,
+         force: true,
+         json: opts.json ?? false,
+-        rerunChecks: opts.rerunChecks ?? false
++        rerunChecks: opts.rerunChecks ?? false,
++        testQuality: parseTestQuality(opts)
+       });
+     });
+ 
+@@ -482,6 +488,27 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
++  evidence
++    .command("annotate")
++    .description("Update Evidence metadata without changing subject provenance or checks")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--test-assertions-added <bool>", "test assertions added")
++    .option("--tests-disabled <bool>", "tests disabled")
++    .option("--coverage-decreased <bool>", "coverage decreased")
++    .option("--test-quality-note <text>", "test quality note")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runEvidenceAnnotate(root, opts.task, {
++        pullRequest: opts.pullRequest,
++        testQuality: parseTestQuality(opts)
++      });
++    });
++
+   const registry = program.command("registry");
+   registry
+     .command("rebuild")
+diff --git a/src/commands/evidence-annotate.ts b/src/commands/evidence-annotate.ts
+new file mode 100644
+index 0000000..def89be
+--- /dev/null
++++ b/src/commands/evidence-annotate.ts
+@@ -0,0 +1,45 @@
++import { writeFileSync } from "node:fs";
++import { readEvidence } from "../core/contracts.js";
++import { evidencePath, resolveFrom } from "../core/paths.js";
++import { stringifySimpleYaml } from "../core/yaml.js";
++import type { Evidence } from "../core/types.js";
++
++type TestQuality = NonNullable<Evidence["testQuality"]>;
++
++export type EvidenceAnnotateOptions = {
++  pullRequest?: string;
++  testQuality?: TestQuality;
++};
++
++export function buildAnnotatedEvidence(existing: Evidence, options: EvidenceAnnotateOptions): Evidence {
++  return {
++    ...existing,
++    git: {
++      ...(existing.git ?? {}),
++      ...(options.pullRequest ? { pullRequest: options.pullRequest } : {})
++    },
++    ...(options.testQuality ? { testQuality: options.testQuality } : {})
++  };
++}
++
++export function runEvidenceAnnotate(root: string, taskId: string, options: EvidenceAnnotateOptions): number {
++  try {
++    if (!options.pullRequest && !options.testQuality) {
++      console.error("Provide --pull-request or test quality metadata");
++      return 2;
++    }
++    const { evidence, issues } = readEvidence(root, taskId);
++    if (!evidence) throw new Error(issues.map((issue) => issue.message).join("\n"));
++    const annotated = buildAnnotatedEvidence(evidence, options);
++    writeFileSync(
++      resolveFrom(root, evidencePath(taskId)),
++      stringifySimpleYaml(annotated as unknown as Record<string, unknown>),
++      "utf8"
++    );
++    console.log(`annotated ${evidencePath(taskId)} (subject provenance and checks preserved)`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 83564e2..477f8bc 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -96,6 +96,19 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
+   const diffHash = branchDiffHash(root, baseRef, postEvidenceMetadataFiles(taskId));
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
++  const changedFiles = branchChangedFiles(root, baseRef);
++  const branch = currentBranch(root);
++  if (
++    existingEvidence?.git?.changedFilesBasis === "branch-diff"
++    && existingEvidence.changedFiles.length > 0
++    && changedFiles.length === 0
++    && branch !== task.branchName
++  ) {
++    throw new Error(
++      `Refusing to replace ${taskId} implementation provenance with an empty diff on ${branch ?? "detached HEAD"}. `
++      + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
++    );
++  }
+   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
+   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+   const cacheSubject = task.requiredChecks.length > 0
+@@ -121,7 +134,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     ...(head ? { subjectHeadCommit: head } : {}),
+     diffHash,
+     git: {
+-      ...(currentBranch(root) ? { branch: currentBranch(root) } : {}),
++      ...(branch ? { branch } : {}),
+       base: baseRef,
+       ...(baseCommit ? { baseCommit } : {}),
+       changedFilesBasis: "branch-diff",
+@@ -130,7 +143,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       diffHash,
+       ...(head ? { headCommit: head } : {})
+     },
+-    changedFiles: branchChangedFiles(root, baseRef),
++    changedFiles,
+     ...(submodules.length > 0 ? { submodules } : {}),
+     checks,
+     ...(testQuality ? { testQuality } : {})
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 26a1cab..c2d7afa 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -1,14 +1,18 @@
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+-import { currentBranch } from "../core/git.js";
++import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { runCheckDiff } from "./check-diff.js";
+ import { runEvidenceCollect } from "./evidence-collect.js";
+ import { runRegistryRebuild } from "./registry-rebuild.js";
+ import { readProfile } from "./profile.js";
+ import type { Profile } from "../core/types.js";
++import type { Evidence, Issue } from "../core/types.js";
++import { collectTaskHealthIssues } from "./health.js";
++import { taskRefreshReasons } from "./task-refresh.js";
+ 
+ export type FinishJsonOutput = {
+-  status: "pass";
++  schemaVersion: "1.0.0";
++  status: "pass" | "blocked";
+   taskId: string;
+   requiresHumanApproval: boolean;
+   changedFiles: string[];
+@@ -19,8 +23,52 @@ export type FinishJsonOutput = {
+   nextAction: string;
+   humanGateFiles?: string[];
+   diffHash?: string;
++  readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
++  fixCommands: string[];
+ };
+ 
++type TestQuality = NonNullable<Evidence["testQuality"]>;
++
++function readinessFixCommands(issues: Issue[]): string[] {
++  return [...new Set(issues.flatMap((issue) => issue.fixCommand ? [issue.fixCommand] : []))];
++}
++
++function printReadinessIssues(issues: Issue[], json: boolean): void {
++  const write = json ? console.error : console.log;
++  write("Task readiness blocked:");
++  for (const issue of issues) {
++    write(`- ${issue.code}: ${issue.message}`);
++    if (issue.fixCommand) write(`  fixCommand: ${issue.fixCommand}`);
++  }
++}
++
++function collectFinishPreflightIssues(root: string, taskId: string, baseRef: string | undefined, testQuality: TestQuality | undefined): Issue[] {
++  const { task } = readTask(root, taskId);
++  if (!task) return [];
++  const issues: Issue[] = [];
++  if (!task.contractLock) {
++    issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${task.id} has no contractLock`, fixCommand: `npm run scwbs -- task lock --task ${task.id}` });
++  } else {
++    const reasons = taskRefreshReasons(root, taskId);
++    if (reasons.length > 0) {
++      issues.push({ severity: "warn", code: "health.task.contractLock.stale", message: `${task.id} contractLock is stale: ${reasons.join("; ")}`, fixCommand: `npm run scwbs -- task refresh --task ${task.id} --apply` });
++    }
++  }
++  if (issues.length > 0) return issues;
++  const changedTests = branchChangedFiles(root, baseRef ?? "origin/main")
++    .some((file) => /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/.test(file));
++  const existingTestQuality = readEvidence(root, taskId).evidence?.testQuality;
++  if (changedTests && !testQuality && !existingTestQuality) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.testQuality.missing",
++      message: `${task.id} changes tests but Evidence testQuality metadata is missing`,
++      fixCommand: `npm run scwbs -- finish --task ${task.id} --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Describe regression coverage"`
++    });
++  }
++  return issues;
++}
++
+ function captureStdout<T>(fn: () => T): { result: T; output: string } {
+   const chunks: string[] = [];
+   const originalWrite = process.stdout.write.bind(process.stdout);
+@@ -52,7 +100,7 @@ export function buildHumanApprovalCommand(taskId: string): string {
+   return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+ }
+ 
+-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean } = {}): number {
++export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean; testQuality?: TestQuality } = {}): number {
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+     console.error("Missing --task <task-id> and current branch does not contain a task id");
+@@ -66,10 +114,34 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     return 1;
+   }
+ 
++  const preflightIssues = collectFinishPreflightIssues(root, taskId, options.baseRef, options.testQuality);
++  if (preflightIssues.length > 0) {
++    printReadinessIssues(preflightIssues, options.json ?? false);
++    if (options.json) {
++      const output: FinishJsonOutput = {
++        schemaVersion: "1.0.0",
++        status: "blocked",
++        taskId,
++        requiresHumanApproval: false,
++        changedFiles: [],
++        violations: [],
++        requiredChecks: [],
++        evidencePath: `contracts/evidence/${taskId}.yaml`,
++        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
++        nextAction: preflightIssues[0]?.fixCommand ?? "Resolve task readiness warnings",
++        readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++        fixCommands: readinessFixCommands(preflightIssues)
++      };
++      console.log(JSON.stringify(output, null, 2));
++    }
++    return 1;
++  }
++
+   const evidenceExit = runEvidenceCollect(root, taskId, {
+     force: options.force ?? true,
+     baseRef: options.baseRef,
+     pullRequest: options.pullRequest,
++    testQuality: options.testQuality,
+     rerunChecks: options.rerunChecks,
+     quiet: true
+   });
+@@ -179,6 +251,12 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     console.log("PASS registry check");
+   }
+ 
++  const readinessIssues = collectTaskHealthIssues(root, taskId);
++  if (readinessIssues.length > 0) {
++    printReadinessIssues(readinessIssues, options.json ?? false);
++    if (!options.json) return 1;
++  }
++
+   if (!options.json && !needsHumanGate) {
+     console.log(`Profile: ${profile}`);
+     console.log("");
+@@ -195,7 +273,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+       checkDiffResult = {};
+     }
+     const output: FinishJsonOutput = {
+-      status: "pass",
++      schemaVersion: "1.0.0",
++      status: readinessIssues.length > 0 ? "blocked" : "pass",
+       taskId,
+       requiresHumanApproval: needsHumanGate,
+       changedFiles: evidence?.changedFiles ?? [],
+@@ -203,11 +282,13 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+       requiredChecks: evidence?.checks ?? [],
+       evidencePath: `contracts/evidence/${taskId}.yaml`,
+       approvalStatus: approval?.status ?? "",
+-      nextAction,
++      nextAction: readinessIssues[0]?.fixCommand ?? nextAction,
++      readinessWarnings: readinessIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++      fixCommands: readinessFixCommands(readinessIssues),
+       ...(needsHumanGate ? { humanGateFiles, diffHash } : {})
+     };
+     console.log(JSON.stringify(output, null, 2));
+   }
+ 
+-  return 0;
++  return readinessIssues.length > 0 ? 1 : 0;
+ }
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 4fdbf44..cb3b8ab 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,10 +1,11 @@
+-import { listTasks, readApproval, readEvidence, readRegistry } from "../core/contracts.js";
+-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit } from "../core/git.js";
++import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
++import { taskRefreshReasons } from "./task-refresh.js";
+ 
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+@@ -148,7 +149,12 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+     }
+   }
+   if (node && !isDoneNode(node) && !evidence.git?.pullRequest && !approvalPullRequest) {
+-    issues.push({ severity: "warn", code: "health.evidence.git.pullRequest.missing", message: `${task.id} is awaiting review but evidence has no git.pullRequest` });
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.git.pullRequest.missing",
++      message: `${task.id} is awaiting review but evidence has no git.pullRequest`,
++      fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --pull-request <pr-number>`
++    });
+   }
+ 
+   for (const file of evidence.changedFiles) {
+@@ -172,7 +178,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+       issues.push({
+         severity: "warn",
+         code: "health.evidence.testQuality.missing",
+-        message: `${task.id} changes tests but evidence has no testQuality metadata`
++        message: `${task.id} changes tests but evidence has no testQuality metadata`,
++        fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Describe regression coverage"`
+       });
+     } else {
+       if (evidence.testQuality.assertionsAdded === false && !hasTestQualityRationale(evidence)) {
+@@ -202,6 +209,77 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   return issues;
+ }
+ 
++function validateReviewScope(root: string, task: TaskContract, evidence: Evidence): Issue[] {
++  const { review, issues } = readReview(root, task.id);
++  const missingOnly = issues.length === 1 && issues[0]?.code === "review.missing";
++  const pullRequest = evidence.git?.pullRequest;
++  if (!review) {
++    return missingOnly ? [] : issues.map((issue) => ({ ...issue, code: `health.${issue.code}` }));
++  }
++
++  const readiness: Issue[] = [];
++  const subjectHead = evidenceSubjectHead(evidence);
++  const diffHash = evidenceDiffHash(evidence);
++  const fixCommand = `npm run scwbs -- review request --task ${task.id}${pullRequest ? ` --pull-request ${pullRequest}` : ""} --force`;
++  if (review.headCommit && subjectHead && review.headCommit !== subjectHead) {
++    let metadataOnlyDescendant = false;
++    if (review.diffHash && review.diffHash === diffHash && isCommitAncestor(root, review.headCommit, subjectHead)) {
++      try {
++        metadataOnlyDescendant = changedFilesBetween(root, review.headCommit, subjectHead)
++          .every((file) => isPostEvidenceMetadataFile(task.id, file));
++      } catch {
++        metadataOnlyDescendant = false;
++      }
++    }
++    if (!metadataOnlyDescendant) {
++      readiness.push({ severity: "warn", code: "health.review.scope.headCommit", message: `${task.id} review headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`, fixCommand });
++    }
++  }
++  if (review.diffHash && diffHash && review.diffHash !== diffHash) {
++    readiness.push({ severity: "warn", code: "health.review.scope.diffHash", message: `${task.id} review diffHash does not match Evidence diffHash`, fixCommand });
++  }
++  if (review.pullRequest && pullRequest && review.pullRequest !== pullRequest) {
++    readiness.push({ severity: "warn", code: "health.review.scope.pullRequest", message: `${task.id} review pullRequest does not match Evidence pullRequest`, fixCommand });
++  }
++  if (review.status === "changes-requested") {
++    readiness.push({ severity: "warn", code: "health.review.status", message: `${task.id} review has requested changes`, fixCommand });
++  }
++  return readiness;
++}
++
++export function collectTaskHealthIssues(root: string, taskId: string): Issue[] {
++  const { task, issues: taskIssues } = readTask(root, taskId);
++  if (!task) return taskIssues;
++  const issues: Issue[] = [];
++  const refreshReasons = taskRefreshReasons(root, taskId);
++  if (!task.contractLock) {
++    issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${task.id} has no contractLock`, fixCommand: `npm run scwbs -- task lock --task ${task.id}` });
++  } else if (refreshReasons.length > 0) {
++    issues.push({ severity: "warn", code: "health.task.contractLock.stale", message: `${task.id} contractLock is stale: ${refreshReasons.join("; ")}`, fixCommand: `npm run scwbs -- task refresh --task ${task.id} --apply` });
++  }
++
++  let wbs: WbsDocument;
++  try {
++    wbs = readWbs(root);
++  } catch (error) {
++    issues.push({ severity: "error", code: "health.wbs.read", message: error instanceof Error ? error.message : String(error) });
++    return issues;
++  }
++  const { evidence, issues: evidenceIssues } = readEvidence(root, taskId);
++  if (!evidence) {
++    issues.push(...evidenceIssues.map((issue) => ({
++      ...issue,
++      code: `health.${issue.code}`,
++      fixCommand: `npm run scwbs -- evidence collect --task ${task.id} --force`
++    })));
++    return issues;
++  }
++  issues.push(...evidenceIssues.map((issue) => ({ ...issue, code: `health.${issue.code}` })));
++  issues.push(...validateEvidenceTrust(root, wbs, task, evidence));
++  issues.push(...validateReviewScope(root, task, evidence));
++  return issues;
++}
++
+ function validateRegistryHealth(contract: RegistryContract): Issue[] {
+   const issues: Issue[] = [];
+   if (contract.type === "spec" || contract.type === "requirement") {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index df6f9d1..1ee5c27 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -4,6 +4,7 @@ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
++import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
+ import { branchDiffHash, headCommit } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+@@ -148,6 +149,7 @@ describe("evidence collect", () => {
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
+       sampleEvidence({
++        changedFiles: [],
+         git: {
+           branch: "feature",
+           base: "base",
+@@ -222,6 +224,69 @@ describe("evidence collect", () => {
+     });
+   });
+ 
++  test("evidence annotate preserves subject provenance and checks", () => {
++    const root = prepareEvidenceOutputRepo();
++    const original = sampleEvidence({
++      commit: "subject-commit",
++      subjectHeadCommit: "subject-head",
++      diffHash: "sha256:subject",
++      git: {
++        branch: "feature",
++        base: "base",
++        baseCommit: "base-commit",
++        changedFilesBasis: "branch-diff",
++        subjectHeadCommit: "subject-head",
++        headCommit: "subject-head",
++        diffHash: "sha256:subject"
++      },
++      checks: [{ name: "test", status: "passed", source: "local", command: "npm test", executedAt: "2026-07-14T00:00:00Z" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", original as unknown as Record<string, unknown>);
++
++    expect(runEvidenceAnnotate(root, "WBS-001-004", {
++      pullRequest: "#42",
++      testQuality: { assertionsAdded: true, testsDisabled: false, coverageDecreased: false, notes: ["Regression coverage"] }
++    })).toBe(0);
++    const { evidence } = readEvidence(root, "WBS-001-004");
++    expect(evidence).toMatchObject({
++      commit: original.commit,
++      subjectHeadCommit: original.subjectHeadCommit,
++      diffHash: original.diffHash,
++      changedFiles: original.changedFiles,
++      checks: original.checks,
++      git: { ...original.git, pullRequest: "#42" },
++      testQuality: { assertionsAdded: true, testsDisabled: false, coverageDecreased: false, notes: ["Regression coverage"] }
++    });
++  });
++
++  test("evidence collect refuses to replace implementation provenance with an empty post-merge diff", () => {
++    const root = prepareEvidenceOutputRepo();
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      branchName: "feature",
++      requiredChecks: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "previous-subject",
++      diffHash: "sha256:previous",
++      changedFiles: ["src/features/api/index.ts"],
++      git: {
++        branch: "feature",
++        base: "base",
++        baseCommit: "previous-base",
++        changedFilesBasis: "branch-diff",
++        subjectHeadCommit: "previous-subject",
++        headCommit: "previous-subject",
++        diffHash: "sha256:previous",
++        pullRequest: "#42"
++      }
++    }) as unknown as Record<string, unknown>);
++
++    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", { force: true, baseRef: "base" }));
++    expect(output.result).toBe(1);
++    expect(output.stderr).toContain("Refusing to replace WBS-001-004 implementation provenance with an empty diff");
++    expect(readEvidence(root, "WBS-001-004").evidence?.diffHash).toBe("sha256:previous");
++  });
++
+   test("evidence collect records bounded diagnostics for failed checks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index f195206..381e639 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -4,7 +4,9 @@ import { describe, expect, test } from "vitest";
+ import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
+ import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
++import { runTaskLock } from "../../src/commands/task-lock.js";
+ import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
+ 
+ function prepareFinishRepoWithHumanGate(): string {
+   const root = makeTempRepo();
+@@ -15,6 +17,7 @@ function prepareFinishRepoWithHumanGate(): string {
+     humanGateRequiredPaths: ["src/security/**"],
+     requiredChecks: ["test"]
+   }) as unknown as Record<string, unknown>);
++  expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+   writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+   execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+   execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+@@ -64,11 +67,14 @@ function prepareFinishRepo(requestedApproval = false): string {
+     humanGateRequiredPaths: [],
+     requiredChecks: ["test"]
+   }) as unknown as Record<string, unknown>);
++  expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+   writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+   execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+   execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+   execFileSync("git", ["branch", "base"], { cwd: root });
+-  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++    git: { branch: "master", base: "base", changedFilesBasis: "branch-diff", pullRequest: "#42" }
++  }) as unknown as Record<string, unknown>);
+   if (requestedApproval) {
+     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+       id: "APR-WBS-001-004",
+@@ -127,7 +133,9 @@ describe("finish", () => {
+     } finally {
+       console.log = originalLog;
+     }
+-    expect(JSON.parse(output[output.length - 1])).toMatchObject({
++    const json = JSON.parse(output[output.length - 1]);
++    expect(json).toMatchObject({
++      schemaVersion: "1.0.0",
+       status: "pass",
+       taskId: "WBS-001-004",
+       requiresHumanApproval: expect.any(Boolean),
+@@ -136,10 +144,52 @@ describe("finish", () => {
+       requiredChecks: expect.any(Array),
+       evidencePath: expect.any(String),
+       approvalStatus: expect.any(String),
+-      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`
++      nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
++      readinessWarnings: [],
++      fixCommands: []
++    });
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
++  }, 30000);
++
++  test("finish blocks merge readiness when pull request metadata is missing", () => {
++    const root = prepareFinishRepo();
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
++    }) as unknown as Record<string, unknown>);
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    const json = JSON.parse(output[output.length - 1]);
++    expect(json).toMatchObject({
++      schemaVersion: "1.0.0",
++      status: "blocked",
++      readinessWarnings: [{ code: "health.evidence.git.pullRequest.missing" }]
+     });
++    expect(json.fixCommands[0]).toContain("evidence annotate --task WBS-001-004 --pull-request");
+   }, 30000);
+ 
++  test("finish rejects a missing contract lock before required checks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
++    const stderr: string[] = [];
++    const originalError = console.error;
++    console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", json: true })).toBe(1);
++    } finally {
++      console.error = originalError;
++    }
++    expect(stderr.join("\n")).toContain("health.task.contractLock.missing");
++    expect(readFileSync(path.join(root, "package.json"), "utf8")).toContain("process.exit(9)");
++  });
++
+   test("finish does not request Human Approval when no Human Gate files changed", () => {
+     const root = prepareFinishRepo(true);
+     const output: string[] = [];
+@@ -194,11 +244,11 @@ describe("finish", () => {
+     expect(stderr.join("\n")).toContain("actionable stderr detail");
+   }, 30000);
+ 
+-  test("a first finish creates Evidence and synchronizes registry in one run", () => {
++  test("a first finish creates Evidence and synchronizes registry before blocking on missing PR metadata", () => {
+     const root = prepareFinishRepo();
+     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
+ 
+-    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
++    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
+   }, 30000);
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 50a05a8..c570d86 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
+ import { mkdirSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { collectHealthIssues, runHealth } from "../../src/commands/health.js";
++import { collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+ import { headCommit } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+@@ -472,4 +472,41 @@ describe("health", () => {
+     const issues = collectHealthIssues(root);
+     expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(true);
+   });
++
++  test("task-scoped health excludes warnings from other tasks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005" }) as unknown as Record<string, unknown>);
++
++    const issues = collectTaskHealthIssues(root, "WBS-001-004");
++    expect(issues.length).toBeGreaterThan(0);
++    expect(issues.every((issue) => !issue.message.includes("WBS-001-005"))).toBe(true);
++  });
++
++  test("task-scoped health detects Review scope drift and returns a fix command", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "evidence-head",
++      diffHash: "sha256:evidence",
++      git: { pullRequest: "#42", subjectHeadCommit: "evidence-head", diffHash: "sha256:evidence" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "requested",
++      reviewProfile: "independent-ai-review",
++      headCommit: "stale-head",
++      diffHash: "sha256:stale",
++      pullRequest: "#41",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++
++    const issues = collectTaskHealthIssues(root, "WBS-001-004");
++    expect(issues.some((issue) => issue.code === "health.review.scope.headCommit")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.review.scope.diffHash")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.review.scope.pullRequest")).toBe(true);
++    expect(issues.find((issue) => issue.code === "health.review.scope.diffHash")?.fixCommand).toContain("review request --task WBS-001-004");
++  });
+ });
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index fc6f40a..699f6a1 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -10,6 +10,7 @@ import { buildDoctorReport } from "../../src/commands/doctor.js";
+ import { readProfile, runProfileSet } from "../../src/commands/profile.js";
+ import { buildStatus } from "../../src/commands/status.js";
+ import { runFinish } from "../../src/commands/finish.js";
++import { runTaskLock } from "../../src/commands/task-lock.js";
+ import { runFix } from "../../src/commands/fix.js";
+ import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+ import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
+@@ -366,6 +367,7 @@ describe("misc", () => {
+       humanGateRequiredPaths: [],
+       requiredChecks: ["test"]
+     }) as unknown as Record<string, unknown>);
++    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["branch", "base"], { cwd: root });
