@@ -113,14 +113,14 @@ Evidence は、作業がDone条件を満たしたことを示す機械証跡で�
 id: EVD-WBS-001
 type: evidence
 taskId: WBS-001
-subjectHeadCommit: abc1234
+subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 evidenceCommit: def5678
 diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: abc1234
+    commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     treeHash: 0123456789abcdef0123456789abcdef01234567
     diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
     canonicalization: git-diff-binary-v1
@@ -133,7 +133,7 @@ git:
   branch: task/WBS-001-staff-search
   base: origin/main
   baseCommit: def5678
-  subjectHeadCommit: abc1234
+  subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   changedFilesBasis: branch-diff
   diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   pullRequest: "#42"
