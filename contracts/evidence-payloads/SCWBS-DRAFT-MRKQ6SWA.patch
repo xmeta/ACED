@@ -1,0 +1,747 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml b/contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml
+new file mode 100644
+index 0000000..7be2de6
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MRKQ6SWA
++type: block
++taskId: SCWBS-DRAFT-MRKQ6SWA
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: "Issue #184 regression requires updating tests/integration/misc.test.ts, which is outside the current Task Contract allowedPaths"
++createdAt: "2026-07-14T14:22:58.261Z"
++history:
++  - status: blocked
++    at: "2026-07-14T14:22:58.261Z"
++    reason: "Issue #184 regression requires updating tests/integration/misc.test.ts, which is outside the current Task Contract allowedPaths"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-14T14:24:22.022Z"
++    reason: "Delegated human decision: add tests/integration/misc.test.ts to preserve failed-check coverage under commit-first enforcement"
++    by: human
++resolvedAt: "2026-07-14T14:24:22.022Z"
++resolvedBy: human
++resolution: "Delegated human decision: add tests/integration/misc.test.ts to preserve failed-check coverage under commit-first enforcement"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml b/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+new file mode 100644
+index 0000000..c8ebcae
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MRKQ6SWA
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-MRKQ6SWA
++branchName: task/SCWBS-DRAFT-MRKQ6SWA-issue-184-fail-closed-on-uncommitted-working-tre
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRKQ6SWA.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRKQ6SWA.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRKQ6SWA.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRKQ6SWA.yaml
++allowedPaths:
++  - src/core/git.ts
++  - src/core/managed-contract-paths.ts
++  - src/commands/check-diff.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/finish.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/misc.test.ts
++  - docs/scwbs/contract-enforcement.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - The fix requires weakening branch-diff Evidence or Human Gate semantics
++  - The metadata exception cannot be limited to task-scoped CLI output
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - check-diff、evidence collect、finishはtask-scoped CLI metadata以外のdirty working treeをrequired checksより前に拒否する
++  - staged、unstaged、untracked、dirty submoduleを区別して検出し、plain/JSON出力へpathとfixCommandを含める
++  - allowedPaths外またはHuman Gate対象の未コミット変更をEvidence subjectやApproval scopeから漏らさない
++  - check cache subjectとEvidence subjectは同じ実装file setを参照する
++  - Evidence、Approval、Review、Registryだけを許すmetadata例外はtask IDとcommand phaseに限定する
++  - integration regression testsがtracked、staged、unstaged、untracked、submodule dirty、metadata例外を検証する
++  - contract enforcement文書がcommit-firstと限定metadata例外を説明する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:4cdf2cbaabdac28c25efb928468d4418426987cc06d21730a9138c2bca87a2b3
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  createdAt: "2026-07-14T14:07:50.897Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 481d46c..524ab54 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -141,3 +141,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRKQ6SWA
++    path: contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
++    branchName: task/SCWBS-DRAFT-MRKQ6SWA-issue-184-fail-closed-on-uncommitted-working-tre
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/contract-enforcement.md b/docs/scwbs/contract-enforcement.md
+index c7ce395..69e6027 100644
+--- a/docs/scwbs/contract-enforcement.md
++++ b/docs/scwbs/contract-enforcement.md
+@@ -30,6 +30,17 @@ npm run scwbs -- check-diff --task WBS-001-004 --base origin/main
+ 
+ `check-diff` はPR readiness用の検査として、既定で `origin/main...HEAD` のbranch diffを使う。base branchが異なる場合は `--base <ref>` で明示する。作業ツリー上のWBS直編集ガードは `scwbs check` 側で引き続き検査する。
+ 
++Evidenceのsubjectとrequired checkの実行対象を一致させるため、実装・テスト・設定・Task Contractの変更は先にcommitする。`check-diff`、`evidence collect`、`finish` はstaged、unstaged、untracked、dirty submoduleを区別して検出し、通常のdirty working treeを拒否する。JSON出力では `workingTree.staged`、`unstaged`、`untracked`、`submodules` と、復旧用の `fixCommand` を返す。
++
++完了処理中にCLIが生成する次のtask-scoped metadataだけは例外である。例外は実装pathやTask Contractへ拡張されない。
++
++- `contracts/evidence/<task-id>.yaml`
++- `contracts/approvals/<task-id>.yaml`
++- `contracts/reviews/<task-id>.yaml`
++- `contracts/registry.yaml`
++
++したがって標準順序は「実装をcommit -> Evidence/Approval/Review/Registryを収束 -> metadataをcommit」となる。意図した実装変更が未コミットならcommitし、別作業なら表示された安全なstashコマンドで退避してから再実行する。
++
+ 判定ルール:
+ 
+ | 条件 | 結果 |
+@@ -42,6 +53,7 @@ npm run scwbs -- check-diff --task WBS-001-004 --base origin/main
+ | `contracts/changesets/*.json` が `wjs` operations schemaに適合しない | Error |
+ | 現在のGit branchがTask Contractの `branchName` と一致しない | Error |
+ | 対象Task ContractのEvidenceが存在しない | Error |
++| task-scoped CLI metadata以外の未コミット変更 | Error |
+ 
+ CIでは、Errorがある場合にPRを通してはならない。
+ PRを開く前に `npm run scwbs -- evidence collect --task <task-id>` を実行し、`contracts/evidence/<task-id>.yaml` を追加または更新してから `scwbs check-diff --task <task-id>` を通す。
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 38a81f4..f9b5dae 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -1,9 +1,9 @@
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+-import { branchChangedFiles, currentBranch, workingTreeChangedFiles } from "../core/git.js";
++import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+-import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
++import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+ import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+@@ -23,6 +23,45 @@ function requiresMetaFileGuard(file: string): boolean {
+   return matchesAny(file, SENSITIVE_META_PATHS);
+ }
+ 
++function shellQuote(value: string): string {
++  return `'${value.replace(/'/g, `'"'"'`)}'`;
++}
++
++function stashCommand(files: string[]): string {
++  return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
++}
++
++export function evaluateWorkingTreeGuard(root: string, taskId: string): { state: WorkingTreeState; issues: Issue[] } {
++  const state = workingTreeState(root, taskLifecycleMetadataPaths(taskId));
++  const issues: Issue[] = [];
++  const tracked = Array.from(new Set([...state.staged, ...state.unstaged]));
++  if (tracked.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.workingTree.tracked",
++      message: `Commit intended tracked changes before Evidence collection, or stash them temporarily: ${tracked.join(", ")}`,
++      fixCommand: stashCommand(tracked)
++    });
++  }
++  if (state.untracked.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.workingTree.untracked",
++      message: `Commit intended untracked files before Evidence collection, or stash them temporarily: ${state.untracked.join(", ")}`,
++      fixCommand: stashCommand(state.untracked)
++    });
++  }
++  if (state.submodules.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.workingTree.submodule",
++      message: `Commit or stash dirty submodule worktrees before Evidence collection: ${state.submodules.join(", ")}`,
++      fixCommand: state.submodules.map((file) => `git -C ${shellQuote(file)} stash push --include-untracked -m "scwbs: clean submodule before Evidence"`).join(" && ")
++    });
++  }
++  return { state, issues };
++}
++
+ /**
+  * M2-019: managedContractPaths are CLI-generated contract files (Evidence,
+  * Approval, Review, registry.yaml, the task's own contract file, etc). They
+@@ -138,8 +177,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   const baseRef = options.baseRef ?? "origin/main";
+   let files: string[] = [];
+   let authorityFiles: string[] = [];
++  let workingTree: WorkingTreeState = { staged: [], unstaged: [], untracked: [], submodules: [], changedFiles: [] };
++  let workingTreeIssues: Issue[] = [];
+   try {
+     files = branchChangedFiles(root, baseRef);
++    ({ state: workingTree, issues: workingTreeIssues } = evaluateWorkingTreeGuard(root, taskId));
+     authorityFiles = Array.from(new Set([
+       ...files,
+       ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
+@@ -151,13 +193,14 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       message: error instanceof Error ? error.message : String(error),
+       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
+     }] as Issue[];
+-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues }, null, 2));
++    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
+     else printIssues(baseIssues);
+     return 1;
+   }
+   const diffIssues = withDefaultFixCommand([
+     ...collectBranchIssues(task, currentBranch(root)),
+     ...collectEvidenceGateIssues(root, task),
++    ...workingTreeIssues,
+     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
+     ...collectDiffIssues(root, task, files)
+   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+@@ -177,7 +220,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   }
+ 
+   if (diffIssues.length === 0) {
+-    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], requiresHumanApproval: false, nextAction: "" }, null, 2));
++    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
+     else console.log(`PASS check-diff ${taskId}`);
+     return 0;
+   }
+@@ -187,6 +230,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       status: hasErrors(diffIssues) ? "fail" : "warn",
+       taskId,
+       issues: diffIssues,
++      workingTree,
+       ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
+     }, null, 2));
+   } else {
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 717ef36..94a8e1c 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -9,6 +9,8 @@ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
++import { printIssues } from "../core/report.js";
++import { evaluateWorkingTreeGuard } from "./check-diff.js";
+ import {
+   acquireRequiredCheckRun,
+   formatRequiredCheckProgress,
+@@ -225,6 +227,21 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+       console.error("--output target must be -");
+       return 2;
+     }
++    const workingTree = evaluateWorkingTreeGuard(root, taskId);
++    if (workingTree.issues.length > 0) {
++      if (options.json) {
++        process.stdout.write(`${JSON.stringify({
++          schemaVersion: "1.0.0",
++          status: "blocked",
++          taskId,
++          workingTree: workingTree.state,
++          issues: workingTree.issues
++        }, null, 2)}\n`);
++      } else {
++        printIssues(workingTree.issues);
++      }
++      return 1;
++    }
+     const relativePath = evidencePath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     if (existsSync(fullPath) && !options.force) {
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index c2d7afa..e8fba23 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -1,11 +1,12 @@
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+-import { runCheckDiff } from "./check-diff.js";
++import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
+ import { runEvidenceCollect } from "./evidence-collect.js";
+ import { runRegistryRebuild } from "./registry-rebuild.js";
+ import { readProfile } from "./profile.js";
+ import type { Profile } from "../core/types.js";
++import type { WorkingTreeState } from "../core/git.js";
+ import type { Evidence, Issue } from "../core/types.js";
+ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+@@ -25,6 +26,7 @@ export type FinishJsonOutput = {
+   diffHash?: string;
+   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+   fixCommands: string[];
++  workingTree?: WorkingTreeState;
+ };
+ 
+ type TestQuality = NonNullable<Evidence["testQuality"]>;
+@@ -137,6 +139,30 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     return 1;
+   }
+ 
++  const workingTree = evaluateWorkingTreeGuard(root, taskId);
++  if (workingTree.issues.length > 0) {
++    printReadinessIssues(workingTree.issues, options.json ?? false);
++    if (options.json) {
++      const output: FinishJsonOutput = {
++        schemaVersion: "1.0.0",
++        status: "blocked",
++        taskId,
++        requiresHumanApproval: false,
++        changedFiles: workingTree.state.changedFiles,
++        violations: workingTree.issues,
++        requiredChecks: [],
++        evidencePath: `contracts/evidence/${taskId}.yaml`,
++        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
++        nextAction: workingTree.issues[0]?.fixCommand ?? "Commit or stash working tree changes",
++        readinessWarnings: workingTree.issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++        fixCommands: readinessFixCommands(workingTree.issues),
++        workingTree: workingTree.state
++      };
++      console.log(JSON.stringify(output, null, 2));
++    }
++    return 1;
++  }
++
+   const evidenceExit = runEvidenceCollect(root, taskId, {
+     force: options.force ?? true,
+     baseRef: options.baseRef,
+diff --git a/src/core/git.ts b/src/core/git.ts
+index f4c2a51..6c4ce8e 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -15,22 +15,48 @@ function gitLines(root: string, args: string[], errorMessage: string): string[]
+   return result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+ }
+ 
++export type WorkingTreeState = {
++  staged: string[];
++  unstaged: string[];
++  untracked: string[];
++  submodules: string[];
++  changedFiles: string[];
++};
++
++function normalizeGitPath(file: string): string {
++  return file.replace(/\\/g, "/").replace(/^\.\//, "");
++}
++
++export function workingTreeState(root: string, excludedFiles: string[] = []): WorkingTreeState {
++  const excluded = new Set(excludedFiles.map(normalizeGitPath));
++  const include = (file: string) => !excluded.has(normalizeGitPath(file));
++  const staged = gitLines(
++    root,
++    ["diff", "--cached", "--name-only", "--ignore-submodules=dirty", "HEAD"],
++    "git diff --cached failed"
++  ).filter(include);
++  const unstaged = gitLines(
++    root,
++    ["diff", "--name-only", "--ignore-submodules=dirty"],
++    "git diff failed"
++  ).filter(include);
++  const untracked = gitLines(
++    root,
++    ["ls-files", "--others", "--exclude-standard"],
++    "git ls-files failed"
++  ).filter(include);
++  const submodules = dirtySubmodulePaths(root).filter(include);
++  return {
++    staged,
++    unstaged,
++    untracked,
++    submodules,
++    changedFiles: Array.from(new Set([...staged, ...unstaged, ...untracked, ...submodules]))
++  };
++}
++
+ export function workingTreeChangedFiles(root: string): string[] {
+-  const tracked = spawnSync("git", ["-c", "core.quotePath=false", "diff", "--ignore-submodules=dirty", "--name-only", "HEAD"], {
+-    cwd: root,
+-    encoding: "utf8"
+-  });
+-  if (tracked.status !== 0) {
+-    throw new Error(tracked.stderr || "git diff failed");
+-  }
+-  const untracked = spawnSync("git", ["-c", "core.quotePath=false", "ls-files", "--others", "--exclude-standard"], {
+-    cwd: root,
+-    encoding: "utf8"
+-  });
+-  if (untracked.status !== 0) {
+-    throw new Error(untracked.stderr || "git ls-files failed");
+-  }
+-  return Array.from(new Set(`${tracked.stdout}\n${untracked.stdout}`.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)));
++  return workingTreeState(root).changedFiles;
+ }
+ 
+ export function branchChangedFiles(root: string, baseRef = "origin/main"): string[] {
+diff --git a/src/core/managed-contract-paths.ts b/src/core/managed-contract-paths.ts
+index 935d58c..efd0c1c 100644
+--- a/src/core/managed-contract-paths.ts
++++ b/src/core/managed-contract-paths.ts
+@@ -34,3 +34,17 @@ export function matchesManagedContractPath(task: TaskContract, file: string): bo
+     (managedPath) => isManagedContractPathForTask(managedPath, task.id) && matchesGlob(file, managedPath)
+   );
+ }
++
++/**
++ * Task-scoped metadata written after implementation is committed. These
++ * exact paths may remain dirty while Evidence, Approval, Review, and Registry
++ * converge; implementation and authority files are intentionally excluded.
++ */
++export function taskLifecycleMetadataPaths(taskId: string): string[] {
++  return [
++    `contracts/evidence/${taskId}.yaml`,
++    `contracts/approvals/${taskId}.yaml`,
++    `contracts/reviews/${taskId}.yaml`,
++    "contracts/registry.yaml"
++  ];
++}
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 1e5eb27..a328650 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
+-import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../../src/core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
+ import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+@@ -565,6 +565,8 @@ describe("check-diff", () => {
+   test("git changed file helpers split working-tree and branch diff basis", () => {
+     const root = makeTempRepo();
+     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    writeText(root, "src/features/api/staged.ts", "export const staged = 1;\n");
++    writeText(root, "src/features/api/unstaged.ts", "export const unstaged = 1;\n");
+     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["branch", "base"], { cwd: root });
+@@ -572,14 +574,117 @@ describe("check-diff", () => {
+     writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
+     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "branch change"], { cwd: root, stdio: "ignore" });
+-    writeText(root, "src/features/api/uncommitted.ts", "export const pending = true;\n");
++    writeText(root, "src/features/api/staged.ts", "export const staged = 2;\n");
++    execFileSync("git", ["add", "src/features/api/staged.ts"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/features/api/unstaged.ts", "export const unstaged = 2;\n");
+     writeText(root, "src/features/api/untracked.ts", "export const extra = true;\n");
+ 
+     expect(branchChangedFiles(root, "base")).toEqual(["src/features/api/index.ts"]);
+     expect(workingTreeChangedFiles(root).sort()).toEqual([
+-      "src/features/api/uncommitted.ts",
++      "src/features/api/staged.ts",
++      "src/features/api/unstaged.ts",
+       "src/features/api/untracked.ts"
+     ]);
++    expect(workingTreeState(root)).toMatchObject({
++      staged: ["src/features/api/staged.ts"],
++      unstaged: ["src/features/api/unstaged.ts"],
++      untracked: ["src/features/api/untracked.ts"],
++      submodules: []
++    });
++  });
++
++  test("check-diff rejects staged, unstaged, untracked, and human-gated working tree changes with structured JSON", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      branchName,
++      allowedPaths: ["src/**"],
++      humanGateRequiredPaths: ["src/security/**"]
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
++    writeText(root, "src/staged.ts", "export const staged = 1;\n");
++    writeText(root, "src/unstaged.ts", "export const unstaged = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    writeText(root, "src/staged.ts", "export const staged = 2;\n");
++    execFileSync("git", ["add", "src/staged.ts"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/unstaged.ts", "export const unstaged = 2;\n");
++    writeText(root, "src/security/untracked.ts", "export const gated = true;\n");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    const result = JSON.parse(output.join("\n"));
++    expect(result.workingTree).toMatchObject({
++      staged: ["src/staged.ts"],
++      unstaged: ["src/unstaged.ts"],
++      untracked: ["src/security/untracked.ts"],
++      submodules: []
++    });
++    expect(result.issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.workingTree.tracked", fixCommand: expect.stringContaining("git stash push") }),
++      expect.objectContaining({ code: "diff.workingTree.untracked", fixCommand: expect.stringContaining("src/security/untracked.ts") })
++    ]));
++  });
++
++  test("check-diff rejects a dirty submodule working tree", () => {
++    const root = makeTempRepo();
++    const submoduleRoot = makeTempRepo();
++    writeText(submoduleRoot, "version.txt", "one\n");
++    execFileSync("git", ["add", "."], { cwd: submoduleRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "submodule base"], { cwd: submoduleRoot, stdio: "ignore" });
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName, allowedPaths: ["vendor/**"] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", submoduleRoot, "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeText(root, "vendor/dependency/version.txt", "dirty\n");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    const result = JSON.parse(output.join("\n"));
++    expect(result.workingTree.submodules).toEqual(["vendor/dependency"]);
++    expect(result.issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.workingTree.submodule", fixCommand: expect.stringContaining("git -C 'vendor/dependency' stash") })
++    ]));
++  }, 30000);
++
++  test("check-diff permits only task-scoped lifecycle metadata to remain dirty", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ branchName }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: [] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested"
++    });
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "REV-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "requested"
++    });
++    writeYaml(root, "contracts/registry.yaml", { projectId: "test", contracts: [] });
++
++    expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(0);
+   });
+ 
+   test("git helpers detect branch lag and same-path additions on base", () => {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index e0e502e..5dae6e7 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -53,6 +53,8 @@ describe("evidence collect", () => {
+     writeJson(root, "package.json", {
+       scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
+     });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure required check"], { cwd: root, stdio: "ignore" });
+     const lease = acquireRequiredCheckRun(root, "WBS-001-004", 2);
+     try {
+       updateRequiredCheckRun(lease, "test:integration", 1);
+@@ -121,6 +123,36 @@ describe("evidence collect", () => {
+     expect(output.stdout).not.toContain("id: EVD-");
+   });
+ 
++  test("evidence collect rejects dirty implementation files before required checks and reports JSON state", () => {
++    const root = prepareEvidenceOutputRepo();
++    const marker = path.join(root, "required-check-ran");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      requiredChecks: ["test"],
++      allowedPaths: ["src/**"]
++    }) as unknown as Record<string, unknown>);
++    writeJson(root, "package.json", {
++      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
++    });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure check"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/uncommitted.ts", "export const unsafe = true;\n");
++
++    const output = captureOutput(() => runEvidenceCollect(root, "WBS-001-004", {
++      force: true,
++      baseRef: "base",
++      json: true
++    }));
++    expect(output.result).toBe(1);
++    expect(existsSync(marker)).toBe(false);
++    expect(JSON.parse(output.stdout)).toMatchObject({
++      schemaVersion: "1.0.0",
++      status: "blocked",
++      taskId: "WBS-001-004",
++      workingTree: { untracked: ["src/uncommitted.ts"] },
++      issues: [expect.objectContaining({ code: "diff.workingTree.untracked" })]
++    });
++  });
++
+   test("evidence collect supports versioned JSON verbose and YAML-only output", () => {
+     const root = prepareEvidenceOutputRepo();
+ 
+@@ -332,6 +364,9 @@ describe("evidence collect", () => {
+       branchName: "feature",
+       requiredChecks: []
+     }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "set post-merge task branch"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "-f", "base", "HEAD"], { cwd: root, stdio: "ignore" });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       subjectHeadCommit: "previous-subject",
+       diffHash: "sha256:previous",
+@@ -453,10 +488,14 @@ describe("evidence collect", () => {
+     expect(readFileSync(marker, "utf8")).toBe("1");
+ 
+     writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
++    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "change implementation"], { cwd: root, stdio: "ignore" });
+     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+     expect(readFileSync(marker, "utf8")).toBe("2");
+ 
+     writeJson(root, "package-lock.json", { lockfileVersion: 3, packages: { changed: true } });
++    execFileSync("git", ["add", "package-lock.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "change dependency lock"], { cwd: root, stdio: "ignore" });
+     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+     expect(readFileSync(marker, "utf8")).toBe("3");
+ 
+@@ -465,17 +504,28 @@ describe("evidence collect", () => {
+     execFileSync("git", ["commit", "-m", "submodule update"], { cwd: submoduleRoot, stdio: "ignore" });
+     execFileSync("git", ["fetch", submoduleRoot], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
+     execFileSync("git", ["checkout", "FETCH_HEAD"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "update submodule"], { cwd: root, stdio: "ignore" });
+     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+     expect(readFileSync(marker, "utf8")).toBe("4");
+ 
+     writeText(root, "vendor/dependency/version.txt", "dirty content changed again\n");
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(1);
++    expect(readFileSync(marker, "utf8")).toBe("4");
++
++    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["config", "user.name", "Test User"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["add", "version.txt"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "commit nested change"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["add", "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "record nested change"], { cwd: root, stdio: "ignore" });
+     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+     expect(readFileSync(marker, "utf8")).toBe("5");
+ 
+     expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true, rerunChecks: true })).toBe(0);
+     expect(readFileSync(marker, "utf8")).toBe("6");
+     expect(existsSync(marker)).toBe(true);
+-  }, 60000);
++  }, 120000);
+ 
+   test("evidence collect records nested submodule provenance and dependent PR metadata", () => {
+     const root = makeTempRepo();
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 9c8fe15..e236be7 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -116,6 +116,8 @@ function prepareFinishRepo(requestedApproval = false): string {
+     ]
+   });
+   writeText(root, "src/feature.ts", "export const value = 1;\n");
++  execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+   return root;
+ }
+ 
+@@ -262,6 +264,35 @@ describe("finish", () => {
+     expect(readFileSync(path.join(root, "package.json"), "utf8")).toContain("process.exit(9)");
+   });
+ 
++  test("finish rejects a dirty working tree before required checks and returns structured JSON", () => {
++    const root = prepareFinishRepo();
++    const marker = path.join(root, "dirty-check-ran");
++    writeJson(root, "package.json", {
++      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
++    });
++    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure marker check"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/dirty.ts", "export const dirty = true;\n");
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(existsSync(marker)).toBe(false);
++    expect(JSON.parse(output[output.length - 1])).toMatchObject({
++      schemaVersion: "1.0.0",
++      status: "blocked",
++      taskId: "WBS-001-004",
++      requiredChecks: [],
++      workingTree: { untracked: ["src/dirty.ts"] },
++      violations: [expect.objectContaining({ code: "diff.workingTree.untracked" })]
++    });
++  });
++
+   test("finish does not request Human Approval when no Human Gate files changed", () => {
+     const root = prepareFinishRepo(true);
+     const output: string[] = [];
+@@ -291,6 +322,8 @@ describe("finish", () => {
+         test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
+       }
+     });
++    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure failing check"], { cwd: root, stdio: "ignore" });
+     const stdout: string[] = [];
+     const stderr: string[] = [];
+     const originalLog = console.log;
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 699f6a1..c617033 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -372,6 +372,8 @@ describe("misc", () => {
+     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["branch", "base"], { cwd: root });
+     writeText(root, "src/feature.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+ 
+     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+     const { evidence } = readEvidence(root, "WBS-001-004");
