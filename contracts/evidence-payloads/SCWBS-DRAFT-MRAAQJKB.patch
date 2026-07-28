@@ -1,0 +1,456 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 681f2b7..a621c21 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -16,17 +16,23 @@ Done は自己申告ではなく Evidence / check-diff / required checks で判
+ 
+ ## 現行 ACED で使うコマンド
+ 
+-Core 文書では将来の短縮形として `scwbs finish` や `scwbs packet --tiny` を定義している。ただし、現行 ACED CLI ではまだ同名実装がそろっていない。
++現行 ACED CLI では Core alias と詳細コマンドの両方を使える。実作業では必ず npm script 経由で実行する。
+ 
+-このリポジトリで実作業を行うAIは、まず Task Contract を最小コンテキストとして読み、追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を補助的に使う。現行実装で使うコマンドは次の npm script 経由コマンドである。
++AI が使ってよい最小フロー:
+ 
+ ```bash
+ npm run scwbs -- next
+ npm run scwbs -- start <goal>
+-npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+-npm run scwbs -- evidence collect --task <task-id>
++npm run scwbs -- packet --task <task-id> --tiny
+ npm run scwbs -- check-diff --task <task-id>
+-npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
++npm run scwbs -- finish --task <task-id>
++npm run scwbs -- block "Human Gate required" --task <task-id>
++```
++
++追加文脈が必要な場合だけ、詳細 packet を補助的に使う。
++
++```bash
++npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+ ```
+ 
+ 通常の検証:
+@@ -41,18 +47,20 @@ npm run scwbs -- registry rebuild --check
+ 
+ YAML/JSONを直接編集してはならない。ただし、ユーザーが明示的に「スキーマや仕様の実装」または「Task Contract / Evidence / registry の更新」を依頼した場合は、その契約範囲内でのみ編集してよい。
+ 
++Human Approval は人間専用である。AI は `request-approval` までに留め、`approve` / `approval approve` を実行して `approved` record を作ってはいけない。
++
+ ## 作業開始時
+ 
+ 1. 対象 Task Contract を読む。
+ 2. `branchName`、`allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`、`requiredChecks`、`doneCriteria` を確認する。
+ 3. 現在 branch が Task Contract の `branchName` と一致しているか確認する。
+ 4. まず Task Contract を優先コンテキストとして扱う。
+-5. 追加文脈が必要な場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
++5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id> --tiny` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
+ 6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
+ 
+ ## 実装中の停止条件
+ 
+-次のいずれかに該当する場合、実装を続けず `npm run scwbs -- ai block --task <task-id> --reason "<reason>"` を使う。
++次のいずれかに該当する場合、実装を続けず `npm run scwbs -- block "<reason>" --task <task-id>` を使う。
+ 
+ - DBスキーマ変更が必要
+ - migration追加が必要
+@@ -70,11 +78,11 @@ YAML/JSONを直接編集してはならない。ただし、ユーザーが明
+ 作業後は手書きの完了報告だけで終えず、現行 CLI で Evidence と差分検査を通す。
+ 
+ ```bash
+-npm run scwbs -- evidence collect --task <task-id>
++npm run scwbs -- finish --task <task-id>
+ npm run scwbs -- check-diff --task <task-id>
+ ```
+ 
+-Evidence 生成後に追加コミットや差分変更をした場合は、Evidence を再生成する。勝手に Approval を approved にしてはいけない。
++`finish` 後に追加コミットや差分変更をした場合は、再度 `finish` を実行する。勝手に Approval を approved にしてはいけない。
+ 
+ ## レビュー時
+ 
+diff --git a/README.md b/README.md
+index 1aff4c5..4888b7a 100644
+--- a/README.md
++++ b/README.md
+@@ -13,6 +13,7 @@ back to Human Gate instead of letting an AI guess.
+ | Reader | Read this first |
+ |---|---|
+ | New human user | `docs/scwbs/getting-started.md` |
++| Docs navigator | `docs/README.md` |
+ | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
+ | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
+ | CLI/reference user | `docs/scwbs/cli-reference.md` |
+@@ -21,40 +22,123 @@ back to Human Gate instead of letting an AI guess.
+ Do not start by reading every file under `docs/`. The intended workflow is
+ small context first, deeper docs only when needed.
+ 
+-## Quick Start For This Repository
++## 1. What This Tool Is
++
++`scwbs` is a guardrail CLI for AI-assisted work. It gives each change an
++explicit Task Contract, checks the changed files against that contract, records
++Evidence, and sends risky work back to Human Gate.
++
++## 2. Minimal Setup
+ 
+ Install dependencies:
+ 
+ ```bash
+ npm install
++npm install --prefix wjs
+ ```
+ 
+-Inspect the next suggested action:
++Check the local installation:
+ 
+ ```bash
+-npm run scwbs -- next
++npm run scwbs -- doctor
++npm run scwbs -- check
+ ```
+ 
+-Create a small task:
++## 3. Doctor And Check
++
++Use `doctor` for setup diagnostics and `check` for contract/registry health:
+ 
+ ```bash
+-npm run scwbs -- task new "Update docs" --paths "docs/**"
++npm run scwbs -- doctor
++npm run scwbs -- check
++npm run scwbs -- registry rebuild --check
+ ```
+ 
+-Switch to the branch printed by the Task Contract, then start the task:
++## 4. AI Minimum Flow
++
++AI agents should start from the active Task Contract and avoid broad docs
++scans. Use the tiny packet only when more context is needed:
+ 
+ ```bash
+-git switch -c <branchName>
+-npm run scwbs -- start <task-id>
++npm run scwbs -- packet --task <task-id> --tiny
+ ```
+ 
+-Give an AI the smallest useful context:
++Finish with machine checks, Evidence, and diff validation:
+ 
+ ```bash
+-npm run scwbs -- packet --task <task-id> --tiny
++npm run scwbs -- finish --task <task-id>
++npm run scwbs -- check-diff --task <task-id>
+ ```
+ 
+-Finish with machine checks instead of a handwritten Done claim:
++If a stop condition is hit, block instead of guessing:
++
++```bash
++npm run scwbs -- block "Human Gate required" --task <task-id>
++```
++
++## 5. Human Reviewer Flow
++
++Humans review the PR, Evidence, and current diff before approving. AI agents
++must not run approval commands on behalf of a human.
++
++```bash
++npm run scwbs -- review-queue
++npm run scwbs -- approve --task <task-id> --pr <number> --reason "Evidence and PR reviewed"
++```
++
++The detailed command is also available:
++
++```bash
++npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --reason "Evidence and PR reviewed"
++```
++
++## 6. Core Artifacts
++
++- Task Contract: `contracts/tasks/<task-id>.yaml`
++- Evidence: `contracts/evidence/<task-id>.yaml`
++- Approval: `contracts/approvals/<task-id>.yaml`
++- Block: `contracts/blocks/<task-id>.yaml`
++- Registry: `contracts/registry.yaml`
++
++## 7. Profiles
++
++Profiles tune validation strictness:
++
++```bash
++npm run scwbs -- profile show
++npm run scwbs -- profile set lean
++npm run scwbs -- profile set standard
++npm run scwbs -- profile set strict
++```
++
++Use `lean` for small local dogfood tasks, `standard` for normal repository
++work, and `strict` when broader governance checks are required.
++
++## 8. Common Errors
++
++- Outside `allowedPaths`: stop, narrow the change, or update the Task Contract
++  before editing.
++- Under `forbiddenPaths`: stop and block; forbidden paths override allowed
++  paths.
++- Human Gate required: stop and use `block`.
++- Stale Evidence: rerun `finish` after the final diff is in place.
++- Stale Approval scope: a human must re-review and approve the current diff.
++
++## 9. Developer Commands
++
++Create a small task:
++
++```bash
++npm run scwbs -- task new "Update docs" --paths "docs/**"
++```
++
++Switch to the branch printed by the Task Contract:
++
++```bash
++git switch -c <branchName>
++```
++
++Run the full local verification set:
+ 
+ ```bash
+ npm test
+@@ -98,7 +182,9 @@ npm run scwbs -- packet --task <task-id> --tiny
+ npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+ npm run scwbs -- evidence collect --task <task-id>
+ npm run scwbs -- check-diff --task <task-id>
+-npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
++npm run scwbs -- finish --task <task-id>
++npm run scwbs -- block "Human Gate required" --task <task-id>
++npm run scwbs -- request-approval --task <task-id> --pr <number>
+ ```
+ 
+ Detailed examples live in `docs/scwbs/cli-reference.md`.
+@@ -121,12 +207,15 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
+ 
+ ## Source Of Truth
+ 
++Status: current repository entrypoint.
++
+ - Current execution rules: `AGENTS.md` and the active Task Contract.
+ - Task scope: `contracts/tasks/<task-id>.yaml`.
+ - Completion evidence: `contracts/evidence/<task-id>.yaml`.
+-- Current command examples: `docs/scwbs/cli-reference.md`.
+-- Core target design: `docs/sc-wbs-core/`.
+-- Draft future design: `docs/sc-wbs-core-revision/`.
++- Documentation map: `docs/README.md`.
++- Current Core reference: `docs/sc-wbs-core/00-index.md`.
++- Legacy/detail reference: `docs/scwbs/`.
++- Proposal/design notes: `docs/sc-wbs-core-revision/`.
+ 
+ When these disagree during real work, prefer `AGENTS.md` and the active Task
+ Contract.
+diff --git a/contracts/specs/SPEC-LITE-MRAAQJKB.yaml b/contracts/specs/SPEC-LITE-MRAAQJKB.yaml
+new file mode 100644
+index 0000000..12e4bb6
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRAAQJKB.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRAAQJKB
++type: spec-contract
++featureId: F-MRAAQJKB
++title: "Clarify docs source-of-truth navigation and current CLI guidance"
++status: approved
++version: 0.1.0
++approvedBy: xmeta
++approvedAt: "2026-07-07T16:10:00+09:00"
++summary: "Clarify docs source-of-truth navigation for GitHub issue #110 and related README/AGENTS CLI drift in issues #105 and #99."
++acceptanceCriteria:
++  - Current source-of-truth docs, legacy/reference docs, and proposal docs are explicitly labeled.
++  - New human users and AI agents can identify the first documents to read without scanning every docs directory.
++  - Legacy docs are not presented as the current Core execution rules.
++  - Root README and docs entrypoints provide a consistent navigation path for the three docs groups.
++  - README setup, AI workflow, human review workflow, artifacts, profiles, common errors, and developer commands match the current CLI surface.
++  - AGENTS.md uses implemented Core aliases where appropriate and keeps Human Approval actions human-only.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml b/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
+new file mode 100644
+index 0000000..b87682d
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
+@@ -0,0 +1,32 @@
++id: SCWBS-DRAFT-MRAAQJKB
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRAAQJKB
++branchName: task/SCWBS-DRAFT-MRAAQJKB-clarify-docs-source-of-truth-navigation-for-gith
++allowedPaths:
++  - AGENTS.md
++  - README.md
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Clarify docs source-of-truth navigation for GitHub issue #110.
++  - Align README setup/Core workflow documentation with current CLI for GitHub issue #105.
++  - Align AGENTS.md command guidance with current CLI aliases for GitHub issue #99.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/docs/README.md b/docs/README.md
+new file mode 100644
+index 0000000..6c6cd3d
+--- /dev/null
++++ b/docs/README.md
+@@ -0,0 +1,51 @@
++# ACED Documentation Map
++
++Status: current navigation entrypoint.
++
++This file is the first stop for choosing which documentation set to read.
++Do not treat every directory under `docs/` as equally current.
++
++## Source Of Truth Order
++
++For actual work in this repository, use this order:
++
++1. `AGENTS.md` and the active `contracts/tasks/<task-id>.yaml`
++2. `README.md` and `docs/sc-wbs-core/00-index.md`
++3. Task-specific files named by the active Task Contract or work packet
++
++If these disagree during implementation, the active Task Contract and
++`AGENTS.md` win.
++
++## Documentation Sets
++
++| Path | Status | Use |
++|---|---|---|
++| `../README.md` | current | Repository overview, quick start, and top-level source-of-truth rules. |
++| `../AGENTS.md` | current | Repository-specific AI operating rules. |
++| `sc-wbs-core/` | current | Current SC-WBS Core concepts and target direction. |
++| `scwbs/` | legacy reference | Detailed SC-WBS method and CLI references; use when current docs or a task point here. |
++| `sc-wbs-core-revision/` | proposal | Draft revision notes for future Core changes; not current execution rules. |
++
++## AI Reading Path
++
++Implementation agents should read only the smallest required context:
++
++```text
++AGENTS.md
++contracts/tasks/<task-id>.yaml
++docs/README.md
++target files named by the task
++```
++
++Use `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` only
++when the Task Contract does not provide enough context.
++
++## Legacy And Proposal Boundaries
++
++`docs/scwbs/` remains useful as a detailed reference, but it can describe
++legacy or fuller SC-WBS operations that are not the first source for current
++Core work.
++
++`docs/sc-wbs-core-revision/` contains proposed changes. A proposal becomes
++current only after it is covered by a Task Contract and reflected in the
++current docs, implementation, Evidence, and checks.
+diff --git a/docs/sc-wbs-core-revision/00-index.md b/docs/sc-wbs-core-revision/00-index.md
+index 8a4717d..4cb509a 100644
+--- a/docs/sc-wbs-core-revision/00-index.md
++++ b/docs/sc-wbs-core-revision/00-index.md
+@@ -1,7 +1,12 @@
+ # 00. SC-WBS Core Revision Index
+ 
++Status: proposal.
++
+ この文書群は、SC-WBS を軽量で効果の大きいツールへ改訂するための設計書である。
+ 
++このディレクトリは現行の実行ルールではない。実作業では root `AGENTS.md`、
++対象 Task Contract、`docs/README.md`、`docs/sc-wbs-core/00-index.md` を先に読む。
++
+ 進捗確認の短い入口は、リポジトリルートの `CHECKLIST.md` とする。
+ 実装状況を更新する場合は、詳細版の `10-progress-checklist.md` を確認してからチェックを付ける。
+ 
+diff --git a/docs/sc-wbs-core/00-index.md b/docs/sc-wbs-core/00-index.md
+index 5af3a9c..4cc58bc 100644
+--- a/docs/sc-wbs-core/00-index.md
++++ b/docs/sc-wbs-core/00-index.md
+@@ -1,5 +1,7 @@
+ # 00. SC-WBS Core Index
+ 
++Status: current Core reference.
++
+ このディレクトリは、SC-WBS を軽量な AI 作業ガードレールとして運用するための Core 文書群である。
+ 
+ ## 文書の位置づけ
+@@ -11,8 +13,10 @@
+ 
+ ```text
+ 1. 現行作業の実行ルール: AGENTS.md と対象 Task Contract
+-2. 現行Coreの基準説明: docs/sc-wbs-core/
+-3. 次期Core改訂案: docs/sc-wbs-core-revision/
++2. 文書入口と正本関係: README.md と docs/README.md
++3. 現行Coreの基準説明: docs/sc-wbs-core/
++4. 詳細・legacy参照: docs/scwbs/
++5. 次期Core改訂案: docs/sc-wbs-core-revision/
+ ```
+ 
+ `docs/sc-wbs-core-revision/` は、この文書群を即時に置き換えるものではない。
+@@ -20,7 +24,7 @@
+ 
+ ## 現行実装との関係
+ 
+-この文書群は Core/Lite 方針の現行基準説明と target spec を含む。`scwbs task new`、`scwbs packet --tiny`、`scwbs finish`、`scwbs block` のような短縮コマンドは Core の目標形であり、現行 ACED CLI ではまだ同名で実装されていないものがある。
++この文書群は Core/Lite 方針の現行基準説明と target spec を含む。現行 ACED CLI では `task new`、`packet --tiny`、`finish`、`block`、`request-approval`、`approve` などの Core alias が実装されている。実作業では必ず `npm run scwbs -- <command>` の形で実行する。
+ 
+ このリポジトリで実作業を行うAIは、まず `AGENTS.md` と対象 Task Contract を読む。追加文脈が必要な場合だけ `npm run scwbs -- ai packet` を使い、完了判定は `npm run scwbs -- evidence collect` と `npm run scwbs -- check-diff` に委ねる。
+ 
+@@ -70,7 +74,7 @@ scwbs packet --tiny の出力
+ 必要な対象ファイル
+ ```
+ 
+-現行 ACED では `packet --tiny` が未実装なため、当面は Task Contract を最小カードとして扱い、追加情報が必要になった場合だけ `ai packet` を補助的に使う。
++現行 ACED では `packet --tiny` を最小カードとして使える。追加情報が必要になった場合だけ `ai packet` を補助的に使う。
+ 
+ ツールを実装するAIには、必要に応じて `07-cli-core-spec.md` と `03-minimal-artifacts.md` を渡す。
+ 
+diff --git a/docs/sc-wbs-core/02-command-first-workflow.md b/docs/sc-wbs-core/02-command-first-workflow.md
+index bcf7200..844dec3 100644
+--- a/docs/sc-wbs-core/02-command-first-workflow.md
++++ b/docs/sc-wbs-core/02-command-first-workflow.md
+@@ -32,7 +32,7 @@ scwbs start WBS-001
+ scwbs packet --tiny
+ ```
+ 
+-AIに渡すのは `packet --tiny` の出力を基本とする。現行 ACED では `packet --tiny` が未実装なので、Task Contract を先に渡し、必要時だけ `ai packet` を補う。
++AIに渡すのは `packet --tiny` の出力を基本とする。現行 ACED では `packet --tiny` が実装済みである。Task Contract を先に読み、必要時だけ `ai packet` を補う。
+ 
+ ### 3. AIが作業する
+ 
+diff --git a/docs/scwbs/README.md b/docs/scwbs/README.md
+index 92ac272..da677b5 100644
+--- a/docs/scwbs/README.md
++++ b/docs/scwbs/README.md
+@@ -1,8 +1,14 @@
+ # SC-WBS Development References
+ 
++Status: legacy/detail reference.
++
+ SC-WBS details are split here so humans and agents can read only the files
+ needed for the current task.
+ 
++For current work in this repository, start with `../../README.md`,
++`../../AGENTS.md`, and the active Task Contract. Use this directory when those
++entrypoints or the task require detailed SC-WBS method or CLI reference.
++
+ ## Entry Points
+ 
+ - `getting-started.md` - first-use walkthrough for humans in this repository.
