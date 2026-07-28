@@ -1,0 +1,335 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml b/contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
+new file mode 100644
+index 0000000..d2584d3
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
+@@ -0,0 +1,55 @@
++id: SCWBS-DRAFT-MRPHOQ03
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRPHOQ03
++branchName: task/SCWBS-DRAFT-MRPHOQ03-issue-215-read-only-task-execution-classificatio
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRPHOQ03.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRPHOQ03.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRPHOQ03.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRPHOQ03.yaml
++allowedPaths:
++  - src/commands/ci-plan.ts
++  - src/core/task-authority.ts
++  - src/cli.ts
++  - tests/integration/ci-plan.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/ci-plan.schema.json
++  - docs/scwbs/schemas/task-classification.schema.json
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - checks/artifacts削減またはprofile downgradeが必要
++  - classificationによりHuman Approval境界を変更する必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - project profileを安全性の下限として保持したversioned classification reportをread-onlyで返す
++  - routine、standard、high-riskと判定理由をdeterministicに返し、checksまたはartifactの要求を変更しない
++  - own Task Contractはcontract-only trust-root、初出blobとのauthority一致、lock検証済みの場合だけbootstrap authorityとして除外する
++  - shallow history、merge-base不明、初出commit不明、authority field変更、未分類implementation pathはhigh-riskへfail-closedする
++  - docs-only routine、source/test standard、authority driftとprovenance不足high-riskの回帰を追加する
++  - '#202 receipt、#203 metadata CI fast path、Human Approval境界を変更しない'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-18T07:49:10.136Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index be9425f..485e6f8 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -255,3 +255,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRPHOQ03
++    path: contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
++    branchName: task/SCWBS-DRAFT-MRPHOQ03-issue-215-read-only-task-execution-classificatio
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 61bf6ea..00f019e 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -100,6 +100,8 @@ npm run scwbs -- profile set lean
+ 
+ `checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
+ 
++`ci plan --task <id> --json` は既存のfull / metadata-candidate判定を変更せず、`classification` にread-onlyなTask execution classを併記する。project profileは安全性の下限であり、このreportはrequired checks、artifact、Human Approval、CI jobを削減しない。own Task Contractをbootstrap metadataとして除外できるのは、full history上でcontract-only creation commit、初出blobからのauthority不変、version 2 lockをすべて検証できた場合だけである。shallow history、merge-base・初出commit不明、authority drift、未分類implementation pathは`high-risk`へfail-closedする。正式shapeは [`schemas/task-classification.schema.json`](schemas/task-classification.schema.json)。
++
+ `registry rebuild --force` の既定出力は、registry全体ではなく `added` / `updated` / `removed` / `path` の固定長サマリである。成功時の出力が不要なら `--quiet`、versioned summaryが必要なら `--json`、サマリに続けて全YAMLを確認する場合は `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら4つの出力modeは同時指定できない。JSONの正式なshapeは [`schemas/registry-rebuild-summary.schema.json`](schemas/registry-rebuild-summary.schema.json) で定義する。既定の `--check` は従来どおり、同期済みなら `PASS registry rebuild --check` とexit 0、未同期なら既存errorとexit 1を返す。
+ 
+ ```bash
+diff --git a/docs/scwbs/schemas/ci-plan.schema.json b/docs/scwbs/schemas/ci-plan.schema.json
+index 029da03..2c61ad7 100644
+--- a/docs/scwbs/schemas/ci-plan.schema.json
++++ b/docs/scwbs/schemas/ci-plan.schema.json
+@@ -14,7 +14,8 @@
+     "diffHash",
+     "metadataFiles",
+     "changedFilesSinceSubject",
+-    "reasons"
++    "reasons",
++    "classification"
+   ],
+   "properties": {
+     "schemaVersion": { "const": "1.0.0" },
+@@ -56,7 +57,8 @@
+         },
+         "additionalProperties": false
+       }
+-    }
++    },
++    "classification": { "$ref": "task-classification.schema.json" }
+   },
+   "additionalProperties": false
+ }
+diff --git a/docs/scwbs/schemas/task-classification.schema.json b/docs/scwbs/schemas/task-classification.schema.json
+new file mode 100644
+index 0000000..f4a1ed2
+--- /dev/null
++++ b/docs/scwbs/schemas/task-classification.schema.json
+@@ -0,0 +1,19 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/task-classification.schema.json",
++  "title": "SC-WBS read-only task execution classification",
++  "type": "object",
++  "required": ["schemaVersion", "status", "projectProfile", "executionClass", "enforcement", "bootstrapAuthority", "consideredFiles", "excludedBootstrapFiles", "reasons"],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "status": { "enum": ["classified", "unavailable"] },
++    "projectProfile": { "enum": ["Lean", "Standard", "Strict", null] },
++    "executionClass": { "enum": ["routine", "standard", "high-risk", null] },
++    "enforcement": { "const": "read-only" },
++    "bootstrapAuthority": { "type": "object", "required": ["verified", "introductionCommit"], "properties": { "verified": { "type": "boolean" }, "introductionCommit": { "type": ["string", "null"] } }, "additionalProperties": false },
++    "consideredFiles": { "type": "array", "items": { "type": "string" } },
++    "excludedBootstrapFiles": { "type": "array", "items": { "type": "string" } },
++    "reasons": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["code", "message"], "properties": { "code": { "type": "string" }, "message": { "type": "string" } }, "additionalProperties": false } }
++  },
++  "additionalProperties": false
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index a0bef77..d88042f 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -89,7 +89,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   const ci = program.command("ci");
+   ci
+     .command("plan")
+-    .description("Plan full or provenance-verified metadata CI")
++    .description("Plan full or provenance-verified metadata CI and report a read-only task execution classification")
+     .option("--task <id>", "task id")
+     .option("--branch <name>", "branchName used to discover the task")
+     .option("--base <ref>", "base reference")
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+index 5958cf6..c38b4a2 100644
+--- a/src/commands/ci-plan.ts
++++ b/src/commands/ci-plan.ts
+@@ -14,6 +14,9 @@ import {
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
+ import { collectTaskAuthorityIssues } from "../core/task-authority.js";
++import { verifyTaskBootstrapAuthority } from "../core/task-authority.js";
++import { matchesAny } from "../core/glob.js";
++import { readWbs } from "../core/wbs.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+ import { collectDiffIssues } from "./check-diff.js";
+ 
+@@ -34,6 +37,19 @@ export type CiPlan = {
+   metadataFiles: string[];
+   changedFilesSinceSubject: string[];
+   reasons: CiPlanReason[];
++  classification: TaskClassificationReport;
++};
++
++export type TaskClassificationReport = {
++  schemaVersion: "1.0.0";
++  status: "classified" | "unavailable";
++  projectProfile: "Lean" | "Standard" | "Strict" | null;
++  executionClass: "routine" | "standard" | "high-risk" | null;
++  enforcement: "read-only";
++  bootstrapAuthority: { verified: boolean; introductionCommit: string | null };
++  consideredFiles: string[];
++  excludedBootstrapFiles: string[];
++  reasons: CiPlanReason[];
+ };
+ 
+ export type CiPlanOptions = {
+@@ -104,7 +120,48 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
+     diffHash: null,
+     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
+     changedFilesSinceSubject: [],
+-    reasons
++    reasons,
++    classification: {
++      schemaVersion: "1.0.0", status: "unavailable", projectProfile: null, executionClass: null, enforcement: "read-only",
++      bootstrapAuthority: { verified: false, introductionCommit: null }, consideredFiles: [], excludedBootstrapFiles: [], reasons
++    }
++  };
++}
++
++function profile(root: string): "Lean" | "Standard" | "Strict" {
++  const value = readWbs(root).extensions?.scwbs;
++  const candidate = typeof value === "object" && value !== null ? (value as Record<string, unknown>).profile : undefined;
++  return candidate === "Lean" || candidate === "Strict" || candidate === "Standard" ? candidate : "Standard";
++}
++
++function classifyTask(root: string, task: TaskContract, baseRef: string, branchFiles: string[], issues: CiPlanReason[]): TaskClassificationReport {
++  const ownTaskPath = `contracts/tasks/${task.id}.yaml`;
++  const bootstrap = branchFiles.includes(ownTaskPath)
++    ? verifyTaskBootstrapAuthority(root, baseRef, task)
++    : { verified: true, reasons: [], introductionCommit: undefined, bootstrapFiles: [] };
++  const bootstrapFiles = bootstrap.verified ? bootstrap.bootstrapFiles : [];
++  const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
++  const reasons: CiPlanReason[] = bootstrap.reasons.map((item) => reason(item.code, item.message));
++  if (issues.some((item) => ["git.shallow", "git.base.missing", "git.mergeBase.missing", "git.diff.failed"].includes(item.code))) {
++    reasons.push(reason("classification.provenance.unverified", "Repository history or the classified branch diff cannot be verified"));
++  }
++  if (issues.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {
++    reasons.push(reason("classification.authorityOrCoverage.unverified", "Authority or implementation coverage cannot be verified"));
++  }
++  if (consideredFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths))) {
++    reasons.push(reason("classification.path.humanGate", "A Human Gate path is in the classified change set"));
++  }
++  if (consideredFiles.some((file) => /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|.*schema.*|.*migration.*|.*auth.*|.*permission.*|.*release.*)$/.test(file) || file.startsWith(".github/") || file.startsWith("wjs/"))) {
++    reasons.push(reason("classification.path.highRisk", "A dependency, schema, migration, authority, release, workflow, or submodule path is in the classified change set"));
++  }
++  const executionClass = reasons.length > 0 ? "high-risk"
++    : consideredFiles.some((file) => file.startsWith("src/") || file.startsWith("tests/")) ? "standard"
++      : "routine";
++  if (reasons.length === 0) reasons.push(reason(`classification.${executionClass}`, executionClass === "routine" ? "Only non-implementation, non-gated files remain after verified bootstrap metadata exclusion" : "Implementation or test files require the Standard execution class"));
++  return {
++    schemaVersion: "1.0.0", status: "classified", projectProfile: profile(root), executionClass, enforcement: "read-only",
++    bootstrapAuthority: { verified: bootstrap.verified, introductionCommit: bootstrap.introductionCommit ?? null },
++    consideredFiles, excludedBootstrapFiles: bootstrapFiles.filter((file) => branchFiles.includes(file)).sort(), reasons: uniqueReasons(reasons)
+   };
+ }
+ 
+@@ -199,6 +256,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+ 
+   const normalizedReasons = uniqueReasons(reasons);
+   const decision = normalizedReasons.length === 0 ? "metadata-candidate" : "full";
++  const classification = classifyTask(root, task, baseRef, branchFiles, normalizedReasons);
+   return {
+     schemaVersion: "1.0.0",
+     decision,
+@@ -212,7 +270,8 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     changedFilesSinceSubject,
+     reasons: decision === "metadata-candidate"
+       ? [reason("provenance.metadataOnly", "Only approved metadata files changed after the verified implementation subject")]
+-      : normalizedReasons
++      : normalizedReasons,
++    classification
+   };
+ }
+ 
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+index 29a6455..f9c635e 100644
+--- a/src/core/task-authority.ts
++++ b/src/core/task-authority.ts
+@@ -30,6 +30,13 @@ const UNSAFE_NEW_TASK_GLOBS = new Set(["**", "src/**", "tests/**", "docs/**", "c
+ type AuthorityField = typeof TASK_AUTHORITY_FIELDS[number];
+ type AuthoritySnapshot = Record<AuthorityField, unknown>;
+ 
++export type TaskBootstrapAuthority = {
++  verified: boolean;
++  introductionCommit?: string;
++  bootstrapFiles: string[];
++  reasons: Issue[];
++};
++
+ function normalizedStrings(values: string[] | undefined): string[] {
+   return [...new Set(values ?? [])].sort();
+ }
+@@ -194,6 +201,28 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
+   return issues;
+ }
+ 
++/**
++ * Verifies the only new-task exception that a risk classifier may make: the
++ * task's own, contract-only creation commit. This deliberately reuses the
++ * authority trust-root checks instead of creating a second provenance path.
++ */
++export function verifyTaskBootstrapAuthority(root: string, baseRef: string, task: TaskContract): TaskBootstrapAuthority {
++  const taskPath = `contracts/tasks/${task.id}.yaml`;
++  if (isShallowRepository(root)) {
++    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.git.shallow", message: "Task bootstrap authority cannot be verified in a shallow repository" }] };
++  }
++  const trustedBase = mergeBase(root, baseRef, "HEAD");
++  if (!trustedBase) {
++    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.git.mergeBase", message: `Task bootstrap authority cannot be verified because ${baseRef} and HEAD have no resolvable merge base` }] };
++  }
++  const introductionCommit = fileIntroductionCommit(root, trustedBase, "HEAD", taskPath);
++  if (!introductionCommit) {
++    return { verified: false, bootstrapFiles: [], reasons: [{ severity: "error", code: "classification.bootstrap.introduction.missing", message: `${taskPath} has no committed introduction after ${trustedBase}` }] };
++  }
++  const reasons = collectNewTaskTrustIssues(root, trustedBase, taskPath, task);
++  return { verified: reasons.length === 0, introductionCommit, bootstrapFiles: commitChangedFiles(root, introductionCommit), reasons };
++}
++
+ export function collectTaskAuthorityIssues(
+   root: string,
+   currentTask: TaskContract,
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+index f54dcc5..51c8cfe 100644
+--- a/tests/integration/ci-plan.test.ts
++++ b/tests/integration/ci-plan.test.ts
+@@ -95,7 +95,11 @@ describe("CI plan", () => {
+       reasons: [{ code: "provenance.metadataOnly" }]
+     });
+     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ci-plan.schema.json"), "utf8"));
+-    expect(new Ajv2020({ strict: false }).compile(schema)(plan)).toBe(true);
++    const classificationSchema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/task-classification.schema.json"), "utf8"));
++    const ajv = new Ajv2020({ strict: false });
++    ajv.addSchema(classificationSchema);
++    expect(ajv.compile(schema)(plan)).toBe(true);
++    expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
+   });
+ 
+   test("falls back to full CI when Evidence is absent at the implementation subject", () => {
+@@ -178,6 +182,18 @@ describe("CI plan", () => {
+     const plan = buildCiPlan(shallow, { taskId, baseRef: "HEAD" });
+     expect(plan.decision).toBe("full");
+     expect(plan.reasons.some((item) => item.code === "git.shallow")).toBe(true);
++    expect(plan.classification).toMatchObject({ executionClass: "high-risk" });
++  });
++
++  test("fails closed when an existing task has no branch-local bootstrap introduction", () => {
++    const { root } = prepareSubject();
++    const taskPath = `contracts/tasks/${taskId}.yaml`;
++    const current = readFileSync(path.join(root, taskPath), "utf8");
++    writeText(root, taskPath, current.replace("  - API tests pass\n", "  - API tests pass\n  - Classification is reported\n"));
++    commit(root, "change existing task without branch-local introduction");
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.classification.executionClass).toBe("high-risk");
++    expect(plan.classification.reasons.map((item) => item.code)).toContain("classification.bootstrap.introduction.missing");
+   });
+ 
+   test("discovers the task by exact branch and emits fallback JSON with exit zero", () => {
