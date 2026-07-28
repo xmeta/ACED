@@ -1,0 +1,1870 @@
+diff --git a/contracts/specs/SPEC-LITE-MS4BAZKN.yaml b/contracts/specs/SPEC-LITE-MS4BAZKN.yaml
+new file mode 100644
+index 0000000..7da80e8
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS4BAZKN.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MS4BAZKN
++type: spec-contract
++featureId: F-MS4BAZKN
++title: "Issue #178: tracked patch payloadでsquash後もEvidenceを再検証可能にする（authority再作成）"
++status: approved
++version: 0.1.0
++summary: "tracked binary patchをEvidence payloadとして保持し、squash後もsubject treeを再検証可能にする"
++approvedBy: user-requested-issue-178-authority-recreation
++approvedAt: "2026-07-28T09:00:00+09:00"
++acceptanceCriteria:
++  - evidence collect stores deterministic git-diff-binary-v1 bytes at contracts/evidence-payloads/<task-id>.patch
++  - Evidence records patch-artifact mode, repository-contained locator, and SHA-256 manifest hash
++  - verification reconstructs the subject tree in a temporary Git index and does not mutate the working tree
++  - a valid patch can verify Evidence when subjectHeadCommit is absent from the local object database
++  - missing, tampered, traversing, unapplicable, or tree-mismatched payloads are classified as unverifiable
++  - shallow repositories distinguish unavailable base history as not-evaluated
++  - legacy git-object Evidence remains readable and is not silently upgraded
++  - evidence retain preserves subjectHeadCommit, diffHash, changedFiles, checks, and Approval scope
++  - future Task creation governs payload paths and metadata fixed-point logic excludes payload self-reference
++  - documentation records repository growth and retained secret or personal-data trade-offs
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS4BAZKN.yaml b/contracts/tasks/SCWBS-DRAFT-MS4BAZKN.yaml
+new file mode 100644
+index 0000000..6b94ba9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS4BAZKN.yaml
+@@ -0,0 +1,92 @@
++id: SCWBS-DRAFT-MS4BAZKN
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS4BAZKN
++branchName: task/SCWBS-DRAFT-MS4BAZKN-issue-178-tracked-patch-payload
++allowedPaths:
++  - src/cli.ts
++  - src/commands/checks-run.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/evidence-retain.ts
++  - src/commands/finish.ts
++  - src/commands/health.ts
++  - src/commands/start.ts
++  - src/commands/status.ts
++  - src/commands/task-generate.ts
++  - src/commands/task-new.ts
++  - src/core/check-coverage.ts
++  - src/core/evidence-provenance.ts
++  - src/core/finish-lifecycle.ts
++  - src/core/git.ts
++  - src/core/human-gate.ts
++  - src/core/managed-contract-paths.ts
++  - src/core/paths.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/core/types.ts
++  - tests/helpers.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/checks-run.test.ts
++  - tests/integration/ci-plan.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/finish-lifecycle.test.ts
++  - tests/integration/health.test.ts
++  - tests/integration/status.test.ts
++  - tests/integration/tasks.test.ts
++  - tests/unit/contracts.test.ts
++  - tests/unit/core-docs-samples.test.ts
++  - docs/implementation-gaps.md
++  - docs/sc-wbs-core/03-minimal-artifacts.md
++  - docs/sc-wbs-core/10-decisions.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/evidence-human-gate-review.md
++  - contracts/evidence-payloads/SCWBS-DRAFT-MS4BAZKN.patch
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - external artifact storage, credentials, or repository visibility changes are required
++  - Evidence schema compatibility cannot be preserved
++  - payload verification would require working tree mutation
++  - scope expansion outside the exact allowed paths is required
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - evidence collect writes a deterministic tracked binary patch and records patch-artifact retention metadata
++  - health and status verify patch hash, reconstructed tree, and changed files without requiring the subject commit
++  - missing, tampered, unsafe, or unapplicable payloads fail closed with structured provenance issues
++  - legacy git-object Evidence remains backward compatible
++  - evidence retain can backfill one verifiable existing Evidence record without changing its subject, checks, or Approval scope
++  - Task generators govern the task-scoped payload path and lifecycle fixed points exclude it
++  - squash, deleted-branch, shallow, binary, rename, mode-change, and repeated-collection behavior is covered
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS4BAZKN.yaml
++  - contracts/specs/SPEC-LITE-MS4BAZKN.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS4BAZKN.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS4BAZKN.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS4BAZKN.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS4BAZKN.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:ab2876350c86ac9e55ebaac2254ec7b261f5bca93b0e450ad73c94f0fdddc9c1
++  createdAt: "2026-07-28T07:08:21.679Z"
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index e3d8bf7..e08d8ab 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -18,6 +18,9 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Base/head-aware Evidence changed file collection
+ - Evidence PR metadata capture and refresh preservation
+ - Evidence testQuality metadata capture and refresh preservation
++- Tracked patch Evidence retention and subject reconstruction after squash merge
++- Fail-closed patch provenance verification in health/status
++- Bounded legacy Evidence migration through `evidence retain`
+ - AI blocked-task change-set generation
+ - Dependency-aware planned-task candidate listing for simple queue handoff
+ - Sensitive meta/config file guardrails in check-diff
+@@ -35,7 +38,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
+ | Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
+ | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
+-| Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
++| Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
+ | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
+ | Test quality | Diff-aware assertion and coverage inspection | `testQuality` can be recorded as Evidence metadata, but source diffs and coverage reports are not parsed yet |
+ | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
+@@ -53,5 +56,5 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
+ - Make `ai next-task` priority-aware.
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+-- Add a provenance-aware evidence verifier that can correlate Evidence with PR and CI metadata, then fail publish readiness when the current task's PR metadata is absent after a PR exists.
++- Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+ - Add PR feedback and CI run metadata capture for Evidence once the contract model stabilizes.
+diff --git a/docs/sc-wbs-core/03-minimal-artifacts.md b/docs/sc-wbs-core/03-minimal-artifacts.md
+index fe314b1..288a98d 100644
+--- a/docs/sc-wbs-core/03-minimal-artifacts.md
++++ b/docs/sc-wbs-core/03-minimal-artifacts.md
+@@ -113,15 +113,27 @@ Evidence は、作業がDone条件を満たしたことを示す機械証跡で
+ id: EVD-WBS-001
+ type: evidence
+ taskId: WBS-001
+-subjectHeadCommit: abc1234
++subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ evidenceCommit: def5678
+ diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+ 
++provenance:
++  schemaVersion: 1.0.0
++  subject:
++    commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
++    treeHash: 0123456789abcdef0123456789abcdef01234567
++    diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
++    canonicalization: git-diff-binary-v1
++  retention:
++    mode: patch-artifact
++    locator: repo:contracts/evidence-payloads/WBS-001.patch
++    manifestHash: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
++
+ git:
+   branch: task/WBS-001-staff-search
+   base: origin/main
+   baseCommit: def5678
+-  subjectHeadCommit: abc1234
++  subjectHeadCommit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   changedFilesBasis: branch-diff
+   diffHash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+   pullRequest: "#42"
+@@ -154,6 +166,13 @@ Evidenceファイル自体をコミットするとHEADが変わるため、`subj
+ `diffHash` は、baseからsubjectHeadCommitまでの差分を正規化して計算する。
+ Approval はこの `diffHash` に紐づける。
+ 
++`evidence collect` は同じ正規差分を
++`contracts/evidence-payloads/<task-id>.patch` に保存する。Evidence、Approval、
++Review、Registry、payload自身は正規差分から除外する。`treeHash` はこのpatchを
++`baseCommit`へ一時index上で適用して再構築したtreeを指す。したがってsquash後に
++元commit objectが取得できなくても、payload hash、diffHash、treeHash、
++changedFilesがすべて一致した場合だけsubjectを再検証できる。
++
+ ## Approval Core
+ 
+ Approval は人間の承認記録である。
+diff --git a/docs/sc-wbs-core/10-decisions.md b/docs/sc-wbs-core/10-decisions.md
+index 3b7c097..0fd2cf5 100644
+--- a/docs/sc-wbs-core/10-decisions.md
++++ b/docs/sc-wbs-core/10-decisions.md
+@@ -64,6 +64,25 @@ git:
+ - 単純なHEAD一致チェックではEvidenceがstaleになりやすい
+ - 承認対象差分を固定する必要がある
+ 
++## DEC-004A: Evidence subjectをtracked patchで保持する
++
++採用:
++
++```yaml
++provenance:
++  retention:
++    mode: patch-artifact
++    locator: repo:contracts/evidence-payloads/<task-id>.patch
++    manifestHash: sha256:...
++```
++
++理由:
++
++- squash mergeとbranch削除を維持したまま、元のsubject commitへのref消失に耐える
++- Evidence管理fileをcanonical patchから除外し、再収集をbyte-identicalにする
++- working treeへ適用せず、一時indexでtree、diffHash、changedFilesを再検証する
++- payload欠落、改ざん、path逸脱、適用失敗、base欠落、tree不一致をfail closedにする
++
+ ## DEC-005: ApprovalはPR番号だけに紐づけない
+ 
+ 採用:
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 0e3da59..bc571b1 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -66,7 +66,7 @@ fieldがある場合も、値には2種類ある。
+ - active Task別のwarning summaryをgit common dirへ保存する（tracked artifactではないがlocal metadataとして書き込みが発生する）。
+ - `--governance-cost` を明示指定した場合、governance cost baselineのwarning判定を追加する。
+ 
+-`status` はWBS nodeのlifecycle件数と、Task indexで `completed` / `archived` のTaskに対するcompletion trustを別軸で表示する。completion trustはEvidenceの存在だけではなく、required checks、Evidence subject provenance、Human Approval scopeを`health`と共通の判定で評価し、`verified` / `degraded` / `unverifiable` / `not-evaluated`へ分類する。`cancelled` Taskは母集団から除外する。`--json` はversioned schema `scwbs.status.v1` のbounded summaryを返し、Task ID一覧は展開しない。`--strict` はTask indexを評価できない場合、またはterminal Taskが完全な`verified`でない場合に非0を返す。shallow cloneはcommit到達性だけを`not-evaluated`とし、Evidence欠落やApproval不整合など確定的な問題を隠さない。
++`status` はWBS nodeのlifecycle件数と、Task indexで `completed` / `archived` のTaskに対するcompletion trustを別軸で表示する。completion trustはEvidenceの存在だけではなく、required checks、Evidence subject provenance、Human Approval scopeを`health`と共通の判定で評価し、`verified` / `degraded` / `unverifiable` / `not-evaluated`へ分類する。`patch-artifact` Evidenceは元subject commitがなくても、tracked payloadからtree、diffHash、changedFilesを再構築できればverifiedになり得る。`cancelled` Taskは母集団から除外する。`--json` はversioned schema `scwbs.status.v1` のbounded summaryを返し、Task ID一覧は展開しない。`--strict` はTask indexを評価できない場合、またはterminal Taskが完全な`verified`でない場合に非0を返す。shallow cloneでpatchのbaseCommitだけが取得できない場合は`not-evaluated`とし、Evidence欠落やApproval不整合など確定的な問題を隠さない。
+ 
+ #### `status --strict` の terminal Task 定義
+ 
+@@ -393,9 +393,20 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
+ 
+ `evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
+ 
++`evidence collect` と `finish` はEvidence YAMLに加えて
++`contracts/evidence-payloads/<task-id>.patch` を生成する。payloadは
++`git-diff-binary-v1` のtracked retention artifactであり、Evidence管理fileと
++payload自身を除外するため、metadata-only descendantや再収集でhashが循環しない。
++`finish` はpayload、Evidence、Registryを同じrollback unitでcheckpointする。
++
++既存Evidenceの限定backfillには
++`evidence retain --task <id> [--fetch-pr-head]` を使う。recorded subject、
++base、diffHash、changedFilesが再現できない場合は書き込まない。
++`--fetch-pr-head` はrecorded PRのhead refだけを取得し、subject ancestryを検証する。
++
+ `evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+ 
+-`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存EvidenceとRegistryを上書きしない。検証済みcandidateはEvidenceとRegistryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は両fileを開始前の内容へ戻す。
++`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
+ 
+ 完了時のnext actionはEvidenceとReviewのPR metadataを正規化して決定する。両方のPR番号が不一致なら修正command付きで停止し、PR番号がなければ新規PR作成、既存PRがあればdraft、checks pending、checks failure、checks success、未mergeのclosed、mergedの状態に応じてready化、checks監視、failure確認、merge、reopen、main同期を案内する。未mergeのclosed PRでは過去のchecks結果にかかわらずmergeやchecks watchへ進まず、`gh pr reopen <number>`を案内するため、必要に応じてEvidence / ReviewのPR metadataを確認してから再開する。`gh pr view`が未導入・未認証などで状態を取得できない場合も、新規PR作成へ戻らず、repository-local metadataの既存PR番号を使ったchecks確認へ安全にdegradeする。plain出力とJSONの `nextAction` / `resumeCommand` は同じcommandを返す。
+ 
+@@ -517,8 +528,9 @@ When task changes include tests, record test quality metadata with `--test-asser
+ | `metrics governance` | repository-content read-only + external state read | GitHub履歴をbounded取得するが永続artifactを作らない |
+ | `checks run` | local-metadata write | 全check成功時だけcheck receiptをgit common dirへ保存する |
+ | `finish --preflight` | local-metadata write | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する |
+-| `finish` | tracked-artifact mutation + local-metadata write | Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
+-| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
++| `finish` | tracked-artifact mutation + local-metadata write | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
++| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
++| `evidence retain` | tracked-artifact mutation + optional external state read | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
+ | `evidence annotate` | tracked-artifact mutation | 既存Evidenceの一部フィールドのみ更新 |
+ | `init` / `fix` / `doctor --fix` | tracked-artifact mutation | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する |
+ | `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
+diff --git a/docs/scwbs/evidence-human-gate-review.md b/docs/scwbs/evidence-human-gate-review.md
+index e126a44..1657115 100644
+--- a/docs/scwbs/evidence-human-gate-review.md
++++ b/docs/scwbs/evidence-human-gate-review.md
+@@ -66,21 +66,41 @@ Evidenceは自己申告だけで完結させない。可能な限り、CIログ
+ 新規に収集するEvidenceは `provenance.schemaVersion: 1.0.0` を持ち、
+ subjectのcommit、tree hash、`diffHash`、および
+ `git-diff-binary-v1` canonicalizationを記録する。既定retentionは
+-`git-object` であり、locatorは `git:<commit>` とする。これは対象Git
+-objectが取得可能な間だけ再検証可能であることを明示するもので、長期保存を
+-保証しない。
+-
+-`patch-artifact` と `bundle` は将来のretention modeとしてschemaで予約する。
+-現行CLIはそれらのpayloadを生成・取得・検証せず、healthでは
+-`notEvaluated` とする。保存期間、repository肥大化、削除済みsecretや個人情報を
+-patchに残す危険、外部artifactのアクセス制御をHuman Decisionで決めるまで、
+-巨大patchをEvidence本文へ埋め込まない。
++`patch-artifact` であり、payloadを
++`contracts/evidence-payloads/<task-id>.patch` に保存する。locatorはこの
++task固有path、`manifestHash` はartifact bytesのSHA-256である。
++
++canonical patchはbaseからsubjectまでの `git diff --binary --no-ext-diff`
++を基礎に、rename検出と環境依存prefixを固定し、Evidence、Approval、Review、
++Registry、payload自身を除外する。同じsubjectを再収集したbytesは同一になる。
++`treeHash` はpatchをbaseへ一時index上で適用して得たcanonical treeであり、
++working treeは変更しない。binary追加・削除、mode変更、rename、空diffも同じ
++表現で扱う。
++
++`health` / `status` はlocatorの完全一致、repository内path、payload存在、
++`manifestHash`、patch適用、再構築tree、`diffHash`、`changedFiles`を検証する。
++subject commit objectがなくても全検証が一致すればverifiedにできる。payload欠落、
++hash不一致、path逸脱、適用失敗、base欠落、tree不一致はunverifiableである。
++shallow cloneでbaseだけ取得できない場合はnot-evaluatedとする。
+ 
+ subject commitが失われた `git-object` recordは `unverifiable` である。
+ `diffHash` は同一性の識別子であり、payloadなしに元差分を復元できないため、
+ digestが残っているだけで再検証成功とは扱わない。manifestを持たない既存の
+ terminal Evidenceは後方互換で読めるが、active Evidenceでは移行warningを出す。
+ 
++既存Evidenceを移行する場合は、別のHuman Gate付きbackfill Taskから次を使う。
++
++```bash
++npm run scwbs -- evidence retain --task <historical-task-id>
++npm run scwbs -- evidence retain --task <historical-task-id> --fetch-pr-head
++```
++
++このcommandは既存のsubject、base、diffHash、changedFilesを再現できる場合だけ
++payloadとretention metadataを生成し、checksやApproval scopeを変更しない。
++`--fetch-pr-head` はEvidenceに記録されたPR番号の
++`refs/pull/<number>/head` だけを取得し、recorded subjectがそのancestorである
++ことを要求する。
++
+ 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
+ 
+ branch diffにsubmodule gitlink変更がある場合、`evidence collect` はold/new commit、nested changed files、repository、merge target refへのhead到達可否を `submodules` に収集する。Task Contractの `submoduleDependencies` に依存PR、`upstreamRef`、submodule側checkを記録しておくと、それらもEvidenceへ関連付けられる。nested diffを収集できない場合は空差分として扱わず収集を失敗させる。`check-diff` はnested pathの契約違反、merge targetへ未到達のhead、未通過checkをerrorにする。依存PRを先にmergeし、そのheadが指定したmerge target refのancestorになってからparent PRをmergeする。
+diff --git a/src/cli.ts b/src/cli.ts
+index 813c1c2..724b963 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -15,7 +15,7 @@ import { runChecksRun } from "./commands/checks-run.js";
+ import { runCompletionApply } from "./commands/completion.js";
+ import { runDoctor } from "./commands/doctor.js";
+ import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "./commands/discovery.js";
+-import { runEvidenceCollect } from "./commands/evidence-collect.js";
++import { runEvidenceCollect, runEvidenceRetain } from "./commands/evidence-collect.js";
+ import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
+ import { runFinish } from "./commands/finish.js";
+ import { runFix } from "./commands/fix.js";
+@@ -698,6 +698,22 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
++  evidence
++    .command("retain")
++    .description("Retain an existing Evidence subject as a tracked patch payload")
++    .option("--task <id>", "task id")
++    .option("--fetch-pr-head", "fetch the recorded GitHub pull request head when the subject is unavailable")
++    .action((opts) => {
++      if (!opts.task) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runEvidenceRetain(root, opts.task, {
++        fetchPrHead: opts.fetchPrHead ?? false
++      });
++    });
++
+   const registry = program.command("registry");
+   registry
+     .command("rebuild")
+diff --git a/src/commands/checks-run.ts b/src/commands/checks-run.ts
+index edb7546..74c5a62 100644
+--- a/src/commands/checks-run.ts
++++ b/src/commands/checks-run.ts
+@@ -5,6 +5,7 @@ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt, removeCheckReceipt, writeCheckReceipt } from "../core/check-receipt.js";
+ import { headCommit } from "../core/git.js";
++import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
+ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import {
+@@ -41,15 +42,6 @@ export type ChecksRunSummary = {
+ 
+ export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?: boolean };
+ 
+-function metadataFiles(taskId: string): string[] {
+-  return [
+-    `contracts/evidence/${taskId}.yaml`,
+-    `contracts/approvals/${taskId}.yaml`,
+-    `contracts/reviews/${taskId}.yaml`,
+-    "contracts/registry.yaml"
+-  ];
+-}
+-
+ function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
+   const command = resolveCheckCommand(check);
+   updateRequiredCheckRun(lease, check, index);
+@@ -89,7 +81,7 @@ export function buildChecksRunSummary(root: string, taskId: string, options: Che
+   const baseRef = options.baseRef ?? "origin/main";
+   const head = headCommit(root);
+   if (!head) throw new Error("Unable to resolve HEAD");
+-  const subject = buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: metadataFiles(taskId) });
++  const subject = buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: taskLifecycleMetadataPaths(taskId) });
+   const provenance = collectCheckReceiptProvenance(root);
+   const receiptRead = readCheckReceipt(root, { taskId, headCommit: head, subjectFingerprint: subject.fingerprint, provenance });
+   const expected = task.requiredChecks.map((name) => {
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 37b000c..7e1a8b6 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -5,12 +5,28 @@ import { readEvidence, readTask } from "../core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
+-import { branchChangedFiles, branchDiffHash, changedFilesBetween, commitTreeHash, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
++import {
++  branchChangedFiles,
++  branchDiffHash,
++  buildPatchArtifact,
++  changedFilesBetween,
++  changedFilesBetweenRefs,
++  commitExists,
++  currentBranch,
++  diffBinary,
++  hashDiffBinary,
++  headCommit,
++  isCommitAncestor,
++  mergeBase,
++  resolveCommit,
++  workingTreeState
++} from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
++import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { printIssues } from "../core/report.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
+ import { taskAuthorityFingerprint } from "./ci-plan.js";
+@@ -80,12 +96,7 @@ export type EvidenceCollectOptions = {
+ };
+ 
+ function postEvidenceMetadataFiles(taskId: string): string[] {
+-  return [
+-    `contracts/evidence/${taskId}.yaml`,
+-    `contracts/approvals/${taskId}.yaml`,
+-    `contracts/reviews/${taskId}.yaml`,
+-    "contracts/registry.yaml"
+-  ];
++  return taskLifecycleMetadataPaths(taskId);
+ }
+ 
+ const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+@@ -284,10 +295,6 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
+   const changedFiles = branchChangedFiles(root, baseRef);
+   const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
+-  const subjectTreeHash = subjectHead ? commitTreeHash(root, subjectHead) : undefined;
+-  if (subjectHead && !subjectTreeHash) {
+-    throw new Error(`Unable to resolve tree hash for Evidence subject ${subjectHead}`);
+-  }
+   const branch = currentBranch(root);
+   if (
+     existingEvidence?.git?.changedFilesBasis === "branch-diff"
+@@ -371,6 +378,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     if (lease) releaseRequiredCheckRun(lease);
+   }
+   const submodules = collectSubmoduleProvenance(root, baseRef, task);
++  const patchArtifact = subjectHead && baseCommit
++    ? buildPatchArtifact(root, taskId, baseCommit, subjectHead)
++    : undefined;
+   return {
+     id: `EVD-${taskId}`,
+     type: "evidence",
+@@ -378,16 +388,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     ...(subjectHead ? { commit: subjectHead } : {}),
+     ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+     diffHash,
+-    ...(subjectHead && subjectTreeHash ? {
++    ...(subjectHead && patchArtifact ? {
+       provenance: {
+         schemaVersion: "1.0.0" as const,
+         subject: {
+           commit: subjectHead,
+-          treeHash: subjectTreeHash,
++          treeHash: patchArtifact.treeHash,
+           diffHash,
+           canonicalization: "git-diff-binary-v1" as const
+         },
+-        retention: {
++        retention: patchArtifact ? {
++          mode: "patch-artifact" as const,
++          locator: patchArtifact.locator,
++          manifestHash: patchArtifact.manifestHash
++        } : {
+           mode: "git-object" as const,
+           locator: `git:${subjectHead}`
+         }
+@@ -490,6 +504,18 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+       rerunChecks: options.rerunChecks,
+       ciReceipt
+     });
++    const baseCommit = evidence.git?.baseCommit;
++    const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;
++    if (
++      evidence.provenance?.retention.mode === "patch-artifact"
++      && baseCommit
++      && subjectCommit
++    ) {
++      const artifact = buildPatchArtifact(root, taskId, baseCommit, subjectCommit);
++      const artifactPath = resolveFrom(root, artifact.relativePath);
++      mkdirSync(path.dirname(artifactPath), { recursive: true });
++      writeFileSync(artifactPath, artifact.bytes);
++    }
+     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
+     writeFileSync(fullPath, yaml, "utf8");
+     syncRegistry(root);
+@@ -510,3 +536,107 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+     return 1;
+   }
+ }
++
++function retainedSubjectHead(evidence: Evidence): string | undefined {
++  return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
++}
++
++function retainedDiffHash(evidence: Evidence): string | undefined {
++  return evidence.diffHash ?? evidence.git?.diffHash;
++}
++
++function sortedRetainedPaths(values: string[]): string[] {
++  return [...new Set(values.map((value) => value.replace(/\\/g, "/")))].sort();
++}
++
++function retainedPullRequestNumber(value: string | undefined): string | undefined {
++  const match = value?.trim().match(/^#?([1-9][0-9]*)$/);
++  return match?.[1];
++}
++
++function fetchRecordedPullRequestHead(root: string, pullRequest: string, subject: string): void {
++  const fetch = spawnSync(
++    "git",
++    ["fetch", "--no-tags", "origin", `refs/pull/${pullRequest}/head`],
++    { cwd: root, encoding: "utf8" }
++  );
++  if (fetch.status !== 0) throw new Error(`Unable to fetch recorded PR #${pullRequest} head`);
++  const fetchedHead = resolveCommit(root, "FETCH_HEAD");
++  if (!fetchedHead || !commitExists(root, subject) || !isCommitAncestor(root, subject, fetchedHead)) {
++    throw new Error(`Recorded Evidence subject is not reachable from PR #${pullRequest} head`);
++  }
++}
++
++export function runEvidenceRetain(
++  root: string,
++  taskId: string,
++  options: { fetchPrHead?: boolean } = {}
++): number {
++  try {
++    const { task, issues: taskIssues } = readTask(root, taskId);
++    if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
++    const workingTree = workingTreeState(root);
++    if (workingTree.changedFiles.length > 0) {
++      throw new Error(`Evidence retention requires a clean working tree: ${workingTree.changedFiles.join(", ")}`);
++    }
++    const { evidence, issues } = readEvidence(root, taskId);
++    if (!evidence) throw new Error(issues.map((issue) => issue.message).join("\n"));
++    const subject = retainedSubjectHead(evidence);
++    const baseCommit = evidence.git?.baseCommit;
++    const recordedDiffHash = retainedDiffHash(evidence);
++    if (!subject || !baseCommit || !recordedDiffHash) {
++      throw new Error(`${taskId} Evidence must record subjectHeadCommit, git.baseCommit, and diffHash`);
++    }
++    if (!commitExists(root, subject)) {
++      if (!options.fetchPrHead) {
++        throw new Error(`${taskId} subject commit is unavailable; retry with --fetch-pr-head when Evidence records a GitHub PR`);
++      }
++      const pullRequest = retainedPullRequestNumber(evidence.git?.pullRequest);
++      if (!pullRequest) throw new Error(`${taskId} Evidence does not record a valid pull request number`);
++      fetchRecordedPullRequestHead(root, pullRequest, subject);
++    }
++    if (!commitExists(root, baseCommit)) throw new Error(`${taskId} base commit is unavailable: ${baseCommit}`);
++    const metadataFiles = taskLifecycleMetadataPaths(taskId);
++    const actualDiffHash = hashDiffBinary(diffBinary(root, baseCommit, subject, metadataFiles));
++    if (actualDiffHash !== recordedDiffHash) {
++      throw new Error(`${taskId} reconstructed implementation diffHash does not match existing Evidence`);
++    }
++    const actualChangedFiles = changedFilesBetweenRefs(root, baseCommit, subject, metadataFiles);
++    const recordedChangedFiles = evidence.changedFiles.filter((file) => !metadataFiles.includes(file.replace(/\\/g, "/")));
++    if (JSON.stringify(sortedRetainedPaths(actualChangedFiles)) !== JSON.stringify(sortedRetainedPaths(recordedChangedFiles))) {
++      throw new Error(`${taskId} reconstructed changed files do not match existing Evidence`);
++    }
++    const artifact = buildPatchArtifact(root, taskId, baseCommit, subject);
++    const artifactPath = resolveFrom(root, artifact.relativePath);
++    mkdirSync(path.dirname(artifactPath), { recursive: true });
++    writeFileSync(artifactPath, artifact.bytes);
++
++    const updatedEvidence = {
++      ...evidence,
++      provenance: {
++        schemaVersion: "1.0.0" as const,
++        subject: {
++          commit: subject,
++          treeHash: artifact.treeHash,
++          diffHash: recordedDiffHash,
++          canonicalization: "git-diff-binary-v1" as const
++        },
++        retention: {
++          mode: "patch-artifact" as const,
++          locator: artifact.locator,
++          manifestHash: artifact.manifestHash
++        }
++      }
++    };
++    const relativeEvidencePath = evidencePath(taskId);
++    const fullEvidencePath = resolveFrom(root, relativeEvidencePath);
++    if (!existsSync(fullEvidencePath)) throw new Error(`${relativeEvidencePath} does not exist`);
++    writeFileSync(fullEvidencePath, stringifySimpleYaml(updatedEvidence as unknown as Record<string, unknown>), "utf8");
++    syncRegistry(root);
++    console.log(`retained ${taskId} provenance at ${artifact.relativePath}`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 50dfaed..f98b87f 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
+ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+-import { branchChangedFiles, currentBranch } from "../core/git.js";
++import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
+-import { defaultRegistryPath, evidencePath, resolveFrom } from "../core/paths.js";
++import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
+ import { buildCollectedEvidence } from "./evidence-collect.js";
+@@ -96,10 +96,10 @@ export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequ
+   }
+ };
+ 
+-export type AtomicFileWrite = { path: string; content: string };
++export type AtomicFileWrite = { path: string; content: string | Buffer };
+ type AtomicWriteJournal = {
+   schemaVersion: "1.0.0";
+-  files: Array<{ path: string; existed: boolean; previous?: string }>;
++  files: Array<{ path: string; existed: boolean; previous?: string; previousEncoding?: "base64" }>;
+ };
+ 
+ function removeIfPresent(file: string): void {
+@@ -110,7 +110,10 @@ function restoreJournal(journal: AtomicWriteJournal): string[] {
+   for (const file of journal.files) {
+     if (file.existed) {
+       mkdirSync(path.dirname(file.path), { recursive: true });
+-      writeFileSync(file.path, file.previous ?? "", "utf8");
++      const previous = file.previousEncoding === "base64"
++        ? Buffer.from(file.previous ?? "", "base64")
++        : file.previous ?? "";
++      writeFileSync(file.path, previous);
+     } else {
+       removeIfPresent(file.path);
+     }
+@@ -145,7 +148,7 @@ export function writeFilesAtomically(
+       ...file,
+       tempPath,
+       existed: existsSync(file.path),
+-      previous: existsSync(file.path) ? readFileSync(file.path, "utf8") : undefined
++      previous: existsSync(file.path) ? readFileSync(file.path) : undefined
+     };
+   });
+   const committed: typeof staged = [];
+@@ -157,7 +160,7 @@ export function writeFilesAtomically(
+         files: staged.map(({ path: filePath, existed, previous }) => ({
+           path: filePath,
+           existed,
+-          ...(previous !== undefined ? { previous } : {})
++          ...(previous !== undefined ? { previous: previous.toString("base64"), previousEncoding: "base64" as const } : {})
+         }))
+       };
+       const journalTemp = `${options.journalPath}.${token}.tmp`;
+@@ -172,7 +175,7 @@ export function writeFilesAtomically(
+     return files.map((file) => file.path);
+   } catch (error) {
+     for (const file of committed.reverse()) {
+-      if (file.existed) writeFileSync(file.path, file.previous ?? "", "utf8");
++      if (file.existed) writeFileSync(file.path, file.previous ?? Buffer.alloc(0));
+       else removeIfPresent(file.path);
+     }
+     if (options.journalPath) removeIfPresent(options.journalPath);
+@@ -363,8 +366,29 @@ function emitJson(output: FinishJsonOutput, enabled: boolean): void {
+ 
+ function checkpointFinishMetadata(root: string, evidence: Evidence, writer: CheckpointWriter): string[] {
+   const evidenceRelativePath = evidencePath(evidence.taskId);
++  const payloadRelativePath = evidencePayloadPath(evidence.taskId);
++  const baseCommit = evidence.git?.baseCommit;
++  const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;
++  const artifact = evidence.provenance?.retention.mode === "patch-artifact" && baseCommit && subjectCommit
++    ? buildPatchArtifact(root, evidence.taskId, baseCommit, subjectCommit)
++    : undefined;
++  if (
++    artifact
++    && (
++      artifact.locator !== evidence.provenance?.retention.locator
++      || artifact.manifestHash !== evidence.provenance.retention.manifestHash
++      || artifact.treeHash !== evidence.provenance.subject.treeHash
++    )
++  ) {
++    throw new Error(`${evidence.taskId} patch artifact does not match the Evidence candidate`);
++  }
+   const registryYaml = buildRegistryYaml(root, { evidence });
+   const writes = [
++    ...(artifact ? [{
++      relativePath: payloadRelativePath,
++      path: resolveFrom(root, payloadRelativePath),
++      content: artifact.bytes
++    }] : []),
+     {
+       relativePath: evidenceRelativePath,
+       path: resolveFrom(root, evidenceRelativePath),
+@@ -376,7 +400,10 @@ function checkpointFinishMetadata(root: string, evidence: Evidence, writer: Chec
+       content: registryYaml
+     }
+   ];
+-  const changedWrites = writes.filter((file) => !existsSync(file.path) || readFileSync(file.path, "utf8") !== file.content);
++  const changedWrites = writes.filter((file) =>
++    !existsSync(file.path)
++    || !readFileSync(file.path).equals(Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content))
++  );
+   writer(changedWrites.map(({ path, content }) => ({ path, content })));
+   return changedWrites.map((file) => file.relativePath);
+ }
+@@ -438,6 +465,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
+   if (!options.preflight) {
+     try {
+       const recovered = recoverAtomicFileWrites(journalPath, [
++        resolveFrom(root, evidencePayloadPath(taskId)),
+         resolveFrom(root, evidenceRelativePath),
+         resolveFrom(root, defaultRegistryPath)
+       ]);
+@@ -505,7 +533,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
+     const nextAction = resumeFinishCommand(taskId);
+     if (!json) {
+       console.log(`PASS finish preflight ${taskId}`);
+-      console.log(`plannedMutations: ${evidenceRelativePath}, ${defaultRegistryPath}`);
++      console.log(`plannedMutations: ${evidencePayloadPath(taskId)}, ${evidenceRelativePath}, ${defaultRegistryPath}`);
+       console.log(`nextAction: ${nextAction}`);
+     }
+     emitJson(finishOutput({
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 83c2db4..c25fcfe 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -11,6 +11,8 @@ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } f
+ import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
+ import { buildGovernanceCostSummary } from "./metrics.js";
+ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
++import { verifyPatchArtifact } from "../core/git.js";
++import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ 
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+@@ -53,19 +55,11 @@ function strongestEvidenceLevel(evidence: Evidence): EvidenceLevel {
+ 
+ function isPostEvidenceMetadataFile(taskId: string, file: string): boolean {
+   const normalized = file.replace(/\\/g, "/");
+-  return normalized === `contracts/evidence/${taskId}.yaml`
+-    || normalized === `contracts/approvals/${taskId}.yaml`
+-    || normalized === `contracts/reviews/${taskId}.yaml`
+-    || normalized === "contracts/registry.yaml";
++  return taskLifecycleMetadataPaths(taskId).includes(normalized);
+ }
+ 
+ function postEvidenceMetadataFiles(taskId: string): string[] {
+-  return [
+-    `contracts/evidence/${taskId}.yaml`,
+-    `contracts/approvals/${taskId}.yaml`,
+-    `contracts/reviews/${taskId}.yaml`,
+-    "contracts/registry.yaml"
+-  ];
++  return taskLifecycleMetadataPaths(taskId);
+ }
+ 
+ function evidenceHeadHasStaleImplementationChanges(root: string, taskId: string, evidenceHead: string, currentHead: string): boolean {
+@@ -122,6 +116,7 @@ export function collectEvidenceTrustIssues(
+   const { approval } = readApproval(root, task.id);
+   const approvalPullRequest = approval?.pullRequest;
+   const humanGate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
++  let patchVerified = false;
+ 
+   if (!evidence.provenance) {
+     if (!completed) {
+@@ -140,6 +135,19 @@ export function collectEvidenceTrustIssues(
+       code: "health.evidence.provenance.unverifiable",
+       message: `${task.id} provenance subject does not match the legacy Evidence subject fields`
+     });
++  } else if (evidence.provenance.retention.mode === "patch-artifact") {
++    const verification = verifyPatchArtifact(root, task.id, evidence, { shallow: !checkCommitReachability });
++    if (verification.status === "verified") {
++      patchVerified = true;
++    } else {
++      issues.push({
++        severity: "warn",
++        code: verification.status === "not-evaluated"
++          ? `health.evidence.provenance.notEvaluated.${verification.code}`
++          : `health.evidence.provenance.${verification.code}`,
++        message: verification.message
++      });
++    }
+   } else if (evidence.provenance.retention.mode !== "git-object") {
+     issues.push({
+       severity: "warn",
+@@ -203,7 +211,7 @@ export function collectEvidenceTrustIssues(
+ 
+   if (!evidence.commit) {
+     issues.push({ severity: "warn", code: "health.evidence.commit.missing", message: `${task.id} evidence has no commit` });
+-  } else if (checkCommitReachability && !evidenceCommitExists(evidence.commit)) {
++  } else if (checkCommitReachability && !patchVerified && !evidenceCommitExists(evidence.commit)) {
+     issues.push({ severity: "warn", code: "health.evidence.commit.unknown", message: `${task.id} evidence commit was not found: ${evidence.commit}` });
+   }
+ 
+@@ -213,7 +221,7 @@ export function collectEvidenceTrustIssues(
+   const subjectHead = evidenceSubjectHead(evidence);
+   if (!subjectHead) {
+     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.missing", message: `${task.id} evidence has no subjectHeadCommit` });
+-  } else if (checkCommitReachability && !evidenceCommitExists(subjectHead)) {
++  } else if (checkCommitReachability && !patchVerified && !evidenceCommitExists(subjectHead)) {
+     issues.push({ severity: "warn", code: "health.evidence.subjectHeadCommit.unknown", message: `${task.id} evidence subjectHeadCommit was not found: ${subjectHead}` });
+   } else if (
+     checkCommitReachability
+@@ -241,9 +249,10 @@ export function collectEvidenceTrustIssues(
+     if (!actualDiffHash && shouldCheckCurrentBranchEvidence) {
+       issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
+     } else if (actualDiffHash && shouldCheckCurrentBranchEvidence) {
+-      const expectedFiles = branchChangedFiles(root, evidence.git.base);
+-      const expectedDiffHash = branchDiffHash(root, evidence.git.base, postEvidenceMetadataFiles(task.id));
+-      const actualFiles = [...evidence.changedFiles].sort();
++      const metadataFiles = postEvidenceMetadataFiles(task.id);
++      const expectedFiles = branchChangedFiles(root, evidence.git.base).filter((file) => !metadataFiles.includes(file));
++      const expectedDiffHash = branchDiffHash(root, evidence.git.base, metadataFiles);
++      const actualFiles = evidence.changedFiles.filter((file) => !metadataFiles.includes(file)).sort();
+       if (JSON.stringify(actualFiles) !== JSON.stringify([...expectedFiles].sort())) {
+         issues.push({ severity: "warn", code: "health.evidence.changedFiles.stale", message: `${task.id} evidence changedFiles do not match current branch diff` });
+       }
+diff --git a/src/commands/start.ts b/src/commands/start.ts
+index 557b898..82832f9 100644
+--- a/src/commands/start.ts
++++ b/src/commands/start.ts
+@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readTask } from "../core/contracts.js";
+ import { currentBranch } from "../core/git.js";
+-import { resolveFrom, specPath, taskPath } from "../core/paths.js";
++import { evidencePayloadPath, resolveFrom, specPath, taskPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ 
+@@ -60,7 +60,8 @@ export function buildStartArtifacts(goal: string): Record<string, string> {
+       humanGateRequiredPaths: ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"],
+       requiredChecks: ["test", "typecheck", "build"],
+       doneCriteria: [`Plan and implement: ${goal}`],
+-      evidenceRequired: ["test-result", "typecheck-result", "build-result"]
++      evidenceRequired: ["test-result", "typecheck-result", "build-result"],
++      managedContractPaths: [evidencePayloadPath(taskId)]
+     })
+   };
+ }
+diff --git a/src/commands/status.ts b/src/commands/status.ts
+index c03c7d3..127d458 100644
+--- a/src/commands/status.ts
++++ b/src/commands/status.ts
+@@ -45,6 +45,10 @@ const completedTaskStatuses = new Set(["completed", "archived"]);
+ function isUnverifiableTrustIssue(issue: Issue): boolean {
+   return issue.code === "health.evidence.check.missing"
+     || issue.code === "health.evidence.check.notPassed"
++    || (
++      issue.code.startsWith("health.evidence.provenance.")
++      && !issue.code.startsWith("health.evidence.provenance.notEvaluated")
++    )
+     || /^health\.evidence\.(commit|subjectHeadCommit|diffHash|changedFiles)\.(missing|unknown|stale|allowedPaths|forbiddenPaths)$/.test(issue.code)
+     || /^health\.evidence\.git\.(base|baseCommit)\.(missing|unknown)$/.test(issue.code)
+     || /^health\.approval\./.test(issue.code);
+@@ -78,6 +82,9 @@ export function assessTaskCompletionTrust(
+   });
+   const issueCodes = [...new Set(issues.map((issue) => issue.code))].sort();
+   if (issues.some(isUnverifiableTrustIssue)) return { level: "unverifiable", issueCodes };
++  if (issues.some((issue) => issue.code.startsWith("health.evidence.provenance.notEvaluated"))) {
++    return { level: "not-evaluated", issueCodes };
++  }
+   if (issues.length > 0) return { level: "degraded", issueCodes };
+   if (!checkCommitReachability) return { level: "not-evaluated", issueCodes };
+   return { level: "verified", issueCodes };
+diff --git a/src/commands/task-generate.ts b/src/commands/task-generate.ts
+index 36cc5e4..bf64031 100644
+--- a/src/commands/task-generate.ts
++++ b/src/commands/task-generate.ts
+@@ -1,7 +1,7 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readWbs, findNode } from "../core/wbs.js";
+-import { resolveFrom, taskPath } from "../core/paths.js";
++import { evidencePayloadPath, resolveFrom, taskPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { TaskContract } from "../core/types.js";
+ 
+@@ -35,7 +35,8 @@ export function buildDraftTask(root: string, nodeId: string, taskId: string): Ta
+     humanGateRequiredPaths: ["package.json", "package-lock.json", ".github/**"],
+     requiredChecks: ["test", "typecheck", "build"],
+     doneCriteria: node.acceptanceCriteria?.length ? [...node.acceptanceCriteria] : [`Complete ${node.name}`],
+-    evidenceRequired: ["test-result", "typecheck-result", "build-result"]
++    evidenceRequired: ["test-result", "typecheck-result", "build-result"],
++    managedContractPaths: [evidencePayloadPath(taskId)]
+   };
+ }
+ 
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 4a8771d..4592824 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { listTasks } from "../core/contracts.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+-import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
++import { defaultWbsPath, evidencePayloadPath, taskPath, resolveFrom } from "../core/paths.js";
+ import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+@@ -96,7 +96,8 @@ export function buildCoreTaskNew(title: string, options: {
+     stopIf: splitList(options.stop, []),
+     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
+     doneCriteria: [`Complete ${resolvedTitle}`],
+-    evidenceRequired: ["test-result", "typecheck-result", "build-result"]
++    evidenceRequired: ["test-result", "typecheck-result", "build-result"],
++    managedContractPaths: [evidencePayloadPath(id)]
+   };
+   return { task, fallback };
+ }
+diff --git a/src/core/check-coverage.ts b/src/core/check-coverage.ts
+index 63abadd..16a1485 100644
+--- a/src/core/check-coverage.ts
++++ b/src/core/check-coverage.ts
+@@ -8,14 +8,10 @@ import { asCheckCoveragePolicy, validateCheckCoveragePolicy } from "./schema/che
+ import type { CheckCoveragePolicy, Issue, TaskContract } from "./types.js";
+ import { readYamlFile } from "./yaml.js";
+ import { branchDiffHash, changedFilesBetween, headCommit, isCommitAncestor } from "./git.js";
++import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
+ 
+ function coverageMetadataFiles(taskId: string): string[] {
+-  return [
+-    `contracts/evidence/${taskId}.yaml`,
+-    `contracts/approvals/${taskId}.yaml`,
+-    `contracts/reviews/${taskId}.yaml`,
+-    "contracts/registry.yaml"
+-  ];
++  return taskLifecycleMetadataPaths(taskId);
+ }
+ 
+ function evidenceIsCurrent(root: string, task: TaskContract, evidence: NonNullable<ReturnType<typeof readEvidence>["evidence"]>): boolean {
+diff --git a/src/core/finish-lifecycle.ts b/src/core/finish-lifecycle.ts
+index db77713..124939a 100644
+--- a/src/core/finish-lifecycle.ts
++++ b/src/core/finish-lifecycle.ts
+@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { readEvidence } from "./contracts.js";
+ import { changedFilesBetween, headCommit, isCommitAncestor, isShallowRepository } from "./git.js";
++import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
+ import { gitCommonDir } from "./required-check-run.js";
+ 
+ export const finishLifecycleEventLimit = 50;
+@@ -88,12 +89,7 @@ function receiptPath(root: string, taskId: string): string {
+ }
+ 
+ function approvedMetadataFiles(taskId: string): Set<string> {
+-  return new Set([
+-    `contracts/evidence/${taskId}.yaml`,
+-    `contracts/approvals/${taskId}.yaml`,
+-    `contracts/reviews/${taskId}.yaml`,
+-    "contracts/registry.yaml"
+-  ]);
++  return new Set(taskLifecycleMetadataPaths(taskId));
+ }
+ 
+ function commitCount(root: string, from: string, to: string): number {
+diff --git a/src/core/git.ts b/src/core/git.ts
+index 503777f..f4d7069 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -1,6 +1,11 @@
+ import { spawnSync } from "node:child_process";
+-import { readFileSync } from "node:fs";
++import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+ import { createHash } from "node:crypto";
++import os from "node:os";
++import path from "node:path";
++import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
++import { evidencePayloadPath, resolveFrom } from "./paths.js";
++import type { Evidence } from "./types.js";
+ 
+ const TEXT_FILE_PATTERN = /\.(cjs|js|json|md|ts|tsx|yaml|yml)$/;
+ 
+@@ -63,22 +68,73 @@ export function branchChangedFiles(root: string, baseRef = "origin/main"): strin
+   return gitLines(root, ["diff", "--name-only", `${baseRef}...HEAD`], "git diff failed");
+ }
+ 
+-export function branchDiffHash(root: string, baseRef = "origin/main", excludeFiles: string[] = []): string {
+-  const pathspecs = excludeFiles.length > 0
++function diffPathspecs(excludeFiles: string[]): string[] {
++  return excludeFiles.length > 0
+     ? ["--", ".", ...excludeFiles.map((file) => `:(exclude)${file}`)]
+     : [];
+-  const result = spawnSync("git", ["diff", "--binary", "--no-ext-diff", `${baseRef}...HEAD`, ...pathspecs], {
+-    cwd: root,
+-    encoding: "buffer"
+-  });
++}
++
++export function diffBinary(root: string, fromRef: string, toRef: string, excludeFiles: string[] = []): Buffer {
++  const result = spawnSync(
++    "git",
++    [
++      "diff",
++      "--binary",
++      "--no-ext-diff",
++      "--no-renames",
++      "--src-prefix=a/",
++      "--dst-prefix=b/",
++      fromRef,
++      toRef,
++      ...diffPathspecs(excludeFiles)
++    ],
++    { cwd: root, encoding: "buffer" }
++  );
+   if (result.status !== 0) {
+     throw new Error(result.stderr?.toString("utf8") || "git diff failed");
+   }
++  return result.stdout;
++}
++
++export function changedFilesBetweenRefs(root: string, fromRef: string, toRef: string, excludeFiles: string[] = []): string[] {
++  return gitLines(
++    root,
++    ["diff", "--name-only", fromRef, toRef, ...diffPathspecs(excludeFiles)],
++    "git diff failed"
++  );
++}
++
++export function branchDiffBinary(root: string, baseRef = "origin/main", excludeFiles: string[] = []): Buffer {
++  const result = spawnSync(
++    "git",
++    [
++      "diff",
++      "--binary",
++      "--no-ext-diff",
++      "--no-renames",
++      "--src-prefix=a/",
++      "--dst-prefix=b/",
++      `${baseRef}...HEAD`,
++      ...diffPathspecs(excludeFiles)
++    ],
++    { cwd: root, encoding: "buffer" }
++  );
++  if (result.status !== 0) {
++    throw new Error(result.stderr?.toString("utf8") || "git diff failed");
++  }
++  return result.stdout;
++}
++
++export function hashDiffBinary(bytes: Buffer): string {
+   const hash = createHash("sha256");
+-  hash.update(result.stdout);
++  hash.update(bytes);
+   return `sha256:${hash.digest("hex")}`;
+ }
+ 
++export function branchDiffHash(root: string, baseRef = "origin/main", excludeFiles: string[] = []): string {
++  return hashDiffBinary(branchDiffBinary(root, baseRef, excludeFiles));
++}
++
+ export function changedFilesSince(root: string, ref: string): string[] {
+   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
+ }
+@@ -191,6 +247,130 @@ export function commitExists(root: string, commit: string): boolean {
+   return result.status === 0;
+ }
+ 
++export type PatchArtifact = {
++  relativePath: string;
++  locator: string;
++  bytes: Buffer;
++  manifestHash: string;
++  treeHash: string;
++};
++
++export type PatchVerification =
++  | { status: "verified"; reconstructedTreeHash: string; changedFiles: string[] }
++  | { status: "not-evaluated"; code: string; message: string }
++  | { status: "unverifiable"; code: string; message: string };
++
++function sha256(bytes: Buffer): string {
++  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
++}
++
++function sortedPaths(values: string[]): string[] {
++  return [...new Set(values.map((value) => value.replace(/\\/g, "/")))].sort();
++}
++
++function patchFailure(code: string, message: string): PatchVerification {
++  return { status: "unverifiable", code, message };
++}
++
++function reconstructPatchTree(root: string, baseCommit: string, bytes: Buffer): string | undefined {
++  const temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), "scwbs-evidence-patch-"));
++  const indexPath = path.join(temporaryDirectory, "index");
++  const env = { ...process.env, GIT_INDEX_FILE: indexPath };
++  try {
++    const readTree = spawnSync("git", ["read-tree", baseCommit], { cwd: root, env, encoding: "utf8" });
++    if (readTree.status !== 0) return undefined;
++    if (bytes.length > 0) {
++      const apply = spawnSync(
++        "git",
++        ["apply", "--cached", "--binary", "--whitespace=nowarn", "--recount"],
++        { cwd: root, env, input: bytes, encoding: "buffer" }
++      );
++      if (apply.status !== 0) return undefined;
++    }
++    const writeTree = spawnSync("git", ["write-tree"], { cwd: root, env, encoding: "utf8" });
++    return writeTree.status === 0 ? writeTree.stdout.trim() || undefined : undefined;
++  } finally {
++    rmSync(temporaryDirectory, { recursive: true, force: true });
++  }
++}
++
++export function buildPatchArtifact(
++  root: string,
++  taskId: string,
++  baseCommit: string,
++  subjectCommit: string
++): PatchArtifact {
++  const relativePath = evidencePayloadPath(taskId);
++  const bytes = diffBinary(root, baseCommit, subjectCommit, taskLifecycleMetadataPaths(taskId));
++  const treeHash = reconstructPatchTree(root, baseCommit, bytes);
++  if (!treeHash) throw new Error(`${taskId} canonical patch could not be applied to its base tree`);
++  return {
++    relativePath,
++    locator: `repo:${relativePath}`,
++    bytes,
++    manifestHash: sha256(bytes),
++    treeHash
++  };
++}
++
++export function verifyPatchArtifact(
++  root: string,
++  taskId: string,
++  evidence: Evidence,
++  options: { shallow: boolean }
++): PatchVerification {
++  const provenance = evidence.provenance;
++  if (!provenance || provenance.retention.mode !== "patch-artifact") {
++    return patchFailure("mode", `${taskId} Evidence does not declare patch-artifact retention`);
++  }
++  const expectedRelativePath = evidencePayloadPath(taskId);
++  const expectedLocator = `repo:${expectedRelativePath}`;
++  if (provenance.retention.locator !== expectedLocator) {
++    return patchFailure("locator", `${taskId} patch locator must be ${expectedLocator}`);
++  }
++  const fullPath = resolveFrom(root, expectedRelativePath);
++  const relative = path.relative(path.resolve(root), fullPath);
++  if (relative.startsWith("..") || path.isAbsolute(relative)) {
++    return patchFailure("locator", `${taskId} patch locator escapes the repository`);
++  }
++  if (!existsSync(fullPath)) {
++    return patchFailure("payload.missing", `${taskId} patch payload was not found: ${expectedRelativePath}`);
++  }
++  const bytes = readFileSync(fullPath);
++  if (!provenance.retention.manifestHash) {
++    return patchFailure("payload.manifestHash", `${taskId} patch payload has no manifestHash`);
++  }
++  if (sha256(bytes) !== provenance.retention.manifestHash) {
++    return patchFailure("payload.hash", `${taskId} patch payload hash does not match Evidence`);
++  }
++  const baseCommit = evidence.git?.baseCommit;
++  if (!baseCommit) return patchFailure("base.missing", `${taskId} patch Evidence has no git.baseCommit`);
++  if (!commitExists(root, baseCommit)) {
++    return options.shallow
++      ? { status: "not-evaluated", code: "base.unavailable", message: `${taskId} patch baseCommit is unavailable in this shallow repository` }
++      : patchFailure("base.unavailable", `${taskId} patch baseCommit was not found: ${baseCommit}`);
++  }
++
++  const reconstructedTreeHash = reconstructPatchTree(root, baseCommit, bytes);
++  if (!reconstructedTreeHash) {
++    return patchFailure("apply", `${taskId} patch payload could not be applied to its base tree`);
++  }
++  if (reconstructedTreeHash !== provenance.subject.treeHash) {
++    return patchFailure("tree", `${taskId} reconstructed tree hash does not match Evidence`);
++  }
++  const metadataFiles = taskLifecycleMetadataPaths(taskId);
++  const reconstructedDiff = diffBinary(root, baseCommit, reconstructedTreeHash, metadataFiles);
++  if (hashDiffBinary(reconstructedDiff) !== provenance.subject.diffHash) {
++    return patchFailure("diffHash", `${taskId} reconstructed implementation diffHash does not match Evidence`);
++  }
++  const changedFiles = changedFilesBetweenRefs(root, baseCommit, reconstructedTreeHash, metadataFiles);
++  const expectedChangedFiles = evidence.changedFiles.filter((file) => !metadataFiles.includes(file.replace(/\\/g, "/")));
++  if (JSON.stringify(sortedPaths(changedFiles)) !== JSON.stringify(sortedPaths(expectedChangedFiles))) {
++    return patchFailure("changedFiles", `${taskId} reconstructed changed files do not match Evidence`);
++  }
++  return { status: "verified", reconstructedTreeHash, changedFiles: sortedPaths(changedFiles) };
++}
++
+ export function trackedTextFiles(root: string): string[] {
+   return gitLines(root, ["ls-files"], "git ls-files failed").filter((file) => TEXT_FILE_PATTERN.test(file));
+ }
+diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
+index 986e7fc..413f45c 100644
+--- a/src/core/human-gate.ts
++++ b/src/core/human-gate.ts
+@@ -1,6 +1,7 @@
+ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+ import { matchesAny } from "./glob.js";
+ import { changedFilesBetween, isCommitAncestor } from "./git.js";
++import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
+ import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
+ 
+ export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+@@ -132,10 +133,7 @@ function evidenceDiffHash(evidence: Evidence): string | undefined {
+ 
+ function isApprovalMetadataFile(taskId: string, file: string): boolean {
+   const normalized = file.replace(/\\/g, "/");
+-  return normalized === `contracts/evidence/${taskId}.yaml`
+-    || normalized === `contracts/approvals/${taskId}.yaml`
+-    || normalized === `contracts/reviews/${taskId}.yaml`
+-    || normalized === "contracts/registry.yaml";
++  return taskLifecycleMetadataPaths(taskId).includes(normalized);
+ }
+ 
+ export function validateHumanGateApproval(
+diff --git a/src/core/managed-contract-paths.ts b/src/core/managed-contract-paths.ts
+index efd0c1c..e0cca55 100644
+--- a/src/core/managed-contract-paths.ts
++++ b/src/core/managed-contract-paths.ts
+@@ -1,4 +1,5 @@
+ import { matchesGlob } from "./glob.js";
++import { evidencePayloadPath } from "./paths.js";
+ import type { TaskContract } from "./types.js";
+ 
+ const TASK_SCOPED_DIRECTORIES = new Set(["tasks", "evidence", "approvals", "reviews", "blocks"]);
+@@ -15,6 +16,7 @@ export function isKnownManagedContractPath(input: string): boolean {
+   if (/^contracts\/changesets\/[^/]+\.json$/.test(path)) return true;
+   if (/^contracts\/specs\/[^/]+\.yaml$/.test(path)) return true;
+   if (/^contracts\/(?:tasks|evidence|approvals|reviews|blocks)\/[^/]+\.yaml$/.test(path)) return true;
++  if (/^contracts\/evidence-payloads\/[^/]+\.patch$/.test(path)) return true;
+ 
+   // Kept as a harmless legacy value: without a glob this matches only the
+   // directory name itself and cannot exempt any generated Evidence file.
+@@ -24,6 +26,7 @@ export function isKnownManagedContractPath(input: string): boolean {
+ export function isManagedContractPathForTask(input: string, taskId: string): boolean {
+   if (!isKnownManagedContractPath(input)) return false;
+   const path = normalizePath(input);
++  if (path.startsWith("contracts/evidence-payloads/")) return path === evidencePayloadPath(taskId);
+   const match = /^contracts\/([^/]+)\/([^/]+)\.yaml$/.exec(path);
+   if (!match || !TASK_SCOPED_DIRECTORIES.has(match[1])) return true;
+   return match[1] === "tasks" ? match[2] === taskId || match[2] === "index" : match[2] === taskId;
+@@ -43,6 +46,7 @@ export function matchesManagedContractPath(task: TaskContract, file: string): bo
+ export function taskLifecycleMetadataPaths(taskId: string): string[] {
+   return [
+     `contracts/evidence/${taskId}.yaml`,
++    evidencePayloadPath(taskId),
+     `contracts/approvals/${taskId}.yaml`,
+     `contracts/reviews/${taskId}.yaml`,
+     "contracts/registry.yaml"
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index 0c67121..40cc60f 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -7,6 +7,7 @@ export const defaultSpecsDir = "contracts/specs";
+ export const defaultSpecChangesDir = "contracts/spec-changes";
+ export const defaultTasksDir = "contracts/tasks";
+ export const defaultEvidenceDir = "contracts/evidence";
++export const defaultEvidencePayloadsDir = "contracts/evidence-payloads";
+ export const defaultApprovalsDir = "contracts/approvals";
+ export const defaultReviewsDir = "contracts/reviews";
+ export const defaultBlocksDir = "contracts/blocks";
+@@ -81,6 +82,11 @@ export function evidencePath(taskId: string): string {
+   return taskContractPath(defaultEvidenceDir, taskId);
+ }
+ 
++export function evidencePayloadPath(taskId: string): string {
++  assertValidTaskId(taskId);
++  return `${defaultEvidencePayloadsDir}/${taskId}.patch`;
++}
++
+ export function approvalPath(taskId: string): string {
+   return taskContractPath(defaultApprovalsDir, taskId);
+ }
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index 30cab48..a678cd4 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -108,7 +108,7 @@ const taskContractSchema = {
+       items: {
+         type: "string",
+         minLength: 1,
+-        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
++        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|evidence-payloads/[^/*?\\[\\]{}]+\\.patch|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
+       }
+     },
+     allowedPaths: stringArraySchema,
+diff --git a/tests/integration/checks-run.test.ts b/tests/integration/checks-run.test.ts
+index d5db410..688ed9c 100644
+--- a/tests/integration/checks-run.test.ts
++++ b/tests/integration/checks-run.test.ts
+@@ -48,6 +48,7 @@ function receiptReason(root: string): string {
+     baseRef: "base",
+     excludedMetadataFiles: [
+       `contracts/evidence/${taskId}.yaml`,
++      `contracts/evidence-payloads/${taskId}.patch`,
+       `contracts/approvals/${taskId}.yaml`,
+       `contracts/reviews/${taskId}.yaml`,
+       "contracts/registry.yaml"
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+index b88f350..c5d95bd 100644
+--- a/tests/integration/ci-plan.test.ts
++++ b/tests/integration/ci-plan.test.ts
+@@ -28,6 +28,7 @@ function prepareSubject(): { root: string; subject: string } {
+     managedContractPaths: [
+       `contracts/tasks/${taskId}.yaml`,
+       `contracts/evidence/${taskId}.yaml`,
++      `contracts/evidence-payloads/${taskId}.patch`,
+       `contracts/approvals/${taskId}.yaml`,
+       `contracts/reviews/${taskId}.yaml`,
+       "contracts/registry.yaml"
+@@ -77,6 +78,7 @@ function commitEvidence(root: string, subject: string): void {
+       { name: "build", status: "passed" }
+     ]
+   }) as unknown as Record<string, unknown>);
++  writeText(root, `contracts/evidence-payloads/${taskId}.patch`, "tracked patch metadata\n");
+   commit(root, "evidence metadata");
+ }
+ 
+@@ -91,8 +93,11 @@ describe("CI plan", () => {
+       decision: "metadata-candidate",
+       taskId,
+       subjectHeadCommit: subject,
+-      metadataAncestry: [{ sha: expect.any(String), changedFiles: [`contracts/evidence/${taskId}.yaml`] }],
+-      changedFilesSinceSubject: [`contracts/evidence/${taskId}.yaml`],
++      metadataAncestry: [{
++        sha: expect.any(String),
++        changedFiles: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`]
++      }],
++      changedFilesSinceSubject: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`],
+       reasons: [{ code: "provenance.metadataOnly" }]
+     });
+     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ci-plan.schema.json"), "utf8"));
+@@ -110,6 +115,7 @@ describe("CI plan", () => {
+       managedContractPaths: [
+         `contracts/tasks/${taskId}.yaml`,
+         `contracts/evidence/${taskId}.yaml`,
++        `contracts/evidence-payloads/${taskId}.patch`,
+         `contracts/approvals/${taskId}.yaml`,
+         `contracts/reviews/${taskId}.yaml`,
+         "contracts/registry.yaml"
+@@ -125,7 +131,7 @@ describe("CI plan", () => {
+     expect(plan.metadataAncestry).toHaveLength(1);
+     expect(plan.metadataAncestry[0]).toMatchObject({
+       sha: headCommit(root),
+-      changedFiles: [`contracts/evidence/${taskId}.yaml`]
++      changedFiles: [`contracts/evidence-payloads/${taskId}.patch`, `contracts/evidence/${taskId}.yaml`]
+     });
+     expect(plan.metadataAncestry.every((candidate) => candidate.sha !== subject)).toBe(true);
+   });
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 52b8a14..44799c8 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -1,12 +1,12 @@
+ import { execFileSync, spawnSync } from "node:child_process";
+-import { existsSync, readFileSync, rmSync } from "node:fs";
++import { chmodSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { pathToFileURL } from "node:url";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+-import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
++import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect, runEvidenceRetain } from "../../src/commands/evidence-collect.js";
+ import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
+-import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
++import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifact } from "../../src/core/git.js";
+ import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
+ import { readEvidence, readTask } from "../../src/core/contracts.js";
+ import { validateEvidenceSchema } from "../../src/core/schema/records.js";
+@@ -85,6 +85,7 @@ function prepareCiReceiptRepo(): { root: string; taskId: string; receipt: Record
+       baseCommit,
+       diffHash: branchDiffHash(root, "base", [
+         `contracts/evidence/${taskId}.yaml`,
++        `contracts/evidence-payloads/${taskId}.patch`,
+         `contracts/approvals/${taskId}.yaml`,
+         `contracts/reviews/${taskId}.yaml`,
+         "contracts/registry.yaml"
+@@ -136,8 +137,9 @@ describe("evidence collect", () => {
+         canonicalization: "git-diff-binary-v1"
+       },
+       retention: {
+-        mode: "git-object",
+-        locator: `git:${evidence.subjectHeadCommit}`
++        mode: "patch-artifact",
++        locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
++        manifestHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/)
+       }
+     });
+     expect(validateEvidenceSchema(evidence)).toEqual([]);
+@@ -379,6 +381,147 @@ describe("evidence collect", () => {
+     expect(first.diffHash).toBe(second.diffHash);
+   });
+ 
++  test("writes a byte-stable patch that covers binary, rename, and mode changes", () => {
++    const root = makeTempRepo();
++    const taskId = "WBS-001-004";
++    writeScwbsProject(root);
++    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    writeText(root, "src/rename-before.txt", "before\n");
++    writeText(root, "src/mode.sh", "#!/bin/sh\nexit 0\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++
++    renameSync(path.join(root, "src/rename-before.txt"), path.join(root, "src/rename-after.txt"));
++    chmodSync(path.join(root, "src/mode.sh"), 0o755);
++    writeFileSync(path.join(root, "src/binary.bin"), Buffer.from([0, 1, 2, 255, 10, 0]));
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "binary rename mode"], { cwd: root, stdio: "ignore" });
++
++    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
++    const payloadPath = path.join(root, `contracts/evidence-payloads/${taskId}.patch`);
++    const firstPayload = readFileSync(payloadPath);
++    const firstEvidence = readEvidence(root, taskId).evidence!;
++    expect(firstPayload.length).toBeGreaterThan(0);
++    expect(firstPayload.toString("utf8")).toContain("GIT binary patch");
++    const verification = verifyPatchArtifact(root, taskId, firstEvidence, { shallow: false });
++    expect(verification, JSON.stringify(verification)).toMatchObject({ status: "verified" });
++
++    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(payloadPath).equals(firstPayload)).toBe(true);
++    expect(readEvidence(root, taskId).evidence?.provenance).toEqual(firstEvidence.provenance);
++  });
++
++  test("represents an empty implementation diff with a deterministic empty patch", () => {
++    const root = prepareEvidenceOutputRepo();
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    const evidence = readEvidence(root, "WBS-001-004").evidence!;
++    expect(readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch"))).toHaveLength(0);
++    expect(verifyPatchArtifact(root, "WBS-001-004", evidence, { shallow: false }).status).toBe("verified");
++  });
++
++  test("verifies a tracked patch in a fresh clone that has no subject commit object", () => {
++    const root = makeTempRepo();
++    const taskId = "WBS-001-004";
++    writeScwbsProject(root);
++    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/retained.ts", "export const retained = true;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
++    const subject = headCommit(root)!;
++    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
++
++    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["add", "contracts/evidence", "contracts/evidence-payloads", "contracts/registry.yaml"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "retain evidence metadata"], { cwd: root, stdio: "ignore" });
++
++    const fresh = `${root}-fresh`;
++    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", root, fresh], { stdio: "ignore" });
++    expect(commitExists(fresh, subject)).toBe(false);
++    const evidence = readEvidence(fresh, taskId).evidence!;
++    expect(verifyPatchArtifact(fresh, taskId, evidence, { shallow: false }).status).toBe("verified");
++    rmSync(fresh, { recursive: true, force: true });
++  });
++
++  test("evidence retain preserves the recorded subject and checks while adding patch retention", () => {
++    const root = makeTempRepo();
++    const taskId = "WBS-001-004";
++    writeScwbsProject(root);
++    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/legacy.ts", "export const legacy = true;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "legacy subject"], { cwd: root, stdio: "ignore" });
++
++    const collected = buildCollectedEvidence(root, taskId, { baseRef: "base", pullRequest: "#42" });
++    const legacy = {
++      ...collected,
++      provenance: {
++        ...collected.provenance!,
++        retention: {
++          mode: "git-object" as const,
++          locator: `git:${collected.subjectHeadCommit}`
++        }
++      }
++    };
++    writeYaml(root, `contracts/evidence/${taskId}.yaml`, legacy as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "legacy evidence"], { cwd: root, stdio: "ignore" });
++
++    expect(runEvidenceRetain(root, taskId)).toBe(0);
++    const retained = readEvidence(root, taskId).evidence!;
++    expect(retained.subjectHeadCommit).toBe(legacy.subjectHeadCommit);
++    expect(retained.git).toEqual(legacy.git);
++    expect(retained.checks).toEqual(legacy.checks);
++    expect(retained.provenance?.retention).toMatchObject({
++      mode: "patch-artifact",
++      locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
++      manifestHash: expect.stringMatching(/^sha256:/)
++    });
++    expect(verifyPatchArtifact(root, taskId, retained, { shallow: false }).status).toBe("verified");
++  });
++
++  test("evidence retain fetches only the recorded PR head and requires subject ancestry", () => {
++    const source = makeTempRepo();
++    const taskId = "WBS-001-004";
++    writeScwbsProject(source);
++    writeYaml(source, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: source, stdio: "ignore" });
++    writeText(source, "src/pr-head.ts", "export const fromPr = true;\n");
++    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "pr subject"], { cwd: source, stdio: "ignore" });
++    const subject = headCommit(source)!;
++    const collected = buildCollectedEvidence(source, taskId, { baseRef: "base", pullRequest: "#42" });
++    const legacy = {
++      ...collected,
++      provenance: {
++        ...collected.provenance!,
++        retention: { mode: "git-object" as const, locator: `git:${subject}` }
++      }
++    };
++    execFileSync("git", ["update-ref", "refs/pull/42/head", subject], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: source, stdio: "ignore" });
++    writeYaml(source, `contracts/evidence/${taskId}.yaml`, legacy as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "legacy retained metadata"], { cwd: source, stdio: "ignore" });
++
++    const clone = `${source}-retain-clone`;
++    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", source, clone], { stdio: "ignore" });
++    expect(commitExists(clone, subject)).toBe(false);
++    expect(runEvidenceRetain(clone, taskId)).toBe(1);
++    expect(runEvidenceRetain(clone, taskId, { fetchPrHead: true })).toBe(0);
++    expect(commitExists(clone, subject)).toBe(true);
++    expect(verifyPatchArtifact(clone, taskId, readEvidence(clone, taskId).evidence!, { shallow: false }).status).toBe("verified");
++    rmSync(clone, { recursive: true, force: true });
++  });
++
+   test("evidence subject stays stable across post-evidence metadata commits", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -391,9 +534,10 @@ describe("evidence collect", () => {
+     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
+     const subjectHead = headCommit(root);
+-    const first = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    const first = readEvidence(root, "WBS-001-004").evidence!;
++    const firstPayload = readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch"));
+ 
+-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", first as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested" });
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved" });
+     writeText(root, "contracts/registry.yaml", `${readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")}# metadata checkpoint\n`);
+@@ -407,6 +551,8 @@ describe("evidence collect", () => {
+       git: { subjectHeadCommit: subjectHead, headCommit: subjectHead }
+     });
+     expect(second.diffHash).toBe(first.diffHash);
++    expect(second.provenance).toEqual(first.provenance);
++    expect(readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch")).equals(firstPayload)).toBe(true);
+     expect(second.changedFiles).toEqual(expect.arrayContaining([
+       "contracts/evidence/WBS-001-004.yaml",
+       "contracts/approvals/WBS-001-004.yaml",
+diff --git a/tests/integration/finish-lifecycle.test.ts b/tests/integration/finish-lifecycle.test.ts
+index 70fa40e..95d5a89 100644
+--- a/tests/integration/finish-lifecycle.test.ts
++++ b/tests/integration/finish-lifecycle.test.ts
+@@ -115,7 +115,7 @@ describe("finish lifecycle receipts", () => {
+     }
+     expect(readdirSync(finishLifecycleDirectory(root)).filter((file) => file.endsWith(".json"))).toHaveLength(finishLifecycleTaskLimit);
+     expect(readdirSync(finishLifecycleDirectory(root))).not.toContain("TASK-EVENTS.json");
+-  });
++  }, 15000);
+ 
+   test("summarizes outcomes, convergence, corruption, and a bounded Task trend", () => {
+     const root = makeTempRepo();
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 304fedc..5e28561 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -815,13 +815,19 @@ describe("finish", () => {
+       phase: "checkpoint",
+       outcome: "awaiting-human-approval",
+       requiresHumanApproval: true,
+-      mutatedFiles: ["contracts/evidence/WBS-001-004.yaml", "contracts/registry.yaml"],
++      mutatedFiles: [
++        "contracts/evidence-payloads/WBS-001-004.patch",
++        "contracts/evidence/WBS-001-004.yaml",
++        "contracts/registry.yaml"
++      ],
+       resumeCommand: buildHumanApprovalCommand("WBS-001-004")
+     });
+     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
+     expect(readFileSync(registryFile, "utf8")).not.toBe(beforeRegistry);
+-    expect(gitStatus(root)).toBe(beforeStatus);
++    const afterStatus = gitStatus(root);
++    expect(afterStatus).toContain("?? contracts/evidence-payloads/");
++    expect(afterStatus.replace("?? contracts/evidence-payloads/\n", "")).toBe(beforeStatus);
+   }, 30000);
+ 
+   test("finish synchronizes Approval status and can force valid checks to rerun", () => {
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index db9ea2c..ea93e7c 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -1,5 +1,6 @@
+ import { execFileSync } from "node:child_process";
+-import { mkdirSync, mkdtempSync } from "node:fs";
++import { createHash } from "node:crypto";
++import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+@@ -10,9 +11,101 @@ import { main } from "../../src/cli.js";
+ import { headCommit } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
++import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
++import { verifyPatchArtifact } from "../../src/core/git.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("health", () => {
++  test("patch provenance fails closed for missing, tampered, unsafe, or inconsistent artifacts", () => {
++    const root = makeTempRepo();
++    const task = sampleTask({ requiredChecks: [] });
++    writeScwbsProject(root);
++    writeYaml(root, `contracts/tasks/${task.id}.yaml`, task as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/features/api/index.ts", "export const retained = true;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
++    expect(runEvidenceCollect(root, task.id, { baseRef: "base", force: true })).toBe(0);
++
++    const evidence = readEvidence(root, task.id).evidence!;
++    const payloadPath = path.join(root, `contracts/evidence-payloads/${task.id}.patch`);
++    const payload = readFileSync(payloadPath);
++    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false }).status).toBe("verified");
++
++    rmSync(payloadPath);
++    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "payload.missing"
++    });
++    expect(collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence).some(
++      (issue) => issue.code === "health.evidence.provenance.payload.missing"
++    )).toBe(true);
++    writeFileSync(payloadPath, payload);
++
++    const traversal = {
++      ...evidence,
++      provenance: {
++        ...evidence.provenance!,
++        retention: { ...evidence.provenance!.retention, locator: "repo:../outside.patch" }
++      }
++    };
++    expect(verifyPatchArtifact(root, task.id, traversal, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "locator"
++    });
++
++    writeFileSync(payloadPath, Buffer.from("tampered"));
++    expect(verifyPatchArtifact(root, task.id, evidence, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "payload.hash"
++    });
++
++    const invalidPatch = Buffer.from("not a git patch\n");
++    writeFileSync(payloadPath, invalidPatch);
++    const applyFailure = {
++      ...evidence,
++      provenance: {
++        ...evidence.provenance!,
++        retention: {
++          ...evidence.provenance!.retention,
++          manifestHash: `sha256:${createHash("sha256").update(invalidPatch).digest("hex")}`
++        }
++      }
++    };
++    expect(verifyPatchArtifact(root, task.id, applyFailure, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "apply"
++    });
++    writeFileSync(payloadPath, payload);
++
++    const treeMismatch = {
++      ...evidence,
++      provenance: {
++        ...evidence.provenance!,
++        subject: { ...evidence.provenance!.subject, treeHash: "0".repeat(40) }
++      }
++    };
++    expect(verifyPatchArtifact(root, task.id, treeMismatch, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "tree"
++    });
++
++    const baseMissing = {
++      ...evidence,
++      git: { ...evidence.git!, baseCommit: "0".repeat(40) }
++    };
++    expect(verifyPatchArtifact(root, task.id, baseMissing, { shallow: false })).toMatchObject({
++      status: "unverifiable",
++      code: "base.unavailable"
++    });
++    expect(verifyPatchArtifact(root, task.id, baseMissing, { shallow: true })).toMatchObject({
++      status: "not-evaluated",
++      code: "base.unavailable"
++    });
++  });
++
+   test("distinguishes legacy, unavailable git-object, and unevaluated external provenance", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -30,7 +123,17 @@ describe("health", () => {
+     expect(legacyIssues.some((issue) => issue.code === "health.evidence.provenance.missing")).toBe(true);
+ 
+     const evidence = buildCollectedEvidence(root, task.id, { baseRef: "base" });
+-    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, evidence, {
++    const gitObjectEvidence = {
++      ...evidence,
++      provenance: {
++        ...evidence.provenance!,
++        retention: {
++          mode: "git-object" as const,
++          locator: `git:${evidence.subjectHeadCommit}`
++        }
++      }
++    };
++    const unavailable = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, gitObjectEvidence, {
+       repositoryState: {
+         currentHead: headCommit(root),
+         currentBranchName: task.branchName,
+@@ -46,7 +149,7 @@ describe("health", () => {
+       ...evidence,
+       provenance: {
+         ...evidence.provenance!,
+-        retention: { mode: "patch-artifact" as const, locator: "artifact:example" }
++        retention: { mode: "bundle" as const, locator: "artifact:example" }
+       }
+     };
+     const notEvaluated = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, external);
+diff --git a/tests/integration/status.test.ts b/tests/integration/status.test.ts
+index b89731a..d8eacbe 100644
+--- a/tests/integration/status.test.ts
++++ b/tests/integration/status.test.ts
+@@ -1,10 +1,11 @@
+-import { execFileSync } from "node:child_process";
+-import { mkdtempSync, readFileSync } from "node:fs";
++import { execFileSync, spawnSync } from "node:child_process";
++import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { main } from "../../src/cli.js";
++import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+ import {
+   assessTaskCompletionTrust,
+   buildStatus,
+@@ -20,6 +21,7 @@ import {
+   sampleEvidence,
+   sampleTask,
+   writeScwbsProject,
++  writeJson,
+   writeText,
+   writeYaml
+ } from "../helpers.js";
+@@ -172,6 +174,42 @@ describe("status completion trust", () => {
+     expect(buildStatusJsonOutput(clone).completionTrust.unverifiable).toBe(1);
+   });
+ 
++  test("keeps a terminal Task verified from its patch when a fresh clone lacks the subject object", () => {
++    const source = makeTempRepo();
++    writeScwbsProject(source, "completed");
++    writeTerminalTaskIndex(source, "completed");
++    writeYaml(source, "contracts/tasks/WBS-001-004.yaml", sampleTask() as unknown as Record<string, unknown>);
++    writeJson(source, "package.json", {
++      scripts: {
++        test: "node -e \"process.exit(0)\"",
++        typecheck: "node -e \"process.exit(0)\""
++      }
++    });
++    commitAll(source, "base");
++    execFileSync("git", ["branch", "base"], { cwd: source, stdio: "ignore" });
++    writeText(source, "src/features/api/retained-status.ts", "export const retained = true;\n");
++    const subject = commitAll(source, "subject");
++    expect(runEvidenceCollect(source, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: source, stdio: "ignore" });
++    commitAll(source, "tracked patch evidence");
++
++    const clone = `${source}-status-fresh`;
++    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", source, clone], { stdio: "ignore" });
++    expect(spawnSync("git", ["cat-file", "-e", `${subject}^{commit}`], {
++      cwd: clone,
++      stdio: "ignore"
++    }).status).not.toBe(0);
++    const clonedTask = readTask(clone, "WBS-001-004").task!;
++    const trust = assessTaskCompletionTrust(clone, readWbs(clone), clonedTask);
++    expect(buildStatusJsonOutput(clone).completionTrust, JSON.stringify(trust)).toMatchObject({
++      verified: 1,
++      degraded: 0,
++      unverifiable: 0,
++      notEvaluated: 0
++    });
++    rmSync(clone, { recursive: true, force: true });
++  });
++
+   test("supports bounded JSON, strict mode, help, and excludes cancelled Tasks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index 9146767..13d23f0 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -317,6 +317,19 @@ describe("contracts / schema", () => {
+     expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
+   });
+ 
++  test("managedContractPaths semantic validation rejects another task's Evidence payload", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...sampleTask(),
++      managedContractPaths: ["contracts/evidence-payloads/OTHER-TASK.patch"]
++    });
++
++    const { task, issues } = readTask(root, "WBS-001-004");
++    expect(task).toBeUndefined();
++    expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
++  });
++
+   test("managedContractPaths accepts concrete known files for the same task", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -327,6 +340,7 @@ describe("contracts / schema", () => {
+         "contracts/evidence/WBS-001-004.yaml",
+         "contracts/approvals/WBS-001-004.yaml",
+         "contracts/reviews/WBS-001-004.yaml",
++        "contracts/evidence-payloads/WBS-001-004.patch",
+         "contracts/registry.yaml",
+         "contracts/changesets/change-WBS-001-004.json"
+       ]

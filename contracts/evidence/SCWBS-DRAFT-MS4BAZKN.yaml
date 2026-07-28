@@ -1,0 +1,93 @@
+id: EVD-SCWBS-DRAFT-MS4BAZKN
+type: evidence
+taskId: SCWBS-DRAFT-MS4BAZKN
+commit: 1d5254148393b2c880e7b0d64728a426c59fe5bc
+subjectHeadCommit: 1d5254148393b2c880e7b0d64728a426c59fe5bc
+diffHash: sha256:38f9a5f3c9deef60fce18d2adea46fe04d44bdd8d027855227a56781e819621b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1d5254148393b2c880e7b0d64728a426c59fe5bc
+    treeHash: 3545925a2d5aa6ab0babe0531aca76f2f25b336f
+    diffHash: sha256:38f9a5f3c9deef60fce18d2adea46fe04d44bdd8d027855227a56781e819621b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MS4BAZKN.patch
+    manifestHash: sha256:38f9a5f3c9deef60fce18d2adea46fe04d44bdd8d027855227a56781e819621b
+git:
+  branch: task/SCWBS-DRAFT-MS4BAZKN-issue-178-tracked-patch-payload
+  base: origin/main
+  baseCommit: 2a53a998ced7706574375255e0dca4207c4c0a70
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 1d5254148393b2c880e7b0d64728a426c59fe5bc
+  diffHash: sha256:38f9a5f3c9deef60fce18d2adea46fe04d44bdd8d027855227a56781e819621b
+  headCommit: 1d5254148393b2c880e7b0d64728a426c59fe5bc
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS4BAZKN.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS4BAZKN.yaml
+  - docs/implementation-gaps.md
+  - docs/sc-wbs-core/03-minimal-artifacts.md
+  - docs/sc-wbs-core/10-decisions.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - src/cli.ts
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - src/commands/start.ts
+  - src/commands/status.ts
+  - src/commands/task-generate.ts
+  - src/commands/task-new.ts
+  - src/core/check-coverage.ts
+  - src/core/finish-lifecycle.ts
+  - src/core/git.ts
+  - src/core/human-gate.ts
+  - src/core/managed-contract-paths.ts
+  - src/core/paths.ts
+  - src/core/schema/contracts.ts
+  - tests/integration/checks-run.test.ts
+  - tests/integration/ci-plan.test.ts
+  - tests/integration/evidence.test.ts
+  - tests/integration/finish-lifecycle.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/status.test.ts
+  - tests/unit/contracts.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:53f74f8209ce475d0c51776c7a0ce5834b92486bdf4c54e36ea23c5d3822dd5b
+    durationMilliseconds: 4082
+    executedAt: "2026-07-28T08:00:41.060Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:56b715b3dcfe2d6c1cca123150f7f19b8118e5177c1cdade9adcdcc49d5b6d57
+    durationMilliseconds: 182673
+    executedAt: "2026-07-28T08:03:43.739Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:1a1cf3dc93e1bc4e7f8ad75bd94cd4d8bdcec194274851f66e03bc5a40a613ce
+    durationMilliseconds: 9839
+    executedAt: "2026-07-28T08:03:53.583Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b75030e5b1ba11defd27ce46fe54b5db4f7363be9a48835a866ff4a89bfa401a
+    durationMilliseconds: 4272
+    executedAt: "2026-07-28T08:03:57.861Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for deterministic patch collection, fresh-clone reconstruction, fail-closed provenance, and legacy retention.
