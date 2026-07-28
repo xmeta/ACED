@@ -1,0 +1,119 @@
+diff --git a/contracts/changesets/start-MR8J27M8.json b/contracts/changesets/start-MR8J27M8.json
+new file mode 100644
+index 0000000..7e79f4a
+--- /dev/null
++++ b/contracts/changesets/start-MR8J27M8.json
+@@ -0,0 +1,25 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-start-MR8J27M8",
++  "author": "scwbs",
++  "reason": "Start lightweight SC-WBS flow for: Backfill SCWBS-DRAFT-MR8IBVF7 health metadata",
++  "dryRun": true,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "addNode",
++      "node": {
++        "id": "node-backfill-scwbs-draft-mr8ibvf7-health-metadata",
++        "parentId": "node-project",
++        "code": "draft",
++        "name": "Backfill SCWBS-DRAFT-MR8IBVF7 health metadata",
++        "type": "workPackage",
++        "status": "draft"
++      },
++      "position": {
++        "mode": "last"
++      }
++    }
++  ]
++}
+diff --git a/contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml b/contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
+index 3fb2480..ad391f1 100644
+--- a/contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
++++ b/contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
+@@ -37,3 +37,9 @@ checks:
+     source: local
+     command: npm run build
+     executedAt: "2026-07-06T01:12:51.968Z"
++testQuality:
++  assertionsAdded: true
++  testsDisabled: false
++  coverageDecreased: false
++  notes:
++    - Added regression coverage for non-ready WBS node completion review gating.
+diff --git a/contracts/specs/SPEC-LITE-MR8J27M8.yaml b/contracts/specs/SPEC-LITE-MR8J27M8.yaml
+new file mode 100644
+index 0000000..5b54128
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MR8J27M8.yaml
+@@ -0,0 +1,11 @@
++id: SPEC-LITE-MR8J27M8
++type: spec-contract
++featureId: F-MR8J27M8
++title: Backfill SCWBS-DRAFT-MR8IBVF7 health metadata
++status: approved
++version: 0.1.0
++approvedBy: codex
++approvedAt: "2026-07-06T01:18:00.000Z"
++summary: Backfill SCWBS-DRAFT-MR8IBVF7 health metadata
++acceptanceCriteria:
++  - SCWBS-DRAFT-MR8IBVF7 health metadata is complete
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+index 1072e21..ae4fb29 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+@@ -31,3 +31,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: "sha256:6d48dd7c4d24643f62887952eba12c4c9e4264b36ac08ac360199483f61be50c"
++  createdAt: "2026-07-06T01:15:30.724Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+new file mode 100644
+index 0000000..f141db7
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+@@ -0,0 +1,37 @@
++id: SCWBS-DRAFT-MR8J27M8
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MR8J27M8
++branchName: task/SCWBS-DRAFT-MR8J27M8-backfill-scwbs-draft-mr8ibvf7-health-metadata
++allowedPaths:
++  - contracts/specs/SPEC-LITE-MR8J27M8.yaml
++  - contracts/changesets/start-MR8J27M8.json
++  - contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
++  - contracts/evidence/SCWBS-DRAFT-MR8J27M8.yaml
++  - contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++  - contracts/evidence/SCWBS-DRAFT-MR8IBVF7.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - SCWBS-DRAFT-MR8IBVF7 has contractLock metadata for its current WBS node.
++  - SCWBS-DRAFT-MR8IBVF7 Evidence has testQuality metadata for its test changes.
++  - scwbs health no longer reports warnings for SCWBS-DRAFT-MR8IBVF7.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-06T01:15:35.349Z"
