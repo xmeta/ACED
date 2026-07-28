@@ -1,0 +1,64 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index cb92d04..be74a06 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -11,11 +11,14 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v4
++        with:
++          submodules: recursive
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
+           cache: npm
+       - run: npm ci --no-audit --no-fund
++      - run: npm ls --workspaces --depth=0
+       - run: npm test
+       - run: npm run typecheck
+       - run: npm run build
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml b/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
+new file mode 100644
+index 0000000..1ff1343
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
+@@ -0,0 +1,25 @@
++id: SCWBS-DRAFT-MRIO2DZN
++type: task-contract
++wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++featureId: F-MRIO2DZN
++branchName: codex/issue-130-workspace-installation-verification
++allowedPaths:
++  - .github/workflows/scwbs.yml
++  - tests/**
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - .github/**
++  - package-lock.json
++stopIf: []
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - 'Verify npm workspace installation for Issue #130'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index cae1d49..b56805b 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -51,3 +51,9 @@ tasks:
+     wbsNodeId: node-ci-integration
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRIO2DZN
++    path: contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
++    branchName: codex/issue-130-workspace-installation-verification
++    wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++    status: planned
++    dependsOn: []
