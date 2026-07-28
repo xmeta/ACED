@@ -1,0 +1,451 @@
+diff --git a/contracts/specs/SPEC-LITE-MRKKUDY6.yaml b/contracts/specs/SPEC-LITE-MRKKUDY6.yaml
+new file mode 100644
+index 0000000..2628d01
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRKKUDY6.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MRKKUDY6
++type: spec-contract
++featureId: F-MRKKUDY6
++title: "Issue #183 allowedPaths空配列とmanagedContractPathsをfail-closedにする"
++status: approved
++version: 0.1.0
++summary: "Issue #183 allowedPaths空配列とmanagedContractPathsをfail-closedにする"
++approvedBy: user-delegated-planning-request
++approvedAt: "2026-07-14T20:40:00+09:00"
++acceptanceCriteria:
++  - allowedPaths空配列はdeny-allとして動作する
++  - managedContractPathsはCLIが管理する既知の契約ファイルの具体pathに制限する
++  - sensitive meta pathはmanaged指定だけでallowedPathsまたはHuman Gateを迂回できない
++  - forbiddenPathsとhumanGateRequiredPathsはmanagedContractPathsより優先する
++  - schemaとsemantic validationの両方が不正なmanaged pathを拒否する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml b/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+new file mode 100644
+index 0000000..814f197
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+@@ -0,0 +1,55 @@
++id: SCWBS-DRAFT-MRKKUDY6
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRKKUDY6
++branchName: task/SCWBS-DRAFT-MRKKUDY6-issue-183-allowedpaths-managedcontractpaths-fail
++allowedPaths:
++  - src/core/managed-contract-paths.ts
++  - src/core/schema/contracts.ts
++  - src/core/types.ts
++  - src/commands/check-diff.ts
++  - src/commands/health.ts
++  - tests/unit/contracts.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/health.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - allowedPathsが空のTask Contractは通常ファイル変更をdiff.allowedPathsで拒否する
++  - deny-all taskでもCLI生成の既知契約ファイルだけをmanaged pathとして扱える
++  - managedContractPathsは既知の契約pathの具体的なファイルに制限され、package.json、.github/**、lockfile、tsconfig、broad contracts/**を拒否する
++  - forbiddenPathsとhumanGateRequiredPathsの優先順位を維持する
++  - schema、semantic check、check-diffにfail-closed regression testを追加する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
++  - contracts/specs/SPEC-LITE-MRKKUDY6.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRKKUDY6.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRKKUDY6.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRKKUDY6.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRKKUDY6.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:81c35a282495a3ec011a509c4f5f3612225eab8ba7dbffb841ff98f615c7dd5d
++  createdAt: "2026-07-14T11:39:58.756Z"
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index cfae2d4..63ec45a 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -3,6 +3,7 @@ import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
++import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+@@ -27,10 +28,6 @@ function requiresMetaFileGuard(file: string): boolean {
+  * are exempt from allowedPaths and the sensitive meta-file guard, but never
+  * from forbiddenPaths or humanGateRequiredPaths, which always take priority.
+  */
+-function isManagedContractPath(task: TaskContract, file: string): boolean {
+-  return matchesAny(file, task.managedContractPaths ?? []);
+-}
+-
+ export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+   const issues: Issue[] = [];
+   const evidence = readEvidence(root, task.id).evidence;
+@@ -62,13 +59,13 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     })));
+   }
+   for (const file of effectiveFiles) {
+-    const managed = isManagedContractPath(task, file);
+-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
++    const managed = matchesManagedContractPath(task, file);
++    if (!matchesAny(file, task.allowedPaths) && !managed) {
+       issues.push({
+         severity: "error",
+         code: "diff.allowedPaths",
+         message: `${file} is outside allowedPaths for ${task.id}`,
+-        fixCommand: `Move this change out of the diff, or add ${file} to allowedPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if it is CLI-generated`
++        fixCommand: `Move this change out of the diff, or explicitly add ${file} to allowedPaths in contracts/tasks/${task.id}.yaml`
+       });
+     }
+     if (matchesAny(file, task.forbiddenPaths)) {
+@@ -86,7 +83,7 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+         severity: "error",
+         code: "diff.metaFile",
+         message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}`,
+-        fixCommand: `Add ${file} to allowedPaths/humanGateRequiredPaths/managedContractPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
++        fixCommand: `Add ${file} to allowedPaths or humanGateRequiredPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
+       });
+     }
+   }
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index b502c3e..b9f9109 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,6 +1,7 @@
+ import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
++import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { hasErrors } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+@@ -88,10 +89,6 @@ function hasTestQualityRationale(evidence: Evidence): boolean {
+   return evidence.testQuality?.notes?.some((note) => note.trim().length > 0) ?? false;
+ }
+ 
+-function isManagedContractPath(task: TaskContract, file: string): boolean {
+-  return matchesAny(file, task.managedContractPaths ?? []);
+-}
+-
+ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContract, evidence: Evidence, checkCommitReachability = true): Issue[] {
+   const issues: Issue[] = [];
+   const node = findNode(wbs, task.wbsNodeId);
+@@ -182,8 +179,8 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+   }
+ 
+   for (const file of evidence.changedFiles) {
+-    const managed = isManagedContractPath(task, file);
+-    if (task.allowedPaths.length > 0 && !matchesAny(file, task.allowedPaths) && !managed) {
++    const managed = matchesManagedContractPath(task, file);
++    if (!matchesAny(file, task.allowedPaths) && !managed) {
+       issues.push({ severity: "warn", code: "health.evidence.changedFiles.allowedPaths", message: `${file} is outside allowedPaths for ${task.id}` });
+     }
+     if (matchesAny(file, task.forbiddenPaths)) {
+diff --git a/src/core/managed-contract-paths.ts b/src/core/managed-contract-paths.ts
+new file mode 100644
+index 0000000..935d58c
+--- /dev/null
++++ b/src/core/managed-contract-paths.ts
+@@ -0,0 +1,36 @@
++import { matchesGlob } from "./glob.js";
++import type { TaskContract } from "./types.js";
++
++const TASK_SCOPED_DIRECTORIES = new Set(["tasks", "evidence", "approvals", "reviews", "blocks"]);
++const GLOB_OR_TRAVERSAL = /[*?\[\]{}]|(^|\/)\.\.(\/|$)/;
++
++function normalizePath(input: string): string {
++  return input.replace(/\\/g, "/").replace(/^\.\//, "");
++}
++
++export function isKnownManagedContractPath(input: string): boolean {
++  const path = normalizePath(input);
++  if (path !== input || GLOB_OR_TRAVERSAL.test(path)) return false;
++  if (path === "contracts/registry.yaml" || path === "contracts/tasks/index.yaml") return true;
++  if (/^contracts\/changesets\/[^/]+\.json$/.test(path)) return true;
++  if (/^contracts\/specs\/[^/]+\.yaml$/.test(path)) return true;
++  if (/^contracts\/(?:tasks|evidence|approvals|reviews|blocks)\/[^/]+\.yaml$/.test(path)) return true;
++
++  // Kept as a harmless legacy value: without a glob this matches only the
++  // directory name itself and cannot exempt any generated Evidence file.
++  return path === "contracts/evidence/";
++}
++
++export function isManagedContractPathForTask(input: string, taskId: string): boolean {
++  if (!isKnownManagedContractPath(input)) return false;
++  const path = normalizePath(input);
++  const match = /^contracts\/([^/]+)\/([^/]+)\.yaml$/.exec(path);
++  if (!match || !TASK_SCOPED_DIRECTORIES.has(match[1])) return true;
++  return match[1] === "tasks" ? match[2] === taskId || match[2] === "index" : match[2] === taskId;
++}
++
++export function matchesManagedContractPath(task: TaskContract, file: string): boolean {
++  return (task.managedContractPaths ?? []).some(
++    (managedPath) => isManagedContractPathForTask(managedPath, task.id) && matchesGlob(file, managedPath)
++  );
++}
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index 23471cc..a09ab97 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -1,5 +1,6 @@
+ import type { ErrorObject } from "ajv";
+ import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
++import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+ 
+ const specContractSchema = {
+@@ -70,7 +71,15 @@ const taskContractSchema = {
+     branchName: { type: "string", minLength: 1 },
+     completionScope: { type: "string", enum: ["node"] },
+     completionTaskIds: stringArraySchema,
+-    managedContractPaths: stringArraySchema,
++    managedContractPaths: {
++      type: "array",
++      uniqueItems: true,
++      items: {
++        type: "string",
++        minLength: 1,
++        pattern: "^contracts/(?:registry\\.yaml|tasks/index\\.yaml|changesets/[^/*?\\[\\]{}]+\\.json|specs/[^/*?\\[\\]{}]+\\.yaml|(?:tasks|evidence|approvals|reviews|blocks)/(?:[^/*?\\[\\]{}]+\\.yaml)?)$"
++      }
++    },
+     allowedPaths: stringArraySchema,
+     forbiddenPaths: stringArraySchema,
+     humanGateRequiredPaths: stringArraySchema,
+@@ -342,6 +351,14 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+   }
+   if (value.managedContractPaths !== undefined && !isStringArray(value.managedContractPaths)) {
+     issues.push(issue("task.managedContractPaths", `${filePath}.managedContractPaths must be a string array when present`));
++  } else if (isStringArray(value.managedContractPaths)) {
++    for (const managedPath of value.managedContractPaths) {
++      if (!isKnownManagedContractPath(managedPath)) {
++        issues.push(issue("task.managedContractPaths.path", `${filePath}.managedContractPaths contains unsupported path: ${managedPath}`));
++      } else if (typeof value.id === "string" && !isManagedContractPathForTask(managedPath, value.id)) {
++        issues.push(issue("task.managedContractPaths.scope", `${filePath}.managedContractPaths must reference ${value.id} for task-scoped contract files: ${managedPath}`));
++      }
++    }
+   }
+   if (value.completionScope === "node" && (!isStringArray(value.completionTaskIds) || value.completionTaskIds.length === 0)) {
+     issues.push(issue("task.completionTaskIds.required", `${filePath}.completionTaskIds is required when completionScope is "node"`));
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 9e54f8d..88af578 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -103,8 +103,10 @@ export type TaskContract = {
+   doneCriteria: string[];
+   evidenceRequired: string[];
+   /**
+-   * M2-019: paths that are CLI-generated/managed contract files (evidence,
+-   * approvals, reviews, registry, the task's own contract file, etc). These
++   * M2-019: concrete paths that are CLI-generated/managed contract files
++   * (evidence, approvals, reviews, registry, the task's own contract file,
++   * etc). Schema and semantic validation restrict these to known contracts.
++   * These
+    * are exempt from allowedPaths and the sensitive meta-file guard in
+    * check-diff, because they are produced by trusted CLI commands rather
+    * than free-form edits. This does not exempt forbiddenPaths or
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 11160c2..4207690 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -131,6 +131,13 @@ describe("check-diff", () => {
+     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(true);
+   });
+ 
++  test("check-diff treats an empty allowedPaths array as deny-all", () => {
++    const root = makeTempRepo();
++    const task = sampleTask({ allowedPaths: [], humanGateRequiredPaths: [] });
++    const issues = collectDiffIssues(root, task, ["src/outside.ts"]);
++    expect(issues.some((issue) => issue.code === "diff.allowedPaths" && issue.severity === "error")).toBe(true);
++  });
++
+   test("check-diff does not flag explicitly allowed sensitive meta files", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({
+@@ -196,15 +203,32 @@ describe("check-diff", () => {
+     expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.severity === "error")).toBe(true);
+   });
+ 
+-  test("check-diff treats managedContractPaths as exempt from allowedPaths and the meta-file guard (M2-019)", () => {
++  test("check-diff exempts only known managed contract files from deny-all", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({
+-      allowedPaths: ["src/**"],
+-      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml", "package.json"]
++      allowedPaths: [],
++      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"]
+     });
+-    const issues = collectDiffIssues(root, task, ["contracts/evidence/WBS-001-004.yaml", "package.json"]);
++    const issues = collectDiffIssues(root, task, ["contracts/evidence/WBS-001-004.yaml"]);
+     expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(false);
+-    expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
++  });
++
++  test.each(["package.json", "package-lock.json", "tsconfig.json", ".github/workflows/ci.yml"])(
++    "check-diff does not trust sensitive managedContractPaths bypass %s",
++    (file) => {
++      const root = makeTempRepo();
++      const task = sampleTask({ allowedPaths: ["src/**"], humanGateRequiredPaths: [], managedContractPaths: [file] });
++      const issues = collectDiffIssues(root, task, [file]);
++      expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(true);
++      expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(true);
++    }
++  );
++
++  test("check-diff does not trust broad contracts globs as managed paths", () => {
++    const root = makeTempRepo();
++    const task = sampleTask({ allowedPaths: [], managedContractPaths: ["contracts/**"] });
++    const issues = collectDiffIssues(root, task, ["contracts/unmanaged/value.yaml"]);
++    expect(issues.some((issue) => issue.code === "diff.allowedPaths")).toBe(true);
+   });
+ 
+   test("check-diff never exempts forbiddenPaths via managedContractPaths (M2-019)", () => {
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+index cd4fd0a..6de12cb 100644
+--- a/tests/integration/check.test.ts
++++ b/tests/integration/check.test.ts
+@@ -143,29 +143,28 @@ describe("check", () => {
+     expect(issues.some((issue) => issue.code === "task.completionTaskIds.missing")).toBe(true);
+   });
+ 
+-  test("managedContractPaths overlapping forbiddenPaths produces a warning", () => {
++  test("check rejects managedContractPaths outside known contract paths", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+       ...sampleTask(),
+-      managedContractPaths: ["src/auth/**"]
++      managedContractPaths: ["package.json"]
+     });
+ 
+     const issues = collectCheckIssues(root);
+-    expect(issues.some((issue) => issue.code === "task.managedContractPaths.forbiddenConflict" && issue.severity === "warn")).toBe(true);
++    expect(issues.some((issue) => issue.code === "task.schema" && issue.severity === "error")).toBe(true);
+   });
+ 
+-  test("managedContractPaths glob covering a specific forbiddenPath produces a warning", () => {
++  test("check rejects broad managedContractPaths globs", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+       ...sampleTask(),
+-      managedContractPaths: ["src/auth/**"],
+-      forbiddenPaths: ["src/auth/login.ts"]
++      managedContractPaths: ["contracts/**"]
+     });
+ 
+     const issues = collectCheckIssues(root);
+-    expect(issues.some((issue) => issue.code === "task.managedContractPaths.forbiddenConflict" && issue.severity === "warn")).toBe(true);
++    expect(issues.some((issue) => issue.code === "task.schema" && issue.severity === "error")).toBe(true);
+   });
+ 
+   test("valid completion task with real second task produces no completion-related errors", () => {
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 96d2e15..2305334 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -175,6 +175,25 @@ describe("health", () => {
+     expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths")).toBe(false);
+   });
+ 
++  test("health treats empty allowedPaths as deny-all", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({ allowedPaths: [], managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] }) as unknown as Record<string, unknown>
++    );
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({ changedFiles: ["src/outside.ts", "contracts/evidence/WBS-001-004.yaml"] }) as unknown as Record<string, unknown>
++    );
++
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths" && issue.message.includes("src/outside.ts"))).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.evidence.changedFiles.allowedPaths" && issue.message.includes("contracts/evidence"))).toBe(false);
++  });
++
+   test("health warns when evidence commit is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index f2939da..a974475 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -171,6 +171,53 @@ describe("contracts / schema", () => {
+     expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
+   });
+ 
++  test.each(["package.json", "package-lock.json", "tsconfig.json", ".github/**", "contracts/**"])(
++    "managedContractPaths rejects unsafe path %s in JSON Schema",
++    (managedPath) => {
++      const root = makeTempRepo();
++      writeScwbsProject(root);
++      writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++        ...sampleTask(),
++        managedContractPaths: [managedPath]
++      });
++
++      const { task, issues } = readTask(root, "WBS-001-004");
++      expect(task).toBeUndefined();
++      expect(issues.some((issue) => issue.code === "task.schema")).toBe(true);
++    }
++  );
++
++  test("managedContractPaths semantic validation rejects another task's contract file", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...sampleTask(),
++      managedContractPaths: ["contracts/evidence/OTHER-TASK.yaml"]
++    });
++
++    const { task, issues } = readTask(root, "WBS-001-004");
++    expect(task).toBeUndefined();
++    expect(issues.some((issue) => issue.code === "task.managedContractPaths.scope")).toBe(true);
++  });
++
++  test("managedContractPaths accepts concrete known files for the same task", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...sampleTask(),
++      managedContractPaths: [
++        "contracts/tasks/WBS-001-004.yaml",
++        "contracts/evidence/WBS-001-004.yaml",
++        "contracts/approvals/WBS-001-004.yaml",
++        "contracts/reviews/WBS-001-004.yaml",
++        "contracts/registry.yaml",
++        "contracts/changesets/change-WBS-001-004.json"
++      ]
++    });
++
++    expect(readTask(root, "WBS-001-004").issues).toEqual([]);
++  });
++
+   test("valid completionScope 'node' with completionTaskIds passes schema validation", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
