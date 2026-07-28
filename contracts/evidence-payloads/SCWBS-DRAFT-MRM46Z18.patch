@@ -1,0 +1,175 @@
+diff --git a/contracts/specs/SPEC-LITE-MRM46Z18.yaml b/contracts/specs/SPEC-LITE-MRM46Z18.yaml
+new file mode 100644
+index 0000000..04adeea
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRM46Z18.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRM46Z18
++type: spec-contract
++featureId: F-MRM46Z18
++title: "Issue #210: finishで未mergeのCLOSED PRを明示的に停止・案内する"
++status: approved
++version: 0.1.0
++summary: "Issue #210: finishで未mergeのCLOSED PRを明示的に停止・案内する"
++approvedBy: user-requested-issue-210
++approvedAt: "2026-07-15T22:32:06+09:00"
++acceptanceCriteria:
++  - 未mergeのCLOSED PRを独立したPR stateとして判定する
++  - CLOSED PRではPRのreopenまたはEvidence / Review PR metadata修正をactionable next actionとして返す
++  - CLOSED PRをdraft、checks pending、checks failure、checks success、mergedと混同しない
++  - GitHub state取得不可時のrepository-local fallbackを維持する
++  - plain outputとJSON outputが同じnext action commandを返す
++  - CLOSEDかつ過去checks success、およびCLOSEDかつchecksなしの回帰テストを追加する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml b/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
+new file mode 100644
+index 0000000..1f6131e
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRM46Z18
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRM46Z18
++branchName: task/SCWBS-DRAFT-MRM46Z18-issue-210-finish-merge-closed-pr
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRM46Z18.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRM46Z18.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRM46Z18.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRM46Z18.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRM46Z18.yaml
++allowedPaths:
++  - src/commands/finish.ts
++  - tests/integration/finish.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 未mergeのCLOSED PRをdraft、checks状態、mergedとは別の状態として扱う
++  - CLOSED PRではmergeやchecks watchを案内せず、reopenまたはPR metadata修正を案内する
++  - GitHub state取得不可時はrepository-local PR番号を使うfallbackを維持する
++  - plainとJSONのfinish outputが同じnext actionを返す
++  - CLOSED PRのchecks successおよびchecksなしを回帰テストで固定する
++stopIf:
++  - package.json、package-lock.json、.github配下、wjs配下の変更が必要
++  - PR reopenやGitHub repository設定の変更が必要
++  - EvidenceまたはReviewのPR metadataを自動修正する必要がある
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:c3bfab90c09971a6f657d0b87205bfb39a3f35feff2555cbb191a4e0040547fa
++  createdAt: "2026-07-15T13:42:01.969Z"
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index bf54a1c..f284bba 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -134,7 +134,7 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
+ 
+ `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存EvidenceとRegistryを上書きしない。検証済みcandidateはEvidenceとRegistryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は両fileを開始前の内容へ戻す。
+ 
+-完了時のnext actionはEvidenceとReviewのPR metadataを正規化して決定する。両方のPR番号が不一致なら修正command付きで停止し、PR番号がなければ新規PR作成、既存PRがあればdraft、checks pending、checks failure、checks success、mergedの状態に応じてready化、checks監視、failure確認、merge、main同期を案内する。`gh pr view`が未導入・未認証などで状態を取得できない場合も、新規PR作成へ戻らず、repository-local metadataの既存PR番号を使ったchecks確認へ安全にdegradeする。plain出力とJSONの `nextAction` / `resumeCommand` は同じcommandを返す。
++完了時のnext actionはEvidenceとReviewのPR metadataを正規化して決定する。両方のPR番号が不一致なら修正command付きで停止し、PR番号がなければ新規PR作成、既存PRがあればdraft、checks pending、checks failure、checks success、未mergeのclosed、mergedの状態に応じてready化、checks監視、failure確認、merge、reopen、main同期を案内する。未mergeのclosed PRでは過去のchecks結果にかかわらずmergeやchecks watchへ進まず、`gh pr reopen <number>`を案内するため、必要に応じてEvidence / ReviewのPR metadataを確認してから再開する。`gh pr view`が未導入・未認証などで状態を取得できない場合も、新規PR作成へ戻らず、repository-local metadataの既存PR番号を使ったchecks確認へ安全にdegradeする。plain出力とJSONの `nextAction` / `resumeCommand` は同じcommandを返す。
+ 
+ 永続fileを変更せずに開始条件だけを確認する場合は `npm run scwbs -- finish --task <task-id> --preflight` を使う。これはrequired checksも実行しない。`finish --json` は全終了経路で `phase`、`outcome`、実際に変更した `mutatedFiles`、再開用の `resumeCommand` を返す。Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。PR metadataの欠落自体は新規PR作成のnext actionとなり、EvidenceとReviewのPR番号不一致はactionable errorとして停止する。repository全体のlegacy warningはこの判定へ含めない。正式なJSON shapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
+ 
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 528fe29..ce52cb7 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -58,6 +58,7 @@ export type PullRequestState =
+   | "checks-pending"
+   | "checks-failure"
+   | "checks-success"
++  | "closed"
+   | "merged"
+   | "unavailable";
+ export type PullRequestStateResolver = (root: string, pullRequest: number) => PullRequestState;
+@@ -82,6 +83,7 @@ export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequ
+     );
+     const view = JSON.parse(output) as PullRequestView;
+     if (view.state === "MERGED") return "merged";
++    if (view.state === "CLOSED") return "closed";
+     if (view.isDraft) return "draft";
+     const checks = Array.isArray(view.statusCheckRollup) ? view.statusCheckRollup : [];
+     if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
+@@ -256,6 +258,8 @@ function pullRequestNextAction(taskId: string, pullRequest: number | undefined,
+       return { label: `Inspect failing checks for pull request #${pullRequest}:`, command: `gh pr checks ${pullRequest}` };
+     case "checks-success":
+       return { label: `Merge pull request #${pullRequest}:`, command: `gh pr merge ${pullRequest} --squash --delete-branch` };
++    case "closed":
++      return { label: `Reopen closed pull request #${pullRequest} or reconcile its recorded metadata:`, command: `gh pr reopen ${pullRequest}` };
+     case "merged":
+       return { label: `Synchronize main after merged pull request #${pullRequest}:`, command: "git switch main && git pull --ff-only origin main" };
+     case "checks-pending":
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index faac6ac..32b1a74 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -161,6 +161,8 @@ describe("finish", () => {
+       "  pending: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }] },",
+       "  failure: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'FAILURE' }] },",
+       "  success: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }, { state: 'SUCCESS' }] },",
++      "  'closed-success': { isDraft: false, state: 'CLOSED', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }] },",
++      "  'closed-empty': { isDraft: false, state: 'CLOSED', statusCheckRollup: [] },",
+       "  merged: { isDraft: false, state: 'MERGED', statusCheckRollup: [] }",
+       "};",
+       "process.stdout.write(JSON.stringify(views[scenario]));"
+@@ -175,6 +177,8 @@ describe("finish", () => {
+         ["pending", "checks-pending"],
+         ["failure", "checks-failure"],
+         ["success", "checks-success"],
++        ["closed-success", "closed"],
++        ["closed-empty", "closed"],
+         ["merged", "merged"],
+         ["unavailable", "unavailable"]
+       ] as const) {
+@@ -330,6 +334,7 @@ describe("finish", () => {
+     ["checks-pending", "gh pr checks 42 --watch"],
+     ["checks-failure", "gh pr checks 42"],
+     ["checks-success", "gh pr merge 42 --squash --delete-branch"],
++    ["closed", "gh pr reopen 42"],
+     ["merged", "git switch main && git pull --ff-only origin main"],
+     ["unavailable", "gh pr checks 42 --watch"]
+   ] as const)("finish maps PR state %s to the existing PR next action", (state, expected) => {
+@@ -403,7 +408,7 @@ describe("finish", () => {
+     const jsonResult = captureFinishJson(jsonRoot, {
+       taskId: "WBS-001-004",
+       baseRef: "base",
+-      pullRequestStateResolver: () => "draft"
++      pullRequestStateResolver: () => "closed"
+     });
+     const plainRoot = prepareFinishRepo(true);
+     const output: string[] = [];
+@@ -413,7 +418,7 @@ describe("finish", () => {
+       expect(runFinish(plainRoot, {
+         taskId: "WBS-001-004",
+         baseRef: "base",
+-        pullRequestStateResolver: () => "draft"
++        pullRequestStateResolver: () => "closed"
+       })).toBe(0);
+     } finally {
+       console.log = originalLog;
