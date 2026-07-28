@@ -1,0 +1,174 @@
+diff --git a/contracts/specs/SPEC-LITE-MS332VMX.yaml b/contracts/specs/SPEC-LITE-MS332VMX.yaml
+new file mode 100644
+index 0000000..483660b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS332VMX.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MS332VMX
++type: spec-contract
++featureId: F-MS332VMX
++title: "Issue #320: npm audit High脆弱性3件を最小依存更新で解消する"
++status: approved
++version: 0.1.0
++summary: "High脆弱性3件をsemver範囲内の最小依存更新で解消する"
++approvedBy: user-requested-issue-320
++approvedAt: "2026-07-27T19:30:00+09:00"
++acceptanceCriteria:
++  - package.json requires js-yaml ^5.2.2 or newer within major 5
++  - package-lock.json resolves js-yaml 5.2.2, fast-uri 3.1.4 or newer, and postcss 8.5.18 or newer
++  - npm audit reports zero high and critical vulnerabilities
++  - unit tests, integration tests, typecheck, build, scwbs check, and registry check pass
++  - no source, test, documentation, CI workflow, wjs, or semver major changes are included
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS332VMX.yaml b/contracts/tasks/SCWBS-DRAFT-MS332VMX.yaml
+new file mode 100644
+index 0000000..6c3d318
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS332VMX.yaml
+@@ -0,0 +1,53 @@
++id: SCWBS-DRAFT-MS332VMX
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS332VMX
++branchName: task/SCWBS-DRAFT-MS332VMX-issue-320-npm-audit-high-3
++allowedPaths:
++  - package.json
++  - package-lock.json
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - semver major dependency update is required
++  - source, test, documentation, or CI workflow changes are required
++  - scope expansion outside package.json and package-lock.json is required
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - package.json requires js-yaml ^5.2.2 or newer within major 5
++  - package-lock.json resolves js-yaml 5.2.2, fast-uri 3.1.4 or newer, and postcss 8.5.18 or newer
++  - npm audit reports zero high and critical vulnerabilities
++  - required unit, integration, typecheck, and build checks pass
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++  - audit-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS332VMX.yaml
++  - contracts/specs/SPEC-LITE-MS332VMX.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS332VMX.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS332VMX.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS332VMX.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS332VMX.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a12c6b8f1db4f771510dd7078c2b69bf7d663fbd45d00053eef9900d15066ca3
++  createdAt: "2026-07-27T10:29:04.203Z"
+diff --git a/package-lock.json b/package-lock.json
+index 7fe4166..71ec82a 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -14,7 +14,7 @@
+         "ajv": "^8.20.0",
+         "ajv-formats": "^3.0.1",
+         "commander": "^15.0.0",
+-        "js-yaml": "^5.2.1"
++        "js-yaml": "^5.2.2"
+       },
+       "bin": {
+         "scwbs": "dist/cli.js"
+@@ -1159,9 +1159,9 @@
+       "license": "MIT"
+     },
+     "node_modules/fast-uri": {
+-      "version": "3.1.2",
+-      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.2.tgz",
+-      "integrity": "sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==",
++      "version": "3.1.4",
++      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.4.tgz",
++      "integrity": "sha512-8JnbkQ4juDyvYs4mgFGQqg4yCYtFDtUtmp2QIQq11ZZe5CFQ5wcqm1rqDgAh/QdMySuBnPzMUiJUNZG5N/AiQw==",
+       "funding": [
+         {
+           "type": "github",
+@@ -1208,9 +1208,9 @@
+       }
+     },
+     "node_modules/js-yaml": {
+-      "version": "5.2.1",
+-      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-5.2.1.tgz",
+-      "integrity": "sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==",
++      "version": "5.2.2",
++      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-5.2.2.tgz",
++      "integrity": "sha512-dayzUzKkJ1MkuUtZglSebU43utNXH0OWQByK9rKOOuYIO8M5TV1y+n8ALMdG0rdzBnfNkOmZEqrURepb0ejqBw==",
+       "funding": [
+         {
+           "type": "github",
+@@ -1221,6 +1221,7 @@
+           "url": "https://github.com/sponsors/nodeca"
+         }
+       ],
++      "license": "MIT",
+       "dependencies": {
+         "argparse": "^2.0.1"
+       },
+@@ -1506,9 +1507,9 @@
+       }
+     },
+     "node_modules/nanoid": {
+-      "version": "3.3.15",
+-      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.15.tgz",
+-      "integrity": "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==",
++      "version": "3.3.16",
++      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.16.tgz",
++      "integrity": "sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==",
+       "dev": true,
+       "funding": [
+         {
+@@ -1566,9 +1567,9 @@
+       }
+     },
+     "node_modules/postcss": {
+-      "version": "8.5.15",
+-      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.15.tgz",
+-      "integrity": "sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==",
++      "version": "8.5.23",
++      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.23.tgz",
++      "integrity": "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==",
+       "dev": true,
+       "funding": [
+         {
+@@ -1586,7 +1587,7 @@
+       ],
+       "license": "MIT",
+       "dependencies": {
+-        "nanoid": "^3.3.12",
++        "nanoid": "^3.3.16",
+         "picocolors": "^1.1.1",
+         "source-map-js": "^1.2.1"
+       },
+diff --git a/package.json b/package.json
+index ff7d9c4..5f1d1cc 100644
+--- a/package.json
++++ b/package.json
+@@ -37,6 +37,6 @@
+     "ajv": "^8.20.0",
+     "ajv-formats": "^3.0.1",
+     "commander": "^15.0.0",
+-    "js-yaml": "^5.2.1"
++    "js-yaml": "^5.2.2"
+   }
+ }
