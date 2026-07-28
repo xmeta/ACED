@@ -1,0 +1,304 @@
+diff --git a/contracts/specs/SPEC-LITE-MRNAN54I.yaml b/contracts/specs/SPEC-LITE-MRNAN54I.yaml
+new file mode 100644
+index 0000000..a007029
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRNAN54I.yaml
+@@ -0,0 +1,18 @@
++id: SPEC-LITE-MRNAN54I
++type: spec-contract
++featureId: F-MRNAN54I
++title: "Issue #224 checks-run integration concurrent timeout flake"
++status: approved
++version: 0.1.0
++summary: Make checks-run integration coverage deterministic without reducing suite-level worker parallelism.
++approvedBy: user-requested-issue-224
++approvedAt: "2026-07-16T09:18:00+09:00"
++acceptanceCriteria:
++  - checks-run.test.ts records its shared-resource boundary and runs its process-heavy cases serially while retaining file-level parallelism
++  - failures expose bounded case phase, test-worker PID, temporary repository, required-check lock or lease state, and receipt presence
++  - default four-worker full integration and canonical required-check execution pass repeatedly without the observed exact-receipt timeout
++  - two-worker execution remains passing without changing the default worker configuration
++  - "the before-and-after wall time, output size, and full-check rerun count are recorded in Issue #179"
++sourcePaths:
++  - tests/integration/checks-run.test.ts
++  - docs/scwbs/integration-testing.md
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml b/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+new file mode 100644
+index 0000000..3dda53a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MRNAN54I
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNAN54I
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRNAN54I.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNAN54I.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNAN54I.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNAN54I.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNAN54I.yaml
++branchName: task/SCWBS-DRAFT-MRNAN54I-issue-224-checks-run-integration-concurrent-time
++allowedPaths:
++  - tests/integration/checks-run.test.ts
++  - docs/scwbs/integration-testing.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or lockfile change required
++  - workflow change required
++  - production runner or shared lease semantics change required
++  - diagnostic state cannot remain bounded
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - checks-run.test.tsの共有resource、child process、required-check lock/lease、receipt phaseを列挙し、同一file内はserial、file間はparallelという安全境界を文書化する
++  - test.concurrentを除去または安全なserial groupへ限定し、既定4 workersのfull integrationとcanonical required-check配下でexact-receipt timeoutを再発させない
++  - 2 workersでもPASSし、既定のworker数を下げず、既定設定のwall timeを不必要に悪化させない
++  - timeoutまたは失敗時にcase phase、test-worker PID、temporary repository、lock/lease state、receipt presenceをboundedに出力する
++  - '改善前後のwall time、output lines/bytes、full-check rerun countをIssue #179へ記録する'
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5dd7a6f453f282775e0e5713c4a1a39cda5b5fe3cc7dab7ec74db738fd2e5647
++  createdAt: "2026-07-16T09:18:17.602Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 1d36b9f..e9e0388 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -189,3 +189,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRNAN54I
++    path: contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
++    branchName: task/SCWBS-DRAFT-MRNAN54I-issue-224-checks-run-integration-concurrent-time
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/integration-testing.md b/docs/scwbs/integration-testing.md
+index 7db030f..7aeb375 100644
+--- a/docs/scwbs/integration-testing.md
++++ b/docs/scwbs/integration-testing.md
+@@ -12,6 +12,8 @@ Vitest uses the `forks` pool and parallelizes test files with 2–4 workers (4 b
+ 
+ The fork-per-file boundary isolates those mutations. Temporary git repositories are unique per test through `makeTempRepo`, so git fixtures are parallel-safe across files. Do not convert the affected tests to `test.concurrent`; their process-global mutations are serial-required within their file.
+ 
++`checks-run.test.ts` follows the same boundary. Its six cases use separate temporary repositories, but each case performs multiple Git setup operations, starts an npm child process, and exercises required-check receipt and lock/lease paths. The cases are therefore serial within the file so CPU, filesystem, process-table, and child-process pressure cannot turn the exact-receipt scenario into a timeout. File-level parallelism and the default 2–4 workers remain enabled. The test registers a bounded failure diagnostic containing the case phase, test-worker PID, temporary repository, child-process command, lock/lease state, and receipt presence.
++
+ ## Duration report
+ 
+ The default output is bounded to one total line, the slowest five files, and the slowest five tests. A reproducible JSON report with file and test durations can be written without running the suite again:
+diff --git a/tests/integration/checks-run.test.ts b/tests/integration/checks-run.test.ts
+index e318cf1..8a6adf2 100644
+--- a/tests/integration/checks-run.test.ts
++++ b/tests/integration/checks-run.test.ts
+@@ -2,12 +2,13 @@ import { execFileSync } from "node:child_process";
+ import { existsSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+-import { describe, expect, test } from "vitest";
++import { describe, expect, test, type TestContext } from "vitest";
+ import { buildChecksRunSummary } from "../../src/commands/checks-run.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+ import { buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt } from "../../src/core/check-receipt.js";
+ import { headCommit } from "../../src/core/git.js";
++import { requiredCheckLockPath } from "../../src/core/required-check-run.js";
+ import { makeTempRepo, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
+ const taskId = "WBS-001-004";
+@@ -60,9 +61,64 @@ function receiptReason(root: string): string {
+   }).reason;
+ }
+ 
++type CaseState = {
++  name: string;
++  phase: string;
++  root?: string;
++  command?: string;
++};
++
++function lockStateSummary(root: string | undefined): string {
++  if (!root) return "absent root=(not-created)";
++  const lockPath = requiredCheckLockPath(root);
++  if (!existsSync(lockPath)) return `absent path=${lockPath}`;
++  try {
++    const state = JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, unknown>;
++    return [
++      `present path=${lockPath}`,
++      `pid=${state.pid ?? "?"}`,
++      `task=${state.taskId ?? "?"}`,
++      `check=${state.check ?? "?"}`,
++      `index=${state.checkIndex ?? "?"}/${state.checkTotal ?? "?"}`,
++      `startedAt=${state.startedAt ?? "?"}`
++    ].join(" ");
++  } catch {
++    return `unreadable path=${lockPath}`;
++  }
++}
++
++function caseDiagnostics(state: CaseState): string {
++  const receipt = state.root
++    ? `${existsSync(checkReceiptPath(state.root, taskId)) ? "present" : "absent"} path=${checkReceiptPath(state.root, taskId)}`
++    : "absent path=(not-created)";
++  return [
++    `checks-run diagnostics case=${state.name}`,
++    `phase=${state.phase}`,
++    `testWorkerPid=${process.pid}`,
++    `temporaryRepo=${state.root ?? "(not-created)"}`,
++    `childProcess=required-check command=${state.command ?? "(unknown)"}`,
++    `lockLease=${lockStateSummary(state.root)}`,
++    `receipt=${receipt}`
++  ].join(" ");
++}
++
++function caseTest(name: string, body: (state: CaseState) => void): void {
++  test(name, ({ onTestFailed }: TestContext) => {
++    const state: CaseState = { name, phase: "starting" };
++    onTestFailed(() => {
++      process.stderr.write(`${caseDiagnostics(state)}\n`);
++    });
++    body(state);
++  }, 60_000);
++}
++
+ describe("checks run", () => {
+-  test.concurrent("writes an exact receipt and Evidence reuses the costly check once", () => {
++  caseTest("writes an exact receipt and Evidence reuses the costly check once", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "checks-run initial";
++    state.command = "buildChecksRunSummary";
+     const first = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     expect(first).toMatchObject({
+       schemaVersion: "1.0.0",
+@@ -73,18 +129,24 @@ describe("checks run", () => {
+     expect(count(root)).toBe(1);
+     expect(existsSync(checkReceiptPath(root, taskId))).toBe(true);
+ 
++    state.phase = "evidence reuse";
+     const evidence = buildCollectedEvidence(root, taskId, { baseRef: "base" });
+     expect(evidence.checks).toHaveLength(1);
+     expect(evidence.checks[0]).toMatchObject({ name: "costly", status: "passed", cacheKey: first.checks[0]?.cacheKey });
+     expect(count(root)).toBe(1);
+ 
++    state.phase = "checks-run receipt reuse";
+     const second = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     expect(second.checks[0]).toMatchObject({ disposition: "reused", reason: "exact-receipt-match" });
+     expect(count(root)).toBe(1);
+-  }, 60_000);
++  });
+ 
+-  test.concurrent("invalidates on HEAD, working diff, command, and lockfile provenance changes", () => {
++  caseTest("invalidates on HEAD, working diff, command, and lockfile provenance changes", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "subject invalidation";
++    state.command = "buildChecksRunSummary";
+     buildChecksRunSummary(root, taskId, { baseRef: "base" });
+ 
+     writeText(root, "src/feature.ts", "export const feature = 2;\n");
+@@ -101,35 +163,50 @@ describe("checks run", () => {
+     writeJson(root, "package-lock.json", { lockfileVersion: 3, packages: { changed: true } });
+     expect(receiptReason(root)).toBe("subject-mismatch");
+     expect(count(root)).toBe(3);
+-  }, 60_000);
++  });
+ 
+-  test.concurrent("forced rerun executes again and a failed check leaves no reusable receipt", () => {
++  caseTest("forced rerun executes again and a failed check leaves no reusable receipt", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "forced rerun";
++    state.command = "buildChecksRunSummary";
+     buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     const forced = buildChecksRunSummary(root, taskId, { baseRef: "base", rerunChecks: true });
+     expect(forced.checks[0]).toMatchObject({ disposition: "executed", reason: "forced-rerun" });
+     expect(count(root)).toBe(2);
+ 
+     writeJson(root, "package.json", { scripts: { costly: counterScript(7) } });
++    state.phase = "failed check without receipt";
+     const failed = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     expect(failed).toMatchObject({ status: "fail", receiptPath: null, receiptReason: "check-failed-no-receipt" });
+     expect(existsSync(checkReceiptPath(root, taskId))).toBe(false);
+-  }, 60_000);
++  });
+ 
+-  test.concurrent("does not trust raw npm self-report or a malformed receipt", () => {
++  caseTest("does not trust raw npm self-report or a malformed receipt", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "raw npm self-report";
++    state.command = "npm run costly";
+     execFileSync("npm", ["run", "costly"], { cwd: root, stdio: "ignore" });
+     expect(count(root)).toBe(1);
+     expect(existsSync(checkReceiptPath(root, taskId))).toBe(false);
+ 
+     writeText(root, path.relative(root, checkReceiptPath(root, taskId)), "{not-json\n");
++    state.phase = "malformed receipt";
++    state.command = "buildChecksRunSummary";
+     const summary = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     expect(summary.checks[0]).toMatchObject({ disposition: "executed", reason: "receipt-invalid" });
+     expect(count(root)).toBe(2);
+-  }, 60_000);
++  });
+ 
+-  test.concurrent("invalidates when recursive submodule provenance changes", () => {
++  caseTest("invalidates when recursive submodule provenance changes", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "submodule setup";
++    state.command = "buildChecksRunSummary";
+     const child = makeTempRepo();
+     writeText(child, "version.txt", "one\n");
+     commit(child, "submodule base");
+@@ -147,12 +224,16 @@ describe("checks run", () => {
+     execFileSync("git", ["checkout", "--detach", "FETCH_HEAD"], { cwd: path.join(root, "deps/child"), stdio: "ignore" });
+     expect(receiptReason(root)).toBe("subject-mismatch");
+     expect(count(root)).toBe(1);
+-  }, 60_000);
++  });
+ 
+-  test.concurrent("versioned JSON summary validates against the public schema", () => {
++  caseTest("versioned JSON summary validates against the public schema", (state) => {
++    state.phase = "prepare-repo";
+     const root = prepareRepo();
++    state.root = root;
++    state.phase = "schema validation";
++    state.command = "buildChecksRunSummary";
+     const summary = buildChecksRunSummary(root, taskId, { baseRef: "base" });
+     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/checks-run-summary.schema.json"), "utf8"));
+     expect(new Ajv2020({ strict: false }).compile(schema)(summary)).toBe(true);
+-  }, 60_000);
++  });
+ });
