@@ -1,0 +1,545 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+new file mode 100644
+index 0000000..edcfbdf
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+@@ -0,0 +1,52 @@
++id: SCWBS-DRAFT-MRJ5YJ65
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ5YJ65
++branchName: task/SCWBS-DRAFT-MRJ5YJ65-issue-151-finish-evidence-registry-sync-and-safe
++allowedPaths:
++  - src/cli.ts
++  - src/commands/finish.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/registry-rebuild.ts
++  - src/core/check-cache.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/helpers.ts
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - The fix requires changing Evidence or Approval provenance semantics
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - A first finish run creates Evidence, rebuilds managed registry metadata, and ends with registry check passing.
++  - Approval status metadata changes are reflected in the registry by the next finish run.
++  - Passed checks are reused only when subject diff, resolved command, dependency lockfiles, and submodule commits are unchanged.
++  - Implementation, check command, lockfile, or submodule changes force required checks to run again.
++  - The --rerun-checks option forces every required check to run again.
++  - A failed finish reuses still-valid passed checks, and an interrupted finish safely converges on the next run.
++  - Integration tests cover Evidence creation, Approval update, registry synchronization, safe reuse, and invalidation.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T11:59:35.116Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 37ed946..4834acc 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -75,3 +75,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ5YJ65
++    path: contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
++    branchName: task/SCWBS-DRAFT-MRJ5YJ65-issue-151-finish-evidence-registry-sync-and-safe
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index c63f3df..a17ab55 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -131,6 +131,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--base <ref>", "base reference")
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
++    .option("--rerun-checks", "rerun required checks even when cached results are valid")
+     .option("--json", "output as JSON")
+     .action((opts) => {
+       exitCode = runFinish(root, {
+@@ -138,7 +139,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         baseRef: opts.base,
+         pullRequest: opts.pr ?? opts.pullRequest,
+         force: true,
+-        json: opts.json ?? false
++        json: opts.json ?? false,
++        rerunChecks: opts.rerunChecks ?? false
+       });
+     });
+ 
+@@ -446,6 +448,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--tests-disabled <bool>", "tests disabled")
+     .option("--coverage-decreased <bool>", "coverage decreased")
+     .option("--test-quality-note <text>", "test quality note")
++    .option("--rerun-checks", "rerun required checks even when cached results are valid")
+     .action((opts) => {
+       if (!opts.task) {
+         console.error("Missing --task <task-id>");
+@@ -456,7 +459,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         force: opts.force ?? false,
+         baseRef: opts.base,
+         pullRequest: opts.pullRequest,
+-        testQuality: parseTestQuality(opts)
++        testQuality: parseTestQuality(opts),
++        rerunChecks: opts.rerunChecks ?? false
+       });
+     });
+ 
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index d7cd7d3..988aa85 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { spawnSync } from "node:child_process";
+ import { readEvidence, readTask } from "../core/contracts.js";
++import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { branchChangedFiles, branchDiffHash, currentBranch, headCommit, mergeBase, resolveCommit } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+@@ -33,7 +34,7 @@ function summarizeCheckOutput(output: string | null | undefined): string | undef
+   return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
+ }
+ 
+-function runCheck(root: string, check: string): Evidence["checks"][number] {
++function runCheck(root: string, check: string, cacheKey: string): Evidence["checks"][number] {
+   const command = commandForCheck(check);
+   const result = spawnSync(command[0] ?? "npm", command.slice(1), {
+     cwd: root,
+@@ -46,6 +47,7 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
+     status,
+     source: "local",
+     command: command.join(" "),
++    cacheKey,
+     executedAt: new Date().toISOString()
+   };
+   if (status === "passed") return record;
+@@ -59,7 +61,7 @@ function runCheck(root: string, check: string): Evidence["checks"][number] {
+   };
+ }
+ 
+-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions } = {}): Evidence {
++export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): Evidence {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const baseRef = options.baseRef ?? "origin/main";
+@@ -69,6 +71,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+   const { evidence: existingEvidence } = readEvidence(root, taskId);
+   const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
+   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
++  const cacheSubject = task.requiredChecks.length > 0
++    ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
++    : undefined;
++  const checks = task.requiredChecks.map((check) => {
++    const command = commandForCheck(check);
++    const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
++    const reusable = existingEvidence?.checks.find((candidate) =>
++      candidate.name === check
++      && candidate.status === "passed"
++      && candidate.command === command.join(" ")
++      && candidate.cacheKey === cacheKey
++    );
++    return !options.rerunChecks && cacheSubject?.reusable && reusable ? reusable : runCheck(root, check, cacheKey);
++  });
+   return {
+     id: `EVD-${taskId}`,
+     type: "evidence",
+@@ -87,16 +103,16 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       ...(head ? { headCommit: head } : {})
+     },
+     changedFiles: branchChangedFiles(root, baseRef),
+-    checks: task.requiredChecks.map((check) => runCheck(root, check)),
++    checks,
+     ...(testQuality ? { testQuality } : {})
+   };
+ }
+ 
+-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions } = {}): string {
++export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): string {
+   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+-export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions }): number {
++export function runEvidenceCollect(root: string, taskId: string, options: { force: boolean; baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean }): number {
+   try {
+     const relativePath = evidencePath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+@@ -108,7 +124,8 @@ export function runEvidenceCollect(root: string, taskId: string, options: { forc
+     const yaml = buildCollectedEvidenceYaml(root, taskId, {
+       baseRef: options.baseRef,
+       pullRequest: options.pullRequest,
+-      testQuality: options.testQuality
++      testQuality: options.testQuality,
++      rerunChecks: options.rerunChecks
+     });
+     writeFileSync(fullPath, yaml, "utf8");
+     process.stdout.write(yaml);
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index d2a5bad..432585f 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -50,7 +50,7 @@ export function buildHumanApprovalCommand(taskId: string): string {
+   return `npm run scwbs -- approval approve --task ${taskId} --reason "Evidence and diff reviewed"`;
+ }
+ 
+-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
++export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean } = {}): number {
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+     console.error("Missing --task <task-id> and current branch does not contain a task id");
+@@ -68,7 +68,8 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     runEvidenceCollect(root, taskId, {
+       force: options.force ?? true,
+       baseRef: options.baseRef,
+-      pullRequest: options.pullRequest
++      pullRequest: options.pullRequest,
++      rerunChecks: options.rerunChecks
+     })
+   );
+   if (evidenceExit !== 0) return evidenceExit;
+@@ -100,18 +101,19 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     console.log("PASS diff guard");
+   }
+ 
++  const { result: registryWriteExit } = captureStdout(() =>
++    runRegistryRebuild(root, { check: false, force: true })
++  );
++  if (registryWriteExit !== 0) return registryWriteExit;
++  if (options.json) {
++    console.error("PASS registry synchronized");
++  } else {
++    console.log("PASS registry synchronized");
++  }
+   const { result: registryExit } = runSilentIfJson(options.json ?? false, () =>
+     runRegistryRebuild(root, { check: true, force: false })
+   );
+-  if (registryExit !== 0) {
+-    const fixCommand = "fixCommand: npm run scwbs -- registry rebuild --force, then re-run finish";
+-    if (options.json) {
+-      console.error(fixCommand);
+-    } else {
+-      console.log(fixCommand);
+-    }
+-    return registryExit;
+-  }
++  if (registryExit !== 0) return registryExit;
+   if (options.json) {
+     console.error("PASS registry check");
+   } else {
+diff --git a/src/core/check-cache.ts b/src/core/check-cache.ts
+new file mode 100644
+index 0000000..32444f4
+--- /dev/null
++++ b/src/core/check-cache.ts
+@@ -0,0 +1,88 @@
++import { createHash } from "node:crypto";
++import { existsSync, readFileSync } from "node:fs";
++import { spawnSync } from "node:child_process";
++import path from "node:path";
++import { branchDiffHash, dirtySubmodulePaths } from "./git.js";
++
++const dependencyLockfiles = [
++  "package-lock.json",
++  "npm-shrinkwrap.json",
++  "pnpm-lock.yaml",
++  "yarn.lock",
++  "bun.lock",
++  "bun.lockb"
++];
++
++function gitOutput(root: string, args: string[], encoding: "buffer" | "utf8" = "buffer"): Buffer | string {
++  const result = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: root, encoding });
++  if (result.status !== 0) {
++    throw new Error(result.stderr?.toString() || `git ${args.join(" ")} failed`);
++  }
++  return result.stdout;
++}
++
++function untrackedFingerprint(root: string, excludedFiles: Set<string>): string {
++  const output = gitOutput(root, ["ls-files", "--others", "--exclude-standard"], "utf8") as string;
++  const hash = createHash("sha256");
++  for (const relativePath of output.split(/\r?\n/).filter(Boolean).sort()) {
++    if (excludedFiles.has(relativePath)) continue;
++    hash.update(relativePath);
++    hash.update("\0");
++    hash.update(readFileSync(path.join(root, relativePath)));
++    hash.update("\0");
++  }
++  return hash.digest("hex");
++}
++
++function lockfileFingerprint(root: string): string {
++  const hash = createHash("sha256");
++  for (const relativePath of dependencyLockfiles) {
++    hash.update(relativePath);
++    hash.update("\0");
++    const fullPath = path.join(root, relativePath);
++    hash.update(existsSync(fullPath) ? readFileSync(fullPath) : "missing");
++    hash.update("\0");
++  }
++  return hash.digest("hex");
++}
++
++export type CheckCacheSubject = {
++  fingerprint: string;
++  reusable: boolean;
++};
++
++export function buildCheckCacheSubject(root: string, options: {
++  baseRef: string;
++  excludedMetadataFiles: string[];
++}): CheckCacheSubject {
++  const excludedFiles = new Set(options.excludedMetadataFiles);
++  const pathspecs = ["--", ".", ...options.excludedMetadataFiles.map((file) => `:(exclude)${file}`)];
++  const workingTreeDiff = gitOutput(root, ["diff", "--binary", "--no-ext-diff", "HEAD", ...pathspecs]) as Buffer;
++  const submodules = gitOutput(root, ["submodule", "status", "--recursive"], "utf8") as string;
++  const hash = createHash("sha256");
++  hash.update("scwbs-check-cache-subject-v1\0");
++  hash.update(branchDiffHash(root, options.baseRef, options.excludedMetadataFiles));
++  hash.update("\0");
++  hash.update(lockfileFingerprint(root));
++  hash.update("\0");
++  hash.update(submodules);
++  hash.update("\0");
++  hash.update(workingTreeDiff);
++  hash.update("\0");
++  hash.update(untrackedFingerprint(root, excludedFiles));
++  return {
++    fingerprint: `sha256:${hash.digest("hex")}`,
++    reusable: dirtySubmodulePaths(root).length === 0
++  };
++}
++
++export function buildCheckCacheKey(subject: CheckCacheSubject, check: string, command: string[]): string {
++  const hash = createHash("sha256");
++  hash.update("scwbs-check-cache-key-v1\0");
++  hash.update(subject.fingerprint);
++  hash.update("\0");
++  hash.update(check);
++  hash.update("\0");
++  hash.update(JSON.stringify(command));
++  return `sha256:${hash.digest("hex")}`;
++}
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 5f2ad90..b83a678 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -42,6 +42,7 @@ const evidenceSchema = {
+           runId: { type: "string" },
+           url: { type: "string" },
+           command: { type: "string" },
++          cacheKey: { type: "string" },
+           exitStatus: { type: "number" },
+           stdoutSummary: { type: "string" },
+           stderrSummary: { type: "string" },
+@@ -191,7 +192,7 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+         issues.push(issue("evidence.check", `${filePath}.checks[${index}] must include name and status`));
+         return;
+       }
+-      for (const key of ["source", "runId", "url", "command", "stdoutSummary", "stderrSummary", "executedAt", "verifiedBy"]) {
++      for (const key of ["source", "runId", "url", "command", "cacheKey", "stdoutSummary", "stderrSummary", "executedAt", "verifiedBy"]) {
+         if (check[key] !== undefined && typeof check[key] !== "string") {
+           issues.push(issue("evidence.check", `${filePath}.checks[${index}].${key} must be a string when present`));
+         }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index a28f5a8..0ed71ab 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -127,6 +127,7 @@ export type Evidence = {
+     runId?: string;
+     url?: string;
+     command?: string;
++    cacheKey?: string;
+     exitStatus?: number;
+     stdoutSummary?: string;
+     stderrSummary?: string;
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 8812f17..070a00e 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -1,10 +1,11 @@
+ import { execFileSync } from "node:child_process";
+-import { readFileSync } from "node:fs";
++import { existsSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+ import { branchDiffHash, headCommit } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
++import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("evidence collect", () => {
+@@ -194,4 +195,95 @@ describe("evidence collect", () => {
+     expect(check).not.toHaveProperty("stdoutSummary");
+     expect(check).not.toHaveProperty("stderrSummary");
+   }, 30000);
++
++  test("resolved check command is part of the cache key", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    const subject = buildCheckCacheSubject(root, { baseRef: "base", excludedMetadataFiles: [] });
++
++    expect(buildCheckCacheKey(subject, "test", ["npm", "test"]))
++      .not.toBe(buildCheckCacheKey(subject, "test", ["npm", "run", "test"]));
++  });
++
++  test("reuses a passed check only while its complete cache subject is unchanged", () => {
++    const root = makeTempRepo();
++    const submoduleRoot = makeTempRepo();
++    const marker = path.join(path.dirname(root), `${path.basename(root)}-check-count`);
++    writeText(submoduleRoot, "version.txt", "one\n");
++    execFileSync("git", ["add", "."], { cwd: submoduleRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "submodule base"], { cwd: submoduleRoot, stdio: "ignore" });
++    writeScwbsProject(root);
++    writeJson(root, "package.json", {
++      scripts: {
++        test: `node -e 'const fs=require("fs");const p=${JSON.stringify(marker)};const n=fs.existsSync(p)?Number(fs.readFileSync(p,"utf8")):0;fs.writeFileSync(p,String(n+1))'`
++      }
++    });
++    writeJson(root, "package-lock.json", { lockfileVersion: 3 });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["-c", "protocol.file.allow=always", "submodule", "add", submoduleRoot, "vendor/dependency"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    const first = readEvidence(root, "WBS-001-004").evidence?.checks[0];
++    expect(first?.cacheKey).toMatch(/^sha256:/);
++    expect(readFileSync(marker, "utf8")).toBe("1");
++
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested"
++    });
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readEvidence(root, "WBS-001-004").evidence?.checks[0]?.executedAt).toBe(first?.executedAt);
++    expect(readFileSync(marker, "utf8")).toBe("1");
++
++    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(marker, "utf8")).toBe("2");
++
++    writeJson(root, "package-lock.json", { lockfileVersion: 3, packages: { changed: true } });
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(marker, "utf8")).toBe("3");
++
++    writeText(submoduleRoot, "version.txt", "two\n");
++    execFileSync("git", ["add", "."], { cwd: submoduleRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "submodule update"], { cwd: submoduleRoot, stdio: "ignore" });
++    execFileSync("git", ["fetch", submoduleRoot], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    execFileSync("git", ["checkout", "FETCH_HEAD"], { cwd: path.join(root, "vendor/dependency"), stdio: "ignore" });
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(marker, "utf8")).toBe("4");
++
++    writeText(root, "vendor/dependency/version.txt", "dirty content changed again\n");
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(marker, "utf8")).toBe("5");
++
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true, rerunChecks: true })).toBe(0);
++    expect(readFileSync(marker, "utf8")).toBe("6");
++    expect(existsSync(marker)).toBe(true);
++  }, 60000);
++
++  test("a failed collection reuses passed checks and reruns failed checks", () => {
++    const root = makeTempRepo();
++    const passedMarker = path.join(path.dirname(root), `${path.basename(root)}-passed-count`);
++    const failedMarker = path.join(path.dirname(root), `${path.basename(root)}-failed-count`);
++    const counter = (marker: string, exitCode: number) =>
++      `node -e 'const fs=require("fs");const p=${JSON.stringify(marker)};const n=fs.existsSync(p)?Number(fs.readFileSync(p,"utf8")):0;fs.writeFileSync(p,String(n+1));process.exit(${exitCode})'`;
++    writeScwbsProject(root);
++    writeJson(root, "package.json", { scripts: { pass: counter(passedMarker, 0), fail: counter(failedMarker, 1) } });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["pass", "fail"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
++    expect(readFileSync(passedMarker, "utf8")).toBe("1");
++    expect(readFileSync(failedMarker, "utf8")).toBe("2");
++  }, 30000);
+ });
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 0a2f880..72d96eb 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -1,7 +1,10 @@
+ import { execFileSync } from "node:child_process";
++import { readFileSync, unlinkSync } from "node:fs";
+ import { describe, expect, test } from "vitest";
+ import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
++import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
++import path from "node:path";
+ 
+ function prepareFinishRepo(requestedApproval = false): string {
+   const root = makeTempRepo();
+@@ -102,9 +105,36 @@ describe("finish", () => {
+     }
+ 
+     const command = buildHumanApprovalCommand("WBS-001-004");
++    expect(output).toContain("PASS registry synchronized");
+     expect(output).not.toContain(`  ${command}`);
+     expect(output).toContain(`  gh pr create --base main --title "feat: WBS-001-004" --body ""`);
+     expect(command).not.toContain("--approved-by");
+     expect(command).not.toContain("--human-confirm");
+   }, 30000);
++
++  test("a first finish creates Evidence and synchronizes registry in one run", () => {
++    const root = prepareFinishRepo();
++    unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
++
++    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
++    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
++    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain("cacheKey: sha256:");
++  }, 30000);
++
++  test("finish synchronizes Approval status and can force valid checks to rerun", () => {
++    const root = prepareFinishRepo(true);
++    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
++    const firstExecutedAt = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8").match(/executedAt: (.+)/)?.[1];
++
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "approved"
++    });
++    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
++    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toContain("status: approved");
++    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).toContain(`executedAt: ${firstExecutedAt}`);
++
++    expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base", rerunChecks: true })).toBe(0);
++    const rerunExecutedAt = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8").match(/executedAt: (.+)/)?.[1];
++    expect(rerunExecutedAt).not.toBe(firstExecutedAt);
++  }, 30000);
+ });
