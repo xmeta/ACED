@@ -1,0 +1,284 @@
+diff --git a/README.md b/README.md
+index ffaf877..40df3b6 100644
+--- a/README.md
++++ b/README.md
+@@ -110,6 +110,8 @@ The detailed command is also available:
+ npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --reason "Evidence and PR reviewed"
+ ```
+ 
++`finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
++
+ ## 6. Core Artifacts
+ 
+ - Task Contract: `contracts/tasks/<task-id>.yaml`
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+new file mode 100644
+index 0000000..21ad01c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+@@ -0,0 +1,43 @@
++id: SCWBS-DRAFT-MRJ3EC8T
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ3EC8T
++branchName: task/SCWBS-DRAFT-MRJ3EC8T-issue-133-finish-human-gate-next-action-cli-mism
++allowedPaths:
++  - src/commands/finish.ts
++  - tests/integration/finish.test.ts
++  - README.md
++  - docs/scwbs/cli-reference.md
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires adding new approval options or changing Human Approval provenance semantics.
++  - The fix requires changes outside allowedPaths.
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - finish prints a Human Gate approval command composed only of options accepted by approval approve.
++  - finish --json returns the same executable command in nextAction.
++  - Human-readable and JSON regression tests reject the removed approved-by and human-confirm options.
++  - README and CLI reference document the same current approval approve command shape.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T10:42:20.283Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index b56805b..32fcd90 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -57,3 +57,9 @@ tasks:
+     wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ3EC8T
++    path: contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
++    branchName: task/SCWBS-DRAFT-MRJ3EC8T-issue-133-finish-human-gate-next-action-cli-mism
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index f80c2f1..88a2b42 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -84,6 +84,8 @@ notes:
+ 
+ `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+ 
++When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
++
+ After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+ 
+ When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 5f0d37c..eee921c 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -56,6 +56,10 @@ function hasApprovedHumanGateApproval(root: string, taskId: string): boolean {
+   return approval.headCommit === evidenceHead && approval.diffHash === evidenceDiffHash;
+ }
+ 
++export function buildHumanApprovalCommand(taskId: string): string {
++  return `npm run scwbs -- approval approve --task ${taskId} --reason "Evidence and diff reviewed"`;
++}
++
+ export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean } = {}): number {
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+@@ -145,7 +149,7 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+       }
+     }
+     nextAction = needsHumanGate || (approval?.status === "requested" && humanGateFiles.length === 0)
+-      ? `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`
++      ? buildHumanApprovalCommand(taskId)
+       : `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+   } else {
+     console.log(`Profile: ${profile}`);
+@@ -158,14 +162,14 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+       console.log("");
+       console.log("Next action:");
+       console.log("  Human reviewer must run:");
+-      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+-      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
++      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
++      nextAction = buildHumanApprovalCommand(taskId);
+     } else if (approval?.status === "requested" && humanGateFiles.length === 0) {
+       console.log("");
+       console.log("Next action:");
+       console.log("  Human reviewer must review and approve:");
+-      console.log(`  npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`);
+-      nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --approved-by <name> --human-confirm`;
++      console.log(`  ${buildHumanApprovalCommand(taskId)}`);
++      nextAction = buildHumanApprovalCommand(taskId);
+     } else {
+       console.log("");
+       console.log("Next action:");
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index f76fa51..fa295ac 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -1,49 +1,70 @@
+ import { execFileSync } from "node:child_process";
+ import { describe, expect, test } from "vitest";
+-import { runFinish } from "../../src/commands/finish.js";
++import { main } from "../../src/cli.js";
++import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
+ 
++function prepareFinishRepo(requestedApproval = false): string {
++  const root = makeTempRepo();
++  writeScwbsProject(root);
++  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++    branchName: "master",
++    allowedPaths: ["src/**", "contracts/**"],
++    humanGateRequiredPaths: [],
++    requiredChecks: ["test"]
++  }) as unknown as Record<string, unknown>);
++  writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["branch", "base"], { cwd: root });
++  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++  if (requestedApproval) {
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004",
++      type: "approval",
++      taskId: "WBS-001-004",
++      status: "requested"
++    });
++  }
++  writeYaml(root, "contracts/registry.yaml", {
++    projectId: "test-wbs",
++    contracts: [
++      ...(requestedApproval ? [{
++        id: "APR-WBS-001-004",
++        type: "approval",
++        path: "contracts/approvals/WBS-001-004.yaml",
++        status: "requested",
++        relatedTask: "WBS-001-004"
++      }] : []),
++      {
++        id: "EVD-WBS-001-004",
++        type: "evidence",
++        path: "contracts/evidence/WBS-001-004.yaml",
++        relatedTask: "WBS-001-004"
++      },
++      {
++        id: "SPEC-F001-API",
++        type: "spec",
++        path: "contracts/specs/SPEC-F001-API.yaml",
++        status: "approved",
++        version: "1.0.0",
++        featureId: "F001"
++      },
++      {
++        id: "TASK-WBS-001-004",
++        type: "task",
++        path: "contracts/tasks/WBS-001-004.yaml",
++        featureId: "F001"
++      }
++    ]
++  });
++  writeText(root, "src/feature.ts", "export const value = 1;\n");
++  return root;
++}
++
+ describe("finish", () => {
+   test("finish --json outputs summary JSON with all required fields", () => {
+-    const root = makeTempRepo();
+-    writeScwbsProject(root);
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      branchName: "master",
+-      allowedPaths: ["src/**", "contracts/**"],
+-      humanGateRequiredPaths: [],
+-      requiredChecks: ["test"]
+-    }) as unknown as Record<string, unknown>);
+-    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(0)\"" } });
+-    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+-    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+-    execFileSync("git", ["branch", "base"], { cwd: root });
+-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/registry.yaml", {
+-      projectId: "test-wbs",
+-      contracts: [
+-        {
+-          id: "EVD-WBS-001-004",
+-          type: "evidence",
+-          path: "contracts/evidence/WBS-001-004.yaml",
+-          relatedTask: "WBS-001-004"
+-        },
+-        {
+-          id: "SPEC-F001-API",
+-          type: "spec",
+-          path: "contracts/specs/SPEC-F001-API.yaml",
+-          status: "approved",
+-          version: "1.0.0",
+-          featureId: "F001"
+-        },
+-        {
+-          id: "TASK-WBS-001-004",
+-          type: "task",
+-          path: "contracts/tasks/WBS-001-004.yaml",
+-          featureId: "F001"
+-        }
+-      ]
+-    });
+-    writeText(root, "src/feature.ts", "export const value = 1;\n");
++    const root = prepareFinishRepo(true);
+ 
+     const output: string[] = [];
+     const originalLog = console.log;
+@@ -64,7 +85,35 @@ describe("finish", () => {
+       requiredChecks: expect.any(Array),
+       evidencePath: expect.any(String),
+       approvalStatus: expect.any(String),
+-      nextAction: expect.any(String)
++      nextAction: buildHumanApprovalCommand("WBS-001-004")
+     });
+   }, 30000);
++
++  test("finish prints an approval command accepted by the current CLI parser", () => {
++    const root = prepareFinishRepo(true);
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => {
++      output.push(String(message));
++    };
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++
++    const command = buildHumanApprovalCommand("WBS-001-004");
++    expect(output).toContain(`  ${command}`);
++    expect(command).not.toContain("--approved-by");
++    expect(command).not.toContain("--human-confirm");
++
++    const previousAgentMode = process.env.SCWBS_AGENT_MODE;
++    process.env.SCWBS_AGENT_MODE = "ai";
++    try {
++      expect(main(["approval", "approve", "--task", "WBS-001-004", "--reason", "Evidence and diff reviewed"], root)).toBe(1);
++    } finally {
++      if (previousAgentMode === undefined) delete process.env.SCWBS_AGENT_MODE;
++      else process.env.SCWBS_AGENT_MODE = previousAgentMode;
++    }
++  }, 30000);
+ });
