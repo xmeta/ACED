@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { readWbs, findNode } from "../core/wbs.js";
-import { resolveFrom, taskPath } from "../core/paths.js";
+import { evidencePayloadPath, resolveFrom, taskPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { TaskContract } from "../core/types.js";
 
@@ -35,7 +35,8 @@ export function buildDraftTask(root: string, nodeId: string, taskId: string): Ta
     humanGateRequiredPaths: ["package.json", "package-lock.json", ".github/**"],
     requiredChecks: ["test", "typecheck", "build"],
     doneCriteria: node.acceptanceCriteria?.length ? [...node.acceptanceCriteria] : [`Complete ${node.name}`],
-    evidenceRequired: ["test-result", "typecheck-result", "build-result"]
+    evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+    managedContractPaths: [evidencePayloadPath(taskId)]
   };
 }
 

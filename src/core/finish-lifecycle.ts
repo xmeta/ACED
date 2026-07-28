@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { readEvidence } from "./contracts.js";
 import { changedFilesBetween, headCommit, isCommitAncestor, isShallowRepository } from "./git.js";
+import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
 import { gitCommonDir } from "./required-check-run.js";
 
 export const finishLifecycleEventLimit = 50;
@@ -88,12 +89,7 @@ function receiptPath(root: string, taskId: string): string {
 }
 
 function approvedMetadataFiles(taskId: string): Set<string> {
-  return new Set([
-    `contracts/evidence/${taskId}.yaml`,
-    `contracts/approvals/${taskId}.yaml`,
-    `contracts/reviews/${taskId}.yaml`,
-    "contracts/registry.yaml"
-  ]);
+  return new Set(taskLifecycleMetadataPaths(taskId));
 }
 
 function commitCount(root: string, from: string, to: string): number {

@@ -1,12 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect, runEvidenceRetain } from "../../src/commands/evidence-collect.js";
 import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
-import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
+import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifact } from "../../src/core/git.js";
 import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
 import { readEvidence, readTask } from "../../src/core/contracts.js";
 import { validateEvidenceSchema } from "../../src/core/schema/records.js";
@@ -85,6 +85,7 @@ function prepareCiReceiptRepo(): { root: string; taskId: string; receipt: Record
       baseCommit,
       diffHash: branchDiffHash(root, "base", [
         `contracts/evidence/${taskId}.yaml`,
+        `contracts/evidence-payloads/${taskId}.patch`,
         `contracts/approvals/${taskId}.yaml`,
         `contracts/reviews/${taskId}.yaml`,
         "contracts/registry.yaml"
@@ -136,8 +137,9 @@ describe("evidence collect", () => {
         canonicalization: "git-diff-binary-v1"
       },
       retention: {
-        mode: "git-object",
-        locator: `git:${evidence.subjectHeadCommit}`
+        mode: "patch-artifact",
+        locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
+        manifestHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/)
       }
     });
     expect(validateEvidenceSchema(evidence)).toEqual([]);
@@ -379,6 +381,147 @@ describe("evidence collect", () => {
     expect(first.diffHash).toBe(second.diffHash);
   });
 
+  test("writes a byte-stable patch that covers binary, rename, and mode changes", () => {
+    const root = makeTempRepo();
+    const taskId = "WBS-001-004";
+    writeScwbsProject(root);
+    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    writeText(root, "src/rename-before.txt", "before\n");
+    writeText(root, "src/mode.sh", "#!/bin/sh\nexit 0\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+
+    renameSync(path.join(root, "src/rename-before.txt"), path.join(root, "src/rename-after.txt"));
+    chmodSync(path.join(root, "src/mode.sh"), 0o755);
+    writeFileSync(path.join(root, "src/binary.bin"), Buffer.from([0, 1, 2, 255, 10, 0]));
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "binary rename mode"], { cwd: root, stdio: "ignore" });
+
+    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
+    const payloadPath = path.join(root, `contracts/evidence-payloads/${taskId}.patch`);
+    const firstPayload = readFileSync(payloadPath);
+    const firstEvidence = readEvidence(root, taskId).evidence!;
+    expect(firstPayload.length).toBeGreaterThan(0);
+    expect(firstPayload.toString("utf8")).toContain("GIT binary patch");
+    const verification = verifyPatchArtifact(root, taskId, firstEvidence, { shallow: false });
+    expect(verification, JSON.stringify(verification)).toMatchObject({ status: "verified" });
+
+    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
+    expect(readFileSync(payloadPath).equals(firstPayload)).toBe(true);
+    expect(readEvidence(root, taskId).evidence?.provenance).toEqual(firstEvidence.provenance);
+  });
+
+  test("represents an empty implementation diff with a deterministic empty patch", () => {
+    const root = prepareEvidenceOutputRepo();
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    const evidence = readEvidence(root, "WBS-001-004").evidence!;
+    expect(readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch"))).toHaveLength(0);
+    expect(verifyPatchArtifact(root, "WBS-001-004", evidence, { shallow: false }).status).toBe("verified");
+  });
+
+  test("verifies a tracked patch in a fresh clone that has no subject commit object", () => {
+    const root = makeTempRepo();
+    const taskId = "WBS-001-004";
+    writeScwbsProject(root);
+    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/retained.ts", "export const retained = true;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "subject"], { cwd: root, stdio: "ignore" });
+    const subject = headCommit(root)!;
+    expect(runEvidenceCollect(root, taskId, { baseRef: "base", force: true })).toBe(0);
+
+    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["add", "contracts/evidence", "contracts/evidence-payloads", "contracts/registry.yaml"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "retain evidence metadata"], { cwd: root, stdio: "ignore" });
+
+    const fresh = `${root}-fresh`;
+    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", root, fresh], { stdio: "ignore" });
+    expect(commitExists(fresh, subject)).toBe(false);
+    const evidence = readEvidence(fresh, taskId).evidence!;
+    expect(verifyPatchArtifact(fresh, taskId, evidence, { shallow: false }).status).toBe("verified");
+    rmSync(fresh, { recursive: true, force: true });
+  });
+
+  test("evidence retain preserves the recorded subject and checks while adding patch retention", () => {
+    const root = makeTempRepo();
+    const taskId = "WBS-001-004";
+    writeScwbsProject(root);
+    writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/legacy.ts", "export const legacy = true;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "legacy subject"], { cwd: root, stdio: "ignore" });
+
+    const collected = buildCollectedEvidence(root, taskId, { baseRef: "base", pullRequest: "#42" });
+    const legacy = {
+      ...collected,
+      provenance: {
+        ...collected.provenance!,
+        retention: {
+          mode: "git-object" as const,
+          locator: `git:${collected.subjectHeadCommit}`
+        }
+      }
+    };
+    writeYaml(root, `contracts/evidence/${taskId}.yaml`, legacy as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "legacy evidence"], { cwd: root, stdio: "ignore" });
+
+    expect(runEvidenceRetain(root, taskId)).toBe(0);
+    const retained = readEvidence(root, taskId).evidence!;
+    expect(retained.subjectHeadCommit).toBe(legacy.subjectHeadCommit);
+    expect(retained.git).toEqual(legacy.git);
+    expect(retained.checks).toEqual(legacy.checks);
+    expect(retained.provenance?.retention).toMatchObject({
+      mode: "patch-artifact",
+      locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
+      manifestHash: expect.stringMatching(/^sha256:/)
+    });
+    expect(verifyPatchArtifact(root, taskId, retained, { shallow: false }).status).toBe("verified");
+  });
+
+  test("evidence retain fetches only the recorded PR head and requires subject ancestry", () => {
+    const source = makeTempRepo();
+    const taskId = "WBS-001-004";
+    writeScwbsProject(source);
+    writeYaml(source, `contracts/tasks/${taskId}.yaml`, sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: source, stdio: "ignore" });
+    writeText(source, "src/pr-head.ts", "export const fromPr = true;\n");
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "pr subject"], { cwd: source, stdio: "ignore" });
+    const subject = headCommit(source)!;
+    const collected = buildCollectedEvidence(source, taskId, { baseRef: "base", pullRequest: "#42" });
+    const legacy = {
+      ...collected,
+      provenance: {
+        ...collected.provenance!,
+        retention: { mode: "git-object" as const, locator: `git:${subject}` }
+      }
+    };
+    execFileSync("git", ["update-ref", "refs/pull/42/head", subject], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["switch", "-c", "retained", "base"], { cwd: source, stdio: "ignore" });
+    writeYaml(source, `contracts/evidence/${taskId}.yaml`, legacy as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: source, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "legacy retained metadata"], { cwd: source, stdio: "ignore" });
+
+    const clone = `${source}-retain-clone`;
+    execFileSync("git", ["clone", "--no-local", "--single-branch", "--branch", "retained", source, clone], { stdio: "ignore" });
+    expect(commitExists(clone, subject)).toBe(false);
+    expect(runEvidenceRetain(clone, taskId)).toBe(1);
+    expect(runEvidenceRetain(clone, taskId, { fetchPrHead: true })).toBe(0);
+    expect(commitExists(clone, subject)).toBe(true);
+    expect(verifyPatchArtifact(clone, taskId, readEvidence(clone, taskId).evidence!, { shallow: false }).status).toBe("verified");
+    rmSync(clone, { recursive: true, force: true });
+  });
+
   test("evidence subject stays stable across post-evidence metadata commits", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -391,9 +534,10 @@ describe("evidence collect", () => {
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
     const subjectHead = headCommit(root);
-    const first = buildCollectedEvidence(root, "WBS-001-004", { baseRef: "base" });
+    expect(runEvidenceCollect(root, "WBS-001-004", { baseRef: "base", force: true })).toBe(0);
+    const first = readEvidence(root, "WBS-001-004").evidence!;
+    const firstPayload = readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch"));
 
-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", first as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", status: "requested" });
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved" });
     writeText(root, "contracts/registry.yaml", `${readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")}# metadata checkpoint\n`);
@@ -407,6 +551,8 @@ describe("evidence collect", () => {
       git: { subjectHeadCommit: subjectHead, headCommit: subjectHead }
     });
     expect(second.diffHash).toBe(first.diffHash);
+    expect(second.provenance).toEqual(first.provenance);
+    expect(readFileSync(path.join(root, "contracts/evidence-payloads/WBS-001-004.patch")).equals(firstPayload)).toBe(true);
     expect(second.changedFiles).toEqual(expect.arrayContaining([
       "contracts/evidence/WBS-001-004.yaml",
       "contracts/approvals/WBS-001-004.yaml",

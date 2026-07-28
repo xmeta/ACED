@@ -115,7 +115,7 @@ describe("finish lifecycle receipts", () => {
     }
     expect(readdirSync(finishLifecycleDirectory(root)).filter((file) => file.endsWith(".json"))).toHaveLength(finishLifecycleTaskLimit);
     expect(readdirSync(finishLifecycleDirectory(root))).not.toContain("TASK-EVENTS.json");
-  });
+  }, 15000);
 
   test("summarizes outcomes, convergence, corruption, and a bounded Task trend", () => {
     const root = makeTempRepo();

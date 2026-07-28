@@ -5,6 +5,7 @@ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.
 import { resolveCheckCommand } from "../core/check-catalog.js";
 import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt, removeCheckReceipt, writeCheckReceipt } from "../core/check-receipt.js";
 import { headCommit } from "../core/git.js";
+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import {
@@ -40,15 +41,6 @@ export type ChecksRunSummary = {
 };
 
 export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?: boolean };
-
-function metadataFiles(taskId: string): string[] {
-  return [
-    `contracts/evidence/${taskId}.yaml`,
-    `contracts/approvals/${taskId}.yaml`,
-    `contracts/reviews/${taskId}.yaml`,
-    "contracts/registry.yaml"
-  ];
-}
 
 function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
   const command = resolveCheckCommand(check);
@@ -89,7 +81,7 @@ export function buildChecksRunSummary(root: string, taskId: string, options: Che
   const baseRef = options.baseRef ?? "origin/main";
   const head = headCommit(root);
   if (!head) throw new Error("Unable to resolve HEAD");
-  const subject = buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: metadataFiles(taskId) });
+  const subject = buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: taskLifecycleMetadataPaths(taskId) });
   const provenance = collectCheckReceiptProvenance(root);
   const receiptRead = readCheckReceipt(root, { taskId, headCommit: head, subjectFingerprint: subject.fingerprint, provenance });
   const expected = task.requiredChecks.map((name) => {

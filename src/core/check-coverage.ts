@@ -8,14 +8,10 @@ import { asCheckCoveragePolicy, validateCheckCoveragePolicy } from "./schema/che
 import type { CheckCoveragePolicy, Issue, TaskContract } from "./types.js";
 import { readYamlFile } from "./yaml.js";
 import { branchDiffHash, changedFilesBetween, headCommit, isCommitAncestor } from "./git.js";
+import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
 
 function coverageMetadataFiles(taskId: string): string[] {
-  return [
-    `contracts/evidence/${taskId}.yaml`,
-    `contracts/approvals/${taskId}.yaml`,
-    `contracts/reviews/${taskId}.yaml`,
-    "contracts/registry.yaml"
-  ];
+  return taskLifecycleMetadataPaths(taskId);
 }
 
 function evidenceIsCurrent(root: string, task: TaskContract, evidence: NonNullable<ReturnType<typeof readEvidence>["evidence"]>): boolean {

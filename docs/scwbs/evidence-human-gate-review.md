@@ -66,20 +66,40 @@ Evidenceは自己申告だけで完結させない。可能な限り、CIログ�
 新規に収集するEvidenceは `provenance.schemaVersion: 1.0.0` を持ち、
 subjectのcommit、tree hash、`diffHash`、および
 `git-diff-binary-v1` canonicalizationを記録する。既定retentionは
-`git-object` であり、locatorは `git:<commit>` とする。これは対象Git
-objectが取得可能な間だけ再検証可能であることを明示するもので、長期保存を
-保証しない。
+`patch-artifact` であり、payloadを
+`contracts/evidence-payloads/<task-id>.patch` に保存する。locatorはこの
+task固有path、`manifestHash` はartifact bytesのSHA-256である。
 
-`patch-artifact` と `bundle` は将来のretention modeとしてschemaで予約する。
-現行CLIはそれらのpayloadを生成・取得・検証せず、healthでは
-`notEvaluated` とする。保存期間、repository肥大化、削除済みsecretや個人情報を
-patchに残す危険、外部artifactのアクセス制御をHuman Decisionで決めるまで、
-巨大patchをEvidence本文へ埋め込まない。
+canonical patchはbaseからsubjectまでの `git diff --binary --no-ext-diff`
+を基礎に、rename検出と環境依存prefixを固定し、Evidence、Approval、Review、
+Registry、payload自身を除外する。同じsubjectを再収集したbytesは同一になる。
+`treeHash` はpatchをbaseへ一時index上で適用して得たcanonical treeであり、
+working treeは変更しない。binary追加・削除、mode変更、rename、空diffも同じ
+表現で扱う。
+
+`health` / `status` はlocatorの完全一致、repository内path、payload存在、
+`manifestHash`、patch適用、再構築tree、`diffHash`、`changedFiles`を検証する。
+subject commit objectがなくても全検証が一致すればverifiedにできる。payload欠落、
+hash不一致、path逸脱、適用失敗、base欠落、tree不一致はunverifiableである。
+shallow cloneでbaseだけ取得できない場合はnot-evaluatedとする。
 
 subject commitが失われた `git-object` recordは `unverifiable` である。
 `diffHash` は同一性の識別子であり、payloadなしに元差分を復元できないため、
 digestが残っているだけで再検証成功とは扱わない。manifestを持たない既存の
 terminal Evidenceは後方互換で読めるが、active Evidenceでは移行warningを出す。
+
+既存Evidenceを移行する場合は、別のHuman Gate付きbackfill Taskから次を使う。
+
+```bash
+npm run scwbs -- evidence retain --task <historical-task-id>
+npm run scwbs -- evidence retain --task <historical-task-id> --fetch-pr-head
+```
+
+このcommandは既存のsubject、base、diffHash、changedFilesを再現できる場合だけ
+payloadとretention metadataを生成し、checksやApproval scopeを変更しない。
+`--fetch-pr-head` はEvidenceに記録されたPR番号の
+`refs/pull/<number>/head` だけを取得し、recorded subjectがそのancestorである
+ことを要求する。
 
 現行の `scwbs evidence collect` は、`commit`、`git.branch`、`git.base`、`git.baseCommit`、`git.headCommit`、`git.changedFilesBasis`、`changedFiles`、required checksのローカル実行結果を生成する。既定の差分基準は `origin/main...HEAD` のbranch diffであり、`--base <ref>` で基準refを変更できる。`changedFiles` が作業ツリー差分ではなくPR review向けのbase/head差分であることを示すため、`git.changedFilesBasis: branch-diff` を記録する。
 
