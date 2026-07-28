@@ -1,0 +1,739 @@
+diff --git a/README.md b/README.md
+index 6b42c83..2eb1030 100644
+--- a/README.md
++++ b/README.md
+@@ -149,7 +149,7 @@ work, and `strict` when broader governance checks are required.
+ Create a small task:
+ 
+ ```bash
+-npm run scwbs -- task new "Update docs" --paths "docs/**"
++npm run scwbs -- task new "Update docs" --paths "docs/scwbs/getting-started.md" --stop "source change required"
+ ```
+ 
+ Switch to the branch printed by the Task Contract:
+@@ -202,7 +202,7 @@ Common commands:
+ 
+ ```bash
+ npm run scwbs -- next
+-npm run scwbs -- task new "作業名" --paths "src/**,tests/**"
++npm run scwbs -- task new "作業名" --paths "src/commands/example.ts,tests/integration/example.test.ts" --stop "schema or dependency change required"
+ npm run scwbs -- start <goal>
+ npm run scwbs -- packet --task <task-id>           # tiny (default)
+ npm run scwbs -- packet --task <task-id> --standard
+diff --git a/contracts/specs/SPEC-LITE-MRME5SO8.yaml b/contracts/specs/SPEC-LITE-MRME5SO8.yaml
+new file mode 100644
+index 0000000..d0015aa
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRME5SO8.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRME5SO8
++type: spec-contract
++featureId: F-MRME5SO8
++title: "Issue #139: task newの既定scopeをfail-closedにし暗黙WBS割当を廃止する"
++status: approved
++version: 0.1.0
++summary: "Task作成時の広範scopeとgovernance nodeへの暗黙割当を廃止し、実際のpathとpolicyに基づくfail-closedな入口にする"
++approvedBy: user-requested-issue-139
++approvedAt: "2026-07-16T00:00:00+09:00"
++acceptanceCriteria:
++  - task newのタイトルだけでは広範な実装可能Taskを作らない
++  - WBS-less Taskを特定のgovernance nodeへ自動割当しない
++  - broad scopeを明示した場合はCLIがwarningを表示する
++  - Tiny Packetにscopeの広さとリスクを表示する
++  - stop conditionまたは明示的なno-stop-conditionsの意思表示を求める
++  - WBS-backedとWBS-lessの両フローを回帰テストする
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml b/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+new file mode 100644
+index 0000000..b9f1577
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+@@ -0,0 +1,82 @@
++id: SCWBS-DRAFT-MRME5SO8
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRME5SO8
++branchName: task/SCWBS-DRAFT-MRME5SO8-issue-139-task-new-fail-closed
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MRME5SO8.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRME5SO8.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRME5SO8.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRME5SO8.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRME5SO8.yaml
++allowedPaths:
++  - src/commands/task-new.ts
++  - src/cli.ts
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/commands/check.ts
++  - src/commands/task-lock.ts
++  - src/commands/ai-packet.ts
++  - src/commands/status.ts
++  - src/commands/trace.ts
++  - src/commands/health.ts
++  - src/commands/ai-queue.ts
++  - src/commands/review-queue.ts
++  - src/commands/completion.ts
++  - src/core/node-utils.ts
++  - tests/integration/tasks.test.ts
++  - tests/integration/ai.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/health.test.ts
++  - tests/unit/contracts.test.ts
++  - README.md
++  - docs/sc-wbs-core/07-cli-core-spec.md
++  - docs/scwbs/getting-started.md
++  - docs/scwbs/task-contract.md
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or lockfile change required
++  - workflow change required
++  - WBS-less compatibility cannot remain fail-closed
++  - Task authority semantics require policy expansion
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - paths未指定のtask newは広範な実装可能Taskを作らずfail-closedのdraftにする
++  - WBS node未指定のTaskをnode-governance-maintenanceへ暗黙割当せず、WBS-lessとして安全に扱う
++  - broad scopeを明示した場合はCLIがwarningを表示する
++  - stop condition未指定時は明示的な意思表示を求め、空のstopIfを暗黙生成しない
++  - Tiny Packetにscopeの広さとリスクをbounded表示する
++  - 既存のWBS-backed Taskとcompletion、queue、health、lockの挙動を壊さない
++  - fail-closed draft、WBS-less、explicit WBS node、broad scope warning、Tiny Packetの回帰テストを追加する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:4aff21d32ee75c8f6b579f83c5b775eca6f5128d65fb9ee92889d3d978f5aceb
++  createdAt: "2026-07-15T18:07:12.491Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 9a6a133..6c68fbf 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -177,3 +177,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRME5SO8
++    path: contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
++    branchName: task/SCWBS-DRAFT-MRME5SO8-issue-139-task-new-fail-closed
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/sc-wbs-core/07-cli-core-spec.md b/docs/sc-wbs-core/07-cli-core-spec.md
+index f461d2c..0b2d3a4 100644
+--- a/docs/sc-wbs-core/07-cli-core-spec.md
++++ b/docs/sc-wbs-core/07-cli-core-spec.md
+@@ -52,6 +52,10 @@ scwbs task new "スタッフ検索APIを実装" \
+   --stop db,auth,permission,breaking-api
+ ```
+ 
++`--paths` 未指定では `allowedPaths: []` のfail-closed draftを作る。`--wbs-node` 未指定では `wbsNodeId: wbs-less` を記録し、特定のgovernance nodeへ暗黙割当しない。WBS-less TaskはWBS completion queueに入らない。
++
++Stop Conditionsは `--stop` で明示する。意図的に空にする場合だけ `--no-stop-conditions` を使う。`src/**`、`tests/**`、`docs/**`、`contracts/**`、`**` の広範scopeを明示するとwarningを表示し、Tiny Packetにscope riskを表示する。
++
+ 生成物:
+ 
+ ```text
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index ab06aac..9ab899a 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -57,6 +57,8 @@ AI agents must not run `block resolve`. The command updates the existing record
+ ## Contracts
+ 
+ ```bash
++npm run scwbs -- task new "Fix parser" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema change required" --wbs-node node-parser
++npm run scwbs -- task new "Draft only" --no-stop-conditions
+ npm run scwbs -- task generate --node node-api --task WBS-001-004
+ npm run scwbs -- task lock --task WBS-001-004
+ npm run scwbs -- task refresh --task WBS-001-004
+@@ -79,6 +81,8 @@ npm run scwbs -- profile show
+ npm run scwbs -- profile set lean
+ ```
+ 
++`task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
++
+ `checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
+ 
+ `registry rebuild --force` の既定出力は、registry全体ではなく `added` / `updated` / `removed` / `path` の固定長サマリである。成功時の出力が不要なら `--quiet`、versioned summaryが必要なら `--json`、サマリに続けて全YAMLを確認する場合は `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら4つの出力modeは同時指定できない。JSONの正式なshapeは [`schemas/registry-rebuild-summary.schema.json`](schemas/registry-rebuild-summary.schema.json) で定義する。既定の `--check` は従来どおり、同期済みなら `PASS registry rebuild --check` とexit 0、未同期なら既存errorとexit 1を返す。
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index 83864f6..fe89f03 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -42,15 +42,17 @@ When in doubt, prefer `next` over guessing from Git status alone.
+ For a docs-only change:
+ 
+ ```bash
+-npm run scwbs -- task new "Improve user docs" --paths "README.md,docs/**"
++npm run scwbs -- task new "Improve user docs" --paths "README.md,docs/scwbs/getting-started.md" --stop "source change required"
+ ```
+ 
+ For a code-and-test change:
+ 
+ ```bash
+-npm run scwbs -- task new "Fix parser edge case" --paths "src/**,tests/**"
++npm run scwbs -- task new "Fix parser edge case" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema or dependency change required"
+ ```
+ 
++`--paths` を省略すると `allowedPaths: []` のdraftになり、実装を認可しません。`--wbs-node` を省略したTaskはWBS-lessとして保存され、WBS completion queueには入りません。Stop Conditionsを意図的に空にする場合は `--no-stop-conditions` を明示してください。
++
+ The command prints a Task Contract. Note these fields:
+ 
+ - `id`: pass this to later `scwbs` commands.
+@@ -210,4 +212,3 @@ Do not mark Approval as approved unless a human reviewer explicitly approved it.
+ | Running several `npm run scwbs` commands in parallel | Run SC-WBS commands sequentially |
+ | Collecting Evidence before the final implementation commit | Commit first, then collect Evidence |
+ | Self-approving a Human Gate | Request human review instead |
+-
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 27fb1b1..407c0f1 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -166,4 +166,6 @@ npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
+ 
+ 生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
+ 
++`task new` で `--wbs-node` を指定しない場合、`wbsNodeId: wbs-less` は「特定WBS nodeに未割当」を表す予約値である。このTaskはEvidence収集とpath/check検査は行えるが、WBS nodeのcompletion対象にはならない。WBS completionが必要な場合は、trusted contractで実在する `--wbs-node` を明示する。
++
+ ---
+diff --git a/src/cli.ts b/src/cli.ts
+index 16b30cf..aabd2f4 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -716,6 +716,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--forbid <paths>", "forbidden paths (comma separated)")
+     .option("--gate <paths>", "human gate paths (comma separated)")
+     .option("--stop <reasons>", "stop reasons (comma separated)")
++    .option("--no-stop-conditions", "explicitly acknowledge an empty stop condition list")
+     .option("--checks <checks>", "required checks (comma separated)")
+     .option("--wbs-node <id>", "WBS node id")
+     .action((titleParts: string[], opts) => {
+@@ -725,6 +726,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         forbid: opts.forbid,
+         gate: opts.gate,
+         stop: opts.stop,
++        noStopConditions: opts.noStopConditions,
+         checks: opts.checks,
+         wbsNode: opts.wbsNode
+       });
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 808b0c5..1bd09a0 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -7,6 +7,15 @@ import { findNode, readWbs } from "../core/wbs.js";
+ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
+ import type { TaskContract } from "../core/types.js";
+ import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
++import { isWbsLessTask } from "../core/node-utils.js";
++
++const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
++
++function tinyScopeRisk(task: TaskContract): string {
++  if (task.allowedPaths.length === 0) return "deny-all draft; add explicit paths before implementation";
++  const broad = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
++  return broad.length > 0 ? `broad; explicit review required (${broad.join(", ")})` : "bounded";
++}
+ 
+ function submodulePacket(root: string, task: TaskContract): string {
+   const evidence = readEvidence(root, task.id).evidence;
+@@ -101,7 +110,7 @@ export function buildAiPacket(root: string, taskId: string, relationDepth = 1, f
+   const profile: Profile = readProfile(root);
+   const artifactDirs = profileRequiredDirs(profile);
+ 
+-  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++  if (!existsSync(resolveFrom(root, defaultWbsPath)) || isWbsLessTask(task)) {
+     return `# AI Work Packet
+ 
+ ## Role
+@@ -116,7 +125,7 @@ ${task.id} ${task.doneCriteria[0] ?? ""}
+ 
+ ## WBS Node
+ - Node ID: ${task.wbsNodeId}
+-- Status: WBS document not present; use Task Contract and tasks index as ground truth.
++- Status: ${isWbsLessTask(task) ? "WBS-less; this task does not participate in WBS completion." : "WBS document not present; use Task Contract and tasks index as ground truth."}
+ - Feature: ${task.featureId}
+ 
+ ## Scope
+@@ -252,7 +261,7 @@ export function buildTinyPacket(root: string, taskId: string): string {
+   const profile: Profile = readProfile(root);
+   const artifactDirs = profileRequiredDirs(profile);
+ 
+-  if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++  if (!existsSync(resolveFrom(root, defaultWbsPath)) || isWbsLessTask(task)) {
+     return `# Tiny Packet
+ Task: ${task.id}
+ Node: ${task.wbsNodeId}
+@@ -262,6 +271,8 @@ Objective:
+ ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
+ Allowed:
+ ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++Scope Risk:
++- ${tinyScopeRisk(task)}
+ Forbidden:
+ ${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ Human Gate:
+@@ -290,6 +301,8 @@ Objective:
+ ${task.doneCriteria.map((item) => `- ${item}`).join("\n") || "- Not specified"}
+ Allowed:
+ ${task.allowedPaths.map((item) => `- ${item}`).join("\n") || "- None"}
++Scope Risk:
++- ${tinyScopeRisk(task)}
+ Forbidden:
+ ${task.forbiddenPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ Human Gate:
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index 1112f81..468f163 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -4,6 +4,7 @@ import { evidenceExists, listTasks, readBlock, readTask } from "../core/contract
+ import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
++import { isWbsLessTask } from "../core/node-utils.js";
+ import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ 
+@@ -28,6 +29,7 @@ function loadTaskAndNode(root: string, taskId: string) {
+     throw new Error(issues.map((issue) => issue.message).join("\n"));
+   }
+   const wbs = readWbs(root);
++  if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
+   const node = findNode(wbs, task.wbsNodeId);
+   if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+   return { task, wbs, node };
+@@ -191,7 +193,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
+     }
+     process.stdout.write(`\nHuman decision required: ${buildBlockRecord(taskId, reason).requiredHumanDecision}\n`);
+     process.stdout.write("AI must stop implementation until the block is resolved.\n");
+-    if (existsSync(resolveFrom(root, defaultWbsPath))) {
++    if (existsSync(resolveFrom(root, defaultWbsPath)) && !isWbsLessTask(taskResult.task)) {
+       process.stdout.write("\nWBS block change-set preview:\n");
+       process.stdout.write(buildBlockChangeSet(root, taskId, reason));
+     }
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 47d9954..cb89206 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -11,6 +11,7 @@ import { hasErrors, printIssues } from "../core/report.js";
+ import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
++import { isWbsLessTask } from "../core/node-utils.js";
+ 
+ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
+   if (!evidence) return [];
+@@ -55,13 +56,15 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
+ 
+   const wbs = readWbs(root);
+   if (task.contractLock.lockVersion === "2") {
+-    const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
+-    if (task.contractLock.wbsScopeRevision !== scopeRevision) {
+-      issues.push({
+-        severity: "error",
+-        code: "task.contractLock.wbsScopeRevision",
+-        message: `${task.id} contractLock.wbsScopeRevision is stale: ${task.contractLock.wbsScopeRevision} != ${scopeRevision}`
+-      });
++    if (!isWbsLessTask(task)) {
++      const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
++      if (task.contractLock.wbsScopeRevision !== scopeRevision) {
++        issues.push({
++          severity: "error",
++          code: "task.contractLock.wbsScopeRevision",
++          message: `${task.id} contractLock.wbsScopeRevision is stale: ${task.contractLock.wbsScopeRevision} != ${scopeRevision}`
++        });
++      }
+     }
+     const globalRevision = wbsGlobalRevision(wbs);
+     if (task.contractLock.wbsGlobalRevision !== globalRevision) {
+@@ -108,6 +111,19 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
+ 
+ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocument, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
+   const issues: Issue[] = [];
++  if (isWbsLessTask(task)) {
++    issues.push(...specIssues);
++    issues.push(...validateContractLock(root, task, spec, specPath));
++    if (evidenceExists(root, task.id)) {
++      const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
++      issues.push(...evidenceIssues);
++      issues.push(...validateRequiredChecks(task, evidence));
++      if (evidence) {
++        issues.push(...validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, evidence.changedFiles, root).issues);
++      }
++    }
++    return issues;
++  }
+   const node = findNode(wbs, task.wbsNodeId);
+   if (!node) {
+     issues.push({ severity: "error", code: "task.wbsNodeId", message: `${task.id} references missing WBS node: ${task.wbsNodeId}` });
+diff --git a/src/commands/completion.ts b/src/commands/completion.ts
+index d803c3c..16c864c 100644
+--- a/src/commands/completion.ts
++++ b/src/commands/completion.ts
+@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
++import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
+@@ -136,6 +136,7 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+   for (const taskId of taskIds) {
+     const { task, issues: taskIssues } = readTask(root, taskId);
+     if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
++    if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
+ 
+     const node = findNode(wbs, task.wbsNodeId);
+     if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+diff --git a/src/commands/task-lock.ts b/src/commands/task-lock.ts
+index ad82692..185b74d 100644
+--- a/src/commands/task-lock.ts
++++ b/src/commands/task-lock.ts
+@@ -3,6 +3,7 @@ import { fileSha256 } from "../core/hash.js";
+ import { resolveFrom, taskPath } from "../core/paths.js";
+ import { readRegistry, readTask, resolveSpecForTask } from "../core/contracts.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
++import { isWbsLessTask } from "../core/node-utils.js";
+ import type { TaskContract } from "../core/types.js";
+ import { readWbs } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+@@ -20,7 +21,7 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
+     ...task,
+     contractLock: {
+       lockVersion: "2",
+-      wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId),
++      ...(!isWbsLessTask(task) ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
+       wbsGlobalRevision: wbsGlobalRevision(wbs),
+       wbsNodeId: task.wbsNodeId,
+       ...(spec?.version && specPath ? { specVersion: spec.version, specRevision: fileSha256(root, specPath) } : {}),
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 576ca84..86a5a57 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -1,9 +1,13 @@
+ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { taskPath, resolveFrom } from "../core/paths.js";
++import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
++import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
++import { findNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
+ 
++const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
++
+ function slug(value: string): string {
+   return value
+     .toLowerCase()
+@@ -65,6 +69,7 @@ export function buildCoreTaskNew(title: string, options: {
+   gate?: string;
+   checks?: string;
+   stop?: string;
++  noStopConditions?: boolean;
+   wbsNode?: string;
+   id?: string;
+ } = {}): { task: TaskContract; fallback: TaskNewFallback } {
+@@ -74,10 +79,10 @@ export function buildCoreTaskNew(title: string, options: {
+   const task: TaskContract = {
+     id,
+     type: "task-contract",
+-    wbsNodeId: options.wbsNode?.trim() || "node-governance-maintenance",
++    wbsNodeId: options.wbsNode?.trim() || WBS_LESS_TASK_NODE_ID,
+     featureId: `F-${id.replace(/^SCWBS-DRAFT-/, "")}`,
+     branchName: `task/${id}-${safeTitle}`,
+-    allowedPaths: splitList(options.paths, ["src/**", "tests/**", "docs/**", "contracts/**"]),
++    allowedPaths: splitList(options.paths, []),
+     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
+     humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
+     stopIf: splitList(options.stop, []),
+@@ -113,10 +118,26 @@ export function runTaskNew(root: string, title: string, options: {
+   gate?: string;
+   checks?: string;
+   stop?: string;
++  noStopConditions?: boolean;
+   wbsNode?: string;
+ } = {}): number {
+   try {
++    if (!options.stop && !options.noStopConditions) {
++      console.error("Task creation is fail-closed: provide --stop <reasons> or explicitly acknowledge an empty stop list with --no-stop-conditions");
++      return 1;
++    }
+     const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
++    if (!isWbsLessTask(task)) {
++      if (!existsSync(resolveFrom(root, defaultWbsPath))) {
++        console.error(`Cannot validate --wbs-node ${task.wbsNodeId}: WBS document is missing`);
++        return 1;
++      }
++      const wbs = readWbs(root);
++      if (!findNode(wbs, task.wbsNodeId)) {
++        console.error(`Unknown WBS node: ${task.wbsNodeId}`);
++        return 1;
++      }
++    }
+     const relativePath = taskPath(task.id);
+     const fullPath = resolveFrom(root, relativePath);
+     if (existsSync(fullPath)) {
+@@ -138,6 +159,17 @@ export function runTaskNew(root: string, title: string, options: {
+       process.stdout.write(`Notice: ${fallback.fallbackNote}\n`);
+     }
+ 
++    if (task.allowedPaths.length === 0) {
++      process.stdout.write("Notice: no --paths were provided; allowedPaths is empty and this draft cannot authorize implementation.\n");
++    }
++    const broadScopes = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
++    if (broadScopes.length > 0) {
++      process.stdout.write(`Warning: broad allowedPaths require explicit review before implementation: ${broadScopes.join(", ")}\n`);
++    }
++    if (isWbsLessTask(task)) {
++      process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
++    }
++
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/trace.ts b/src/commands/trace.ts
+index 85c99ae..405bda3 100644
+--- a/src/commands/trace.ts
++++ b/src/commands/trace.ts
+@@ -1,5 +1,6 @@
+ import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
+ import { findNode, readWbs } from "../core/wbs.js";
++import { isWbsLessTask } from "../core/node-utils.js";
+ 
+ export function buildTrace(root: string, taskId: string): string {
+   const { task, issues } = readTask(root, taskId);
+@@ -14,7 +15,7 @@ export function buildTrace(root: string, taskId: string): string {
+   return `Trace ${task.id}
+ 
+ Spec: ${spec ? `${spec.id} v${spec.version} ${spec.status}` : "missing"}
+-  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : `missing ${task.wbsNodeId}`}
++  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : isWbsLessTask(task) ? "WBS-less" : `missing ${task.wbsNodeId}`}
+   -> Task: ${task.id}${task.mode ? ` (${task.mode})` : ""}
+   -> Evidence: ${evidence ? `${evidence.id} (${evidence.checks.length} checks)` : "missing"}
+   -> Review: ${review ? `${review.id} ${review.status}` : "missing"}
+diff --git a/src/core/node-utils.ts b/src/core/node-utils.ts
+index a36e050..6aebdf8 100644
+--- a/src/core/node-utils.ts
++++ b/src/core/node-utils.ts
+@@ -1,6 +1,12 @@
+ import type { TaskContract, WbsDocument } from "./types.js";
+ import { findNode, isDoneNode } from "./wbs.js";
+ 
++export const WBS_LESS_TASK_NODE_ID = "wbs-less";
++
++export function isWbsLessTask(task: TaskContract): boolean {
++  return task.wbsNodeId === WBS_LESS_TASK_NODE_ID;
++}
++
+ export function completionTaskIds(task: TaskContract): string[] {
+   return [...new Set(task.completionTaskIds ?? [])];
+ }
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index a09ab97..dba8f25 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -1,4 +1,5 @@
+ import type { ErrorObject } from "ajv";
++import { WBS_LESS_TASK_NODE_ID } from "../node-utils.js";
+ import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
+ import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+@@ -324,7 +325,10 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+         }
+       }
+       if (value.contractLock.lockVersion === "2") {
+-        for (const key of ["wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId"]) {
++        const requiredLockKeys = value.wbsNodeId === WBS_LESS_TASK_NODE_ID
++          ? ["wbsGlobalRevision", "wbsNodeId"]
++          : ["wbsScopeRevision", "wbsGlobalRevision", "wbsNodeId"];
++        for (const key of requiredLockKeys) {
+           if (typeof value.contractLock[key] !== "string" || value.contractLock[key].length === 0) {
+             issues.push(issue("task.contractLock", `${filePath}.contractLock.${key} must be present for lockVersion 2`));
+           }
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index bc15baa..4860f04 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { buildAiPacket } from "../../src/commands/ai-packet.js";
++import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
+ import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
+ import { buildNextAction } from "../../src/commands/next.js";
+ import { main } from "../../src/cli.js";
+@@ -471,6 +471,25 @@ describe("AI commands", () => {
+     expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
+   });
+ 
++  test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      wbsNodeId: "wbs-less",
++      allowedPaths: []
++    }) as unknown as Record<string, unknown>);
++
++    const denyAll = buildTinyPacket(root, "WBS-001-004");
++    expect(denyAll).toContain("Node: wbs-less");
++    expect(denyAll).toContain("Scope Risk:\n- deny-all draft");
++
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      wbsNodeId: "wbs-less",
++      allowedPaths: ["src/**"]
++    }) as unknown as Record<string, unknown>);
++    expect(buildTinyPacket(root, "WBS-001-004")).toContain("Scope Risk:\n- broad; explicit review required (src/**)");
++  });
++
+   test("core command aliases route to existing approval and block commands", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 73e139d..0baef9c 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
+ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+ import path from "node:path";
+ import { fileURLToPath } from "node:url";
+-import { describe, expect, test } from "vitest";
++import { describe, expect, test, vi } from "vitest";
+ import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
+ 
+ import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
+@@ -364,7 +364,8 @@ describe("task management", () => {
+       paths: "src/**,tests/**",
+       forbid: "wjs/**",
+       gate: ".github/**",
+-      checks: "test,typecheck"
++      checks: "test,typecheck",
++      stop: "schema change"
+     })).toBe(0);
+ 
+     const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+@@ -387,10 +388,59 @@ describe("task management", () => {
+ 
+     expect(task.id).toMatch(/^SCWBS-DRAFT-/);
+     expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
+-    expect(task.allowedPaths).toEqual(["src/**", "tests/**", "docs/**", "contracts/**"]);
++    expect(task.allowedPaths).toEqual([]);
++    expect(task.wbsNodeId).toBe("wbs-less");
+     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+   });
+ 
++  test("task new fails closed until stop-condition intent is explicit", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runTaskNew(root, "Fail Closed Draft")).toBe(1);
++    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
++  });
++
++  test("task new without paths creates a deny-all WBS-less draft", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runTaskNew(root, "Deny All Draft", { noStopConditions: true })).toBe(0);
++    const taskFile = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
++    const yaml = readFileSync(path.join(root, "contracts/tasks", taskFile ?? ""), "utf8");
++    expect(yaml).toContain("wbsNodeId: wbs-less");
++    expect(yaml).toContain("allowedPaths: []");
++    expect(collectCheckIssues(root)).toEqual([]);
++    const taskId = taskFile?.replace(/\.yaml$/, "") ?? "";
++    const locked = buildLockedTask(root, taskId);
++    expect(locked.contractLock?.wbsNodeId).toBe("wbs-less");
++    expect(locked.contractLock?.wbsScopeRevision).toBeUndefined();
++    expect(locked.contractLock?.wbsGlobalRevision).toMatch(/^sha256:/);
++    writeYaml(root, `contracts/tasks/${taskId}.yaml`, locked as unknown as Record<string, unknown>);
++    expect(collectCheckIssues(root)).toEqual([]);
++  });
++
++  test("task new warns when broad scope is explicitly requested", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
++
++    try {
++      expect(runTaskNew(root, "Broad Draft", { paths: "src/**", noStopConditions: true })).toBe(0);
++      expect(stdout.mock.calls.flat().join("")).toContain("Warning: broad allowedPaths require explicit review");
++    } finally {
++      stdout.mockRestore();
++    }
++  });
++
++  test("task new rejects an unknown explicit WBS node before writing artifacts", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runTaskNew(root, "Unknown Node", { paths: "src/safe.ts", noStopConditions: true, wbsNode: "node-missing" })).toBe(1);
++    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
++  });
++
+   test("task new retries draft task id collisions", () => {
+     const root = makeTempRepo();
+     writeYaml(root, "contracts/tasks/SCWBS-DRAFT-ABC.yaml", sampleTask({ id: "SCWBS-DRAFT-ABC" }) as unknown as Record<string, unknown>);
+@@ -419,7 +469,7 @@ describe("task management", () => {
+     writeScwbsProject(root);
+     const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+ 
+-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
++    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
+ 
+     const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+     expect(wbsAfter).toBe(wbsBefore);
+@@ -428,7 +478,7 @@ describe("task management", () => {
+     const taskFile = taskFileName ? `contracts/tasks/${taskFileName}` : undefined;
+     expect(taskFile).toBeTruthy();
+     const taskYaml = readFileSync(path.join(root, taskFile ?? ""), "utf8");
+-    expect(taskYaml).toContain("wbsNodeId: node-project");
++    expect(taskYaml).toContain("wbsNodeId: node-api");
+ 
+     const changesetDir = path.join(root, "contracts/changesets");
+     const changesetFiles = existsSync(changesetDir) ? readdirSync(changesetDir).filter((file) => file.includes("link-wbs-node")) : [];
+@@ -440,8 +490,8 @@ describe("task management", () => {
+     writeScwbsProject(root);
+     const wbsBefore = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+ 
+-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
+-    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-project" })).toBe(0);
++    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
++    expect(runTaskNew(root, "Linked Work", { wbsNode: "node-api", noStopConditions: true })).toBe(0);
+ 
+     const wbsAfter = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+     expect(wbsAfter).toBe(wbsBefore);
+@@ -454,7 +504,7 @@ describe("task management", () => {
+   test("WBS-less task flow passes check and can generate WBS candidates", () => {
+     const root = makeTempRepo();
+ 
+-    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test" })).toBe(0);
++    expect(runTaskNew(root, "WBS Less Work", { paths: "src/**", checks: "test", noStopConditions: true })).toBe(0);
+     expect(collectCheckIssues(root)).toEqual([]);
+     const candidates = buildWbsCandidatesFromTaskIndex(root);
+     const parsed = JSON.parse(candidates);
