@@ -1,0 +1,20 @@
+id: SPEC-LITE-MS4BAZKN
+type: spec-contract
+featureId: F-MS4BAZKN
+title: "Issue #178: tracked patch payloadでsquash後もEvidenceを再検証可能にする（authority再作成）"
+status: approved
+version: 0.1.0
+summary: "tracked binary patchをEvidence payloadとして保持し、squash後もsubject treeを再検証可能にする"
+approvedBy: user-requested-issue-178-authority-recreation
+approvedAt: "2026-07-28T09:00:00+09:00"
+acceptanceCriteria:
+  - evidence collect stores deterministic git-diff-binary-v1 bytes at contracts/evidence-payloads/<task-id>.patch
+  - Evidence records patch-artifact mode, repository-contained locator, and SHA-256 manifest hash
+  - verification reconstructs the subject tree in a temporary Git index and does not mutate the working tree
+  - a valid patch can verify Evidence when subjectHeadCommit is absent from the local object database
+  - missing, tampered, traversing, unapplicable, or tree-mismatched payloads are classified as unverifiable
+  - shallow repositories distinguish unavailable base history as not-evaluated
+  - legacy git-object Evidence remains readable and is not silently upgraded
+  - evidence retain preserves subjectHeadCommit, diffHash, changedFiles, checks, and Approval scope
+  - future Task creation governs payload paths and metadata fixed-point logic excludes payload self-reference
+  - documentation records repository growth and retained secret or personal-data trade-offs
