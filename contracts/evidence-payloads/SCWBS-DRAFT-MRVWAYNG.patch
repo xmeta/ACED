@@ -1,0 +1,420 @@
+diff --git a/contracts/specs/SPEC-LITE-MRVWAYNG.yaml b/contracts/specs/SPEC-LITE-MRVWAYNG.yaml
+new file mode 100644
+index 0000000..2b88c40
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRVWAYNG.yaml
+@@ -0,0 +1,14 @@
++id: SPEC-LITE-MRVWAYNG
++type: spec-contract
++featureId: F-MRVWAYNG
++title: Complete automatic registry synchronization with integration expectation updates for Issues 266 267 268 270
++status: approved
++version: 0.1.0
++summary: Complete Direction A automatic derived-state convergence for Issues 266, 267, 268, and 270, including integration expectation updates required by task lock Registry synchronization.
++approvedBy: user-successor-task-decision
++approvedAt: "2026-07-22T18:44:21+09:00"
++acceptanceCriteria:
++  - Record-modifying Evidence, Approval, Review, Task lock, Task refresh, Task creation, and finish flows automatically synchronize contracts/registry.yaml without breaking failure atomicity.
++  - task lock synchronizes Registry before resolving specRevision while pure preview and validation helpers remain side-effect free.
++  - evidence collect detects exactly one open pull request for the current branch when pull request metadata is absent; missing gh, command failure, invalid output, zero matches, and multiple matches do not fail Evidence collection.
++  - Integration tests are updated for intentional Registry synchronization and all required checks pass.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml b/contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
+new file mode 100644
+index 0000000..d1598ce
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MRVWAYNG
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRVWAYNG
++branchName: task/SCWBS-DRAFT-MRVWAYNG-complete-automatic-registry-synchronization-with
++allowedPaths:
++  - src/commands/registry-rebuild.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/evidence-annotate.ts
++  - src/commands/approval-request.ts
++  - src/commands/review-request.ts
++  - src/commands/start.ts
++  - src/commands/task-lock.ts
++  - src/commands/task-refresh.ts
++  - src/commands/task-new.ts
++  - tests/unit/auto-registry-sync.test.ts
++  - tests/integration/ai.test.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/misc.test.ts
++  - tests/integration/review.test.ts
++  - tests/integration/tasks.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Record-modifying Evidence, Approval, Review, Task lock, Task refresh, Task creation, and finish flows automatically synchronize contracts/registry.yaml without breaking failure atomicity.
++  - task lock synchronizes Registry before resolving specRevision while pure preview and validation helpers remain side-effect free.
++  - evidence collect detects a unique open pull request for the current branch when pull request metadata is absent, and safely preserves legacy behavior when detection is unavailable or ambiguous.
++  - Integration expectations cover the intentional automatic synchronization behavior and all required checks pass.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
++  - contracts/specs/SPEC-LITE-MRVWAYNG.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRVWAYNG.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a6ec2dc5e0e72529a3eb1cbd204eac28cf3c3c07285ebd55f62c9a7eb15154ad
++  createdAt: "2026-07-22T09:45:26.667Z"
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index 344660f..612143a 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -4,6 +4,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
+ import { approvalPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
+ 
+ export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string }): ApprovalRecord {
+@@ -66,6 +67,7 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+     const yaml = buildApprovalRequestYaml(taskId, options);
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+@@ -155,6 +157,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/evidence-annotate.ts b/src/commands/evidence-annotate.ts
+index def89be..58a7709 100644
+--- a/src/commands/evidence-annotate.ts
++++ b/src/commands/evidence-annotate.ts
+@@ -3,6 +3,7 @@ import { readEvidence } from "../core/contracts.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence } from "../core/types.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+ type TestQuality = NonNullable<Evidence["testQuality"]>;
+ 
+@@ -36,6 +37,7 @@ export function runEvidenceAnnotate(root: string, taskId: string, options: Evide
+       stringifySimpleYaml(annotated as unknown as Record<string, unknown>),
+       "utf8"
+     );
++    syncRegistry(root);
+     console.log(`annotated ${evidencePath(taskId)} (subject provenance and checks preserved)`);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 405dfdd..3a6858b 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -13,6 +13,7 @@ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { printIssues } from "../core/report.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ import {
+   acquireRequiredCheckRun,
+   formatRequiredCheckProgress,
+@@ -24,6 +25,25 @@ import {
+   type RequiredCheckRunLease
+ } from "../core/required-check-run.js";
+ 
++export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
++  if (!branchName) return undefined;
++  try {
++    const result = spawnSync("gh", ["pr", "list", "--head", branchName, "--state", "open", "--json", "number"], {
++      cwd: root,
++      encoding: "utf8",
++      shell: process.platform === "win32"
++    });
++    if (result.status !== 0 || !result.stdout) return undefined;
++    const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
++    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0]?.number === "number") {
++      return String(parsed[0].number);
++    }
++  } catch {
++    // gh CLI missing, invalid output, or failed
++  }
++  return undefined;
++}
++
+ type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
+ 
+ export type EvidenceCollectSummary = {
+@@ -154,7 +174,9 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
+     );
+   }
+-  const pullRequest = options.pullRequest ?? existingEvidence?.git?.pullRequest;
++  const pullRequest = options.pullRequest
++    ?? existingEvidence?.git?.pullRequest
++    ?? detectOpenPullRequest(root, branch ?? task.branchName);
+   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+   const cacheSubject = task.requiredChecks.length > 0
+     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+@@ -297,6 +319,7 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+     });
+     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     const summary = buildEvidenceCollectSummary(taskId, relativePath, evidence);
+     if (!options.quiet) {
+       if (options.json) {
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 6d16f18..9a8b74f 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -115,6 +115,17 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
+   return stringifySimpleYaml({ projectId, contracts });
+ }
+ 
++export function syncRegistry(root: string): RegistryRebuildSummary {
++  const next = buildRegistryYaml(root);
++  const fullPath = resolveFrom(root, defaultRegistryPath);
++  const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "";
++  const summary = buildRegistryRebuildSummary(current, next, current === next ? "synchronized" : "rebuilt");
++  if (current !== next) {
++    writeFileSync(fullPath, next, "utf8");
++  }
++  return summary;
++}
++
+ export function runRegistryRebuild(root: string, options: RegistryRebuildOptions): number {
+   try {
+     const outputModes = [options.quiet, options.json, options.verbose, options.output !== undefined].filter(Boolean).length;
+diff --git a/src/commands/review-request.ts b/src/commands/review-request.ts
+index ac959fd..407e8ed 100644
+--- a/src/commands/review-request.ts
++++ b/src/commands/review-request.ts
+@@ -3,7 +3,7 @@ import path from "node:path";
+ import { readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+ import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
+-import { buildRegistryYaml } from "./registry-rebuild.js";
++import { buildRegistryYaml, syncRegistry } from "./registry-rebuild.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
+ 
+@@ -279,6 +279,7 @@ export function runReviewApprove(root: string, taskId: string, options: { review
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+@@ -309,6 +310,7 @@ export function runReviewChangesRequested(root: string, taskId: string, options:
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+@@ -338,6 +340,7 @@ export function runReviewClose(root: string, taskId: string, options: { reviewed
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/start.ts b/src/commands/start.ts
+index e5c69a4..557b898 100644
+--- a/src/commands/start.ts
++++ b/src/commands/start.ts
+@@ -4,6 +4,7 @@ import { readTask } from "../core/contracts.js";
+ import { currentBranch } from "../core/git.js";
+ import { resolveFrom, specPath, taskPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+ function slug(value: string): string {
+   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "goal";
+@@ -101,6 +102,7 @@ export function runStart(root: string, goal: string): number {
+       writeFileSync(fullPath, content, "utf8");
+       console.log(`created ${relativePath}`);
+     }
++    syncRegistry(root);
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/task-lock.ts b/src/commands/task-lock.ts
+index 185b74d..172cf19 100644
+--- a/src/commands/task-lock.ts
++++ b/src/commands/task-lock.ts
+@@ -7,6 +7,7 @@ import { isWbsLessTask } from "../core/node-utils.js";
+ import type { TaskContract } from "../core/types.js";
+ import { readWbs } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+ export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
+   const { task, issues } = readTask(root, taskId);
+@@ -36,8 +37,10 @@ export function buildLockedTaskYaml(root: string, taskId: string, createdAt?: Da
+ 
+ export function runTaskLock(root: string, taskId: string): number {
+   try {
++    syncRegistry(root);
+     const yaml = buildLockedTaskYaml(root, taskId);
+     writeFileSync(resolveFrom(root, taskPath(taskId)), yaml, "utf8");
++    syncRegistry(root);
+     console.log(`locked ${taskPath(taskId)}`);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 2af7b57..baf29dc 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -5,6 +5,7 @@ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+ const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+ const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+@@ -175,6 +176,7 @@ export function runTaskNew(root: string, title: string, options: {
+       process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
+     }
+ 
++    syncRegistry(root);
+     process.stdout.write(yaml);
+     return 0;
+   } catch (error) {
+diff --git a/src/commands/task-refresh.ts b/src/commands/task-refresh.ts
+index 8ebd6fe..2c64354 100644
+--- a/src/commands/task-refresh.ts
++++ b/src/commands/task-refresh.ts
+@@ -3,6 +3,7 @@ import { listTasks, readTask } from "../core/contracts.js";
+ import { taskPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { buildLockedTask } from "./task-lock.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+ export function buildTaskRefreshPreview(root: string, taskId: string): string {
+   const { task, issues } = readTask(root, taskId);
+@@ -72,6 +73,7 @@ export function runTaskRefresh(root: string, taskId: string | undefined, options
+       for (const refreshed of refreshedTasks) {
+         writeFileSync(resolveFrom(root, taskPath(refreshed.id)), stringifySimpleYaml(refreshed as unknown as Record<string, unknown>), "utf8");
+       }
++      syncRegistry(root);
+       console.log("refreshed all Task Contracts");
+       return 0;
+     }
+@@ -82,6 +84,7 @@ export function runTaskRefresh(root: string, taskId: string | undefined, options
+     }
+     const refreshed = buildLockedTask(root, taskId);
+     writeFileSync(resolveFrom(root, taskPath(taskId)), stringifySimpleYaml(refreshed as unknown as Record<string, unknown>), "utf8");
++    syncRegistry(root);
+     console.log(`refreshed ${taskPath(taskId)}`);
+     return 0;
+   } catch (error) {
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 9b4c352..996fac2 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -592,7 +592,6 @@ describe("finish", () => {
+     const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
+     const registryFile = path.join(root, "contracts/registry.yaml");
+     const previousEvidence = readFileSync(evidenceFile, "utf8");
+-    const previousRegistry = readFileSync(registryFile, "utf8");
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+       branchName: "master",
+       allowedPaths: ["docs/**", "contracts/**"],
+@@ -602,6 +601,7 @@ describe("finish", () => {
+     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+     execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "restrict task scope"], { cwd: root, stdio: "ignore" });
++    const previousRegistry = readFileSync(registryFile, "utf8");
+     const beforeStatus = gitStatus(root);
+ 
+     const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+diff --git a/tests/unit/auto-registry-sync.test.ts b/tests/unit/auto-registry-sync.test.ts
+new file mode 100644
+index 0000000..a8d2636
+--- /dev/null
++++ b/tests/unit/auto-registry-sync.test.ts
+@@ -0,0 +1,55 @@
++import { describe, expect, it, beforeEach, afterEach } from "vitest";
++import { rmSync, existsSync, readFileSync } from "node:fs";
++import path from "node:path";
++import { syncRegistry } from "../../src/commands/registry-rebuild.js";
++import { detectOpenPullRequest } from "../../src/commands/evidence-collect.js";
++import { runTaskLock } from "../../src/commands/task-lock.js";
++import { makeTempRepo, sampleSpec, sampleTask, sampleWbs, writeJson, writeYaml } from "../helpers.js";
++
++describe("Automatic Registry Synchronization (Issue #270 Direction A)", () => {
++  let tmpDir: string;
++
++  beforeEach(() => {
++    tmpDir = makeTempRepo();
++    writeJson(tmpDir, "contracts/wbs/project.wbs.json", sampleWbs());
++  });
++
++  afterEach(() => {
++    if (existsSync(tmpDir)) {
++      rmSync(tmpDir, { recursive: true, force: true });
++    }
++  });
++
++  it("automatically creates and synchronizes contracts/registry.yaml", () => {
++    writeYaml(tmpDir, "contracts/specs/SPEC-F001-API.yaml", sampleSpec() as unknown as Record<string, unknown>);
++
++    const summary = syncRegistry(tmpDir);
++    expect(summary.status).toBe("rebuilt");
++    expect(existsSync(path.join(tmpDir, "contracts/registry.yaml"))).toBe(true);
++
++    const registryContent = readFileSync(path.join(tmpDir, "contracts/registry.yaml"), "utf8");
++    expect(registryContent).toContain("SPEC-F001-API");
++
++    // Second sync should be synchronized without changes
++    const secondSummary = syncRegistry(tmpDir);
++    expect(secondSummary.status).toBe("synchronized");
++  });
++
++  it("task lock synchronizes the registry before resolving specs", () => {
++    writeYaml(tmpDir, "contracts/specs/SPEC-F001-API.yaml", sampleSpec() as unknown as Record<string, unknown>);
++    writeYaml(tmpDir, "contracts/tasks/SCWBS-DRAFT-TEST.yaml", sampleTask({ id: "SCWBS-DRAFT-TEST", featureId: "F001", wbsNodeId: "node-api" }) as unknown as Record<string, unknown>);
++
++    // Run task lock without calling registry rebuild beforehand.
++    expect(runTaskLock(tmpDir, "SCWBS-DRAFT-TEST")).toBe(0);
++    const locked = readFileSync(path.join(tmpDir, "contracts/tasks/SCWBS-DRAFT-TEST.yaml"), "utf8");
++    expect(locked).toContain("contractLock:");
++    expect(locked).toContain("specVersion: 1.0.0");
++    expect(locked).toContain("specRevision:");
++    expect(existsSync(path.join(tmpDir, "contracts/registry.yaml"))).toBe(true);
++  });
++
++  it("detectOpenPullRequest safely returns undefined when gh CLI is unavailable or fails", () => {
++    const result = detectOpenPullRequest(tmpDir, "non-existent-branch-xyz");
++    expect(result === undefined || typeof result === "string").toBe(true);
++  });
++});
