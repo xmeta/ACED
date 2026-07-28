@@ -1,0 +1,688 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 56ad7f1..2a8f417 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -80,6 +80,7 @@ rules:
+       - src/core/schema/shared.ts
+       - src/core/schema/wbs.ts
+       - src/core/submodule-provenance.ts
++      - src/core/task-authority.ts
+       - src/core/wbs-lock.ts
+       - src/core/wbs.ts
+       - src/core/yaml.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml b/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+new file mode 100644
+index 0000000..c0f04da
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MRKOFKM3
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRKOFKM3
++branchName: task/SCWBS-DRAFT-MRKOFKM3-issue-186-task-contract-authority-baseline-enfor
++allowedPaths:
++  - src/core/task-authority.ts
++  - src/core/git.ts
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/commands/check-diff.ts
++  - src/commands/task-lock.ts
++  - src/commands/task-refresh.ts
++  - tests/helpers.ts
++  - tests/unit/contracts.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/task.test.ts
++  - docs/scwbs/task-contract.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - Authority provenance cannot be verified without weakening fail-closed behavior
++  - 'Approval identity semantics from Issue #144 must change'
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - base契約とhead契約のauthority field差分を検出する
++  - allowedPaths追加だけで同一branchの既存違反を正当化できない
++  - forbiddenPaths、humanGateRequiredPaths、requiredChecksの弱化を検出する
++  - managedContractPathsとcheckCoverageWaiversの追加をscope変更として扱う
++  - authority変更はHuman Approvalまたは別の既存governance Task provenanceを必要とする
++  - contractLockだけのmetadata refreshはauthority変更として扱わない
++  - baseline契約がない新規Taskは検証可能な初回契約commitをtrust rootとし、危険または未確定な作成状態を拒否する
++  - base ref取得不能、merge-base取得不能、shallow cloneではfail-closedにする
++  - 自己scope拡張と新規Task trust rootのintegration regression testを追加する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRKOFKM3.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRKOFKM3.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRKOFKM3.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRKOFKM3.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-14T13:18:36.279Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index d77c7a5..481d46c 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -135,3 +135,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRKOFKM3
++    path: contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
++    branchName: task/SCWBS-DRAFT-MRKOFKM3-issue-186-task-contract-authority-baseline-enfor
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 586538d..27fb1b1 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -89,6 +89,23 @@ npm run scwbs -- task lock --task WBS-001-004
+ `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+ `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+ 
++## Authority baseline
++
++`check-diff` はworktree側のTask Contractだけを権限根拠にしない。`origin/main` とHEADのmerge-baseにある契約をbaselineとし、次のauthority fieldsを比較する。
++
++- `allowedPaths`
++- `forbiddenPaths`
++- `humanGateRequiredPaths`
++- `requiredChecks`
++- `managedContractPaths`
++- `checkCoverageWaivers`
++
++同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。
++
++base側に契約がない新規Taskでは、契約・index・registryなど宣言済み `managedContractPaths` だけを含む最初のcommitをtrust rootとして使う。この初回契約はversion 2 lock、自身のmanaged path、標準Human Gate、`wjs/**` boundary、baseline checksを持ち、repository-wide既定globやcreation-time waiverを含めてはならない。契約が未commit、実装と同じcommit、または初回commit後にauthority fieldsが書き換えられた場合は拒否する。
++
++authority比較が必要なbranchでbase refやmerge-baseを解決できない場合、およびshallow cloneではfail-closedになる。履歴を取得してから再実行する。
++
+ submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
+ 
+ ## Required check coverage
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 63ec45a..38a81f4 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -1,10 +1,11 @@
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+-import { branchChangedFiles, currentBranch } from "../core/git.js";
++import { branchChangedFiles, currentBranch, workingTreeChangedFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
++import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+ import { collectWbsChangesetGateIssues } from "./check.js";
+@@ -136,8 +137,13 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   }
+   const baseRef = options.baseRef ?? "origin/main";
+   let files: string[] = [];
++  let authorityFiles: string[] = [];
+   try {
+     files = branchChangedFiles(root, baseRef);
++    authorityFiles = Array.from(new Set([
++      ...files,
++      ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
++    ]));
+   } catch (error) {
+     const baseIssues = [{
+       severity: "error",
+@@ -152,6 +158,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   const diffIssues = withDefaultFixCommand([
+     ...collectBranchIssues(task, currentBranch(root)),
+     ...collectEvidenceGateIssues(root, task),
++    ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
+     ...collectDiffIssues(root, task, files)
+   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+ 
+diff --git a/src/core/git.ts b/src/core/git.ts
+index db81703..f4c2a51 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -85,7 +85,7 @@ export function mergeBase(root: string, baseRef: string, headRef = "HEAD"): stri
+   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
+ }
+ 
+-function gitObject(root: string, ref: string, file: string): string | undefined {
++export function gitObject(root: string, ref: string, file: string): string | undefined {
+   const result = spawnSync("git", ["show", `${ref}:${file}`], {
+     cwd: root,
+     encoding: "utf8"
+@@ -93,6 +93,15 @@ function gitObject(root: string, ref: string, file: string): string | undefined
+   return result.status === 0 ? result.stdout : undefined;
+ }
+ 
++export function fileIntroductionCommit(root: string, baseRef: string, headRef: string, file: string): string | undefined {
++  const commits = gitLines(root, ["log", "--reverse", "--diff-filter=A", "--format=%H", `${baseRef}..${headRef}`, "--", file], "git log failed");
++  return commits[0];
++}
++
++export function commitChangedFiles(root: string, commit: string): string[] {
++  return gitLines(root, ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit], "git diff-tree failed");
++}
++
+ export function baseBranchStatus(root: string, baseRef = "origin/main"): { baseRef: string; baseCommit?: string; mergeBase?: string; headCommit?: string; isBehind: boolean } {
+   const baseCommit = resolveCommit(root, baseRef);
+   const currentHead = headCommit(root);
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+new file mode 100644
+index 0000000..2a48dcf
+--- /dev/null
++++ b/src/core/task-authority.ts
+@@ -0,0 +1,248 @@
++import { readApproval, readEvidence, readTask } from "./contracts.js";
++import { commitChangedFiles, fileIntroductionCommit, gitObject, isShallowRepository, mergeBase } from "./git.js";
++import { matchesAny } from "./glob.js";
++import { validateHumanGateApproval } from "./human-gate.js";
++import { matchesManagedContractPath } from "./managed-contract-paths.js";
++import { asTaskContract, validateTaskContract, validateTaskContractSchema } from "./schema.js";
++import type { Issue, TaskContract } from "./types.js";
++import { parseSimpleYaml } from "./yaml.js";
++
++export const TASK_AUTHORITY_FIELDS = [
++  "allowedPaths",
++  "forbiddenPaths",
++  "humanGateRequiredPaths",
++  "requiredChecks",
++  "managedContractPaths",
++  "checkCoverageWaivers"
++] as const;
++
++const REQUIRED_NEW_TASK_HUMAN_GATES = [
++  "package.json",
++  "package-lock.json",
++  "tsconfig.json",
++  "vitest.config.ts",
++  ".github/**"
++];
++
++const UNSAFE_NEW_TASK_GLOBS = new Set(["**", "src/**", "tests/**", "docs/**", "contracts/**"]);
++
++type AuthorityField = typeof TASK_AUTHORITY_FIELDS[number];
++type AuthoritySnapshot = Record<AuthorityField, unknown>;
++
++function normalizedStrings(values: string[] | undefined): string[] {
++  return [...new Set(values ?? [])].sort();
++}
++
++export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
++  return {
++    allowedPaths: normalizedStrings(task.allowedPaths),
++    forbiddenPaths: normalizedStrings(task.forbiddenPaths),
++    humanGateRequiredPaths: normalizedStrings(task.humanGateRequiredPaths),
++    requiredChecks: normalizedStrings(task.requiredChecks),
++    managedContractPaths: normalizedStrings(task.managedContractPaths),
++    checkCoverageWaivers: [...(task.checkCoverageWaivers ?? [])]
++      .map((waiver) => ({ check: waiver.check, reason: waiver.reason }))
++      .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`))
++  };
++}
++
++export function changedTaskAuthorityFields(base: TaskContract, head: TaskContract): AuthorityField[] {
++  const baseSnapshot = taskAuthoritySnapshot(base);
++  const headSnapshot = taskAuthoritySnapshot(head);
++  return TASK_AUTHORITY_FIELDS.filter((field) => JSON.stringify(baseSnapshot[field]) !== JSON.stringify(headSnapshot[field]));
++}
++
++function taskAtRef(root: string, ref: string, relativePath: string): { task?: TaskContract; issues: Issue[] } {
++  const source = gitObject(root, ref, relativePath);
++  if (source === undefined) return { issues: [] };
++  const value = parseSimpleYaml(source);
++  const issues = [
++    ...validateTaskContractSchema(value, `${ref}:${relativePath}`),
++    ...validateTaskContract(value, `${ref}:${relativePath}`)
++  ];
++  return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues };
++}
++
++function authorityApprovalIsValid(root: string, currentTask: TaskContract, taskPath: string, changedFiles: string[]): boolean {
++  const syntheticGateTask = { ...currentTask, humanGateRequiredPaths: [taskPath] };
++  const gate = validateHumanGateApproval(
++    syntheticGateTask,
++    readEvidence(root, currentTask.id).evidence,
++    readApproval(root, currentTask.id).approval,
++    changedFiles,
++    root
++  );
++  return gate.required && gate.approved;
++}
++
++function hasIndependentGovernanceProvenance(currentTask: TaskContract, targetTaskId: string, targetPath: string): boolean {
++  if (currentTask.id === targetTaskId || currentTask.wbsNodeId !== "node-governance-maintenance") return false;
++  if (!matchesAny(targetPath, currentTask.allowedPaths) && !matchesManagedContractPath(currentTask, targetPath)) return false;
++  return !matchesAny(targetPath, currentTask.forbiddenPaths) && !matchesAny(targetPath, currentTask.humanGateRequiredPaths);
++}
++
++function authorityChangeIssue(currentTask: TaskContract, targetTaskId: string, targetPath: string, fields: string[]): Issue {
++  return {
++    severity: "error",
++    code: "diff.taskAuthority.change",
++    message: `${targetTaskId} authority fields changed from the trusted contract: ${fields.join(", ")}. Self-authorized scope changes are not accepted.`,
++    fixCommand: `Revert ${targetPath}, use a separate node-governance-maintenance Task, or run npm run scwbs -- approval request --task ${currentTask.id}`
++  };
++}
++
++function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath: string, headTask: TaskContract): Issue[] {
++  const introduction = fileIntroductionCommit(root, mergeBaseRef, "HEAD", taskPath);
++  if (!introduction) {
++    return [{
++      severity: "error",
++      code: "diff.taskAuthority.newTask.uncommitted",
++      message: `${taskPath} has no committed creation point after ${mergeBaseRef}; a working-tree contract is not a trust root`,
++      fixCommand: `Commit only the new Task Contract and its managed index/registry files before implementation changes`
++    }];
++  }
++
++  const { task: introducedTask, issues: introducedIssues } = taskAtRef(root, introduction, taskPath);
++  if (!introducedTask) {
++    return introducedIssues.length > 0 ? introducedIssues.map((issue) => ({
++      ...issue,
++      code: "diff.taskAuthority.newTask.invalid",
++      fixCommand: `Repair the initial Task Contract commit ${introduction} before continuing`
++    })) : [{
++      severity: "error",
++      code: "diff.taskAuthority.newTask.missing",
++      message: `${taskPath} is missing from its recorded introduction commit ${introduction}`,
++      fixCommand: `Repair the Task Contract history before continuing`
++    }];
++  }
++
++  const issues: Issue[] = [];
++  const changedFields = changedTaskAuthorityFields(introducedTask, headTask);
++  if (changedFields.length > 0) issues.push(authorityChangeIssue(headTask, headTask.id, taskPath, changedFields));
++
++  const unexpectedCreationFiles = commitChangedFiles(root, introduction).filter((file) => !matchesManagedContractPath(introducedTask, file));
++  if (unexpectedCreationFiles.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.mixedCommit",
++      message: `${taskPath} creation commit ${introduction} mixes non-managed files: ${unexpectedCreationFiles.join(", ")}`,
++      fixCommand: `Recreate the Task Contract in a contract-only commit before implementation changes`
++    });
++  }
++  if (introducedTask.contractLock?.lockVersion !== "2" || !introducedTask.contractLock.createdAt) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.lock",
++      message: `${taskPath} creation commit does not contain a version 2 contractLock`,
++      fixCommand: `Run npm run scwbs -- task lock --task ${headTask.id} before the contract-only creation commit`
++    });
++  }
++  if (!matchesManagedContractPath(introducedTask, taskPath)) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.managedPath",
++      message: `${taskPath} creation contract does not explicitly manage its own Task Contract path`,
++      fixCommand: `Add ${taskPath} to managedContractPaths before the contract-only creation commit`
++    });
++  }
++  const missingGates = REQUIRED_NEW_TASK_HUMAN_GATES.filter((path) => !introducedTask.humanGateRequiredPaths.includes(path));
++  if (missingGates.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.humanGate",
++      message: `${taskPath} creation contract omits required Human Gate paths: ${missingGates.join(", ")}`,
++      fixCommand: `Restore the standard Human Gate paths in the contract creation commit`
++    });
++  }
++  if (!introducedTask.forbiddenPaths.includes("wjs/**")) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.forbiddenPaths",
++      message: `${taskPath} creation contract must retain the repository wjs/** boundary`,
++      fixCommand: `Add wjs/** to forbiddenPaths in the contract creation commit`
++    });
++  }
++  const broadScopes = introducedTask.allowedPaths.filter((path) => UNSAFE_NEW_TASK_GLOBS.has(path));
++  if (broadScopes.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.broadScope",
++      message: `${taskPath} creation contract uses unsafe repository-wide defaults: ${broadScopes.join(", ")}`,
++      fixCommand: `Replace broad defaults with explicit implementation and test paths before the contract-only creation commit`
++    });
++  }
++  if ((introducedTask.checkCoverageWaivers ?? []).length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.waiver",
++      message: `${taskPath} creation contract cannot establish trust with checkCoverageWaivers`,
++      fixCommand: `Remove creation-time waivers or request Human Approval for the current Evidence scope`
++    });
++  }
++  const missingChecks = ["test", "typecheck", "build"].filter((check) => !introducedTask.requiredChecks.includes(check));
++  if (missingChecks.length > 0) {
++    issues.push({
++      severity: "error",
++      code: "diff.taskAuthority.newTask.requiredChecks",
++      message: `${taskPath} creation contract omits baseline checks: ${missingChecks.join(", ")}`,
++      fixCommand: `Restore test, typecheck, and build in the contract creation commit`
++    });
++  }
++  return issues;
++}
++
++export function collectTaskAuthorityIssues(
++  root: string,
++  currentTask: TaskContract,
++  baseRef: string,
++  changedFiles: string[]
++): Issue[] {
++  const taskPaths = changedFiles.filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file) && file !== "contracts/tasks/index.yaml");
++  if (taskPaths.length === 0) return [];
++  if (isShallowRepository(root)) {
++    return [{
++      severity: "error",
++      code: "diff.taskAuthority.git.shallow",
++      message: `Task Contract authority cannot be verified in a shallow repository`,
++      fixCommand: `Fetch full history for ${baseRef} before running check-diff`
++    }];
++  }
++  const trustedBase = mergeBase(root, baseRef, "HEAD");
++  if (!trustedBase) {
++    return [{
++      severity: "error",
++      code: "diff.taskAuthority.git.mergeBase",
++      message: `Task Contract authority cannot be verified because ${baseRef} and HEAD have no resolvable merge base`,
++      fixCommand: `Fetch ${baseRef} and its history before running check-diff`
++    }];
++  }
++
++  const issues: Issue[] = [];
++  for (const taskPath of taskPaths) {
++    const targetTaskId = taskPath.replace(/^contracts\/tasks\//, "").replace(/\.ya?ml$/, "");
++    const { task: baseTask, issues: baseIssues } = taskAtRef(root, trustedBase, taskPath);
++    const { task: headTask, issues: headIssues } = readTask(root, targetTaskId);
++    if (baseIssues.length > 0) {
++      issues.push(...baseIssues.map((issue) => ({ ...issue, code: "diff.taskAuthority.base.invalid" })));
++      continue;
++    }
++    if (!headTask) {
++      if (hasIndependentGovernanceProvenance(currentTask, targetTaskId, taskPath)) continue;
++      const nonMissingIssues = headIssues.filter((issue) => issue.code !== "task.missing");
++      issues.push(...(nonMissingIssues.length > 0 ? nonMissingIssues : [authorityChangeIssue(currentTask, targetTaskId, taskPath, ["contract deletion"])]));
++      continue;
++    }
++
++    let authorityIssues: Issue[] = [];
++    if (!baseTask) {
++      authorityIssues = collectNewTaskTrustIssues(root, trustedBase, taskPath, headTask);
++    } else {
++      const fields = changedTaskAuthorityFields(baseTask, headTask);
++      if (fields.length > 0 && !hasIndependentGovernanceProvenance(currentTask, targetTaskId, taskPath)) {
++        authorityIssues.push(authorityChangeIssue(currentTask, targetTaskId, taskPath, fields));
++      }
++    }
++    if (authorityIssues.length > 0 && authorityApprovalIsValid(root, currentTask, taskPath, changedFiles)) continue;
++    issues.push(...authorityIssues);
++  }
++  return issues;
++}
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index dc60a3c..1e5eb27 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -4,9 +4,236 @@ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../../src/core/git.js";
++import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
++const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
++
++function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
++  return sampleTask({
++    id: taskId,
++    featureId: "F-NEW",
++    wbsNodeId: "node-governance-maintenance",
++    branchName: `task/${taskId}-safe`,
++    allowedPaths: ["src/core/safe.ts", "tests/integration/safe.test.ts"],
++    forbiddenPaths: ["wjs/**"],
++    humanGateRequiredPaths: standardHumanGatePaths,
++    requiredChecks: ["test", "test:integration", "typecheck", "build"],
++    managedContractPaths: [
++      `contracts/tasks/${taskId}.yaml`,
++      "contracts/tasks/index.yaml",
++      "contracts/registry.yaml",
++      `contracts/evidence/${taskId}.yaml`,
++      `contracts/approvals/${taskId}.yaml`
++    ],
++    contractLock: {
++      lockVersion: "2",
++      wbsScopeRevision: "scope",
++      wbsGlobalRevision: "global",
++      wbsNodeId: "node-governance-maintenance",
++      createdAt: "2026-07-14T00:00:00.000Z"
++    }
++  });
++}
++
+ describe("check-diff", () => {
++  test("authority comparison detects every scope field but ignores contractLock refresh metadata", () => {
++    const base = sampleTask({ managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] });
++    const refreshed = sampleTask({
++      managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"],
++      contractLock: { lockVersion: "2", wbsScopeRevision: "new", createdAt: "2026-07-14T00:00:00.000Z" }
++    });
++    expect(changedTaskAuthorityFields(base, refreshed)).toEqual([]);
++
++    const weakened = sampleTask({
++      allowedPaths: [...base.allowedPaths, "src/outside.ts"],
++      forbiddenPaths: [],
++      humanGateRequiredPaths: [],
++      requiredChecks: ["test"],
++      managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
++      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }]
++    });
++    expect(changedTaskAuthorityFields(base, weakened)).toEqual([
++      "allowedPaths",
++      "forbiddenPaths",
++      "humanGateRequiredPaths",
++      "requiredChecks",
++      "managedContractPaths",
++      "checkCoverageWaivers"
++    ]);
++  });
++
++  test("check-diff rejects self-expanded allowedPaths instead of accepting the widened head contract", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    const baseTask = sampleTask({
++      branchName,
++      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...baseTask,
++      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"]
++    });
++    writeText(root, "src/outside.ts", "export const outside = true;\n");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["contracts/tasks/WBS-001-004.yaml", "src/outside.ts"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "self widen"], { cwd: root, stdio: "ignore" });
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
++    ]));
++  });
++
++  test("check-diff also rejects an uncommitted Task Contract expansion", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    const baseTask = sampleTask({
++      branchName,
++      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeText(root, "src/outside.ts", "export const outside = true;\n");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["src/outside.ts"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "outside change"], { cwd: root, stdio: "ignore" });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...baseTask, allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"] });
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base", json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
++    ]));
++  });
++
++  test("authority changes accept current-scope Human Approval without creating approval records", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const baseTask = sampleTask({ managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"] });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...baseTask, requiredChecks: ["test"] });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "authority change"], { cwd: root, stdio: "ignore" });
++    const subjectHead = headCommit(root)!;
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: subjectHead,
++      diffHash: "approved-authority-diff",
++      changedFiles: ["contracts/tasks/WBS-001-004.yaml"]
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved",
++      approvedBy: "Human Reviewer",
++      approvedAt: "2026-07-14T00:00:00.000Z",
++      headCommit: subjectHead,
++      diffHash: "approved-authority-diff"
++    }) as unknown as Record<string, unknown>);
++    const headTask = { ...baseTask, requiredChecks: ["test"] };
++    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual([]);
++  });
++
++  test("a separate existing governance task can change another task authority", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const target = sampleTask({ id: "TARGET", featureId: "F-TARGET" });
++    const governance = sampleTask({
++      id: "GOVERNANCE",
++      featureId: "F-GOV",
++      wbsNodeId: "node-governance-maintenance",
++      allowedPaths: ["contracts/tasks/TARGET.yaml"],
++      managedContractPaths: ["contracts/tasks/GOVERNANCE.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/TARGET.yaml", target as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/GOVERNANCE.yaml", governance as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeYaml(root, "contracts/tasks/TARGET.yaml", { ...target, allowedPaths: [...target.allowedPaths, "src/new.ts"] });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "governed scope change"], { cwd: root, stdio: "ignore" });
++    expect(collectTaskAuthorityIssues(root, governance, "base", ["contracts/tasks/TARGET.yaml"])).toEqual([]);
++  });
++
++  test("a safe contract-only first commit is the fail-closed trust root for a new task", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    const task = safeNewTask();
++    writeYaml(root, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", task as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "new task contract"], { cwd: root, stdio: "ignore" });
++    expect(collectTaskAuthorityIssues(root, task, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"])).toEqual([]);
++  });
++
++  test("new task trust fails for uncommitted, mixed, broad, and shallow creation states", () => {
++    const uncommittedRoot = makeTempRepo();
++    writeScwbsProject(uncommittedRoot);
++    execFileSync("git", ["add", "."], { cwd: uncommittedRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: uncommittedRoot, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: uncommittedRoot });
++    const task = safeNewTask();
++    writeYaml(uncommittedRoot, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", task as unknown as Record<string, unknown>);
++    expect(collectTaskAuthorityIssues(uncommittedRoot, task, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
++      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "diff.taskAuthority.newTask.uncommitted" })]));
++
++    const mixedRoot = makeTempRepo();
++    writeScwbsProject(mixedRoot);
++    execFileSync("git", ["add", "."], { cwd: mixedRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: mixedRoot, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: mixedRoot });
++    const broad = safeNewTask();
++    broad.allowedPaths = ["src/**"];
++    writeYaml(mixedRoot, "contracts/tasks/SCWBS-DRAFT-NEW.yaml", broad as unknown as Record<string, unknown>);
++    writeText(mixedRoot, "src/core/safe.ts", "export const mixed = true;\n");
++    execFileSync("git", ["add", "."], { cwd: mixedRoot, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "mixed broad creation"], { cwd: mixedRoot, stdio: "ignore" });
++    expect(collectTaskAuthorityIssues(mixedRoot, broad, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
++      .toEqual(expect.arrayContaining([
++        expect.objectContaining({ code: "diff.taskAuthority.newTask.mixedCommit" }),
++        expect.objectContaining({ code: "diff.taskAuthority.newTask.broadScope" })
++      ]));
++
++    writeText(mixedRoot, ".git/shallow", `${headCommit(mixedRoot)}\n`);
++    expect(collectTaskAuthorityIssues(mixedRoot, broad, "base", ["contracts/tasks/SCWBS-DRAFT-NEW.yaml"]))
++      .toEqual([expect.objectContaining({ code: "diff.taskAuthority.git.shallow" })]);
++  });
++
++  test("authority comparison fails closed when the base ref cannot be resolved", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    expect(collectTaskAuthorityIssues(root, sampleTask(), "missing-base", ["contracts/tasks/WBS-001-004.yaml"]))
++      .toEqual([expect.objectContaining({ code: "diff.taskAuthority.git.mergeBase" })]);
++  });
++
+   test("check-diff passes allowed files and flags forbidden files", () => {
+     const root = makeTempRepo();
+     const task = sampleTask();
