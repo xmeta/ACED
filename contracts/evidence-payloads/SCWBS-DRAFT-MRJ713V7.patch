@@ -1,0 +1,644 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+new file mode 100644
+index 0000000..9b4d2ca
+--- /dev/null
++++ b/contracts/check-coverage.yaml
+@@ -0,0 +1,13 @@
++rules:
++  - id: wjs-tests
++    paths:
++      - wjs
++      - wjs/**
++    requires:
++      - test:wjs
++  - id: integration-tests
++    paths:
++      - src/commands/**
++      - tests/integration/**
++    requires:
++      - test:integration
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+new file mode 100644
+index 0000000..09c6a77
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MRJ713V7
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRJ713V7
++branchName: task/SCWBS-DRAFT-MRJ713V7-issue-153-required-check-coverage-policy-validat
++allowedPaths:
++  - src/core/check-coverage.ts
++  - src/core/types.ts
++  - src/core/paths.ts
++  - src/core/schema/check-coverage.ts
++  - src/core/schema/contracts.ts
++  - src/commands/check.ts
++  - src/commands/check-diff.ts
++  - src/commands/ai-packet.ts
++  - tests/helpers.ts
++  - tests/integration/check.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/ai.test.ts
++  - docs/scwbs/task-contract.md
++  - contracts/check-coverage.yaml
++  - contracts/**
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - The waiver flow cannot preserve human-only approval
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Repository check coverage policy maps broad path patterns to one or more required checks.
++  - WJS changes without test:wjs and command or integration test changes without test:integration fail check-diff.
++  - Missing and required checks are displayed in tiny and standard packets.
++  - Repository policy is extensible without changing CLI code and malformed policy fails scwbs check.
++  - An explicit waiver records affected checks and a non-empty reason in the Task Contract.
++  - A waiver cannot pass check-diff without a human-approved Approval scoped to current Evidence.
++  - Integration tests cover broad paths multiple checks missing coverage packet output and the Human Gate waiver flow.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-13T12:23:42.175Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 4834acc..3025ebd 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -81,3 +81,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRJ713V7
++    path: contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
++    branchName: task/SCWBS-DRAFT-MRJ713V7-issue-153-required-check-coverage-policy-validat
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 70d241c..09237cb 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -65,6 +65,32 @@ npm run scwbs -- task lock --task WBS-001-004
+ `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+ `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+ 
++## Required check coverage
++
++リポジトリ固有のpath-to-check規則は `contracts/check-coverage.yaml` に置く。
++
++```yaml
++rules:
++  - id: wjs-tests
++    paths: [wjs, wjs/**]
++    requires: [test:wjs]
++  - id: integration-tests
++    paths: [src/commands/**, tests/integration/**]
++    requires: [test:integration]
++```
++
++`check-diff` と `finish` は実変更pathに必要なcheckがTask Contractの `requiredChecks` に無い場合に失敗する。packetは `allowedPaths` から予測した必要checkと不足checkを表示する。
++
++例外が必要な場合はTask Contractへ理由付きwaiverを明記する。
++
++```yaml
++checkCoverageWaivers:
++  - check: test:integration
++    reason: External integration environment is temporarily unavailable.
++```
++
++waiverは現在のEvidence scopeに対するHuman Approvalがなければ有効にならない。AIはApprovalをapprovedにしてはならない。
++
+ AIはTask Contractの範囲外を変更してはならない。範囲外変更が必要な場合は、実装を止めてSpec Change ProposalまたはHuman Gateを要求する。
+ 
+ Task Contractの推奨粒度は以下である。
+@@ -86,4 +112,3 @@ npm run scwbs -- task generate --node node-api-implementation --task WBS-001-004
+ 生成されたTask Contractは草案である。人間が `allowedPaths`、`humanGateRequiredPaths`、`doneCriteria` を確認し、必要に応じて修正してから `task lock` を実行する。
+ 
+ ---
+-
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 3c3140e..082fd4d 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -4,6 +4,19 @@ import { defaultWbsPath, resolveFrom, profileRequiredDirs } from "../core/paths.
+ import { readProfile } from "./profile.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/types.js";
++import type { TaskContract } from "../core/types.js";
++import { checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
++
++function checkCoveragePacket(root: string, task: TaskContract): string {
++  const { policy, issues } = readCheckCoveragePolicy(root);
++  if (issues.length > 0) return `## Check Coverage\n- Policy error: ${issues.map((issue) => issue.message).join("; ")}`;
++  const summary = checkCoverageSummaryForAllowedPaths(policy, task);
++  return `## Check Coverage
++Required by allowed paths:
++${summary.required.map((item) => `- ${item}`).join("\n") || "- None"}
++Missing from Task Contract:
++${summary.missing.map((item) => `- ${item}`).join("\n") || "- None"}`;
++}
+ 
+ function relationDepthNodes(wbs: WbsDocument, node: WbsNode, maxDepth: number): Set<string> {
+   const selected = new Set<string>([node.id]);
+@@ -85,6 +98,8 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ ## Required Checks
+ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
+ 
++${checkCoveragePacket(root, task)}
++
+ ## Context Filter
+ - Profile: ${profile}
+ - Active artifact directories: ${artifactDirs.join(", ")}
+@@ -160,6 +175,7 @@ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ 
+ ## Required Checks
+ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
++${checkCoveragePacket(root, task)}
+ ${formatHint}
+ 
+ ## Depends On
+@@ -213,6 +229,10 @@ Human Gate:
+ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ Checks:
+ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
++Coverage required:
++${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
++Coverage missing:
++${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
+ Next:
+ - npm run scwbs -- finish --task ${task.id}
+ - npm run scwbs -- block "reason" --task ${task.id}
+@@ -237,6 +257,10 @@ Human Gate:
+ ${task.humanGateRequiredPaths.map((item) => `- ${item}`).join("\n") || "- None"}
+ Checks:
+ ${task.requiredChecks.map((item) => `- ${item}`).join("\n") || "- None"}
++Coverage required:
++${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
++Coverage missing:
++${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
+ Next:
+ - npm run scwbs -- finish --task ${task.id}
+ - npm run scwbs -- block "reason" --task ${task.id}
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index ce4232c..a9fd610 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -2,6 +2,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
++import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+@@ -78,6 +79,10 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     code: "diff.humanGate",
+     message: `${issue.message} (${issue.code})`
+   })));
++  issues.push(...collectCheckCoverageIssues(root, task, files).map((issue) => ({
++    ...issue,
++    code: `diff.${issue.code}`
++  })));
+   return issues;
+ }
+ 
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 968b256..81524e1 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -3,6 +3,7 @@ import { evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs,
+ import { workingTreeChangedFiles } from "../core/git.js";
+ import { fileSha256 } from "../core/hash.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
++import { readCheckCoveragePolicy } from "../core/check-coverage.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { readProfile } from "./profile.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+@@ -193,6 +194,7 @@ function skipReviewValidation(profile: Profile): boolean {
+ export function collectCheckIssues(root: string): Issue[] {
+   const issues: Issue[] = [];
+   const profile: Profile = readProfile(root);
++  issues.push(...readCheckCoveragePolicy(root).issues);
+ 
+   const hasWbs = existsSync(resolveFrom(root, defaultWbsPath));
+   if (hasWbs) {
+diff --git a/src/core/check-coverage.ts b/src/core/check-coverage.ts
+new file mode 100644
+index 0000000..ee481cd
+--- /dev/null
++++ b/src/core/check-coverage.ts
+@@ -0,0 +1,136 @@
++import { existsSync } from "node:fs";
++import { readApproval, readEvidence } from "./contracts.js";
++import { matchesAny } from "./glob.js";
++import { validateHumanGateApproval } from "./human-gate.js";
++import { defaultCheckCoveragePath, resolveFrom } from "./paths.js";
++import { asCheckCoveragePolicy, validateCheckCoveragePolicy } from "./schema/check-coverage.js";
++import type { CheckCoveragePolicy, Issue, TaskContract } from "./types.js";
++import { readYamlFile } from "./yaml.js";
++import { branchDiffHash, changedFilesBetween, headCommit, isCommitAncestor } from "./git.js";
++
++function coverageMetadataFiles(taskId: string): string[] {
++  return [
++    `contracts/evidence/${taskId}.yaml`,
++    `contracts/approvals/${taskId}.yaml`,
++    `contracts/reviews/${taskId}.yaml`,
++    "contracts/registry.yaml"
++  ];
++}
++
++function evidenceIsCurrent(root: string, task: TaskContract, evidence: NonNullable<ReturnType<typeof readEvidence>["evidence"]>): boolean {
++  const evidenceHead = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
++  const evidenceDiffHash = evidence.diffHash ?? evidence.git?.diffHash;
++  const currentHead = headCommit(root);
++  if (!evidenceHead || !evidenceDiffHash || !currentHead) return false;
++  try {
++    const currentDiffHash = branchDiffHash(root, evidence.git?.base ?? "origin/main", coverageMetadataFiles(task.id));
++    if (currentDiffHash !== evidenceDiffHash) return false;
++    if (evidenceHead === currentHead) return true;
++    return isCommitAncestor(root, evidenceHead, currentHead)
++      && changedFilesBetween(root, evidenceHead, currentHead).every((file) => coverageMetadataFiles(task.id).includes(file.replace(/\\/g, "/")));
++  } catch {
++    return false;
++  }
++}
++
++export function readCheckCoveragePolicy(root: string): { policy: CheckCoveragePolicy; issues: Issue[] } {
++  const fullPath = resolveFrom(root, defaultCheckCoveragePath);
++  if (!existsSync(fullPath)) return { policy: { rules: [] }, issues: [] };
++  try {
++    const value = readYamlFile<unknown>(fullPath);
++    const issues = validateCheckCoveragePolicy(value, defaultCheckCoveragePath);
++    return { policy: issues.length === 0 ? asCheckCoveragePolicy(value) : { rules: [] }, issues };
++  } catch (error) {
++    return {
++      policy: { rules: [] },
++      issues: [{ severity: "error", code: "checkCoverage.parse", message: `${defaultCheckCoveragePath}: ${error instanceof Error ? error.message : String(error)}` }]
++    };
++  }
++}
++
++export type CheckCoverageSummary = {
++  required: string[];
++  missing: string[];
++  matchedFiles: Map<string, string[]>;
++};
++
++export function checkCoverageSummary(policy: CheckCoveragePolicy, task: TaskContract, files: string[]): CheckCoverageSummary {
++  const required = new Set<string>();
++  const matchedFiles = new Map<string, string[]>();
++  for (const rule of policy.rules) {
++    const matches = files.filter((file) => matchesAny(file, rule.paths));
++    if (matches.length === 0) continue;
++    for (const check of rule.requires) {
++      required.add(check);
++      matchedFiles.set(check, Array.from(new Set([...(matchedFiles.get(check) ?? []), ...matches])));
++    }
++  }
++  const requiredChecks = [...required].sort();
++  return {
++    required: requiredChecks,
++    missing: requiredChecks.filter((check) => !task.requiredChecks.includes(check)),
++    matchedFiles
++  };
++}
++
++function staticPatternPrefix(pattern: string): string {
++  return pattern.replace(/\\/g, "/").split(/[?*[{]/, 1)[0]?.replace(/\/$/, "") ?? "";
++}
++
++function patternsMayOverlap(left: string, right: string): boolean {
++  const leftPrefix = staticPatternPrefix(left);
++  const rightPrefix = staticPatternPrefix(right);
++  if (leftPrefix.length === 0 || rightPrefix.length === 0) return true;
++  return leftPrefix === rightPrefix || leftPrefix.startsWith(`${rightPrefix}/`) || rightPrefix.startsWith(`${leftPrefix}/`);
++}
++
++export function checkCoverageSummaryForAllowedPaths(policy: CheckCoveragePolicy, task: TaskContract): CheckCoverageSummary {
++  const representativePaths = policy.rules.flatMap((rule) =>
++    rule.paths.filter((policyPath) => task.allowedPaths.some((allowedPath) => patternsMayOverlap(policyPath, allowedPath)))
++  );
++  return checkCoverageSummary(policy, task, representativePaths);
++}
++
++export function collectCheckCoverageIssues(root: string, task: TaskContract, files: string[]): Issue[] {
++  const { policy, issues } = readCheckCoveragePolicy(root);
++  if (issues.length > 0) return issues;
++  const summary = checkCoverageSummary(policy, task, files);
++  const waivers = new Map((task.checkCoverageWaivers ?? []).map((waiver) => [waiver.check, waiver]));
++  const result: Issue[] = [];
++  for (const check of summary.missing) {
++    const waiver = waivers.get(check);
++    if (!waiver) {
++      result.push({
++        severity: "error",
++        code: "checkCoverage.missing",
++        message: `${task.id} changes ${summary.matchedFiles.get(check)?.join(", ")} and requires missing check ${check}`,
++        fixCommand: `Add ${check} to requiredChecks in contracts/tasks/${task.id}.yaml`
++      });
++      continue;
++    }
++    const waiverFiles = summary.matchedFiles.get(check) ?? [];
++    const syntheticGateTask = { ...task, humanGateRequiredPaths: waiverFiles };
++    const evidence = readEvidence(root, task.id).evidence;
++    const approval = readApproval(root, task.id).approval;
++    const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
++    const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
++    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && approval?.headCommit && approval.diffHash)
++      && Boolean(evidence && evidenceIsCurrent(root, task, evidence));
++    const gate = validateHumanGateApproval(
++      syntheticGateTask,
++      evidence,
++      approval,
++      waiverFiles,
++      root
++    );
++    if (!auditableScope || !gate.approved) {
++      result.push({
++        severity: "error",
++        code: "checkCoverage.waiver.approval",
++        message: `${task.id} waives ${check} (${waiver.reason}) but requires Human Approval scoped to current Evidence`,
++        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
++      });
++    }
++  }
++  return result;
++}
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index c25d6d0..e2d11ef 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -11,6 +11,7 @@ export const defaultApprovalsDir = "contracts/approvals";
+ export const defaultReviewsDir = "contracts/reviews";
+ export const defaultBlocksDir = "contracts/blocks";
+ export const defaultChangesetsDir = "contracts/changesets";
++export const defaultCheckCoveragePath = "contracts/check-coverage.yaml";
+ 
+ export function profileRequiredDirs(profile: Profile): string[] {
+   const dirs: string[] = [
+diff --git a/src/core/schema/check-coverage.ts b/src/core/schema/check-coverage.ts
+new file mode 100644
+index 0000000..a597857
+--- /dev/null
++++ b/src/core/schema/check-coverage.ts
+@@ -0,0 +1,22 @@
++import type { CheckCoveragePolicy, Issue } from "../types.js";
++import { isObject, isStringArray, issue } from "./shared.js";
++
++export function validateCheckCoveragePolicy(value: unknown, filePath: string): Issue[] {
++  if (!isObject(value)) return [issue("checkCoverage.invalid", `${filePath} must be an object`)];
++  if (!Array.isArray(value.rules)) return [issue("checkCoverage.rules", `${filePath}.rules must be an array`)];
++  const issues: Issue[] = [];
++  value.rules.forEach((rule, index) => {
++    if (!isObject(rule)) {
++      issues.push(issue("checkCoverage.rule", `${filePath}.rules[${index}] must be an object`));
++      return;
++    }
++    if (typeof rule.id !== "string" || rule.id.length === 0) issues.push(issue("checkCoverage.rule.id", `${filePath}.rules[${index}].id must be a non-empty string`));
++    if (!isStringArray(rule.paths) || rule.paths.length === 0 || rule.paths.some((item) => item.trim().length === 0)) issues.push(issue("checkCoverage.rule.paths", `${filePath}.rules[${index}].paths must contain non-blank strings`));
++    if (!isStringArray(rule.requires) || rule.requires.length === 0 || rule.requires.some((item) => item.trim().length === 0)) issues.push(issue("checkCoverage.rule.requires", `${filePath}.rules[${index}].requires must contain non-blank strings`));
++  });
++  return issues;
++}
++
++export function asCheckCoveragePolicy(value: unknown): CheckCoveragePolicy {
++  return value as CheckCoveragePolicy;
++}
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index 7f16857..9b32b28 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -67,6 +67,18 @@ const taskContractSchema = {
+     humanGateRequiredPaths: stringArraySchema,
+     stopIf: stringArraySchema,
+     requiredChecks: stringArraySchema,
++    checkCoverageWaivers: {
++      type: "array",
++      items: {
++        type: "object",
++        required: ["check", "reason"],
++        additionalProperties: true,
++        properties: {
++          check: { type: "string", minLength: 1 },
++          reason: { type: "string", minLength: 1 }
++        }
++      }
++    },
+     doneCriteria: stringArraySchema,
+     evidenceRequired: stringArraySchema,
+     contractLock: {
+@@ -240,6 +252,17 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+   if (value.stopIf !== undefined && !isStringArray(value.stopIf)) {
+     issues.push(issue("task.array", `${filePath}.stopIf must be a string array when present`));
+   }
++  if (value.checkCoverageWaivers !== undefined) {
++    if (!Array.isArray(value.checkCoverageWaivers)) {
++      issues.push(issue("task.checkCoverageWaivers", `${filePath}.checkCoverageWaivers must be an array when present`));
++    } else {
++      value.checkCoverageWaivers.forEach((waiver, index) => {
++        if (!isObject(waiver) || typeof waiver.check !== "string" || waiver.check.trim().length === 0 || typeof waiver.reason !== "string" || waiver.reason.trim().length === 0) {
++          issues.push(issue("task.checkCoverageWaiver", `${filePath}.checkCoverageWaivers[${index}] must include non-empty check and reason`));
++        }
++      });
++    }
++  }
+   if (value.contractLock !== undefined) {
+     if (!isObject(value.contractLock)) {
+       issues.push(issue("task.contractLock", `${filePath}.contractLock must be an object when present`));
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 0ed71ab..ad3503f 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -85,6 +85,7 @@ export type TaskContract = {
+   humanGateRequiredPaths: string[];
+   stopIf?: string[];
+   requiredChecks: string[];
++  checkCoverageWaivers?: Array<{ check: string; reason: string }>;
+   doneCriteria: string[];
+   evidenceRequired: string[];
+   /**
+@@ -98,6 +99,10 @@ export type TaskContract = {
+   managedContractPaths?: string[];
+ };
+ 
++export type CheckCoveragePolicy = {
++  rules: Array<{ id: string; paths: string[]; requires: string[] }>;
++};
++
+ export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
+ export type EvidenceCheckSource = "ci" | "local" | "manual";
+ 
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 79a00a5..524b96d 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -325,6 +325,22 @@ describe("AI commands", () => {
+     expect(packet).toContain("Stop Conditions");
+   });
+ 
++  test("packet displays policy-required and missing checks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      rules: [{ id: "integration", paths: ["src/commands/**"], requires: ["test:integration"] }]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/**"], requiredChecks: ["test"]
++    }) as unknown as Record<string, unknown>);
++
++    const packet = buildAiPacket(root, "WBS-001-004", 0);
++    expect(packet).toContain("## Check Coverage");
++    expect(packet).toContain("Required by allowed paths:\n- test:integration");
++    expect(packet).toContain("Missing from Task Contract:\n- test:integration");
++  });
++
+   test("core packet full outputs deep packet with relation depth 1", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index aca740b..bd95bc7 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -14,6 +14,54 @@ describe("check-diff", () => {
+     expect(collectDiffIssues(root, task, ["src/auth/session.ts"]).some((issue) => issue.code === "diff.forbiddenPaths")).toBe(true);
+   });
+ 
++  test("check-diff enforces broad path policies with multiple required checks", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      rules: [{ id: "broad", paths: ["wjs", "wjs/**", "src/commands/**"], requires: ["test:wjs", "test:integration"] }]
++    });
++    const task = sampleTask({ requiredChecks: ["test"] });
++    const issues = collectDiffIssues(root, task, ["wjs", "src/commands/finish.ts"]);
++    expect(issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.checkCoverage.missing", message: expect.stringContaining("test:wjs") }),
++      expect.objectContaining({ code: "diff.checkCoverage.missing", message: expect.stringContaining("test:integration") })
++    ]));
++  });
++
++  test("check coverage waiver requires a reason and Human Approval scoped to Evidence", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      rules: [{ id: "integration", paths: ["src/commands/**"], requires: ["test:integration"] }]
++    });
++    const task = sampleTask({
++      requiredChecks: ["test"],
++      checkCoverageWaivers: [{ check: "test:integration", reason: "External integration environment is unavailable" }]
++    });
++    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
++
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeText(root, "src/commands/finish.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++    const subjectHead = headCommit(root)!;
++    const subjectDiffHash = branchDiffHash(root, "base", [
++      "contracts/evidence/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"
++    ]);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
++    }) as unknown as Record<string, unknown>);
++    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(false);
++
++    writeText(root, "src/commands/finish.ts", "export const value = 2;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "implementation changed after approval"], { cwd: root, stdio: "ignore" });
++    expect(collectDiffIssues(root, task, ["src/commands/finish.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(true);
++  });
++
+   test("check-diff flags current branch mismatches", () => {
+     const task = sampleTask({ branchName: "task/WBS-001-004-api-implementation" });
+     expect(collectBranchIssues(task, "task/WBS-001-004-api-implementation")).toEqual([]);
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+index 0a96002..0b0ef24 100644
+--- a/tests/integration/check.test.ts
++++ b/tests/integration/check.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, test } from "vitest";
+ import { runCheck } from "../../src/commands/check.js";
+ import { makeTempRepo, sampleApproval, sampleEvidence, writeScwbsProject, writeYaml } from "../helpers.js";
++import { readTask } from "../../src/core/contracts.js";
+ 
+ describe("check", () => {
+   test("check --json outputs pass status with empty issues for a healthy repo", () => {
+@@ -41,6 +42,56 @@ describe("check", () => {
+     expect(parsed.issues.length).toBeGreaterThan(0);
+   });
+ 
++  test("check rejects malformed repository check coverage policy", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", { rules: "invalid" } as unknown as Record<string, unknown>);
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheck(root, { json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "checkCoverage.rules" })
++    ]));
++  });
++
++  test("check coverage policy rejects blank path and check entries", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", { rules: [{ id: "blank", paths: ["   "], requires: [""] }] });
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheck(root, { json: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "checkCoverage.rule.paths" }),
++      expect.objectContaining({ code: "checkCoverage.rule.requires" })
++    ]));
++  });
++
++  test("Task Contract rejects blank check coverage waiver reason", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const { task } = readTask(root, "WBS-001-004");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...task,
++      checkCoverageWaivers: [{ check: "test:integration", reason: "   " }]
++    } as unknown as Record<string, unknown>);
++    const result = readTask(root, "WBS-001-004");
++    expect(result.task).toBeUndefined();
++    expect(result.issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "task.checkCoverageWaiver" })
++    ]));
++  });
++
+   test("completed tasks without Human Gate file changes do not require Approval", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
