@@ -1,0 +1,1005 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 572c753..101d111 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -33,6 +33,7 @@ rules:
+       - src/commands/completion.ts
+       - src/commands/doctor.ts
+       - src/commands/docs-check.ts
++      - src/commands/discovery.ts
+       - src/commands/evidence-annotate.ts
+       - src/commands/evidence-collect.ts
+       - src/commands/finish.ts
+@@ -70,6 +71,7 @@ rules:
+       - src/core/check-coverage.ts
+       - src/core/code-context.ts
+       - src/core/document-lifecycle.ts
++      - src/core/discovery.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
+       - src/core/finish-lifecycle.ts
+@@ -89,6 +91,7 @@ rules:
+       - src/core/schema.ts
+       - src/core/schema/check-coverage.ts
+       - src/core/schema/contracts.ts
++      - src/core/schema/discovery.ts
+       - src/core/schema/index.ts
+       - src/core/schema/records.ts
+       - src/core/schema/registries.ts
+diff --git a/contracts/specs/SPEC-LITE-MS10536G.yaml b/contracts/specs/SPEC-LITE-MS10536G.yaml
+new file mode 100644
+index 0000000..cff9e2e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS10536G.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MS10536G
++type: spec-contract
++featureId: F-MS10536G
++title: "Issue #136: Discovery Probe schemaとCLIの最小フローを実装する"
++status: approved
++version: 0.1.0
++summary: "実装Taskの前段で未知を安全に探索し、concludedまたはinconclusiveを正規terminal状態として扱う"
++approvedBy: user-requested-baseline-continuation
++approvedAt: "2026-07-26T00:00:00+09:00"
++acceptanceCriteria:
++  - schemaVersion 1.0.0のProbeはquestion hypotheses activities evidenceExpected unknowns timebox costLimit exitConditions nextDecision statusを持つ
++  - status transitionはproposedからactive、activeからconcludedまたはinconclusiveだけを許可する
++  - concludedはfactsLearnedとhypothesesRejectedとexitConditionsMetを要求する
++  - inconclusiveはremainingUnknownsとnextDecisionを要求し失敗扱いにしない
++  - deliveryTaskIdがある未concluded Probeはaggregate checkをerrorにする
++  - new start concludeはtextとversioned JSON結果を返し既存ファイルを暗黙上書きしない
++  - unsafe IDとschema不正と不正transitionを拒否する
++  - Tiny Packetは関連Probeが未concludedなら実装停止を表示する
++  - contracts/discovery配下を正本としsource生成要約を権限根拠にしない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS10536G.yaml b/contracts/tasks/SCWBS-DRAFT-MS10536G.yaml
+new file mode 100644
+index 0000000..8b231b9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS10536G.yaml
+@@ -0,0 +1,70 @@
++id: SCWBS-DRAFT-MS10536G
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS10536G
++branchName: codex/SCWBS-DRAFT-MS10536G-issue-136-discovery-probe
++allowedPaths:
++  - src/core/types.ts
++  - src/core/discovery.ts
++  - src/core/schema/discovery.ts
++  - src/core/schema/index.ts
++  - src/commands/discovery.ts
++  - src/commands/check.ts
++  - src/commands/ai-packet.ts
++  - src/cli.ts
++  - tests/integration/discovery.test.ts
++  - tests/integration/ai.test.ts
++  - docs/scwbs/schemas/discovery-probe.schema.json
++  - docs/sc-wbs-core/02-command-first-workflow.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Discovery Probeのversioned schemaとproposed active concluded inconclusive状態を実装する
++  - discovery new start concludeコマンドが安全なIDと原子的更新でProbeを管理する
++  - question hypotheses activities evidenceExpected unknowns timebox costLimit exitConditions nextDecisionを記録できる
++  - concludeは判明事実、棄却仮説、残存不確実性を記録する
++  - exit condition未充足のProbeから関連delivery Taskをcheck成功にできない
++  - inconclusiveを正常なterminal状態として扱い追加Probe導線を表示する
++  - Tiny Packetがdelivery Taskに関連するDiscovery Probeの状態と停止条件を表示する
++  - schema CLI text JSON aggregate check packetをintegration testする
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS10536G.yaml
++  - contracts/specs/SPEC-LITE-MS10536G.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS10536G.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS10536G.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS10536G.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS10536G.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:e1b9fe26f16db47f30d203ee6197991ace88e47294614d1449a5de6de3f0331d
++  createdAt: "2026-07-25T23:31:15.888Z"
+diff --git a/docs/sc-wbs-core/02-command-first-workflow.md b/docs/sc-wbs-core/02-command-first-workflow.md
+index 9d80b75..0f52d80 100644
+--- a/docs/sc-wbs-core/02-command-first-workflow.md
++++ b/docs/sc-wbs-core/02-command-first-workflow.md
+@@ -43,6 +43,57 @@ AIは `allowedPaths` 内だけを変更する。
+ scwbs block "DBスキーマ変更が必要"
+ ```
+ 
++### Discovery Probe で不確実性を先に閉じる
++
++実装前に技術的不確実性を検証する場合は、`contracts/discovery/PROBE-*.yaml`
++を正本とする bounded Discovery Probe を作る。Probe は delivery Task と分離し、
++question、hypotheses、activities、evidenceExpected、unknowns、timebox、costLimit、
++exitConditions、nextDecision を最初に固定する。
++
++```bash
++scwbs discovery new \
++  --probe PROBE-cache-strategy \
++  --question "既存キャッシュで応答時間目標を満たせるか" \
++  --hypotheses "既存方式で十分" \
++  --activities "代表負荷を測定" \
++  --evidence-expected "p95 latency" \
++  --unknowns "ピーク時の劣化" \
++  --timebox "4h" \
++  --cost-limit "one engineer-day" \
++  --exit-conditions "代表負荷の測定完了" \
++  --next-decision "実装方式を選ぶ" \
++  --delivery-task WBS-001
++scwbs discovery start --probe PROBE-cache-strategy
++```
++
++状態遷移は `proposed -> active -> concluded|inconclusive` のみで、既存Probeを
++暗黙に上書きしない。`concluded` は全exit conditionの達成と、学習した事実・
++棄却した仮説の記録を要求する。
++
++```bash
++scwbs discovery conclude \
++  --probe PROBE-cache-strategy \
++  --outcome concluded \
++  --facts "p95が目標内" \
++  --rejected "追加ストアが必須" \
++  --exit-conditions-met true
++```
++
++時間または費用上限に達して判断できない場合、失敗扱いにせず
++`inconclusive` で終了し、残存不確実性と次の判断を明示する。
++
++```bash
++scwbs discovery conclude \
++  --probe PROBE-cache-strategy \
++  --outcome inconclusive \
++  --remaining "ピーク負荷の再現性" \
++  --next-decision "追加Probeの費用を判断"
++```
++
++delivery Task に関連付けられたProbeは `concluded` になるまで `scwbs check`
++を失敗させ、Tiny Packetにも停止指示を表示する。`inconclusive` は正常な終端
++だが、delivery開始を許可する根拠にはならない。
++
+ ### 4. 完了処理をする
+ 
+ 手動確認でrequired checksを先に実行する場合は、正規入口からprovenance付きreceiptを作る。
+diff --git a/docs/scwbs/schemas/discovery-probe.schema.json b/docs/scwbs/schemas/discovery-probe.schema.json
+new file mode 100644
+index 0000000..453f6a3
+--- /dev/null
++++ b/docs/scwbs/schemas/discovery-probe.schema.json
+@@ -0,0 +1,102 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/discovery-probe.schema.json",
++  "title": "SC-WBS Discovery Probe",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "schemaVersion",
++    "id",
++    "type",
++    "status",
++    "question",
++    "hypotheses",
++    "activities",
++    "evidenceExpected",
++    "unknowns",
++    "timebox",
++    "costLimit",
++    "exitConditions",
++    "nextDecision"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "id": {
++      "type": "string",
++      "pattern": "^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$"
++    },
++    "type": { "const": "discovery-probe" },
++    "status": {
++      "enum": ["proposed", "active", "concluded", "inconclusive"]
++    },
++    "question": { "type": "string", "minLength": 1 },
++    "hypotheses": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "activities": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "evidenceExpected": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "unknowns": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "timebox": { "type": "string", "minLength": 1 },
++    "costLimit": { "type": "string", "minLength": 1 },
++    "exitConditions": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "nextDecision": { "type": "string", "minLength": 1 },
++    "deliveryTaskId": { "type": "string", "minLength": 1 },
++    "createdAt": { "type": "string", "minLength": 1 },
++    "startedAt": { "type": "string", "minLength": 1 },
++    "concludedAt": { "type": "string", "minLength": 1 },
++    "exitConditionsMet": { "type": "boolean" },
++    "factsLearned": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "hypothesesRejected": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "remainingUnknowns": {
++      "type": "array",
++      "items": { "type": "string" }
++    }
++  },
++  "allOf": [
++    {
++      "if": {
++        "properties": { "status": { "const": "concluded" } },
++        "required": ["status"]
++      },
++      "then": {
++        "required": [
++          "concludedAt",
++          "exitConditionsMet",
++          "factsLearned",
++          "hypothesesRejected"
++        ],
++        "properties": {
++          "exitConditionsMet": { "const": true }
++        }
++      }
++    },
++    {
++      "if": {
++        "properties": { "status": { "const": "inconclusive" } },
++        "required": ["status"]
++      },
++      "then": {
++        "required": ["concludedAt", "remainingUnknowns", "nextDecision"]
++      }
++    }
++  ]
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 0f5fe45..f39f55c 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -14,6 +14,7 @@ import { runCiPlan } from "./commands/ci-plan.js";
+ import { runChecksRun } from "./commands/checks-run.js";
+ import { runCompletionApply } from "./commands/completion.js";
+ import { runDoctor } from "./commands/doctor.js";
++import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "./commands/discovery.js";
+ import { runEvidenceCollect } from "./commands/evidence-collect.js";
+ import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
+ import { runFinish } from "./commands/finish.js";
+@@ -116,6 +117,49 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json", "output a versioned JSON report")
+     .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
+ 
++  const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
++  discovery
++    .command("new")
++    .requiredOption("--probe <id>", "PROBE-prefixed id")
++    .requiredOption("--question <text>", "decision-driving question")
++    .requiredOption("--timebox <value>", "timebox")
++    .requiredOption("--cost-limit <value>", "cost limit")
++    .requiredOption("--next-decision <text>", "decision enabled by the probe")
++    .option("--hypotheses <items>", "comma-separated hypotheses")
++    .option("--activities <items>", "comma-separated activities")
++    .option("--evidence-expected <items>", "comma-separated expected evidence")
++    .option("--unknowns <items>", "comma-separated unknowns")
++    .option("--exit-conditions <items>", "comma-separated exit conditions")
++    .option("--delivery-task <id>", "delivery Task blocked until conclusion")
++    .option("--json", "output versioned JSON")
++    .action((opts) => { exitCode = runDiscoveryNew(root, opts); });
++  discovery
++    .command("start")
++    .requiredOption("--probe <id>", "Probe id")
++    .option("--json", "output versioned JSON")
++    .action((opts) => { exitCode = runDiscoveryStart(root, opts.probe, opts.json ?? false); });
++  discovery
++    .command("conclude")
++    .requiredOption("--probe <id>", "Probe id")
++    .requiredOption("--outcome <status>", "concluded|inconclusive")
++    .option("--facts <items>", "comma-separated learned facts")
++    .option("--rejected <items>", "comma-separated rejected hypotheses")
++    .option("--remaining <items>", "comma-separated remaining unknowns")
++    .option("--exit-conditions-met <boolean>", "whether every exit condition is met")
++    .option("--next-decision <text>", "updated next decision")
++    .option("--json", "output versioned JSON")
++    .action((opts) => {
++      if (opts.outcome !== "concluded" && opts.outcome !== "inconclusive") {
++        console.error("Invalid --outcome; expected concluded or inconclusive");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runDiscoveryConclude(root, opts.probe, {
++        ...opts,
++        exitConditionsMet: parseBool(opts.exitConditionsMet)
++      });
++    });
++
+   const ci = program.command("ci");
+   ci
+     .command("plan")
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index afc1aff..98964e9 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -9,6 +9,7 @@ import type { TaskContract } from "../core/types.js";
+ import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
+ import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
++import { probesForTask } from "../core/discovery.js";
+ 
+ const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+ 
+@@ -18,6 +19,15 @@ function tinyScopeRisk(task: TaskContract): string {
+   return broad.length > 0 ? `broad; explicit review required (${broad.join(", ")})` : "bounded";
+ }
+ 
++function discoveryPacket(root: string, taskId: string): string {
++  const probes = probesForTask(root, taskId);
++  if (probes.length === 0) return "";
++  const blocked = probes.filter((probe) => probe.status !== "concluded");
++  return `Discovery:
++${probes.map((probe) => `- ${probe.id}: ${probe.status} | ${probe.question}`).join("\n")}
++${blocked.length > 0 ? "Stop: related Discovery Probe is not concluded; do not begin delivery implementation.\n" : ""}`;
++}
++
+ function submodulePacket(root: string, task: TaskContract): string {
+   const evidence = readEvidence(root, task.id).evidence;
+   const entries = evidence?.submodules ?? (task.submoduleDependencies ?? []).map((item) => ({
+@@ -284,6 +294,7 @@ Coverage required:
+ ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
+ Coverage missing:
+ ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
++${discoveryPacket(root, task.id)}
+ Next:
+ - npm run scwbs -- finish --task ${task.id}
+ - npm run scwbs -- block "reason" --task ${task.id}
+@@ -314,6 +325,7 @@ Coverage required:
+ ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).required.map((item) => `- ${item}`).join("\n") || "- None"}
+ Coverage missing:
+ ${checkCoverageSummaryForAllowedPaths(readCheckCoveragePolicy(root).policy, task).missing.map((item) => `- ${item}`).join("\n") || "- None"}
++${discoveryPacket(root, task.id)}
+ Next:
+ - npm run scwbs -- finish --task ${task.id}
+ - npm run scwbs -- block "reason" --task ${task.id}
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index fe1ea65..66315d4 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -13,6 +13,7 @@ import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } fr
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
+ import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
++import { discoveryIssues } from "../core/discovery.js";
+ 
+ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
+   if (!evidence) return [];
+@@ -271,6 +272,7 @@ export function collectCheckIssues(root: string): Issue[] {
+   if (existsSync(resolveFrom(root, documentLifecyclePath))) {
+     issues.push(...collectDocumentLifecycleIssues(root, false).issues);
+   }
++  issues.push(...discoveryIssues(root));
+   const profile: Profile = readProfile(root);
+   const coverage = readCheckCoveragePolicy(root);
+   issues.push(...coverage.issues);
+diff --git a/src/commands/discovery.ts b/src/commands/discovery.ts
+new file mode 100644
+index 0000000..45b955d
+--- /dev/null
++++ b/src/commands/discovery.ts
+@@ -0,0 +1,147 @@
++import {
++  readDiscoveryProbe,
++  writeDiscoveryProbe,
++  type DiscoveryProbe,
++  type DiscoveryStatus
++} from "../core/discovery.js";
++
++export type DiscoveryOutput = {
++  version: "scwbs.discovery.v1";
++  status: "created" | "active" | "concluded" | "inconclusive";
++  probeId: string;
++  path: string;
++  nextAction: string;
++};
++
++function items(value: string | undefined): string[] {
++  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
++}
++
++function emit(output: DiscoveryOutput, json = false): void {
++  if (json) console.log(JSON.stringify(output));
++  else console.log([
++    `${output.status.toUpperCase()} Discovery Probe ${output.probeId}`,
++    `path: ${output.path}`,
++    `next: ${output.nextAction}`
++  ].join("\n"));
++}
++
++export function runDiscoveryNew(root: string, options: {
++  probe: string;
++  question: string;
++  hypotheses?: string;
++  activities?: string;
++  evidenceExpected?: string;
++  unknowns?: string;
++  timebox: string;
++  costLimit: string;
++  exitConditions?: string;
++  nextDecision: string;
++  deliveryTask?: string;
++  json?: boolean;
++}): number {
++  try {
++    const probe: DiscoveryProbe = {
++      schemaVersion: "1.0.0",
++      id: options.probe,
++      type: "discovery-probe",
++      status: "proposed",
++      question: options.question,
++      hypotheses: items(options.hypotheses),
++      activities: items(options.activities),
++      evidenceExpected: items(options.evidenceExpected),
++      unknowns: items(options.unknowns),
++      timebox: options.timebox,
++      costLimit: options.costLimit,
++      exitConditions: items(options.exitConditions),
++      nextDecision: options.nextDecision,
++      ...(options.deliveryTask ? { deliveryTaskId: options.deliveryTask } : {}),
++      createdAt: new Date().toISOString()
++    };
++    const path = writeDiscoveryProbe(root, probe);
++    emit({
++      version: "scwbs.discovery.v1",
++      status: "created",
++      probeId: probe.id,
++      path,
++      nextAction: `npm run scwbs -- discovery start --probe ${probe.id}`
++    }, options.json);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function runDiscoveryStart(root: string, id: string, json = false): number {
++  try {
++    const result = readDiscoveryProbe(root, id);
++    if (!result.probe) throw new Error(result.issues.map((item) => item.message).join("\n"));
++    if (result.probe.status !== "proposed") {
++      throw new Error(`${id} cannot transition from ${result.probe.status} to active`);
++    }
++    const probe: DiscoveryProbe = { ...result.probe, status: "active", startedAt: new Date().toISOString() };
++    const path = writeDiscoveryProbe(root, probe, true);
++    emit({
++      version: "scwbs.discovery.v1",
++      status: "active",
++      probeId: id,
++      path,
++      nextAction: `npm run scwbs -- discovery conclude --probe ${id} --outcome concluded|inconclusive`
++    }, json);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function runDiscoveryConclude(root: string, id: string, options: {
++  outcome: Exclude<DiscoveryStatus, "proposed" | "active">;
++  facts?: string;
++  rejected?: string;
++  remaining?: string;
++  exitConditionsMet?: boolean;
++  nextDecision?: string;
++  json?: boolean;
++}): number {
++  try {
++    const result = readDiscoveryProbe(root, id);
++    if (!result.probe) throw new Error(result.issues.map((item) => item.message).join("\n"));
++    if (result.probe.status !== "active") {
++      throw new Error(`${id} cannot transition from ${result.probe.status} to ${options.outcome}`);
++    }
++    if (options.outcome === "concluded" && options.exitConditionsMet !== true) {
++      throw new Error("concluded requires --exit-conditions-met true");
++    }
++    const remainingUnknowns = items(options.remaining);
++    if (options.outcome === "inconclusive" && remainingUnknowns.length === 0) {
++      throw new Error("inconclusive requires --remaining <items>");
++    }
++    const probe: DiscoveryProbe = {
++      ...result.probe,
++      status: options.outcome,
++      concludedAt: new Date().toISOString(),
++      exitConditionsMet: options.outcome === "concluded",
++      factsLearned: items(options.facts),
++      hypothesesRejected: items(options.rejected),
++      remainingUnknowns,
++      ...(options.nextDecision ? { nextDecision: options.nextDecision } : {})
++    };
++    const path = writeDiscoveryProbe(root, probe, true);
++    const nextAction = options.outcome === "concluded"
++      ? (probe.deliveryTaskId ? `Review delivery Task ${probe.deliveryTaskId}` : probe.nextDecision)
++      : `Create a follow-up Probe before: ${probe.nextDecision}`;
++    emit({
++      version: "scwbs.discovery.v1",
++      status: options.outcome,
++      probeId: id,
++      path,
++      nextAction
++    }, options.json);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/core/discovery.ts b/src/core/discovery.ts
+new file mode 100644
+index 0000000..eca33ce
+--- /dev/null
++++ b/src/core/discovery.ts
+@@ -0,0 +1,97 @@
++import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { resolveFrom } from "./paths.js";
++import type { Issue } from "./types.js";
++import { parseSimpleYaml, stringifySimpleYaml } from "./yaml.js";
++import { validateDiscoveryProbe } from "./schema/discovery.js";
++
++export type DiscoveryStatus = "proposed" | "active" | "concluded" | "inconclusive";
++export type DiscoveryProbe = {
++  schemaVersion: "1.0.0";
++  id: string;
++  type: "discovery-probe";
++  status: DiscoveryStatus;
++  question: string;
++  hypotheses: string[];
++  activities: string[];
++  evidenceExpected: string[];
++  unknowns: string[];
++  timebox: string;
++  costLimit: string;
++  exitConditions: string[];
++  nextDecision: string;
++  deliveryTaskId?: string;
++  createdAt?: string;
++  startedAt?: string;
++  concludedAt?: string;
++  exitConditionsMet?: boolean;
++  factsLearned?: string[];
++  hypothesesRejected?: string[];
++  remainingUnknowns?: string[];
++};
++
++export const discoveryDirectory = "contracts/discovery";
++const ID = /^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$/;
++
++export function discoveryPath(id: string): string {
++  if (!ID.test(id)) throw new Error("Invalid Discovery Probe id; expected PROBE-<safe-id>");
++  return `${discoveryDirectory}/${id}.yaml`;
++}
++
++export function readDiscoveryProbe(root: string, id: string): { probe?: DiscoveryProbe; issues: Issue[] } {
++  const relativePath = discoveryPath(id);
++  const fullPath = resolveFrom(root, relativePath);
++  if (!existsSync(fullPath)) {
++    return { issues: [{ severity: "error", code: "discovery.missing", message: `${relativePath} does not exist` }] };
++  }
++  const value = parseSimpleYaml(readFileSync(fullPath, "utf8"));
++  const issues = validateDiscoveryProbe(value, relativePath);
++  return issues.length > 0 ? { issues } : { probe: value as DiscoveryProbe, issues };
++}
++
++export function listDiscoveryProbes(root: string): Array<{ path: string; probe?: DiscoveryProbe; issues: Issue[] }> {
++  const directory = resolveFrom(root, discoveryDirectory);
++  if (!existsSync(directory)) return [];
++  return readdirSync(directory).filter((file) => file.endsWith(".yaml")).sort().map((file) => {
++    const relativePath = `${discoveryDirectory}/${file}`;
++    const value = parseSimpleYaml(readFileSync(resolveFrom(root, relativePath), "utf8"));
++    const issues = validateDiscoveryProbe(value, relativePath);
++    return issues.length > 0 ? { path: relativePath, issues } : {
++      path: relativePath,
++      probe: value as DiscoveryProbe,
++      issues
++    };
++  });
++}
++
++export function discoveryIssues(root: string): Issue[] {
++  return listDiscoveryProbes(root).flatMap((entry) => [
++    ...entry.issues,
++    ...(entry.probe?.deliveryTaskId && entry.probe.status !== "concluded"
++      ? [{
++        severity: "error" as const,
++        code: "discovery.delivery.blocked",
++        message: `${entry.probe.deliveryTaskId} is blocked by ${entry.probe.id} status ${entry.probe.status}`
++      }]
++      : [])
++  ]);
++}
++
++export function probesForTask(root: string, taskId: string): DiscoveryProbe[] {
++  return listDiscoveryProbes(root)
++    .flatMap((entry) => entry.probe ? [entry.probe] : [])
++    .filter((probe) => probe.deliveryTaskId === taskId);
++}
++
++export function writeDiscoveryProbe(root: string, probe: DiscoveryProbe, overwrite = false): string {
++  const relativePath = discoveryPath(probe.id);
++  const fullPath = resolveFrom(root, relativePath);
++  if (!overwrite && existsSync(fullPath)) throw new Error(`${relativePath} already exists`);
++  const issues = validateDiscoveryProbe(probe, relativePath);
++  if (issues.length > 0) throw new Error(issues.map((item) => item.message).join("\n"));
++  mkdirSync(path.dirname(fullPath), { recursive: true });
++  const temporary = `${fullPath}.tmp-${process.pid}`;
++  writeFileSync(temporary, stringifySimpleYaml(probe as unknown as Record<string, unknown>), "utf8");
++  renameSync(temporary, fullPath);
++  return relativePath;
++}
+diff --git a/src/core/schema/discovery.ts b/src/core/schema/discovery.ts
+new file mode 100644
+index 0000000..1c941a0
+--- /dev/null
++++ b/src/core/schema/discovery.ts
+@@ -0,0 +1,57 @@
++import type { ErrorObject } from "ajv";
++import type { Issue } from "../types.js";
++import { ajv, formatSchemaPath, issue, stringArraySchema } from "./shared.js";
++
++export const discoveryProbeSchema = {
++  type: "object",
++  additionalProperties: false,
++  required: [
++    "schemaVersion", "id", "type", "status", "question", "hypotheses", "activities",
++    "evidenceExpected", "unknowns", "timebox", "costLimit", "exitConditions", "nextDecision"
++  ],
++  properties: {
++    schemaVersion: { const: "1.0.0" },
++    id: { type: "string", pattern: "^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$" },
++    type: { const: "discovery-probe" },
++    status: { enum: ["proposed", "active", "concluded", "inconclusive"] },
++    question: { type: "string", minLength: 1 },
++    hypotheses: stringArraySchema,
++    activities: stringArraySchema,
++    evidenceExpected: stringArraySchema,
++    unknowns: stringArraySchema,
++    timebox: { type: "string", minLength: 1 },
++    costLimit: { type: "string", minLength: 1 },
++    exitConditions: stringArraySchema,
++    nextDecision: { type: "string", minLength: 1 },
++    deliveryTaskId: { type: "string", minLength: 1 },
++    createdAt: { type: "string", minLength: 1 },
++    startedAt: { type: "string", minLength: 1 },
++    concludedAt: { type: "string", minLength: 1 },
++    exitConditionsMet: { type: "boolean" },
++    factsLearned: stringArraySchema,
++    hypothesesRejected: stringArraySchema,
++    remainingUnknowns: stringArraySchema
++  },
++  allOf: [
++    {
++      if: { properties: { status: { const: "concluded" } }, required: ["status"] },
++      then: {
++        required: ["concludedAt", "exitConditionsMet", "factsLearned", "hypothesesRejected"],
++        properties: { exitConditionsMet: { const: true } }
++      }
++    },
++    {
++      if: { properties: { status: { const: "inconclusive" } }, required: ["status"] },
++      then: { required: ["concludedAt", "remainingUnknowns", "nextDecision"] }
++    }
++  ]
++} as const;
++
++const validate = ajv.compile(discoveryProbeSchema);
++
++export function validateDiscoveryProbe(value: unknown, filePath = "probe"): Issue[] {
++  if (validate(value)) return [];
++  return (validate.errors ?? []).map((error: ErrorObject) =>
++    issue("discovery.schema", `${filePath}.${formatSchemaPath(error)} ${error.message ?? "does not match schema"}`)
++  );
++}
+diff --git a/src/core/schema/index.ts b/src/core/schema/index.ts
+index 893b0cd..f782dab 100644
+--- a/src/core/schema/index.ts
++++ b/src/core/schema/index.ts
+@@ -18,3 +18,5 @@ export {
+ export {
+   validateWbsShape, asWbsDocument
+ } from "./wbs.js";
++
++export { discoveryProbeSchema, validateDiscoveryProbe } from "./discovery.js";
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 32fcafd..11b6257 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -712,6 +712,43 @@ describe("AI commands", () => {
+     expect(buildTinyPacket(root, "WBS-001-004")).toContain("Scope Risk:\n- broad; explicit review required (src/**)");
+   });
+ 
++  test("tiny packet shows related Discovery Probe state and stop instruction", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const probe = {
++      schemaVersion: "1.0.0",
++      id: "PROBE-cache",
++      type: "discovery-probe",
++      status: "active",
++      question: "Can the existing cache meet the target?",
++      hypotheses: ["Existing cache is enough"],
++      activities: ["Measure representative load"],
++      evidenceExpected: ["p95 latency"],
++      unknowns: ["Peak degradation"],
++      timebox: "4h",
++      costLimit: "one engineer-day",
++      exitConditions: ["Representative run complete"],
++      nextDecision: "Choose the delivery design",
++      deliveryTaskId: "WBS-001-004"
++    };
++    writeYaml(root, "contracts/discovery/PROBE-cache.yaml", probe);
++
++    const blocked = buildTinyPacket(root, "WBS-001-004");
++    expect(blocked).toContain("Discovery:");
++    expect(blocked).toContain("PROBE-cache: active");
++    expect(blocked).toContain("Stop: related Discovery Probe is not concluded");
++
++    writeYaml(root, "contracts/discovery/PROBE-cache.yaml", {
++      ...probe,
++      status: "concluded",
++      concludedAt: "2026-07-26T00:00:00.000Z",
++      exitConditionsMet: true,
++      factsLearned: ["p95 met the target"],
++      hypothesesRejected: ["A new store is required"]
++    });
++    expect(buildTinyPacket(root, "WBS-001-004")).not.toContain("Stop: related Discovery Probe");
++  });
++
+   test("core command aliases route to existing approval and block commands", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/discovery.test.ts b/tests/integration/discovery.test.ts
+new file mode 100644
+index 0000000..fe12495
+--- /dev/null
++++ b/tests/integration/discovery.test.ts
+@@ -0,0 +1,197 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test, vi } from "vitest";
++import { main } from "../../src/cli.js";
++import { collectCheckIssues } from "../../src/commands/check.js";
++import { parseSimpleYaml } from "../../src/core/yaml.js";
++import { makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
++
++function newArgs(probe = "PROBE-cache"): string[] {
++  return [
++    "discovery", "new",
++    "--probe", probe,
++    "--question", "Can the existing cache meet the target?",
++    "--hypotheses", "Existing cache is enough,Cold starts dominate",
++    "--activities", "Measure representative load",
++    "--evidence-expected", "p95 latency",
++    "--unknowns", "Peak degradation",
++    "--timebox", "4h",
++    "--cost-limit", "one engineer-day",
++    "--exit-conditions", "Representative run complete",
++    "--next-decision", "Choose the delivery design",
++    "--delivery-task", "WBS-001-004"
++  ];
++}
++
++function readProbe(root: string, id = "PROBE-cache"): Record<string, unknown> {
++  return parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", `${id}.yaml`), "utf8"));
++}
++
++describe("Discovery Probe lifecycle", () => {
++  test("CLI creates a schema-conformant proposed Probe without implicit overwrite", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const output: string[] = [];
++    const errors: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    const error = vi.spyOn(console, "error").mockImplementation((value) => errors.push(String(value)));
++    try {
++      expect(main([...newArgs(), "--json"], root)).toBe(0);
++      const report = JSON.parse(output.join(""));
++      expect(report).toMatchObject({
++        version: "scwbs.discovery.v1",
++        status: "created",
++        probeId: "PROBE-cache"
++      });
++      const probe = readProbe(root);
++      const schema = JSON.parse(readFileSync(
++        path.join(process.cwd(), "docs/scwbs/schemas/discovery-probe.schema.json"),
++        "utf8"
++      ));
++      expect(new Ajv2020({ strict: false }).compile(schema)(probe)).toBe(true);
++      expect(probe).toMatchObject({
++        schemaVersion: "1.0.0",
++        type: "discovery-probe",
++        status: "proposed",
++        deliveryTaskId: "WBS-001-004",
++        hypotheses: ["Existing cache is enough", "Cold starts dominate"]
++      });
++
++      output.length = 0;
++      expect(main(newArgs(), root)).toBe(1);
++      expect(errors.join("\n")).toContain("already exists");
++      expect(readProbe(root).status).toBe("proposed");
++    } finally {
++      log.mockRestore();
++      error.mockRestore();
++    }
++  });
++
++  test("rejects unsafe ids, invalid transitions, and incomplete conclusions", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
++    try {
++      expect(main(newArgs("../escape"), root)).toBe(1);
++      expect(main(newArgs(), root)).toBe(0);
++      expect(main(["discovery", "conclude", "--probe", "PROBE-cache", "--outcome", "concluded"], root)).toBe(1);
++      expect(main(["discovery", "start", "--probe", "PROBE-cache"], root)).toBe(0);
++      expect(main(["discovery", "start", "--probe", "PROBE-cache"], root)).toBe(1);
++      expect(main([
++        "discovery", "conclude", "--probe", "PROBE-cache",
++        "--outcome", "concluded",
++        "--facts", "p95 met the target",
++        "--rejected", "A new store is required",
++        "--exit-conditions-met", "false"
++      ], root)).toBe(1);
++      expect(readProbe(root).status).toBe("active");
++    } finally {
++      error.mockRestore();
++    }
++  });
++
++  test("aggregate check blocks delivery until a valid conclusion", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(newArgs(), root)).toBe(0);
++    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "discovery.delivery.blocked" })
++    ]));
++    expect(main(["discovery", "start", "--probe", "PROBE-cache"], root)).toBe(0);
++    expect(main([
++      "discovery", "conclude", "--probe", "PROBE-cache",
++      "--outcome", "concluded",
++      "--facts", "p95 met the target",
++      "--rejected", "A new store is required",
++      "--exit-conditions-met", "true"
++    ], root)).toBe(0);
++    expect(readProbe(root)).toMatchObject({
++      status: "concluded",
++      exitConditionsMet: true,
++      factsLearned: ["p95 met the target"],
++      hypothesesRejected: ["A new store is required"]
++    });
++    expect(collectCheckIssues(root).some((issue) => issue.code === "discovery.delivery.blocked")).toBe(false);
++  });
++
++  test("inconclusive is terminal with follow-up guidance and keeps delivery blocked", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      expect(main(newArgs(), root)).toBe(0);
++      expect(main(["discovery", "start", "--probe", "PROBE-cache"], root)).toBe(0);
++      output.length = 0;
++      expect(main([
++        "discovery", "conclude", "--probe", "PROBE-cache",
++        "--outcome", "inconclusive",
++        "--remaining", "Peak load cannot be reproduced",
++        "--next-decision", "Decide whether another Probe is worth the cost",
++        "--json"
++      ], root)).toBe(0);
++      expect(JSON.parse(output.join(""))).toMatchObject({
++        version: "scwbs.discovery.v1",
++        status: "inconclusive"
++      });
++      expect(readProbe(root)).toMatchObject({
++        status: "inconclusive",
++        remainingUnknowns: ["Peak load cannot be reproduced"],
++        nextDecision: "Decide whether another Probe is worth the cost"
++      });
++      expect(collectCheckIssues(root).some((issue) => issue.code === "discovery.delivery.blocked")).toBe(true);
++    } finally {
++      log.mockRestore();
++    }
++  });
++
++  test("help exposes the lifecycle commands", () => {
++    const root = makeTempRepo();
++    const chunks: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      chunks.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(main(["discovery", "--help"], root)).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(chunks.join("")).toContain("new");
++    expect(chunks.join("")).toContain("start");
++    expect(chunks.join("")).toContain("conclude");
++  });
++
++  test("runtime and published schemas reject a false concluded exit state", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/discovery/PROBE-invalid.yaml", {
++      schemaVersion: "1.0.0",
++      id: "PROBE-invalid",
++      type: "discovery-probe",
++      status: "concluded",
++      question: "Is it safe?",
++      hypotheses: [],
++      activities: [],
++      evidenceExpected: [],
++      unknowns: [],
++      timebox: "1h",
++      costLimit: "low",
++      exitConditions: ["Evidence exists"],
++      nextDecision: "Proceed",
++      concludedAt: "2026-07-26T00:00:00.000Z",
++      exitConditionsMet: false,
++      factsLearned: [],
++      hypothesesRejected: []
++    });
++    expect(collectCheckIssues(root).some((issue) => issue.code === "discovery.schema")).toBe(true);
++
++    const schema = JSON.parse(readFileSync(
++      path.join(process.cwd(), "docs/scwbs/schemas/discovery-probe.schema.json"),
++      "utf8"
++    ));
++    expect(new Ajv2020({ strict: false }).compile(schema)(readProbe(root, "PROBE-invalid"))).toBe(false);
++  });
++});
