@@ -1,0 +1,186 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index cbd960a..2f57daa 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -20,7 +20,7 @@ jobs:
+       subject: ${{ steps.final.outputs.subject }}
+     steps:
+       - name: Checkout exact head with full history
+-        uses: actions/checkout@v4
++        uses: actions/checkout@v7
+         with:
+           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+           fetch-depth: 0
+@@ -32,7 +32,7 @@ jobs:
+           git switch -C "$CI_BRANCH" HEAD
+           git fetch origin main:refs/remotes/origin/main
+       - name: Set up Node.js
+-        uses: actions/setup-node@v4
++        uses: actions/setup-node@v7
+         with:
+           node-version: 24
+           cache: npm
+@@ -48,7 +48,7 @@ jobs:
+       - name: Verify successful full CI for implementation subject
+         id: subject-checks
+         if: steps.candidate.outputs.decision == 'metadata-candidate'
+-        uses: actions/github-script@v7
++        uses: actions/github-script@v9
+         env:
+           SUBJECT: ${{ steps.candidate.outputs.subject }}
+         with:
+@@ -145,11 +145,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v4
++        uses: actions/checkout@v7
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v4
++        uses: actions/setup-node@v7
+         with:
+           node-version: 24
+           cache: npm
+@@ -176,11 +176,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v4
++        uses: actions/checkout@v7
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v4
++        uses: actions/setup-node@v7
+         with:
+           node-version: 24
+           cache: npm
+@@ -195,11 +195,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v4
++        uses: actions/checkout@v7
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v4
++        uses: actions/setup-node@v7
+         with:
+           node-version: 24
+           cache: npm
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRNZ33AL.yaml b/contracts/blocks/SCWBS-DRAFT-MRNZ33AL.yaml
+new file mode 100644
+index 0000000..435fc76
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRNZ33AL.yaml
+@@ -0,0 +1,29 @@
++id: BLK-SCWBS-DRAFT-MRNZ33AL
++type: block
++taskId: SCWBS-DRAFT-MRNZ33AL
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: "Human Gate required: authorize actions/github-script@v7 to official latest v9 in .github/workflows/scwbs.yml to remove the remaining Node.js 20 annotation for Issue #235"
++createdAt: "2026-07-16T22:04:58.994Z"
++history:
++  - status: blocked
++    at: "2026-07-16T20:42:03.904Z"
++    reason: "Human Gate required: authorize .github/workflows/scwbs.yml action major updates for Issue #235"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-16T20:43:17.134Z"
++    reason: "Issue #235のため.github/workflows/scwbs.ymlのactions/checkoutおよびactions/setup-nodeを公式latest majorへ更新することを承認"
++    by: human
++  - status: blocked
++    at: "2026-07-16T22:04:58.994Z"
++    reason: "Human Gate required: authorize actions/github-script@v7 to official latest v9 in .github/workflows/scwbs.yml to remove the remaining Node.js 20 annotation for Issue #235"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-16T22:05:43.719Z"
++    reason: "Issue #235の残存Node.js 20 annotationを解消するため、.github/workflows/scwbs.ymlのactions/github-script@v7を公式latest v9へ更新することを承認"
++    by: human
++resolvedAt: "2026-07-16T22:05:43.719Z"
++resolvedBy: human
++resolution: "Issue #235の残存Node.js 20 annotationを解消するため、.github/workflows/scwbs.ymlのactions/github-script@v7を公式latest v9へ更新することを承認"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml b/contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml
+new file mode 100644
+index 0000000..eb889e2
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MRNZ33AL
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNZ33AL
++branchName: task/SCWBS-DRAFT-MRNZ33AL-issue-235-github-actions-action-majors
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNZ33AL.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNZ33AL.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNZ33AL.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNZ33AL.yaml
++allowedPaths:
++  - .github/workflows/scwbs.yml
++forbiddenPaths:
++  - src/**
++  - tests/**
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - workflow以外の実装・test・package・lockfile・project Node policy変更が必要
++  - full history・branch/base復元・recursive submodule・npm cache semanticsを維持できない
++  - allowedPaths外または追加Human Gate pathの変更が必要
++  - required checks・provenance・Approval境界を弱める必要がある
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - actions/checkoutとactions/setup-nodeを公式latest majorへ更新し、action runtimeをNode.js 24へ移行する
++  - exact head・fetch-depth 0・branch/base復元・recursive submodule・明示npm cacheの既存semanticsを維持する
++  - package runtimeとproject Node support policy、required checks、provenance検証、Approval境界を変更しない
++  - plan・core・integration・wjs・validateが全て成功し、Node.js 20 runtime deprecation annotationが消える
++  - context manifestの初期読込と実追加読込files・lines・bytes、wall time、2回の決定性をIssue 221へ記録する
++  - required-check duration、finish/preflight回数、metadata-only descendants、CI runs、Human Gate wait、publish loop、warning deltaをIssue 179へ記録する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T20:40:24.072Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 54872ee..8b76cba 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -231,3 +231,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRNZ33AL
++    path: contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml
++    branchName: task/SCWBS-DRAFT-MRNZ33AL-issue-235-github-actions-action-majors
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []

@@ -1,0 +1,2390 @@
+diff --git a/contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json b/contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
+new file mode 100644
+index 0000000..83dda7e
+--- /dev/null
++++ b/contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
+@@ -0,0 +1,16 @@
++{
++  "schemaVersion": "0.1.0",
++  "targetWbsId": "scwbs",
++  "changeSetId": "changeset-SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance",
++  "author": "ai-agent",
++  "reason": "Apply the human-authorized current-revision replacement contract for governance maintenance readiness.",
++  "dryRun": false,
++  "operations": [
++    {
++      "operationId": "op-001",
++      "operation": "changeNodeStatus",
++      "nodeId": "node-governance-maintenance",
++      "status": "ready"
++    }
++  ]
++}
+diff --git a/contracts/tasks/LITE-001.yaml b/contracts/tasks/LITE-001.yaml
+index 0094983..7138d18 100644
+--- a/contracts/tasks/LITE-001.yaml
++++ b/contracts/tasks/LITE-001.yaml
+@@ -35,6 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:06:25.829Z"
++  createdAt: "2026-07-16T12:53:24.015Z"
+diff --git a/contracts/tasks/LITE-002.yaml b/contracts/tasks/LITE-002.yaml
+index 8c270d8..282056c 100644
+--- a/contracts/tasks/LITE-002.yaml
++++ b/contracts/tasks/LITE-002.yaml
+@@ -35,6 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:06:30.086Z"
++  createdAt: "2026-07-16T12:53:24.019Z"
+diff --git a/contracts/tasks/LITE-003.yaml b/contracts/tasks/LITE-003.yaml
+index 0f45531..65fdce1 100644
+--- a/contracts/tasks/LITE-003.yaml
++++ b/contracts/tasks/LITE-003.yaml
+@@ -40,6 +40,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:06:34.246Z"
++  createdAt: "2026-07-16T12:53:24.021Z"
+diff --git a/contracts/tasks/SCWBS-001.yaml b/contracts/tasks/SCWBS-001.yaml
+index e0105c8..3f6c1ae 100644
+--- a/contracts/tasks/SCWBS-001.yaml
++++ b/contracts/tasks/SCWBS-001.yaml
+@@ -31,8 +31,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:f19cca3bbd5d3cd64a223dde133f35c11072cee58f7ca4a3befe3096ce2a623c
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+   specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
+-  createdAt: "2026-07-12T15:06:38.153Z"
++  createdAt: "2026-07-16T12:53:24.023Z"
+diff --git a/contracts/tasks/SCWBS-002.yaml b/contracts/tasks/SCWBS-002.yaml
+index 588ffcc..a7391cf 100644
+--- a/contracts/tasks/SCWBS-002.yaml
++++ b/contracts/tasks/SCWBS-002.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:b3d4ffb25186106b52f675fb6aaac4d7561febf54c7b19eaf03b2332999bb192
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-spec-contracts
+-  createdAt: "2026-07-12T15:06:44.399Z"
++  createdAt: "2026-07-16T12:53:24.026Z"
+diff --git a/contracts/tasks/SCWBS-003.yaml b/contracts/tasks/SCWBS-003.yaml
+index 16f7861..07d684e 100644
+--- a/contracts/tasks/SCWBS-003.yaml
++++ b/contracts/tasks/SCWBS-003.yaml
+@@ -28,6 +28,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:a8f26d784611a793bace1a30e697f3a3ba480cd88dcc321e6cd401f58da057ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-test-quality
+-  createdAt: "2026-07-12T15:06:48.987Z"
++  createdAt: "2026-07-16T12:53:24.030Z"
+diff --git a/contracts/tasks/SCWBS-004.yaml b/contracts/tasks/SCWBS-004.yaml
+index 1124dee..1798000 100644
+--- a/contracts/tasks/SCWBS-004.yaml
++++ b/contracts/tasks/SCWBS-004.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:c7bffd26e416d6ffe12f72b28243bcc38bd1952cb29f65c4d272576d96809adc
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-task-generate
+-  createdAt: "2026-07-12T15:06:52.701Z"
++  createdAt: "2026-07-16T12:53:24.035Z"
+diff --git a/contracts/tasks/SCWBS-005.yaml b/contracts/tasks/SCWBS-005.yaml
+index 33e28ca..bf9824f 100644
+--- a/contracts/tasks/SCWBS-005.yaml
++++ b/contracts/tasks/SCWBS-005.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:dc5ff2c353c5af846bccde089b4d4aca183e8ab9b802d83c7fd5429fa2dcd34b
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-wbs-merge
+-  createdAt: "2026-07-12T15:06:55.838Z"
++  createdAt: "2026-07-16T12:53:24.041Z"
+diff --git a/contracts/tasks/SCWBS-006.yaml b/contracts/tasks/SCWBS-006.yaml
+index cdbd049..f325d97 100644
+--- a/contracts/tasks/SCWBS-006.yaml
++++ b/contracts/tasks/SCWBS-006.yaml
+@@ -31,6 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:fcba08328e1c661101fcef1af285945d3f852e06f9356a5d44487f71aaa054c9
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-meta-file-safety
+-  createdAt: "2026-07-12T15:06:59.441Z"
++  createdAt: "2026-07-16T12:53:24.044Z"
+diff --git a/contracts/tasks/SCWBS-007.yaml b/contracts/tasks/SCWBS-007.yaml
+index 0649943..47e6bc0 100644
+--- a/contracts/tasks/SCWBS-007.yaml
++++ b/contracts/tasks/SCWBS-007.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:dcd13111acd392788d871c821a7f1a41261a7f0bb210b85189cf44215ad30bf5
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-bootstrap-subtree
+-  createdAt: "2026-07-12T15:07:03.039Z"
++  createdAt: "2026-07-16T12:53:24.050Z"
+diff --git a/contracts/tasks/SCWBS-008.yaml b/contracts/tasks/SCWBS-008.yaml
+index a83aa2e..ebeedf6 100644
+--- a/contracts/tasks/SCWBS-008.yaml
++++ b/contracts/tasks/SCWBS-008.yaml
+@@ -32,6 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:2ca6f7afcf0ac4063a7d4cfea20be898e579b6def49d590f98f28e6226174fa3
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-orchestration
+-  createdAt: "2026-07-12T15:07:06.377Z"
++  createdAt: "2026-07-16T12:53:24.055Z"
+diff --git a/contracts/tasks/SCWBS-009.yaml b/contracts/tasks/SCWBS-009.yaml
+index eb4bfaf..f3af2ef 100644
+--- a/contracts/tasks/SCWBS-009.yaml
++++ b/contracts/tasks/SCWBS-009.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:66e9382958614057990dae2c3a8d137dca442c68bdc461e06a876ca1e4477d9e
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-doctor
+-  createdAt: "2026-07-12T15:07:09.553Z"
++  createdAt: "2026-07-16T12:53:24.058Z"
+diff --git a/contracts/tasks/SCWBS-010.yaml b/contracts/tasks/SCWBS-010.yaml
+index ee45763..03144d0 100644
+--- a/contracts/tasks/SCWBS-010.yaml
++++ b/contracts/tasks/SCWBS-010.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:94ba32551e51de3fc9ee198b57ec3b20ebe9918236efd8f9eda4fc2230e04460
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-12T15:07:13.057Z"
++  createdAt: "2026-07-16T12:53:24.062Z"
+diff --git a/contracts/tasks/SCWBS-011.yaml b/contracts/tasks/SCWBS-011.yaml
+index c5cdd10..c19bc15 100644
+--- a/contracts/tasks/SCWBS-011.yaml
++++ b/contracts/tasks/SCWBS-011.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:acce5068aa7f8c628aa711682df7225d58baf64bc051d2fb1f017b185fd3b313
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-task-refresh
+-  createdAt: "2026-07-12T15:07:16.318Z"
++  createdAt: "2026-07-16T12:53:24.065Z"
+diff --git a/contracts/tasks/SCWBS-012.yaml b/contracts/tasks/SCWBS-012.yaml
+index e88d0f1..ca9affb 100644
+--- a/contracts/tasks/SCWBS-012.yaml
++++ b/contracts/tasks/SCWBS-012.yaml
+@@ -32,6 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:7179c0dc71ee93f02ea6a61ba59910773bd7369d2a006cfc2e751b2a50f951f5
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-registry-profile
+-  createdAt: "2026-07-12T15:07:19.832Z"
++  createdAt: "2026-07-16T12:53:24.068Z"
+diff --git a/contracts/tasks/SCWBS-013.yaml b/contracts/tasks/SCWBS-013.yaml
+index 5ca1cbb..7fb41ba 100644
+--- a/contracts/tasks/SCWBS-013.yaml
++++ b/contracts/tasks/SCWBS-013.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:75ca868a551c2a0859fd576d3f1ddb8f2068f8f9abd2552036b67befc94898cb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-ai-run
+-  createdAt: "2026-07-12T15:07:46.891Z"
++  createdAt: "2026-07-16T12:53:24.071Z"
+diff --git a/contracts/tasks/SCWBS-014.yaml b/contracts/tasks/SCWBS-014.yaml
+index b9bf722..8354050 100644
+--- a/contracts/tasks/SCWBS-014.yaml
++++ b/contracts/tasks/SCWBS-014.yaml
+@@ -33,6 +33,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:ab83ee546417a47136e4af95ac22a723a5d63d9df96cdea21de17e530e4bccbf
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-review-request
+-  createdAt: "2026-07-12T15:07:27.578Z"
++  createdAt: "2026-07-16T12:53:24.074Z"
+diff --git a/contracts/tasks/SCWBS-015.yaml b/contracts/tasks/SCWBS-015.yaml
+index 01cd7aa..417f290 100644
+--- a/contracts/tasks/SCWBS-015.yaml
++++ b/contracts/tasks/SCWBS-015.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:25bf4afd4a3435c86147df9ea5d2ce60d0db4392f57a684db369ba7da60698f1
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-next
+-  createdAt: "2026-07-12T15:07:33.808Z"
++  createdAt: "2026-07-16T12:53:24.077Z"
+diff --git a/contracts/tasks/SCWBS-016.yaml b/contracts/tasks/SCWBS-016.yaml
+index 6eee4e2..38e74a2 100644
+--- a/contracts/tasks/SCWBS-016.yaml
++++ b/contracts/tasks/SCWBS-016.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:12ae2e12d9ffd7e06e6eba237e53e3bbf2d13f3a7203789768095a1def36493d
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-ai-packet-format
+-  createdAt: "2026-07-12T15:07:38.004Z"
++  createdAt: "2026-07-16T12:53:24.082Z"
+diff --git a/contracts/tasks/SCWBS-017.yaml b/contracts/tasks/SCWBS-017.yaml
+index b61af76..2217df7 100644
+--- a/contracts/tasks/SCWBS-017.yaml
++++ b/contracts/tasks/SCWBS-017.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:eeef4605224c4ea4e8049a8eacdde6553a1ba8e2d51d143b161e92cb8596e3f4
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-start-plan
+-  createdAt: "2026-07-12T15:07:41.711Z"
++  createdAt: "2026-07-16T12:53:24.084Z"
+diff --git a/contracts/tasks/SCWBS-018.yaml b/contracts/tasks/SCWBS-018.yaml
+index dc25311..8d3f550 100644
+--- a/contracts/tasks/SCWBS-018.yaml
++++ b/contracts/tasks/SCWBS-018.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:e0c3ea68dd953024163dc53dd8f90876d43d983c830cb8418df9852b33c3ee84
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-lite-promote
+-  createdAt: "2026-07-12T15:07:47.228Z"
++  createdAt: "2026-07-16T12:53:24.087Z"
+diff --git a/contracts/tasks/SCWBS-019.yaml b/contracts/tasks/SCWBS-019.yaml
+index 4a647a5..8608d84 100644
+--- a/contracts/tasks/SCWBS-019.yaml
++++ b/contracts/tasks/SCWBS-019.yaml
+@@ -31,6 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:a5ba548d177fc3356cdb7b5dc051b326d5f30191f8eb15d56136f6aa255cdf17
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-trace
+-  createdAt: "2026-07-12T15:07:51.222Z"
++  createdAt: "2026-07-16T12:53:24.089Z"
+diff --git a/contracts/tasks/SCWBS-020.yaml b/contracts/tasks/SCWBS-020.yaml
+index de66157..bad9b1a 100644
+--- a/contracts/tasks/SCWBS-020.yaml
++++ b/contracts/tasks/SCWBS-020.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:11f135a162d00c9e220d3f35ef55949846707f00d4b6636da96f8ea11a20a434
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-ui-serve
+-  createdAt: "2026-07-12T15:07:54.977Z"
++  createdAt: "2026-07-16T12:53:24.092Z"
+diff --git a/contracts/tasks/SCWBS-021.yaml b/contracts/tasks/SCWBS-021.yaml
+index 585fffd..9e8d7bf 100644
+--- a/contracts/tasks/SCWBS-021.yaml
++++ b/contracts/tasks/SCWBS-021.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:eee45aab182d03d7b8c5da1f0c88c1a85be9b9eab8a5bb08e7da898700634647
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-branch-guard
+-  createdAt: "2026-07-12T15:08:00.023Z"
++  createdAt: "2026-07-16T12:53:24.096Z"
+diff --git a/contracts/tasks/SCWBS-022.yaml b/contracts/tasks/SCWBS-022.yaml
+index b274c05..41d8457 100644
+--- a/contracts/tasks/SCWBS-022.yaml
++++ b/contracts/tasks/SCWBS-022.yaml
+@@ -29,6 +29,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:19ce7422227c4d31527952b8960fbb02e355b78c506d7c4f7f00e0162e4185cf
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-review-routing
+-  createdAt: "2026-07-12T15:08:06.418Z"
++  createdAt: "2026-07-16T12:53:24.099Z"
+diff --git a/contracts/tasks/SCWBS-023.yaml b/contracts/tasks/SCWBS-023.yaml
+index de6bc5b..1335aad 100644
+--- a/contracts/tasks/SCWBS-023.yaml
++++ b/contracts/tasks/SCWBS-023.yaml
+@@ -34,6 +34,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:0c6f29089959f12b22b796a907e0d4b14216b556815eb9799c1a7a4170dd67e6
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-wbs-tool-only
+-  createdAt: "2026-07-12T15:08:11.117Z"
++  createdAt: "2026-07-16T12:53:24.102Z"
+diff --git a/contracts/tasks/SCWBS-024.yaml b/contracts/tasks/SCWBS-024.yaml
+index 940904f..48e8f24 100644
+--- a/contracts/tasks/SCWBS-024.yaml
++++ b/contracts/tasks/SCWBS-024.yaml
+@@ -31,8 +31,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:f19cca3bbd5d3cd64a223dde133f35c11072cee58f7ca4a3befe3096ce2a623c
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+   specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
+-  createdAt: "2026-07-12T15:08:16.576Z"
++  createdAt: "2026-07-16T12:53:24.105Z"
+diff --git a/contracts/tasks/SCWBS-025.yaml b/contracts/tasks/SCWBS-025.yaml
+index ed50f95..f935f03 100644
+--- a/contracts/tasks/SCWBS-025.yaml
++++ b/contracts/tasks/SCWBS-025.yaml
+@@ -32,6 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:4ea5c1985fff394d0aecedcf7ca6c7c5e923f53e6c27e5f69c0bb357ae5ef09f
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-yaml-json-schema-validation
+-  createdAt: "2026-07-12T15:08:21.850Z"
++  createdAt: "2026-07-16T12:53:24.108Z"
+diff --git a/contracts/tasks/SCWBS-026.yaml b/contracts/tasks/SCWBS-026.yaml
+index d383d95..d1be86a 100644
+--- a/contracts/tasks/SCWBS-026.yaml
++++ b/contracts/tasks/SCWBS-026.yaml
+@@ -34,6 +34,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:4ea5c1985fff394d0aecedcf7ca6c7c5e923f53e6c27e5f69c0bb357ae5ef09f
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-yaml-json-schema-validation
+-  createdAt: "2026-07-12T15:08:26.919Z"
++  createdAt: "2026-07-16T12:53:24.112Z"
+diff --git a/contracts/tasks/SCWBS-027.yaml b/contracts/tasks/SCWBS-027.yaml
+index 4141be0..918876b 100644
+--- a/contracts/tasks/SCWBS-027.yaml
++++ b/contracts/tasks/SCWBS-027.yaml
+@@ -45,6 +45,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:5e511f69747439bbb60bc1cbbfd77b7afe61c82850208eb99f9405781a93a318
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-12T15:08:32.301Z"
++  createdAt: "2026-07-16T12:53:24.115Z"
+diff --git a/contracts/tasks/SCWBS-028.yaml b/contracts/tasks/SCWBS-028.yaml
+index c7b8774..e55a82f 100644
+--- a/contracts/tasks/SCWBS-028.yaml
++++ b/contracts/tasks/SCWBS-028.yaml
+@@ -30,8 +30,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:f19cca3bbd5d3cd64a223dde133f35c11072cee58f7ca4a3befe3096ce2a623c
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+   specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
+-  createdAt: "2026-07-12T15:08:39.208Z"
++  createdAt: "2026-07-16T12:53:24.117Z"
+diff --git a/contracts/tasks/SCWBS-029.yaml b/contracts/tasks/SCWBS-029.yaml
+index 23ea238..41222e6 100644
+--- a/contracts/tasks/SCWBS-029.yaml
++++ b/contracts/tasks/SCWBS-029.yaml
+@@ -37,6 +37,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:c40581c83e8b2dd77822c8e1ae5ba190d89f26231e956cc3c19c15974726d00c
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-meta-health-audit-hygiene
+-  createdAt: "2026-07-12T15:08:44.536Z"
++  createdAt: "2026-07-16T12:53:24.120Z"
+diff --git a/contracts/tasks/SCWBS-030.yaml b/contracts/tasks/SCWBS-030.yaml
+index 2640378..3d77d47 100644
+--- a/contracts/tasks/SCWBS-030.yaml
++++ b/contracts/tasks/SCWBS-030.yaml
+@@ -31,6 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:207ff4c92e898ae723c12679f7f1fbb6fe768547f76b7284fa33892fa1a1c95d
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-conflict-cost-guardrails
+-  createdAt: "2026-07-12T15:08:50.120Z"
++  createdAt: "2026-07-16T12:53:24.123Z"
+diff --git a/contracts/tasks/SCWBS-031.yaml b/contracts/tasks/SCWBS-031.yaml
+index ce60e92..8c20d09 100644
+--- a/contracts/tasks/SCWBS-031.yaml
++++ b/contracts/tasks/SCWBS-031.yaml
+@@ -23,8 +23,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:f19cca3bbd5d3cd64a223dde133f35c11072cee58f7ca4a3befe3096ce2a623c
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-dogfood-contracts
+   specVersion: 0.1.0
+   specRevision: sha256:1055e6423ae2ab6c6a2ec256d8f0f7e7a12c30320caeb9c9d3b4b2561b6adec9
+-  createdAt: "2026-07-12T15:08:56.016Z"
++  createdAt: "2026-07-16T12:53:24.125Z"
+diff --git a/contracts/tasks/SCWBS-032.yaml b/contracts/tasks/SCWBS-032.yaml
+index 89f707a..ca5b625 100644
+--- a/contracts/tasks/SCWBS-032.yaml
++++ b/contracts/tasks/SCWBS-032.yaml
+@@ -33,6 +33,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:07eca6370d83858a04930b30e06684e2ce5f23fd1f132c85c8b39105444ef239
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-12T15:09:03.022Z"
++  createdAt: "2026-07-16T12:53:24.130Z"
+diff --git a/contracts/tasks/SCWBS-033.yaml b/contracts/tasks/SCWBS-033.yaml
+index 7b060c5..fc9d7b7 100644
+--- a/contracts/tasks/SCWBS-033.yaml
++++ b/contracts/tasks/SCWBS-033.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:07eca6370d83858a04930b30e06684e2ce5f23fd1f132c85c8b39105444ef239
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-12T15:09:09.576Z"
++  createdAt: "2026-07-16T12:53:24.133Z"
+diff --git a/contracts/tasks/SCWBS-034.yaml b/contracts/tasks/SCWBS-034.yaml
+index 4b274fd..e811d12 100644
+--- a/contracts/tasks/SCWBS-034.yaml
++++ b/contracts/tasks/SCWBS-034.yaml
+@@ -33,6 +33,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:25bf4afd4a3435c86147df9ea5d2ce60d0db4392f57a684db369ba7da60698f1
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-next
+-  createdAt: "2026-07-12T15:09:15.790Z"
++  createdAt: "2026-07-16T12:53:24.135Z"
+diff --git a/contracts/tasks/SCWBS-035.yaml b/contracts/tasks/SCWBS-035.yaml
+index a0e8b61..89929d2 100644
+--- a/contracts/tasks/SCWBS-035.yaml
++++ b/contracts/tasks/SCWBS-035.yaml
+@@ -32,6 +32,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:07eca6370d83858a04930b30e06684e2ce5f23fd1f132c85c8b39105444ef239
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-ci-integration
+-  createdAt: "2026-07-12T15:09:22.055Z"
++  createdAt: "2026-07-16T12:53:24.138Z"
+diff --git a/contracts/tasks/SCWBS-036.yaml b/contracts/tasks/SCWBS-036.yaml
+index 470ab09..268d312 100644
+--- a/contracts/tasks/SCWBS-036.yaml
++++ b/contracts/tasks/SCWBS-036.yaml
+@@ -25,6 +25,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:5e511f69747439bbb60bc1cbbfd77b7afe61c82850208eb99f9405781a93a318
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-12T15:09:31.411Z"
++  createdAt: "2026-07-16T12:53:24.141Z"
+diff --git a/contracts/tasks/SCWBS-037.yaml b/contracts/tasks/SCWBS-037.yaml
+index 8b76fe0..3f8759c 100644
+--- a/contracts/tasks/SCWBS-037.yaml
++++ b/contracts/tasks/SCWBS-037.yaml
+@@ -35,6 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:5e511f69747439bbb60bc1cbbfd77b7afe61c82850208eb99f9405781a93a318
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-evidence-provenance-diff-basis
+-  createdAt: "2026-07-12T15:09:37.916Z"
++  createdAt: "2026-07-16T12:53:24.144Z"
+diff --git a/contracts/tasks/SCWBS-038.yaml b/contracts/tasks/SCWBS-038.yaml
+index f8f5bae..71e3a68 100644
+--- a/contracts/tasks/SCWBS-038.yaml
++++ b/contracts/tasks/SCWBS-038.yaml
+@@ -25,6 +25,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:a8f26d784611a793bace1a30e697f3a3ba480cd88dcc321e6cd401f58da057ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-test-quality
+-  createdAt: "2026-07-12T15:09:43.280Z"
++  createdAt: "2026-07-16T12:53:24.147Z"
+diff --git a/contracts/tasks/SCWBS-039.yaml b/contracts/tasks/SCWBS-039.yaml
+index 1f1ae08..c85caa7 100644
+--- a/contracts/tasks/SCWBS-039.yaml
++++ b/contracts/tasks/SCWBS-039.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:09:49.223Z"
++  createdAt: "2026-07-16T12:53:24.150Z"
+diff --git a/contracts/tasks/SCWBS-040.yaml b/contracts/tasks/SCWBS-040.yaml
+index 871f7e4..aadcf93 100644
+--- a/contracts/tasks/SCWBS-040.yaml
++++ b/contracts/tasks/SCWBS-040.yaml
+@@ -28,6 +28,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:10:01.979Z"
++  createdAt: "2026-07-16T12:53:24.152Z"
+diff --git a/contracts/tasks/SCWBS-041.yaml b/contracts/tasks/SCWBS-041.yaml
+index f57cc34..af06ed0 100644
+--- a/contracts/tasks/SCWBS-041.yaml
++++ b/contracts/tasks/SCWBS-041.yaml
+@@ -31,6 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:08.172Z"
++  createdAt: "2026-07-16T12:53:24.155Z"
+diff --git a/contracts/tasks/SCWBS-042.yaml b/contracts/tasks/SCWBS-042.yaml
+index cf02a70..7a7eb7b 100644
+--- a/contracts/tasks/SCWBS-042.yaml
++++ b/contracts/tasks/SCWBS-042.yaml
+@@ -25,6 +25,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:14.347Z"
++  createdAt: "2026-07-16T12:53:24.158Z"
+diff --git a/contracts/tasks/SCWBS-043.yaml b/contracts/tasks/SCWBS-043.yaml
+index 2ec7bd8..6e52b31 100644
+--- a/contracts/tasks/SCWBS-043.yaml
++++ b/contracts/tasks/SCWBS-043.yaml
+@@ -25,6 +25,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:19.837Z"
++  createdAt: "2026-07-16T12:53:24.162Z"
+diff --git a/contracts/tasks/SCWBS-044.yaml b/contracts/tasks/SCWBS-044.yaml
+index 95a15d3..ea4a705 100644
+--- a/contracts/tasks/SCWBS-044.yaml
++++ b/contracts/tasks/SCWBS-044.yaml
+@@ -24,6 +24,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:26.219Z"
++  createdAt: "2026-07-16T12:53:24.166Z"
+diff --git a/contracts/tasks/SCWBS-045.yaml b/contracts/tasks/SCWBS-045.yaml
+index b3bb3fe..407aeed 100644
+--- a/contracts/tasks/SCWBS-045.yaml
++++ b/contracts/tasks/SCWBS-045.yaml
+@@ -25,6 +25,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:27.256Z"
++  createdAt: "2026-07-16T12:53:24.170Z"
+diff --git a/contracts/tasks/SCWBS-046.yaml b/contracts/tasks/SCWBS-046.yaml
+index 89608d6..05c547f 100644
+--- a/contracts/tasks/SCWBS-046.yaml
++++ b/contracts/tasks/SCWBS-046.yaml
+@@ -35,6 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:31.262Z"
++  createdAt: "2026-07-16T12:53:24.173Z"
+diff --git a/contracts/tasks/SCWBS-047.yaml b/contracts/tasks/SCWBS-047.yaml
+index 8e9476a..030e021 100644
+--- a/contracts/tasks/SCWBS-047.yaml
++++ b/contracts/tasks/SCWBS-047.yaml
+@@ -24,6 +24,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:36.066Z"
++  createdAt: "2026-07-16T12:53:24.178Z"
+diff --git a/contracts/tasks/SCWBS-048.yaml b/contracts/tasks/SCWBS-048.yaml
+index 9190d6a..ed2af86 100644
+--- a/contracts/tasks/SCWBS-048.yaml
++++ b/contracts/tasks/SCWBS-048.yaml
+@@ -39,6 +39,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:44.884Z"
++  createdAt: "2026-07-16T12:53:24.181Z"
+diff --git a/contracts/tasks/SCWBS-049.yaml b/contracts/tasks/SCWBS-049.yaml
+index 8b4d94b..1055ed7 100644
+--- a/contracts/tasks/SCWBS-049.yaml
++++ b/contracts/tasks/SCWBS-049.yaml
+@@ -38,6 +38,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:49.989Z"
++  createdAt: "2026-07-16T12:53:24.184Z"
+diff --git a/contracts/tasks/SCWBS-050.yaml b/contracts/tasks/SCWBS-050.yaml
+index 0b08604..a2f7bf7 100644
+--- a/contracts/tasks/SCWBS-050.yaml
++++ b/contracts/tasks/SCWBS-050.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:54.479Z"
++  createdAt: "2026-07-16T12:53:24.186Z"
+diff --git a/contracts/tasks/SCWBS-051.yaml b/contracts/tasks/SCWBS-051.yaml
+index 811953d..c3b0bb4 100644
+--- a/contracts/tasks/SCWBS-051.yaml
++++ b/contracts/tasks/SCWBS-051.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:10:59.256Z"
++  createdAt: "2026-07-16T12:53:24.189Z"
+diff --git a/contracts/tasks/SCWBS-052.yaml b/contracts/tasks/SCWBS-052.yaml
+index d0091f7..79853a6 100644
+--- a/contracts/tasks/SCWBS-052.yaml
++++ b/contracts/tasks/SCWBS-052.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:11:04.571Z"
++  createdAt: "2026-07-16T12:53:24.191Z"
+diff --git a/contracts/tasks/SCWBS-053.yaml b/contracts/tasks/SCWBS-053.yaml
+index bceb1f0..9ad7e04 100644
+--- a/contracts/tasks/SCWBS-053.yaml
++++ b/contracts/tasks/SCWBS-053.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:11:05.160Z"
++  createdAt: "2026-07-16T12:53:24.195Z"
+diff --git a/contracts/tasks/SCWBS-054.yaml b/contracts/tasks/SCWBS-054.yaml
+index 217702e..0cb8734 100644
+--- a/contracts/tasks/SCWBS-054.yaml
++++ b/contracts/tasks/SCWBS-054.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:09.123Z"
++  createdAt: "2026-07-16T12:53:24.198Z"
+diff --git a/contracts/tasks/SCWBS-055.yaml b/contracts/tasks/SCWBS-055.yaml
+index ef83235..f7b399f 100644
+--- a/contracts/tasks/SCWBS-055.yaml
++++ b/contracts/tasks/SCWBS-055.yaml
+@@ -24,6 +24,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:13.380Z"
++  createdAt: "2026-07-16T12:53:24.200Z"
+diff --git a/contracts/tasks/SCWBS-056.yaml b/contracts/tasks/SCWBS-056.yaml
+index 2ce19c8..10c205f 100644
+--- a/contracts/tasks/SCWBS-056.yaml
++++ b/contracts/tasks/SCWBS-056.yaml
+@@ -33,6 +33,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:17.508Z"
++  createdAt: "2026-07-16T12:53:24.203Z"
+diff --git a/contracts/tasks/SCWBS-057.yaml b/contracts/tasks/SCWBS-057.yaml
+index 4990fd1..1e4a0c1 100644
+--- a/contracts/tasks/SCWBS-057.yaml
++++ b/contracts/tasks/SCWBS-057.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:21.409Z"
++  createdAt: "2026-07-16T12:53:24.205Z"
+diff --git a/contracts/tasks/SCWBS-058.yaml b/contracts/tasks/SCWBS-058.yaml
+index 83532ea..f718a47 100644
+--- a/contracts/tasks/SCWBS-058.yaml
++++ b/contracts/tasks/SCWBS-058.yaml
+@@ -37,6 +37,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:26.381Z"
++  createdAt: "2026-07-16T12:53:24.207Z"
+diff --git a/contracts/tasks/SCWBS-059.yaml b/contracts/tasks/SCWBS-059.yaml
+index c25fc63..c17a29b 100644
+--- a/contracts/tasks/SCWBS-059.yaml
++++ b/contracts/tasks/SCWBS-059.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:31.697Z"
++  createdAt: "2026-07-16T12:53:24.210Z"
+diff --git a/contracts/tasks/SCWBS-060.yaml b/contracts/tasks/SCWBS-060.yaml
+index 149fa83..09faf3e 100644
+--- a/contracts/tasks/SCWBS-060.yaml
++++ b/contracts/tasks/SCWBS-060.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:36.351Z"
++  createdAt: "2026-07-16T12:53:24.213Z"
+diff --git a/contracts/tasks/SCWBS-061.yaml b/contracts/tasks/SCWBS-061.yaml
+index fc4455d..2d2486a 100644
+--- a/contracts/tasks/SCWBS-061.yaml
++++ b/contracts/tasks/SCWBS-061.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:94ba32551e51de3fc9ee198b57ec3b20ebe9918236efd8f9eda4fc2230e04460
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-12T15:11:39.743Z"
++  createdAt: "2026-07-16T12:53:24.216Z"
+diff --git a/contracts/tasks/SCWBS-062.yaml b/contracts/tasks/SCWBS-062.yaml
+index 606a941..e54dfbc 100644
+--- a/contracts/tasks/SCWBS-062.yaml
++++ b/contracts/tasks/SCWBS-062.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-12T15:11:43.344Z"
++  createdAt: "2026-07-16T12:53:24.218Z"
+diff --git a/contracts/tasks/SCWBS-063.yaml b/contracts/tasks/SCWBS-063.yaml
+index 5f32f3c..8089b91 100644
+--- a/contracts/tasks/SCWBS-063.yaml
++++ b/contracts/tasks/SCWBS-063.yaml
+@@ -26,6 +26,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:94ba32551e51de3fc9ee198b57ec3b20ebe9918236efd8f9eda4fc2230e04460
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-lightweight-evidence-collect
+-  createdAt: "2026-07-12T15:11:47.040Z"
++  createdAt: "2026-07-16T12:53:24.221Z"
+diff --git a/contracts/tasks/SCWBS-CORE-M1.yaml b/contracts/tasks/SCWBS-CORE-M1.yaml
+index ddd3608..f7d2915 100644
+--- a/contracts/tasks/SCWBS-CORE-M1.yaml
++++ b/contracts/tasks/SCWBS-CORE-M1.yaml
+@@ -36,6 +36,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:ad5b42d0e2aae59d3c8a0601042ac02bc56a20aa48e6d957c0d510f0ea7adeed
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-task-lifecycle-completion
+-  createdAt: "2026-07-12T15:12:00.134Z"
++  createdAt: "2026-07-16T12:53:24.223Z"
+diff --git a/contracts/tasks/SCWBS-CORE-M2-GATE.yaml b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+index 6d28d22..0b63179 100644
+--- a/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2-GATE.yaml
+@@ -4,9 +4,11 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-GATE-human-gate-diff-error
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-12T15:12:07.609Z"
++  createdAt: "2026-07-16T12:53:24.226Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+index c9302ae..58f2274 100644
+--- a/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+@@ -4,9 +4,11 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-12T15:12:11.148Z"
++  createdAt: "2026-07-16T12:53:24.230Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-CORE-M2.yaml b/contracts/tasks/SCWBS-CORE-M2.yaml
+index fb8abf2..8037253 100644
+--- a/contracts/tasks/SCWBS-CORE-M2.yaml
++++ b/contracts/tasks/SCWBS-CORE-M2.yaml
+@@ -4,9 +4,11 @@ wbsNodeId: node-core-evidence-diff-guard-completion
+ featureId: F-1-10-1-2
+ branchName: task/SCWBS-CORE-M2-evidence-diff-guard
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-12T15:12:04.157Z"
++  createdAt: "2026-07-16T12:53:24.233Z"
+ allowedPaths:
+   - src/**
+   - tests/**
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml b/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
+index c3dd913..5f6baf5 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
+@@ -28,6 +28,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:14.728Z"
++  createdAt: "2026-07-16T12:53:24.235Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml b/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
+index 63724a2..057d164 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:28.164Z"
++  createdAt: "2026-07-16T12:53:24.238Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+index 52f5d64..188fe88 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
+@@ -27,6 +27,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:31.873Z"
++  createdAt: "2026-07-16T12:53:24.240Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+index 44a667a..5546bfd 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
+@@ -31,6 +31,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:35.802Z"
++  createdAt: "2026-07-16T12:53:24.243Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+index caadab4..08d5831 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
+@@ -30,6 +30,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:39.628Z"
++  createdAt: "2026-07-16T12:53:24.246Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+index 29a985e..60ad870 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
+@@ -28,6 +28,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:12:43.358Z"
++  createdAt: "2026-07-16T12:53:24.249Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+index ddba7e4..085e11c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+@@ -33,6 +33,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-12T15:12:56.904Z"
++  createdAt: "2026-07-16T12:53:24.251Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+index 965a9ef..1f9512b 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
+@@ -27,8 +27,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+   specVersion: 0.1.0
+   specRevision: sha256:a6269d3516cf4a26f57ddcc450023e9be12a6cb6895e5b8c0504c518894df6bb
+-  createdAt: "2026-07-12T15:13:00.583Z"
++  createdAt: "2026-07-16T12:53:24.254Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+index 70b90aa..1ade69d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
+@@ -28,8 +28,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:a297582d82d36221bcc8d25968253067209b134e63b3ec9d1eb80ca3eda632da
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-mvp-closeout
+   specVersion: 0.1.0
+   specRevision: sha256:97c5298704a576244fc31f2a8cf0b69d200a8379728fb677953ce0c71baa31bd
+-  createdAt: "2026-07-12T15:13:04.738Z"
++  createdAt: "2026-07-16T12:53:24.256Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml b/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+index 7637359..c4b7c6d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
+@@ -30,8 +30,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:a297582d82d36221bcc8d25968253067209b134e63b3ec9d1eb80ca3eda632da
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-mvp-closeout
+   specVersion: 0.1.0
+   specRevision: sha256:660214dc0ac6976640c4a7a102651d9dcfb0ca002364f6576b633d929869c0c1
+-  createdAt: "2026-07-12T15:13:08.502Z"
++  createdAt: "2026-07-16T12:53:24.260Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+index 13e9afe..f18d13a 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
+@@ -32,8 +32,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+   specVersion: 0.1.0
+   specRevision: sha256:90d9452c86c633cf1a19dedc50502fb92ba21a354404177087ef8aa2d5454d14
+-  createdAt: "2026-07-12T15:13:11.871Z"
++  createdAt: "2026-07-16T12:53:24.264Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+index dfe426d..1003b35 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
+@@ -32,8 +32,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:6d48dd7c4d24643f62887952eba12c4c9e4264b36ac08ac360199483f61be50c
+-  createdAt: "2026-07-12T15:13:25.333Z"
++  createdAt: "2026-07-16T12:53:24.266Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+index 53a7a7e..c9b7f1f 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
+@@ -32,8 +32,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:4031592a1cdce2ba1024436cb835dcdd23a7824c853632d0ba02059c9cb3100f
+-  createdAt: "2026-07-12T15:13:28.986Z"
++  createdAt: "2026-07-16T12:53:24.268Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml b/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
+index 180e258..191f66e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
+@@ -29,8 +29,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:4670070b63124fdf76637f2363817e8c82ccd21a223675d9b36df8dff41ef73e
+-  createdAt: "2026-07-12T15:13:32.674Z"
++  createdAt: "2026-07-16T12:53:24.271Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+index 3ea153b..d85fe2d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
+@@ -35,8 +35,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:c29e6df8f69d2ceafdd7a79b408683ecf98b2fe67a98c4fc36bbf4f586030d2a
+-  createdAt: "2026-07-12T15:13:36.231Z"
++  createdAt: "2026-07-16T12:53:24.274Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml b/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
+index 11cdcdb..2c36fe8 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
+@@ -35,8 +35,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:7d25b2bab3c7dc13532402e5743dbceca4aac9e45f6dedef7b6c1a0560e66565
+-  createdAt: "2026-07-12T15:13:39.753Z"
++  createdAt: "2026-07-16T12:53:24.276Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR93DJ0K.yaml b/contracts/tasks/SCWBS-DRAFT-MR93DJ0K.yaml
+index f304145..01bd146 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR93DJ0K.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR93DJ0K.yaml
+@@ -19,8 +19,14 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - "Complete Doc refactor| remove stale audit/handoff docs and fix duplicate links"
++  - Complete Doc refactor| remove stale audit/handoff docs and fix duplicate links
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.279Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml b/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
+index 77a22e0..98a4a09 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
+@@ -29,8 +29,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:1332e54e3eed7285b1dff3748581ab8dfe3e8a359631ad0340080f4e705fd735
+-  createdAt: "2026-07-12T15:13:53.178Z"
++  createdAt: "2026-07-16T12:53:24.282Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml b/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
+index e142399..aa174b0 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
+@@ -27,8 +27,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:10bf448315196d5c26490d4472d6ace57c6ad4a9ed82d8a7395b5d2ac041ea6f
+-  createdAt: "2026-07-12T15:13:56.689Z"
++  createdAt: "2026-07-16T12:53:24.285Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml b/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
+index d48716a..2aa6f10 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
+@@ -29,3 +29,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.288Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MR9ASVDC.yaml b/contracts/tasks/SCWBS-DRAFT-MR9ASVDC.yaml
+index ef49dce..878d7a4 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MR9ASVDC.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MR9ASVDC.yaml
+@@ -28,3 +28,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.290Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml b/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
+index b87682d..867146f 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
+@@ -23,10 +23,18 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - Clarify docs source-of-truth navigation for GitHub issue #110.
+-  - Align README setup/Core workflow documentation with current CLI for GitHub issue #105.
+-  - Align AGENTS.md command guidance with current CLI aliases for GitHub issue #99.
++  - Clarify docs source-of-truth navigation for GitHub issue
++  - Align README setup/Core workflow documentation with current CLI for GitHub issue
++  - Align AGENTS.md command guidance with current CLI aliases for GitHub issue
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5a96f0085df184681a34520abdc0ad83c3391e279a29fcf5ffe324181913ef4a
++  createdAt: "2026-07-16T12:53:24.293Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRADV9TK.yaml b/contracts/tasks/SCWBS-DRAFT-MRADV9TK.yaml
+index 811c11e..29ffeb3 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRADV9TK.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRADV9TK.yaml
+@@ -32,3 +32,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:66e9382958614057990dae2c3a8d137dca442c68bdc461e06a876ca1e4477d9e
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-lightweight-doctor
++  specVersion: 0.1.0
++  specRevision: sha256:65b01414900e8518a4d6e21dbcb625cc3d6c743573382348a85e5f0966614014
++  createdAt: "2026-07-16T12:53:24.296Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml b/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
+index 4f8defe..d6fa602 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
+@@ -35,6 +35,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-12T15:14:00.139Z"
++  createdAt: "2026-07-16T12:53:24.298Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAHA583.yaml b/contracts/tasks/SCWBS-DRAFT-MRAHA583.yaml
+index 30e871f..eae578c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAHA583.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAHA583.yaml
+@@ -26,3 +26,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.301Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml b/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
+index 07e077b..d7b3067 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
+@@ -30,3 +30,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.304Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml b/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
+index 5819d4d..13e429c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
+@@ -32,3 +32,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.306Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml b/contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml
+index 3144495..008c132 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml
+@@ -32,3 +32,9 @@ managedContractPaths:
+   - contracts/tasks/index.yaml
+   - contracts/evidence/SCWBS-DRAFT-MRARHNVE.yaml
+   - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.308Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRASJUKR.yaml b/contracts/tasks/SCWBS-DRAFT-MRASJUKR.yaml
+index 5670e6b..6a453ad 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRASJUKR.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRASJUKR.yaml
+@@ -41,3 +41,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.310Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAU2ILG.yaml b/contracts/tasks/SCWBS-DRAFT-MRAU2ILG.yaml
+index 6a29cfc..a0877e0 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAU2ILG.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAU2ILG.yaml
+@@ -27,3 +27,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:681f65b6af42625cbe3f95ebce430705a9bd2d3570d6a12357b59b095c32efb2
++  createdAt: "2026-07-16T12:53:24.313Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml b/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+index 8d246cf..2aaa2eb 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+@@ -33,3 +33,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.315Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml b/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
+index b89b46a..50e6a2b 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
+@@ -27,3 +27,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.318Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml b/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
+index 55009c6..f18756d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
+@@ -36,3 +36,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:07eca6370d83858a04930b30e06684e2ce5f23fd1f132c85c8b39105444ef239
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-ci-integration
++  createdAt: "2026-07-16T12:53:24.320Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml b/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
+index 7477d1a..a1ad2c7 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
+@@ -30,8 +30,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:c79c075d86604b2bda9a0583377359be0fba11fcbacbcb32c61595d86199792a
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+   specVersion: 0.1.0
+   specRevision: sha256:91a171045ae1ab093c552685ed5939945a96ed11d40296b23c889ad658ab4162
+-  createdAt: "2026-07-13T03:17:53.761Z"
++  createdAt: "2026-07-16T12:53:24.323Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml b/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
+index 1ff1343..0bb18b2 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
+@@ -23,3 +23,9 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:c79c075d86604b2bda9a0583377359be0fba11fcbacbcb32c61595d86199792a
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++  createdAt: "2026-07-16T12:53:24.326Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml b/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
+index 43eeae1..e859904 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
+@@ -29,8 +29,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:698c9ffe726a8c8a88912c31712e690b300f481e14cf6b4cfca77dd60d8996ca
+-  createdAt: "2026-07-13T06:16:24.694Z"
++  createdAt: "2026-07-16T12:53:24.328Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml b/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
+index b7e7973..893c4de 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
+@@ -28,6 +28,10 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:180e4060c571c3473e50f47625ab697c3a89f9459cf665b0307b5503d26979ab
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-project
+-  createdAt: "2026-07-13T07:03:58.088Z"
++  specVersion: 0.1.0
++  specRevision: sha256:20e8ca545d69b26136c881db29c39f3c0c68a34d6aba8cab146ddba23ab036b8
++  createdAt: "2026-07-16T12:53:24.331Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+index 21ad01c..52c8374 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+@@ -38,6 +38,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T10:42:20.283Z"
++  createdAt: "2026-07-16T12:53:24.333Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ4390U.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ4390U.yaml
+index 0f141e1..58ef6e4 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ4390U.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ4390U.yaml
+@@ -44,6 +44,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T11:01:28.328Z"
++  createdAt: "2026-07-16T12:53:24.335Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
+index ef5aebe..1c2bd3e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
+@@ -46,6 +46,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T11:26:56.396Z"
++  createdAt: "2026-07-16T12:53:24.338Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+index edcfbdf..a82960d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+@@ -47,6 +47,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T11:59:35.116Z"
++  createdAt: "2026-07-16T12:53:24.340Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+index 09c6a77..e2fa042 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+@@ -51,6 +51,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T12:23:42.175Z"
++  createdAt: "2026-07-16T12:53:24.342Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+index bb5e1f1..087194c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+@@ -48,6 +48,8 @@ evidenceRequired:
+   - typecheck-result
+   - build-result
+ contractLock:
+-  wbsRevision: sha256:662a8533ac62ce3059d0084c950c2b89dfbf77cd81a2b74db9d127b494f019f2
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T12:55:09.697Z"
++  createdAt: "2026-07-16T12:53:24.345Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml
+index caf9bdc..3dc9be3 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml
+@@ -47,7 +47,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T13:23:46.756Z"
++  createdAt: "2026-07-16T12:53:24.347Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml b/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+index 4813005..0a6d388 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+@@ -49,7 +49,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T13:35:36.747Z"
++  createdAt: "2026-07-16T12:53:24.349Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml b/contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml
+index 904a567..b07996e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml
+@@ -38,7 +38,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-13T14:11:21.377Z"
++  createdAt: "2026-07-16T12:53:24.352Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJCX0WS.yaml b/contracts/tasks/SCWBS-DRAFT-MRJCX0WS.yaml
+index 286ef70..6050592 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJCX0WS.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJCX0WS.yaml
+@@ -32,3 +32,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:e672881722f13f969ed1abc8626458241019512db5f0abaead64df5d4f6ad86f
++  createdAt: "2026-07-16T12:53:24.354Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJFIVE9.yaml b/contracts/tasks/SCWBS-DRAFT-MRJFIVE9.yaml
+index 3edfdfa..c97e6cc 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJFIVE9.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJFIVE9.yaml
+@@ -37,3 +37,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:9869b2dd7012d2110ec689d526df4d3a2dfbf541aa19bef55eb3ab49f5f56ae1
++  createdAt: "2026-07-16T12:53:24.356Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJH8CER.yaml b/contracts/tasks/SCWBS-DRAFT-MRJH8CER.yaml
+index a1d38f8..183010d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJH8CER.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJH8CER.yaml
+@@ -30,3 +30,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:e22e10253ca498298c0521be4fe3bbea41a19d51da7f434cb6a4d55a91ea6894
++  createdAt: "2026-07-16T12:53:24.358Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJIXALN.yaml b/contracts/tasks/SCWBS-DRAFT-MRJIXALN.yaml
+index 0ab9aca..aaba4af 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJIXALN.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJIXALN.yaml
+@@ -30,3 +30,11 @@ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:56e0bbac2b21942928420bfe177959a66412ced1119ca9d30752d2baafd4a367
++  createdAt: "2026-07-16T12:53:24.362Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml b/contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml
+index ec0f319..88248f3 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml
+@@ -27,10 +27,18 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - 'completionScope, completionTaskIds, managedContractPaths validated in AJV schema and semantic validator'
+-  - 'Cross-contract checks detect self-reference, duplicates, non-existent task IDs, and managedContractPaths/forbiddenPaths overlap'
+-  - 'Unit and integration tests cover valid and invalid fixtures'
++  - completionScope, completionTaskIds, managedContractPaths validated in AJV schema and semantic validator
++  - Cross-contract checks detect self-reference, duplicates, non-existent task IDs, and managedContractPaths/forbiddenPaths overlap
++  - Unit and integration tests cover valid and invalid fixtures
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:b974c1775c6beec1f901cb48da2866b1c33ba4d877c840ec16465caeea8eb21a
++  createdAt: "2026-07-16T12:53:24.364Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml b/contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml
+index b94f28c..a1ef4a5 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml
+@@ -26,10 +26,10 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - 'Review can transition from requested to approved, changes-requested, or closed via CLI commands'
+-  - 'Terminal-state reviews are excluded from the active review queue'
+-  - 'next suggests actionable review transition commands and falls through to planned tasks when reviews are blocked'
+-  - 'Unit and integration tests cover all new commands and queue filtering'
++  - Review can transition from requested to approved, changes-requested, or closed via CLI commands
++  - Terminal-state reviews are excluded from the active review queue
++  - next suggests actionable review transition commands and falls through to planned tasks when reviews are blocked
++  - Unit and integration tests cover all new commands and queue filtering
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+@@ -38,3 +38,11 @@ managedContractPaths:
+   - contracts/registry.yaml
+   - contracts/tasks/index.yaml
+   - contracts/changesets/start-MRJNPICQ.json
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a5f905aef5e283d57de7de0c38841fc0ef646272faeed4770d864df74d93b680
++  createdAt: "2026-07-16T12:53:24.366Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml b/contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml
+index 7f09a8c..7632c59 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml
+@@ -27,11 +27,19 @@ requiredChecks:
+   - typecheck
+   - build
+ doneCriteria:
+-  - 'Human Gate detection shows next action with changed paths and diff hash'
+-  - 'AI agents must stop message is displayed when human gate is required'
+-  - 'check-diff JSON output includes requiresHumanApproval and nextAction'
+-  - 'Tests cover both check-diff and finish human gate output'
++  - Human Gate detection shows next action with changed paths and diff hash
++  - AI agents must stop message is displayed when human gate is required
++  - check-diff JSON output includes requiresHumanApproval and nextAction
++  - Tests cover both check-diff and finish human gate output
+ evidenceRequired:
+   - test-result
+   - typecheck-result
+   - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d999d62a27c5d586c29f02b172bcd96c77dd9e6d7a9d7304eeadab61c0f96257
++  createdAt: "2026-07-16T12:53:24.369Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml b/contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml
+index 0978fcd..b47ca4c 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml
+@@ -30,3 +30,11 @@ managedContractPaths:
+   - contracts/registry.yaml
+   - contracts/evidence/SCWBS-DRAFT-MRJRH1OC.yaml
+   - contracts/reviews/SCWBS-DRAFT-MRJRH1OC.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:bf2a9d3426ce3fff07dc5020a9f26f025f489924dc13d36d12c58a569d6757f9
++  createdAt: "2026-07-16T12:53:24.371Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml b/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
+index 9798c1b..2e17e81 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
+@@ -48,9 +48,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRK7Z2D4.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:3b282a300cc62c533782ee438f8cca5edae9598060b47de2d1be0af8acc78466
+-  createdAt: "2026-07-14T06:03:50.516Z"
++  createdAt: "2026-07-16T12:53:24.374Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml b/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+index 803b290..ecd0bc5 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
+@@ -49,9 +49,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRK9OEJJ.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:63b9d6739e50271c39ae8e3d8af2a19b66deb8f9bb18f9859e4bc8b2b6373aeb
+-  createdAt: "2026-07-14T06:46:27.426Z"
++  createdAt: "2026-07-16T12:53:24.376Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml b/contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
+index 60edf6d..d852805 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
+@@ -47,9 +47,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKB0YFI.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:b429966d67f13eed3ddb4e99cef3572bc169b980d1e86224e14b35708686f0f9
+-  createdAt: "2026-07-14T09:35:29.026Z"
++  createdAt: "2026-07-16T12:53:24.379Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml b/contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
+index 97e99c9..d96b1b6 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
+@@ -46,9 +46,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKH9ITY.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:bc086763cce1e2dc79cf636f7cc80095fb6ad599ffad13382bb2c6eb7db068e0
+-  createdAt: "2026-07-14T10:39:45.429Z"
++  createdAt: "2026-07-16T12:53:24.382Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml b/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+index 65031f4..855cedf 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
+@@ -46,9 +46,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKHLDDX.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:795d942336d89cf2d2ed18f747efd02b0ad87250a3302b0c679a86885084d317
+-  createdAt: "2026-07-14T11:00:48.792Z"
++  createdAt: "2026-07-16T12:53:24.385Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml b/contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
+index 7107e74..7a20249 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
+@@ -48,9 +48,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKHSGIO.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:a21c5bd5008ce2e06b9c283f3a6246c33166f23c6224e3b885f9630ebe6c0f35
+-  createdAt: "2026-07-14T10:13:25.347Z"
++  createdAt: "2026-07-16T12:53:24.387Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml b/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+index 814f197..30b949e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
+@@ -47,9 +47,9 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKKUDY6.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:81c35a282495a3ec011a509c4f5f3612225eab8ba7dbffb841ff98f615c7dd5d
+-  createdAt: "2026-07-14T11:39:58.756Z"
++  createdAt: "2026-07-16T12:53:24.389Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml b/contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
+index f823438..969a991 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
+@@ -56,7 +56,7 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKMGEV8.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-14T12:23:41.577Z"
++  createdAt: "2026-07-16T12:53:24.392Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml b/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+index c0f04da..3b65e7e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+@@ -59,7 +59,7 @@ managedContractPaths:
+   - contracts/reviews/SCWBS-DRAFT-MRKOFKM3.yaml
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-14T13:18:36.279Z"
++  createdAt: "2026-07-16T12:53:24.394Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml b/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+index c8ebcae..337ed2b 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+@@ -57,7 +57,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:4cdf2cbaabdac28c25efb928468d4418426987cc06d21730a9138c2bca87a2b3
++  wbsScopeRevision: sha256:d94d90862809edfd8dde62320a0bc2f590c119f6f7d27809e398b85476e7b980
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-core-evidence-diff-guard-completion
+-  createdAt: "2026-07-14T14:07:50.897Z"
++  createdAt: "2026-07-16T12:53:24.397Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml b/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+index 122a89d..ef20bd7 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+@@ -58,7 +58,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-14T15:22:51.354Z"
++  createdAt: "2026-07-16T12:53:24.400Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml b/contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
+index 5874449..16484f1 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
+@@ -51,7 +51,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-15T12:00:49.357Z"
++  createdAt: "2026-07-16T12:53:24.402Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml b/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
+index 1f6131e..8f4b24a 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
+@@ -49,9 +49,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:c3bfab90c09971a6f657d0b87205bfb39a3f35feff2555cbb191a4e0040547fa
+-  createdAt: "2026-07-15T13:42:01.969Z"
++  createdAt: "2026-07-16T12:53:24.404Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml b/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+index 2e58537..dd323b6 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+@@ -48,9 +48,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:a722094ea94edc618a6cf98652be21a15e7bd0fad78c37903018c883f4e27d71
+-  createdAt: "2026-07-15T14:14:02.856Z"
++  createdAt: "2026-07-16T12:53:24.407Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml b/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+index 0568264..1201e53 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+@@ -57,9 +57,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:5b47e83409d3b453ec1ae5ce3a30a99d8b1b993660d7fbbbc7aead48ebb8b98a
+-  createdAt: "2026-07-15T14:54:24.528Z"
++  createdAt: "2026-07-16T12:53:24.409Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml b/contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
+index 8f7c070..f3add0d 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
+@@ -59,9 +59,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:379ce60f979864a77e53b748be067da2c76df1ffcab35c6120bf451552251370
+-  createdAt: "2026-07-15T15:54:33.599Z"
++  createdAt: "2026-07-16T12:53:24.412Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml b/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+index e913305..a9cd482 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+@@ -57,9 +57,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:65e0b6e2426bf185f7940a52c673fbad9a2a8f6ef6c73a547442022aff957968
+-  createdAt: "2026-07-15T16:43:48.042Z"
++  createdAt: "2026-07-16T12:53:24.416Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml b/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+index b9f1577..f93967e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+@@ -74,9 +74,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:4aff21d32ee75c8f6b579f83c5b775eca6f5128d65fb9ee92889d3d978f5aceb
+-  createdAt: "2026-07-15T18:07:12.491Z"
++  createdAt: "2026-07-16T12:53:24.418Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml b/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+index 42cfe6c..96a9e55 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+@@ -70,7 +70,7 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+-  createdAt: "2026-07-16T03:23:06.494Z"
++  createdAt: "2026-07-16T12:53:24.422Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml b/contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
+index 2bfbbd8..47fe1b7 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
+@@ -44,9 +44,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:0fe101d9b4951494173a12bfcb4dc6cd6c53fb4982b495b3cf83bdfc2705dc8b
+-  createdAt: "2026-07-16T05:44:27.383Z"
++  createdAt: "2026-07-16T12:53:24.424Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml b/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+index 3dda53a..b95a32e 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+@@ -50,9 +50,9 @@ evidenceRequired:
+   - build-result
+ contractLock:
+   lockVersion: "2"
+-  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:5dd7a6f453f282775e0e5713c4a1a39cda5b5fe3cc7dab7ec74db738fd2e5647
+-  createdAt: "2026-07-16T09:18:17.602Z"
++  createdAt: "2026-07-16T12:53:24.427Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml b/contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
+new file mode 100644
+index 0000000..0f8bdbe
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRNI5LFR
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNI5LFR
++branchName: task/SCWBS-DRAFT-MRNI5LFR-scwbs-052-replacement-make-governance-maintenanc
++allowedPaths:
++  - contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
++  - contracts/wbs/project.wbs.json
++  - contracts/tasks/*.yaml
++  - contracts/tasks/index.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - DB schema or migration
++  - auth or permission design
++  - security or PII
++  - breaking API
++  - external service or release decision
++  - allowedPaths outside scope
++  - specification-level ambiguity
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - node-governance-maintenance is ready for reviewed node-level completion under the current WBS revision.
++  - The readiness change is represented by contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json and applied through scwbs wbs apply.
++  - No historical SCWBS-052 Contract lock or changeset is reused.
++  - SCWBS-046 completion apply is not attempted until this replacement Task is merged and its Evidence, Review, and human Approval are current.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/tasks/index.yaml
++  - contracts/changesets/SCWBS-DRAFT-MRNI5LFR-ready-governance-maintenance.json
++  - contracts/evidence/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNI5LFR.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T12:53:24.429Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index e9e0388..3a7fd9a 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -195,3 +195,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRNI5LFR
++    path: contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
++    branchName: task/SCWBS-DRAFT-MRNI5LFR-scwbs-052-replacement-make-governance-maintenanc
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/contracts/wbs/project.wbs.json b/contracts/wbs/project.wbs.json
+index 78d8160..789dda5 100644
+--- a/contracts/wbs/project.wbs.json
++++ b/contracts/wbs/project.wbs.json
+@@ -547,7 +547,7 @@
+       ]
+     },
+     {
+-      "status": "inProgress",
++      "status": "ready",
+       "assignees": [],
+       "acceptanceCriteria": [
+         "Recurring audit, specification, and governance work has a non-completed WBS target.",

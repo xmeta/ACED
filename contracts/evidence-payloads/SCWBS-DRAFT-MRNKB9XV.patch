@@ -1,0 +1,445 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 6833b21..330d631 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -38,6 +38,7 @@ rules:
+       - src/commands/health.ts
+       - src/commands/init.ts
+       - src/commands/lite.ts
++      - src/commands/metrics.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
+       - src/commands/profile.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml b/contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
+new file mode 100644
+index 0000000..c5c6c8b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRNKB9XV
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNKB9XV
++branchName: task/SCWBS-DRAFT-MRNKB9XV-issue-179-read-only-governance-cost-metrics-summ
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNKB9XV.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNKB9XV.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNKB9XV.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNKB9XV.yaml
++allowedPaths:
++  - contracts/check-coverage.yaml
++  - src/commands/metrics.ts
++  - src/cli.ts
++  - tests/integration/metrics.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
++  - budget enforcementやprofile安全性の変更が必要
++  - 履歴や外部CIからの未取得データを推測で補う必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - scwbs metrics governance --jsonが現行repoのgovernance artifact、src、testsのファイル数・bytes・行数を再現可能に集計する
++  - Lean / Standard / Strictのprofile別に対象artifact directoryの集計を比較でき、現在のprofileを明示する
++  - 'status: archivedまたはarchive directoryのartifactをactiveと分離し、未取得の履歴・CI・時間を推測せず未計測として扱う'
++  - read-only commandは永続的なmetric record、budget enforcement、profile downgrade、WBS正本変更を行わない
++  - JSON schema version、metric定義、分母、hard limit非適用をCLI docsへ記録し、代表fixtureのintegration testでactive/archiveとprofile集計を検証する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T13:47:14.182Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 3a7fd9a..568de06 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -201,3 +201,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRNKB9XV
++    path: contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
++    branchName: task/SCWBS-DRAFT-MRNKB9XV-issue-179-read-only-governance-cost-metrics-summ
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index d67abb9..4d3a92a 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -26,6 +26,17 @@ npm run scwbs -- status
+ 
+ `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
+ 
++## Governance Cost Metrics
++
++```bash
++npm run scwbs -- metrics governance
++npm run scwbs -- metrics governance --json
++```
++
++`metrics governance` は永続artifactを作らないread-only計測で、現在のprofile、governance artifactのファイル数・bytes・行数、`src/**/*.ts` と `tests/**/*.ts` の分母、governance/source・governance/testの行比率を返す。JSONは `schemaVersion: "1.0.0"` と `metric: "governance-cost"` を持ち、Lean / Standard / Strictの対象directory別集計も含む。
++
++行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。履歴CI時間、finish回数、Human Gate待ち時間、publish loop、warning budgetはこのread-only summaryでは未計測として明示し、hard limitやprofile downgradeは行わない。
++
+ ## AI Workflow
+ 
+ ```bash
+diff --git a/src/cli.ts b/src/cli.ts
+index a29fcb3..d28d0a5 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -18,6 +18,7 @@ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+ import { runInit } from "./commands/init.js";
+ import { runLiteTask, runPromote } from "./commands/lite.js";
++import { runMetricsGovernance } from "./commands/metrics.js";
+ import { runNext } from "./commands/next.js";
+ import { runPlan } from "./commands/plan.js";
+ import { runProfileSet, runProfileShow } from "./commands/profile.js";
+@@ -142,6 +143,13 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--verbose", "show every health issue")
+     .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false }); });
+ 
++  const metrics = program.command("metrics");
++  metrics
++    .command("governance")
++    .description("Measure governance cost without writing artifacts")
++    .option("--json", "output a versioned JSON summary")
++    .action((opts) => { exitCode = runMetricsGovernance(root, { json: opts.json ?? false }); });
++
+   program
+     .command("status")
+     .description("Show repository status")
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+new file mode 100644
+index 0000000..97098e3
+--- /dev/null
++++ b/src/commands/metrics.ts
+@@ -0,0 +1,218 @@
++import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
++import path from "node:path";
++import { profileRequiredDirs, resolveFrom } from "../core/paths.js";
++import type { Profile } from "../core/types.js";
++import { parseSimpleYaml } from "../core/yaml.js";
++import { readProfile } from "./profile.js";
++
++const GOVERNANCE_DIRS = [
++  "contracts/tasks",
++  "contracts/evidence",
++  "contracts/approvals",
++  "contracts/reviews",
++  "contracts/blocks",
++  "contracts/specs",
++  "contracts/spec-changes",
++  "contracts/changesets",
++  "contracts/wbs"
++] as const;
++
++type Bucket = { files: number; bytes: number; lines: number };
++type FileMeasurement = Bucket & {
++  activeFiles: number;
++  activeBytes: number;
++  activeLines: number;
++  archivedFiles: number;
++  archivedBytes: number;
++  archivedLines: number;
++};
++
++export type GovernanceCostSummary = {
++  schemaVersion: "1.0.0";
++  metric: "governance-cost";
++  generatedAt: string;
++  profile: Profile;
++  definitions: {
++    lineCount: string;
++    activeArchive: string;
++    ratios: string;
++    hardLimitEnforced: false;
++  };
++  categories: Record<string, FileMeasurement>;
++  profiles: Record<Profile, Bucket>;
++  totals: {
++    governance: FileMeasurement;
++    source: Bucket;
++    tests: Bucket;
++    governanceToSourceLineRatio: number | null;
++    governanceToTestLineRatio: number | null;
++  };
++  unmeasured: string[];
++};
++
++export type MetricsOptions = { json?: boolean };
++
++function emptyMeasurement(): FileMeasurement {
++  return {
++    files: 0,
++    bytes: 0,
++    lines: 0,
++    activeFiles: 0,
++    activeBytes: 0,
++    activeLines: 0,
++    archivedFiles: 0,
++    archivedBytes: 0,
++    archivedLines: 0
++  };
++}
++
++function addBucket(target: Bucket, value: Bucket): void {
++  target.files += value.files;
++  target.bytes += value.bytes;
++  target.lines += value.lines;
++}
++
++function addMeasurement(target: FileMeasurement, value: FileMeasurement): void {
++  addBucket(target, value);
++  target.activeFiles += value.activeFiles;
++  target.activeBytes += value.activeBytes;
++  target.activeLines += value.activeLines;
++  target.archivedFiles += value.archivedFiles;
++  target.archivedBytes += value.archivedBytes;
++  target.archivedLines += value.archivedLines;
++}
++
++function countLines(text: string): number {
++  if (text.length === 0) return 0;
++  return (text.match(/\n/g)?.length ?? 0) + (text.endsWith("\n") ? 0 : 1);
++}
++
++function isArchived(relativePath: string, text: string): boolean {
++  if (relativePath.split(path.sep).some((part) => ["archive", "archived"].includes(part.toLowerCase()))) return true;
++  if (!relativePath.endsWith(".yaml") && !relativePath.endsWith(".yml")) return false;
++  try {
++    return parseSimpleYaml(text).status === "archived";
++  } catch {
++    return false;
++  }
++}
++
++function filesUnder(root: string, relativeDir: string): string[] {
++  const fullDir = resolveFrom(root, relativeDir);
++  if (!existsSync(fullDir) || !statSync(fullDir).isDirectory()) return [];
++  const result: string[] = [];
++  for (const entry of readdirSync(fullDir, { withFileTypes: true })) {
++    const relativePath = path.join(relativeDir, entry.name);
++    if (entry.isDirectory()) result.push(...filesUnder(root, relativePath));
++    else if (entry.isFile()) result.push(relativePath);
++  }
++  return result;
++}
++
++function measureFiles(root: string, relativePaths: string[], filter?: (file: string) => boolean): FileMeasurement {
++  const result = emptyMeasurement();
++  for (const relativePath of relativePaths.filter((file) => !filter || filter(file))) {
++    const text = readFileSync(resolveFrom(root, relativePath), "utf8");
++    const bytes = Buffer.byteLength(text, "utf8");
++    const lines = countLines(text);
++    const archived = isArchived(relativePath, text);
++    result.files += 1;
++    result.bytes += bytes;
++    result.lines += lines;
++    if (archived) {
++      result.archivedFiles += 1;
++      result.archivedBytes += bytes;
++      result.archivedLines += lines;
++    } else {
++      result.activeFiles += 1;
++      result.activeBytes += bytes;
++      result.activeLines += lines;
++    }
++  }
++  return result;
++}
++
++function asBucket(measurement: FileMeasurement): Bucket {
++  return { files: measurement.files, bytes: measurement.bytes, lines: measurement.lines };
++}
++
++function ratio(numerator: number, denominator: number): number | null {
++  return denominator === 0 ? null : Number((numerator / denominator).toFixed(4));
++}
++
++function profileBucket(root: string, profile: Profile, categories: Record<string, FileMeasurement>): Bucket {
++  const result: Bucket = { files: 0, bytes: 0, lines: 0 };
++  for (const directory of profileRequiredDirs(profile)) {
++    const category = categories[directory];
++    if (category) addBucket(result, asBucket(category));
++  }
++  return result;
++}
++
++export function buildGovernanceCostSummary(root: string, now = new Date()): GovernanceCostSummary {
++  const categories: Record<string, FileMeasurement> = {};
++  for (const directory of GOVERNANCE_DIRS) {
++    categories[directory] = measureFiles(root, filesUnder(root, directory));
++  }
++  categories["contracts/registry.yaml"] = measureFiles(
++    root,
++    existsSync(resolveFrom(root, "contracts/registry.yaml")) ? ["contracts/registry.yaml"] : []
++  );
++
++  const governance = emptyMeasurement();
++  for (const category of Object.values(categories)) addMeasurement(governance, category);
++  const source = measureFiles(root, filesUnder(root, "src"), (file) => file.endsWith(".ts"));
++  const tests = measureFiles(root, filesUnder(root, "tests"), (file) => file.endsWith(".ts"));
++  const profiles: Record<Profile, Bucket> = {
++    Lean: profileBucket(root, "Lean", categories),
++    Standard: profileBucket(root, "Standard", categories),
++    Strict: profileBucket(root, "Strict", categories)
++  };
++
++  return {
++    schemaVersion: "1.0.0",
++    metric: "governance-cost",
++    generatedAt: now.toISOString(),
++    profile: readProfile(root),
++    definitions: {
++      lineCount: "UTF-8 newline count, plus one for a non-empty file without a trailing newline",
++      activeArchive: "active is the default; status: archived or an archive/archived directory is separated",
++      ratios: "governance lines divided by src TypeScript lines or test TypeScript lines; null means zero denominator",
++      hardLimitEnforced: false
++    },
++    categories,
++    profiles,
++    totals: {
++      governance,
++      source: asBucket(source),
++      tests: asBucket(tests),
++      governanceToSourceLineRatio: ratio(governance.lines, source.lines),
++      governanceToTestLineRatio: ratio(governance.lines, tests.lines)
++    },
++    unmeasured: [
++      "historical CI and local check duration",
++      "finish attempts and metadata-only descendant count",
++      "Human Gate wait time and publish-loop duration",
++      "warning budgets and hard enforcement"
++    ]
++  };
++}
++
++export function runMetricsGovernance(root: string, options: MetricsOptions = {}): number {
++  try {
++    const summary = buildGovernanceCostSummary(root);
++    if (options.json) {
++      process.stdout.write(`${JSON.stringify(summary)}\n`);
++      return 0;
++    }
++    console.log(`Governance cost (${summary.profile})`);
++    console.log(`- governance: ${summary.totals.governance.files} files, ${summary.totals.governance.lines} lines, ${summary.totals.governance.bytes} bytes`);
++    console.log(`- source: ${summary.totals.source.files} files, ${summary.totals.source.lines} lines`);
++    console.log(`- tests: ${summary.totals.tests.files} files, ${summary.totals.tests.lines} lines`);
++    console.log(`- hard limit: not enforced; unmeasured dimensions: ${summary.unmeasured.length}`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
+new file mode 100644
+index 0000000..843c8d9
+--- /dev/null
++++ b/tests/integration/metrics.test.ts
+@@ -0,0 +1,78 @@
++import { readdirSync } from "node:fs";
++import { describe, expect, test } from "vitest";
++import { buildGovernanceCostSummary, runMetricsGovernance } from "../../src/commands/metrics.js";
++import { main } from "../../src/cli.js";
++import { makeTempRepo, sampleWbs, writeJson, writeText, writeYaml } from "../helpers.js";
++
++function captureStdout(action: () => number): { result: number; stdout: string } {
++  const output: string[] = [];
++  const originalWrite = process.stdout.write;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { result: action(), stdout: output.join("") };
++  } finally {
++    process.stdout.write = originalWrite;
++  }
++}
++
++describe("governance metrics", () => {
++  test("reports profile buckets and separates archived artifacts without writing", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/wbs/project.wbs.json", {
++      ...sampleWbs(),
++      extensions: { scwbs: { profile: "Strict" } }
++    });
++    writeYaml(root, "contracts/tasks/ACTIVE.yaml", { id: "ACTIVE", status: "planned" });
++    writeYaml(root, "contracts/tasks/archive/OLD.yaml", { id: "OLD", status: "archived" });
++    writeText(root, "contracts/specs/STRICT-ONLY.yaml", "status: approved\n");
++    writeText(root, "contracts/registry.yaml", "projectId: metrics\ncontracts: []\n");
++    writeText(root, "src/example.ts", "export const example = true;\n");
++    writeText(root, "tests/example.test.ts", "test('example', () => undefined);\n");
++    const before = readdirSync(root, { recursive: true }).sort();
++
++    const summary = buildGovernanceCostSummary(root, new Date("2026-07-16T00:00:00.000Z"));
++
++    expect(summary.profile).toBe("Strict");
++    expect(summary.generatedAt).toBe("2026-07-16T00:00:00.000Z");
++    expect(summary.categories["contracts/tasks"]).toMatchObject({
++      files: 2,
++      activeFiles: 1,
++      archivedFiles: 1
++    });
++    expect(summary.profiles.Strict.files).toBeGreaterThan(summary.profiles.Lean.files);
++    expect(summary.definitions.hardLimitEnforced).toBe(false);
++    expect(summary.unmeasured).toContain("historical CI and local check duration");
++    expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
++  });
++
++  test("wires the bounded JSON summary through the CLI", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
++    const output = captureStdout(() => main(["metrics", "governance", "--json"], root));
++    expect(output.result).toBe(0);
++    const summary = JSON.parse(output.stdout);
++    expect(summary).toMatchObject({
++      schemaVersion: "1.0.0",
++      metric: "governance-cost",
++      definitions: { hardLimitEnforced: false }
++    });
++  });
++
++  test("plain output stays bounded and does not claim unmeasured timing", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
++    const originalLog = console.log;
++    const lines: string[] = [];
++    console.log = (...args: unknown[]) => lines.push(args.map(String).join(" "));
++    try {
++      expect(runMetricsGovernance(root)).toBe(0);
++    } finally {
++      console.log = originalLog;
++    }
++    expect(lines).toHaveLength(5);
++    expect(lines.join("\n")).toContain("hard limit: not enforced");
++  });
++});

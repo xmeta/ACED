@@ -1,0 +1,1231 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml b/contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml
+new file mode 100644
+index 0000000..61874c8
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MRKRUCAZ
++type: block
++taskId: SCWBS-DRAFT-MRKRUCAZ
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: "Issue #182 changes failed-check persistence semantics, so tests/integration/misc.test.ts must be updated outside the current allowedPaths"
++createdAt: "2026-07-14T15:13:06.401Z"
++history:
++  - status: blocked
++    at: "2026-07-14T15:13:06.401Z"
++    reason: "Issue #182 changes failed-check persistence semantics, so tests/integration/misc.test.ts must be updated outside the current allowedPaths"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-14T15:13:15.292Z"
++    reason: "Delegated human decision: add tests/integration/misc.test.ts to preserve failed-check coverage under the new non-persistence contract"
++    by: human
++resolvedAt: "2026-07-14T15:13:15.292Z"
++resolvedBy: human
++resolution: "Delegated human decision: add tests/integration/misc.test.ts to preserve failed-check coverage under the new non-persistence contract"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml b/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+new file mode 100644
+index 0000000..122a89d
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+@@ -0,0 +1,64 @@
++id: SCWBS-DRAFT-MRKRUCAZ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRKRUCAZ
++branchName: task/SCWBS-DRAFT-MRKRUCAZ-issue-182-finish-human-gate-evidence-registry-re
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRKRUCAZ.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRKRUCAZ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRKRUCAZ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRKRUCAZ.yaml
++allowedPaths:
++  - src/cli.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/commands/evidence-collect.ts
++  - src/commands/registry-rebuild.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/misc.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/finish-summary.schema.json
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - The fix weakens Evidence provenance, check-diff, Human Gate, or approval scope semantics
++  - Atomic rollback cannot preserve both pre-existing Evidence and Registry on a failed checkpoint
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - failed required checkは既存の成功EvidenceとRegistryを上書きしない
++  - check-diff違反はEvidenceとRegistryの永続化前に検出し、片側更新を残さない
++  - Human Gate待ちはcandidate EvidenceとRegistryを同一checkpointとして保存し、awaiting-human-approvalを返す
++  - Registry checkpoint失敗時はEvidenceとRegistryを両方rollbackする
++  - finish --preflightはrequired checksを実行せず永続fileを変更しない
++  - JSONはphase、outcome、mutatedFiles、resumeCommandを全終了経路で返す
++  - integration testsはfailed check、diff violation、Human Gate、registry failure、interruption、preflight、successを終了前後のgit statusとともに検証する
++  - 成功済みcheck cacheと--rerun-checksの既存挙動を維持する
++  - Human Approvalとapproval scopeの既存ガードを維持する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-14T15:22:51.354Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 524ab54..0920bf7 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -147,3 +147,9 @@ tasks:
+     wbsNodeId: node-core-evidence-diff-guard-completion
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRKRUCAZ
++    path: contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
++    branchName: task/SCWBS-DRAFT-MRKRUCAZ-issue-182-finish-human-gate-evidence-registry-re
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index eb8cb00..2d46cab 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -132,7 +132,9 @@ After a PR exists, refresh Evidence with `--pull-request` so review and completi
+ 
+ `evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+ 
+-`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、Evidence・diff・registry検証後に対象Taskだけのhealth readinessを確認する。contractLock、tests変更時のtestQuality、PR metadata、Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。repository全体のlegacy warningはこの判定へ含めない。`finish --json` の正式なshapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
++`finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存EvidenceとRegistryを上書きしない。検証済みcandidateはEvidenceとRegistryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は両fileを開始前の内容へ戻す。
++
++永続fileを変更せずに開始条件だけを確認する場合は `npm run scwbs -- finish --task <task-id> --preflight` を使う。これはrequired checksも実行しない。`finish --json` は全終了経路で `phase`、`outcome`、実際に変更した `mutatedFiles`、再開用の `resumeCommand` を返す。対象TaskのPR metadata、Evidence provenance、Human Approval、既存Review scopeのwarningが残る場合はmerge-readyを表示せず、`fixCommand`を返す。repository全体のlegacy warningはこの判定へ含めない。正式なJSON shapeは [`schemas/finish-summary.schema.json`](schemas/finish-summary.schema.json) で定義する。
+ 
+ ### Command and required-check single-flight
+ 
+diff --git a/docs/scwbs/schemas/finish-summary.schema.json b/docs/scwbs/schemas/finish-summary.schema.json
+index 5d106ac..57c3678 100644
+--- a/docs/scwbs/schemas/finish-summary.schema.json
++++ b/docs/scwbs/schemas/finish-summary.schema.json
+@@ -6,6 +6,8 @@
+   "required": [
+     "schemaVersion",
+     "status",
++    "phase",
++    "outcome",
+     "taskId",
+     "requiresHumanApproval",
+     "changedFiles",
+@@ -14,12 +16,16 @@
+     "evidencePath",
+     "approvalStatus",
+     "nextAction",
++    "resumeCommand",
++    "mutatedFiles",
+     "readinessWarnings",
+     "fixCommands"
+   ],
+   "properties": {
+     "schemaVersion": { "const": "1.0.0" },
+     "status": { "enum": ["pass", "blocked"] },
++    "phase": { "enum": ["preflight", "required-checks", "validation", "checkpoint", "readiness", "complete"] },
++    "outcome": { "enum": ["ready", "readiness-blocked", "required-check-failed", "validation-failed", "awaiting-human-approval", "checkpoint-failed", "completed"] },
+     "taskId": { "type": "string" },
+     "requiresHumanApproval": { "type": "boolean" },
+     "changedFiles": { "type": "array", "items": { "type": "string" } },
+@@ -28,6 +34,8 @@
+     "evidencePath": { "type": "string" },
+     "approvalStatus": { "type": "string" },
+     "nextAction": { "type": "string" },
++    "resumeCommand": { "type": "string" },
++    "mutatedFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+     "humanGateFiles": { "type": "array", "items": { "type": "string" } },
+     "diffHash": { "type": "string" },
+     "readinessWarnings": {
+diff --git a/src/cli.ts b/src/cli.ts
+index ea2318b..9f2d71f 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -144,6 +144,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
+     .option("--rerun-checks", "rerun required checks even when cached results are valid")
++    .option("--preflight", "validate finish readiness without running checks or writing files")
+     .option("--test-assertions-added <bool>", "test assertions added")
+     .option("--tests-disabled <bool>", "tests disabled")
+     .option("--coverage-decreased <bool>", "coverage decreased")
+@@ -157,6 +158,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         force: true,
+         json: opts.json ?? false,
+         rerunChecks: opts.rerunChecks ?? false,
++        preflight: opts.preflight ?? false,
+         testQuality: parseTestQuality(opts)
+       });
+     });
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index f9b5dae..7185d50 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -6,7 +6,7 @@ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+ import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+-import type { Issue, TaskContract } from "../core/types.js";
++import type { Evidence, Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+ import { collectWbsChangesetGateIssues } from "./check.js";
+ 
+@@ -68,9 +68,9 @@ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state:
+  * are exempt from allowedPaths and the sensitive meta-file guard, but never
+  * from forbiddenPaths or humanGateRequiredPaths, which always take priority.
+  */
+-export function collectDiffIssues(root: string, task: TaskContract, files: string[]): Issue[] {
++export function collectDiffIssues(root: string, task: TaskContract, files: string[], evidenceOverride?: Evidence): Issue[] {
+   const issues: Issue[] = [];
+-  const evidence = readEvidence(root, task.id).evidence;
++  const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
+   const nestedFiles = (evidence?.submodules ?? []).flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+   const effectiveFiles = Array.from(new Set([...files, ...nestedFiles]));
+   const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, effectiveFiles, root);
+@@ -150,7 +150,8 @@ export function collectBranchIssues(task: TaskContract, branch: string | undefin
+   }];
+ }
+ 
+-export function collectEvidenceGateIssues(root: string, task: TaskContract): Issue[] {
++export function collectEvidenceGateIssues(root: string, task: TaskContract, evidenceOverride?: Evidence): Issue[] {
++  if (evidenceOverride) return [];
+   const { evidence, issues } = readEvidence(root, task.id);
+   if (!evidence) {
+     return issues.map((issue) => ({
+@@ -166,7 +167,7 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract): Iss
+   }));
+ }
+ 
+-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean } = {}): number {
++export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence } = {}): number {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) {
+     const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
+@@ -199,10 +200,10 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   }
+   const diffIssues = withDefaultFixCommand([
+     ...collectBranchIssues(task, currentBranch(root)),
+-    ...collectEvidenceGateIssues(root, task),
++    ...collectEvidenceGateIssues(root, task, options.evidence),
+     ...workingTreeIssues,
+     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
+-    ...collectDiffIssues(root, task, files)
++    ...collectDiffIssues(root, task, files, options.evidence)
+   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+ 
+   const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
+@@ -212,7 +213,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   let humanGateFiles: string[] = [];
+   let diffHash = "(not recorded)";
+   if (requiresHumanApproval) {
+-    const { evidence } = readEvidence(root, taskId);
++    const evidence = options.evidence ?? readEvidence(root, taskId).evidence;
+     diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
+     const gate = validateHumanGateApproval(task, evidence, readApproval(root, taskId).approval, files, root);
+     humanGateFiles = gate.requiredFiles;
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index e8fba23..2fe104d 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -1,19 +1,37 @@
++import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
++import path from "node:path";
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch } from "../core/git.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
++import { gitCommonDir } from "../core/required-check-run.js";
++import { defaultRegistryPath, evidencePath, resolveFrom } from "../core/paths.js";
++import { stringifySimpleYaml } from "../core/yaml.js";
+ import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
+-import { runEvidenceCollect } from "./evidence-collect.js";
+-import { runRegistryRebuild } from "./registry-rebuild.js";
++import { buildCollectedEvidence } from "./evidence-collect.js";
++import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
+ import { readProfile } from "./profile.js";
+ import type { Profile } from "../core/types.js";
+ import type { WorkingTreeState } from "../core/git.js";
+ import type { Evidence, Issue } from "../core/types.js";
+ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
++import { printIssues } from "../core/report.js";
++
++export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
++export type FinishOutcome =
++  | "ready"
++  | "readiness-blocked"
++  | "required-check-failed"
++  | "validation-failed"
++  | "awaiting-human-approval"
++  | "checkpoint-failed"
++  | "completed";
+ 
+ export type FinishJsonOutput = {
+   schemaVersion: "1.0.0";
+   status: "pass" | "blocked";
++  phase: FinishPhase;
++  outcome: FinishOutcome;
+   taskId: string;
+   requiresHumanApproval: boolean;
+   changedFiles: string[];
+@@ -22,6 +40,8 @@ export type FinishJsonOutput = {
+   evidencePath: string;
+   approvalStatus: string;
+   nextAction: string;
++  resumeCommand: string;
++  mutatedFiles: string[];
+   humanGateFiles?: string[];
+   diffHash?: string;
+   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+@@ -30,6 +50,106 @@ export type FinishJsonOutput = {
+ };
+ 
+ type TestQuality = NonNullable<Evidence["testQuality"]>;
++type CheckpointWriter = (files: AtomicFileWrite[]) => string[];
++
++export type AtomicFileWrite = { path: string; content: string };
++type AtomicWriteJournal = {
++  schemaVersion: "1.0.0";
++  files: Array<{ path: string; existed: boolean; previous?: string }>;
++};
++
++function removeIfPresent(file: string): void {
++  if (existsSync(file)) unlinkSync(file);
++}
++
++function restoreJournal(journal: AtomicWriteJournal): string[] {
++  for (const file of journal.files) {
++    if (file.existed) {
++      mkdirSync(path.dirname(file.path), { recursive: true });
++      writeFileSync(file.path, file.previous ?? "", "utf8");
++    } else {
++      removeIfPresent(file.path);
++    }
++  }
++  return journal.files.map((file) => file.path);
++}
++
++function recoverAtomicFileWrites(journalPath: string, allowedPaths: string[]): string[] {
++  if (!existsSync(journalPath)) return [];
++  const journal = JSON.parse(readFileSync(journalPath, "utf8")) as AtomicWriteJournal;
++  if (journal.schemaVersion !== "1.0.0" || !Array.isArray(journal.files)) {
++    throw new Error(`Invalid atomic write journal: ${journalPath}`);
++  }
++  const allowed = new Set(allowedPaths.map((file) => path.resolve(file)));
++  const unexpected = journal.files.find((file) => !allowed.has(path.resolve(file.path)));
++  if (unexpected) throw new Error(`Atomic write journal contains an unexpected path: ${unexpected.path}`);
++  const restored = restoreJournal(journal);
++  removeIfPresent(journalPath);
++  return restored;
++}
++
++export function writeFilesAtomically(
++  files: AtomicFileWrite[],
++  options: { beforeCommit?: (index: number, file: AtomicFileWrite) => void; journalPath?: string } = {}
++): string[] {
++  const token = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
++  const staged = files.map((file, index) => {
++    mkdirSync(path.dirname(file.path), { recursive: true });
++    const tempPath = `${file.path}.scwbs-${token}-${index}.tmp`;
++    writeFileSync(tempPath, file.content, "utf8");
++    return {
++      ...file,
++      tempPath,
++      existed: existsSync(file.path),
++      previous: existsSync(file.path) ? readFileSync(file.path, "utf8") : undefined
++    };
++  });
++  const committed: typeof staged = [];
++  try {
++    if (options.journalPath) {
++      mkdirSync(path.dirname(options.journalPath), { recursive: true });
++      const journal: AtomicWriteJournal = {
++        schemaVersion: "1.0.0",
++        files: staged.map(({ path: filePath, existed, previous }) => ({
++          path: filePath,
++          existed,
++          ...(previous !== undefined ? { previous } : {})
++        }))
++      };
++      const journalTemp = `${options.journalPath}.${token}.tmp`;
++      writeFileSync(journalTemp, `${JSON.stringify(journal)}\n`, "utf8");
++      renameSync(journalTemp, options.journalPath);
++    }
++    staged.forEach((file, index) => {
++      options.beforeCommit?.(index, file);
++      renameSync(file.tempPath, file.path);
++      committed.push(file);
++    });
++    return files.map((file) => file.path);
++  } catch (error) {
++    for (const file of committed.reverse()) {
++      if (file.existed) writeFileSync(file.path, file.previous ?? "", "utf8");
++      else removeIfPresent(file.path);
++    }
++    if (options.journalPath) removeIfPresent(options.journalPath);
++    throw error;
++  } finally {
++    for (const file of staged) removeIfPresent(file.tempPath);
++    if (committed.length === staged.length && options.journalPath) removeIfPresent(options.journalPath);
++  }
++}
++
++type FinishOptions = {
++  taskId?: string;
++  baseRef?: string;
++  pullRequest?: string;
++  force?: boolean;
++  json?: boolean;
++  rerunChecks?: boolean;
++  preflight?: boolean;
++  testQuality?: TestQuality;
++  checkpointWriter?: CheckpointWriter;
++};
+ 
+ function readinessFixCommands(issues: Issue[]): string[] {
+   return [...new Set(issues.flatMap((issue) => issue.fixCommand ? [issue.fixCommand] : []))];
+@@ -74,35 +194,90 @@ function collectFinishPreflightIssues(root: string, taskId: string, baseRef: str
+ function captureStdout<T>(fn: () => T): { result: T; output: string } {
+   const chunks: string[] = [];
+   const originalWrite = process.stdout.write.bind(process.stdout);
++  const originalLog = console.log;
+   process.stdout.write = ((chunk: unknown) => {
+     chunks.push(String(chunk));
+     return true;
+   }) as typeof process.stdout.write;
++  console.log = (...args: unknown[]) => {
++    chunks.push(`${args.map(String).join(" ")}\n`);
++  };
+   try {
+-    const result = fn();
+-    return { result, output: chunks.join("") };
++    return { result: fn(), output: chunks.join("") };
+   } finally {
+     process.stdout.write = originalWrite;
++    console.log = originalLog;
+   }
+ }
+ 
+ function runSilentIfJson<T>(json: boolean, fn: () => T): { result: T; output: string } {
+-  if (!json) {
+-    return { result: fn(), output: "" };
+-  }
++  if (!json) return { result: fn(), output: "" };
+   return captureStdout(fn);
+ }
+ 
+ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
+-  const match = branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/);
+-  return match?.[1];
++  return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
+ }
+ 
+ export function buildHumanApprovalCommand(taskId: string): string {
+   return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+ }
+ 
+-export function runFinish(root: string, options: { taskId?: string; baseRef?: string; pullRequest?: string; force?: boolean; json?: boolean; rerunChecks?: boolean; testQuality?: TestQuality } = {}): number {
++function resumeFinishCommand(taskId: string): string {
++  return `npm run scwbs -- finish --task ${taskId}`;
++}
++
++function finishJournalPath(root: string, taskId: string): string {
++  return path.join(gitCommonDir(root), `scwbs-finish-${taskId}.journal.json`);
++}
++
++function finishOutput(input: Omit<FinishJsonOutput, "schemaVersion">): FinishJsonOutput {
++  return { schemaVersion: "1.0.0", ...input };
++}
++
++function emitJson(output: FinishJsonOutput, enabled: boolean): void {
++  if (enabled) console.log(JSON.stringify(output, null, 2));
++}
++
++function checkpointFinishMetadata(root: string, evidence: Evidence, writer: CheckpointWriter): string[] {
++  const evidenceRelativePath = evidencePath(evidence.taskId);
++  const registryYaml = buildRegistryYaml(root, { evidence });
++  const writes = [
++    {
++      relativePath: evidenceRelativePath,
++      path: resolveFrom(root, evidenceRelativePath),
++      content: stringifySimpleYaml(evidence as unknown as Record<string, unknown>)
++    },
++    {
++      relativePath: defaultRegistryPath,
++      path: resolveFrom(root, defaultRegistryPath),
++      content: registryYaml
++    }
++  ];
++  const changedWrites = writes.filter((file) => !existsSync(file.path) || readFileSync(file.path, "utf8") !== file.content);
++  writer(changedWrites.map(({ path, content }) => ({ path, content })));
++  return changedWrites.map((file) => file.relativePath);
++}
++
++function printHumanGate(taskId: string, files: string[], diffHash: string): void {
++  console.log("");
++  console.log("Human approval required.");
++  console.log("");
++  console.log("Changed human-gated paths:");
++  for (const file of files) console.log(`  - ${file}`);
++  console.log("");
++  console.log("Current diff hash:");
++  console.log(`  ${diffHash}`);
++  console.log("");
++  console.log("Next action for human reviewer:");
++  console.log(`  ${buildHumanApprovalCommand(taskId)}`);
++  console.log("");
++  console.log("AI agents must stop here.");
++  console.log("Do not approve this task yourself.");
++}
++
++export function runFinish(root: string, options: FinishOptions = {}): number {
++  const json = options.json ?? false;
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+     console.error("Missing --task <task-id> and current branch does not contain a task id");
+@@ -116,205 +291,249 @@ export function runFinish(root: string, options: { taskId?: string; baseRef?: st
+     return 1;
+   }
+ 
++  const evidenceRelativePath = evidencePath(taskId);
++  const approvalStatus = () => readApproval(root, taskId).approval?.status ?? "";
++  const journalPath = finishJournalPath(root, taskId);
++  if (existsSync(journalPath) && options.preflight) {
++    const nextAction = resumeFinishCommand(taskId);
++    const issues: Issue[] = [{
++      severity: "error",
++      code: "finish.checkpoint.recovery-required",
++      message: "An interrupted finish checkpoint must be recovered before preflight can continue",
++      fixCommand: nextAction
++    }];
++    printReadinessIssues(issues, json);
++    emitJson(finishOutput({
++      status: "blocked", phase: "preflight", outcome: "readiness-blocked", taskId,
++      requiresHumanApproval: false, changedFiles: [], violations: issues, requiredChecks: [],
++      evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
++      resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++      fixCommands: [nextAction]
++    }), json);
++    return 1;
++  }
++  if (!options.preflight) {
++    try {
++      const recovered = recoverAtomicFileWrites(journalPath, [
++        resolveFrom(root, evidenceRelativePath),
++        resolveFrom(root, defaultRegistryPath)
++      ]);
++      if (recovered.length > 0) console.error(`Recovered interrupted finish checkpoint for ${taskId}`);
++    } catch (error) {
++      const message = error instanceof Error ? error.message : String(error);
++      const nextAction = `Inspect and remove the invalid checkpoint journal: ${journalPath}`;
++      console.error(message);
++      emitJson(finishOutput({
++        status: "blocked", phase: "checkpoint", outcome: "checkpoint-failed", taskId,
++        requiresHumanApproval: false, changedFiles: [], violations: [{ message }], requiredChecks: [],
++        evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
++        resumeCommand: nextAction, mutatedFiles: [], readinessWarnings: [], fixCommands: [nextAction]
++      }), json);
++      return 1;
++    }
++  }
+   const preflightIssues = collectFinishPreflightIssues(root, taskId, options.baseRef, options.testQuality);
+   if (preflightIssues.length > 0) {
+-    printReadinessIssues(preflightIssues, options.json ?? false);
+-    if (options.json) {
+-      const output: FinishJsonOutput = {
+-        schemaVersion: "1.0.0",
+-        status: "blocked",
+-        taskId,
+-        requiresHumanApproval: false,
+-        changedFiles: [],
+-        violations: [],
+-        requiredChecks: [],
+-        evidencePath: `contracts/evidence/${taskId}.yaml`,
+-        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
+-        nextAction: preflightIssues[0]?.fixCommand ?? "Resolve task readiness warnings",
+-        readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+-        fixCommands: readinessFixCommands(preflightIssues)
+-      };
+-      console.log(JSON.stringify(output, null, 2));
+-    }
++    printReadinessIssues(preflightIssues, json);
++    const nextAction = preflightIssues[0]?.fixCommand ?? "Resolve task readiness warnings";
++    emitJson(finishOutput({
++      status: "blocked", phase: "preflight", outcome: "readiness-blocked", taskId,
++      requiresHumanApproval: false, changedFiles: [], violations: [], requiredChecks: [],
++      evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
++      resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++      fixCommands: readinessFixCommands(preflightIssues)
++    }), json);
+     return 1;
+   }
+ 
+   const workingTree = evaluateWorkingTreeGuard(root, taskId);
+   if (workingTree.issues.length > 0) {
+-    printReadinessIssues(workingTree.issues, options.json ?? false);
+-    if (options.json) {
+-      const output: FinishJsonOutput = {
+-        schemaVersion: "1.0.0",
+-        status: "blocked",
+-        taskId,
+-        requiresHumanApproval: false,
+-        changedFiles: workingTree.state.changedFiles,
+-        violations: workingTree.issues,
+-        requiredChecks: [],
+-        evidencePath: `contracts/evidence/${taskId}.yaml`,
+-        approvalStatus: readApproval(root, taskId).approval?.status ?? "",
+-        nextAction: workingTree.issues[0]?.fixCommand ?? "Commit or stash working tree changes",
+-        readinessWarnings: workingTree.issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+-        fixCommands: readinessFixCommands(workingTree.issues),
+-        workingTree: workingTree.state
+-      };
+-      console.log(JSON.stringify(output, null, 2));
+-    }
++    printReadinessIssues(workingTree.issues, json);
++    const nextAction = workingTree.issues[0]?.fixCommand ?? "Commit or stash working tree changes";
++    emitJson(finishOutput({
++      status: "blocked", phase: "preflight", outcome: "readiness-blocked", taskId,
++      requiresHumanApproval: false, changedFiles: workingTree.state.changedFiles,
++      violations: workingTree.issues, requiredChecks: [], evidencePath: evidenceRelativePath,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: workingTree.issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++      fixCommands: readinessFixCommands(workingTree.issues), workingTree: workingTree.state
++    }), json);
+     return 1;
+   }
+ 
+-  const evidenceExit = runEvidenceCollect(root, taskId, {
+-    force: options.force ?? true,
+-    baseRef: options.baseRef,
+-    pullRequest: options.pullRequest,
+-    testQuality: options.testQuality,
+-    rerunChecks: options.rerunChecks,
+-    quiet: true
+-  });
+-  if (evidenceExit !== 0) return evidenceExit;
++  if (options.preflight) {
++    const nextAction = resumeFinishCommand(taskId);
++    if (!json) {
++      console.log(`PASS finish preflight ${taskId}`);
++      console.log(`plannedMutations: ${evidenceRelativePath}, ${defaultRegistryPath}`);
++      console.log(`nextAction: ${nextAction}`);
++    }
++    emitJson(finishOutput({
++      status: "pass", phase: "preflight", outcome: "ready", taskId,
++      requiresHumanApproval: false, changedFiles: branchChangedFiles(root, options.baseRef ?? "origin/main"),
++      violations: [], requiredChecks: [], evidencePath: evidenceRelativePath,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: [], fixCommands: []
++    }), json);
++    return 0;
++  }
+ 
+-  const { evidence } = readEvidence(root, taskId);
+-  if (options.json) {
+-    console.error("PASS evidence collected");
+-  } else {
+-    console.log("PASS evidence collected");
++  let evidence: Evidence;
++  try {
++    evidence = buildCollectedEvidence(root, taskId, {
++      baseRef: options.baseRef,
++      pullRequest: options.pullRequest,
++      testQuality: options.testQuality,
++      rerunChecks: options.rerunChecks
++    });
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error);
++    console.error(message);
++    const nextAction = resumeFinishCommand(taskId);
++    emitJson(finishOutput({
++      status: "blocked", phase: "required-checks", outcome: "required-check-failed", taskId,
++      requiresHumanApproval: false, changedFiles: [], violations: [{ message }], requiredChecks: [],
++      evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
++      resumeCommand: nextAction, mutatedFiles: [], readinessWarnings: [], fixCommands: [nextAction]
++    }), json);
++    return 1;
+   }
+-  const failedChecks = evidence?.checks.filter((check) => check.status !== "passed") ?? [];
++
++  if (json) console.error("PASS evidence candidate built");
++  else console.log("PASS evidence candidate built");
++  const failedChecks = evidence.checks.filter((check) => check.status !== "passed");
+   if (failedChecks.length > 0) {
+     for (const check of failedChecks) {
+       console.error(`Check failed: ${check.name} (${check.command})`);
+       if (check.stdoutSummary) console.error(`stdout:\n${check.stdoutSummary}`);
+       if (check.stderrSummary) console.error(`stderr:\n${check.stderrSummary}`);
+     }
+-    console.error("fixCommand: fix the failing checks, then run npm run scwbs -- finish --task <task-id>");
++    const nextAction = resumeFinishCommand(taskId);
++    console.error(`fixCommand: fix the failing checks, then run ${nextAction}`);
++    emitJson(finishOutput({
++      status: "blocked", phase: "required-checks", outcome: "required-check-failed", taskId,
++      requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: failedChecks,
++      requiredChecks: evidence.checks, evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(),
++      nextAction, resumeCommand: nextAction, mutatedFiles: [], readinessWarnings: [], fixCommands: [nextAction]
++    }), json);
+     return 1;
+   }
+-  if (options.json) {
+-    console.error("PASS required checks");
+-  } else {
+-    console.log("PASS required checks");
+-  }
++  if (json) console.error("PASS required checks");
++  else console.log("PASS required checks");
+ 
+-  const { result: diffExit, output: checkDiffOutput } = runSilentIfJson(options.json ?? false, () =>
+-    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: options.json ?? false })
++  const { result: diffExit, output: checkDiffOutput } = captureStdout(() =>
++    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true, evidence })
+   );
+-
+-  const profile: Profile = readProfile(root);
+-  const approval = readApproval(root, taskId).approval;
+-  const humanGate = validateHumanGateApproval(task, evidence, approval, evidence?.changedFiles, root);
+-  const humanGateFiles = humanGate.requiredFiles;
+-  const needsHumanGate = humanGate.required && !humanGate.approved;
+-  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
+-
+-  const approvalCommand = buildHumanApprovalCommand(taskId);
+-  const prCommand = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
+-  let nextAction = needsHumanGate ? approvalCommand : prCommand;
+-
+-  if (options.json) {
+-    console.error(`Profile: ${profile}`);
+-    if (needsHumanGate) {
+-      console.error("");
+-      console.error("Human approval required.");
+-      console.error("");
+-      console.error("Changed human-gated paths:");
+-      for (const file of humanGateFiles) {
+-        console.error(`  - ${file}`);
+-      }
+-      console.error("");
+-      console.error("Current diff hash:");
+-      console.error(`  ${diffHash}`);
+-      console.error("");
+-      console.error("Next action for human reviewer:");
+-      console.error(`  ${approvalCommand}`);
+-      console.error("");
+-      console.error("AI agents must stop here.");
+-      console.error("Do not approve this task yourself.");
+-    }
+-  } else {
+-    if (needsHumanGate) {
+-      console.log("");
+-      console.log("Human approval required.");
+-      console.log("");
+-      console.log("Changed human-gated paths:");
+-      for (const file of humanGateFiles) {
+-        console.log(`  - ${file}`);
+-      }
+-      console.log("");
+-      console.log("Current diff hash:");
+-      console.log(`  ${diffHash}`);
+-      console.log("");
+-      console.log("Next action for human reviewer:");
+-      console.log(`  ${approvalCommand}`);
+-      console.log("");
+-      console.log("AI agents must stop here.");
+-      console.log("Do not approve this task yourself.");
+-    }
++  let checkDiffResult: { issues?: Issue[] } = {};
++  try {
++    checkDiffResult = JSON.parse(checkDiffOutput || "{}");
++  } catch {
++    checkDiffResult = { issues: [{ severity: "error", code: "diff.output", message: "check-diff returned invalid JSON" }] };
++  }
++  const diffIssues = checkDiffResult.issues ?? [];
++  const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
++  const nonHumanGateIssues = diffIssues.filter((issue) => issue.code !== "diff.humanGate");
++  if (diffExit !== 0 && nonHumanGateIssues.length > 0) {
++    if (!json) printIssues(diffIssues);
++    const nextAction = nonHumanGateIssues[0]?.fixCommand ?? `npm run scwbs -- check-diff --task ${taskId}`;
++    emitJson(finishOutput({
++      status: "blocked", phase: "validation", outcome: "validation-failed", taskId,
++      requiresHumanApproval: humanGateIssues.length > 0, changedFiles: evidence.changedFiles,
++      violations: diffIssues, requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: [], fixCommands: readinessFixCommands(nonHumanGateIssues)
++    }), json);
++    return 1;
++  }
++  if (humanGateIssues.length === 0) {
++    if (json) console.error("PASS diff guard");
++    else console.log("PASS diff guard");
+   }
+ 
+-  if (diffExit !== 0) return diffExit;
+-  if (options.json) {
+-    console.error("PASS diff guard");
+-  } else {
+-    console.log("PASS diff guard");
++  let mutatedFiles: string[] = [];
++  try {
++    const writer = options.checkpointWriter
++      ?? ((files: AtomicFileWrite[]) => writeFilesAtomically(files, { journalPath }));
++    mutatedFiles = checkpointFinishMetadata(root, evidence, writer);
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error);
++    console.error(`finish checkpoint failed: ${message}`);
++    const nextAction = resumeFinishCommand(taskId);
++    emitJson(finishOutput({
++      status: "blocked", phase: "checkpoint", outcome: "checkpoint-failed", taskId,
++      requiresHumanApproval: humanGateIssues.length > 0, changedFiles: evidence.changedFiles,
++      violations: [{ message }], requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles: [],
++      readinessWarnings: [], fixCommands: [nextAction]
++    }), json);
++    return 1;
+   }
++  if (json) console.error("PASS Evidence and registry checkpoint synchronized");
++  else console.log("PASS registry synchronized");
+ 
+-  const { result: registryWriteExit } = captureStdout(() =>
+-    runRegistryRebuild(root, { check: false, force: true })
+-  );
+-  if (registryWriteExit !== 0) return registryWriteExit;
+-  if (options.json) {
+-    console.error("PASS registry synchronized");
+-  } else {
+-    console.log("PASS registry synchronized");
++  const { result: registryExit } = runSilentIfJson(json, () => runRegistryRebuild(root, { check: true, force: false }));
++  if (registryExit !== 0) {
++    const nextAction = resumeFinishCommand(taskId);
++    emitJson(finishOutput({
++      status: "blocked", phase: "checkpoint", outcome: "checkpoint-failed", taskId,
++      requiresHumanApproval: humanGateIssues.length > 0, changedFiles: evidence.changedFiles,
++      violations: [{ message: "Registry check failed after checkpoint" }], requiredChecks: evidence.checks,
++      evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
++      resumeCommand: nextAction, mutatedFiles, readinessWarnings: [], fixCommands: [nextAction]
++    }), json);
++    return 1;
+   }
+-  const { result: registryExit } = runSilentIfJson(options.json ?? false, () =>
+-    runRegistryRebuild(root, { check: true, force: false })
+-  );
+-  if (registryExit !== 0) return registryExit;
+-  if (options.json) {
+-    console.error("PASS registry check");
+-  } else {
+-    console.log("PASS registry check");
++  if (json) console.error("PASS registry check");
++
++  const approval = readApproval(root, taskId).approval;
++  const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
++  const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
++  if (humanGateIssues.length > 0) {
++    const approvalCommand = buildHumanApprovalCommand(taskId);
++    if (!json) printHumanGate(taskId, gate.requiredFiles, diffHash);
++    emitJson(finishOutput({
++      status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
++      requiresHumanApproval: true, changedFiles: evidence.changedFiles, violations: humanGateIssues,
++      requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
++      approvalStatus: approval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
++      mutatedFiles, humanGateFiles: gate.requiredFiles, diffHash, readinessWarnings: [],
++      fixCommands: [approvalCommand]
++    }), json);
++    return 1;
+   }
+ 
+   const readinessIssues = collectTaskHealthIssues(root, taskId);
+   if (readinessIssues.length > 0) {
+-    printReadinessIssues(readinessIssues, options.json ?? false);
+-    if (!options.json) return 1;
++    printReadinessIssues(readinessIssues, json);
++    const nextAction = readinessIssues[0]?.fixCommand ?? resumeFinishCommand(taskId);
++    emitJson(finishOutput({
++      status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
++      requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
++      requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
++      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
++      readinessWarnings: readinessIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
++      fixCommands: readinessFixCommands(readinessIssues)
++    }), json);
++    return 1;
+   }
+ 
+-  if (!options.json && !needsHumanGate) {
++  const profile: Profile = readProfile(root);
++  const prCommand = `gh pr create --base main --title "feat: ${taskId}" --body ""`;
++  if (!json) {
+     console.log(`Profile: ${profile}`);
+     console.log("");
+     console.log("Next action:");
+     console.log("  Open a pull request and merge:");
+     console.log(`  ${prCommand}`);
+   }
+-
+-  if (options.json) {
+-    let checkDiffResult: { status?: string; issues?: unknown[] } = {};
+-    try {
+-      checkDiffResult = JSON.parse(checkDiffOutput || "{}");
+-    } catch {
+-      checkDiffResult = {};
+-    }
+-    const output: FinishJsonOutput = {
+-      schemaVersion: "1.0.0",
+-      status: readinessIssues.length > 0 ? "blocked" : "pass",
+-      taskId,
+-      requiresHumanApproval: needsHumanGate,
+-      changedFiles: evidence?.changedFiles ?? [],
+-      violations: checkDiffResult.issues ?? [],
+-      requiredChecks: evidence?.checks ?? [],
+-      evidencePath: `contracts/evidence/${taskId}.yaml`,
+-      approvalStatus: approval?.status ?? "",
+-      nextAction: readinessIssues[0]?.fixCommand ?? nextAction,
+-      readinessWarnings: readinessIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+-      fixCommands: readinessFixCommands(readinessIssues),
+-      ...(needsHumanGate ? { humanGateFiles, diffHash } : {})
+-    };
+-    console.log(JSON.stringify(output, null, 2));
+-  }
+-
+-  return readinessIssues.length > 0 ? 1 : 0;
++  emitJson(finishOutput({
++    status: "pass", phase: "complete", outcome: "completed", taskId,
++    requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
++    requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
++    approvalStatus: approval?.status ?? "", nextAction: prCommand, resumeCommand: prCommand,
++    mutatedFiles, readinessWarnings: [], fixCommands: []
++  }), json);
++  return 0;
+ }
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 43fc0b1..6d16f18 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -1,8 +1,9 @@
+ import { existsSync, readFileSync, writeFileSync } from "node:fs";
+ import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+-import { defaultRegistryPath, defaultWbsPath, resolveFrom } from "../core/paths.js";
++import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
++import type { Evidence } from "../core/types.js";
+ 
+ export type RegistryRebuildOptions = {
+   check: boolean;
+@@ -68,7 +69,7 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
+   if (options.verbose) process.stdout.write(yaml);
+ }
+ 
+-export function buildRegistryYaml(root: string): string {
++export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
+   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
+   const contracts: Record<string, unknown>[] = [];
+   for (const { spec, path } of listSpecs(root)) {
+@@ -83,10 +84,21 @@ export function buildRegistryYaml(root: string): string {
+     if (!task) continue;
+     contracts.push({ id: `TASK-${task.id}`, type: "task", path, featureId: task.featureId });
+   }
+-  for (const { evidence, path } of listEvidence(root)) {
++  let candidateEvidenceIncluded = false;
++  for (const { evidence: storedEvidence, path } of listEvidence(root)) {
++    const evidence = options.evidence?.taskId === storedEvidence?.taskId ? options.evidence : storedEvidence;
+     if (!evidence) continue;
++    if (evidence === options.evidence) candidateEvidenceIncluded = true;
+     contracts.push({ id: evidence.id, type: "evidence", path, relatedTask: evidence.taskId });
+   }
++  if (options.evidence && !candidateEvidenceIncluded) {
++    contracts.push({
++      id: options.evidence.id,
++      type: "evidence",
++      path: evidencePath(options.evidence.taskId),
++      relatedTask: options.evidence.taskId
++    });
++  }
+   for (const { approval, path } of listApprovals(root)) {
+     if (!approval) continue;
+     contracts.push({ id: approval.id, type: "approval", path, status: approval.status, relatedTask: approval.taskId });
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index e236be7..1af678d 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -1,13 +1,29 @@
+ import { execFileSync, spawn } from "node:child_process";
+ import { existsSync, readFileSync, unlinkSync } from "node:fs";
+ import { describe, expect, test } from "vitest";
+-import { buildHumanApprovalCommand, runFinish } from "../../src/commands/finish.js";
++import { buildHumanApprovalCommand, runFinish, writeFilesAtomically } from "../../src/commands/finish.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
+ import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+ import { runTaskLock } from "../../src/commands/task-lock.js";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ 
++function gitStatus(root: string): string {
++  return execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
++}
++
++function captureFinishJson(root: string, options: Parameters<typeof runFinish>[1]): { exitCode: number; json: Record<string, unknown> } {
++  const output: string[] = [];
++  const originalLog = console.log;
++  console.log = (message?: unknown) => output.push(String(message));
++  try {
++    const exitCode = runFinish(root, { ...options, json: true });
++    return { exitCode, json: JSON.parse(output[output.length - 1]) };
++  } finally {
++    console.log = originalLog;
++  }
++}
++
+ function prepareFinishRepoWithHumanGate(): string {
+   const root = makeTempRepo();
+   writeScwbsProject(root);
+@@ -211,6 +227,8 @@ describe("finish", () => {
+     expect(json).toMatchObject({
+       schemaVersion: "1.0.0",
+       status: "pass",
++      phase: "complete",
++      outcome: "completed",
+       taskId: "WBS-001-004",
+       requiresHumanApproval: expect.any(Boolean),
+       changedFiles: expect.any(Array),
+@@ -219,6 +237,8 @@ describe("finish", () => {
+       evidencePath: expect.any(String),
+       approvalStatus: expect.any(String),
+       nextAction: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
++      resumeCommand: `gh pr create --base main --title "feat: WBS-001-004" --body ""`,
++      mutatedFiles: expect.any(Array),
+       readinessWarnings: [],
+       fixCommands: []
+     });
+@@ -349,6 +369,138 @@ describe("finish", () => {
+     expect(stderr.join("\n")).toContain("actionable stderr detail");
+   }, 30000);
+ 
++  test("failed required checks preserve the previous Evidence and Registry checkpoint", () => {
++    const root = prepareFinishRepo();
++    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    const previousEvidence = readFileSync(evidenceFile, "utf8");
++    const previousRegistry = readFileSync(registryFile, "utf8");
++    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
++    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure failed check"], { cwd: root, stdio: "ignore" });
++    const beforeStatus = gitStatus(root);
++
++    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({
++      phase: "required-checks",
++      outcome: "required-check-failed",
++      mutatedFiles: [],
++      resumeCommand: "npm run scwbs -- finish --task WBS-001-004"
++    });
++    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
++    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
++    expect(gitStatus(root)).toBe(beforeStatus);
++  }, 30000);
++
++  test("check-diff violations do not persist a candidate Evidence or partial Registry", () => {
++    const root = prepareFinishRepo();
++    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    const previousEvidence = readFileSync(evidenceFile, "utf8");
++    const previousRegistry = readFileSync(registryFile, "utf8");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      branchName: "master",
++      allowedPaths: ["docs/**", "contracts/**"],
++      humanGateRequiredPaths: [],
++      requiredChecks: ["test"]
++    }) as unknown as Record<string, unknown>);
++    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
++    execFileSync("git", ["add", "contracts/tasks/WBS-001-004.yaml"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "restrict task scope"], { cwd: root, stdio: "ignore" });
++    const beforeStatus = gitStatus(root);
++
++    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({ phase: "validation", outcome: "validation-failed", mutatedFiles: [] });
++    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
++    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
++    expect(gitStatus(root)).toBe(beforeStatus);
++  }, 30000);
++
++  test("finish --preflight is read-only and does not execute required checks", () => {
++    const root = prepareFinishRepo();
++    const marker = path.join(root, "preflight-check-ran");
++    writeJson(root, "package.json", {
++      scripts: { test: `node -e "require('fs').writeFileSync(${JSON.stringify(marker)}, 'ran')"` }
++    });
++    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure preflight marker"], { cwd: root, stdio: "ignore" });
++    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    const beforeEvidence = readFileSync(evidenceFile, "utf8");
++    const beforeRegistry = readFileSync(registryFile, "utf8");
++    const beforeStatus = gitStatus(root);
++
++    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base", preflight: true });
++
++    expect(result.exitCode).toBe(0);
++    expect(result.json).toMatchObject({ phase: "preflight", outcome: "ready", mutatedFiles: [] });
++    expect(existsSync(marker)).toBe(false);
++    expect(readFileSync(evidenceFile, "utf8")).toBe(beforeEvidence);
++    expect(readFileSync(registryFile, "utf8")).toBe(beforeRegistry);
++    expect(gitStatus(root)).toBe(beforeStatus);
++  });
++
++  test("an interrupted Evidence and Registry checkpoint rolls both files back", () => {
++    const root = prepareFinishRepo();
++    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    writeText(root, "contracts/registry.yaml", `${readFileSync(registryFile, "utf8")}# stale registry marker\n`);
++    const beforeEvidence = readFileSync(evidenceFile, "utf8");
++    const beforeRegistry = readFileSync(registryFile, "utf8");
++    const beforeStatus = gitStatus(root);
++
++    const result = captureFinishJson(root, {
++      taskId: "WBS-001-004",
++      baseRef: "base",
++      checkpointWriter: (files) => writeFilesAtomically(files, {
++        beforeCommit: (index) => {
++          if (index === 1) throw new Error("simulated interruption before registry replace");
++        }
++      })
++    });
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({ phase: "checkpoint", outcome: "checkpoint-failed", mutatedFiles: [] });
++    expect(readFileSync(evidenceFile, "utf8")).toBe(beforeEvidence);
++    expect(readFileSync(registryFile, "utf8")).toBe(beforeRegistry);
++    expect(gitStatus(root)).toBe(beforeStatus);
++  }, 30000);
++
++  test("the next finish recovers a checkpoint journal left by a simulated process crash", () => {
++    const root = prepareFinishRepo();
++    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(8)\"" } });
++    execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "configure post-crash failed check"], { cwd: root, stdio: "ignore" });
++    const evidenceFile = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    const previousEvidence = readFileSync(evidenceFile, "utf8");
++    const previousRegistry = readFileSync(registryFile, "utf8");
++    const commonDirValue = execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).trim();
++    const commonDir = path.isAbsolute(commonDirValue) ? commonDirValue : path.resolve(root, commonDirValue);
++    const journalFile = path.join(commonDir, "scwbs-finish-WBS-001-004.journal.json");
++    writeText(root, path.relative(root, journalFile), `${JSON.stringify({
++      schemaVersion: "1.0.0",
++      files: [
++        { path: evidenceFile, existed: true, previous: previousEvidence },
++        { path: registryFile, existed: true, previous: previousRegistry }
++      ]
++    })}\n`);
++    writeText(root, "contracts/evidence/WBS-001-004.yaml", "interrupted evidence\n");
++    writeText(root, "contracts/registry.yaml", "interrupted registry\n");
++
++    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({ phase: "required-checks", outcome: "required-check-failed", mutatedFiles: [] });
++    expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
++    expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
++    expect(existsSync(journalFile)).toBe(false);
++  }, 30000);
++
+   test("a first finish creates Evidence and synchronizes registry before blocking on missing PR metadata", () => {
+     const root = prepareFinishRepo();
+     unlinkSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"));
+@@ -383,6 +535,30 @@ describe("finish", () => {
+     expect(text).toContain("Do not approve this task yourself.");
+   }, 30000);
+ 
++  test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
++    const root = prepareFinishRepoWithHumanGate();
++    const registryFile = path.join(root, "contracts/registry.yaml");
++    writeText(root, "contracts/registry.yaml", `${readFileSync(registryFile, "utf8")}# stale registry marker\n`);
++    const beforeEvidence = readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8");
++    const beforeRegistry = readFileSync(registryFile, "utf8");
++    const beforeStatus = gitStatus(root);
++
++    const result = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({
++      phase: "checkpoint",
++      outcome: "awaiting-human-approval",
++      requiresHumanApproval: true,
++      mutatedFiles: ["contracts/evidence/WBS-001-004.yaml", "contracts/registry.yaml"],
++      resumeCommand: buildHumanApprovalCommand("WBS-001-004")
++    });
++    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
++    expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
++    expect(readFileSync(registryFile, "utf8")).not.toBe(beforeRegistry);
++    expect(gitStatus(root)).toBe(beforeStatus);
++  }, 30000);
++
+   test("finish synchronizes Approval status and can force valid checks to rerun", () => {
+     const root = prepareFinishRepo(true);
+     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(0);
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index c617033..1bcafe8 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -15,7 +15,7 @@ import { runFix } from "../../src/commands/fix.js";
+ import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+ import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
+ import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
+-import { readBlock, readEvidence, readSpecChange, readTask } from "../../src/core/contracts.js";
++import { readBlock, readSpecChange, readTask } from "../../src/core/contracts.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
+ import { validateWbsDocument } from "../../src/core/wbs.js";
+ import { resolveCheckCommand, isKnownCheck } from "../../src/core/check-catalog.js";
+@@ -353,7 +353,7 @@ describe("misc", () => {
+     expect(main(["finish"], root)).toBe(2);
+   });
+ 
+-  test("finish stops after required check failures", () => {
++  test("finish stops after required check failures without replacing the existing checkpoint", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+     writeJson(root, "package.json", {
+@@ -374,10 +374,14 @@ describe("misc", () => {
+     writeText(root, "src/feature.ts", "export const value = 1;\n");
+     execFileSync("git", ["add", "src/feature.ts"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "feature"], { cwd: root, stdio: "ignore" });
++    const evidencePath = path.join(root, "contracts/evidence/WBS-001-004.yaml");
++    const registryPath = path.join(root, "contracts/registry.yaml");
++    const previousRegistry = readFileSync(registryPath, "utf8");
++    expect(existsSync(evidencePath)).toBe(false);
+ 
+     expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "base" })).toBe(1);
+-    const { evidence } = readEvidence(root, "WBS-001-004");
+-    expect(evidence?.checks[0]).toMatchObject({ name: "test", status: "failed" });
++    expect(existsSync(evidencePath)).toBe(false);
++    expect(readFileSync(registryPath, "utf8")).toBe(previousRegistry);
+   }, 30000);
+ 
+   test("doctor reports suggested fixes for stale contracts", () => {

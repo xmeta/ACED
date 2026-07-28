@@ -1,0 +1,238 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml b/contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
+new file mode 100644
+index 0000000..f961494
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MRNPP1D1
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNPP1D1
++branchName: codex/issue-231-review-request-registry-v2
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNPP1D1.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNPP1D1.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNPP1D1.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNPP1D1.yaml
++allowedPaths:
++  - src/cli.ts
++  - src/commands/review-request.ts
++  - tests/integration/review.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - review request creates or force-refreshes its review record and synchronizes the derived Registry before reporting success
++  - review request failure does not leave a newly written review record without a synchronized Registry, and reports an actionable resume command
++  - review request JSON output reports the review and Registry artifacts it wrote plus its next action
++  - existing required-check, Human Gate, review scope, and non-AI review-transition behavior remain fail-closed
++  - regression tests cover create and force-refresh paths and prove registry rebuild --check passes without a separate command
++stopIf:
++  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
++  - review status transition、Human Approval、review scope policy、またはRegistry schemaの仕様変更が必要
++  - reviewとRegistryのatomic rollbackを既存のファイル書込み方式だけで安全に実現できない
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T16:17:18.699Z"
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index c16b808..6c779ff 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -131,7 +131,7 @@ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reaso
+ 
+ `review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
+ 
+-`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers`.
++`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers` and synchronizes the derived `contracts/registry.yaml` in the same successful operation. Use `--json` to obtain the written artifacts and next action.
+ 
+ Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
+ 
+diff --git a/src/cli.ts b/src/cli.ts
+index d28d0a5..8af04ae 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -612,6 +612,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--task <id>", "task id")
+     .option("--pull-request <id>", "pull request id")
+     .option("--force", "force request")
++    .option("--json", "print a versioned JSON summary")
+     .action((opts) => {
+       if (!opts.task) {
+         console.error("Missing --task <task-id>");
+@@ -620,7 +621,8 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       }
+       exitCode = runReviewRequest(root, opts.task, {
+         pullRequest: opts.pullRequest,
+-        force: opts.force ?? false
++        force: opts.force ?? false,
++        json: opts.json ?? false
+       });
+     });
+ 
+diff --git a/src/commands/review-request.ts b/src/commands/review-request.ts
+index 24fb204..ac959fd 100644
+--- a/src/commands/review-request.ts
++++ b/src/commands/review-request.ts
+@@ -1,8 +1,9 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+-import { evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
++import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath } from "../core/paths.js";
++import { buildRegistryYaml } from "./registry-rebuild.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
+ 
+@@ -180,7 +181,19 @@ export function runReviewRoute(root: string, taskId: string): number {
+   }
+ }
+ 
+-export function runReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean }): number {
++export type ReviewRequestSummary = {
++  schemaVersion: "1.0.0";
++  status: "synchronized";
++  artifacts: string[];
++  nextAction: string;
++};
++
++function restoreReview(fullPath: string, previous: string | undefined): void {
++  if (previous === undefined) rmSync(fullPath, { force: true });
++  else writeFileSync(fullPath, previous, "utf8");
++}
++
++export function runReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean; json?: boolean }): number {
+   try {
+     const { task, issues } = readTask(root, taskId);
+     if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+@@ -191,14 +204,37 @@ export function runReviewRequest(root: string, taskId: string, options: { pullRe
+       console.error(`${relativePath} already exists`);
+       return 1;
+     }
++    const previousReview = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     const yaml = buildReviewRequestYaml(taskId, {
+       ...options,
+       evidence,
+       requestedReviewers: routeReviewers(task, evidence)
+     });
+-    writeFileSync(fullPath, yaml, "utf8");
+-    process.stdout.write(yaml);
++    try {
++      writeFileSync(fullPath, yaml, "utf8");
++      const registryPath = resolveFrom(root, defaultRegistryPath);
++      const registryYaml = buildRegistryYaml(root);
++      writeFileSync(registryPath, registryYaml, "utf8");
++    } catch (error) {
++      try {
++        restoreReview(fullPath, previousReview);
++      } catch (rollbackError) {
++        throw new Error(`review request failed and rollback failed: ${error instanceof Error ? error.message : String(error)}; ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}. Run npm run scwbs -- registry rebuild --force after resolving the filesystem error.`);
++      }
++      throw new Error(`review request did not synchronize Registry: ${error instanceof Error ? error.message : String(error)}. Review record was restored; rerun npm run scwbs -- review request --task ${taskId}${options.pullRequest ? ` --pull-request ${options.pullRequest}` : ""}${options.force ? " --force" : ""}.`);
++    }
++    if (options.json) {
++      const summary: ReviewRequestSummary = {
++        schemaVersion: "1.0.0",
++        status: "synchronized",
++        artifacts: [relativePath, defaultRegistryPath],
++        nextAction: `request human review for ${taskId}`
++      };
++      console.log(JSON.stringify(summary));
++    } else {
++      process.stdout.write(yaml);
++    }
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/tests/integration/review.test.ts b/tests/integration/review.test.ts
+index bf06802..2e87763 100644
+--- a/tests/integration/review.test.ts
++++ b/tests/integration/review.test.ts
+@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
+ import { buildReviewQueue, runReviewQueue } from "../../src/commands/review-queue.js";
+ import { buildNextAction } from "../../src/commands/next.js";
+ import { buildReviewRequestYaml, buildReviewRouteReport, runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest } from "../../src/commands/review-request.js";
++import { runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
+ import { buildTrace } from "../../src/commands/trace.js";
+ import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+ import {
+@@ -40,6 +41,27 @@ function captureReviewQueue(root: string, options: { verbose?: boolean; json?: b
+   }
+ }
+ 
++function captureReviewRequest(root: string, taskId: string, options: { pullRequest?: string; force: boolean; json?: boolean }): { result: number; stdout: string; stderr: string } {
++  const stdout: string[] = [];
++  const stderr: string[] = [];
++  const originalLog = console.log;
++  const originalError = console.error;
++  const originalWrite = process.stdout.write;
++  console.log = (...args: unknown[]) => stdout.push(`${args.map(String).join(" ")}\n`);
++  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { result: runReviewRequest(root, taskId, options), stdout: stdout.join(""), stderr: stderr.join("\n") };
++  } finally {
++    console.log = originalLog;
++    console.error = originalError;
++    process.stdout.write = originalWrite;
++  }
++}
++
+ function prepareLargeReviewQueue(count = 120): string {
+   const root = makeTempRepo();
+   writeScwbsProject(root, "ready");
+@@ -113,6 +135,23 @@ describe("review queue + review request", () => {
+     const trace = buildTrace(root, "WBS-001-004");
+     expect(trace).toContain("Review: RVW-WBS-001-004 requested");
+     expect(trace).toContain("Evidence: missing");
++    expect(runRegistryRebuild(root, { check: true, force: false })).toBe(0);
++  });
++
++  test("review request force-refresh synchronizes Registry and reports written artifacts as JSON", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runReviewRequest(root, "WBS-001-004", { pullRequest: "#42", force: false })).toBe(0);
++    const output = captureReviewRequest(root, "WBS-001-004", { pullRequest: "#43", force: true, json: true });
++    expect(output).toMatchObject({ result: 0, stderr: "" });
++    expect(JSON.parse(output.stdout)).toEqual({
++      schemaVersion: "1.0.0",
++      status: "synchronized",
++      artifacts: ["contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"],
++      nextAction: "request human review for WBS-001-004"
++    });
++    expect(readFileSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"), "utf8")).toContain('pullRequest: "#43"');
++    expect(runRegistryRebuild(root, { check: true, force: false })).toBe(0);
+   });
+ 
+   test("review route and request include requested reviewers from evidence changes", () => {

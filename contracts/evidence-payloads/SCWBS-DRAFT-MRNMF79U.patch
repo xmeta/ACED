@@ -1,0 +1,310 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 330d631..5b64408 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -66,6 +66,7 @@ rules:
+       - src/core/check-coverage.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
++      - src/core/github-actions.ts
+       - src/core/glob.ts
+       - src/core/hash.ts
+       - src/core/human-gate.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml b/contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
+new file mode 100644
+index 0000000..8d00089
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRNMF79U
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNMF79U
++branchName: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNMF79U.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNMF79U.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNMF79U.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNMF79U.yaml
++allowedPaths:
++  - contracts/check-coverage.yaml
++  - src/commands/metrics.ts
++  - src/core/github-actions.ts
++  - tests/integration/metrics.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - GitHub Actionsの既存run履歴からworkflow、event、branch、期間、完了statusを明示したhistorical CI duration summaryをread-onlyに取得できる
++  - APIまたはghの認証・保持期間・通信失敗は0件や0秒と推測せずunavailable reasonとしてJSONへ記録する
++  - fixture化したrun payloadでcount、completed runのみのduration、workflow別集計、unavailableを再現可能に検証する
++  - commandは永続artifact、budget enforcement、profile downgrade、workflowまたはWBS正本変更を行わない
++  - historical local duration、finish attempts、metadata descendant、Human Gate wait、publish loop、warning budgetは未計測のまま維持する
++stopIf:
++  - package・lockfile・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
++  - GitHub Actions履歴にないローカルdurationやTaskイベントを推測で補う必要
++  - budget enforcement、profile安全性、risk-based execution policyの変更が必要
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T14:46:45.819Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 568de06..dbd5f0f 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1,4 +1,10 @@
+ tasks:
++  - id: SCWBS-DRAFT-MRNMF79U
++    path: contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
++    branchName: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+   - id: SCWBS-DRAFT-MR7XMGQ2
+     path: contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+     branchName: task/SCWBS-DRAFT-MR7XMGQ2-m2-check-catalog-managedcontractpaths-fixcommand
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 4d3a92a..c16b808 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -35,6 +35,8 @@ npm run scwbs -- metrics governance --json
+ 
+ `metrics governance` は永続artifactを作らないread-only計測で、現在のprofile、governance artifactのファイル数・bytes・行数、`src/**/*.ts` と `tests/**/*.ts` の分母、governance/source・governance/testの行比率を返す。JSONは `schemaVersion: "1.0.0"` と `metric: "governance-cost"` を持ち、Lean / Standard / Strictの対象directory別集計も含む。
+ 
++GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。local duration、finish試行、metadata descendant、Human Gate wait、publish loop、warning budgetは未計測であり、hard limitは導入しない。
++
+ 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。履歴CI時間、finish回数、Human Gate待ち時間、publish loop、warning budgetはこのread-only summaryでは未計測として明示し、hard limitやprofile downgradeは行わない。
+ 
+ ## AI Workflow
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+index 97098e3..f94ee7d 100644
+--- a/src/commands/metrics.ts
++++ b/src/commands/metrics.ts
+@@ -4,6 +4,7 @@ import { profileRequiredDirs, resolveFrom } from "../core/paths.js";
+ import type { Profile } from "../core/types.js";
+ import { parseSimpleYaml } from "../core/yaml.js";
+ import { readProfile } from "./profile.js";
++import { readGithubActionsHistory, type GithubActionsHistory } from "../core/github-actions.js";
+ 
+ const GOVERNANCE_DIRS = [
+   "contracts/tasks",
+@@ -47,6 +48,7 @@ export type GovernanceCostSummary = {
+     governanceToSourceLineRatio: number | null;
+     governanceToTestLineRatio: number | null;
+   };
++  historicalCi: GithubActionsHistory;
+   unmeasured: string[];
+ };
+ 
+@@ -168,6 +170,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+     Standard: profileBucket(root, "Standard", categories),
+     Strict: profileBucket(root, "Strict", categories)
+   };
++  const historicalCi = readGithubActionsHistory(root);
+ 
+   return {
+     schemaVersion: "1.0.0",
+@@ -189,8 +192,9 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+       governanceToSourceLineRatio: ratio(governance.lines, source.lines),
+       governanceToTestLineRatio: ratio(governance.lines, tests.lines)
+     },
++    historicalCi,
+     unmeasured: [
+-      "historical CI and local check duration",
++      "historical local check duration",
+       "finish attempts and metadata-only descendant count",
+       "Human Gate wait time and publish-loop duration",
+       "warning budgets and hard enforcement"
+diff --git a/src/core/github-actions.ts b/src/core/github-actions.ts
+new file mode 100644
+index 0000000..8b1fa20
+--- /dev/null
++++ b/src/core/github-actions.ts
+@@ -0,0 +1,124 @@
++import { spawnSync } from "node:child_process";
++
++export type GithubActionsRun = {
++  id: number;
++  name: string;
++  event: string;
++  headBranch: string;
++  status: string;
++  conclusion: string | null;
++  createdAt: string;
++  updatedAt: string;
++};
++
++export type GithubActionsDurationSummary = {
++  status: "available";
++  source: "github-actions";
++  repository: string;
++  retrievedRunLimit: number;
++  matchingRunCount: number;
++  completedRunCount: number;
++  incompleteRunCount: number;
++  earliestCreatedAt: string | null;
++  latestUpdatedAt: string | null;
++  durationMilliseconds: { total: number; average: number | null; minimum: number | null; maximum: number | null };
++  workflows: Record<string, { runCount: number; completedRunCount: number; durationMilliseconds: number }>;
++  events: Record<string, { runCount: number; completedRunCount: number }>;
++  branches: Record<string, { runCount: number; completedRunCount: number }>;
++};
++
++export type GithubActionsUnavailable = {
++  status: "unavailable";
++  source: "github-actions";
++  reason: string;
++};
++
++export type GithubActionsHistory = GithubActionsDurationSummary | GithubActionsUnavailable;
++
++function githubRepository(remote: string): string | undefined {
++  const match = remote.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/);
++  return match?.[1];
++}
++
++function toRun(value: Record<string, unknown>): GithubActionsRun | undefined {
++  if (typeof value.id !== "number" || typeof value.name !== "string" || typeof value.event !== "string" ||
++    typeof value.head_branch !== "string" || typeof value.status !== "string" ||
++    typeof value.created_at !== "string" || typeof value.updated_at !== "string") return undefined;
++  return {
++    id: value.id,
++    name: value.name,
++    event: value.event,
++    headBranch: value.head_branch,
++    status: value.status,
++    conclusion: typeof value.conclusion === "string" ? value.conclusion : null,
++    createdAt: value.created_at,
++    updatedAt: value.updated_at
++  };
++}
++
++export function summarizeGithubActionsRuns(repository: string, runs: GithubActionsRun[], retrievedRunLimit: number): GithubActionsDurationSummary {
++  const completed = runs.filter((run) => run.status === "completed" && !Number.isNaN(Date.parse(run.createdAt)) && !Number.isNaN(Date.parse(run.updatedAt)));
++  const durations = completed.map((run) => Math.max(0, Date.parse(run.updatedAt) - Date.parse(run.createdAt)));
++  const workflows: GithubActionsDurationSummary["workflows"] = {};
++  const events: GithubActionsDurationSummary["events"] = {};
++  const branches: GithubActionsDurationSummary["branches"] = {};
++  for (const run of runs) {
++    const existing = workflows[run.name] ?? { runCount: 0, completedRunCount: 0, durationMilliseconds: 0 };
++    existing.runCount += 1;
++    const duration = completed.indexOf(run);
++    if (duration >= 0) {
++      existing.completedRunCount += 1;
++      existing.durationMilliseconds += durations[duration];
++    }
++    workflows[run.name] = existing;
++    const event = events[run.event] ?? { runCount: 0, completedRunCount: 0 };
++    event.runCount += 1;
++    if (duration >= 0) event.completedRunCount += 1;
++    events[run.event] = event;
++    const branch = branches[run.headBranch] ?? { runCount: 0, completedRunCount: 0 };
++    branch.runCount += 1;
++    if (duration >= 0) branch.completedRunCount += 1;
++    branches[run.headBranch] = branch;
++  }
++  const total = durations.reduce((sum, value) => sum + value, 0);
++  return {
++    status: "available",
++    source: "github-actions",
++    repository,
++    retrievedRunLimit,
++    matchingRunCount: runs.length,
++    completedRunCount: completed.length,
++    incompleteRunCount: runs.length - completed.length,
++    earliestCreatedAt: runs.map((run) => run.createdAt).sort()[0] ?? null,
++    latestUpdatedAt: runs.map((run) => run.updatedAt).sort().at(-1) ?? null,
++    durationMilliseconds: {
++      total,
++      average: durations.length === 0 ? null : Math.round(total / durations.length),
++      minimum: durations.length === 0 ? null : Math.min(...durations),
++      maximum: durations.length === 0 ? null : Math.max(...durations)
++    },
++    workflows,
++    events,
++    branches
++  };
++}
++
++export function readGithubActionsHistory(root: string, limit = 100): GithubActionsHistory {
++  const remote = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
++  const repository = remote.status === 0 ? githubRepository(remote.stdout) : undefined;
++  if (!repository) return { status: "unavailable", source: "github-actions", reason: "origin is not a GitHub repository" };
++  const result = spawnSync("gh", ["api", `repos/${repository}/actions/runs?per_page=${limit}`], {
++    cwd: root,
++    encoding: "utf8",
++    maxBuffer: 10 * 1024 * 1024
++  });
++  if (result.status !== 0) return { status: "unavailable", source: "github-actions", reason: (result.stderr || "GitHub Actions history could not be retrieved").trim() };
++  try {
++    const payload = JSON.parse(result.stdout) as { workflow_runs?: unknown[] };
++    if (!Array.isArray(payload.workflow_runs)) throw new Error("GitHub Actions response has no workflow_runs array");
++    const runs = payload.workflow_runs.map((value) => toRun(value as Record<string, unknown>)).filter((value): value is GithubActionsRun => Boolean(value));
++    return summarizeGithubActionsRuns(repository, runs, limit);
++  } catch (error) {
++    return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
++  }
++}
+diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
+index 843c8d9..1c438f0 100644
+--- a/tests/integration/metrics.test.ts
++++ b/tests/integration/metrics.test.ts
+@@ -2,6 +2,7 @@ import { readdirSync } from "node:fs";
+ import { describe, expect, test } from "vitest";
+ import { buildGovernanceCostSummary, runMetricsGovernance } from "../../src/commands/metrics.js";
+ import { main } from "../../src/cli.js";
++import { summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
+ import { makeTempRepo, sampleWbs, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ function captureStdout(action: () => number): { result: number; stdout: string } {
+@@ -44,10 +45,24 @@ describe("governance metrics", () => {
+     });
+     expect(summary.profiles.Strict.files).toBeGreaterThan(summary.profiles.Lean.files);
+     expect(summary.definitions.hardLimitEnforced).toBe(false);
+-    expect(summary.unmeasured).toContain("historical CI and local check duration");
++    expect(summary.unmeasured).toContain("historical local check duration");
+     expect(readdirSync(root, { recursive: true }).sort()).toEqual(before);
+   });
+ 
++  test("summarizes completed GitHub Actions durations without treating incomplete runs as zero duration", () => {
++    const summary = summarizeGithubActionsRuns("xmeta/ACED", [
++      { id: 1, name: "SC-WBS", event: "pull_request", headBranch: "task/a", status: "completed", conclusion: "success", createdAt: "2026-07-16T00:00:00Z", updatedAt: "2026-07-16T00:00:10Z" },
++      { id: 2, name: "SC-WBS", event: "push", headBranch: "main", status: "completed", conclusion: "failure", createdAt: "2026-07-16T01:00:00Z", updatedAt: "2026-07-16T01:00:30Z" },
++      { id: 3, name: "Other", event: "push", headBranch: "main", status: "in_progress", conclusion: null, createdAt: "2026-07-16T02:00:00Z", updatedAt: "2026-07-16T02:00:05Z" }
++    ], 100);
++    expect(summary).toMatchObject({ matchingRunCount: 3, completedRunCount: 2, incompleteRunCount: 1 });
++    expect(summary.durationMilliseconds).toMatchObject({ total: 40000, average: 20000, minimum: 10000, maximum: 30000 });
++    expect(summary.workflows["SC-WBS"]).toEqual({ runCount: 2, completedRunCount: 2, durationMilliseconds: 40000 });
++    expect(summary.workflows.Other).toEqual({ runCount: 1, completedRunCount: 0, durationMilliseconds: 0 });
++    expect(summary.events).toEqual({ pull_request: { runCount: 1, completedRunCount: 1 }, push: { runCount: 2, completedRunCount: 1 } });
++    expect(summary.branches.main).toEqual({ runCount: 2, completedRunCount: 1 });
++  });
++
+   test("wires the bounded JSON summary through the CLI", () => {
+     const root = makeTempRepo();
+     writeJson(root, "contracts/wbs/project.wbs.json", sampleWbs());
