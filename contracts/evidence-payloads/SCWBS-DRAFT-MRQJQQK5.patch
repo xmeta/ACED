@@ -1,0 +1,525 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index f09b52c..c33a9d4 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -62,6 +62,7 @@ rules:
+     paths:
+       - src/core/check-cache.ts
+       - src/core/check-catalog.ts
++      - src/core/check-output-summary.ts
+       - src/core/check-receipt.ts
+       - src/core/check-coverage.ts
+       - src/core/code-context.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml b/contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
+new file mode 100644
+index 0000000..5584ea3
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
+@@ -0,0 +1,53 @@
++id: SCWBS-DRAFT-MRQJQQK5
++type: task-contract
++wbsNodeId: wbs-less
++featureId: F-MRQJQQK5
++branchName: task/SCWBS-DRAFT-MRQJQQK5-issue-251-finish-required-check-failure-diagnost
++allowedPaths:
++  - src/core/check-output-summary.ts
++  - src/commands/checks-run.ts
++  - src/commands/evidence-collect.ts
++  - tests/unit/check-output-summary.test.ts
++  - tests/integration/checks-run.test.ts
++  - tests/integration/evidence.test.ts
++  - tests/integration/finish.test.ts
++  - contracts/check-coverage.yaml
++  - contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外の変更が必要
++  - humanGateRequiredPathsへの変更が必要
++  - 破壊的仕様変更または機密情報保持方針の拡張が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Issue #251: finish required-check failure diagnostics retention'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRQJQQK5.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRQJQQK5.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRQJQQK5.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRQJQQK5.yaml
++contractLock:
++  lockVersion: "2"
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: wbs-less
++  createdAt: "2026-07-18T15:53:49.433Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index ee5b6a4..460c641 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -267,3 +267,9 @@ tasks:
+     wbsNodeId: wbs-less
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRQJQQK5
++    path: contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
++    branchName: task/SCWBS-DRAFT-MRQJQQK5-issue-251-finish-required-check-failure-diagnost
++    wbsNodeId: wbs-less
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/checks-run.ts b/src/commands/checks-run.ts
+index 083e2d8..edb7546 100644
+--- a/src/commands/checks-run.ts
++++ b/src/commands/checks-run.ts
+@@ -6,6 +6,7 @@ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt, removeCheckReceipt, writeCheckReceipt } from "../core/check-receipt.js";
+ import { headCommit } from "../core/git.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
++import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import {
+   acquireRequiredCheckRun,
+   formatRequiredCheckProgress,
+@@ -17,8 +18,6 @@ import {
+   type RequiredCheckRunLease
+ } from "../core/required-check-run.js";
+ 
+-const maxOutputLength = 1000;
+-
+ export type ChecksRunSummary = {
+   schemaVersion: "1.0.0";
+   status: "pass" | "fail";
+@@ -51,22 +50,6 @@ function metadataFiles(taskId: string): string[] {
+   ];
+ }
+ 
+-function summarize(value: string | null | undefined): string | undefined {
+-  const normalized = (value ?? "").replace(/\r\n/g, "\n").trim();
+-  if (!normalized) return undefined;
+-  if (normalized.length <= maxOutputLength) return normalized;
+-  const diagnosticsIndex = normalized.indexOf("\nfailed test=");
+-  if (diagnosticsIndex >= 0) {
+-    const diagnostics = normalized.slice(diagnosticsIndex + 1);
+-    const marker = "\n[truncated]\n";
+-    const headLength = 750;
+-    return `${diagnostics.slice(0, headLength)}${marker}${diagnostics.slice(-(maxOutputLength - headLength - marker.length))}`;
+-  }
+-  const marker = "\n[truncated]\n";
+-  const edge = Math.floor((maxOutputLength - marker.length) / 2);
+-  return `${normalized.slice(0, edge)}${marker}${normalized.slice(-edge)}`;
+-}
+-
+ function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
+   const command = resolveCheckCommand(check);
+   updateRequiredCheckRun(lease, check, index);
+@@ -95,8 +78,8 @@ function executeCheck(root: string, taskId: string, check: string, cacheKey: str
+     durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
+     executedAt: new Date().toISOString(),
+     ...(typeof result.status === "number" && status === "failed" ? { exitStatus: result.status } : {}),
+-    ...(status === "failed" && summarize(result.stdout) ? { stdoutSummary: summarize(result.stdout) } : {}),
+-    ...(status === "failed" && summarize(result.stderr) ? { stderrSummary: summarize(result.stderr) } : {})
++    ...(status === "failed" && summarizeCheckOutput(result.stdout) ? { stdoutSummary: summarizeCheckOutput(result.stdout) } : {}),
++    ...(status === "failed" && summarizeCheckOutput(result.stderr) ? { stderrSummary: summarizeCheckOutput(result.stderr) } : {})
+   };
+ }
+ 
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index daa931a..405dfdd 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -9,6 +9,7 @@ import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch,
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
++import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { printIssues } from "../core/report.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
+@@ -23,8 +24,6 @@ import {
+   type RequiredCheckRunLease
+ } from "../core/required-check-run.js";
+ 
+-const maxCheckOutputSummaryLength = 1000;
+-
+ type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
+ 
+ export type EvidenceCollectSummary = {
+@@ -93,14 +92,6 @@ function commandForCheck(check: string): string[] {
+   return resolveCheckCommand(check);
+ }
+ 
+-function summarizeCheckOutput(output: string | null | undefined): string | undefined {
+-  const normalized = (output ?? "").replace(/\r\n/g, "\n").trim();
+-  if (normalized.length === 0) return undefined;
+-  if (normalized.length <= maxCheckOutputSummaryLength) return normalized;
+-  const marker = "[truncated]\n";
+-  return `${marker}${normalized.slice(-(maxCheckOutputSummaryLength - marker.length))}`;
+-}
+-
+ function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
+   const command = commandForCheck(check);
+   updateRequiredCheckRun(lease, check, checkIndex);
+diff --git a/src/core/check-output-summary.ts b/src/core/check-output-summary.ts
+new file mode 100644
+index 0000000..27a7da6
+--- /dev/null
++++ b/src/core/check-output-summary.ts
+@@ -0,0 +1,138 @@
++export const CHECK_OUTPUT_SUMMARY_LIMIT = 1000;
++
++const TRUNCATED_MARKER = "[truncated]";
++const REDACTED = "[redacted]";
++const DIAGNOSTIC_LINE_LIMIT = 300;
++
++type DiagnosticGroup = {
++  failedTest: string;
++  cause?: string;
++  rerun?: string;
++};
++
++function redactSecrets(value: string): string {
++  return value
++    .replace(
++      /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/gi,
++      `-----BEGIN PRIVATE KEY-----\n${REDACTED}\n-----END PRIVATE KEY-----`
++    )
++    .replace(/(\bauthorization\s*:\s*bearer\s+)\S+/gi, `$1${REDACTED}`)
++    .replace(
++      /\b(api[_-]?key|access[_-]?token|auth[_-]?token|token|secret|password|passwd|credential)\s*([:=])\s*("[^"\n]*"|'[^'\n]*'|[^\s,;]+)/gi,
++      (_match, key: string, separator: string) => `${key}${separator}${REDACTED}`
++    )
++    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, REDACTED)
++    .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, REDACTED);
++}
++
++function boundedLine(line: string): string {
++  if (line.length <= DIAGNOSTIC_LINE_LIMIT) return line;
++  return `${line.slice(0, DIAGNOSTIC_LINE_LIMIT - TRUNCATED_MARKER.length - 1)} ${TRUNCATED_MARKER}`;
++}
++
++function diagnosticGroups(lines: string[]): DiagnosticGroup[] {
++  const groups: DiagnosticGroup[] = [];
++  let current: DiagnosticGroup | undefined;
++  for (const rawLine of lines) {
++    const line = rawLine.trim();
++    if (line.startsWith("failed test=")) {
++      current = { failedTest: boundedLine(line) };
++      groups.push(current);
++    } else if (current && line.startsWith("cause=") && current.cause === undefined) {
++      current.cause = boundedLine(line);
++    } else if (current && line.startsWith("rerun=") && current.rerun === undefined) {
++      current.rerun = boundedLine(line);
++    }
++  }
++  const seen = new Set<string>();
++  return groups.filter((group) => {
++    const key = [group.failedTest, group.cause ?? "", group.rerun ?? ""].join("\n");
++    if (seen.has(key)) return false;
++    seen.add(key);
++    return true;
++  });
++}
++
++function groupText(group: DiagnosticGroup): string {
++  return [group.failedTest, group.cause, group.rerun].filter((line): line is string => Boolean(line)).join("\n");
++}
++
++function headTail(value: string, limit: number): string {
++  if (limit <= 0) return "";
++  if (value.length <= limit) return value;
++  if (limit <= TRUNCATED_MARKER.length + 2) return TRUNCATED_MARKER.slice(0, limit);
++  const available = limit - TRUNCATED_MARKER.length - 2;
++  const head = Math.ceil(available / 2);
++  const tail = Math.floor(available / 2);
++  return `${value.slice(0, head)}\n${TRUNCATED_MARKER}\n${value.slice(-tail)}`;
++}
++
++function residualOutput(lines: string[]): string {
++  const content: string[] = [];
++  const progress: string[] = [];
++  const seenProgress = new Set<string>();
++  for (const rawLine of lines) {
++    const line = rawLine.trimEnd();
++    const trimmed = line.trim();
++    if (
++      trimmed.startsWith("failed test=")
++      || trimmed.startsWith("cause=")
++      || trimmed.startsWith("rerun=")
++    ) {
++      continue;
++    }
++    if (trimmed.startsWith("scwbs progress ")) {
++      const key = trimmed
++        .replace(/\belapsed=\d+s\b/g, "elapsed=*")
++        .replace(/\bpid=\d+\b/g, "pid=*")
++        .replace(/\bstartedAt=\S+/g, "startedAt=*");
++      if (!seenProgress.has(key)) {
++        seenProgress.add(key);
++        progress.push(trimmed);
++      }
++      continue;
++    }
++    content.push(line);
++  }
++  const body = content.join("\n").trim();
++  const representativeProgress = progress.length > 0
++    ? `[progress summaries=${progress.length}]\n${progress[0]}`
++    : "";
++  return [body, representativeProgress].filter(Boolean).join("\n");
++}
++
++export function summarizeCheckOutput(
++  output: string | null | undefined,
++  limit = CHECK_OUTPUT_SUMMARY_LIMIT
++): string | undefined {
++  if (!Number.isInteger(limit) || limit <= 0) return undefined;
++  const normalized = redactSecrets((output ?? "").replace(/\r\n?/g, "\n")).trim();
++  if (!normalized) return undefined;
++  const lines = normalized.split("\n");
++  const groups = diagnosticGroups(lines);
++  if (groups.length === 0) return headTail(residualOutput(lines), limit) || undefined;
++
++  const selected: string[] = [];
++  let used = 0;
++  for (const group of groups) {
++    const text = groupText(group);
++    const separator = selected.length > 0 ? 1 : 0;
++    if (used + separator + text.length > limit) break;
++    selected.push(text);
++    used += separator + text.length;
++  }
++
++  const omitted = groups.length - selected.length;
++  const omittedMarker = omitted > 0 ? `[${omitted} diagnostic group(s) omitted]` : "";
++  let summary = selected.join("\n");
++  if (omittedMarker && summary.length + 1 + omittedMarker.length <= limit) {
++    summary = `${summary}\n${omittedMarker}`;
++  }
++
++  const residual = residualOutput(lines);
++  const remaining = limit - summary.length - (residual ? 1 : 0);
++  if (residual && remaining > TRUNCATED_MARKER.length) {
++    summary = `${summary}\n${headTail(residual, remaining)}`;
++  }
++  return summary.slice(0, limit) || undefined;
++}
+diff --git a/tests/integration/checks-run.test.ts b/tests/integration/checks-run.test.ts
+index c52de48..d5db410 100644
+--- a/tests/integration/checks-run.test.ts
++++ b/tests/integration/checks-run.test.ts
+@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test, type TestContext } from "vitest";
+-import { buildChecksRunSummary } from "../../src/commands/checks-run.js";
++import { buildChecksRunSummary, formatChecksRunSummary } from "../../src/commands/checks-run.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+ import { buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import { checkReceiptPath, collectCheckReceiptProvenance, readCheckReceipt } from "../../src/core/check-receipt.js";
+@@ -194,6 +194,28 @@ describe("checks run", () => {
+     expect(existsSync(checkReceiptPath(root, taskId))).toBe(false);
+   });
+ 
++  caseTest("plain and JSON summaries retain the same actionable failure diagnostics", (state) => {
++    state.phase = "prepare-repo";
++    const root = prepareRepo();
++    state.root = root;
++    writeJson(root, "package.json", {
++      scripts: {
++        costly: "node -e \"console.error('failed test=tests/integration/example.test.ts :: fails'); console.error('cause=expected true'); console.error('rerun=npx vitest run tests/integration/example.test.ts'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
++      }
++    });
++    state.phase = "failed diagnostic summary";
++    state.command = "buildChecksRunSummary";
++    const summary = buildChecksRunSummary(root, taskId, { baseRef: "base" });
++    const diagnostics = summary.checks[0]?.stderrSummary;
++    expect(summary.status).toBe("fail");
++    expect(diagnostics).toContain("failed test=tests/integration/example.test.ts :: fails");
++    expect(diagnostics).toContain("cause=expected true");
++    expect(diagnostics).toContain("rerun=npx vitest run tests/integration/example.test.ts");
++    expect(diagnostics?.length).toBeLessThanOrEqual(1000);
++    expect(formatChecksRunSummary(summary)).toContain(diagnostics);
++    expect(JSON.parse(JSON.stringify(summary)).checks[0].stderrSummary).toBe(diagnostics);
++  });
++
+   caseTest("does not trust raw npm self-report or a malformed receipt", (state) => {
+     state.phase = "prepare-repo";
+     const root = prepareRepo();
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 572ff17..7ca5761 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -474,7 +474,7 @@ describe("evidence collect", () => {
+     execFileSync("git", ["branch", "base"], { cwd: root });
+     writeJson(root, "package.json", {
+       scripts: {
+-        test: "node -e \"console.log('stdout ' + 'x'.repeat(1200)); console.error('stderr failure'); process.exit(7)\""
++        test: "node -e \"console.log('failed test=tests/integration/stdout.test.ts :: stdout failure'); console.log('cause=stdout assertion'); console.log('rerun=npx vitest run tests/integration/stdout.test.ts'); console.error('failed test=tests/integration/stderr.test.ts :: stderr failure'); console.error('cause=Authorization: Bearer fixture-secret'); console.error('rerun=TOKEN=fixture-secret node test'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
+       }
+     });
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: ["test"] }) as unknown as Record<string, unknown>);
+@@ -487,9 +487,14 @@ describe("evidence collect", () => {
+       command: "npm test",
+       exitStatus: 7
+     });
+-    expect(check?.stdoutSummary).toContain("[truncated]");
++    expect(check?.stdoutSummary).toContain("failed test=tests/integration/stdout.test.ts :: stdout failure");
++    expect(check?.stdoutSummary).toContain("rerun=npx vitest run tests/integration/stdout.test.ts");
+     expect(check?.stdoutSummary?.length).toBeLessThanOrEqual(1000);
+-    expect(check?.stderrSummary).toContain("stderr failure");
++    expect(check?.stderrSummary).toContain("failed test=tests/integration/stderr.test.ts :: stderr failure");
++    expect(check?.stderrSummary).toContain("cause=Authorization: Bearer [redacted]");
++    expect(check?.stderrSummary).toContain("rerun=TOKEN=[redacted] node test");
++    expect(check?.stderrSummary).not.toContain("fixture-secret");
++    expect(check?.stderrSummary?.length).toBeLessThanOrEqual(1000);
+     expect(check?.durationMilliseconds).toBeGreaterThanOrEqual(0);
+   }, 30000);
+ 
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index d1233b0..9b4c352 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -523,7 +523,7 @@ describe("finish", () => {
+     const root = prepareFinishRepo();
+     writeJson(root, "package.json", {
+       scripts: {
+-        test: "node -e \"console.log('bounded stdout detail'); console.error('actionable stderr detail'); process.exit(7)\""
++        test: "node -e \"console.log('bounded stdout detail'); console.error('failed test=tests/integration/finish.test.ts :: actionable failure'); console.error('cause=expected fixed point'); console.error('rerun=npx vitest run tests/integration/finish.test.ts -t actionable'); console.error('scwbs progress task=T check=1/1:test status=executed elapsed=1s pid=1 startedAt=now\\\\n'.repeat(100)); process.exit(7)\""
+       }
+     });
+     execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+@@ -550,7 +550,9 @@ describe("finish", () => {
+     expect(stdout.join("\n")).not.toContain("id: EVD-WBS-001-004");
+     expect(stderr.join("\n")).toContain("Check failed: test (npm test)");
+     expect(stderr.join("\n")).toContain("bounded stdout detail");
+-    expect(stderr.join("\n")).toContain("actionable stderr detail");
++    expect(stderr.join("\n")).toContain("failed test=tests/integration/finish.test.ts :: actionable failure");
++    expect(stderr.join("\n")).toContain("cause=expected fixed point");
++    expect(stderr.join("\n")).toContain("rerun=npx vitest run tests/integration/finish.test.ts -t actionable");
+   }, 30000);
+ 
+   test("failed required checks preserve the previous Evidence and Registry checkpoint", () => {
+@@ -559,7 +561,11 @@ describe("finish", () => {
+     const registryFile = path.join(root, "contracts/registry.yaml");
+     const previousEvidence = readFileSync(evidenceFile, "utf8");
+     const previousRegistry = readFileSync(registryFile, "utf8");
+-    writeJson(root, "package.json", { scripts: { test: "node -e \"process.exit(9)\"" } });
++    writeJson(root, "package.json", {
++      scripts: {
++        test: "node -e \"console.error('failed test=tests/integration/json.test.ts :: json failure'); console.error('cause=timeout'); console.error('rerun=npx vitest run tests/integration/json.test.ts'); console.error('progress '.repeat(1000)); process.exit(9)\""
++      }
++    });
+     execFileSync("git", ["add", "package.json"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "configure failed check"], { cwd: root, stdio: "ignore" });
+     const beforeStatus = gitStatus(root);
+@@ -573,6 +579,9 @@ describe("finish", () => {
+       mutatedFiles: [],
+       resumeCommand: "npm run scwbs -- finish --task WBS-001-004"
+     });
++    expect(JSON.stringify(result.json)).toContain("failed test=tests/integration/json.test.ts :: json failure");
++    expect(JSON.stringify(result.json)).toContain("cause=timeout");
++    expect(JSON.stringify(result.json)).toContain("rerun=npx vitest run tests/integration/json.test.ts");
+     expect(readFileSync(evidenceFile, "utf8")).toBe(previousEvidence);
+     expect(readFileSync(registryFile, "utf8")).toBe(previousRegistry);
+     expect(gitStatus(root)).toBe(beforeStatus);
+diff --git a/tests/unit/check-output-summary.test.ts b/tests/unit/check-output-summary.test.ts
+new file mode 100644
+index 0000000..e87e79b
+--- /dev/null
++++ b/tests/unit/check-output-summary.test.ts
+@@ -0,0 +1,80 @@
++import { describe, expect, test } from "vitest";
++import { CHECK_OUTPUT_SUMMARY_LIMIT, summarizeCheckOutput } from "../../src/core/check-output-summary.js";
++
++function diagnostic(index: number): string {
++  return [
++    `failed test=tests/integration/example-${index}.test.ts :: failure ${index}`,
++    `cause=expected ${index} to equal ${index + 1}`,
++    `rerun=npx vitest run tests/integration/example-${index}.test.ts -t \"failure ${index}\"`
++  ].join("\n");
++}
++
++describe("summarizeCheckOutput", () => {
++  test.each(["head", "middle", "tail"])("preserves a diagnostic group at the %s of long output", (position) => {
++    const noise = "noise ".repeat(300);
++    const parts = position === "head"
++      ? [diagnostic(1), noise, noise]
++      : position === "middle"
++        ? [noise, diagnostic(1), noise]
++        : [noise, noise, diagnostic(1)];
++    const summary = summarizeCheckOutput(parts.join("\n"));
++    expect(summary).toContain("failed test=tests/integration/example-1.test.ts :: failure 1");
++    expect(summary).toContain("cause=expected 1 to equal 2");
++    expect(summary).toContain("rerun=npx vitest run tests/integration/example-1.test.ts");
++    expect(summary?.length).toBeLessThanOrEqual(CHECK_OUTPUT_SUMMARY_LIMIT);
++  });
++
++  test("deduplicates diagnostics and prevents repeated progress from displacing them", () => {
++    const progress = Array.from({ length: 100 }, (_, index) =>
++      `scwbs progress task=T check=1/1:test status=executed elapsed=${index}s pid=${100 + index} startedAt=2026-01-01T00:00:00Z`
++    ).join("\n");
++    const summary = summarizeCheckOutput(`${diagnostic(1)}\n${diagnostic(1)}\n${progress}`);
++    expect(summary?.match(/^failed test=/gm)).toHaveLength(1);
++    expect(summary).toContain("rerun=npx vitest run");
++    expect(summary).toContain("[progress summaries=1]");
++    expect(summary?.length).toBeLessThanOrEqual(CHECK_OUTPUT_SUMMARY_LIMIT);
++  });
++
++  test("keeps complete multiple failures up to the limit and reports omitted groups", () => {
++    const summary = summarizeCheckOutput(Array.from({ length: 12 }, (_, index) => diagnostic(index)).join("\n"));
++    expect(summary).toContain("failed test=tests/integration/example-0.test.ts");
++    expect(summary).toMatch(/\[\d+ diagnostic group\(s\) omitted\]/);
++    expect(summary?.length).toBeLessThanOrEqual(CHECK_OUTPUT_SUMMARY_LIMIT);
++    for (const block of summary?.split(/\n(?=failed test=|\[\d+ diagnostic)/) ?? []) {
++      if (block.startsWith("failed test=")) {
++        expect(block).toContain("cause=");
++        expect(block).toContain("rerun=");
++      }
++    }
++  });
++
++  test.each([
++    "timeout while waiting for integration report",
++    "report unavailable\n" + "tail ".repeat(400),
++    "failed test=tests/integration/incomplete.test.ts :: incomplete\n" + "noise ".repeat(400),
++    "marker-free output\n" + "body ".repeat(400)
++  ])("uses a bounded fail-closed fallback for %s", (output) => {
++    const summary = summarizeCheckOutput(output);
++    expect(summary?.length).toBeLessThanOrEqual(CHECK_OUTPUT_SUMMARY_LIMIT);
++    expect(summary).toContain(output.split("\n")[0]?.slice(0, 40));
++  });
++
++  test("normalizes CRLF and redacts credential-shaped values before retention", () => {
++    const jwt = "eyJabcdefghijk.abcdefghijklmnop.abcdefghijklmnop";
++    const summary = summarizeCheckOutput(
++      `failed test=x :: y\r\ncause=Authorization: Bearer top-secret-token\r\nrerun=TOKEN=plain-secret node test\r\nAPI_KEY=also-secret\r\n${jwt}`
++    );
++    expect(summary).toContain("failed test=x :: y");
++    expect(summary).toContain("cause=Authorization: Bearer [redacted]");
++    expect(summary).toContain("rerun=TOKEN=[redacted] node test");
++    expect(summary).not.toContain("top-secret-token");
++    expect(summary).not.toContain("plain-secret");
++    expect(summary).not.toContain("also-secret");
++    expect(summary).not.toContain(jwt);
++  });
++
++  test("returns undefined for empty output or an invalid limit", () => {
++    expect(summarizeCheckOutput("")).toBeUndefined();
++    expect(summarizeCheckOutput("content", 0)).toBeUndefined();
++  });
++});
