@@ -1,0 +1,147 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml b/contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
+new file mode 100644
+index 0000000..4b1089c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MRO3Q7N9
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRO3Q7N9
++branchName: task/SCWBS-DRAFT-MRO3Q7N9-issue-238-task-new-gate-human-gate
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRO3Q7N9.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRO3Q7N9.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRO3Q7N9.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRO3Q7N9.yaml
++allowedPaths:
++  - src/commands/task-new.ts
++  - tests/integration/tasks.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - 標準Human Gateを外すoverrideまたは破壊的CLI変更が必要
++  - custom gateの順序・重複排除に仕様判断が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - --gate指定を標準Human Gateへの追加として扱う
++  - 標準Gateとcustom gateの重複を除去し決定的な順序で生成する
++  - --gate未指定時の既存標準Gateを維持する
++  - custom gate、重複gate、順序の回帰テストを追加する
++  - task newが生成した契約とnew-task authority検査の要求を一致させる
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T22:49:53.892Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8b76cba..7f0e482 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -237,3 +237,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRO3Q7N9
++    path: contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
++    branchName: task/SCWBS-DRAFT-MRO3Q7N9-issue-238-task-new-gate-human-gate
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 86a5a57..2af7b57 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -7,6 +7,7 @@ import { findNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
+ 
+ const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
++const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+ 
+ function slug(value: string): string {
+   return value
+@@ -36,6 +37,10 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
+   return items.length > 0 ? items : fallback;
+ }
+ 
++function humanGatePaths(value: string | undefined): string[] {
++  return [...new Set([...STANDARD_HUMAN_GATE_PATHS, ...splitList(value, [])])];
++}
++
+ export interface TaskNewFallback {
+   usedFallbackTitle: boolean;
+   fallbackNote?: string;
+@@ -84,7 +89,7 @@ export function buildCoreTaskNew(title: string, options: {
+     branchName: `task/${id}-${safeTitle}`,
+     allowedPaths: splitList(options.paths, []),
+     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
+-    humanGateRequiredPaths: splitList(options.gate, ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"]),
++    humanGateRequiredPaths: humanGatePaths(options.gate),
+     stopIf: splitList(options.stop, []),
+     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
+     doneCriteria: [`Complete ${resolvedTitle}`],
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 0baef9c..0a9f2b4 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -375,6 +375,11 @@ describe("task management", () => {
+     expect(actual).toContain("branchName: task/SCWBS-DRAFT-");
+     expect(actual).toContain("allowedPaths:");
+     expect(actual).toContain("  - src/**");
++    expect(actual).toContain("  - package.json");
++    expect(actual).toContain("  - package-lock.json");
++    expect(actual).toContain("  - tsconfig.json");
++    expect(actual).toContain("  - vitest.config.ts");
++    expect(actual.match(/  - \.github\/\*\*/g)).toHaveLength(1);
+     expect(actual).toContain("requiredChecks:");
+     expect(actual).toContain("  - typecheck");
+     const index = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");
+@@ -393,6 +398,22 @@ describe("task management", () => {
+     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+   });
+ 
++  test("task new appends custom gates to the standard Human Gates deterministically", () => {
++    const { task } = buildCoreTaskNew("Custom Human Gates", {
++      gate: "src/security/**,.github/**,src/security/**,package.json,config/release/**"
++    });
++
++    expect(task.humanGateRequiredPaths).toEqual([
++      "package.json",
++      "package-lock.json",
++      "tsconfig.json",
++      "vitest.config.ts",
++      ".github/**",
++      "src/security/**",
++      "config/release/**"
++    ]);
++  });
++
+   test("task new fails closed until stop-condition intent is explicit", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
