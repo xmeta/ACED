@@ -1,0 +1,1163 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 101d111..e529016 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -72,6 +72,7 @@ rules:
+       - src/core/code-context.ts
+       - src/core/document-lifecycle.ts
+       - src/core/discovery.ts
++      - src/core/planning.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
+       - src/core/finish-lifecycle.ts
+diff --git a/contracts/specs/SPEC-LITE-MS11S39Z.yaml b/contracts/specs/SPEC-LITE-MS11S39Z.yaml
+new file mode 100644
+index 0000000..af8a44c
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS11S39Z.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MS11S39Z
++type: spec-contract
++featureId: F-MS11S39Z
++title: "Issue #140 replacement: Rolling Wave Planningを実装する"
++status: approved
++version: 1.0.0
++summary: "固定4タスクと広域scopeを廃止し、Specの不確実性と近接作業に基づくRolling Wave Planningへ置き換える。"
++acceptanceCriteria:
++  - 未承認Specは副作用なしで拒否する
++  - unresolved decisionsまたは高いuncertaintyがありconcluded Probeで閉じていない場合はProbeだけを生成する
++  - approved acceptance criteria、dependencies、gates、uncertainty、probe resultsを計画判断へ反映する
++  - Ready Windowは明示された狭いpathsを持つ1〜3件だけをTask Contract化する
++  - 将来作業はApproach Mapのcandidateに留めTask Contract化しない
++  - 再計画時は明示理由と前計画との差分を記録し暗黙上書きしない
++  - versioned JSON schema、text/JSON CLI、integration testを提供する
++approvedBy: repository-owner
++approvedAt: "2026-07-26T09:16:00+09:00"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml b/contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml
+new file mode 100644
+index 0000000..452be94
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MS11S39Z
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS11S39Z
++branchName: task/SCWBS-DRAFT-MS11S39Z-issue-140-replacement-rolling-wave-planning
++allowedPaths:
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/core/planning.ts
++  - src/commands/plan.ts
++  - src/cli.ts
++  - tests/integration/planning.test.ts
++  - docs/scwbs/schemas/rolling-wave-plan.schema.json
++  - docs/sc-wbs-core/02-command-first-workflow.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 未承認Specからimplementation Taskを生成しない
++  - open unknownsがある場合はdelivery TaskではなくDiscovery Probeを生成する
++  - Ready Windowの1〜3件だけを狭いscopeのTask Contractとして生成し将来作業はApproach Mapの粗い候補に留める
++  - 再計画は既存計画との差分と理由をversioned plan artifactへ記録する
++  - text/JSON出力とschema、拒否経路、生成物をintegration testで検証する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS11S39Z.yaml
++  - contracts/specs/SPEC-LITE-MS11S39Z.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS11S39Z.yaml
++  - contracts/approvals/SCWBS-DRAFT-MS11S39Z.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS11S39Z.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS11S39Z.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 1.0.0
++  specRevision: sha256:dc3e32f5e012a39ae993e53a73147ae70026780f555c975696244f0b202378d7
++  createdAt: "2026-07-26T00:16:54.965Z"
+diff --git a/docs/sc-wbs-core/02-command-first-workflow.md b/docs/sc-wbs-core/02-command-first-workflow.md
+index 0f52d80..9b03eb4 100644
+--- a/docs/sc-wbs-core/02-command-first-workflow.md
++++ b/docs/sc-wbs-core/02-command-first-workflow.md
+@@ -94,6 +94,54 @@ delivery Task に関連付けられたProbeは `concluded` になるまで `scwb
+ を失敗させ、Tiny Packetにも停止指示を表示する。`inconclusive` は正常な終端
+ だが、delivery開始を許可する根拠にはならない。
+ 
++### Rolling Wave Planning
++
++`scwbs plan` は固定的な実装・テスト・文書化Taskを一括生成しない。approved
++Specの `planning` 入力から、遠い作業を粗い `approachCandidates` として残し、
++直近の1〜3件だけを `readyWindow` としてTask Contract化する。
++
++```yaml
++planning:
++  unresolvedDecisions: []
++  dependencies:
++    - API contract is approved
++  gates:
++    - no database migration
++  uncertainty: low
++  probeIds:
++    - PROBE-cache-strategy
++  readyWindow:
++    - id: cache-adapter
++      title: Implement the bounded cache adapter
++      paths:
++        - src/cache/**
++        - tests/cache/**
++      requiredChecks:
++        - test
++        - typecheck
++  approachCandidates:
++    - Evaluate distributed invalidation after usage data exists
++```
++
++```bash
++scwbs plan --spec SPEC-CACHE --json
++```
++
++未承認Specは拒否する。`unresolvedDecisions` が残る、または `uncertainty: high`
++であり、関連する全Probeが `concluded` でなければdelivery Taskを生成せず、
++Discovery Probeを作る。Ready Windowのpathには `src/**` などの広域scopeを
++指定できない。
++
++計画正本は `contracts/plans/PLAN-*.json` であり、同じSpecの暗黙上書きを
++禁止する。再計画では理由を必須とし、前計画hashとTaskのadded/removed/retained
++差分を記録する。removedは履歴保護のため既存Taskを自動削除しない。
++
++```bash
++scwbs plan --spec SPEC-CACHE \
++  --replan-reason "Probe結果により実装順序を変更" \
++  --json
++```
++
+ ### 4. 完了処理をする
+ 
+ 手動確認でrequired checksを先に実行する場合は、正規入口からprovenance付きreceiptを作る。
+diff --git a/docs/scwbs/schemas/rolling-wave-plan.schema.json b/docs/scwbs/schemas/rolling-wave-plan.schema.json
+new file mode 100644
+index 0000000..c6581ed
+--- /dev/null
++++ b/docs/scwbs/schemas/rolling-wave-plan.schema.json
+@@ -0,0 +1,177 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.invalid/scwbs/rolling-wave-plan.schema.json",
++  "title": "SC-WBS Rolling Wave Plan",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "schemaVersion",
++    "id",
++    "type",
++    "specId",
++    "specVersion",
++    "generatedAt",
++    "planningMode",
++    "inputs",
++    "approachMap",
++    "readyWindow",
++    "artifacts"
++  ],
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "id": { "type": "string", "pattern": "^PLAN-[A-Za-z0-9][A-Za-z0-9._-]*$" },
++    "type": { "const": "rolling-wave-plan" },
++    "specId": { "type": "string", "minLength": 1 },
++    "specVersion": { "type": "string", "minLength": 1 },
++    "generatedAt": { "type": "string", "minLength": 1 },
++    "planningMode": { "enum": ["probe", "delivery"] },
++    "inputs": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "acceptanceCriteria",
++        "unresolvedDecisions",
++        "dependencies",
++        "gates",
++        "uncertainty",
++        "probeResults"
++      ],
++      "properties": {
++        "acceptanceCriteria": {
++          "type": "array",
++          "items": { "type": "string" }
++        },
++        "unresolvedDecisions": {
++          "type": "array",
++          "items": { "type": "string" }
++        },
++        "dependencies": {
++          "type": "array",
++          "items": { "type": "string" }
++        },
++        "gates": {
++          "type": "array",
++          "items": { "type": "string" }
++        },
++        "uncertainty": { "enum": ["low", "medium", "high"] },
++        "probeResults": {
++          "type": "array",
++          "items": {
++            "type": "object",
++            "additionalProperties": false,
++            "required": ["id", "status"],
++            "properties": {
++              "id": { "type": "string", "minLength": 1 },
++              "status": {
++                "enum": ["missing", "proposed", "active", "concluded", "inconclusive"]
++              }
++            }
++          }
++        }
++      }
++    },
++    "approachMap": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["title", "status"],
++        "properties": {
++          "title": { "type": "string", "minLength": 1 },
++          "status": { "const": "candidate" }
++        }
++      }
++    },
++    "readyWindow": {
++      "type": "array",
++      "maxItems": 3,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["taskId", "title", "paths"],
++        "properties": {
++          "taskId": { "type": "string", "minLength": 1 },
++          "title": { "type": "string", "minLength": 1 },
++          "paths": {
++            "type": "array",
++            "minItems": 1,
++            "items": { "type": "string", "minLength": 1 }
++          }
++        }
++      }
++    },
++    "artifacts": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["tasks"],
++      "properties": {
++        "tasks": {
++          "type": "array",
++          "items": { "type": "string" }
++        },
++        "probe": { "type": "string", "minLength": 1 }
++      }
++    },
++    "replan": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["reason", "previousHash", "changes"],
++      "properties": {
++        "reason": { "type": "string", "minLength": 1 },
++        "previousHash": {
++          "type": "string",
++          "pattern": "^sha256:[a-f0-9]{64}$"
++        },
++        "changes": {
++          "type": "object",
++          "additionalProperties": false,
++          "required": ["added", "removed", "retained"],
++          "properties": {
++            "added": {
++              "type": "array",
++              "items": { "type": "string" }
++            },
++            "removed": {
++              "type": "array",
++              "items": { "type": "string" }
++            },
++            "retained": {
++              "type": "array",
++              "items": { "type": "string" }
++            }
++          }
++        }
++      }
++    }
++  },
++  "allOf": [
++    {
++      "if": {
++        "properties": { "planningMode": { "const": "delivery" } },
++        "required": ["planningMode"]
++      },
++      "then": {
++        "properties": {
++          "readyWindow": { "minItems": 1, "maxItems": 3 },
++          "artifacts": {
++            "properties": {
++              "tasks": { "minItems": 1, "maxItems": 3 }
++            }
++          }
++        }
++      }
++    },
++    {
++      "if": {
++        "properties": { "planningMode": { "const": "probe" } },
++        "required": ["planningMode"]
++      },
++      "then": {
++        "properties": {
++          "readyWindow": { "maxItems": 0 },
++          "artifacts": { "required": ["probe"] }
++        }
++      }
++    }
++  ]
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index f39f55c..b2c4c65 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -420,15 +420,20 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   program
+     .command("plan")
+-    .description("Plan from a spec")
++    .description("Build an Approach Map and a 1-3 Task Ready Window from an approved spec")
+     .option("--spec <id>", "spec id")
++    .option("--replan-reason <text>", "required reason when replacing an existing plan")
++    .option("--json", "output a versioned JSON result")
+     .action((opts) => {
+       if (!opts.spec) {
+         console.error("Missing --spec <spec-id>");
+         exitCode = 2;
+         return;
+       }
+-      exitCode = runPlan(root, opts.spec);
++      exitCode = runPlan(root, opts.spec, {
++        replanReason: opts.replanReason,
++        json: opts.json ?? false
++      });
+     });
+ 
+   program
+diff --git a/src/commands/plan.ts b/src/commands/plan.ts
+index 3454114..08e0154 100644
+--- a/src/commands/plan.ts
++++ b/src/commands/plan.ts
+@@ -1,69 +1,45 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+-import path from "node:path";
+-import { readSpec } from "../core/contracts.js";
+-import { resolveFrom, taskPath } from "../core/paths.js";
+-import { stringifySimpleYaml } from "../core/yaml.js";
++import { listTasks, readSpec } from "../core/contracts.js";
++import { buildRollingWavePlan, rollingWavePlanPath } from "../core/planning.js";
++import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
++import { syncRegistry } from "./registry-rebuild.js";
+ 
+-export function runPlan(root: string, specId: string): number {
++export function runPlan(root: string, specId: string, options: {
++  replanReason?: string;
++  json?: boolean;
++} = {}): number {
+   try {
+     const specRelativePath = specId.includes("/") ? specId : `contracts/specs/${specId}.yaml`;
+     const { spec, issues } = readSpec(root, specRelativePath);
+     if (!spec) throw new Error(issues.map((issue) => issue.message).join("\n"));
+-    const base = spec.id.replace(/^SPEC-/, "WBS-");
+-    const tasks = [
+-      ["001", "Confirm contract and paths"],
+-      ["002", "Implement behavior"],
+-      ["003", "Add verification"],
+-      ["004", "Update documentation"]
+-    ];
+-    const changeSetPath = `contracts/changesets/plan-${spec.id}.json`;
+-    const changeSet = {
+-      schemaVersion: "0.1.0",
+-      targetWbsId: "scwbs",
+-      changeSetId: `changeset-plan-${spec.id}`,
+-      author: "scwbs",
+-      reason: `Plan tasks for ${spec.id}`,
+-      dryRun: true,
+-      operations: tasks.map(([suffix, title], index) => ({
+-        operationId: `op-${String(index + 1).padStart(3, "0")}`,
+-        operation: "addNode",
+-        node: {
+-          id: `node-${base.toLowerCase()}-${suffix}`,
+-          parentId: "node-project",
+-          code: `draft.${Number(suffix)}`,
+-          name: title,
+-          type: "workPackage",
+-          status: "draft"
+-        },
+-        position: {
+-          mode: "last"
+-        }
+-      }))
++    const tasks = listTasks(root);
++    const invalidTasks = tasks.flatMap((entry) => entry.issues);
++    if (invalidTasks.length > 0) throw new Error(invalidTasks.map((issue) => issue.message).join("\n"));
++    const plan = buildRollingWavePlan(root, spec, options.replanReason);
++    const updatedTasks = listTasks(root);
++    writeTaskIndexAtomic(root, buildTaskIndex(updatedTasks, readTaskIndex(root).index));
++    syncRegistry(root);
++    const output = {
++      version: "scwbs.plan.v1",
++      status: "created",
++      planningMode: plan.planningMode,
++      specId: plan.specId,
++      path: rollingWavePlanPath(plan.specId),
++      tasks: plan.artifacts.tasks,
++      probe: plan.artifacts.probe ?? null,
++      nextAction: plan.planningMode === "probe"
++        ? (plan.inputs.probeResults.some((probe) => probe.status === "inconclusive")
++          ? "Create a follow-up Discovery Probe, then replan before delivery"
++          : `Conclude ${plan.artifacts.probe ?? "the Discovery Probe"} before delivery planning`)
++        : `Review Ready Window Tasks: ${plan.artifacts.tasks.join(", ")}`
+     };
+-    const fullChangeSetPath = resolveFrom(root, changeSetPath);
+-    if (existsSync(fullChangeSetPath)) throw new Error(`${changeSetPath} already exists`);
+-    mkdirSync(path.dirname(fullChangeSetPath), { recursive: true });
+-    writeFileSync(fullChangeSetPath, `${JSON.stringify(changeSet, null, 2)}\n`, "utf8");
+-    console.log(`created ${changeSetPath}`);
+-    for (const [suffix, title] of tasks) {
+-      const taskId = `${base}-${suffix}`;
+-      const relativePath = taskPath(taskId);
+-      const fullPath = resolveFrom(root, relativePath);
+-      if (existsSync(fullPath)) continue;
+-      writeFileSync(fullPath, stringifySimpleYaml({
+-        id: taskId,
+-        type: "task-contract",
+-        wbsNodeId: `node-${base.toLowerCase()}-${suffix}`,
+-        featureId: spec.featureId,
+-        allowedPaths: ["src/**", "tests/**", "docs/**", "contracts/**"],
+-        forbiddenPaths: ["wjs/**"],
+-        humanGateRequiredPaths: ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"],
+-        requiredChecks: ["test", "typecheck", "build"],
+-        doneCriteria: [title],
+-        evidenceRequired: ["test-result", "typecheck-result", "build-result"]
+-      }), "utf8");
+-      console.log(`created ${relativePath}`);
+-    }
++    if (options.json) console.log(JSON.stringify(output));
++    else console.log([
++      `CREATED ${output.path}`,
++      `mode: ${output.planningMode}`,
++      `tasks: ${output.tasks.join(", ") || "(none)"}`,
++      `probe: ${output.probe ?? "(none)"}`,
++      `next: ${output.nextAction}`
++    ].join("\n"));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/core/planning.ts b/src/core/planning.ts
+new file mode 100644
+index 0000000..6e4fe25
+--- /dev/null
++++ b/src/core/planning.ts
+@@ -0,0 +1,259 @@
++import { createHash } from "node:crypto";
++import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import type { PlanningWorkItem, SpecContract, TaskContract } from "./types.js";
++import { readTask } from "./contracts.js";
++import { readDiscoveryProbe, writeDiscoveryProbe, type DiscoveryProbe } from "./discovery.js";
++import { resolveFrom, taskPath } from "./paths.js";
++import { stringifySimpleYaml } from "./yaml.js";
++
++export type PlanProbeResult = {
++  id: string;
++  status: "missing" | DiscoveryProbe["status"];
++};
++
++export type RollingWavePlan = {
++  schemaVersion: "1.0.0";
++  id: string;
++  type: "rolling-wave-plan";
++  specId: string;
++  specVersion: string;
++  generatedAt: string;
++  planningMode: "probe" | "delivery";
++  inputs: {
++    acceptanceCriteria: string[];
++    unresolvedDecisions: string[];
++    dependencies: string[];
++    gates: string[];
++    uncertainty: "low" | "medium" | "high";
++    probeResults: PlanProbeResult[];
++  };
++  approachMap: Array<{ title: string; status: "candidate" }>;
++  readyWindow: Array<{ taskId: string; title: string; paths: string[] }>;
++  artifacts: {
++    tasks: string[];
++    probe?: string;
++  };
++  replan?: {
++    reason: string;
++    previousHash: string;
++    changes: {
++      added: string[];
++      removed: string[];
++      retained: string[];
++    };
++  };
++};
++
++const broadScopes = new Set(["**", "src/**", "tests/**", "docs/**", "contracts/**"]);
++
++function safeSuffix(value: string): string {
++  const suffix = value.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
++  if (!suffix) throw new Error("Planning work item id must contain a safe character");
++  return suffix;
++}
++
++function planId(specId: string): string {
++  return `PLAN-${safeSuffix(specId.replace(/^SPEC-/, ""))}`;
++}
++
++export function rollingWavePlanPath(specId: string): string {
++  return `contracts/plans/${planId(specId)}.json`;
++}
++
++function hashPlan(plan: RollingWavePlan): string {
++  return `sha256:${createHash("sha256").update(JSON.stringify(plan)).digest("hex")}`;
++}
++
++function taskIdFor(spec: SpecContract, item: PlanningWorkItem): string {
++  return `${spec.id.replace(/^SPEC-/, "WBS-")}-${safeSuffix(item.id)}`;
++}
++
++function validateReadyWindow(items: PlanningWorkItem[]): void {
++  if (items.length < 1 || items.length > 3) {
++    throw new Error("planning.readyWindow must contain 1 to 3 work items");
++  }
++  const ids = new Set<string>();
++  for (const item of items) {
++    const id = safeSuffix(item.id);
++    if (ids.has(id)) throw new Error(`Duplicate planning.readyWindow id: ${id}`);
++    ids.add(id);
++    if (item.paths.length === 0) throw new Error(`${id} requires at least one scoped path`);
++    const unsafe = item.paths.filter((candidate) =>
++      candidate.startsWith("/")
++      || candidate.includes("\\")
++      || candidate.split("/").includes("..")
++    );
++    if (unsafe.length > 0) throw new Error(`${id} uses unsafe scope: ${unsafe.join(", ")}`);
++    const broad = item.paths.filter((candidate) => broadScopes.has(candidate));
++    if (broad.length > 0) {
++      throw new Error(`${id} uses broad scope: ${broad.join(", ")}`);
++    }
++  }
++}
++
++function taskContract(spec: SpecContract, item: PlanningWorkItem): TaskContract {
++  const taskId = taskIdFor(spec, item);
++  return {
++    id: taskId,
++    type: "task-contract",
++    wbsNodeId: "wbs-less",
++    featureId: spec.featureId,
++    branchName: `task/${taskId}-${safeSuffix(item.title.toLowerCase()).slice(0, 40)}`,
++    allowedPaths: item.paths,
++    forbiddenPaths: ["wjs/**"],
++    humanGateRequiredPaths: [
++      "package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"
++    ],
++    requiredChecks: item.requiredChecks ?? ["test", "typecheck", "build"],
++    doneCriteria: item.doneCriteria ?? [item.title],
++    evidenceRequired: ["test-result", "typecheck-result", "build-result"],
++    ...(spec.planning?.gates?.length ? { stopIf: spec.planning.gates } : {})
++  };
++}
++
++function probeFor(spec: SpecContract, unresolved: string[]): DiscoveryProbe {
++  const id = `PROBE-${safeSuffix(spec.id.replace(/^SPEC-/, ""))}`;
++  return {
++    schemaVersion: "1.0.0",
++    id,
++    type: "discovery-probe",
++    status: "proposed",
++    question: unresolved[0] ?? `Which delivery approach should ${spec.id} use?`,
++    hypotheses: [],
++    activities: [],
++    evidenceExpected: spec.acceptanceCriteria,
++    unknowns: unresolved,
++    timebox: "Set before starting the Probe",
++    costLimit: "Set before starting the Probe",
++    exitConditions: unresolved.map((item) => `Resolve: ${item}`),
++    nextDecision: `Populate planning.readyWindow for ${spec.id}`,
++    createdAt: new Date().toISOString()
++  };
++}
++
++function writeAtomically(root: string, relativePath: string, content: string, overwrite: boolean): void {
++  const fullPath = resolveFrom(root, relativePath);
++  if (!overwrite && existsSync(fullPath)) throw new Error(`${relativePath} already exists`);
++  mkdirSync(path.dirname(fullPath), { recursive: true });
++  const temporary = `${fullPath}.tmp-${process.pid}`;
++  writeFileSync(temporary, content, "utf8");
++  renameSync(temporary, fullPath);
++}
++
++export function buildRollingWavePlan(root: string, spec: SpecContract, replanReason?: string): RollingWavePlan {
++  if (spec.status !== "approved") throw new Error(`${spec.id} must be approved before planning`);
++  const planning = spec.planning;
++  if (!planning) throw new Error(`${spec.id}.planning is required; planning inputs must be explicit`);
++
++  const unresolved = planning.unresolvedDecisions ?? [];
++  const dependencies = planning.dependencies ?? [];
++  const gates = planning.gates ?? [];
++  const uncertainty = planning.uncertainty ?? "medium";
++  const probeResults: PlanProbeResult[] = (planning.probeIds ?? []).map((id) => {
++    const result = readDiscoveryProbe(root, id);
++    return { id, status: result.probe?.status ?? "missing" };
++  });
++  const uncertaintyClosed = probeResults.length > 0
++    && probeResults.every((probe) => probe.status === "concluded");
++  const hasOpenProbe = probeResults.some((probe) => probe.status !== "concluded");
++  const needsProbe = hasOpenProbe
++    || ((unresolved.length > 0 || uncertainty === "high") && !uncertaintyClosed);
++  const readyItems = planning.readyWindow ?? [];
++  if (!needsProbe) validateReadyWindow(readyItems);
++
++  const relativePath = rollingWavePlanPath(spec.id);
++  const fullPath = resolveFrom(root, relativePath);
++  const previous = existsSync(fullPath)
++    ? JSON.parse(readFileSync(fullPath, "utf8")) as RollingWavePlan
++    : undefined;
++  if (previous && !replanReason) {
++    throw new Error(`${relativePath} already exists; --replan-reason is required`);
++  }
++  if (!previous && replanReason) throw new Error("--replan-reason requires an existing plan");
++
++  const currentTaskIds = needsProbe ? [] : readyItems.map((item) => taskIdFor(spec, item));
++  const previousTaskIds = previous?.readyWindow.map((item) => item.taskId) ?? [];
++  const plan: RollingWavePlan = {
++    schemaVersion: "1.0.0",
++    id: planId(spec.id),
++    type: "rolling-wave-plan",
++    specId: spec.id,
++    specVersion: spec.version,
++    generatedAt: new Date().toISOString(),
++    planningMode: needsProbe ? "probe" : "delivery",
++    inputs: {
++      acceptanceCriteria: spec.acceptanceCriteria,
++      unresolvedDecisions: unresolved,
++      dependencies,
++      gates,
++      uncertainty,
++      probeResults
++    },
++    approachMap: (planning.approachCandidates ?? []).map((title) => ({ title, status: "candidate" })),
++    readyWindow: needsProbe ? [] : readyItems.map((item) => ({
++      taskId: taskIdFor(spec, item),
++      title: item.title,
++      paths: item.paths
++    })),
++    artifacts: { tasks: currentTaskIds },
++    ...(previous && replanReason ? {
++      replan: {
++        reason: replanReason,
++        previousHash: hashPlan(previous),
++        changes: {
++          added: currentTaskIds.filter((id) => !previousTaskIds.includes(id)),
++          removed: previousTaskIds.filter((id) => !currentTaskIds.includes(id)),
++          retained: currentTaskIds.filter((id) => previousTaskIds.includes(id))
++        }
++      }
++    } : {})
++  };
++
++  if (needsProbe) {
++    const existingProbe = probeResults.find((probe) => probe.status !== "missing");
++    if (existingProbe) {
++      plan.artifacts.probe = `contracts/discovery/${existingProbe.id}.yaml`;
++    } else {
++      const probe = probeFor(spec, unresolved);
++      const probePath = `contracts/discovery/${probe.id}.yaml`;
++      if (!existsSync(resolveFrom(root, probePath))) writeDiscoveryProbe(root, probe);
++      plan.artifacts.probe = probePath;
++    }
++  } else {
++    const taskCandidates = readyItems.map((item) => ({
++      taskId: taskIdFor(spec, item),
++      relativePath: taskPath(taskIdFor(spec, item)),
++      contract: taskContract(spec, item)
++    }));
++    for (const candidate of taskCandidates) {
++      if (!existsSync(resolveFrom(root, candidate.relativePath))) continue;
++      if (!previous || !previousTaskIds.includes(candidate.taskId)) {
++        throw new Error(`${candidate.relativePath} already exists outside the previous Ready Window`);
++      }
++      const existing = readTask(root, candidate.taskId);
++      if (!existing.task) throw new Error(existing.issues.map((item) => item.message).join("\n"));
++      const fields = ["allowedPaths", "requiredChecks", "doneCriteria"] as const;
++      const changed = fields.filter((field) =>
++        JSON.stringify(existing.task?.[field]) !== JSON.stringify(candidate.contract[field])
++      );
++      if (changed.length > 0) {
++        throw new Error(
++          `${candidate.taskId} authority or criteria changed (${changed.join(", ")}); use a new work item id`
++        );
++      }
++    }
++    const newTasks = taskCandidates.filter((item) => !existsSync(resolveFrom(root, item.relativePath)));
++    for (const item of newTasks) {
++      writeAtomically(
++        root,
++        item.relativePath,
++        stringifySimpleYaml(item.contract as unknown as Record<string, unknown>),
++        false
++      );
++    }
++  }
++
++  writeAtomically(root, relativePath, `${JSON.stringify(plan, null, 2)}\n`, Boolean(previous));
++  return plan;
++}
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index 3991e21..aa5120a 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -20,7 +20,36 @@ const specContractSchema = {
+     sourcePaths: stringArraySchema,
+     acceptanceCriteria: stringArraySchema,
+     approvedBy: { type: "string" },
+-    approvedAt: { type: "string" }
++    approvedAt: { type: "string" },
++    planning: {
++      type: "object",
++      additionalProperties: false,
++      properties: {
++        unresolvedDecisions: stringArraySchema,
++        dependencies: stringArraySchema,
++        gates: stringArraySchema,
++        uncertainty: { enum: ["low", "medium", "high"] },
++        probeIds: stringArraySchema,
++        readyWindow: {
++          type: "array",
++          minItems: 1,
++          maxItems: 3,
++          items: {
++            type: "object",
++            additionalProperties: false,
++            required: ["id", "title", "paths"],
++            properties: {
++              id: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
++              title: { type: "string", minLength: 1 },
++              paths: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
++              requiredChecks: stringArraySchema,
++              doneCriteria: stringArraySchema
++            }
++          }
++        },
++        approachCandidates: stringArraySchema
++      }
++    }
+   }
+ };
+ 
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 588f9f8..936712b 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -61,6 +61,24 @@ export type ApprovalPolicy =
+ export type SpecContractStatus = "draft" | "approved" | "superseded";
+ export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
+ 
++export type PlanningWorkItem = {
++  id: string;
++  title: string;
++  paths: string[];
++  requiredChecks?: string[];
++  doneCriteria?: string[];
++};
++
++export type SpecPlanning = {
++  unresolvedDecisions?: string[];
++  dependencies?: string[];
++  gates?: string[];
++  uncertainty?: "low" | "medium" | "high";
++  probeIds?: string[];
++  readyWindow?: PlanningWorkItem[];
++  approachCandidates?: string[];
++};
++
+ export type SpecContract = {
+   id: string;
+   type: "spec-contract";
+@@ -73,6 +91,7 @@ export type SpecContract = {
+   acceptanceCriteria: string[];
+   approvedBy?: string;
+   approvedAt?: string;
++  planning?: SpecPlanning;
+ };
+ 
+ export type SpecChangeProposal = {
+diff --git a/tests/integration/planning.test.ts b/tests/integration/planning.test.ts
+new file mode 100644
+index 0000000..8b14ad0
+--- /dev/null
++++ b/tests/integration/planning.test.ts
+@@ -0,0 +1,331 @@
++import { existsSync, readFileSync } from "node:fs";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test, vi } from "vitest";
++import { main } from "../../src/cli.js";
++import { parseSimpleYaml } from "../../src/core/yaml.js";
++import { makeTempRepo, sampleSpec, writeScwbsProject, writeYaml } from "../helpers.js";
++
++function planningSpec(overrides: Record<string, unknown> = {}): Record<string, unknown> {
++  return {
++    ...sampleSpec({
++      id: "SPEC-CACHE",
++      featureId: "F-CACHE",
++      title: "Cache delivery",
++      status: "approved",
++      version: "1.0.0",
++      acceptanceCriteria: ["p95 meets the target"]
++    }),
++    planning: {
++      unresolvedDecisions: [],
++      dependencies: ["API contract approved"],
++      gates: ["No database migration"],
++      uncertainty: "low",
++      probeIds: [],
++      readyWindow: [
++        {
++          id: "adapter",
++          title: "Implement bounded cache adapter",
++          paths: ["src/cache/**", "tests/cache/**"],
++          requiredChecks: ["test", "typecheck"],
++          doneCriteria: ["Adapter behavior is verified"]
++        },
++        {
++          id: "metrics",
++          title: "Add cache metrics",
++          paths: ["src/metrics/cache.ts", "tests/metrics/cache.test.ts"]
++        }
++      ],
++      approachCandidates: [
++        "Evaluate distributed invalidation after usage data exists",
++        "Consider regional caches"
++      ]
++    },
++    ...overrides
++  } as unknown as Record<string, unknown>;
++}
++
++function planPath(root: string): string {
++  return path.join(root, "contracts/plans/PLAN-CACHE.json");
++}
++
++function readPlan(root: string): Record<string, any> {
++  return JSON.parse(readFileSync(planPath(root), "utf8")) as Record<string, any>;
++}
++
++describe("Rolling Wave Planning", () => {
++  test("rejects an unapproved Spec without creating planning artifacts", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({ status: "draft" }));
++    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
++    try {
++      expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(1);
++    } finally {
++      error.mockRestore();
++    }
++    expect(existsSync(planPath(root))).toBe(false);
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-adapter.yaml"))).toBe(false);
++    expect(existsSync(path.join(root, "contracts/discovery/PROBE-CACHE.yaml"))).toBe(false);
++  });
++
++  test("open unknowns generate a Probe instead of delivery Tasks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++      planning: {
++        unresolvedDecisions: ["Choose invalidation semantics"],
++        dependencies: ["API contract approved"],
++        gates: ["No database migration"],
++        uncertainty: "high",
++        probeIds: [],
++        readyWindow: [{
++          id: "adapter",
++          title: "Implement bounded cache adapter",
++          paths: ["src/cache/**"]
++        }],
++        approachCandidates: ["Evaluate distributed invalidation"]
++      }
++    }));
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      expect(main(["plan", "--spec", "SPEC-CACHE", "--json"], root)).toBe(0);
++    } finally {
++      log.mockRestore();
++    }
++    expect(JSON.parse(output.join(""))).toMatchObject({
++      version: "scwbs.plan.v1",
++      planningMode: "probe",
++      tasks: [],
++      probe: "contracts/discovery/PROBE-CACHE.yaml"
++    });
++    expect(readPlan(root)).toMatchObject({
++      planningMode: "probe",
++      readyWindow: [],
++      inputs: {
++        unresolvedDecisions: ["Choose invalidation semantics"],
++        uncertainty: "high"
++      }
++    });
++    const probe = parseSimpleYaml(readFileSync(
++      path.join(root, "contracts/discovery/PROBE-CACHE.yaml"),
++      "utf8"
++    ));
++    expect(probe).toMatchObject({
++      status: "proposed",
++      unknowns: ["Choose invalidation semantics"]
++    });
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-adapter.yaml"))).toBe(false);
++  });
++
++  test("creates only the 1-3 scoped Ready Window Tasks and a schema-conformant Approach Map", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec());
++    expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(0);
++
++    const plan = readPlan(root);
++    const schema = JSON.parse(readFileSync(
++      path.join(process.cwd(), "docs/scwbs/schemas/rolling-wave-plan.schema.json"),
++      "utf8"
++    ));
++    expect(new Ajv2020({ strict: false }).compile(schema)(plan)).toBe(true);
++    expect(plan.planningMode).toBe("delivery");
++    expect(plan.readyWindow).toHaveLength(2);
++    expect(plan.approachMap).toEqual([
++      { title: "Evaluate distributed invalidation after usage data exists", status: "candidate" },
++      { title: "Consider regional caches", status: "candidate" }
++    ]);
++
++    const adapter = parseSimpleYaml(readFileSync(
++      path.join(root, "contracts/tasks/WBS-CACHE-adapter.yaml"),
++      "utf8"
++    ));
++    expect(adapter).toMatchObject({
++      wbsNodeId: "wbs-less",
++      allowedPaths: ["src/cache/**", "tests/cache/**"],
++      requiredChecks: ["test", "typecheck"],
++      doneCriteria: ["Adapter behavior is verified"],
++      stopIf: ["No database migration"]
++    });
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-metrics.yaml"))).toBe(true);
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-distributed-invalidation.yaml"))).toBe(false);
++    expect(existsSync(path.join(root, "contracts/changesets/plan-SPEC-CACHE.json"))).toBe(false);
++  });
++
++  test("rejects broad scopes and more than three Ready Window items", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
++    try {
++      writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++        planning: {
++          uncertainty: "low",
++          readyWindow: [{ id: "wide", title: "Wide task", paths: ["src/**"] }]
++        }
++      }));
++      expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(1);
++      expect(existsSync(planPath(root))).toBe(false);
++
++      writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++        planning: {
++          uncertainty: "low",
++          readyWindow: [1, 2, 3, 4].map((id) => ({
++            id: String(id),
++            title: `Task ${id}`,
++            paths: [`src/feature/${id}.ts`]
++          }))
++        }
++      }));
++      expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(1);
++      expect(existsSync(planPath(root))).toBe(false);
++    } finally {
++      error.mockRestore();
++    }
++  });
++
++  test("a concluded referenced Probe permits delivery planning", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/discovery/PROBE-CACHE.yaml", {
++      schemaVersion: "1.0.0",
++      id: "PROBE-CACHE",
++      type: "discovery-probe",
++      status: "concluded",
++      question: "Which cache strategy works?",
++      hypotheses: [],
++      activities: ["Measure representative load"],
++      evidenceExpected: ["p95 latency"],
++      unknowns: ["Choose invalidation semantics"],
++      timebox: "4h",
++      costLimit: "one engineer-day",
++      exitConditions: ["Representative run complete"],
++      nextDecision: "Choose implementation",
++      concludedAt: "2026-07-26T00:00:00.000Z",
++      exitConditionsMet: true,
++      factsLearned: ["Local invalidation meets the target"],
++      hypothesesRejected: ["A distributed store is required"]
++    });
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++      planning: {
++        unresolvedDecisions: ["Choose invalidation semantics"],
++        uncertainty: "high",
++        probeIds: ["PROBE-CACHE"],
++        readyWindow: [{
++          id: "adapter",
++          title: "Implement bounded cache adapter",
++          paths: ["src/cache/**"]
++        }],
++        approachCandidates: ["Revisit distributed invalidation later"]
++      }
++    }));
++    expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(0);
++    expect(readPlan(root)).toMatchObject({
++      planningMode: "delivery",
++      inputs: { probeResults: [{ id: "PROBE-CACHE", status: "concluded" }] }
++    });
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-adapter.yaml"))).toBe(true);
++  });
++
++  test("an inconclusive referenced Probe remains a normal delivery stop", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/discovery/PROBE-CACHE.yaml", {
++      schemaVersion: "1.0.0",
++      id: "PROBE-CACHE",
++      type: "discovery-probe",
++      status: "inconclusive",
++      question: "Which cache strategy works?",
++      hypotheses: [],
++      activities: ["Measure representative load"],
++      evidenceExpected: ["p95 latency"],
++      unknowns: ["Choose invalidation semantics"],
++      timebox: "4h",
++      costLimit: "one engineer-day",
++      exitConditions: ["Representative run complete"],
++      nextDecision: "Decide whether another Probe is worth the cost",
++      concludedAt: "2026-07-26T00:00:00.000Z",
++      exitConditionsMet: false,
++      factsLearned: [],
++      hypothesesRejected: [],
++      remainingUnknowns: ["Peak load cannot be reproduced"]
++    });
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++      planning: {
++        unresolvedDecisions: [],
++        uncertainty: "low",
++        probeIds: ["PROBE-CACHE"],
++        readyWindow: [{
++          id: "adapter",
++          title: "Implement bounded cache adapter",
++          paths: ["src/cache/**"]
++        }]
++      }
++    }));
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      expect(main(["plan", "--spec", "SPEC-CACHE", "--json"], root)).toBe(0);
++    } finally {
++      log.mockRestore();
++    }
++    expect(JSON.parse(output.join(""))).toMatchObject({
++      planningMode: "probe",
++      nextAction: "Create a follow-up Discovery Probe, then replan before delivery"
++    });
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-adapter.yaml"))).toBe(false);
++  });
++
++  test("replanning requires a reason and records the previous hash and Task diff", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec());
++    expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(0);
++    const first = readPlan(root);
++
++    writeYaml(root, "contracts/specs/SPEC-CACHE.yaml", planningSpec({
++      planning: {
++        uncertainty: "low",
++        readyWindow: [
++          {
++            id: "adapter",
++            title: "Implement bounded cache adapter",
++            paths: ["src/cache/**", "tests/cache/**"],
++            requiredChecks: ["test", "typecheck"],
++            doneCriteria: ["Adapter behavior is verified"]
++          },
++          {
++            id: "eviction",
++            title: "Add eviction policy",
++            paths: ["src/cache/eviction.ts", "tests/cache/eviction.test.ts"]
++          }
++        ],
++        approachCandidates: ["Consider regional caches"]
++      }
++    }));
++    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
++    try {
++      expect(main(["plan", "--spec", "SPEC-CACHE"], root)).toBe(1);
++    } finally {
++      error.mockRestore();
++    }
++    expect(readPlan(root).generatedAt).toBe(first.generatedAt);
++
++    expect(main([
++      "plan", "--spec", "SPEC-CACHE",
++      "--replan-reason", "Probe evidence changed the delivery order"
++    ], root)).toBe(0);
++    expect(readPlan(root).replan).toMatchObject({
++      reason: "Probe evidence changed the delivery order",
++      previousHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
++      changes: {
++        added: ["WBS-CACHE-eviction"],
++        removed: ["WBS-CACHE-metrics"],
++        retained: ["WBS-CACHE-adapter"]
++      }
++    });
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-metrics.yaml"))).toBe(true);
++    expect(existsSync(path.join(root, "contracts/tasks/WBS-CACHE-eviction.yaml"))).toBe(true);
++  });
++});
