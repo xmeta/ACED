@@ -1,0 +1,623 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 5b64408..f09b52c 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -64,6 +64,7 @@ rules:
+       - src/core/check-catalog.ts
+       - src/core/check-receipt.ts
+       - src/core/check-coverage.ts
++      - src/core/code-context.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
+       - src/core/github-actions.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml b/contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
+new file mode 100644
+index 0000000..c6d321c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MRNWE8OG
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRNWE8OG
++branchName: task/SCWBS-DRAFT-MRNWE8OG-issue-221-read-only-context-manifest-vertical-sl
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRNWE8OG.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRNWE8OG.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRNWE8OG.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRNWE8OG.yaml
++allowedPaths:
++  - src/core/code-context.ts
++  - src/commands/ai-packet.ts
++  - src/cli.ts
++  - tests/integration/ai.test.ts
++  - contracts/check-coverage.yaml
++  - docs/sc-wbs-core/04-ai-work-packet.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package・lockfile・tsconfig・workflow・WBS正本・AGENTS.md・Human Gate pathの変更が必要
++  - persistent index・cache・検索DB・新規dependencyが必要
++  - allowedPaths外の編集またはcheck-coverage分類をTask authorityへ含められない
++  - hard limit・warning・profile・risk policy・required check削減・Approval境界の変更が必要
++  - unsupported importを安全にwidening表示できず完全解決が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - packet --context-jsonがsource本文を含まないversioned JSON manifestをstdoutへ出力する
++  - manifestはTask Contract・HEAD・exact allowed files・1-hop static relative importとreverse importerをhash・size・range・reason・editable付きで決定的に列挙する
++  - broad glob・forbidden・Human Gate pathを自動昇格せず、dynamic・unresolved・re-export・alias・cycle・fan-out・budget超過をwideningまたはomittedとして明示する
++  - coverage required・missing・unclassifiedとbudget・completenessを既存check-coverage semanticsと矛盾なく返す
++  - 同一HEADとTask Contractでbyte-identical、stdoutはparse可能なJSONのみ、既存packet --tinyの互換性と50行制約を維持する
++  - Task 234 replayでmanifest bytes・件数・初期読込files/lines/bytes・widening・wall time・決定性を計測し、hard limit・warning・policy enforcementは導入しない
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T19:25:17.824Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 927801f..54872ee 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -225,3 +225,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRNWE8OG
++    path: contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
++    branchName: task/SCWBS-DRAFT-MRNWE8OG-issue-221-read-only-context-manifest-vertical-sl
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/sc-wbs-core/04-ai-work-packet.md b/docs/sc-wbs-core/04-ai-work-packet.md
+index fce5137..a59fbf6 100644
+--- a/docs/sc-wbs-core/04-ai-work-packet.md
++++ b/docs/sc-wbs-core/04-ai-work-packet.md
+@@ -109,6 +109,24 @@ AIは、すぐに全文読み込みを要求してはいけない。まず不足
+ scwbs packet --task WBS-001 --standard
+ ```
+ 
++## Read-only Context Manifest (`--context-json`)
++
++実装前のコード探索を小さく始める場合は、source本文を含まないderived manifestを生成する。
++
++```bash
++npm run scwbs -- packet --task WBS-001 --context-json
++```
++
++manifest v1はTask Contractと現在HEADから毎回再生成し、次をJSONで返す。
++
++- Task Contract、exact allowed file、direct static relative import、reverse importerのpath/hash/bytes/line range/reason
++- `editable`（allowedPaths内かつforbidden/Human Gate外の場合だけtrue）
++- check coverageのrequired/missing/unclassified
++- selected files/bytes、omitted件数、widening/completeness
++- source本文を含めず、編集権限やrequired check省略を許可しないという制約
++
++広いglobは全展開しない。dynamic import、re-export、path alias、unresolved import、cycle、budget超過、未分類pathはwidening理由として残す。manifestはナビゲーション情報であり、Task Contract、Approval、Evidence、required checksの代替ではない。
++
+ ## 実装AIに渡す標準プロンプト
+ 
+ ```text
+diff --git a/src/cli.ts b/src/cli.ts
+index 8af04ae..a0bef77 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -2,7 +2,7 @@
+ import { Command, CommanderError } from "commander";
+ import { pathToFileURL } from "node:url";
+ import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
+-import { buildTinyPacket, runAiPacket } from "./commands/ai-packet.js";
++import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
+ import { runAiRun } from "./commands/ai-run.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+ import { runCheck } from "./commands/check.js";
+@@ -220,6 +220,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--full", "full packet")
+     .option("--deep", "deep packet (legacy)")
+     .option("--normal", "normal packet (legacy)")
++    .option("--context-json", "output a source-free read-only code context manifest")
++    .option("--context-max-files <n>", "maximum selected context files", parseInt)
++    .option("--context-max-bytes <n>", "maximum selected context bytes", parseInt)
+     .option("--relation-depth <n>", "relation depth", parseInt)
+     .action((opts) => {
+       const taskId = opts.task;
+@@ -228,7 +231,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         exitCode = 2;
+         return;
+       }
+-      if (opts.full || opts.deep) {
++      if (opts.contextJson) {
++        exitCode = runCodeContextManifest(root, taskId, {
++          maxFiles: opts.contextMaxFiles,
++          maxBytes: opts.contextMaxBytes
++        });
++      } else if (opts.full || opts.deep) {
+         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 1, "default");
+       } else if (opts.standard || opts.normal) {
+         exitCode = runAiPacket(root, taskId, opts.relationDepth ?? 0, "default");
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 1bd09a0..afc1aff 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -8,6 +8,7 @@ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/type
+ import type { TaskContract } from "../core/types.js";
+ import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
++import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
+ 
+ const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+ 
+@@ -328,3 +329,13 @@ export function runAiPacket(root: string, taskId: string, relationDepth = 1, for
+     return 1;
+   }
+ }
++
++export function runCodeContextManifest(root: string, taskId: string, options: CodeContextOptions = {}): number {
++  try {
++    process.stdout.write(buildCodeContextManifestJson(root, taskId, options));
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/core/code-context.ts b/src/core/code-context.ts
+new file mode 100644
+index 0000000..7309d44
+--- /dev/null
++++ b/src/core/code-context.ts
+@@ -0,0 +1,306 @@
++import { createHash } from "node:crypto";
++import path from "node:path";
++import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "./check-coverage.js";
++import { readTask } from "./contracts.js";
++import { matchesAny } from "./glob.js";
++import { gitObject, headCommit, trackedTextFiles } from "./git.js";
++import { fileSha256 } from "./hash.js";
++import { taskPath } from "./paths.js";
++
++const DEFAULT_MAX_FILES = 40;
++const DEFAULT_MAX_BYTES = 262_144;
++const GLOB_PATTERN = /[*?[\]{}]/;
++const SOURCE_PATTERN = /\.(?:cjs|js|mjs|ts|tsx)$/;
++
++export type CodeContextOptions = {
++  maxFiles?: number;
++  maxBytes?: number;
++};
++
++type LineRange = { start: number; end: number };
++
++type ContextEntry = {
++  path: string;
++  contentHash: string;
++  bytes: number;
++  lines: number;
++  lineRanges: LineRange[];
++  reasons: string[];
++  editable: boolean;
++};
++
++type ExcludedEntry = {
++  path: string;
++  reasons: string[];
++  editable: false;
++};
++
++type WideningDiagnostic = {
++  code: string;
++  path: string;
++  line?: number;
++  detail: string;
++};
++
++type RelativeImport = { specifier: string; line: number };
++
++function normalizePath(value: string): string {
++  return value.replace(/\\/g, "/").replace(/^\.\//, "");
++}
++
++function lineCount(content: string): number {
++  if (content.length === 0) return 0;
++  return content.split("\n").length - (content.endsWith("\n") ? 1 : 0);
++}
++
++function exactPath(value: string): boolean {
++  return !GLOB_PATTERN.test(value);
++}
++
++function entryFor(root: string, relativePath: string, reasons: string[], editable: boolean): ContextEntry {
++  const content = gitObject(root, "HEAD", relativePath);
++  if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
++  const lines = lineCount(content);
++  const hash = createHash("sha256").update(content, "utf8").digest("hex");
++  return {
++    path: normalizePath(relativePath),
++    contentHash: `sha256:${hash}`,
++    bytes: Buffer.byteLength(content, "utf8"),
++    lines,
++    lineRanges: lines === 0 ? [] : [{ start: 1, end: lines }],
++    reasons: [...new Set(reasons)].sort(),
++    editable
++  };
++}
++
++function parseRelativeImports(relativePath: string, content: string): { imports: RelativeImport[]; widening: WideningDiagnostic[] } {
++  const imports: RelativeImport[] = [];
++  const widening: WideningDiagnostic[] = [];
++  const lines = content.split(/\r?\n/);
++  for (let index = 0; index < lines.length; index += 1) {
++    const text = lines[index];
++    const line = index + 1;
++    const staticMatch = text.match(/^\s*import\s+(?:.+?\s+from\s+)?["'](\.[^"']+)["']\s*;?\s*$/);
++    if (staticMatch) {
++      imports.push({ specifier: staticMatch[1], line });
++      continue;
++    }
++    if (/\bimport\s*\(/.test(text)) {
++      widening.push({ code: "dynamic-import", path: relativePath, line, detail: "dynamic import is not resolved by manifest v1" });
++    } else if (/^\s*export\s+.*\s+from\s+["']/.test(text)) {
++      widening.push({ code: "re-export", path: relativePath, line, detail: "re-export is not traversed by manifest v1" });
++    } else if (/^\s*import\b/.test(text) && /["'](?:@\/|~\/)/.test(text)) {
++      widening.push({ code: "path-alias", path: relativePath, line, detail: "path alias is not resolved by manifest v1" });
++    } else if (/^\s*import\b/.test(text) && /["'](?:src|tests|docs|contracts)\//.test(text)) {
++      widening.push({ code: "path-alias", path: relativePath, line, detail: "repository path alias is not resolved by manifest v1" });
++    } else if (/^\s*import\s*[{*]/.test(text) && !/["']/.test(text)) {
++      widening.push({ code: "unsupported-import-syntax", path: relativePath, line, detail: "multi-line import is not resolved by manifest v1" });
++    }
++  }
++  return { imports, widening };
++}
++
++function resolveRelativeImport(root: string, importer: string, specifier: string): string | undefined {
++  const base = normalizePath(path.posix.join(path.posix.dirname(importer), specifier));
++  if (base === ".." || base.startsWith("../") || path.posix.isAbsolute(base)) return undefined;
++  const extension = path.posix.extname(base);
++  const candidates = extension === ".js"
++    ? [base, `${base.slice(0, -3)}.ts`, `${base.slice(0, -3)}.tsx`]
++    : extension.length > 0
++      ? [base]
++      : [base, `${base}.ts`, `${base}.tsx`, `${base}.js`, `${base}/index.ts`, `${base}/index.tsx`, `${base}/index.js`];
++  return candidates.find((candidate) => gitObject(root, "HEAD", candidate) !== undefined);
++}
++
++function diagnosticSort(left: WideningDiagnostic, right: WideningDiagnostic): number {
++  return left.path.localeCompare(right.path)
++    || (left.line ?? 0) - (right.line ?? 0)
++    || left.code.localeCompare(right.code)
++    || left.detail.localeCompare(right.detail);
++}
++
++function excludedSort(left: ExcludedEntry, right: ExcludedEntry): number {
++  return left.path.localeCompare(right.path) || left.reasons.join("\0").localeCompare(right.reasons.join("\0"));
++}
++
++export function buildCodeContextManifest(root: string, taskId: string, options: CodeContextOptions = {}) {
++  const { task, issues } = readTask(root, taskId);
++  if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
++  const head = headCommit(root);
++  if (!head) throw new Error("Repository HEAD is unavailable");
++
++  const maxFiles = Math.max(1, Math.floor(options.maxFiles ?? DEFAULT_MAX_FILES));
++  const maxBytes = Math.max(1, Math.floor(options.maxBytes ?? DEFAULT_MAX_BYTES));
++  const contractPath = taskPath(task.id);
++  const mustRead = new Map<string, ContextEntry>();
++  const candidateReasons = new Map<string, string[]>();
++  const excluded: ExcludedEntry[] = [];
++  const widening: WideningDiagnostic[] = [];
++
++  const contractEntry = entryFor(root, contractPath, ["task-contract"], false);
++  if (fileSha256(root, contractPath) !== contractEntry.contentHash) {
++    throw new Error(`${contractPath} differs from repository HEAD`);
++  }
++  mustRead.set(contractPath, contractEntry);
++  const seeds = task.allowedPaths.map(normalizePath).filter(exactPath).sort();
++  const activeSeeds: string[] = [];
++  for (const pattern of task.allowedPaths.map(normalizePath).filter((item) => !exactPath(item)).sort()) {
++    excluded.push({ path: pattern, reasons: ["broad-glob-not-expanded"], editable: false });
++    widening.push({ code: "broad-glob", path: pattern, detail: "manifest v1 does not enumerate broad allowedPaths" });
++  }
++  for (const seed of seeds) {
++    if (gitObject(root, "HEAD", seed) === undefined) {
++      excluded.push({ path: seed, reasons: ["exact-allowed-path-missing"], editable: false });
++      widening.push({ code: "missing-seed", path: seed, detail: "exact allowedPath does not exist at HEAD" });
++      continue;
++    }
++    const protectedPath = matchesAny(seed, task.forbiddenPaths) || matchesAny(seed, task.humanGateRequiredPaths);
++    if (protectedPath) {
++      excluded.push({ path: seed, reasons: ["protected-path-not-promoted"], editable: false });
++      widening.push({ code: "protected-seed", path: seed, detail: "forbidden or Human Gate path is not promoted" });
++      continue;
++    }
++    candidateReasons.set(seed, ["exact-allowed-path"]);
++    activeSeeds.push(seed);
++  }
++
++  const seedPaths = activeSeeds.filter((item) => SOURCE_PATTERN.test(item));
++  const repositorySources = trackedTextFiles(root)
++    .map(normalizePath)
++    .filter((item) => SOURCE_PATTERN.test(item) && gitObject(root, "HEAD", item) !== undefined)
++    .sort();
++  const parsedByPath = new Map<string, ReturnType<typeof parseRelativeImports>>();
++  const parse = (relativePath: string) => {
++    const existing = parsedByPath.get(relativePath);
++    if (existing) return existing;
++    const content = gitObject(root, "HEAD", relativePath);
++    if (content === undefined) throw new Error(`${relativePath} is not present at repository HEAD`);
++    const parsed = parseRelativeImports(relativePath, content);
++    parsedByPath.set(relativePath, parsed);
++    return parsed;
++  };
++
++  for (const seed of seedPaths) {
++    const parsed = parse(seed);
++    widening.push(...parsed.widening);
++    for (const item of parsed.imports) {
++      const resolved = resolveRelativeImport(root, seed, item.specifier);
++      if (!resolved) {
++        widening.push({ code: "unresolved-import", path: seed, line: item.line, detail: item.specifier });
++        continue;
++      }
++      candidateReasons.set(resolved, [...(candidateReasons.get(resolved) ?? []), `direct-static-import:${seed}:${item.line}`]);
++      if (resolved === seed) widening.push({ code: "import-cycle", path: seed, line: item.line, detail: "self import" });
++    }
++  }
++
++  for (const importer of repositorySources) {
++    if (seedPaths.includes(importer)) continue;
++    const parsed = parse(importer);
++    for (const item of parsed.imports) {
++      const resolved = resolveRelativeImport(root, importer, item.specifier);
++      if (resolved && seedPaths.includes(resolved)) {
++        candidateReasons.set(importer, [...(candidateReasons.get(importer) ?? []), `reverse-importer:${resolved}:${item.line}`]);
++      }
++    }
++  }
++
++  const candidates: ContextEntry[] = [];
++  const omitted: ExcludedEntry[] = [];
++  let selectedFiles = mustRead.size;
++  let selectedBytes = [...mustRead.values()].reduce((sum, item) => sum + item.bytes, 0);
++  if (selectedFiles > maxFiles || selectedBytes > maxBytes) {
++    widening.push({ code: "must-read-budget-exceeded", path: contractPath, detail: "mustRead entries exceed the configured budget" });
++  }
++  const orderedCandidates = [...candidateReasons.entries()].sort(([leftPath, leftReasons], [rightPath, rightReasons]) => {
++    const leftPriority = leftReasons.includes("exact-allowed-path") ? 0 : 1;
++    const rightPriority = rightReasons.includes("exact-allowed-path") ? 0 : 1;
++    return leftPriority - rightPriority || leftPath.localeCompare(rightPath);
++  });
++  for (const [candidatePath, reasons] of orderedCandidates) {
++    if (mustRead.has(candidatePath)) {
++      const current = mustRead.get(candidatePath);
++      if (current) current.reasons = [...new Set([...current.reasons, ...reasons])].sort();
++      continue;
++    }
++    if (matchesAny(candidatePath, task.forbiddenPaths) || matchesAny(candidatePath, task.humanGateRequiredPaths)) {
++      excluded.push({ path: candidatePath, reasons: ["protected-path-not-promoted", ...new Set(reasons)].sort(), editable: false });
++      widening.push({ code: "protected-candidate", path: candidatePath, detail: "forbidden or Human Gate path is not promoted" });
++      continue;
++    }
++    const reasonTarget = (reason: string, prefix: string): string | undefined => {
++      if (!reason.startsWith(prefix)) return undefined;
++      const value = reason.slice(prefix.length);
++      return value.slice(0, value.lastIndexOf(":"));
++    };
++    const directImporters = new Set(reasons.map((reason) => reasonTarget(reason, "direct-static-import:")).filter(Boolean));
++    const reverseTargets = reasons.map((reason) => reasonTarget(reason, "reverse-importer:")).filter(Boolean);
++    if (reverseTargets.some((target) => directImporters.has(target))) {
++      widening.push({ code: "import-cycle", path: candidatePath, detail: "candidate imports a seed that also imports the candidate" });
++    }
++    if (reasons.length > 8) {
++      widening.push({ code: "high-fan-out", path: candidatePath, detail: `${reasons.length} one-hop relations reference this candidate` });
++    }
++    const entry = entryFor(root, candidatePath, reasons, matchesAny(candidatePath, task.allowedPaths));
++    if (selectedFiles + 1 > maxFiles || selectedBytes + entry.bytes > maxBytes) {
++      omitted.push({ path: candidatePath, reasons: ["budget-exceeded", ...entry.reasons].sort(), editable: false });
++      continue;
++    }
++    candidates.push(entry);
++    selectedFiles += 1;
++    selectedBytes += entry.bytes;
++  }
++  if (omitted.length > 0) widening.push({ code: "budget-exceeded", path: "(manifest)", detail: `${omitted.length} candidate(s) omitted` });
++
++  const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
++  const predictedCoverage = checkCoverageSummaryForAllowedPaths(policy, task);
++  const exactCoverage = checkCoverageSummary(policy, task, seeds);
++  for (const issue of policyIssues) widening.push({ code: issue.code, path: "contracts/check-coverage.yaml", detail: issue.message });
++  for (const file of exactCoverage.unclassifiedFiles) {
++    widening.push({ code: "coverage-unclassified", path: file, detail: "implementation path is not classified" });
++  }
++  const coverageRequired = [...new Set([...predictedCoverage.required, ...exactCoverage.required])].sort();
++  const coverageMissing = coverageRequired.filter((check) => !task.requiredChecks.includes(check));
++  for (const check of coverageMissing) {
++    widening.push({ code: "coverage-missing", path: contractPath, detail: `Task Contract is missing required check ${check}` });
++  }
++
++  const wideningReasons = widening.sort(diagnosticSort);
++  const sortedMustRead = [...mustRead.values()].sort((left, right) => left.path.localeCompare(right.path));
++  const sortedCandidates = candidates.sort((left, right) => left.path.localeCompare(right.path));
++  const sortedExcluded = [...excluded, ...omitted].sort(excludedSort);
++  return {
++    schemaVersion: "1.0.0",
++    task: { id: task.id, contractPath, contractHash: contractEntry.contentHash },
++    repository: { head },
++    mustRead: sortedMustRead,
++    candidates: sortedCandidates,
++    excluded: sortedExcluded,
++    widening: wideningReasons,
++    coverage: {
++      required: coverageRequired,
++      missing: coverageMissing,
++      unclassified: [...exactCoverage.unclassifiedFiles].sort()
++    },
++    budget: {
++      maxFiles,
++      maxBytes,
++      selectedFiles,
++      selectedBytes,
++      omitted: omitted.length
++    },
++    completeness: {
++      status: wideningReasons.length === 0 ? "complete" : "widening-required",
++      reasons: [...new Set(wideningReasons.map((item) => item.code))].sort()
++    },
++    constraints: {
++      sourceContentIncluded: false,
++      grantsEditAuthority: false,
++      permitsRequiredCheckOmission: false
++    }
++  };
++}
++
++export function buildCodeContextManifestJson(root: string, taskId: string, options: CodeContextOptions = {}): string {
++  return `${JSON.stringify(buildCodeContextManifest(root, taskId, options))}\n`;
++}
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 4860f04..a0457ca 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -7,6 +7,7 @@ import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.
+ import { buildNextAction } from "../../src/commands/next.js";
+ import { main } from "../../src/cli.js";
+ import { readApproval, readBlock } from "../../src/core/contracts.js";
++import { buildCodeContextManifest, buildCodeContextManifestJson } from "../../src/core/code-context.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("AI commands", () => {
+@@ -471,6 +472,112 @@ describe("AI commands", () => {
+     expect(packet).toContain("npm run scwbs -- finish --task WBS-001-004");
+   });
+ 
++  test("packet context manifest is deterministic, source-free, and records import provenance", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const secretSourceBody = helper;\n");
++    writeText(root, "src/helper.ts", "export const helper = 1;\n");
++    writeText(root, "src/caller.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      implementationRoots: ["src"],
++      rules: [{
++        id: "source",
++        classification: "behavior-critical",
++        rationale: "Source behavior requires integration coverage.",
++        paths: ["src/**"],
++        requires: ["test:integration"]
++      }]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      requiredChecks: ["test", "typecheck"]
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
++
++    const first = buildCodeContextManifestJson(root, "WBS-001-004");
++    writeText(root, "src/feature.ts", "export const uncommittedSourceBody = 99;\n");
++    const second = buildCodeContextManifestJson(root, "WBS-001-004");
++    expect(second).toBe(first);
++    expect(first).not.toContain("secretSourceBody");
++    const manifest = JSON.parse(first);
++    expect(manifest.mustRead.map((item: { path: string }) => item.path)).toEqual([
++      "contracts/tasks/WBS-001-004.yaml"
++    ]);
++    expect(manifest.candidates.map((item: { path: string; editable: boolean }) => [item.path, item.editable])).toEqual([
++      ["src/caller.ts", false],
++      ["src/feature.ts", true],
++      ["src/helper.ts", false]
++    ]);
++    expect(manifest.candidates.find((item: { path: string }) => item.path === "src/caller.ts").reasons[0]).toContain("reverse-importer:src/feature.ts");
++    expect(manifest.candidates.find((item: { path: string }) => item.path === "src/helper.ts").reasons[0]).toContain("direct-static-import:src/feature.ts");
++    expect(manifest.coverage).toEqual({ required: ["test:integration"], missing: ["test:integration"], unclassified: [] });
++    expect(manifest.completeness.reasons).toContain("coverage-missing");
++    expect(manifest.constraints.sourceContentIncluded).toBe(false);
++  });
++
++  test("context manifest does not expand broad or protected paths and reports incomplete analysis", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import { value } from \"./barrel.js\";\nimport(\"./dynamic.js\");\nexport * from \"./barrel.js\";\nvoid value;\n");
++    writeText(root, "src/barrel.ts", "export const value = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts", "tests/**"],
++      forbiddenPaths: ["src/barrel.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    expect(manifest.excluded).toContainEqual({ path: "tests/**", reasons: ["broad-glob-not-expanded"], editable: false });
++    expect(manifest.excluded.find((item) => item.path === "src/barrel.ts")?.reasons).toContain("protected-path-not-promoted");
++    expect(manifest.candidates.map((item) => item.path)).toEqual(["src/feature.ts"]);
++    expect(manifest.completeness.status).toBe("widening-required");
++    expect(manifest.completeness.reasons).toEqual(expect.arrayContaining(["broad-glob", "dynamic-import", "re-export"]));
++  });
++
++  test("context manifest omits candidates deterministically when the budget is exceeded", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nvoid helper;\n");
++    writeText(root, "src/helper.ts", "export const helper = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      allowedPaths: ["src/feature.ts"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
++
++    const manifest = buildCodeContextManifest(root, "WBS-001-004", { maxFiles: 2, maxBytes: 100_000 });
++    expect(manifest.candidates.map((item) => item.path)).toEqual(["src/feature.ts"]);
++    expect(manifest.budget.omitted).toBe(1);
++    expect(manifest.excluded.find((item) => item.path === "src/helper.ts")?.reasons).toContain("budget-exceeded");
++    expect(manifest.completeness.reasons).toContain("budget-exceeded");
++  });
++
++  test("packet --context-json writes parseable JSON without changing tiny packet behavior", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeText(root, "src/feature.ts", "export const value = 1;\n");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/feature.ts"] }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "context fixture"], { cwd: root, stdio: "ignore" });
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(main(["packet", "--task", "WBS-001-004", "--context-json"], root)).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(JSON.parse(output.join("")).schemaVersion).toBe("1.0.0");
++    expect(buildTinyPacket(root, "WBS-001-004").split("\n").length).toBeLessThanOrEqual(50);
++  });
++
+   test("tiny packet identifies WBS-less deny-all and broad scope risks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
