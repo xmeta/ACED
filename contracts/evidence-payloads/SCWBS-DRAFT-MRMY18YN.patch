@@ -1,0 +1,1041 @@
+diff --git a/README.md b/README.md
+index 2eb1030..60c57b7 100644
+--- a/README.md
++++ b/README.md
+@@ -112,6 +112,16 @@ npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --
+ 
+ `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
+ 
++Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
++
++```bash
++SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" \
++  npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" \
++  --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
++```
++
++A local `.env` file or CI secret store may be used to manage the environment variable, but the CLI does not automatically load `.env`, and `.env` alone never grants authority. Use a randomly generated token of at least 32 bytes; the public SHA-256 in the contract otherwise permits offline guessing of weak secrets. The committed Task Contract policy and a matching, unexpired token are both required. Delegated records use `approvalMode: delegated` and a token-derived `delegationProof`, and record their declared source, delegator, executor, and scope separately from human approvals. Consumers revalidate the proof and accept `human-gate` only for Human Gate checks and `post-finish` only for completion. These controls make accidental and simple YAML bypasses substantially harder, but they do not independently verify the real-world identity of `delegatedBy`, the person who provisioned the token, or a fully privileged process that can rewrite both code and local secrets.
++
+ ## 6. Core Artifacts
+ 
+ - Task Contract: `contracts/tasks/<task-id>.yaml`
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml b/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+new file mode 100644
+index 0000000..42cfe6c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+@@ -0,0 +1,76 @@
++id: SCWBS-DRAFT-MRMY18YN
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRMY18YN
++branchName: task/SCWBS-DRAFT-MRMY18YN-issue-222-fail-closed-approval-delegation-policy
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRMY18YN.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRMY18YN.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRMY18YN.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRMY18YN.yaml
++allowedPaths:
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/core/task-authority.ts
++  - src/core/approval-delegation.ts
++  - src/core/human-gate.ts
++  - src/commands/approval-request.ts
++  - src/commands/completion.ts
++  - src/cli.ts
++  - tests/helpers.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/completion.test.ts
++  - tests/unit/contracts.test.ts
++  - README.md
++  - docs/scwbs/task-contract.md
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or lockfile change required
++  - workflow change required
++  - delegation consumer validation cannot remain fail-closed
++  - verified human provenance is required for this slice
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - approvalPolicy未指定またはhuman-onlyのTaskではAI execution modeからapproved recordを作成できず既存Human Approval境界を維持する
++  - delegated policyはdelegatedBy、delegatedTo、scopes、source、reason、UTC expiresAt、tokenSha256を必須とし不正値をschemaで拒否する
++  - 32 bytes以上のSCWBS_APPROVAL_DELEGATION_TOKENのSHA-256がTask Contractと一致し有効期限内かつ要求scopeが許可された場合だけdelegated approvalを発行する
++  - delegated approvalはEvidence subjectHeadCommitとdiffHashを必須としtoken由来HMAC proofを記録するがsecret自体は出力または保存しない
++  - consumerはTask policy、scope、Evidence subject、HMAC proofを再検証し手書きYAMLによるtoken迂回を拒否する
++  - human-gate scopeはHuman Gate検証だけ、post-finish scopeは全required checks PASS後のcompletionだけに使用でき相互流用できない
++  - approvalPolicyをTask authority fieldとしてcreation commit後の追加、mode変更、scope拡張、hash変更をcheck-diffで拒否する
++  - metadata-only descendantを含む既存Human Gate scope検証とhuman actor、legacy recordの後方互換性を維持する
++  - delegationなし、成功、token欠落、hash不一致、弱いtoken、期限切れ、scope不一致、proof改ざん、authority driftの回帰テストを追加する
++  - README、Task Contract、CLI referenceへ安全なenv secret運用、declared provenance、初回Task自己委譲の限界を記載する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:381d08582b9ade3ffdbfc063344b892322cae5615b38acf0ad823db95c287adb
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-16T03:23:06.494Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 6c68fbf..1d36b9f 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -183,3 +183,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRMY18YN
++    path: contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
++    branchName: task/SCWBS-DRAFT-MRMY18YN-issue-222-fail-closed-approval-delegation-policy
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 9ab899a..d67abb9 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -111,6 +111,7 @@ npm run scwbs -- review route --task WBS-001-004
+ npm run scwbs -- review request --task WBS-001-004 --pull-request "#42"
+ npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note "Awaiting human review"
+ npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
++SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
+ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted"
+ npm run scwbs -- completion apply --tasks WBS-001-004 --task WBS-001-999 --reason "Reviewed and accepted" --apply
+ ```
+@@ -133,6 +134,10 @@ notes:
+ 
+ `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+ 
++`--actor delegated-ai` は、Task Contractの `approvalPolicy.mode: delegated` で明示的に委譲されたTaskだけに使える。`--scope human-gate|post-finish` は必須で、policyの `scopes`、UTC `expiresAt`、`tokenSha256` と32 bytes以上の環境変数 `SCWBS_APPROVAL_DELEGATION_TOKEN` を検証する。policy未指定、`human-only`、token欠落・不一致、弱いtoken、期限切れ、scope不一致はすべてfail-closedになる。tokenは出力・永続化せず、成功時は `approvalMode: delegated`、`delegationSource`、`delegatedBy`、`executedBy: ai-agent`、`delegationScope`、`delegationProof` を記録してHuman Approvalと区別する。consumerもHMAC proofを再検証し、Human Gateでは`human-gate`、completionでは`post-finish`だけを受理する。
++
++CLIは `.env` を自動読込しない。必要ならshell側で `.env` を読み込むかCI secretから環境変数を注入するが、`.env` はauthority sourceではなくsecret transportにすぎない。Task Contractの委譲policyはcreation commitでauthority baselineへ固定され、後からの追加・拡張・hash変更は拒否される。記録されるdelegator/sourceはdeclared provenanceであり、実在本人性やtoken注入者を独立に検証するものではない。
++
+ When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
+ 
+ After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 407c0f1..d740da5 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -99,6 +99,7 @@ npm run scwbs -- task lock --task WBS-001-004
+ - `requiredChecks`
+ - `managedContractPaths`
+ - `checkCoverageWaivers`
++- `approvalPolicy`
+ 
+ 同じTaskがこれらを変更しても、新しい値で同じbranchを自己検証することはできない。変更を有効にするには、現在のEvidence scopeに一致するHuman Approval、または既存の `node-governance-maintenance` Taskが別Taskの契約pathを明示的にscopeへ含めて変更する独立provenanceが必要になる。`contractLock` のWBS/Spec revision refreshだけはauthority変更ではない。
+ 
+@@ -106,6 +107,28 @@ base側に契約がない新規Taskでは、契約・index・registryなど宣
+ 
+ authority比較が必要なbranchでbase refやmerge-baseを解決できない場合、およびshallow cloneではfail-closedになる。履歴を取得してから再実行する。
+ 
++## Approval delegation policy
++
++既定はHuman Approvalである。全自動実行を許可するTaskだけ、creation commitのTask Contractへ次のような委譲policyを固定する。
++
++```yaml
++approvalPolicy:
++  mode: delegated
++  delegatedBy: xmeta
++  delegatedTo: ai-agent
++  scopes: [human-gate, post-finish]
++  source: https://github.com/xmeta/ACED/issues/222
++  reason: Authorized unattended execution
++  expiresAt: "2026-07-17T00:00:00.000Z"
++  tokenSha256: sha256:<64 lowercase hex characters>
++```
++
++`human-gate` と `post-finish` は別scopeであり、実行時に要求したscopeが `scopes` に含まれなければならない。CLIは32 UTF-8 bytes以上の `SCWBS_APPROVAL_DELEGATION_TOKEN` のSHA-256が `tokenSha256` と一致し、UTCのpolicy期限内の場合だけdelegated approvalを許可する。tokenは `openssl rand -hex 32` などでランダム生成する。secretそのものはTask Contract、Evidence、Approvalへ保存せず、ログにも出力しない。
++
++`.env` やCI secretはsecret注入の運用手段にできるが、CLIは `.env` を自動読込しない。shellやCI runnerが明示的に環境変数を設定する必要がある。また `.env` の存在や内容だけではauthorityにならず、baselineで固定された `approvalPolicy` とtokenの両方が必要である。creation commit後のpolicy追加、mode変更、scope拡張、expiry・hash等の変更はauthority driftとして拒否される。
++
++delegated Approvalは `approvalMode: delegated` とし、`delegationSource`、`delegatedBy`、`executedBy`、`delegationScope`、token由来の `delegationProof` をHuman Approvalと区別して記録する。Human Gateとcompletionはpolicy、scope、Evidence、HMAC proofを再検証し、単純な手書きYAMLを拒否する。これは契約に宣言されたprovenanceを監査可能にするが、`delegatedBy` の実在本人性、tokenを注入した主体、codeとsecretの双方を書き換えられるprocessまでを暗号学的に排除するものではない。より強い本人性が必要なTaskでは `mode: human-only` を維持し、#144の外部provenanceを利用する。
++
+ submoduleのgitlinkを変更するTaskは、`submoduleDependencies` にpath、upstream repository、依存PR、merge targetのremote ref、確認済みcheckを記録する。`upstreamRef` を省略した場合は `origin/HEAD`、`origin/main`、`origin/master` の順に存在するrefを選ぶ。submodule内部の許可pathは、たとえば `vendor/dependency/src/**` のようにrootからの完全なpathで `allowedPaths` に列挙する。`check-diff` はEvidenceが収集したnested changed filesにも通常と同じpath規則とHuman Gateを適用する。
+ 
+ ## Required check coverage
+diff --git a/src/cli.ts b/src/cli.ts
+index aabd2f4..a29fcb3 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -291,6 +291,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pull-request <number>", "pull request number (legacy)")
+     .option("--reason <text>", "approval reason")
+     .option("--actor <text>", "approval actor")
++    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
+     .option("--force", "force approval")
+     .action((opts) => {
+       const taskId = opts.task;
+@@ -303,6 +304,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         pullRequest: opts.pr ?? opts.pullRequest,
+         reason: opts.reason,
+         actor: opts.actor,
++        scope: opts.scope,
+         force: opts.force ?? false
+       });
+     });
+@@ -466,6 +468,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pull-request <id>", "pull request id")
+     .option("--reason <text>", "approval reason")
+     .option("--actor <text>", "approval actor")
++    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
+     .option("--force", "force approval")
+     .action((opts) => {
+       if (!opts.task) {
+@@ -477,6 +480,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         pullRequest: opts.pullRequest,
+         reason: opts.reason,
+         actor: opts.actor,
++        scope: opts.scope,
+         force: opts.force ?? false
+       });
+     });
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index 220207d..344660f 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -1,9 +1,10 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { readApproval, readEvidence } from "../core/contracts.js";
++import { readApproval, readEvidence, readTask } from "../core/contracts.js";
++import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
+ import { approvalPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { ApprovalRecord } from "../core/types.js";
++import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
+ 
+ export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string }): ApprovalRecord {
+   return {
+@@ -20,7 +21,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
+   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+-export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): ApprovalRecord {
++export function buildApprovalApprove(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+   return {
+     id: `APR-${taskId}`,
+     type: "approval",
+@@ -28,14 +29,20 @@ export function buildApprovalApprove(taskId: string, options: { pullRequest?: st
+     status: "approved",
+     approvedBy: options.approvedBy ?? "human",
+     approvedAt: options.approvedAt ?? new Date().toISOString(),
++    approvalMode: options.approvalMode ?? "human",
+     ...(options.headCommit ? { headCommit: options.headCommit } : {}),
+     ...(options.diffHash ? { diffHash: options.diffHash } : {}),
+     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+-    ...(options.reason ? { reason: options.reason } : {})
++    ...(options.reason ? { reason: options.reason } : {}),
++    ...(options.delegationSource ? { delegationSource: options.delegationSource } : {}),
++    ...(options.delegatedBy ? { delegatedBy: options.delegatedBy } : {}),
++    ...(options.executedBy ? { executedBy: options.executedBy } : {}),
++    ...(options.delegationScope ? { delegationScope: options.delegationScope } : {}),
++    ...(options.delegationProof ? { delegationProof: options.delegationProof } : {})
+   };
+ }
+ 
+-export function buildApprovalApproveYaml(taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string }): string {
++export function buildApprovalApproveYaml(taskId: string, options: Parameters<typeof buildApprovalApprove>[1]): string {
+   return stringifySimpleYaml(buildApprovalApprove(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+@@ -67,15 +74,61 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+   }
+ }
+ 
+-export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string }): number {
++export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string; scope?: string }): number {
+   try {
+     const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
+-    if (resolvedActor === "ai") {
++    let delegatedSubject: { headCommit: string; diffHash: string } | undefined;
++    let approvalExecution: Pick<ApprovalRecord, "approvedBy" | "approvedAt" | "approvalMode" | "delegationSource" | "delegatedBy" | "executedBy" | "delegationScope" | "delegationProof"> = {
++      approvedBy: options.approvedBy,
++      approvalMode: "human"
++    };
++    if (resolvedActor === "delegated-ai") {
++      if (options.scope !== "human-gate" && options.scope !== "post-finish") {
++        console.error("delegated approval requires --scope human-gate or --scope post-finish");
++        return 1;
++      }
++      const { task, issues: taskIssues } = readTask(root, taskId);
++      if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
++      const delegation = authorizeDelegatedApproval(task, options.scope, {
++        token: process.env[APPROVAL_DELEGATION_TOKEN_ENV]
++      });
++      if (!delegation.approval) {
++        console.error(delegation.error ?? "delegated approval was not authorized");
++        return 1;
++      }
++      const { evidence, issues: evidenceIssues } = readEvidence(root, taskId);
++      if (!evidence) throw new Error(evidenceIssues.map((issue) => issue.message).join("\n"));
++      const subject = evidenceSubject(root, taskId);
++      if (!subject.headCommit || !subject.diffHash) {
++        console.error("delegated approval requires Evidence subjectHeadCommit and diffHash");
++        return 1;
++      }
++      if (options.scope === "post-finish") {
++        const passedChecks = new Set(evidence.checks.filter((check) => check.status === "passed").map((check) => check.name));
++        const missingChecks = task.requiredChecks.filter((check) => !passedChecks.has(check));
++        if (missingChecks.length > 0) {
++          console.error(`post-finish delegated approval requires passed Evidence checks: ${missingChecks.join(", ")}`);
++          return 1;
++        }
++      }
++      delegatedSubject = { headCommit: subject.headCommit, diffHash: subject.diffHash };
++      const approvedAt = new Date().toISOString();
++      const token = process.env[APPROVAL_DELEGATION_TOKEN_ENV]!;
++      approvalExecution = {
++        ...delegation.approval,
++        approvedAt,
++        delegationProof: buildDelegationProof(task, token, {
++          approvedAt,
++          headCommit: delegatedSubject.headCommit,
++          diffHash: delegatedSubject.diffHash,
++          scope: options.scope
++        })
++      };
++    } else if (resolvedActor === "ai") {
+       console.error("AI execution mode cannot approve human gates; request human approval instead");
+       return 1;
+-    }
+-    if (resolvedActor !== "human") {
+-      console.error("approval approve requires explicit human confirmation; pass --actor human");
++    } else if (resolvedActor !== "human") {
++      console.error("approval approve requires --actor human or an authorized --actor delegated-ai execution");
+       return 1;
+     }
+     const relativePath = approvalPath(taskId);
+@@ -97,8 +150,8 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     const yaml = buildApprovalApproveYaml(taskId, {
+       pullRequest: options.pullRequest ?? approval?.pullRequest,
+       reason: options.reason,
+-      approvedBy: options.approvedBy,
+-      ...evidenceSubject(root, taskId)
++      ...approvalExecution,
++      ...(delegatedSubject ?? evidenceSubject(root, taskId))
+     });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
+diff --git a/src/commands/completion.ts b/src/commands/completion.ts
+index 16c864c..fae076b 100644
+--- a/src/commands/completion.ts
++++ b/src/commands/completion.ts
+@@ -1,6 +1,7 @@
+ import { mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
++import { validateDelegatedApproval } from "../core/human-gate.js";
+ import { matchesAny } from "../core/glob.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+@@ -168,8 +169,16 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+     if (approval.status === "rejected") throw new Error(`${task.id} approval is rejected`);
+     if (approval.status !== "approved") throw new Error(`${task.id} approval status is ${approval.status}; only approved records can complete`);
+ 
++    if (approval.approvalMode === "delegated") {
++      const delegationIssues = validateDelegatedApproval(task, approval, "post-finish");
++      if (delegationIssues.length > 0) throw new Error(delegationIssues.map((issue) => issue.message).join("\n"));
++    }
++
+     const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
+     const evidenceDiffHash = evidence.git?.diffHash ?? evidence.diffHash;
++    if (approval.approvalMode === "delegated" && (!approval.headCommit || !approval.diffHash || !evidenceHeadCommit || !evidenceDiffHash)) {
++      throw new Error(`${task.id} delegated approval and Evidence require headCommit and diffHash`);
++    }
+     if (approval.headCommit !== undefined && evidenceHeadCommit !== undefined && approval.headCommit !== evidenceHeadCommit) {
+       throw new Error(`${task.id} approval headCommit does not match Evidence`);
+     }
+diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
+index 602d94f..596b256 100644
+--- a/src/core/human-gate.ts
++++ b/src/core/human-gate.ts
+@@ -1,6 +1,119 @@
++import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+ import { matchesAny } from "./glob.js";
+ import { changedFilesBetween, isCommitAncestor } from "./git.js";
+-import type { ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
++import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
++
++export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
++
++export type DelegatedApproval = {
++  approvalMode: "delegated";
++  approvedBy: string;
++  delegationSource: string;
++  delegatedBy: string;
++  executedBy: "ai-agent";
++  delegationScope: ApprovalDelegationScope;
++};
++
++type DelegationProofInput = {
++  approvedAt: string;
++  headCommit: string;
++  diffHash: string;
++  scope: ApprovalDelegationScope;
++};
++
++export function approvalDelegationTokenSha256(token: string): string {
++  return `sha256:${createHash("sha256").update(token, "utf8").digest("hex")}`;
++}
++
++function hashesEqual(actual: string, expected: string): boolean {
++  const actualBuffer = Buffer.from(actual, "utf8");
++  const expectedBuffer = Buffer.from(expected, "utf8");
++  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
++}
++
++function policyFingerprint(task: TaskContract): string {
++  const policy = task.approvalPolicy;
++  if (!policy || policy.mode !== "delegated") return "human-only";
++  return createHash("sha256").update(JSON.stringify({
++    ...policy,
++    scopes: [...policy.scopes].sort()
++  }), "utf8").digest("hex");
++}
++
++function proofPayload(task: TaskContract, input: DelegationProofInput): string {
++  return ["scwbs-delegated-approval-v1", task.id, input.scope, input.headCommit, input.diffHash, input.approvedAt, policyFingerprint(task)].join("\0");
++}
++
++export function buildDelegationProof(task: TaskContract, token: string, input: DelegationProofInput): string {
++  return `hmac-sha256:${createHmac("sha256", token).update(proofPayload(task, input), "utf8").digest("hex")}`;
++}
++
++export function authorizeDelegatedApproval(
++  task: TaskContract,
++  scope: ApprovalDelegationScope | undefined,
++  options: { token?: string; now?: Date } = {}
++): { approval?: DelegatedApproval; error?: string } {
++  const policy = task.approvalPolicy;
++  if (!policy || policy.mode !== "delegated") return { error: `${task.id} does not have a delegated approval policy` };
++  if (!scope) return { error: "delegated approval requires --scope human-gate or --scope post-finish" };
++  if (!policy.scopes.includes(scope)) return { error: `${task.id} delegation does not allow ${scope} approval` };
++  const expiresAt = Date.parse(policy.expiresAt);
++  if (!Number.isFinite(expiresAt) || expiresAt <= (options.now ?? new Date()).getTime()) return { error: `${task.id} approval delegation is expired` };
++  if (!options.token) return { error: `${APPROVAL_DELEGATION_TOKEN_ENV} is required for delegated approval` };
++  if (Buffer.byteLength(options.token, "utf8") < 32) return { error: `${APPROVAL_DELEGATION_TOKEN_ENV} must contain at least 32 UTF-8 bytes` };
++  const actualHash = approvalDelegationTokenSha256(options.token);
++  if (!hashesEqual(actualHash, policy.tokenSha256)) return { error: `${APPROVAL_DELEGATION_TOKEN_ENV} does not match the Task Contract delegation` };
++  return {
++    approval: {
++      approvalMode: "delegated",
++      approvedBy: `delegated:${policy.delegatedBy}`,
++      delegationSource: policy.source,
++      delegatedBy: policy.delegatedBy,
++      executedBy: "ai-agent",
++      delegationScope: scope
++    }
++  };
++}
++
++export function validateDelegatedApproval(
++  task: TaskContract,
++  approval: ApprovalRecord,
++  requiredScope: ApprovalDelegationScope,
++  token = process.env[APPROVAL_DELEGATION_TOKEN_ENV]
++): Issue[] {
++  if (approval.approvalMode !== "delegated") return [];
++  const policy = task.approvalPolicy;
++  const issues: Issue[] = [];
++  const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
++  if (!policy || policy.mode !== "delegated") {
++    add("approval.delegation.policy", `${task.id} delegated Approval has no delegated Task policy`);
++    return issues;
++  }
++  if (approval.delegationScope !== requiredScope || !policy.scopes.includes(requiredScope)) add("approval.delegation.scope", `${task.id} requires delegated ${requiredScope} approval`);
++  if (approval.delegationSource !== policy.source || approval.delegatedBy !== policy.delegatedBy || approval.executedBy !== "ai-agent" || approval.approvedBy !== `delegated:${policy.delegatedBy}`) {
++    add("approval.delegation.provenance", `${task.id} delegated Approval does not match its Task policy provenance`);
++  }
++  const approvedAt = approval.approvedAt ? Date.parse(approval.approvedAt) : Number.NaN;
++  const expiresAt = Date.parse(policy.expiresAt);
++  if (!Number.isFinite(approvedAt) || !Number.isFinite(expiresAt) || approvedAt > expiresAt) add("approval.delegation.expiry", `${task.id} delegated Approval was not issued within its policy lifetime`);
++  if (!approval.headCommit || !approval.diffHash || !approval.approvedAt || !approval.delegationScope || !approval.delegationProof) {
++    add("approval.delegation.proof", `${task.id} delegated Approval is missing its scoped proof fields`);
++    return issues;
++  }
++  const authorization = authorizeDelegatedApproval(task, requiredScope, { token, now: new Date(approvedAt) });
++  if (!authorization.approval || !token) {
++    add("approval.delegation.token", authorization.error ?? `${APPROVAL_DELEGATION_TOKEN_ENV} is required to validate delegated Approval`);
++    return issues;
++  }
++  const expectedProof = buildDelegationProof(task, token, {
++    approvedAt: approval.approvedAt,
++    headCommit: approval.headCommit,
++    diffHash: approval.diffHash,
++    scope: approval.delegationScope
++  });
++  if (!hashesEqual(approval.delegationProof, expectedProof)) add("approval.delegation.proof", `${task.id} delegated Approval proof is invalid`);
++  return issues;
++}
+ 
+ export type HumanGateValidation = {
+   required: boolean;
+@@ -67,6 +180,9 @@ export function validateHumanGateApproval(
+   }
+ 
+   const issues: Issue[] = [];
++  if (approval.approvalMode === "delegated") {
++    issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
++  }
+   const subjectHead = evidence ? evidenceHead(evidence) : undefined;
+   const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
+   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index dba8f25..93d6168 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -127,6 +127,36 @@ const taskContractSchema = {
+     },
+     doneCriteria: stringArraySchema,
+     evidenceRequired: stringArraySchema,
++    approvalPolicy: {
++      oneOf: [
++        {
++          type: "object",
++          required: ["mode"],
++          additionalProperties: false,
++          properties: { mode: { const: "human-only" } }
++        },
++        {
++          type: "object",
++          required: ["mode", "delegatedBy", "delegatedTo", "scopes", "source", "reason", "expiresAt", "tokenSha256"],
++          additionalProperties: false,
++          properties: {
++            mode: { const: "delegated" },
++            delegatedBy: { type: "string", minLength: 1 },
++            delegatedTo: { const: "ai-agent" },
++            scopes: {
++              type: "array",
++              minItems: 1,
++              uniqueItems: true,
++              items: { type: "string", enum: ["human-gate", "post-finish"] }
++            },
++            source: { type: "string", minLength: 1 },
++            reason: { type: "string", minLength: 1 },
++            expiresAt: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$" },
++            tokenSha256: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" }
++          }
++        }
++      ]
++    },
+     contractLock: {
+       type: "object",
+       additionalProperties: true,
+@@ -301,6 +331,12 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+   if (value.stopIf !== undefined && !isStringArray(value.stopIf)) {
+     issues.push(issue("task.array", `${filePath}.stopIf must be a string array when present`));
+   }
++  if (isObject(value.approvalPolicy) && value.approvalPolicy.mode === "delegated") {
++    const expiresAt = value.approvalPolicy.expiresAt;
++    if (typeof expiresAt !== "string" || !Number.isFinite(Date.parse(expiresAt))) {
++      issues.push(issue("task.approvalPolicy.expiresAt", `${filePath}.approvalPolicy.expiresAt must be a valid timestamp`));
++    }
++  }
+   if (value.checkCoverageWaivers !== undefined) {
+     if (!Array.isArray(value.checkCoverageWaivers)) {
+       issues.push(issue("task.checkCoverageWaivers", `${filePath}.checkCoverageWaivers must be an array when present`));
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 6abbf3f..6454a3b 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -111,6 +111,12 @@ const approvalRecordSchema = {
+     diffHash: { type: "string" },
+     pullRequest: { type: "string" },
+     reason: { type: "string" },
++    approvalMode: { type: "string", enum: ["human", "delegated"] },
++    delegationSource: { type: "string" },
++    delegatedBy: { type: "string" },
++    executedBy: { const: "ai-agent" },
++    delegationScope: { type: "string", enum: ["human-gate", "post-finish"] },
++    delegationProof: { type: "string", pattern: "^hmac-sha256:[a-f0-9]{64}$" },
+     notes: stringArraySchema
+   }
+ };
+@@ -297,7 +303,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
+     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
+   }
+-  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason"]) {
++  for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+     if (value[key] !== undefined && typeof value[key] !== "string") {
+       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
+     }
+@@ -311,6 +317,21 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+         issues.push(issue("approval.status", `${filePath}.${key} must be present when status is approved`));
+       }
+     }
++    if (value.approvalMode === "delegated") {
++      for (const key of ["delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof", "headCommit", "diffHash"]) {
++        if (typeof value[key] !== "string" || value[key].length === 0) {
++          issues.push(issue("approval.delegation", `${filePath}.${key} must be present for delegated approval`));
++        }
++      }
++      if (value.executedBy !== "ai-agent") {
++        issues.push(issue("approval.delegation", `${filePath}.executedBy must be ai-agent for delegated approval`));
++      }
++      if (value.approvedBy !== `delegated:${String(value.delegatedBy ?? "")}`) {
++        issues.push(issue("approval.delegation", `${filePath}.approvedBy must identify the delegatedBy principal`));
++      }
++    } else if (["delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"].some((key) => value[key] !== undefined)) {
++      issues.push(issue("approval.delegation", `${filePath} delegation fields require approvalMode delegated`));
++    }
+   }
+   return issues;
+ }
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+index 2a48dcf..29a6455 100644
+--- a/src/core/task-authority.ts
++++ b/src/core/task-authority.ts
+@@ -13,7 +13,8 @@ export const TASK_AUTHORITY_FIELDS = [
+   "humanGateRequiredPaths",
+   "requiredChecks",
+   "managedContractPaths",
+-  "checkCoverageWaivers"
++  "checkCoverageWaivers",
++  "approvalPolicy"
+ ] as const;
+ 
+ const REQUIRED_NEW_TASK_HUMAN_GATES = [
+@@ -42,7 +43,10 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
+     managedContractPaths: normalizedStrings(task.managedContractPaths),
+     checkCoverageWaivers: [...(task.checkCoverageWaivers ?? [])]
+       .map((waiver) => ({ check: waiver.check, reason: waiver.reason }))
+-      .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`))
++      .sort((left, right) => `${left.check}\0${left.reason}`.localeCompare(`${right.check}\0${right.reason}`)),
++    approvalPolicy: task.approvalPolicy?.mode === "delegated"
++      ? { ...task.approvalPolicy, scopes: normalizedStrings(task.approvalPolicy.scopes) }
++      : { mode: "human-only" }
+   };
+ }
+ 
+diff --git a/src/core/types.ts b/src/core/types.ts
+index e1fed94..ba8ef24 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -25,6 +25,20 @@ export type Registry = {
+ };
+ 
+ export type ApprovalStatus = "requested" | "approved" | "rejected";
++export type ApprovalDelegationScope = "human-gate" | "post-finish";
++
++export type ApprovalPolicy =
++  | { mode: "human-only" }
++  | {
++      mode: "delegated";
++      delegatedBy: string;
++      delegatedTo: "ai-agent";
++      scopes: ApprovalDelegationScope[];
++      source: string;
++      reason: string;
++      expiresAt: string;
++      tokenSha256: string;
++    };
+ 
+ export type SpecContractStatus = "draft" | "approved" | "superseded";
+ export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
+@@ -113,6 +127,7 @@ export type TaskContract = {
+    * humanGateRequiredPaths, which always take priority.
+    */
+   managedContractPaths?: string[];
++  approvalPolicy?: ApprovalPolicy;
+ };
+ 
+ export type CheckCoverageClassification = "behavior-critical" | "unit-only";
+@@ -199,6 +214,12 @@ export type ApprovalRecord = {
+   diffHash?: string;
+   pullRequest?: string;
+   reason?: string;
++  approvalMode?: "human" | "delegated";
++  delegationSource?: string;
++  delegatedBy?: string;
++  executedBy?: "ai-agent";
++  delegationScope?: ApprovalDelegationScope;
++  delegationProof?: string;
+   notes?: string[];
+ };
+ 
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index 73b0593..8467483 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -2,10 +2,32 @@ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildApprovalApproveYaml, buildApprovalRequestYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
++import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ import { main } from "../../src/cli.js";
+ import { readApproval } from "../../src/core/contracts.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
+ 
++const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
++const OTHER_STRONG_TOKEN = "fedcba9876543210fedcba9876543210";
++
++function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
++  const stdout: string[] = [];
++  const stderr: string[] = [];
++  const originalWrite = process.stdout.write;
++  const originalError = console.error;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
++  try {
++    return { result: action(), stdout: stdout.join(""), stderr: stderr.join("\n") };
++  } finally {
++    process.stdout.write = originalWrite;
++    console.error = originalError;
++  }
++}
++
+ describe("approval", () => {
+   test("approval request writes a requested approval record", () => {
+     const root = makeTempRepo();
+@@ -84,6 +106,99 @@ describe("approval", () => {
+     expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
+   });
+ 
++  test("approval approve writes a provenance-distinct delegated record for an authorized scope", () => {
++    const root = makeTempRepo();
++    const token = STRONG_TOKEN;
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "xmeta",
++        delegatedTo: "ai-agent",
++        scopes: ["human-gate", "post-finish"],
++        source: "https://github.com/xmeta/ACED/issues/222",
++        reason: "Authorized unattended execution",
++        expiresAt: "2099-01-01T00:00:00.000Z",
++        tokenSha256: approvalDelegationTokenSha256(token)
++      }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
++    let output: ReturnType<typeof captureOutput>;
++    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
++    try {
++      output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", {
++        reason: "Automated evidence review",
++        actor: "delegated-ai",
++        scope: "post-finish",
++        force: false
++      }));
++    } finally {
++      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    }
++    expect(output.result).toBe(0);
++    const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
++    expect(actual).toContain("approvalMode: delegated");
++    expect(actual).toContain("delegationSource: https://github.com/xmeta/ACED/issues/222");
++    expect(actual).toContain("delegatedBy: xmeta");
++    expect(actual).toContain("executedBy: ai-agent");
++    expect(actual).toContain("delegationScope: post-finish");
++    expect(actual).toContain("delegationProof: hmac-sha256:");
++    expect(actual).not.toContain(token);
++    expect(output.stdout).not.toContain(token);
++    expect(output.stderr).not.toContain(token);
++  });
++
++  test.each([
++    { name: "missing policy", task: sampleTask(), token: STRONG_TOKEN, scope: "human-gate", error: "does not have a delegated approval policy" },
++    { name: "missing token", task: sampleTask({ approvalPolicy: {
++      mode: "delegated", delegatedBy: "xmeta", delegatedTo: "ai-agent", scopes: ["human-gate"],
++      source: "issue-222", reason: "automation", expiresAt: "2099-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256(STRONG_TOKEN)
++    } }), token: undefined, scope: "human-gate", error: `${APPROVAL_DELEGATION_TOKEN_ENV} is required` },
++    { name: "token mismatch", task: sampleTask({ approvalPolicy: {
++      mode: "delegated", delegatedBy: "xmeta", delegatedTo: "ai-agent", scopes: ["human-gate"],
++      source: "issue-222", reason: "automation", expiresAt: "2099-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256(STRONG_TOKEN)
++    } }), token: OTHER_STRONG_TOKEN, scope: "human-gate", error: "does not match the Task Contract delegation" },
++    { name: "expired policy", task: sampleTask({ approvalPolicy: {
++      mode: "delegated", delegatedBy: "xmeta", delegatedTo: "ai-agent", scopes: ["human-gate"],
++      source: "issue-222", reason: "automation", expiresAt: "2020-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256(STRONG_TOKEN)
++    } }), token: STRONG_TOKEN, scope: "human-gate", error: "approval delegation is expired" },
++    { name: "scope mismatch", task: sampleTask({ approvalPolicy: {
++      mode: "delegated", delegatedBy: "xmeta", delegatedTo: "ai-agent", scopes: ["human-gate"],
++      source: "issue-222", reason: "automation", expiresAt: "2099-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256(STRONG_TOKEN)
++    } }), token: STRONG_TOKEN, scope: "post-finish", error: "delegation does not allow post-finish approval" },
++    { name: "weak token", task: sampleTask({ approvalPolicy: {
++      mode: "delegated", delegatedBy: "xmeta", delegatedTo: "ai-agent", scopes: ["human-gate"],
++      source: "issue-222", reason: "automation", expiresAt: "2099-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256("short-token")
++    } }), token: "short-token", scope: "human-gate", error: "at least 32 UTF-8 bytes" }
++  ])("delegated approval fails closed for $name", ({ task, token, scope, error }) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
++    if (token) process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
++    else delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    let output: ReturnType<typeof captureOutput>;
++    try {
++      output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope, force: false }));
++    } finally {
++      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    }
++    expect(output.result).toBe(1);
++    expect(output.stderr).toContain(error);
++    if (token) {
++      expect(output.stdout).not.toContain(token);
++      expect(output.stderr).not.toContain(token);
++    }
++    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
++  });
++
+   test("approval approve updates requested records and protects existing approvals", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index a328650..3a7716b 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -51,7 +51,17 @@ describe("check-diff", () => {
+       humanGateRequiredPaths: [],
+       requiredChecks: ["test"],
+       managedContractPaths: [...(base.managedContractPaths ?? []), "contracts/registry.yaml"],
+-      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }]
++      checkCoverageWaivers: [{ check: "test:integration", reason: "skip" }],
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "owner",
++        delegatedTo: "ai-agent",
++        scopes: ["human-gate"],
++        source: "issue-222",
++        reason: "automation",
++        expiresAt: "2099-01-01T00:00:00.000Z",
++        tokenSha256: `sha256:${"a".repeat(64)}`
++      }
+     });
+     expect(changedTaskAuthorityFields(base, weakened)).toEqual([
+       "allowedPaths",
+@@ -59,7 +69,8 @@ describe("check-diff", () => {
+       "humanGateRequiredPaths",
+       "requiredChecks",
+       "managedContractPaths",
+-      "checkCoverageWaivers"
++      "checkCoverageWaivers",
++      "approvalPolicy"
+     ]);
+   });
+ 
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+index d5a65d3..445d47f 100644
+--- a/tests/integration/check.test.ts
++++ b/tests/integration/check.test.ts
+@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
+ import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
+ import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ import { readTask } from "../../src/core/contracts.js";
++import { runApprovalApprove } from "../../src/commands/approval-request.js";
++import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ 
+ describe("check", () => {
+   test("check --json outputs pass status with empty issues for a healthy repo", () => {
+@@ -192,6 +194,36 @@ describe("check", () => {
+     ]));
+   });
+ 
++  test("Human Gate rejects a post-finish delegated approval", () => {
++    const root = makeTempRepo();
++    const token = "0123456789abcdef0123456789abcdef";
++    writeScwbsProject(root, "completed");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ approvalPolicy: {
++      mode: "delegated",
++      delegatedBy: "xmeta",
++      delegatedTo: "ai-agent",
++      scopes: ["human-gate", "post-finish"],
++      source: "https://github.com/xmeta/ACED/issues/222",
++      reason: "Authorized unattended execution",
++      expiresAt: "2099-01-01T00:00:00.000Z",
++      tokenSha256: approvalDelegationTokenSha256(token)
++    } }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      changedFiles: ["src/security/key.ts"],
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
++    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
++    try {
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
++      expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
++        expect.objectContaining({ code: "approval.delegation.scope", severity: "error" })
++      ]));
++    } finally {
++      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    }
++  });
++
+   test("non-existent task ID in completionTaskIds is detected", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/completion.test.ts b/tests/integration/completion.test.ts
+index 07e515a..3bc1943 100644
+--- a/tests/integration/completion.test.ts
++++ b/tests/integration/completion.test.ts
+@@ -3,10 +3,28 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
++import { runApprovalApprove } from "../../src/commands/approval-request.js";
++import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ import { readApproval } from "../../src/core/contracts.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("completion apply", () => {
++  const delegationToken = "0123456789abcdef0123456789abcdef";
++
++  function delegatedTask(): ReturnType<typeof sampleTask> {
++    return sampleTask({
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "xmeta",
++        delegatedTo: "ai-agent",
++        scopes: ["human-gate", "post-finish"],
++        source: "https://github.com/xmeta/ACED/issues/222",
++        reason: "Authorized unattended execution",
++        expiresAt: "2099-01-01T00:00:00.000Z",
++        tokenSha256: approvalDelegationTokenSha256(delegationToken)
++      }
++    });
++  }
+   function writeFakeWjsApply(root: string): void {
+     mkdirSync(path.join(root, "wjs/tools"), { recursive: true });
+     writeText(root, "wjs/tools/apply.ts", "// marker file for the WJS apply tool\n");
+@@ -296,6 +314,38 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(wbs.nodes.find((node) => node.id === "node-api")?.status).toBe("ready");
+   });
+ 
++  test("completion accepts a valid post-finish delegated proof", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", delegatedTask() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
++    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
++    try {
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
++      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(0);
++    } finally {
++      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    }
++  });
++
++  test("completion rejects human-gate scope and a tampered delegated proof", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", delegatedTask() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
++    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
++    try {
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", force: false })).toBe(0);
++      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: true })).toBe(0);
++      const approval = readApproval(root, "WBS-001-004").approval!;
++      writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...approval, delegationProof: `hmac-sha256:${"a".repeat(64)}` } as unknown as Record<string, unknown>);
++      expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
++    } finally {
++      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
++    }
++  });
++
+   test("completion apply fails when approval is requested", () => {
+     const root = makeTempRepo();
+     writeFakeWjsApply(root);
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index a974475..3154c99 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -109,6 +109,62 @@ describe("contracts / schema", () => {
+     expect(issues.some((issue) => issue.code === "task.wbsNodeId")).toBe(true);
+   });
+ 
++  test.each([
++    {
++      name: "missing token hash",
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "owner",
++        delegatedTo: "ai-agent",
++        scopes: ["human-gate"],
++        source: "issue-222",
++        reason: "automation",
++        expiresAt: "2099-01-01T00:00:00.000Z"
++      },
++      semanticCode: undefined
++    },
++    {
++      name: "malformed expiry and plaintext token",
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "owner",
++        delegatedTo: "ai-agent",
++        scopes: ["human-gate"],
++        source: "issue-222",
++        reason: "automation",
++        expiresAt: "not-a-date",
++        tokenSha256: "plaintext-secret"
++      },
++      semanticCode: "task.approvalPolicy.expiresAt"
++    }
++  ])("task approvalPolicy rejects $name", ({ approvalPolicy, semanticCode }) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...sampleTask(),
++      approvalPolicy
++    });
++    const result = readTask(root, "WBS-001-004");
++    expect(result.task).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "task.schema")).toBe(true);
++    if (semanticCode) {
++      expect(result.issues.some((issue) => issue.code === semanticCode)).toBe(true);
++    }
++  });
++
++  test("delegated approval records require complete provenance", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved",
++      approvalMode: "delegated"
++    }) as unknown as Record<string, unknown>);
++
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "approval.delegation")).toBe(true);
++  });
++
+   test("missing wbsNodeId is an error", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
