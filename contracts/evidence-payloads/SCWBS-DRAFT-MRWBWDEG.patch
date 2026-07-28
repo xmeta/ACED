@@ -1,0 +1,179 @@
+diff --git a/contracts/specs/SPEC-LITE-MRWBWDEG.yaml b/contracts/specs/SPEC-LITE-MRWBWDEG.yaml
+new file mode 100644
+index 0000000..a7fd0a6
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRWBWDEG.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRWBWDEG
++type: spec-contract
++featureId: F-MRWBWDEG
++title: "Issue #276: code-context reverseImporterCounts unit testの一時Git repository・fixture・manifest構築コストを計測し、required npm testの5秒timeout flakeをテスト専用fixture軽量化で解消する"
++status: approved
++version: 0.1.0
++summary: "Issue #276のcode-context unit timeout flakeを、reverseImporterCountsの純粋関数testから不要なGit・fixture・manifest構築を除くことで解消する"
++approvedBy: user-requested-issue-276
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - reverseImporterCountsの3つのunit testが、一時Git repository、fixture書き込み、commit、buildCodeContextManifestを実行せず、manifestのreasons入力に対するcount結果を直接検証する
++  - integration suiteの既存testがbuildCodeContextManifestのreverse-importer reason生成を継続検証する
++  - 変更前後の対象test、npm test、fixture生成、Git操作、manifest構築の実測値をIssue #276またはEvidenceに記録する
++  - npm testを20回連続実行し、全85 testsが毎回PASSし、対象の5秒timeoutが再発しない
++  - checks run --base origin/main --rerun-checks --jsonでtest、test:integration、typecheck、buildが4/4 PASSし、current-head receiptが生成される
++  - vitest.config.tsのグローバルtimeout、src/core/code-context.ts、Issue #261 Task authority、PR #258に変更を加えない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml b/contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
+new file mode 100644
+index 0000000..d6cfbad
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
+@@ -0,0 +1,54 @@
++id: SCWBS-DRAFT-MRWBWDEG
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRWBWDEG
++branchName: task/SCWBS-DRAFT-MRWBWDEG-issue-276-code-context-reverseimportercounts-uni
++allowedPaths:
++  - tests/unit/code-context.test.ts
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - vitest.config.ts
++  - package.json
++  - package-lock.json
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - contracts/tasks/index.yaml
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - reverseImporterCounts unit testから不要な一時Git repository、fixture書き込み、commit、manifest構築を除き、純粋関数の入力と出力を直接検証する
++  - 変更前後の対象testとnpm testのwall time、fixture生成・Git・manifest構築コストを記録する
++  - npm testを20回連続実行し、対象testを含む85/85 testsが毎回PASSする
++  - canonical checks runがtest、test:integration、typecheck、buildの4/4 PASSとcurrent-head receiptを生成する
++  - グローバルtimeout、製品コード、Issue
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
++  - contracts/specs/SPEC-LITE-MRWBWDEG.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRWBWDEG.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRWBWDEG.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRWBWDEG.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRWBWDEG.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:4497eac6912e76dea74265ceaca83b73336a591f958844cebce947b7b1a7ac22
++  createdAt: "2026-07-22T17:02:21.305Z"
+diff --git a/tests/unit/code-context.test.ts b/tests/unit/code-context.test.ts
+index e133b3a..0bc1c98 100644
+--- a/tests/unit/code-context.test.ts
++++ b/tests/unit/code-context.test.ts
+@@ -1,28 +1,28 @@
+ import { describe, expect, test } from "vitest";
+-import { buildCodeContextManifest, reverseImporterCounts } from "../../src/core/code-context.js";
+-import { makeTempRepo, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+-import { execFileSync } from "node:child_process";
++import { reverseImporterCounts, type CodeContextManifest } from "../../src/core/code-context.js";
+ 
+ describe("code-context helpers", () => {
+-  function commit(root: string, message: string): void {
+-    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+-    execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++  function manifestWithReasons({
++    mustRead = [],
++    candidates = []
++  }: {
++    mustRead?: string[][];
++    candidates?: string[][];
++  }): CodeContextManifest {
++    return {
++      mustRead: mustRead.map((reasons) => ({ reasons })),
++      candidates: candidates.map((reasons) => ({ reasons }))
++    } as unknown as CodeContextManifest;
+   }
+ 
+   test("reverseImporterCounts counts reverse importers per file", () => {
+-    const root = makeTempRepo();
+-    writeScwbsProject(root);
+-    writeText(root, "src/feature.ts", "import { helper } from \"./helper.js\";\nexport const secretSourceBody = helper;\n");
+-    writeText(root, "src/helper.ts", "export const helper = 1;\n");
+-    writeText(root, "src/caller.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
+-    writeText(root, "src/another.ts", "import { secretSourceBody } from \"./feature.js\";\nvoid secretSourceBody;\n");
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      allowedPaths: ["src/feature.ts"],
+-      requiredChecks: ["test", "typecheck"]
+-    }) as unknown as Record<string, unknown>);
+-    commit(root, "context fixture");
+-
+-    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const manifest = manifestWithReasons({
++      candidates: [
++        ["reverse-importer:src/feature.ts:1"],
++        ["reverse-importer:src/feature.ts:1"],
++        ["direct-static-import:src/feature.ts:1"]
++      ]
++    });
+     const counts = reverseImporterCounts(manifest);
+     expect(counts.get("src/feature.ts")).toBe(2);
+     expect(counts.get("src/helper.ts")).toBeUndefined();
+@@ -30,33 +30,21 @@ describe("code-context helpers", () => {
+   });
+ 
+   test("reverseImporterCounts includes mustRead and candidates", () => {
+-    const root = makeTempRepo();
+-    writeScwbsProject(root);
+-    writeText(root, "src/feature.ts", "export const value = 1;\n");
+-    writeText(root, "src/caller.ts", "import { value } from \"./feature.js\";\nvoid value;\n");
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      allowedPaths: ["src/feature.ts"],
+-      requiredChecks: ["test", "typecheck"]
+-    }) as unknown as Record<string, unknown>);
+-    commit(root, "context fixture");
+-
+-    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const manifest = manifestWithReasons({
++      mustRead: [["reverse-importer:src/feature.ts:1"]],
++      candidates: [["reverse-importer:src/feature.ts:2"]]
++    });
+     const counts = reverseImporterCounts(manifest);
+-    expect(counts.get("src/feature.ts")).toBe(1);
++    expect(counts.get("src/feature.ts")).toBe(2);
+   });
+ 
+   test("reverseImporterCounts counts unique importer files, not import statements", () => {
+-    const root = makeTempRepo();
+-    writeScwbsProject(root);
+-    writeText(root, "src/feature.ts", "export const a = 1;\nexport const b = 2;\n");
+-    writeText(root, "src/caller.ts", "import { a } from \"./feature.js\";\nimport { b } from \"./feature.js\";\nvoid a;\nvoid b;\n");
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      allowedPaths: ["src/feature.ts"],
+-      requiredChecks: ["test", "typecheck"]
+-    }) as unknown as Record<string, unknown>);
+-    commit(root, "context fixture");
+-
+-    const manifest = buildCodeContextManifest(root, "WBS-001-004");
++    const manifest = manifestWithReasons({
++      candidates: [[
++        "reverse-importer:src/feature.ts:1",
++        "reverse-importer:src/feature.ts:2"
++      ]]
++    });
+     const counts = reverseImporterCounts(manifest);
+     expect(counts.get("src/feature.ts")).toBe(1);
+   });

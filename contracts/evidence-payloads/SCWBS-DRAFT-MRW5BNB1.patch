@@ -1,0 +1,788 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml b/contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
+new file mode 100644
+index 0000000..a6408a2
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
+@@ -0,0 +1,29 @@
++id: BLK-SCWBS-DRAFT-MRW5BNB1
++type: block
++taskId: SCWBS-DRAFT-MRW5BNB1
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: Current-head required check npm test still fails at tests/unit/code-context.test.ts timeout; the timeout fix is outside this Task allowedPaths, so a separate scoped governance/test task or explicit contract decision is required
++createdAt: "2026-07-22T14:43:40.382Z"
++history:
++  - status: blocked
++    at: "2026-07-22T14:31:07.954Z"
++    reason: Required check npm test repeatedly fails at tests/unit/code-context.test.ts timeout; fixing test timeout or test configuration is outside this Task allowedPaths and requires human decision
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-22T14:35:12.271Z"
++    reason: code-context.test.ts のtimeout対応方針を承認
++    by: human
++  - status: blocked
++    at: "2026-07-22T14:43:40.382Z"
++    reason: Current-head required check npm test still fails at tests/unit/code-context.test.ts timeout; the timeout fix is outside this Task allowedPaths, so a separate scoped governance/test task or explicit contract decision is required
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-22T20:52:46.166Z"
++    reason: "Issue #276 / PR #277でcode-context unit testのtimeout flakeが修正され、最新origin/mainをTask branchへ通常merge済みのため、required checksを再開する"
++    by: human
++resolvedAt: "2026-07-22T20:52:46.166Z"
++resolvedBy: human
++resolution: "Issue #276 / PR #277でcode-context unit testのtimeout flakeが修正され、最新origin/mainをTask branchへ通常merge済みのため、required checksを再開する"
+diff --git a/contracts/specs/SPEC-LITE-MRW5BNB1.yaml b/contracts/specs/SPEC-LITE-MRW5BNB1.yaml
+new file mode 100644
+index 0000000..ac0fbf3
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRW5BNB1.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRW5BNB1
++type: spec-contract
++featureId: F-MRW5BNB1
++title: "Issue #261 replacement: provenance検証済みGitHub CI required-check Evidence取り込み"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-261-replacement
++approvedAt: "2026-07-22T00:00:00+09:00"
++summary: "GitHub Actionsの任意成功をEvidenceへ昇格せず、TaskとPR provenanceに拘束されたrequired-check receiptだけを取り込む"
++acceptanceCriteria:
++  - "CI receiptはrepository、PR番号、head SHA、base SHA/ref、implementation diffHash、Task ID/authority fingerprint、workflow path、run ID/URL、取得時刻、required job mapping、検証結果をversioned schemaで保持し、tokenやAuthorization値を保存・出力しない"
++  - "現在のTask ContractとEvidenceのhead/base/diffHash/authorityが一致し、対象PRのhead/baseと一致し、同一workflow runのrequired job（core、integration、wjs、validate）がすべてSUCCESSである場合だけpassed CI checkとして採用する"
++  - "workflow path/ref、run ID、job ID/name、job URL、head SHA、conclusion、PR contextをAPIから再検証し、fork PR、merge queue、rerun/attempt不明、同名job、複数run混在、取得失敗、認証失敗、stale head、不一致はfail-closedでfull/local再実行または未採用になる"
++  - "Evidenceの各CI checkへsource: ci、runId、URL、verifiedBy、executedAt相当の監査情報を記録し、local receiptとCI receiptを同一視せず、head/base/diffHash/authority/workflow/job mappingの変更時にCI receiptを無効化する"
++  - "既存のexact local receipt、#203/#273のmetadata fast path、Evidence fixed point、Human Approval/GitHub Approve禁止を回帰fixtureで維持する"
++  - "最終plan/receipt JSONとEvidence collect summaryはschema validationを通過し、fallback理由とtrusted run/jobの選択理由をboundedかつ監査可能に出力する"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml b/contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
+new file mode 100644
+index 0000000..162d629
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MRW5BNB1
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRW5BNB1
++branchName: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
++allowedPaths:
++  - .github/workflows/scwbs.yml
++  - src/cli.ts
++  - src/commands/ci-plan.ts
++  - src/commands/evidence-collect.ts
++  - src/core/schema/records.ts
++  - src/core/types.ts
++  - tests/integration/ci-plan.test.ts
++  - tests/integration/evidence.test.ts
++  - docs/scwbs/schemas/ci-plan.schema.json
++  - docs/scwbs/schemas/evidence-collect-summary.schema.json
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - Human Gate approval required before changing .github/**
++  - GitHub API authentication, fork PR, merge queue, rerun, or duplicate job semantics are not fail-closed
++  - package, lockfile, tsconfig, vitest, WJS, or check-coverage changes are required
++  - Required-check job mapping or local/CI receipt precedence is not explicit
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Versioned CI receipt input and Evidence representation record repository, PR, head, base, diffHash, workflow path, run ID/URL, retrieval time, and verification result without secrets
++  - CI receipt is accepted only when PR/head/base/diffHash and Task authority match the current Task, and every required job maps explicitly to a successful job in one provenance-verified workflow run
++  - Missing or failed authentication/API retrieval, unknown workflow provenance, fork or merge-queue context, rerun ambiguity, duplicate job names, mixed runs, stale head, or mismatched authority fail closed and never produce passed CI Evidence
++  - Verified CI checks are recorded as source ci with auditable run/job identifiers and verifiedBy metadata; local receipts remain distinct and cache invalidation covers head, base, diffHash, authority, workflow, and required-job mapping changes
++  - Existing exact local receipt reuse, metadata fast-path behavior, Human Approval boundaries, and GitHub Approve prohibition remain unchanged
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
++  - contracts/specs/SPEC-LITE-MRW5BNB1.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRW5BNB1.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRW5BNB1.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRW5BNB1.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRW5BNB1.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5257411e875aeb611e5b576b6023750fc2d46f9b90e85994385fcf879d54ee36
++  createdAt: "2026-07-22T13:57:34.788Z"
+diff --git a/docs/scwbs/schemas/ci-plan.schema.json b/docs/scwbs/schemas/ci-plan.schema.json
+index 61563ab..df839c9 100644
+--- a/docs/scwbs/schemas/ci-plan.schema.json
++++ b/docs/scwbs/schemas/ci-plan.schema.json
+@@ -12,6 +12,7 @@
+     "headCommit",
+     "subjectHeadCommit",
+     "diffHash",
++    "authorityFingerprint",
+     "metadataFiles",
+     "metadataAncestry",
+     "changedFilesSinceSubject",
+@@ -28,6 +29,7 @@
+     "headCommit": { "type": ["string", "null"] },
+     "subjectHeadCommit": { "type": ["string", "null"] },
+     "diffHash": { "type": ["string", "null"] },
++    "authorityFingerprint": { "type": ["string", "null"] },
+     "metadataFiles": { "type": "array", "items": { "type": "string" } },
+     "metadataAncestry": {
+       "type": "array",
+diff --git a/docs/scwbs/schemas/evidence-collect-summary.schema.json b/docs/scwbs/schemas/evidence-collect-summary.schema.json
+index 30e3365..70903c5 100644
+--- a/docs/scwbs/schemas/evidence-collect-summary.schema.json
++++ b/docs/scwbs/schemas/evidence-collect-summary.schema.json
+@@ -21,6 +21,16 @@
+       }
+     },
+     "changedFiles": { "type": "integer", "minimum": 0 },
+-    "pullRequest": { "type": ["string", "null"] }
++    "pullRequest": { "type": ["string", "null"] },
++    "ciReceipt": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["verified", "workflowRunId", "jobCount"],
++      "properties": {
++        "verified": { "const": true },
++        "workflowRunId": { "type": "string", "minLength": 1 },
++        "jobCount": { "type": "integer", "minimum": 1 }
++      }
++    }
+   }
+ }
+diff --git a/src/cli.ts b/src/cli.ts
+index d09daaf..3ebec1c 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -565,6 +565,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--task <id>", "task id")
+     .option("--base <ref>", "base reference")
+     .option("--pull-request <id>", "pull request id")
++    .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
+     .option("--force", "force collection")
+     .option("--test-assertions-added <bool>", "test assertions added")
+     .option("--tests-disabled <bool>", "tests disabled")
+@@ -584,6 +585,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         force: opts.force ?? false,
+         baseRef: opts.base,
+         pullRequest: opts.pullRequest,
++        ciReceipt: opts.ciReceipt,
+         testQuality: parseTestQuality(opts),
+         rerunChecks: opts.rerunChecks ?? false,
+         json: opts.json ?? false,
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+index 9e940db..c83ab53 100644
+--- a/src/commands/ci-plan.ts
++++ b/src/commands/ci-plan.ts
+@@ -1,4 +1,5 @@
+ import { spawnSync } from "node:child_process";
++import { createHash } from "node:crypto";
+ import { existsSync } from "node:fs";
+ import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
+ import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+@@ -39,6 +40,7 @@ export type CiPlan = {
+   headCommit: string | null;
+   subjectHeadCommit: string | null;
+   diffHash: string | null;
++  authorityFingerprint: string | null;
+   metadataFiles: string[];
+   metadataAncestry: CiPlanCommit[];
+   changedFilesSinceSubject: string[];
+@@ -46,6 +48,18 @@ export type CiPlan = {
+   classification: TaskClassificationReport;
+ };
+ 
++export function taskAuthorityFingerprint(task: TaskContract): string {
++  const authority = {
++    allowedPaths: task.allowedPaths,
++    forbiddenPaths: task.forbiddenPaths,
++    humanGateRequiredPaths: task.humanGateRequiredPaths,
++    requiredChecks: task.requiredChecks,
++    managedContractPaths: task.managedContractPaths ?? [],
++    checkCoverageWaivers: task.checkCoverageWaivers ?? []
++  };
++  return `sha256:${createHash("sha256").update(JSON.stringify(authority)).digest("hex")}`;
++}
++
+ export type TaskClassificationReport = {
+   schemaVersion: "1.0.0";
+   status: "classified" | "unavailable";
+@@ -124,6 +138,7 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
+     headCommit: null,
+     subjectHeadCommit: null,
+     diffHash: null,
++    authorityFingerprint: null,
+     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
+     metadataAncestry: [],
+     changedFilesSinceSubject: [],
+@@ -308,6 +323,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     headCommit: currentHead,
+     subjectHeadCommit: subjectHead,
+     diffHash: recordedDiffHash,
++    authorityFingerprint: taskAuthorityFingerprint(task),
+     metadataFiles,
+     metadataAncestry,
+     changedFilesSinceSubject,
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 3a6858b..92711ef 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -1,4 +1,4 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+ import { readEvidence, readTask } from "../core/contracts.js";
+@@ -8,11 +8,12 @@ import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-r
+ import { branchChangedFiles, branchDiffHash, changedFilesBetween, currentBranch, headCommit, isCommitAncestor, mergeBase, resolveCommit } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
++import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { printIssues } from "../core/report.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
++import { taskAuthorityFingerprint } from "./ci-plan.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ import {
+   acquireRequiredCheckRun,
+@@ -58,6 +59,11 @@ export type EvidenceCollectSummary = {
+   };
+   changedFiles: number;
+   pullRequest: string | null;
++  ciReceipt?: {
++    verified: true;
++    workflowRunId: string;
++    jobCount: number;
++  };
+ };
+ 
+ export type EvidenceCollectOptions = {
+@@ -70,6 +76,7 @@ export type EvidenceCollectOptions = {
+   verbose?: boolean;
+   output?: string;
+   quiet?: boolean;
++  ciReceipt?: string;
+ };
+ 
+ function postEvidenceMetadataFiles(taskId: string): string[] {
+@@ -81,6 +88,121 @@ function postEvidenceMetadataFiles(taskId: string): string[] {
+   ];
+ }
+ 
++const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
++const CI_JOB_NAMES = ["core", "integration", "wjs", "validate"];
++
++function normalizedGithubRepository(value: string): string | undefined {
++  const trimmed = value.trim().replace(/\.git$/, "");
++  const match = trimmed.match(/github\.com[/:]([^/]+\/[^/]+)$/i);
++  return match?.[1];
++}
++
++function originRepository(root: string): string {
++  const result = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
++  if (result.status !== 0 || !result.stdout.trim()) throw new Error("CI receipt rejected: origin repository cannot be verified");
++  const repository = normalizedGithubRepository(result.stdout);
++  if (!repository) throw new Error("CI receipt rejected: origin is not a GitHub repository");
++  return repository;
++}
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function validRunUrl(value: unknown, runId: string): value is string {
++  if (typeof value !== "string" || value.length === 0) return false;
++  try {
++    const url = new URL(value);
++    return url.protocol === "https:" && url.pathname.includes(`/actions/runs/${runId}`);
++  } catch {
++    return false;
++  }
++}
++
++function verifyCiReceipt(
++  root: string,
++  task: TaskContract,
++  taskId: string,
++  receiptValue: unknown,
++  expected: { pullRequest?: string; head: string; baseRef: string; baseCommit: string; diffHash: string }
++): CiReceipt {
++  const failures: string[] = [];
++  if (!isRecord(receiptValue)) throw new Error("CI receipt rejected: JSON root must be an object");
++  const receipt = receiptValue as Partial<CiReceipt>;
++  const requiredStrings = [
++    "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash",
++    "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit", "retrievedAt"
++  ] as const;
++  for (const key of requiredStrings) {
++    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
++  }
++  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
++  if (receipt.verifiedBy !== "github-actions-provenance") failures.push("verifiedBy is not the GitHub provenance verifier");
++  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
++  if (receipt.pullRequest !== expected.pullRequest || !expected.pullRequest) failures.push("pullRequest does not match the current PR");
++  if (receipt.headCommit !== expected.head) failures.push("headCommit is stale or does not match HEAD");
++  if (receipt.baseRef !== expected.baseRef) failures.push("baseRef does not match the requested base");
++  if (receipt.baseCommit !== expected.baseCommit) failures.push("baseCommit does not match the verified merge base");
++  if (receipt.diffHash !== expected.diffHash) failures.push("diffHash does not match the current implementation diff");
++  if (receipt.authorityFingerprint !== taskAuthorityFingerprint(task)) failures.push("authorityFingerprint does not match the current Task authority");
++  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
++  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
++    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
++  }
++  if (typeof receipt.retrievedAt === "string" && Number.isNaN(Date.parse(receipt.retrievedAt))) failures.push("retrievedAt is not a valid timestamp");
++  if (typeof receipt.repository === "string") {
++    try {
++      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
++    } catch (error) {
++      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
++    }
++  }
++
++  if (!Array.isArray(receipt.jobs)) {
++    failures.push("jobs must be an array");
++  } else {
++    const names = receipt.jobs.map((job) => isRecord(job) ? job.name : undefined);
++    if (receipt.jobs.length !== CI_JOB_NAMES.length || new Set(names).size !== CI_JOB_NAMES.length || !CI_JOB_NAMES.every((name) => names.includes(name))) {
++      failures.push("jobs must contain exactly core, integration, wjs, and validate once each");
++    }
++    const jobIds = new Set<string>();
++    const checkNames: string[] = [];
++    for (const [index, jobValue] of receipt.jobs.entries()) {
++      if (!isRecord(jobValue)) {
++        failures.push(`jobs[${index}] must be an object`);
++        continue;
++      }
++      const job = jobValue as Partial<CiReceipt["jobs"][number]>;
++      if (typeof job.jobId !== "string" || job.jobId.length === 0 || jobIds.has(job.jobId)) failures.push(`jobs[${index}].jobId must be unique`);
++      else jobIds.add(job.jobId);
++      if (job.conclusion !== "success") failures.push(`jobs[${index}] did not conclude successfully`);
++      if (job.workflowRunId !== receipt.workflowRunId) failures.push(`jobs[${index}] belongs to a different workflow run`);
++      if (job.workflowPath !== CI_WORKFLOW_PATH) failures.push(`jobs[${index}] belongs to a different workflow`);
++      if (typeof job.url !== "string" || typeof receipt.workflowRunId !== "string" || !validRunUrl(job.url, receipt.workflowRunId)) failures.push(`jobs[${index}].url is invalid`);
++      if (!Array.isArray(job.checkNames) || job.checkNames.some((name) => typeof name !== "string") || new Set(job.checkNames).size !== (job.checkNames?.length ?? 0)) {
++        failures.push(`jobs[${index}].checkNames must be unique strings`);
++      } else {
++        checkNames.push(...job.checkNames);
++      }
++    }
++    const required = [...task.requiredChecks].sort();
++    const mapped = [...checkNames].sort();
++    if (required.length !== mapped.length || required.some((name, index) => mapped[index] !== name)) failures.push("required checks do not have an exact one-to-one job mapping");
++  }
++
++  if (typeof receipt.trustedCommit === "string") {
++    if (!resolveCommit(root, receipt.trustedCommit)) failures.push("trustedCommit is not available locally");
++    else if (!isCommitAncestor(root, receipt.trustedCommit, expected.head)) failures.push("trustedCommit is not an ancestor of the current head");
++    else {
++      const unexpected = changedFilesBetween(root, receipt.trustedCommit, expected.head)
++        .filter((file) => !postEvidenceMetadataFiles(taskId).includes(file));
++      if (unexpected.length > 0) failures.push(`trustedCommit range contains non-metadata files: ${unexpected.join(", ")}`);
++    }
++  }
++  if (failures.length > 0) throw new Error(`CI receipt rejected:\n- ${failures.join("\n- ")}`);
++  return receipt as CiReceipt;
++}
++
+ function stableSubjectHead(
+   root: string,
+   currentHead: string | undefined,
+@@ -151,7 +273,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
+   };
+ }
+ 
+-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): Evidence {
++export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): Evidence {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const baseRef = options.baseRef ?? "origin/main";
+@@ -178,6 +300,15 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     ?? existingEvidence?.git?.pullRequest
+     ?? detectOpenPullRequest(root, branch ?? task.branchName);
+   const testQuality = options.testQuality ?? existingEvidence?.testQuality;
++  const ciReceipt = options.ciReceipt
++    ? verifyCiReceipt(root, task, taskId, options.ciReceipt, {
++      pullRequest,
++      head: head ?? "",
++      baseRef,
++      baseCommit: baseCommit ?? "",
++      diffHash
++    })
++    : undefined;
+   const cacheSubject = task.requiredChecks.length > 0
+     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+     : undefined;
+@@ -189,10 +320,24 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       provenance: collectCheckReceiptProvenance(root)
+     }).receipt
+     : undefined;
+-  const lease = task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
++  const lease = !ciReceipt && task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
+   let checks: Evidence["checks"];
+   try {
+-    checks = task.requiredChecks.map((check, index) => {
++    checks = ciReceipt
++      ? task.requiredChecks.map((check) => {
++        const job = ciReceipt.jobs.find((candidate) => candidate.checkNames.includes(check));
++        if (!job) throw new Error(`CI receipt rejected: no job mapping for ${check}`);
++        return {
++          name: check,
++          status: "passed",
++          source: "ci",
++          runId: ciReceipt.workflowRunId,
++          url: job.url,
++          executedAt: ciReceipt.retrievedAt,
++          verifiedBy: ciReceipt.verifiedBy
++        };
++      })
++      : task.requiredChecks.map((check, index) => {
+       const command = commandForCheck(check);
+       const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
+       const existing = existingEvidence?.checks.find((candidate) =>
+@@ -217,7 +362,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       }
+       if (!lease) throw new Error(`Required-check lease missing for ${check}`);
+       return runCheck(root, check, cacheKey, lease, index + 1);
+-    });
++      });
+   } finally {
+     if (lease) releaseRequiredCheckRun(lease);
+   }
+@@ -241,12 +386,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     },
+     changedFiles,
+     ...(submodules.length > 0 ? { submodules } : {}),
++    ...(ciReceipt ? { ciReceipt } : {}),
+     checks,
+     ...(testQuality ? { testQuality } : {})
+   };
+ }
+ 
+-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean } = {}): string {
++export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): string {
+   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+@@ -264,7 +410,10 @@ export function buildEvidenceCollectSummary(taskId: string, relativePath: string
+       failed
+     },
+     changedFiles: evidence.changedFiles.length,
+-    pullRequest: evidence.git?.pullRequest ?? null
++    pullRequest: evidence.git?.pullRequest ?? null,
++    ...(evidence.ciReceipt ? {
++      ciReceipt: { verified: true as const, workflowRunId: evidence.ciReceipt.workflowRunId, jobCount: evidence.ciReceipt.jobs.length }
++    } : {})
+   };
+ }
+ 
+@@ -274,7 +423,8 @@ export function formatEvidenceCollectSummary(summary: EvidenceCollectSummary): s
+     `path: ${summary.path}`,
+     `checks: ${summary.checks.passed} passed, ${summary.checks.failed} failed`,
+     `changedFiles: ${summary.changedFiles}`,
+-    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`
++    `pullRequest: ${summary.pullRequest ?? "(not recorded)"}`,
++    ...(summary.ciReceipt ? [`ciReceipt: verified ${summary.ciReceipt.workflowRunId} (${summary.ciReceipt.jobCount} jobs)`] : [])
+   ].join("\n") + "\n";
+ }
+ 
+@@ -311,11 +461,15 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+       return 1;
+     }
+     mkdirSync(path.dirname(fullPath), { recursive: true });
++    const ciReceipt = options.ciReceipt
++      ? JSON.parse(readFileSync(path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt), "utf8")) as CiReceipt
++      : undefined;
+     const evidence = buildCollectedEvidence(root, taskId, {
+       baseRef: options.baseRef,
+       pullRequest: options.pullRequest,
+       testQuality: options.testQuality,
+-      rerunChecks: options.rerunChecks
++      rerunChecks: options.rerunChecks,
++      ciReceipt
+     });
+     const yaml = stringifySimpleYaml(evidence as unknown as Record<string, unknown>);
+     writeFileSync(fullPath, yaml, "utf8");
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index c40c91f..6eb096e 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -15,6 +15,49 @@ const evidenceSchema = {
+     subjectHeadCommit: { type: "string" },
+     evidenceCommit: { type: "string" },
+     diffHash: { type: "string" },
++    ciReceipt: {
++      type: "object",
++      required: [
++        "schemaVersion", "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit",
++        "diffHash", "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit",
++        "retrievedAt", "verifiedBy", "jobs"
++      ],
++      additionalProperties: false,
++      properties: {
++        schemaVersion: { const: "1.0.0" },
++        repository: { type: "string", minLength: 1 },
++        pullRequest: { type: "string", minLength: 1 },
++        taskId: { type: "string", minLength: 1 },
++        headCommit: { type: "string", minLength: 1 },
++        baseRef: { type: "string", minLength: 1 },
++        baseCommit: { type: "string", minLength: 1 },
++        diffHash: { type: "string", minLength: 1 },
++        authorityFingerprint: { type: "string", minLength: 1 },
++        workflowPath: { const: ".github/workflows/scwbs.yml" },
++        workflowRunId: { type: "string", minLength: 1 },
++        workflowRunUrl: { type: "string", minLength: 1 },
++        trustedCommit: { type: "string", minLength: 1 },
++        retrievedAt: { type: "string", minLength: 1 },
++        verifiedBy: { const: "github-actions-provenance" },
++        jobs: {
++          type: "array",
++          items: {
++            type: "object",
++            required: ["name", "checkNames", "jobId", "conclusion", "url", "workflowRunId", "workflowPath"],
++            additionalProperties: false,
++            properties: {
++              name: { type: "string", minLength: 1 },
++              checkNames: { type: "array", minItems: 0, items: { type: "string", minLength: 1 } },
++              jobId: { type: "string", minLength: 1 },
++              conclusion: { const: "success" },
++              url: { type: "string", minLength: 1 },
++              workflowRunId: { type: "string", minLength: 1 },
++              workflowPath: { const: ".github/workflows/scwbs.yml" }
++            }
++          }
++        }
++      }
++    },
+     changedFiles: stringArraySchema,
+     submodules: {
+       type: "array",
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 8feac52..4172b92 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -146,6 +146,35 @@ export type CheckCoveragePolicy = {
+ export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
+ export type EvidenceCheckSource = "ci" | "local" | "manual";
+ 
++export type CiReceiptJob = {
++  name: string;
++  checkNames: string[];
++  jobId: string;
++  conclusion: "success";
++  url: string;
++  workflowRunId: string;
++  workflowPath: string;
++};
++
++export type CiReceipt = {
++  schemaVersion: "1.0.0";
++  repository: string;
++  pullRequest: string;
++  taskId: string;
++  headCommit: string;
++  baseRef: string;
++  baseCommit: string;
++  diffHash: string;
++  authorityFingerprint: string;
++  workflowPath: string;
++  workflowRunId: string;
++  workflowRunUrl: string;
++  trustedCommit: string;
++  retrievedAt: string;
++  verifiedBy: "github-actions-provenance";
++  jobs: CiReceiptJob[];
++};
++
+ export type Evidence = {
+   id: string;
+   type: "evidence";
+@@ -165,6 +194,7 @@ export type Evidence = {
+     pullRequest?: string;
+   };
+   changedFiles: string[];
++  ciReceipt?: CiReceipt;
+   submodules?: Array<{
+     path: string;
+     repository: string;
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+index 14fbc44..b88f350 100644
+--- a/tests/integration/ci-plan.test.ts
++++ b/tests/integration/ci-plan.test.ts
+@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+-import { buildCiPlan, runCiPlan } from "../../src/commands/ci-plan.js";
++import { buildCiPlan, runCiPlan, taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
+ import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
+ import { taskLifecycleMetadataPaths } from "../../src/core/managed-contract-paths.js";
+ import { makeTempRepo, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+@@ -101,6 +101,20 @@ describe("CI plan", () => {
+     ajv.addSchema(classificationSchema);
+     expect(ajv.compile(schema)(plan)).toBe(true);
+     expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
++    expect(plan.authorityFingerprint).toBe(taskAuthorityFingerprint(sampleTask({
++      branchName: "task/WBS-001-004-ci-plan",
++      allowedPaths: ["src/**"],
++      forbiddenPaths: ["wjs/**"],
++      humanGateRequiredPaths: [".github/**"],
++      requiredChecks: ["test", "test:integration", "typecheck", "build"],
++      managedContractPaths: [
++        `contracts/tasks/${taskId}.yaml`,
++        `contracts/evidence/${taskId}.yaml`,
++        `contracts/approvals/${taskId}.yaml`,
++        `contracts/reviews/${taskId}.yaml`,
++        "contracts/registry.yaml"
++      ]
++    })));
+   });
+ 
+   test("lists newest metadata-only descendants when the subject was not separately pushed", () => {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 7ca5761..030e34a 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -4,10 +4,13 @@ import path from "node:path";
+ import { pathToFileURL } from "node:url";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+-import { buildCollectedEvidence, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
++import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+ import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
+-import { branchDiffHash, headCommit } from "../../src/core/git.js";
+-import { readEvidence } from "../../src/core/contracts.js";
++import { branchDiffHash, headCommit, mergeBase } from "../../src/core/git.js";
++import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
++import { readEvidence, readTask } from "../../src/core/contracts.js";
++import { validateEvidenceSchema } from "../../src/core/schema/records.js";
++import type { CiReceipt } from "../../src/core/types.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import {
+   acquireRequiredCheckRun,
+@@ -47,7 +50,108 @@ function prepareEvidenceOutputRepo(): string {
+   return root;
+ }
+ 
++function prepareCiReceiptRepo(): { root: string; taskId: string; receipt: Record<string, unknown> } {
++  const root = makeTempRepo();
++  const taskId = "WBS-001-004";
++  writeScwbsProject(root);
++  writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
++    branchName: "task/WBS-001-004-ci-receipt",
++    allowedPaths: ["src/**"],
++    requiredChecks: ["test", "test:integration", "typecheck", "build"]
++  }) as unknown as Record<string, unknown>);
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["branch", "base"], { cwd: root, stdio: "ignore" });
++  writeText(root, "src/feature.ts", "export const feature = true;\n");
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", "implementation subject"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root, stdio: "ignore" });
++  const task = readTask(root, taskId).task!;
++  const head = headCommit(root)!;
++  const baseCommit = mergeBase(root, "base")!;
++  const runId = "12345";
++  const workflowPath = ".github/workflows/scwbs.yml";
++  const runUrl = `https://github.com/xmeta/ACED/actions/runs/${runId}`;
++  return {
++    root,
++    taskId,
++    receipt: {
++      schemaVersion: "1.0.0",
++      repository: "xmeta/ACED",
++      pullRequest: "#42",
++      taskId,
++      headCommit: head,
++      baseRef: "base",
++      baseCommit,
++      diffHash: branchDiffHash(root, "base", [
++        `contracts/evidence/${taskId}.yaml`,
++        `contracts/approvals/${taskId}.yaml`,
++        `contracts/reviews/${taskId}.yaml`,
++        "contracts/registry.yaml"
++      ]),
++      authorityFingerprint: taskAuthorityFingerprint(task),
++      workflowPath,
++      workflowRunId: runId,
++      workflowRunUrl: runUrl,
++      trustedCommit: head,
++      retrievedAt: "2026-07-22T14:00:00.000Z",
++      verifiedBy: "github-actions-provenance",
++      jobs: [
++        { name: "core", checkNames: ["test", "typecheck", "build"], jobId: "101", conclusion: "success", url: `${runUrl}/job/101`, workflowRunId: runId, workflowPath },
++        { name: "integration", checkNames: ["test:integration"], jobId: "102", conclusion: "success", url: `${runUrl}/job/102`, workflowRunId: runId, workflowPath },
++        { name: "wjs", checkNames: [], jobId: "103", conclusion: "success", url: `${runUrl}/job/103`, workflowRunId: runId, workflowPath },
++        { name: "validate", checkNames: [], jobId: "104", conclusion: "success", url: `${runUrl}/job/104`, workflowRunId: runId, workflowPath }
++      ]
++    }
++  };
++}
++
+ describe("evidence collect", () => {
++  test("accepts only a provenance-verified CI receipt and records CI checks distinctly", () => {
++    const { root, taskId, receipt } = prepareCiReceiptRepo();
++    const evidence = buildCollectedEvidence(root, taskId, {
++      baseRef: "base",
++      pullRequest: "#42",
++      ciReceipt: receipt as unknown as CiReceipt
++    });
++
++    expect(evidence.ciReceipt).toMatchObject({
++      repository: "xmeta/ACED",
++      workflowRunId: "12345",
++      verifiedBy: "github-actions-provenance"
++    });
++    expect(evidence.checks).toEqual(expect.arrayContaining([
++      expect.objectContaining({ name: "test", source: "ci", runId: "12345", verifiedBy: "github-actions-provenance" }),
++      expect.objectContaining({ name: "test:integration", source: "ci" }),
++      expect.objectContaining({ name: "typecheck", source: "ci" }),
++      expect.objectContaining({ name: "build", source: "ci" })
++    ]));
++    expect(evidence.checks.every((check) => check.source === "ci" && check.command === undefined)).toBe(true);
++    expect(validateEvidenceSchema(evidence)).toEqual([]);
++    expect(buildEvidenceCollectSummary(taskId, `contracts/evidence/${taskId}.yaml`, evidence).ciReceipt).toEqual({
++      verified: true,
++      workflowRunId: "12345",
++      jobCount: 4
++    });
++  });
++
++  test("rejects stale, mixed-run, fork, and incomplete CI provenance", () => {
++    const { root, taskId, receipt } = prepareCiReceiptRepo();
++    const cases = [
++      { name: "stale head", change: { headCommit: "0".repeat(40) }, message: /headCommit is stale/ },
++      { name: "fork repository", change: { repository: "someone-else/ACED" }, message: /repository does not match origin/ },
++      { name: "mixed run", change: { jobs: (receipt.jobs as Array<Record<string, unknown>>).map((job, index) => index === 0 ? { ...job, workflowRunId: "99999" } : job) }, message: /different workflow run/ },
++      { name: "missing required mapping", change: { jobs: (receipt.jobs as Array<Record<string, unknown>>).map((job, index) => index === 1 ? { ...job, checkNames: [] } : job) }, message: /exact one-to-one job mapping/ }
++    ];
++    for (const item of cases) {
++      expect(() => buildCollectedEvidence(root, taskId, {
++        baseRef: "base",
++        pullRequest: "#42",
++        ciReceipt: { ...receipt, ...item.change } as unknown as CiReceipt
++      }), item.name).toThrow(item.message);
++    }
++  });
++
+   test("required checks are single-flight and expose active run details", () => {
+     const root = prepareEvidenceOutputRepo();
+     const marker = path.join(root, "duplicate-check-ran");

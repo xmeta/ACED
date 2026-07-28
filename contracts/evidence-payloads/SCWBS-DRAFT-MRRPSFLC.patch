@@ -1,0 +1,143 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index c33a9d4..3bf277b 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -25,6 +25,7 @@ rules:
+       - src/commands/ai-queue.ts
+       - src/commands/ai-run.ts
+       - src/commands/approval-request.ts
++      - src/commands/approval-delegation.ts
+       - src/commands/check-diff.ts
+       - src/commands/check.ts
+       - src/commands/checks-run.ts
+diff --git a/contracts/specs/SPEC-LITE-MRRPSFLC.yaml b/contracts/specs/SPEC-LITE-MRRPSFLC.yaml
+new file mode 100644
+index 0000000..ae31f16
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRRPSFLC.yaml
+@@ -0,0 +1,13 @@
++id: SPEC-LITE-MRRPSFLC
++type: spec-contract
++featureId: F-MRRPSFLC
++title: "Issue #226 governance coverage and integration receipt repair"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-07-19T11:29:57.355Z"
++version: 0.1.0
++summary: "Issue #226を完了可能にするcoverage分類とcanonical integration receipt runnerを、delegated Approval本体を変更せず修復する。"
++acceptanceCriteria:
++  - approval-delegation commandはintegration coverage ruleに分類される
++  - integration runnerはhang時にbounded diagnosticとsafe fallbackを返す
++  - runner修復はsecretやapproval authorityを変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml b/contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
+new file mode 100644
+index 0000000..677c2d7
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
+@@ -0,0 +1,60 @@
++id: SCWBS-DRAFT-MRRPSFLC
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRRPSFLC
++branchName: task/SCWBS-DRAFT-MRRPSFLC-issue-226-governance-coverage-and-integration-re
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/specs/SPEC-LITE-MRRPSFLC.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRRPSFLC.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRRPSFLC.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRRPSFLC.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRRPSFLC.yaml
++allowedPaths:
++  - contracts/check-coverage.yaml
++  - scripts/integration-test-output.mjs
++  - scripts/integration-test-run.mjs
++  - scripts/integration-single-flight.mjs
++  - tests/unit/integration-test-output.test.ts
++  - tests/unit/integration-test-run.test.ts
++  - tests/unit/integration-single-flight.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - src/commands/approval-delegation.tsをintegration-test必須としてcontracts/check-coverage.yamlに分類する
++  - canonical integration runnerはsingle-flight lockを解放し、完了reportまたはbounded failure diagnosticを返す
++  - 4 workerの不安定性を再現する場合も2 worker fallbackを明示的に実行し、success receiptまたは原因とtargeted rerunを返す
++  - '#226の本体Taskやdelegated Approvalのconsumer安全境界を変更しない'
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:85eece6ec3cc89496e03947c1b7541e44b8f5b76409947b6d8bca6bbcfd74c9f
++  createdAt: "2026-07-19T11:32:42.540Z"
+diff --git a/scripts/integration-test-run.mjs b/scripts/integration-test-run.mjs
+index 364e2b4..20b68be 100644
+--- a/scripts/integration-test-run.mjs
++++ b/scripts/integration-test-run.mjs
+@@ -12,9 +12,9 @@ export const MAX_PARALLEL_WORKERS = 4;
+ export const OUTPUT_CAPTURE_BYTES = 8_000;
+ export const OUTPUT_EDGE_BYTES = OUTPUT_CAPTURE_BYTES / 2;
+ 
+-// These files contain tests that must remain serial within their worker because
+-// they mutate process-global state. Vitest's fork-per-file isolation makes the
+-// files themselves safe to schedule in parallel.
++// These files mutate process-global state. Keep this inventory explicit even
++// though the canonical runner schedules files serially; it records why a
++// future parallelization change requires a focused isolation audit.
+ export const SERIAL_WITHIN_FILE = Object.freeze({
+   "tests/integration/tasks.test.ts": "process.chdir",
+   "tests/integration/approval.test.ts": "process.env",
+@@ -65,7 +65,7 @@ export function buildVitestArgs({ workers, outputFile }) {
+     "tests/integration",
+     `--maxWorkers=${workers}`,
+     "--pool=forks",
+-    "--fileParallelism",
++    "--no-file-parallelism",
+     "--testTimeout=10000",
+     "--reporter=json",
+     `--outputFile=${outputFile}`
+diff --git a/tests/unit/integration-test-run.test.ts b/tests/unit/integration-test-run.test.ts
+index c06646e..fabc9b7 100644
+--- a/tests/unit/integration-test-run.test.ts
++++ b/tests/unit/integration-test-run.test.ts
+@@ -10,13 +10,13 @@ import {
+ } from "../../scripts/integration-test-run.mjs";
+ 
+ describe("integration test runner", () => {
+-  it("uses fork-isolated file parallelism with at least two workers and no retry", () => {
++  it("uses fork isolation with serial file scheduling, at least two workers, and no retry", () => {
+     const workers = defaultWorkerCount();
+     const args = buildVitestArgs({ workers, outputFile: "/tmp/results.json" });
+     expect(workers).toBeGreaterThanOrEqual(2);
+     expect(args).toContain(`--maxWorkers=${workers}`);
+     expect(args).toContain("--pool=forks");
+-    expect(args).toContain("--fileParallelism");
++    expect(args).toContain("--no-file-parallelism");
+     expect(args.join(" ")).not.toMatch(/retry/i);
+   });
+ 

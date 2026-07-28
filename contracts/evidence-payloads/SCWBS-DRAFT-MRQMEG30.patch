@@ -1,0 +1,198 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRQMEG30.yaml b/contracts/blocks/SCWBS-DRAFT-MRQMEG30.yaml
+new file mode 100644
+index 0000000..14f97ed
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRQMEG30.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MRQMEG30
++type: block
++taskId: SCWBS-DRAFT-MRQMEG30
++status: resolved
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Human Gate required: Issue #255のclean npm pack修正にはpackage.jsonのprepack/files変更が必要"
++createdAt: "2026-07-18T17:09:34.534Z"
++history:
++  - status: blocked
++    at: "2026-07-18T17:09:34.534Z"
++    reason: "Human Gate required: Issue #255のclean npm pack修正にはpackage.jsonのprepack/files変更が必要"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-18T17:14:55.050Z"
++    reason: "Issue #255のpackage.json prepack/files変更を承認"
++    by: human
++resolvedAt: "2026-07-18T17:14:55.050Z"
++resolvedBy: human
++resolution: "Issue #255のpackage.json prepack/files変更を承認"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml b/contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
+new file mode 100644
+index 0000000..432b1bd
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
+@@ -0,0 +1,51 @@
++id: SCWBS-DRAFT-MRQMEG30
++type: task-contract
++wbsNodeId: wbs-less
++featureId: F-MRQMEG30
++branchName: task/SCWBS-DRAFT-MRQMEG30-issue-255-clean-npm-pack-scwbs-bin
++allowedPaths:
++  - package.json
++  - tests/integration/packaging.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - package-lock.json
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外の変更が必要
++  - humanGateRequiredPathsへの変更が必要
++  - package metadataまたはrelease/publish判断が必要
++  - 仕様変更レベルの判断が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Issue #255 clean npm packにscwbs binを含める'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRQMEG30.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRQMEG30.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRQMEG30.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRQMEG30.yaml
++contractLock:
++  lockVersion: "2"
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: wbs-less
++  createdAt: "2026-07-18T17:08:22.357Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8ca6ad1..8a7f8e9 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -279,3 +279,9 @@ tasks:
+     wbsNodeId: wbs-less
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRQMEG30
++    path: contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
++    branchName: task/SCWBS-DRAFT-MRQMEG30-issue-255-clean-npm-pack-scwbs-bin
++    wbsNodeId: wbs-less
++    status: planned
++    dependsOn: []
+diff --git a/package.json b/package.json
+index 68e0a7b..1e195f8 100644
+--- a/package.json
++++ b/package.json
+@@ -8,8 +8,12 @@
+   "bin": {
+     "scwbs": "./dist/cli.js"
+   },
++  "files": [
++    "dist"
++  ],
+   "scripts": {
+     "build": "tsc -p tsconfig.json",
++    "prepack": "npm run build",
+     "typecheck": "tsc -p tsconfig.json --noEmit",
+     "test": "vitest run tests/unit",
+     "test:integration": "node scripts/integration-test-output.mjs",
+diff --git a/tests/integration/packaging.test.ts b/tests/integration/packaging.test.ts
+index 6336e6d..121870f 100644
+--- a/tests/integration/packaging.test.ts
++++ b/tests/integration/packaging.test.ts
+@@ -1,5 +1,5 @@
+ import { execFileSync, spawnSync } from "node:child_process";
+-import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
++import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import path from "node:path";
+ import { describe, expect, it } from "vitest";
+@@ -7,6 +7,64 @@ import { describe, expect, it } from "vitest";
+ describe("npm bin entrypoint", () => {
+   const symlinkTest = process.platform === "win32" ? it.skip : it;
+ 
++  symlinkTest("packs a runnable CLI from a clean checkout", () => {
++    const repository = process.cwd();
++    const fixture = mkdtempSync(path.join(tmpdir(), "scwbs-pack-"));
++    const packageRoot = path.join(fixture, "package");
++    const consumer = path.join(fixture, "consumer");
++    const archive = path.join(fixture, "repository.tar");
++    mkdirSync(packageRoot);
++    mkdirSync(consumer);
++
++    execFileSync("git", ["archive", "--format=tar", `--output=${archive}`, "HEAD"], {
++      cwd: repository,
++      stdio: "pipe"
++    });
++    execFileSync("tar", ["-xf", archive, "-C", packageRoot], { stdio: "pipe" });
++    copyFileSync(path.join(repository, "package.json"), path.join(packageRoot, "package.json"));
++    symlinkSync(path.join(repository, "node_modules"), path.join(packageRoot, "node_modules"), "dir");
++
++    const packed = JSON.parse(execFileSync("npm", [
++      "pack",
++      "--json",
++      "--pack-destination",
++      fixture
++    ], {
++      cwd: packageRoot,
++      encoding: "utf8"
++    }))[0] as {
++      filename: string;
++      size: number;
++      files: Array<{ path: string }>;
++    };
++
++    expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
++    expect(packed.files.length).toBeLessThan(100);
++    expect(packed.size).toBeLessThan(200_000);
++
++    const tarball = path.join(fixture, packed.filename);
++    execFileSync("npm", [
++      "install",
++      "--ignore-scripts",
++      "--no-audit",
++      "--no-fund",
++      tarball
++    ], {
++      cwd: consumer,
++      stdio: "pipe"
++    });
++
++    const binPath = path.join(consumer, "node_modules", ".bin", "scwbs");
++    expect(existsSync(binPath)).toBe(true);
++    const execution = spawnSync(binPath, ["--version"], {
++      cwd: consumer,
++      encoding: "utf8"
++    });
++    expect(execution.status).toBe(0);
++    expect(execution.stdout.trim()).toBe("0.1.0");
++    expect(execution.stderr).toBe("");
++  }, 30_000);
++
+   symlinkTest("runs the CLI through an npm-style symlink", () => {
+     execFileSync("npm", ["run", "build"], {
+       cwd: process.cwd(),
+@@ -34,5 +92,5 @@ describe("npm bin entrypoint", () => {
+     expect(linked.stdout).toBe(direct.stdout);
+     expect(linked.stderr).toBe(direct.stderr);
+     expect(linked.stdout.trim()).toBe("0.1.0");
+-  });
++  }, 15_000);
+ });

@@ -1,0 +1,602 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 918b6ca..07eb319 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -60,76 +60,175 @@ jobs:
+         uses: actions/github-script@v9
+         env:
+           SUBJECT: ${{ steps.candidate.outputs.subject }}
++          CANDIDATE_FILE: ${{ runner.temp }}/ci-plan-candidate.json
+         with:
+           script: |
++            const fs = require("fs");
++            const candidate = JSON.parse(fs.readFileSync(process.env.CANDIDATE_FILE, "utf8"));
+             const required = ["core", "integration", "wjs", "validate"];
+             const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+-            let selected = [];
+-            let workflowRun = null;
+-            for (let attempt = 0; attempt < 12; attempt += 1) {
+-              const runs = await github.paginate(github.rest.checks.listForRef, {
++            const runIdFrom = (url) => Number(/\/actions\/runs\/(\d+)/.exec(url ?? "")?.[1] ?? 0) || null;
++            const commits = Array.from(new Set([
++              ...(candidate.metadataAncestry ?? []).map((entry) => entry.sha),
++              candidate.subjectHeadCommit
++            ].filter(Boolean)));
++            const inspectCommit = async (commit) => {
++              const checks = await github.paginate(github.rest.checks.listForRef, {
+                 owner: context.repo.owner,
+                 repo: context.repo.repo,
+-                ref: process.env.SUBJECT,
++                ref: commit,
+                 per_page: 100
+               });
+-              selected = required.map((name) => runs
+-                .filter((run) => run.name === name && run.app?.slug === "github-actions")
+-                .sort((left, right) => Number(right.id) - Number(left.id))[0])
+-                .filter(Boolean);
+-              const runIds = new Set(selected.map((run) => /\/actions\/runs\/(\d+)/.exec(run.details_url ?? "")?.[1]).filter(Boolean));
+-              if (selected.length === required.length && runIds.size === 1) {
+-                const runId = Number([...runIds][0]);
+-                workflowRun = (await github.rest.actions.getWorkflowRun({
++              const groups = new Map();
++              let pending = false;
++              for (const check of checks.filter((item) => required.includes(item.name) && item.app?.slug === "github-actions")) {
++                const runId = runIdFrom(check.details_url);
++                if (!runId) continue;
++                if (check.status !== "completed") pending = true;
++                const group = groups.get(runId) ?? new Map();
++                group.set(check.name, check);
++                groups.set(runId, group);
++              }
++              for (const [runId, group] of [...groups.entries()].sort((left, right) => right[0] - left[0])) {
++                if (!required.every((name) => group.has(name))) continue;
++                const selected = required.map((name) => group.get(name));
++                const workflowRun = (await github.rest.actions.getWorkflowRun({
+                   owner: context.repo.owner,
+                   repo: context.repo.repo,
+                   run_id: runId
+                 })).data;
++                const subjectHeadMatches = workflowRun?.head_sha === process.env.SUBJECT;
++                const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
++                  && (commit === process.env.SUBJECT ? subjectHeadMatches : workflowRun?.head_sha === commit)
++                  && workflowRun?.id === runId
++                  && workflowRun?.conclusion === "success";
++                if (trustedRun && selected.every((run) => run.conclusion === "success")) {
++                  return {
++                    commit,
++                    workflowRunId: runId,
++                    checks: selected.map((run) => ({
++                      id: run.id,
++                      name: run.name,
++                      conclusion: run.conclusion,
++                      detailsUrl: run.details_url,
++                      workflowRunId: workflowRun.id,
++                      workflowPath: workflowRun.path
++                    }))
++                  };
++                }
++              }
++              return { pending, trusted: null };
++            };
++            let trusted = null;
++            let pending = false;
++            for (let attempt = 0; attempt < 12 && !trusted; attempt += 1) {
++              pending = false;
++              for (const commit of commits) {
++                const result = await inspectCommit(commit);
++                if (result.commit) {
++                  trusted = result;
++                  break;
++                }
++                pending ||= result.pending;
+               }
+-              const trustedRun = workflowRun?.path === ".github/workflows/scwbs.yml"
+-                && workflowRun?.head_sha === process.env.SUBJECT
+-                && workflowRun?.conclusion === "success";
+-              if (trustedRun && selected.every((run) => run.conclusion === "success")) break;
+-              if (selected.length === required.length && selected.every((run) => run.status === "completed")) break;
+-              if (attempt < 11) await sleep(10000);
++              if (trusted || !pending || attempt >= 11) break;
++              await sleep(10000);
+             }
+-            const eligible = selected.length === required.length
+-              && selected.every((run) => run.conclusion === "success")
+-              && workflowRun?.path === ".github/workflows/scwbs.yml"
+-              && workflowRun?.head_sha === process.env.SUBJECT
+-              && workflowRun?.conclusion === "success";
+-            core.setOutput("eligible", String(eligible));
+-            core.setOutput("checks", JSON.stringify(selected.map((run) => ({
+-              id: run.id,
+-              name: run.name,
+-              conclusion: run.conclusion,
+-              detailsUrl: run.details_url,
+-              workflowRunId: workflowRun?.id ?? null,
+-              workflowPath: workflowRun?.path ?? null
+-            }))));
++            core.setOutput("eligible", String(Boolean(trusted)));
++            core.setOutput("trusted_commit", trusted?.commit ?? "");
++            core.setOutput("trusted_workflow_run_id", trusted?.workflowRunId ? String(trusted.workflowRunId) : "");
++            core.setOutput("checks", JSON.stringify(trusted?.checks ?? []));
+       - name: Finalize auditable CI plan
+         id: final
+         env:
+           SUBJECT_CHECKS_ELIGIBLE: ${{ steps.subject-checks.outputs.eligible }}
+           SUBJECT_CHECKS_JSON: ${{ steps.subject-checks.outputs.checks }}
++          TRUSTED_COMMIT: ${{ steps.subject-checks.outputs.trusted_commit }}
++          TRUSTED_WORKFLOW_RUN_ID: ${{ steps.subject-checks.outputs.trusted_workflow_run_id }}
+         run: |
+           node <<'NODE'
++          const crypto = require("crypto");
++          const { execFileSync } = require("child_process");
+           const fs = require("fs");
+           const candidate = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/ci-plan-candidate.json`, "utf8"));
++          const parseJson = (value, fallback) => {
++            try { return value ? JSON.parse(value) : fallback; } catch { return fallback; }
++          };
++          const gitFiles = (args) => execFileSync("git", args, { encoding: "utf8" })
++            .split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
++          const isAncestor = (ancestor, descendant) => {
++            try {
++              execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], { stdio: "ignore" });
++              return true;
++            } catch { return false; }
++          };
++          const diffHash = (from, to) => {
++            const diff = execFileSync("git", [
++              "diff", "--binary", "--no-ext-diff", `${from}...${to}`, "--", ".",
++              ...candidate.metadataFiles.map((file) => `:(exclude)${file}`)
++            ]);
++            return `sha256:${crypto.createHash("sha256").update(diff).digest("hex")}`;
++          };
++          const trustedCommit = process.env.TRUSTED_COMMIT || null;
++          const trustedWorkflowRunId = Number(process.env.TRUSTED_WORKFLOW_RUN_ID) || null;
++          const trustedChecks = parseJson(process.env.SUBJECT_CHECKS_JSON, []);
++          const rangeIssues = [];
++          let trustedRanges = null;
++          if (process.env.SUBJECT_CHECKS_ELIGIBLE === "true" && trustedCommit) {
++            const subjectToTrustedFiles = gitFiles(["diff", "--name-only", `${candidate.subjectHeadCommit}..${trustedCommit}`]);
++            const trustedToHeadFiles = gitFiles(["diff", "--name-only", `${trustedCommit}..${candidate.headCommit}`]);
++            const metadataOnly = (files) => files.every((file) => candidate.metadataFiles.includes(file));
++            trustedRanges = {
++              subjectToTrusted: {
++                from: candidate.subjectHeadCommit,
++                to: trustedCommit,
++                changedFiles: subjectToTrustedFiles,
++                metadataOnly: metadataOnly(subjectToTrustedFiles)
++              },
++              trustedToHead: {
++                from: trustedCommit,
++                to: candidate.headCommit,
++                changedFiles: trustedToHeadFiles,
++                metadataOnly: metadataOnly(trustedToHeadFiles)
++              }
++            };
++            if (!isAncestor(candidate.subjectHeadCommit, trustedCommit) || !isAncestor(trustedCommit, candidate.headCommit)) {
++              rangeIssues.push({ code: "ci.trustedCommit.ancestry.mismatch", message: "Trusted commit is not between the implementation subject and current head" });
++            }
++            if (!trustedRanges.subjectToTrusted.metadataOnly || !trustedRanges.trustedToHead.metadataOnly) {
++              rangeIssues.push({ code: "ci.trustedCommit.nonMetadataRange", message: "Trusted commit ranges contain a non-metadata file" });
++            }
++            try {
++              if (diffHash(candidate.baseCommit, trustedCommit) !== candidate.diffHash) {
++                rangeIssues.push({ code: "ci.trustedCommit.diffHash.mismatch", message: "Trusted commit implementation diffHash does not match the Evidence diffHash" });
++              }
++            } catch (error) {
++              rangeIssues.push({ code: "ci.trustedCommit.diffHash.failed", message: error instanceof Error ? error.message : String(error) });
++            }
++          }
+           const verified = candidate.decision === "metadata-candidate"
+-            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true";
++            && process.env.SUBJECT_CHECKS_ELIGIBLE === "true"
++            && Boolean(trustedCommit)
++            && Boolean(trustedWorkflowRunId)
++            && rangeIssues.length === 0;
++          const fallbackReasons = candidate.decision === "full"
++            ? candidate.reasons
++            : verified
++              ? []
++              : [...candidate.reasons, ...rangeIssues, {
++                  code: "ci.trustedChecks.unverified",
++                  message: "No provenance-verified successful required check set was found on a metadata-only ancestor"
++                }];
+           const plan = {
+             ...candidate,
+             mode: verified ? "metadata-fast-path" : "full",
+-            subjectFullChecks: process.env.SUBJECT_CHECKS_JSON
+-              ? JSON.parse(process.env.SUBJECT_CHECKS_JSON)
+-              : [],
+-            reasons: candidate.decision === "metadata-candidate" && !verified
+-              ? [...candidate.reasons, {
+-                  code: "ci.subjectChecks.unverified",
+-                  message: "The implementation subject has no verified successful core, integration, wjs, and validate check set"
+-                }]
+-              : candidate.reasons
++            trustedCommit: verified ? trustedCommit : null,
++            trustedWorkflowRunId: verified ? trustedWorkflowRunId : null,
++            trustedChecks: verified ? trustedChecks : [],
++            trustedRanges: verified ? trustedRanges : null,
++            subjectFullChecks: verified ? trustedChecks : [],
++            fallbackReasons,
++            reasons: verified ? candidate.reasons : fallbackReasons
+           };
+           fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
+           fs.appendFileSync(process.env.GITHUB_OUTPUT,
+diff --git a/contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml b/contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
+new file mode 100644
+index 0000000..4d8ff25
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
+@@ -0,0 +1,37 @@
++id: BLK-SCWBS-DRAFT-MRW0MRQ3
++type: block
++taskId: SCWBS-DRAFT-MRW0MRQ3
++status: resolved
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Human Gate required: add Issue #273 Evidence/Approval/Review lifecycle files to managedContractPaths; current locked contract passes forbiddenPaths but check-diff rejects lifecycle metadata as outside allowedPaths"
++createdAt: "2026-07-22T12:31:33.119Z"
++history:
++  - status: blocked
++    at: "2026-07-22T11:47:13.051Z"
++    reason: "Human Gate required: authorize .github/workflows/scwbs.yml changes for Issue #273 provenance-verified metadata descendant CI reuse"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-22T11:50:07.394Z"
++    reason: "Issue #273のprovenance検証付きmetadata descendant CI再利用と.github/workflows/scwbs.yml変更を承認"
++    by: human
++  - status: blocked
++    at: "2026-07-22T12:25:26.863Z"
++    reason: "Human Gate required: correct locked Issue #273 Task authority so managed Evidence is not forbidden; no authority changes are permitted after contract lock"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-22T12:27:52.224Z"
++    reason: "Authorize locked Task authority correction: remove contracts/evidence/** from forbiddenPaths because it is a managedContractPath; retain package, lockfile, wjs, and unrelated contract restrictions"
++    by: human
++  - status: blocked
++    at: "2026-07-22T12:31:33.119Z"
++    reason: "Human Gate required: add Issue #273 Evidence/Approval/Review lifecycle files to managedContractPaths; current locked contract passes forbiddenPaths but check-diff rejects lifecycle metadata as outside allowedPaths"
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-22T12:32:54.927Z"
++    reason: Authorize adding contracts/evidence/SCWBS-DRAFT-MRW0MRQ3.yaml, contracts/approvals/SCWBS-DRAFT-MRW0MRQ3.yaml, and contracts/reviews/SCWBS-DRAFT-MRW0MRQ3.yaml to managedContractPaths; retain unrelated contract restrictions
++    by: human
++resolvedAt: "2026-07-22T12:32:54.927Z"
++resolvedBy: human
++resolution: Authorize adding contracts/evidence/SCWBS-DRAFT-MRW0MRQ3.yaml, contracts/approvals/SCWBS-DRAFT-MRW0MRQ3.yaml, and contracts/reviews/SCWBS-DRAFT-MRW0MRQ3.yaml to managedContractPaths; retain unrelated contract restrictions
+diff --git a/contracts/specs/SPEC-LITE-MRW0MRQ3.yaml b/contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
+new file mode 100644
+index 0000000..c38db13
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRW0MRQ3
++type: spec-contract
++featureId: F-MRW0MRQ3
++title: "Issue #273: trust verified metadata-only descendant full CI"
++status: approved
++version: 0.1.0
++summary: "Issue #273: trust verified metadata-only descendant full CI"
++approvedBy: user-requested-issue-273
++approvedAt: "2026-07-22T00:00:00+09:00"
++acceptanceCriteria:
++  - subject commit自体が未pushでも、subjectの子孫かつcurrent headの祖先であるverified metadata-only descendantのfull CI成功を新しい順に候補化できる
++  - subjectからtrusted commit、trusted commitからcurrent headの両区間について、許可済みmetadata-only差分、ancestry、implementation diffHash、Task authority baselineを検証する
++  - trusted commitのworkflow path、head SHA、conclusion、run ID、およびcore/integration/wjs/validateの同一workflow run成功を検証する
++  - 不明・不一致・shallow history・非metadata差分・authority変更・workflow変更・不正check・複数run混在では必ずfull CIへfallbackする
++  - exact subject checksが存在する既存ケースを維持し、候補なしケースでは不要な120秒待機を行わない
++  - final CI plan JSONにtrusted commit、workflow run ID、check set、fallback理由を含め、schemaとintegration testで監査項目を検証する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml b/contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
+new file mode 100644
+index 0000000..11061b2
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MRW0MRQ3
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRW0MRQ3
++branchName: task/SCWBS-DRAFT-MRW0MRQ3-issue-273-trust-verified-metadata-only-descendan
++allowedPaths:
++  - .github/workflows/scwbs.yml
++  - src/commands/ci-plan.ts
++  - tests/integration/ci-plan.test.ts
++  - docs/scwbs/schemas/ci-plan.schema.json
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - contracts/tasks/index.yaml
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Subject未pushでも、subjectの子孫かつcurrent headの祖先であるverified metadata-only descendantからfull CI成功候補を新しい順に探索する
++  - subjectからtrusted commit、trusted commitからcurrent headの両区間について、許可済みmetadata-only ancestryとimplementation diffHash一致を検証する
++  - Task authority baseline、workflow path、workflow run、head SHA、required jobs（core/integration/wjs/validate）の同一run成功を検証する
++  - provenance不明、shallow history、非metadata差分、authority変更、workflow変更、不正または混在checkでは必ずfull CIへfallbackする
++  - 最終CI plan JSONにtrusted commit、workflow run ID、check set、fallback理由を監査可能に記録し、既存exact subject checksを維持する
++  - Issue
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
++  - contracts/specs/SPEC-LITE-MRW0MRQ3.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRW0MRQ3.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRW0MRQ3.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRW0MRQ3.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRW0MRQ3.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:89f5056261f5647150550c4d3888f4f5dd78d7a7a0f68226b08522bbb461c075
++  createdAt: "2026-07-22T11:46:27.862Z"
+diff --git a/docs/scwbs/schemas/ci-plan.schema.json b/docs/scwbs/schemas/ci-plan.schema.json
+index 2c61ad7..61563ab 100644
+--- a/docs/scwbs/schemas/ci-plan.schema.json
++++ b/docs/scwbs/schemas/ci-plan.schema.json
+@@ -13,6 +13,7 @@
+     "subjectHeadCommit",
+     "diffHash",
+     "metadataFiles",
++    "metadataAncestry",
+     "changedFilesSinceSubject",
+     "reasons",
+     "classification"
+@@ -28,6 +29,18 @@
+     "subjectHeadCommit": { "type": ["string", "null"] },
+     "diffHash": { "type": ["string", "null"] },
+     "metadataFiles": { "type": "array", "items": { "type": "string" } },
++    "metadataAncestry": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["sha", "changedFiles"],
++        "properties": {
++          "sha": { "type": "string" },
++          "changedFiles": { "type": "array", "items": { "type": "string" } }
++        },
++        "additionalProperties": false
++      }
++    },
+     "changedFilesSinceSubject": { "type": "array", "items": { "type": "string" } },
+     "subjectFullChecks": {
+       "type": "array",
+@@ -45,6 +58,45 @@
+         "additionalProperties": false
+       }
+     },
++    "trustedCommit": { "type": ["string", "null"] },
++    "trustedWorkflowRunId": { "type": ["number", "null"] },
++    "trustedChecks": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["id", "name", "conclusion", "detailsUrl", "workflowRunId", "workflowPath"],
++        "properties": {
++          "id": { "type": "number" },
++          "name": { "type": "string" },
++          "conclusion": { "type": ["string", "null"] },
++          "detailsUrl": { "type": "string" },
++          "workflowRunId": { "type": ["number", "null"] },
++          "workflowPath": { "type": ["string", "null"] }
++        },
++        "additionalProperties": false
++      }
++    },
++    "trustedRanges": {
++      "type": ["object", "null"],
++      "required": ["subjectToTrusted", "trustedToHead"],
++      "properties": {
++        "subjectToTrusted": { "$ref": "#/$defs/trustedRange" },
++        "trustedToHead": { "$ref": "#/$defs/trustedRange" }
++      },
++      "additionalProperties": false
++    },
++    "fallbackReasons": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string" },
++          "message": { "type": "string" }
++        },
++        "additionalProperties": false
++      }
++    },
+     "reasons": {
+       "type": "array",
+       "minItems": 1,
+@@ -60,5 +112,18 @@
+     },
+     "classification": { "$ref": "task-classification.schema.json" }
+   },
++  "$defs": {
++    "trustedRange": {
++      "type": "object",
++      "required": ["from", "to", "changedFiles", "metadataOnly"],
++      "properties": {
++        "from": { "type": "string" },
++        "to": { "type": "string" },
++        "changedFiles": { "type": "array", "items": { "type": "string" } },
++        "metadataOnly": { "type": "boolean" }
++      },
++      "additionalProperties": false
++    }
++  },
+   "additionalProperties": false
+ }
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+index c38b4a2..9e940db 100644
+--- a/src/commands/ci-plan.ts
++++ b/src/commands/ci-plan.ts
+@@ -1,10 +1,10 @@
++import { spawnSync } from "node:child_process";
+ import { existsSync } from "node:fs";
+ import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
+ import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+ import {
+   branchChangedFiles,
+   branchDiffHash,
+-  changedFilesBetween,
+   headCommit,
+   isCommitAncestor,
+   isShallowRepository,
+@@ -25,6 +25,11 @@ export type CiPlanReason = {
+   message: string;
+ };
+ 
++export type CiPlanCommit = {
++  sha: string;
++  changedFiles: string[];
++};
++
+ export type CiPlan = {
+   schemaVersion: "1.0.0";
+   decision: "full" | "metadata-candidate";
+@@ -35,6 +40,7 @@ export type CiPlan = {
+   subjectHeadCommit: string | null;
+   diffHash: string | null;
+   metadataFiles: string[];
++  metadataAncestry: CiPlanCommit[];
+   changedFilesSinceSubject: string[];
+   reasons: CiPlanReason[];
+   classification: TaskClassificationReport;
+@@ -119,6 +125,7 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
+     subjectHeadCommit: null,
+     diffHash: null,
+     metadataFiles: taskId ? taskLifecycleMetadataPaths(taskId) : [],
++    metadataAncestry: [],
+     changedFilesSinceSubject: [],
+     reasons,
+     classification: {
+@@ -128,6 +135,34 @@ function emptyPlan(root: string, baseRef: string, taskId: string | null, reasons
+   };
+ }
+ 
++function collectMetadataAncestry(root: string, subjectHead: string, currentHead: string): {
++  ancestry: CiPlanCommit[];
++  changedFiles: string[];
++} {
++  const result = spawnSync("git", ["log", "--format=%H", "--name-only", "--no-renames", `${subjectHead}..${currentHead}`], {
++    cwd: root,
++    encoding: "utf8"
++  });
++  if (result.status !== 0) throw new Error(result.stderr || "git log failed");
++  const ancestry: CiPlanCommit[] = [];
++  let current: CiPlanCommit | undefined;
++  for (const line of result.stdout.split(/\r?\n/)) {
++    const value = line.trim();
++    if (!value) continue;
++    if (/^[0-9a-f]{40}$/.test(value)) {
++      if (current) ancestry.push(current);
++      current = { sha: value, changedFiles: [] };
++    } else if (current) {
++      current.changedFiles.push(value);
++    }
++  }
++  if (current) ancestry.push(current);
++  return {
++    ancestry,
++    changedFiles: Array.from(new Set(ancestry.flatMap((commit) => commit.changedFiles))).sort()
++  };
++}
++
+ function profile(root: string): "Lean" | "Standard" | "Strict" {
+   const value = readWbs(root).extensions?.scwbs;
+   const candidate = typeof value === "object" && value !== null ? (value as Record<string, unknown>).profile : undefined;
+@@ -214,6 +249,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     ?? evidence?.commit
+     ?? null;
+   const recordedDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? null;
++  let metadataAncestry: CiPlanCommit[] = [];
+   let changedFilesSinceSubject: string[] = [];
+ 
+   if (evidence && evidence.taskId !== task.id) {
+@@ -230,7 +266,13 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     } else if (subjectHead === currentHead) {
+       reasons.push(reason("provenance.noMetadataDescendant", "HEAD is the implementation subject, so full CI is required"));
+     } else {
+-      changedFilesSinceSubject = changedFilesBetween(root, subjectHead, currentHead);
++      try {
++        const collected = collectMetadataAncestry(root, subjectHead, currentHead);
++        changedFilesSinceSubject = collected.changedFiles;
++        metadataAncestry = collected.ancestry;
++      } catch (error) {
++        reasons.push(reason("provenance.ancestry.failed", error instanceof Error ? error.message : String(error)));
++      }
+       const unexpected = changedFilesSinceSubject.filter((file) => !metadataFiles.includes(file));
+       if (unexpected.length > 0) {
+         reasons.push(reason(
+@@ -267,6 +309,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     subjectHeadCommit: subjectHead,
+     diffHash: recordedDiffHash,
+     metadataFiles,
++    metadataAncestry,
+     changedFilesSinceSubject,
+     reasons: decision === "metadata-candidate"
+       ? [reason("provenance.metadataOnly", "Only approved metadata files changed after the verified implementation subject")]
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+index 51c8cfe..14fbc44 100644
+--- a/tests/integration/ci-plan.test.ts
++++ b/tests/integration/ci-plan.test.ts
+@@ -91,6 +91,7 @@ describe("CI plan", () => {
+       decision: "metadata-candidate",
+       taskId,
+       subjectHeadCommit: subject,
++      metadataAncestry: [{ sha: expect.any(String), changedFiles: [`contracts/evidence/${taskId}.yaml`] }],
+       changedFilesSinceSubject: [`contracts/evidence/${taskId}.yaml`],
+       reasons: [{ code: "provenance.metadataOnly" }]
+     });
+@@ -102,6 +103,19 @@ describe("CI plan", () => {
+     expect(plan.classification).toMatchObject({ status: "classified", executionClass: "standard", enforcement: "read-only" });
+   });
+ 
++  test("lists newest metadata-only descendants when the subject was not separately pushed", () => {
++    const { root, subject } = prepareSubject();
++    commitEvidence(root, subject);
++
++    const plan = buildCiPlan(root, { taskId, baseRef: "base" });
++    expect(plan.metadataAncestry).toHaveLength(1);
++    expect(plan.metadataAncestry[0]).toMatchObject({
++      sha: headCommit(root),
++      changedFiles: [`contracts/evidence/${taskId}.yaml`]
++    });
++    expect(plan.metadataAncestry.every((candidate) => candidate.sha !== subject)).toBe(true);
++  });
++
+   test("falls back to full CI when Evidence is absent at the implementation subject", () => {
+     const { root } = prepareSubject();
+     const plan = buildCiPlan(root, { taskId, baseRef: "base" });
+@@ -219,6 +233,13 @@ describe("CI plan", () => {
+     expect(workflow).toContain('$RUNNER_TEMP/ci-plan-candidate.json');
+     expect(workflow).toContain('workflowRun?.path === ".github/workflows/scwbs.yml"');
+     expect(workflow).toContain("workflowRun?.head_sha === process.env.SUBJECT");
++    expect(workflow).toContain("metadataAncestry");
++    expect(workflow).toContain("trustedCommit");
++    expect(workflow).toContain("trustedWorkflowRunId");
++    expect(workflow).toContain("trustedChecks");
++    expect(workflow).toContain("trustedRanges");
++    expect(workflow).toContain('"--name-only"');
++    expect(workflow).toContain("ci.trustedCommit.diffHash.mismatch");
+     expect(workflow).toContain('if: always() && needs.plan.outputs.mode == \'full\'');
+     expect(workflow).toContain('if test "$MODE" = "metadata-fast-path"; then');
+     expect(workflow).toContain('test "$CORE_RESULT" = "skipped"');

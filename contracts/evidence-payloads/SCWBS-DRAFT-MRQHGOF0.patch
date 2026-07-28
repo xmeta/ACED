@@ -1,0 +1,474 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml b/contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+new file mode 100644
+index 0000000..994b5b9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+@@ -0,0 +1,53 @@
++id: SCWBS-DRAFT-MRQHGOF0
++type: task-contract
++wbsNodeId: wbs-less
++featureId: F-MRQHGOF0
++branchName: task/SCWBS-DRAFT-MRQHGOF0-issue-245-task-id-path-traversal-fail-closed
++allowedPaths:
++  - src/core/paths.ts
++  - src/core/contracts.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/cli.ts
++  - tests/unit/**
++  - tests/integration/**
++  - contracts/check-coverage.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外の変更が必要
++  - humanGateRequiredPathsへの変更が必要
++  - 破壊的仕様変更が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Issue #245: Task ID path traversalをfail-closedで拒否する'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRQHGOF0.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRQHGOF0.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRQHGOF0.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRQHGOF0.yaml
++contractLock:
++  lockVersion: "2"
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: wbs-less
++  createdAt: "2026-07-18T14:49:56.809Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 485e6f8..ee5b6a4 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -261,3 +261,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRQHGOF0
++    path: contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
++    branchName: task/SCWBS-DRAFT-MRQHGOF0-issue-245-task-id-path-traversal-fail-closed
++    wbsNodeId: wbs-less
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index d88042f..2f5fa57 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -34,6 +34,7 @@ import { runTaskRefresh } from "./commands/task-refresh.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+ import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
++import { isValidTaskId } from "./core/paths.js";
+ import type { Evidence } from "./core/types.js";
+ 
+ function parseBool(val: unknown): boolean | undefined {
+@@ -61,6 +62,24 @@ function parseTestQuality(opts: Record<string, unknown>): Evidence["testQuality"
+ 
+ export function main(argv = process.argv.slice(2), root = process.cwd()): number {
+   let exitCode = 0;
++  const taskOptionIndex = argv.findIndex((argument) => argument === "--task" || argument.startsWith("--task="));
++  if (taskOptionIndex >= 0) {
++    const option = argv[taskOptionIndex] ?? "";
++    const taskId = option === "--task" ? argv[taskOptionIndex + 1] : option.slice("--task=".length);
++    if (taskId !== undefined && !isValidTaskId(taskId)) {
++      if (argv.includes("--json")) {
++        console.error(JSON.stringify({
++          version: "scwbs.error.v1",
++          status: "error",
++          code: "task.id.invalid",
++          message: "Invalid task id"
++        }));
++      } else {
++        console.error("ERROR task.id.invalid: Invalid task id");
++      }
++      return 2;
++    }
++  }
+ 
+   const program = new Command();
+   program
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index e1d0e61..17c97be 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,6 +1,6 @@
+ import { existsSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
+-import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
++import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+ import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+ import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
+ 
+@@ -15,6 +15,9 @@ export function readRegistry(root: string): { registry?: Registry; issues: Issue
+ }
+ 
+ export function readTask(root: string, taskId: string): { task?: TaskContract; issues: Issue[] } {
++  if (!isValidTaskId(taskId)) {
++    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
++  }
+   const relativePath = taskPath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+@@ -46,6 +49,9 @@ export function readSpecChange(root: string, relativePath: string): { specChange
+ }
+ 
+ export function readEvidence(root: string, taskId: string): { evidence?: Evidence; issues: Issue[] } {
++  if (!isValidTaskId(taskId)) {
++    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
++  }
+   const relativePath = evidencePath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+@@ -57,6 +63,9 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
+ }
+ 
+ export function readApproval(root: string, taskId: string): { approval?: ApprovalRecord; issues: Issue[] } {
++  if (!isValidTaskId(taskId)) {
++    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
++  }
+   const relativePath = approvalPath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+@@ -68,6 +77,9 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
+ }
+ 
+ export function readReview(root: string, taskId: string): { review?: ReviewRecord; issues: Issue[] } {
++  if (!isValidTaskId(taskId)) {
++    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
++  }
+   const relativePath = reviewPath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+@@ -79,6 +91,9 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
+ }
+ 
+ export function readBlock(root: string, taskId: string): { block?: BlockRecord; issues: Issue[] } {
++  if (!isValidTaskId(taskId)) {
++    return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
++  }
+   const relativePath = blockPath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index e2d11ef..0c67121 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -12,6 +12,8 @@ export const defaultReviewsDir = "contracts/reviews";
+ export const defaultBlocksDir = "contracts/blocks";
+ export const defaultChangesetsDir = "contracts/changesets";
+ export const defaultCheckCoveragePath = "contracts/check-coverage.yaml";
++export const taskIdPatternSource = "^[A-Za-z0-9][A-Za-z0-9._-]*$";
++const taskIdPattern = new RegExp(taskIdPatternSource);
+ 
+ export function profileRequiredDirs(profile: Profile): string[] {
+   const dirs: string[] = [
+@@ -34,8 +36,37 @@ export function resolveFrom(root: string, relativePath: string): string {
+   return path.resolve(root, relativePath);
+ }
+ 
++export function isValidTaskId(taskId: string): boolean {
++  return taskIdPattern.test(taskId);
++}
++
++export function assertValidTaskId(taskId: string): void {
++  if (!isValidTaskId(taskId)) {
++    throw new Error("Invalid task id");
++  }
++}
++
++function taskContractPath(directory: string, taskId: string): string {
++  assertValidTaskId(taskId);
++  const base = path.resolve("/", directory);
++  const candidate = path.resolve(base, `${taskId}.yaml`);
++  const relative = path.relative(base, candidate);
++  const windowsBase = path.win32.resolve("C:\\", directory);
++  const windowsCandidate = path.win32.resolve(windowsBase, `${taskId}.yaml`);
++  const windowsRelative = path.win32.relative(windowsBase, windowsCandidate);
++  if (
++    relative.startsWith("..")
++    || path.isAbsolute(relative)
++    || windowsRelative.startsWith("..")
++    || path.win32.isAbsolute(windowsRelative)
++  ) {
++    throw new Error("Invalid task id");
++  }
++  return `${directory}/${taskId}.yaml`;
++}
++
+ export function taskPath(taskId: string): string {
+-  return `${defaultTasksDir}/${taskId}.yaml`;
++  return taskContractPath(defaultTasksDir, taskId);
+ }
+ 
+ export function specPath(specId: string): string {
+@@ -47,17 +78,17 @@ export function specChangePath(specChangeId: string): string {
+ }
+ 
+ export function evidencePath(taskId: string): string {
+-  return `${defaultEvidenceDir}/${taskId}.yaml`;
++  return taskContractPath(defaultEvidenceDir, taskId);
+ }
+ 
+ export function approvalPath(taskId: string): string {
+-  return `${defaultApprovalsDir}/${taskId}.yaml`;
++  return taskContractPath(defaultApprovalsDir, taskId);
+ }
+ 
+ export function reviewPath(taskId: string): string {
+-  return `${defaultReviewsDir}/${taskId}.yaml`;
++  return taskContractPath(defaultReviewsDir, taskId);
+ }
+ 
+ export function blockPath(taskId: string): string {
+-  return `${defaultBlocksDir}/${taskId}.yaml`;
++  return taskContractPath(defaultBlocksDir, taskId);
+ }
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index 93d6168..3991e21 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -1,5 +1,6 @@
+ import type { ErrorObject } from "ajv";
+ import { WBS_LESS_TASK_NODE_ID } from "../node-utils.js";
++import { isValidTaskId, taskIdPatternSource } from "../paths.js";
+ import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../types.js";
+ import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+@@ -34,7 +35,7 @@ const specChangeProposalSchema = {
+     targetSpec: { type: "string", minLength: 1 },
+     currentVersion: { type: "string", minLength: 1 },
+     proposedVersion: { type: "string", minLength: 1 },
+-    taskId: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     level: { type: "integer", enum: [0, 1, 2] },
+     summary: { type: "string", minLength: 1 },
+     rationale: stringArraySchema,
+@@ -64,7 +65,7 @@ const taskContractSchema = {
+     }
+   ],
+   properties: {
+-    id: { type: "string", minLength: 1 },
++    id: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     type: { const: "task-contract" },
+     mode: { const: "lite" },
+     wbsNodeId: { type: "string", minLength: 1 },
+@@ -317,6 +318,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+   if (value.type !== "task-contract") {
+     issues.push(issue("task.type", `${filePath}.type must be task-contract`));
+   }
++  if (typeof value.id === "string" && !isValidTaskId(value.id)) {
++    issues.push(issue("task.id.invalid", `${filePath}.id must be a valid task id`));
++  }
+   if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
+     issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));
+   }
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 75275b0..c40c91f 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -1,5 +1,6 @@
+ import type { ErrorObject } from "ajv";
+ import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from "../types.js";
++import { taskIdPatternSource } from "../paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+ 
+ const evidenceSchema = {
+@@ -9,7 +10,7 @@ const evidenceSchema = {
+   properties: {
+     id: { type: "string", minLength: 1 },
+     type: { const: "evidence" },
+-    taskId: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     commit: { type: "string" },
+     subjectHeadCommit: { type: "string" },
+     evidenceCommit: { type: "string" },
+@@ -104,7 +105,7 @@ const approvalRecordSchema = {
+   properties: {
+     id: { type: "string", minLength: 1 },
+     type: { const: "approval" },
+-    taskId: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     status: { type: "string", enum: ["requested", "approved", "rejected"] },
+     approvedBy: { type: "string" },
+     approvedAt: { type: "string" },
+@@ -129,7 +130,7 @@ const blockRecordSchema = {
+   properties: {
+     id: { type: "string", minLength: 1 },
+     type: { const: "block" },
+-    taskId: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     status: { type: "string", enum: ["blocked", "resolved"] },
+     level: { type: "integer", enum: [1, 2] },
+     category: { type: "string", enum: ["db", "auth", "permission", "security", "breaking-api", "business-rule", "human-gate", "external-service", "unknown"] },
+@@ -163,7 +164,7 @@ const reviewRecordSchema = {
+   properties: {
+     id: { type: "string", minLength: 1 },
+     type: { const: "review" },
+-    taskId: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     status: { type: "string", enum: ["requested", "approved", "changes-requested", "closed"] },
+     reviewProfile: { type: "string", minLength: 1 },
+     headCommit: { type: "string" },
+diff --git a/tests/integration/task-id-security.test.ts b/tests/integration/task-id-security.test.ts
+new file mode 100644
+index 0000000..3ea134d
+--- /dev/null
++++ b/tests/integration/task-id-security.test.ts
+@@ -0,0 +1,57 @@
++import { existsSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test, vi } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo, writeScwbsProject } from "../helpers.js";
++
++function captureError(action: () => number): { result: number; stderr: string } {
++  const stderr: string[] = [];
++  const spy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
++    stderr.push(args.map(String).join(" "));
++  });
++  try {
++    return { result: action(), stderr: stderr.join("\n") };
++  } finally {
++    spy.mockRestore();
++  }
++}
++
++describe("Task ID security boundary", () => {
++  test.each([
++    ["packet", ["packet", "--task", "../outside"]],
++    ["block", ["block", "poc", "--task", "../outside"]],
++    ["approval", ["approval", "request", "--task", String.raw`..\..\outside`]],
++    ["review", ["review", "request", "--task", "/tmp/outside"]],
++    ["evidence", ["evidence", "collect", "--task=%2e%2e%2foutside", "--force"]]
++  ])("%s rejects an unsafe --task before any read or write", (_name, args) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const outside = path.resolve(root, "../outside.yaml");
++
++    const result = captureError(() => main(args, root));
++
++    expect(result.result).toBe(2);
++    expect(result.stderr).toBe("ERROR task.id.invalid: Invalid task id");
++    expect(existsSync(outside)).toBe(false);
++  });
++
++  test("JSON commands return the same bounded diagnostic and exit code", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const result = captureError(() => main([
++      "check-diff",
++      "--task",
++      "../../outside",
++      "--json"
++    ], root));
++
++    expect(result.result).toBe(2);
++    expect(JSON.parse(result.stderr)).toEqual({
++      version: "scwbs.error.v1",
++      status: "error",
++      code: "task.id.invalid",
++      message: "Invalid task id"
++    });
++  });
++});
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index 3154c99..9146767 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -1,12 +1,73 @@
+-import { readFileSync } from "node:fs";
++import { existsSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectCheckIssues } from "../../src/commands/check.js";
+ import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
++import { approvalPath, blockPath, evidencePath, reviewPath, taskPath } from "../../src/core/paths.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
+ import type { WbsDocument } from "../../src/core/types.js";
+ 
+ describe("contracts / schema", () => {
++  test.each([
++    "WBS-001-004",
++    "SCWBS-DRAFT-ABC123",
++    "task.with_dots-and-hyphens"
++  ])("task lifecycle paths accept compatible task id %s", (taskId) => {
++    expect(taskPath(taskId)).toBe(`contracts/tasks/${taskId}.yaml`);
++    expect(evidencePath(taskId)).toBe(`contracts/evidence/${taskId}.yaml`);
++    expect(approvalPath(taskId)).toBe(`contracts/approvals/${taskId}.yaml`);
++    expect(reviewPath(taskId)).toBe(`contracts/reviews/${taskId}.yaml`);
++    expect(blockPath(taskId)).toBe(`contracts/blocks/${taskId}.yaml`);
++  });
++
++  test.each([
++    "",
++    ".",
++    "..",
++    "../../outside",
++    "/tmp/outside",
++    String.raw`..\..\outside`,
++    "nested/task",
++    "nested\\task",
++    "%2e%2e%2foutside",
++    "task id",
++    "タスク"
++  ])("task lifecycle paths reject unsafe task id without exposing it: %s", (taskId) => {
++    for (const buildPath of [taskPath, evidencePath, approvalPath, reviewPath, blockPath]) {
++      expect(() => buildPath(taskId)).toThrow("Invalid task id");
++    }
++  });
++
++  test("invalid task reads fail before inspecting an outside fixture", () => {
++    const root = makeTempRepo();
++    const outsideId = `outside-${path.basename(root)}`;
++    const outside = path.resolve(root, `../${outsideId}.yaml`);
++    writeYaml(root, `../${outsideId}.yaml`, { secret: "must-not-appear" });
++
++    const result = readTask(root, `../${outsideId}`);
++
++    expect(existsSync(outside)).toBe(true);
++    expect(result.task).toBeUndefined();
++    expect(result.issues).toEqual([{
++      severity: "error",
++      code: "task.id.invalid",
++      message: "Invalid task id"
++    }]);
++    expect(JSON.stringify(result.issues)).not.toContain("must-not-appear");
++  });
++
++  test("Task Contract schema rejects an unsafe id", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ id: "../outside" }) as unknown as Record<string, unknown>);
++
++    const result = readTask(root, "WBS-001-004");
++
++    expect(result.task).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "task.schema")).toBe(true);
++    expect(result.issues.some((issue) => issue.code === "task.id.invalid")).toBe(true);
++  });
++
+   test("spec contracts are first-class files with required metadata", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);

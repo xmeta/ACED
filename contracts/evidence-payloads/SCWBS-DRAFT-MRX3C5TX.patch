@@ -1,0 +1,820 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index fa0999d..0c256df 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -70,6 +70,7 @@ rules:
+       - src/core/code-context.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
++      - src/core/finish-lifecycle.ts
+       - src/core/github-actions.ts
+       - src/core/glob.ts
+       - src/core/hash.ts
+diff --git a/contracts/specs/SPEC-LITE-MRX3C5TX.yaml b/contracts/specs/SPEC-LITE-MRX3C5TX.yaml
+new file mode 100644
+index 0000000..64e22f5
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRX3C5TX.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MRX3C5TX
++type: spec-contract
++featureId: F-MRX3C5TX
++title: "Issue #179: finish lifecycle receiptとlocalLifecycle metricsを導入する"
++status: approved
++version: 0.1.0
++summary: "tracked artifactを増やさず、finishの試行・outcome・収束・metadata descendantをTask単位で観測する"
++approvedBy: user-requested-issue-179
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - git common dir配下へTask単位のversioned JSON receiptをatomic writeし、repository worktreeとRegistryへ観測artifactを追加しない
++  - 各eventはpreflight/full、startedAt、endedAt、durationMilliseconds、final phase、outcome、exitCode、mutatedFileCount、subjectHeadCommit、headCommit、verifiedMetadataAncestryCountを保持する
++  - 1 Taskあたり最新50 event、repositoryあたり最新100 Task receiptだけを保持し、超過時は決定的に古いものから削除する
++  - finishが例外または早期errorで終了してもTaskを解決できfinal outputを得た試行は1 eventとして記録する
++  - subject/headが不明、shallow history、ancestry不一致、非metadata descendantを含む場合はverifiedMetadataAncestryCountをnullとし0へ推測しない
++  - metrics governance --jsonへlocalLifecycleを加法的に追加し、availableまたはunavailable、invalid receipt数、event数、最大20 Taskのattempt・successful・blocked・failed・convergence・metadata descendantを返す
++  - convergenceは保持範囲内の最初のfull attempt開始から最初のcompleted成功終了までとし、未収束または履歴切捨て時はnullとする
++  - receipt欠落Taskやlegacy Taskを0 attemptとして列挙せず、壊れたreceiptはinvalidとして数え、source読取不能はunavailableとする
++  - plain metrics outputの既存行数を増やさず、JSON taskTrendは20件を超えない
++  - Human Gate requestedAt、PR publish loop、health warning delta、warning budget、file-based active/archive classifier補正はこのTaskに含めない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml b/contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
+new file mode 100644
+index 0000000..6ec476e
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
+@@ -0,0 +1,61 @@
++id: SCWBS-DRAFT-MRX3C5TX
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRX3C5TX
++branchName: codex/SCWBS-DRAFT-MRX3C5TX-issue-179-finish-lifecycle
++allowedPaths:
++  - src/core/finish-lifecycle.ts
++  - src/commands/finish.ts
++  - src/commands/metrics.ts
++  - tests/integration/finish-lifecycle.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - finish preflight/fullの全terminal outcomeをTask単位のgit common dir receiptへatomicに記録する
++  - receiptは最大50 event/Task、最大100 Taskでboundedに保持し、repository tracked artifactとRegistryを増やさない
++  - eventは開始・終了・duration・run mode・phase・outcome・exit code・mutated file数・subject/head・検証済みmetadata ancestry数を保持する
++  - metrics governance --jsonにsource status明示のlocalLifecycleと最大20件のTask trendを加法的に追加する
++  - shallow history、subject不明、legacy Task、壊れたreceiptはnullまたはunavailableとして扱い0へ推測しない
++  - required checks、check-diff、Registry、finish固定点、PR CIを直列に確認する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
++  - contracts/specs/SPEC-LITE-MRX3C5TX.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRX3C5TX.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRX3C5TX.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRX3C5TX.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRX3C5TX.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:0875caeda703244b281f1b62090b791d6972a9a973487ce1dd28f9b84f075132
++  createdAt: "2026-07-23T05:51:37.357Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 9b884cb..a2482cf 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1210,3 +1210,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-07-23T05:35:58.667Z"
++  - id: SCWBS-DRAFT-MRX3C5TX
++    path: contracts/tasks/SCWBS-DRAFT-MRX3C5TX.yaml
++    branchName: codex/SCWBS-DRAFT-MRX3C5TX-issue-179-finish-lifecycle
++    wbsNodeId: node-governance-maintenance
++    status: active
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 9d76358..9c67569 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -47,7 +47,11 @@ npm run scwbs -- metrics governance --json
+ 
+ GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。`taskPullRequests` は `pull_request` eventの `task/SCWBS-*` branchだけをtask ID別にまとめ、run、completed、success、failure、その他の完了、未完了、durationを最新更新順の最大20件で返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
+ 
+-`localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。finish試行、metadata descendant、Human Gate wait、publish loop、health warning delta、warning budgetは未計測であり、hard limitは導入しない。
++`localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。
++
++`finish` はpreflight/fullのterminal outcomeごとに、git common dirのTask別 `scwbs-finish-lifecycle` receiptへ開始・終了・duration・phase・outcome・exit code・mutated file数・subject/head・検証済みmetadata ancestry数をatomicに記録する。tracked artifactやRegistryは増やさない。1 Taskは最新50 event、repositoryは最新100 Taskにbounded化される。
++
++`metrics governance --json` の `localLifecycle` はこのreceiptをread-onlyで集計し、source status、invalid receipt数、event数、最大20 Taskのattempt、successful/blocked/failed、収束時間、metadata-only descendant数を返す。履歴切捨て、未収束、subject不明、shallow history、壊れたreceipt、git common dir読取不能は `null` または `status: unavailable` とし、0へ推測しない。Human Gate wait、publish loop、health warning delta、warning budgetは引き続き未計測であり、hard limitは導入しない。
+ 
+ 行数はUTF-8の改行数に、末尾改行がない空でないファイルの1行を加えた値である。`status: archived` または `archive` / `archived` directoryのartifactはactiveと分離する。未計測項目はJSONへ明示し、hard limitやprofile downgradeは行わない。
+ 
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 907d9bd..9cb32d7 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -16,6 +16,7 @@ import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js"
+ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { printIssues } from "../core/report.js";
++import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
+ 
+ export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
+ export type FinishOutcome =
+@@ -353,7 +354,10 @@ function finishOutput(input: Omit<FinishJsonOutput, "schemaVersion">): FinishJso
+   return { schemaVersion: "1.0.0", ...input };
+ }
+ 
++let finishLifecycleObserver: ((output: FinishJsonOutput) => void) | undefined;
++
+ function emitJson(output: FinishJsonOutput, enabled: boolean): void {
++  finishLifecycleObserver?.(output);
+   if (enabled) console.log(JSON.stringify(output, null, 2));
+ }
+ 
+@@ -394,7 +398,7 @@ function printHumanGate(approvalCommand: string, files: string[], diffHash: stri
+   console.log("Do not approve this task yourself.");
+ }
+ 
+-export function runFinish(root: string, options: FinishOptions = {}): number {
++function runFinishInternal(root: string, options: FinishOptions = {}): number {
+   const json = options.json ?? false;
+   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+   if (!taskId) {
+@@ -693,3 +697,40 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
+   }), json);
+   return 0;
+ }
++
++export function runFinish(root: string, options: FinishOptions = {}): number {
++  const startedAt = new Date();
++  const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
++  let terminalOutput: FinishLifecycleTerminalOutput | undefined;
++  const previousObserver = finishLifecycleObserver;
++  finishLifecycleObserver = (output) => {
++    terminalOutput = {
++      phase: output.phase,
++      outcome: output.outcome,
++      mutatedFiles: output.mutatedFiles
++    };
++    previousObserver?.(output);
++  };
++  let exitCode = 1;
++  try {
++    exitCode = runFinishInternal(root, options);
++    return exitCode;
++  } catch (error) {
++    terminalOutput ??= { phase: "preflight", outcome: "unexpected-error", mutatedFiles: [] };
++    throw error;
++  } finally {
++    finishLifecycleObserver = previousObserver;
++    if (taskId && terminalOutput) {
++      try {
++        const endedAt = new Date();
++        recordFinishLifecycleEvent(
++          root,
++          taskId,
++          buildFinishLifecycleEvent(root, taskId, startedAt, endedAt, exitCode, terminalOutput, options.preflight ?? false)
++        );
++      } catch (error) {
++        console.error(`WARN finish lifecycle receipt unavailable: ${error instanceof Error ? error.message : String(error)}`);
++      }
++    }
++  }
++}
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+index f356b23..9206cba 100644
+--- a/src/commands/metrics.ts
++++ b/src/commands/metrics.ts
+@@ -7,6 +7,7 @@ import { readProfile } from "./profile.js";
+ import { readGithubActionsHistory, type GithubActionsHistory } from "../core/github-actions.js";
+ import { isCheckReceipt, type CheckReceipt } from "../core/check-receipt.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
++import { finishLifecycleDirectory, isFinishLifecycleReceipt, type FinishLifecycleEvent, type FinishLifecycleReceipt } from "../core/finish-lifecycle.js";
+ 
+ const GOVERNANCE_DIRS = [
+   "contracts/tasks",
+@@ -56,6 +57,36 @@ export type LocalRequiredChecksSummary = {
+   source: "git-common-dir-check-receipts";
+   reason: string;
+ };
++
++export type LocalLifecycleSummary = {
++  status: "available";
++  source: "git-common-dir-finish-lifecycle";
++  receiptCount: number;
++  invalidReceiptCount: number;
++  eventCount: number;
++  taskTrend: {
++    limit: 20;
++    totalCount: number;
++    truncated: boolean;
++    items: Array<{
++      taskId: string;
++      latestEndedAt: string;
++      finishAttemptCount: number;
++      preflightAttemptCount: number;
++      fullAttemptCount: number;
++      successfulCount: number;
++      blockedCount: number;
++      failedCount: number;
++      convergenceMilliseconds: number | null;
++      verifiedMetadataAncestryCount: number | null;
++      historyTruncated: boolean;
++    }>;
++  };
++} | {
++  status: "unavailable";
++  source: "git-common-dir-finish-lifecycle";
++  reason: string;
++};
+ type FileMeasurement = Bucket & {
+   activeFiles: number;
+   activeBytes: number;
+@@ -75,6 +106,7 @@ export type GovernanceCostSummary = {
+     activeArchive: string;
+     ratios: string;
+     localRequiredChecks: string;
++    localLifecycle: string;
+     hardLimitEnforced: false;
+   };
+   categories: Record<string, FileMeasurement>;
+@@ -88,6 +120,7 @@ export type GovernanceCostSummary = {
+   };
+   historicalCi: GithubActionsHistory;
+   localRequiredChecks: LocalRequiredChecksSummary;
++  localLifecycle: LocalLifecycleSummary;
+   unmeasured: string[];
+ };
+ 
+@@ -267,6 +300,84 @@ export function buildLocalRequiredChecksSummary(root: string): LocalRequiredChec
+   };
+ }
+ 
++function lifecycleClassification(event: FinishLifecycleEvent): "successful" | "blocked" | "failed" {
++  if (event.exitCode === 0 && (event.outcome === "ready" || event.outcome === "completed")) return "successful";
++  if (event.outcome === "readiness-blocked" || event.outcome === "awaiting-human-approval") return "blocked";
++  return "failed";
++}
++
++function convergenceMilliseconds(receipt: FinishLifecycleReceipt): number | null {
++  if (receipt.historyTruncated) return null;
++  const fullEvents = receipt.events.filter((event) => event.runMode === "full");
++  const first = fullEvents[0];
++  const completed = fullEvents.find((event) => event.exitCode === 0 && event.outcome === "completed");
++  if (!first || !completed) return null;
++  const started = Date.parse(first.startedAt);
++  const ended = Date.parse(completed.endedAt);
++  return Number.isFinite(started) && Number.isFinite(ended) && ended >= started ? ended - started : null;
++}
++
++export function buildLocalLifecycleSummary(root: string): LocalLifecycleSummary {
++  let directory: string;
++  try {
++    directory = finishLifecycleDirectory(root);
++  } catch (error) {
++    return { status: "unavailable", source: "git-common-dir-finish-lifecycle", reason: error instanceof Error ? error.message.trim() : String(error) };
++  }
++  const receipts: FinishLifecycleReceipt[] = [];
++  let invalidReceiptCount = 0;
++  try {
++    if (existsSync(directory)) {
++      for (const entry of readdirSync(directory, { withFileTypes: true })) {
++        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
++        try {
++          const value: unknown = JSON.parse(readFileSync(path.join(directory, entry.name), "utf8"));
++          if (isFinishLifecycleReceipt(value) && entry.name === `${encodeURIComponent(value.taskId)}.json`) receipts.push(value);
++          else invalidReceiptCount += 1;
++        } catch {
++          invalidReceiptCount += 1;
++        }
++      }
++    }
++  } catch (error) {
++    return { status: "unavailable", source: "git-common-dir-finish-lifecycle", reason: error instanceof Error ? error.message : String(error) };
++  }
++  const trend = receipts
++    .map((receipt) => {
++      const classifications = receipt.events.map(lifecycleClassification);
++      const ancestry = receipt.events.flatMap((event) =>
++        event.verifiedMetadataAncestryCount === null ? [] : [event.verifiedMetadataAncestryCount]
++      );
++      return {
++        taskId: receipt.taskId,
++        latestEndedAt: receipt.events.at(-1)?.endedAt ?? "",
++        finishAttemptCount: receipt.events.length,
++        preflightAttemptCount: receipt.events.filter((event) => event.runMode === "preflight").length,
++        fullAttemptCount: receipt.events.filter((event) => event.runMode === "full").length,
++        successfulCount: classifications.filter((value) => value === "successful").length,
++        blockedCount: classifications.filter((value) => value === "blocked").length,
++        failedCount: classifications.filter((value) => value === "failed").length,
++        convergenceMilliseconds: convergenceMilliseconds(receipt),
++        verifiedMetadataAncestryCount: ancestry.length === 0 ? null : Math.max(...ancestry),
++        historyTruncated: receipt.historyTruncated
++      };
++    })
++    .sort((left, right) => right.latestEndedAt.localeCompare(left.latestEndedAt) || left.taskId.localeCompare(right.taskId));
++  return {
++    status: "available",
++    source: "git-common-dir-finish-lifecycle",
++    receiptCount: receipts.length,
++    invalidReceiptCount,
++    eventCount: receipts.reduce((sum, receipt) => sum + receipt.events.length, 0),
++    taskTrend: {
++      limit: 20,
++      totalCount: trend.length,
++      truncated: trend.length > 20,
++      items: trend.slice(0, 20)
++    }
++  };
++}
++
+ export function buildGovernanceCostSummary(root: string, now = new Date()): GovernanceCostSummary {
+   const categories: Record<string, FileMeasurement> = {};
+   for (const directory of GOVERNANCE_DIRS) {
+@@ -288,6 +399,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+   };
+   const historicalCi = readGithubActionsHistory(root);
+   const localRequiredChecks = buildLocalRequiredChecksSummary(root);
++  const localLifecycle = buildLocalLifecycleSummary(root);
+ 
+   return {
+     schemaVersion: "1.0.0",
+@@ -299,6 +411,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+       activeArchive: "active is the default; status: archived or an archive/archived directory is separated",
+       ratios: "governance lines divided by src TypeScript lines or test TypeScript lines; null means zero denominator",
+       localRequiredChecks: "current git-common-dir receipts only; latest successful canonical run per task, with missing legacy durations left unobserved",
++      localLifecycle: "bounded Task-local finish events from the current git common directory; missing history is not inferred as zero attempts",
+       hardLimitEnforced: false
+     },
+     categories,
+@@ -312,6 +425,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
+     },
+     historicalCi,
+     localRequiredChecks,
++    localLifecycle,
+     unmeasured: [
+       "finish attempts and metadata-only descendant count",
+       "Human Gate wait time, publish-loop duration, and health warning delta",
+diff --git a/src/core/finish-lifecycle.ts b/src/core/finish-lifecycle.ts
+new file mode 100644
+index 0000000..db77713
+--- /dev/null
++++ b/src/core/finish-lifecycle.ts
+@@ -0,0 +1,221 @@
++import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
++import { execFileSync } from "node:child_process";
++import path from "node:path";
++import { readEvidence } from "./contracts.js";
++import { changedFilesBetween, headCommit, isCommitAncestor, isShallowRepository } from "./git.js";
++import { gitCommonDir } from "./required-check-run.js";
++
++export const finishLifecycleEventLimit = 50;
++export const finishLifecycleTaskLimit = 100;
++
++export type FinishLifecycleEvent = {
++  runMode: "preflight" | "full";
++  startedAt: string;
++  endedAt: string;
++  durationMilliseconds: number;
++  phase: string;
++  outcome: string;
++  exitCode: number;
++  mutatedFileCount: number;
++  subjectHeadCommit: string | null;
++  headCommit: string | null;
++  verifiedMetadataAncestryCount: number | null;
++};
++
++export type FinishLifecycleReceipt = {
++  schemaVersion: "1.0.0";
++  taskId: string;
++  historyTruncated: boolean;
++  events: FinishLifecycleEvent[];
++};
++
++export type FinishLifecycleTerminalOutput = {
++  phase: string;
++  outcome: string;
++  mutatedFiles: string[];
++};
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function isNullableString(value: unknown): value is string | null {
++  return value === null || typeof value === "string";
++}
++
++function isNullableNonNegativeInteger(value: unknown): value is number | null {
++  return value === null || (Number.isInteger(value) && (value as number) >= 0);
++}
++
++function isIsoDate(value: unknown): value is string {
++  return typeof value === "string" && Number.isFinite(Date.parse(value));
++}
++
++function isFinishLifecycleEvent(value: unknown): value is FinishLifecycleEvent {
++  if (!isRecord(value)) return false;
++  return (value.runMode === "preflight" || value.runMode === "full")
++    && isIsoDate(value.startedAt)
++    && isIsoDate(value.endedAt)
++    && typeof value.durationMilliseconds === "number"
++    && value.durationMilliseconds >= 0
++    && typeof value.phase === "string"
++    && typeof value.outcome === "string"
++    && Number.isInteger(value.exitCode)
++    && typeof value.mutatedFileCount === "number"
++    && Number.isInteger(value.mutatedFileCount)
++    && value.mutatedFileCount >= 0
++    && isNullableString(value.subjectHeadCommit)
++    && isNullableString(value.headCommit)
++    && isNullableNonNegativeInteger(value.verifiedMetadataAncestryCount);
++}
++
++export function isFinishLifecycleReceipt(value: unknown): value is FinishLifecycleReceipt {
++  return isRecord(value)
++    && value.schemaVersion === "1.0.0"
++    && typeof value.taskId === "string"
++    && typeof value.historyTruncated === "boolean"
++    && Array.isArray(value.events)
++    && value.events.length <= finishLifecycleEventLimit
++    && value.events.every(isFinishLifecycleEvent);
++}
++
++export function finishLifecycleDirectory(root: string): string {
++  return path.join(gitCommonDir(root), "scwbs-finish-lifecycle");
++}
++
++function receiptPath(root: string, taskId: string): string {
++  return path.join(finishLifecycleDirectory(root), `${encodeURIComponent(taskId)}.json`);
++}
++
++function approvedMetadataFiles(taskId: string): Set<string> {
++  return new Set([
++    `contracts/evidence/${taskId}.yaml`,
++    `contracts/approvals/${taskId}.yaml`,
++    `contracts/reviews/${taskId}.yaml`,
++    "contracts/registry.yaml"
++  ]);
++}
++
++function commitCount(root: string, from: string, to: string): number {
++  const output = execFileSync("git", ["rev-list", "--count", `${from}..${to}`], {
++    cwd: root,
++    encoding: "utf8",
++    stdio: ["ignore", "pipe", "ignore"]
++  }).trim();
++  const count = Number(output);
++  if (!Number.isInteger(count) || count < 0) throw new Error("Invalid git rev-list count");
++  return count;
++}
++
++export function verifiedMetadataAncestryCount(
++  root: string,
++  taskId: string,
++  subjectHeadCommit: string | null,
++  currentHeadCommit: string | null
++): number | null {
++  if (!subjectHeadCommit || !currentHeadCommit || isShallowRepository(root)) return null;
++  try {
++    if (!isCommitAncestor(root, subjectHeadCommit, currentHeadCommit)) return null;
++    const allowed = approvedMetadataFiles(taskId);
++    const changedFiles = changedFilesBetween(root, subjectHeadCommit, currentHeadCommit)
++      .map((file) => file.replace(/\\/g, "/"));
++    if (changedFiles.some((file) => !allowed.has(file))) return null;
++    return commitCount(root, subjectHeadCommit, currentHeadCommit);
++  } catch {
++    return null;
++  }
++}
++
++function readExistingReceipt(root: string, taskId: string): FinishLifecycleReceipt | undefined {
++  const file = receiptPath(root, taskId);
++  if (!existsSync(file)) return undefined;
++  try {
++    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
++    return isFinishLifecycleReceipt(value) && value.taskId === taskId ? value : undefined;
++  } catch {
++    return undefined;
++  }
++}
++
++function pruneTaskReceipts(root: string, protectedFile: string): void {
++  const directory = finishLifecycleDirectory(root);
++  const files = readdirSync(directory, { withFileTypes: true })
++    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
++    .map((entry) => {
++      const file = path.join(directory, entry.name);
++      let observedAt = statSync(file).mtime.toISOString();
++      try {
++        const value: unknown = JSON.parse(readFileSync(file, "utf8"));
++        if (isFinishLifecycleReceipt(value)) observedAt = value.events.at(-1)?.endedAt ?? observedAt;
++      } catch {
++        // A corrupt receipt remains bounded using its filesystem timestamp.
++      }
++      return { file, observedAt, name: entry.name };
++    })
++    .sort((left, right) => left.observedAt.localeCompare(right.observedAt) || left.name.localeCompare(right.name));
++  while (files.length > finishLifecycleTaskLimit) {
++    const candidateIndex = files.findIndex((entry) => entry.file !== protectedFile);
++    if (candidateIndex < 0) break;
++    const [candidate] = files.splice(candidateIndex, 1);
++    if (candidate) unlinkSync(candidate.file);
++  }
++}
++
++export function recordFinishLifecycleEvent(root: string, taskId: string, event: FinishLifecycleEvent): void {
++  const directory = finishLifecycleDirectory(root);
++  mkdirSync(directory, { recursive: true });
++  const file = receiptPath(root, taskId);
++  const existing = readExistingReceipt(root, taskId);
++  const combined = [...(existing?.events ?? []), event];
++  const truncated = combined.length > finishLifecycleEventLimit;
++  const receipt: FinishLifecycleReceipt = {
++    schemaVersion: "1.0.0",
++    taskId,
++    historyTruncated: (existing === undefined && existsSync(file)) || existing?.historyTruncated === true || truncated,
++    events: combined.slice(-finishLifecycleEventLimit)
++  };
++  const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
++  try {
++    writeFileSync(temporary, `${JSON.stringify(receipt)}\n`, "utf8");
++    renameSync(temporary, file);
++  } finally {
++    if (existsSync(temporary)) unlinkSync(temporary);
++  }
++  pruneTaskReceipts(root, file);
++}
++
++export function buildFinishLifecycleEvent(
++  root: string,
++  taskId: string,
++  startedAt: Date,
++  endedAt: Date,
++  exitCode: number,
++  output: FinishLifecycleTerminalOutput,
++  preflight: boolean
++): FinishLifecycleEvent {
++  const evidence = readEvidence(root, taskId).evidence;
++  const subjectHeadCommit = evidence?.subjectHeadCommit
++    ?? evidence?.git?.subjectHeadCommit
++    ?? evidence?.git?.headCommit
++    ?? evidence?.commit
++    ?? null;
++  let currentHeadCommit: string | null = null;
++  try {
++    currentHeadCommit = headCommit(root) ?? null;
++  } catch {
++    currentHeadCommit = null;
++  }
++  return {
++    runMode: preflight ? "preflight" : "full",
++    startedAt: startedAt.toISOString(),
++    endedAt: endedAt.toISOString(),
++    durationMilliseconds: Math.max(0, endedAt.getTime() - startedAt.getTime()),
++    phase: output.phase,
++    outcome: output.outcome,
++    exitCode,
++    mutatedFileCount: output.mutatedFiles.length,
++    subjectHeadCommit,
++    headCommit: currentHeadCommit,
++    verifiedMetadataAncestryCount: verifiedMetadataAncestryCount(root, taskId, subjectHeadCommit, currentHeadCommit)
++  };
++}
+diff --git a/tests/integration/finish-lifecycle.test.ts b/tests/integration/finish-lifecycle.test.ts
+new file mode 100644
+index 0000000..70fa40e
+--- /dev/null
++++ b/tests/integration/finish-lifecycle.test.ts
+@@ -0,0 +1,204 @@
++import { execFileSync } from "node:child_process";
++import { readFileSync, readdirSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test, vi } from "vitest";
++import { runFinish } from "../../src/commands/finish.js";
++import { buildLocalLifecycleSummary } from "../../src/commands/metrics.js";
++import { runTaskLock } from "../../src/commands/task-lock.js";
++import {
++  finishLifecycleDirectory,
++  finishLifecycleEventLimit,
++  finishLifecycleTaskLimit,
++  isFinishLifecycleReceipt,
++  recordFinishLifecycleEvent,
++  verifiedMetadataAncestryCount,
++  type FinishLifecycleEvent
++} from "../../src/core/finish-lifecycle.js";
++import { makeTempRepo, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++
++function event(overrides: Partial<FinishLifecycleEvent> = {}): FinishLifecycleEvent {
++  return {
++    runMode: "full",
++    startedAt: "2026-07-23T00:00:00.000Z",
++    endedAt: "2026-07-23T00:00:01.000Z",
++    durationMilliseconds: 1000,
++    phase: "required-checks",
++    outcome: "required-check-failed",
++    exitCode: 1,
++    mutatedFileCount: 0,
++    subjectHeadCommit: null,
++    headCommit: null,
++    verifiedMetadataAncestryCount: null,
++    ...overrides
++  };
++}
++
++function readReceipt(root: string, taskId: string): unknown {
++  return JSON.parse(readFileSync(path.join(finishLifecycleDirectory(root), `${encodeURIComponent(taskId)}.json`), "utf8"));
++}
++
++describe("finish lifecycle receipts", () => {
++  test("finish preflight records one Task-local event without changing the worktree", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    const before = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
++    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "HEAD", preflight: true, json: true })).toBe(0);
++    } finally {
++      log.mockRestore();
++    }
++    const receipt = readReceipt(root, "WBS-001-004");
++    expect(isFinishLifecycleReceipt(receipt)).toBe(true);
++    expect(receipt).toMatchObject({
++      taskId: "WBS-001-004",
++      historyTruncated: false,
++      events: [{
++        runMode: "preflight",
++        phase: "preflight",
++        outcome: "ready",
++        exitCode: 0,
++        mutatedFileCount: 0
++      }]
++    });
++    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe(before);
++  });
++
++  test("finish full records its completed terminal outcome", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++      branchName: "master",
++      allowedPaths: ["contracts/**"],
++      humanGateRequiredPaths: [],
++      requiredChecks: []
++    }) as unknown as Record<string, unknown>);
++    expect(runTaskLock(root, "WBS-001-004")).toBe(0);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
++    try {
++      expect(runFinish(root, { taskId: "WBS-001-004", baseRef: "HEAD", json: true })).toBe(0);
++    } finally {
++      log.mockRestore();
++    }
++    expect(readReceipt(root, "WBS-001-004")).toMatchObject({
++      events: [{
++        runMode: "full",
++        phase: "complete",
++        outcome: "completed",
++        exitCode: 0
++      }]
++    });
++  });
++
++  test("bounds events per Task and receipts per repository", () => {
++    const root = makeTempRepo();
++    for (let index = 0; index < finishLifecycleEventLimit + 5; index += 1) {
++      recordFinishLifecycleEvent(root, "TASK-EVENTS", event({
++        endedAt: `2026-07-23T00:00:${String(index).padStart(2, "0")}.000Z`
++      }));
++    }
++    const bounded = readReceipt(root, "TASK-EVENTS");
++    expect(isFinishLifecycleReceipt(bounded)).toBe(true);
++    if (!isFinishLifecycleReceipt(bounded)) throw new Error("invalid receipt");
++    expect(bounded.historyTruncated).toBe(true);
++    expect(bounded.events).toHaveLength(finishLifecycleEventLimit);
++
++    for (let index = 0; index < finishLifecycleTaskLimit + 1; index += 1) {
++      recordFinishLifecycleEvent(root, `TASK-${String(index).padStart(3, "0")}`, event({
++        endedAt: `2026-07-24T${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}:00.000Z`
++      }));
++    }
++    expect(readdirSync(finishLifecycleDirectory(root)).filter((file) => file.endsWith(".json"))).toHaveLength(finishLifecycleTaskLimit);
++    expect(readdirSync(finishLifecycleDirectory(root))).not.toContain("TASK-EVENTS.json");
++  });
++
++  test("summarizes outcomes, convergence, corruption, and a bounded Task trend", () => {
++    const root = makeTempRepo();
++    recordFinishLifecycleEvent(root, "TASK-CONVERGED", event());
++    recordFinishLifecycleEvent(root, "TASK-CONVERGED", event({
++      runMode: "preflight",
++      startedAt: "2026-07-23T00:00:02.000Z",
++      endedAt: "2026-07-23T00:00:03.000Z",
++      phase: "preflight",
++      outcome: "ready",
++      exitCode: 0
++    }));
++    recordFinishLifecycleEvent(root, "TASK-CONVERGED", event({
++      startedAt: "2026-07-23T00:00:04.000Z",
++      endedAt: "2026-07-23T00:00:05.000Z",
++      phase: "complete",
++      outcome: "completed",
++      exitCode: 0,
++      verifiedMetadataAncestryCount: 2
++    }));
++    recordFinishLifecycleEvent(root, "TASK-BLOCKED", event({
++      endedAt: "2026-07-23T00:00:06.000Z",
++      phase: "readiness",
++      outcome: "readiness-blocked"
++    }));
++    for (let index = 0; index < 20; index += 1) {
++      recordFinishLifecycleEvent(root, `TASK-TREND-${index}`, event({
++        endedAt: `2026-07-22T${String(index).padStart(2, "0")}:00:00.000Z`
++      }));
++    }
++    writeText(root, path.relative(root, path.join(finishLifecycleDirectory(root), "corrupt.json")), "{not-json\n");
++
++    const summary = buildLocalLifecycleSummary(root);
++    if (summary.status !== "available") throw new Error(summary.reason);
++    expect(summary).toMatchObject({ receiptCount: 22, invalidReceiptCount: 1, eventCount: 24 });
++    expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 22, truncated: true });
++    expect(summary.taskTrend.items).toHaveLength(20);
++    expect(summary.taskTrend.items[0]).toMatchObject({
++      taskId: "TASK-BLOCKED",
++      finishAttemptCount: 1,
++      successfulCount: 0,
++      blockedCount: 1,
++      failedCount: 0,
++      convergenceMilliseconds: null
++    });
++    expect(summary.taskTrend.items[1]).toMatchObject({
++      taskId: "TASK-CONVERGED",
++      finishAttemptCount: 3,
++      preflightAttemptCount: 1,
++      fullAttemptCount: 2,
++      successfulCount: 2,
++      blockedCount: 0,
++      failedCount: 1,
++      convergenceMilliseconds: 5000,
++      verifiedMetadataAncestryCount: 2
++    });
++  });
++
++  test("verifies metadata-only ancestry and returns null for source changes", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    const subject = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    writeText(root, "contracts/evidence/WBS-001-004.yaml", "id: EVD-WBS-001-004\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "metadata"], { cwd: root, stdio: "ignore" });
++    const metadataHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    expect(verifiedMetadataAncestryCount(root, "WBS-001-004", subject, metadataHead)).toBe(1);
++
++    writeText(root, "src/change.ts", "export const changed = true;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "source"], { cwd: root, stdio: "ignore" });
++    const sourceHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    expect(verifiedMetadataAncestryCount(root, "WBS-001-004", subject, sourceHead)).toBeNull();
++    expect(verifiedMetadataAncestryCount(root, "WBS-001-004", null, sourceHead)).toBeNull();
++  });
++
++  test("reports the source as unavailable outside a git repository", () => {
++    const root = path.join("/tmp", `scwbs-no-git-${process.pid}-${Date.now()}`);
++    expect(buildLocalLifecycleSummary(root)).toMatchObject({
++      status: "unavailable",
++      source: "git-common-dir-finish-lifecycle"
++    });
++  });
++});

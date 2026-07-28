@@ -1,0 +1,2282 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 3bf277b..fa0999d 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -49,6 +49,7 @@ rules:
+       - src/commands/start.ts
+       - src/commands/status.ts
+       - src/commands/task-generate.ts
++      - src/commands/task-index.ts
+       - src/commands/task-lock.ts
+       - src/commands/task-new.ts
+       - src/commands/task-refresh.ts
+@@ -89,6 +90,7 @@ rules:
+       - src/core/schema/wbs.ts
+       - src/core/submodule-provenance.ts
+       - src/core/task-authority.ts
++      - src/core/task-index.ts
+       - src/core/wbs-lock.ts
+       - src/core/wbs.ts
+       - src/core/yaml.ts
+diff --git a/contracts/specs/SPEC-LITE-MRX1N60G.yaml b/contracts/specs/SPEC-LITE-MRX1N60G.yaml
+new file mode 100644
+index 0000000..9b0fc30
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRX1N60G.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MRX1N60G
++type: spec-contract
++featureId: F-MRX1N60G
++title: "Issue #146: Task Contract indexへactive/archive lifecycleと既定active走査を導入する"
++status: approved
++version: 0.1.0
++summary: "Task Contract自体と監査recordを残したまま、index lifecycleでactive queueとarchive履歴を分離する"
++approvedBy: user-requested-issue-146
++approvedAt: "2026-07-23T00:00:00+09:00"
++acceptanceCriteria:
++  - indexは全Task Contractの一意なid、canonical path、branchName、wbsNodeId、status、dependsOnを保持し、statusはplanned、active、blocked、reviewed、completed、cancelled、archivedのいずれかとする
++  - completed、cancelled、archivedをterminalかつinactiveとし、それ以外をactiveとして既定queue・health走査に使用する
++  - task index rebuild --checkはTask directoryとの欠落、余剰、重複、不正path、未知status、内容driftを非0で報告し、--forceは既存lifecycleを保持して原子的に正規化する
++  - task archive --taskでindex statusとarchivedAtを更新できるが、Task、Evidence、Approval、Reviewのファイルは移動・削除しない
++  - archived Taskはpacket --task、finish --task、task refresh --task、check、registry rebuildなど明示Task操作から引き続き参照できる
++  - next、review-queue、ai next-task、health code-context、WBS candidateの既定走査からinactive Taskを除外する
++  - indexが欠落または不正なTaskは既定走査でactiveとして扱い、checkとrebuild --checkがdriftを報告する
++  - RegistryのTask entryへstatus、active、archivedAtを加法的に記録し、既存fieldの意味を変えない
++  - plain outputとJSON outputをboundedに保ち、100件超のTask inventoryでも全Task詳細を既定表示しない
++  - 物理archive directoryへの移動、record削除、WBS canonical変更、#179 lifecycle metrics、warning budgetはこのTaskに含めない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml b/contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
+new file mode 100644
+index 0000000..9d15fc8
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
+@@ -0,0 +1,73 @@
++id: SCWBS-DRAFT-MRX1N60G
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRX1N60G
++branchName: codex/SCWBS-DRAFT-MRX1N60G-issue-146-active-archive
++allowedPaths:
++  - src/core/task-index.ts
++  - src/core/contracts.ts
++  - src/core/types.ts
++  - src/core/schema/registries.ts
++  - src/commands/task-index.ts
++  - src/commands/task-new.ts
++  - src/commands/next.ts
++  - src/commands/ai-queue.ts
++  - src/commands/review-queue.ts
++  - src/commands/health.ts
++  - src/commands/check.ts
++  - src/commands/registry-rebuild.ts
++  - src/commands/wbs.ts
++  - src/cli.ts
++  - tests/integration/task-index.test.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/task-contract.md
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - contracts/tasks/index.yamlのactive/archive lifecycle semanticsが文書化され、task index rebuild --checkがTask Contract inventoryとの不整合をfail-closedで検出する
++  - terminal Taskをarchiveへ遷移でき、Task・Evidence・Approval・Reviewは移動・削除せず明示Task参照とRegistry traceabilityを維持する
++  - next、review-queue、ai next-task、health code-context、WBS candidateの既定走査がactive Taskだけを対象にする
++  - index欠落Task、重複、未知status、不正pathを検出し、既定走査でTaskを黙って消さない
++  - active/archive、legacy index、100件超inventory、explicit archived Task参照をintegration testで検証し、bounded outputを維持する
++  - merge前にrequired checks、check、check-diff、Registry、finish固定点、PR CIを直列に確認する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
++  - contracts/specs/SPEC-LITE-MRX1N60G.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRX1N60G.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRX1N60G.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRX1N60G.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRX1N60G.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:4b56f8635bdee7ec57efcffd051d78e5644e0610634a3317349fc8810cc6b919
++  createdAt: "2026-07-23T05:02:36.876Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 3483d3e..a572cf7 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1,299 +1,1211 @@
+ tasks:
+-  - id: SCWBS-DRAFT-MRNMF79U
+-    path: contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
+-    branchName: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
++  - id: LITE-001
++    path: contracts/tasks/LITE-001.yaml
++    branchName: ""
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T13:19:01Z"
++  - id: LITE-002
++    path: contracts/tasks/LITE-002.yaml
++    branchName: ""
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T13:39:52Z"
++  - id: LITE-003
++    path: contracts/tasks/LITE-003.yaml
++    branchName: codex/lite-003-approval-completion-cli
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:11:52Z"
++  - id: SCWBS-001
++    path: contracts/tasks/SCWBS-001.yaml
++    branchName: task/SCWBS-001-dogfood-sc-wbs-contracts
++    wbsNodeId: node-dogfood-contracts
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-27T22:32:17Z"
++  - id: SCWBS-002
++    path: contracts/tasks/SCWBS-002.yaml
++    branchName: task/SCWBS-002-first-class-spec-contract-support
++    wbsNodeId: node-spec-contracts
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T06:04:09Z"
++  - id: SCWBS-003
++    path: contracts/tasks/SCWBS-003.yaml
++    branchName: task/SCWBS-003-test-quality-and-coverage-verification
++    wbsNodeId: node-test-quality
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:08:20Z"
++  - id: SCWBS-004
++    path: contracts/tasks/SCWBS-004.yaml
++    branchName: task/SCWBS-004-task-contract-draft-generation
++    wbsNodeId: node-task-generate
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-27T22:32:17Z"
++  - id: SCWBS-005
++    path: contracts/tasks/SCWBS-005.yaml
++    branchName: task/SCWBS-005-wbs-conflict-mitigation
++    wbsNodeId: node-wbs-merge
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-27T22:32:17Z"
++  - id: SCWBS-006
++    path: contracts/tasks/SCWBS-006.yaml
++    branchName: task/SCWBS-006-meta-file-safety-guardrails
++    wbsNodeId: node-meta-file-safety
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-27T22:32:17Z"
++  - id: SCWBS-007
++    path: contracts/tasks/SCWBS-007.yaml
++    branchName: task/SCWBS-007-subtree-bootstrap-transition
++    wbsNodeId: node-bootstrap-subtree
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-27T22:32:17Z"
++  - id: SCWBS-008
++    path: contracts/tasks/SCWBS-008.yaml
++    branchName: task/SCWBS-008-lightweight-orchestration-roadmap
++    wbsNodeId: node-lightweight-orchestration
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-28T07:38:29Z"
++  - id: SCWBS-009
++    path: contracts/tasks/SCWBS-009.yaml
++    branchName: task/SCWBS-009-doctor-command
++    wbsNodeId: node-lightweight-doctor
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:17:29Z"
++  - id: SCWBS-010
++    path: contracts/tasks/SCWBS-010.yaml
++    branchName: task/SCWBS-010-evidence-collect-command
++    wbsNodeId: node-lightweight-evidence-collect
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:22:26Z"
++  - id: SCWBS-011
++    path: contracts/tasks/SCWBS-011.yaml
++    branchName: task/SCWBS-011-task-refresh-command
++    wbsNodeId: node-lightweight-task-refresh
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:26:58Z"
++  - id: SCWBS-012
++    path: contracts/tasks/SCWBS-012.yaml
++    branchName: task/SCWBS-012-registry-profile-commands
++    wbsNodeId: node-lightweight-registry-profile
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:33:02Z"
++  - id: SCWBS-013
++    path: contracts/tasks/SCWBS-013.yaml
++    branchName: task/SCWBS-013-ai-run-dry-run
++    wbsNodeId: node-lightweight-ai-run
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T11:03:48Z"
++  - id: SCWBS-014
++    path: contracts/tasks/SCWBS-014.yaml
++    branchName: task/SCWBS-014-review-request-command
++    wbsNodeId: node-lightweight-review-request
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T12:27:45Z"
++  - id: SCWBS-015
++    path: contracts/tasks/SCWBS-015.yaml
++    branchName: task/SCWBS-015-next-action-command
++    wbsNodeId: node-lightweight-next
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T13:53:29Z"
++  - id: SCWBS-016
++    path: contracts/tasks/SCWBS-016.yaml
++    branchName: task/SCWBS-016-ai-packet-format
++    wbsNodeId: node-lightweight-ai-packet-format
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T17:13:13Z"
++  - id: SCWBS-017
++    path: contracts/tasks/SCWBS-017.yaml
++    branchName: task/SCWBS-017-start-plan-commands
++    wbsNodeId: node-lightweight-start-plan
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:20:01Z"
++  - id: SCWBS-018
++    path: contracts/tasks/SCWBS-018.yaml
++    branchName: task/SCWBS-018-lite-promote-commands
++    wbsNodeId: node-lightweight-lite-promote
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:27:24Z"
++  - id: SCWBS-019
++    path: contracts/tasks/SCWBS-019.yaml
++    branchName: task/SCWBS-019-trace-command
++    wbsNodeId: node-lightweight-trace
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:39:26Z"
++  - id: SCWBS-020
++    path: contracts/tasks/SCWBS-020.yaml
++    branchName: task/SCWBS-020-ui-dashboard-serve-stub
++    wbsNodeId: node-lightweight-ui-serve
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:46:22Z"
++  - id: SCWBS-021
++    path: contracts/tasks/SCWBS-021.yaml
++    branchName: task/SCWBS-021-task-branch-guard
++    wbsNodeId: node-lightweight-branch-guard
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T22:59:55Z"
++  - id: SCWBS-022
++    path: contracts/tasks/SCWBS-022.yaml
++    branchName: task/SCWBS-022-review-routing
++    wbsNodeId: node-lightweight-review-routing
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-28T18:52:46Z"
++  - id: SCWBS-023
++    path: contracts/tasks/SCWBS-023.yaml
++    branchName: task/SCWBS-023-wbs-tool-only
++    wbsNodeId: node-wbs-tool-only
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-28T18:08:27Z"
++  - id: SCWBS-024
++    path: contracts/tasks/SCWBS-024.yaml
++    branchName: codex/architecture-audit-doc
++    wbsNodeId: node-dogfood-contracts
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-29T15:18:03Z"
++  - id: SCWBS-025
++    path: contracts/tasks/SCWBS-025.yaml
++    branchName: codex/wbs-yaml-json-schema-validation
++    wbsNodeId: node-yaml-json-schema-validation
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-29T15:12:28Z"
++  - id: SCWBS-026
++    path: contracts/tasks/SCWBS-026.yaml
++    branchName: codex/yaml-contract-json-schema-validation
++    wbsNodeId: node-yaml-json-schema-validation
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T02:19:43Z"
++  - id: SCWBS-027
++    path: contracts/tasks/SCWBS-027.yaml
++    branchName: codex/evidence-provenance-diff-basis
++    wbsNodeId: node-evidence-provenance-diff-basis
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T01:53:38Z"
++  - id: SCWBS-028
++    path: contracts/tasks/SCWBS-028.yaml
++    branchName: task/SCWBS-003-test-quality-and-coverage-verification
++    wbsNodeId: node-dogfood-contracts
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T07:08:20Z"
++  - id: SCWBS-029
++    path: contracts/tasks/SCWBS-029.yaml
++    branchName: codex/meta-health-audit-hygiene
++    wbsNodeId: node-meta-health-audit-hygiene
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T14:17:36Z"
++  - id: SCWBS-030
++    path: contracts/tasks/SCWBS-030.yaml
++    branchName: codex/conflict-cost-guardrails
++    wbsNodeId: node-conflict-cost-guardrails
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-06-30T15:00:08Z"
++  - id: SCWBS-031
++    path: contracts/tasks/SCWBS-031.yaml
++    branchName: codex/review-queue-completion-sweep
++    wbsNodeId: node-dogfood-contracts
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-01T11:33:37Z"
++  - id: SCWBS-032
++    path: contracts/tasks/SCWBS-032.yaml
++    branchName: codex/scwbs-032-ci-integration-contract
++    wbsNodeId: node-ci-integration
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T04:38:02Z"
++  - id: SCWBS-033
++    path: contracts/tasks/SCWBS-033.yaml
++    branchName: codex/scwbs-033-record-scwbs-032-review
++    wbsNodeId: node-ci-integration
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T04:47:33Z"
++  - id: SCWBS-034
++    path: contracts/tasks/SCWBS-034.yaml
++    branchName: codex/scwbs-034-review-next-guidance
++    wbsNodeId: node-lightweight-next
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T04:59:31Z"
++  - id: SCWBS-035
++    path: contracts/tasks/SCWBS-035.yaml
++    branchName: codex/scwbs-035-complete-ci-integration
++    wbsNodeId: node-ci-integration
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T05:45:40Z"
++  - id: SCWBS-036
++    path: contracts/tasks/SCWBS-036.yaml
++    branchName: codex/scwbs-036-health-stale-cleanup
++    wbsNodeId: node-evidence-provenance-diff-basis
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T06:39:29Z"
++  - id: SCWBS-037
++    path: contracts/tasks/SCWBS-037.yaml
++    branchName: codex/scwbs-037-evidence-health-backfill
++    wbsNodeId: node-evidence-provenance-diff-basis
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T06:47:49Z"
++  - id: SCWBS-038
++    path: contracts/tasks/SCWBS-038.yaml
++    branchName: codex/scwbs-038-test-quality-rationale-health
++    wbsNodeId: node-test-quality
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T11:09:28Z"
++  - id: SCWBS-039
++    path: contracts/tasks/SCWBS-039.yaml
++    branchName: codex/scwbs-039-design-spec-audit
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T13:35:58Z"
++  - id: SCWBS-040
++    path: contracts/tasks/SCWBS-040.yaml
++    branchName: codex/scwbs-040-governance-maintenance-node
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T13:45:28Z"
++  - id: SCWBS-041
++    path: contracts/tasks/SCWBS-041.yaml
++    branchName: codex/scwbs-041-spec-change-proposal
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T13:54:25Z"
++  - id: SCWBS-042
++    path: contracts/tasks/SCWBS-042.yaml
++    branchName: codex/scwbs-042-ai-next-task-evidence-filter
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T14:05:47Z"
++  - id: SCWBS-043
++    path: contracts/tasks/SCWBS-043.yaml
++    branchName: codex/scwbs-043-review-queue-shared-node-completion
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T14:13:50Z"
++  - id: SCWBS-044
++    path: contracts/tasks/SCWBS-044.yaml
++    branchName: codex/scwbs-044-review-health-blocker-label
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T14:22:15Z"
++  - id: SCWBS-045
++    path: contracts/tasks/SCWBS-045.yaml
++    branchName: codex/scwbs-045-next-respects-review-blockers
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T14:28:59Z"
++  - id: SCWBS-046
++    path: contracts/tasks/SCWBS-046.yaml
++    branchName: codex/scwbs-046-node-level-completion-task
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T17:08:18Z"
++  - id: SCWBS-047
++    path: contracts/tasks/SCWBS-047.yaml
++    branchName: codex/scwbs-047-node-completion-contract-metadata
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T17:19:16Z"
++  - id: SCWBS-048
++    path: contracts/tasks/SCWBS-048.yaml
++    branchName: codex/scwbs-048-review-metadata-backfill
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T17:44:25Z"
++  - id: SCWBS-049
++    path: contracts/tasks/SCWBS-049.yaml
++    branchName: codex/scwbs-049-pr-metadata-evidence-collect
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T18:22:06Z"
++  - id: SCWBS-050
++    path: contracts/tasks/SCWBS-050.yaml
++    branchName: codex/scwbs-050-final-pr-metadata-backfill
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-02T18:32:57Z"
++  - id: SCWBS-051
++    path: contracts/tasks/SCWBS-051.yaml
++    branchName: codex/scwbs-051-approve-governance-review-targets
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T00:24:46Z"
++  - id: SCWBS-052
++    path: contracts/tasks/SCWBS-052.yaml
++    branchName: codex/scwbs-052-ready-governance-maintenance
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T00:39:16Z"
++  - id: SCWBS-053
++    path: contracts/tasks/SCWBS-053.yaml
++    branchName: codex/scwbs-053-apply-governance-completion
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T00:47:32Z"
++  - id: SCWBS-054
++    path: contracts/tasks/SCWBS-054.yaml
++    branchName: codex/scwbs-054-wjs-node-runner
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T05:57:11Z"
++  - id: SCWBS-055
++    path: contracts/tasks/SCWBS-055.yaml
++    branchName: codex/scwbs-055-wjs-bun-runner
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T06:29:22Z"
++  - id: SCWBS-056
++    path: contracts/tasks/SCWBS-056.yaml
++    branchName: codex/scwbs-056-core-doc-pack
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T11:18:13Z"
++  - id: SCWBS-057
++    path: contracts/tasks/SCWBS-057.yaml
++    branchName: codex/scwbs-057-project-review-backfill
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T11:45:38Z"
++  - id: SCWBS-058
++    path: contracts/tasks/SCWBS-058.yaml
++    branchName: codex/scwbs-058-project-node-completion-task
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T12:06:02Z"
++  - id: SCWBS-059
++    path: contracts/tasks/SCWBS-059.yaml
++    branchName: codex/scwbs-059-ready-project-node
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T12:42:21Z"
++  - id: SCWBS-060
++    path: contracts/tasks/SCWBS-060.yaml
++    branchName: codex/scwbs-060-apply-project-completion
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T12:57:17Z"
++  - id: SCWBS-061
++    path: contracts/tasks/SCWBS-061.yaml
++    branchName: codex/scwbs-061-completion-apply-output
++    wbsNodeId: node-lightweight-evidence-collect
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T14:27:12Z"
++  - id: SCWBS-062
++    path: contracts/tasks/SCWBS-062.yaml
++    branchName: codex/scwbs-062-reapply-project-completion
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T14:48:48Z"
++  - id: SCWBS-063
++    path: contracts/tasks/SCWBS-063.yaml
++    branchName: codex/scwbs-063-scwbs-061-testquality-backfill
++    wbsNodeId: node-lightweight-evidence-collect
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-03T15:03:18Z"
++  - id: SCWBS-CORE-M1
++    path: contracts/tasks/SCWBS-CORE-M1.yaml
++    branchName: task/SCWBS-CORE-M1-core-task-lifecycle-completion
++    wbsNodeId: node-core-task-lifecycle-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T13:32:52Z"
++  - id: SCWBS-CORE-M2
++    path: contracts/tasks/SCWBS-CORE-M2.yaml
++    branchName: task/SCWBS-CORE-M2-evidence-diff-guard
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T14:10:03Z"
++  - id: SCWBS-CORE-M2-GATE
++    path: contracts/tasks/SCWBS-CORE-M2-GATE.yaml
++    branchName: task/SCWBS-CORE-M2-GATE-human-gate-diff-error
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T14:39:52Z"
++  - id: SCWBS-CORE-M2-HEALTH
++    path: contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
++    branchName: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T14:23:51Z"
++  - id: SCWBS-DRAFT-MR67PKBQ
++    path: contracts/tasks/SCWBS-DRAFT-MR67PKBQ.yaml
++    branchName: codex/scwbs-core-revision-checklist-entrypoint
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-04T10:44:54Z"
++  - id: SCWBS-DRAFT-MR7PVFWR
++    path: contracts/tasks/SCWBS-DRAFT-MR7PVFWR.yaml
++    branchName: task/SCWBS-DRAFT-MR7PVFWR-sc-wbs-core-revision-implementation
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T12:11:36Z"
++  - id: SCWBS-DRAFT-MR7R46OO
++    path: contracts/tasks/SCWBS-DRAFT-MR7R46OO.yaml
++    branchName: task/SCWBS-DRAFT-MR7R46OO-backfill-core-revision-pr-metadata
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T12:19:00Z"
++  - id: SCWBS-DRAFT-MR7RFNZS
++    path: contracts/tasks/SCWBS-DRAFT-MR7RFNZS.yaml
++    branchName: task/SCWBS-DRAFT-MR7RFNZS-backfill-core-revision-review-metadata
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T12:29:25Z"
++  - id: SCWBS-DRAFT-MR7RR147
++    path: contracts/tasks/SCWBS-DRAFT-MR7RR147.yaml
++    branchName: task/SCWBS-DRAFT-MR7RR147-normalize-core-revision-review-pr-metadata
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T12:36:32Z"
++  - id: SCWBS-DRAFT-MR7S032T
++    path: contracts/tasks/SCWBS-DRAFT-MR7S032T.yaml
++    branchName: task/SCWBS-DRAFT-MR7S032T-record-core-revision-metadata-backfill-review-re
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-05T12:43:32Z"
+   - id: SCWBS-DRAFT-MR7XMGQ2
+     path: contracts/tasks/SCWBS-DRAFT-MR7XMGQ2.yaml
+     branchName: task/SCWBS-DRAFT-MR7XMGQ2-m2-check-catalog-managedcontractpaths-fixcommand
+     wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T18:30:17Z"
++  - id: SCWBS-DRAFT-MR84NCDI
++    path: contracts/tasks/SCWBS-DRAFT-MR84NCDI.yaml
++    branchName: task/SCWBS-DRAFT-MR84NCDI-backfill-scwbs-draft-mr7xmgq2-health-metadata
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T19:40:35Z"
++  - id: SCWBS-DRAFT-MR87T1D4
++    path: contracts/tasks/SCWBS-DRAFT-MR87T1D4.yaml
++    branchName: task/SCWBS-DRAFT-MR87T1D4-complete-sc-wbs-core-revision-checklist
++    wbsNodeId: node-core-mvp-closeout
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-05T21:29:09Z"
++  - id: SCWBS-DRAFT-MR8GC6KT
++    path: contracts/tasks/SCWBS-DRAFT-MR8GC6KT.yaml
++    branchName: task/SCWBS-DRAFT-MR8GC6KT-backfill-scwbs-draft-mr87t1d4-health-metadata
++    wbsNodeId: node-core-mvp-closeout
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T00:17:37Z"
++  - id: SCWBS-DRAFT-MR8H6KXW
++    path: contracts/tasks/SCWBS-DRAFT-MR8H6KXW.yaml
++    branchName: task/SCWBS-DRAFT-MR8H6KXW-plan-metadata-only-finish-workflow-optimization
++    wbsNodeId: node-core-evidence-diff-guard-completion
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T00:46:56Z"
++  - id: SCWBS-DRAFT-MR8IBVF7
++    path: contracts/tasks/SCWBS-DRAFT-MR8IBVF7.yaml
++    branchName: task/SCWBS-DRAFT-MR8IBVF7-fix-review-queue-completion-readiness-to-require
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T01:13:48Z"
++  - id: SCWBS-DRAFT-MR8J27M8
++    path: contracts/tasks/SCWBS-DRAFT-MR8J27M8.yaml
++    branchName: task/SCWBS-DRAFT-MR8J27M8-backfill-scwbs-draft-mr8ibvf7-health-metadata
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T01:24:55Z"
++  - id: SCWBS-DRAFT-MR8URHAZ
++    path: contracts/tasks/SCWBS-DRAFT-MR8URHAZ.yaml
++    branchName: task/SCWBS-DRAFT-MR8URHAZ-design-blocked-review-completion-handoff-plan
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T07:18:26Z"
++  - id: SCWBS-DRAFT-MR8VSYBM
++    path: contracts/tasks/SCWBS-DRAFT-MR8VSYBM.yaml
++    branchName: task/SCWBS-DRAFT-MR8VSYBM-backfill-missing-contractlock-metadata-for-healt
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T07:41:19Z"
++  - id: SCWBS-DRAFT-MR8WZEPG
++    path: contracts/tasks/SCWBS-DRAFT-MR8WZEPG.yaml
++    branchName: task/SCWBS-DRAFT-MR8WZEPG-backfill-review-request-records-for-recent-block
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T08:06:01Z"
+   - id: SCWBS-DRAFT-MR93DJ0K
+     path: contracts/tasks/SCWBS-DRAFT-MR93DJ0K.yaml
+     branchName: task/SCWBS-DRAFT-MR93DJ0K-doc-refactor-remove-stale-audit-handoff-docs-and
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T12:17:32Z"
++  - id: SCWBS-DRAFT-MR97F1VS
++    path: contracts/tasks/SCWBS-DRAFT-MR97F1VS.yaml
++    branchName: task/SCWBS-DRAFT-MR97F1VS-replace-simple-yaml-parser-with-js-yaml-and-keep
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-06T13:06:21Z"
++  - id: SCWBS-DRAFT-MR98ICTX
++    path: contracts/tasks/SCWBS-DRAFT-MR98ICTX.yaml
++    branchName: task/SCWBS-DRAFT-MR98ICTX-backfill-scwbs-draft-mr97f1vs-pr-and-test-qualit
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T13:13:28Z"
+   - id: SCWBS-DRAFT-MR99YIZH
+     path: contracts/tasks/SCWBS-DRAFT-MR99YIZH.yaml
+     branchName: task/SCWBS-DRAFT-MR99YIZH-fix-help-flags-for-mutating-commands
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-06T13:58:29Z"
+   - id: SCWBS-DRAFT-MR9ASVDC
+     path: contracts/tasks/SCWBS-DRAFT-MR9ASVDC.yaml
+     branchName: task/SCWBS-DRAFT-MR9ASVDC-improve-beginner-and-ai-documentation
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-06T14:44:52Z"
++  - id: SCWBS-DRAFT-MRAAQJKB
++    path: contracts/tasks/SCWBS-DRAFT-MRAAQJKB.yaml
++    branchName: task/SCWBS-DRAFT-MRAAQJKB-clarify-docs-source-of-truth-navigation-for-gith
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T08:06:18Z"
++  - id: SCWBS-DRAFT-MRADV9TK
++    path: contracts/tasks/SCWBS-DRAFT-MRADV9TK.yaml
++    branchName: task/SCWBS-DRAFT-MRADV9TK-doctor-environment-diagnostics
++    wbsNodeId: node-lightweight-doctor
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-07T09:23:15Z"
+   - id: SCWBS-DRAFT-MRAGIGN5
+     path: contracts/tasks/SCWBS-DRAFT-MRAGIGN5.yaml
+     branchName: task/SCWBS-DRAFT-MRAGIGN5-refactor-bloated-source-files-into-smaller-modul
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T09:41:14Z"
++  - id: SCWBS-DRAFT-MRAHA583
++    path: contracts/tasks/SCWBS-DRAFT-MRAHA583.yaml
++    branchName: task/SCWBS-DRAFT-MRAHA583-split-bloated-test-file-into-domain-specific-mod
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-07T10:08:07Z"
++  - id: SCWBS-DRAFT-MRAIICZL
++    path: contracts/tasks/SCWBS-DRAFT-MRAIICZL.yaml
++    branchName: task/SCWBS-DRAFT-MRAIICZL-agents-md-governance-rules-and-wjs-submodule-upd
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T10:40:32Z"
++  - id: SCWBS-DRAFT-MRAP8F92
++    path: contracts/tasks/SCWBS-DRAFT-MRAP8F92.yaml
++    branchName: task/SCWBS-DRAFT-MRAP8F92-refactor-migrate-cli-args-parser-to-commander
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T14:32:10Z"
+   - id: SCWBS-DRAFT-MRARHNVE
+     path: contracts/tasks/SCWBS-DRAFT-MRARHNVE.yaml
+     branchName: task/SCWBS-DRAFT-MRARHNVE-finish-ai
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-07T15:00:53Z"
+   - id: SCWBS-DRAFT-MRASJUKR
+     path: contracts/tasks/SCWBS-DRAFT-MRASJUKR.yaml
+     branchName: task/SCWBS-DRAFT-MRASJUKR-implement-profile-driven-artifact-management-lea
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T15:21:13Z"
++  - id: SCWBS-DRAFT-MRAU2ILG
++    path: contracts/tasks/SCWBS-DRAFT-MRAU2ILG.yaml
++    branchName: task/SCWBS-DRAFT-MRAU2ILG-packet-agents-md-packet-readme-packetlevel
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-07T16:53:19Z"
+   - id: SCWBS-DRAFT-MRAWFMMQ
+     path: contracts/tasks/SCWBS-DRAFT-MRAWFMMQ.yaml
+     branchName: task/SCWBS-DRAFT-MRAWFMMQ-adopt-npm-workspaces-for-wjs-to-fix-issue-97
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-07T17:10:05Z"
++  - id: SCWBS-DRAFT-MRAX22BF
++    path: contracts/tasks/SCWBS-DRAFT-MRAX22BF.yaml
++    branchName: task/SCWBS-DRAFT-MRAX22BF-enforce-wbs-direct-edit-prohibition-in-check-dif
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-07T17:36:12Z"
+   - id: SCWBS-DRAFT-MRB0ZML9
+     path: contracts/tasks/SCWBS-DRAFT-MRB0ZML9.yaml
+     branchName: task/SCWBS-DRAFT-MRB0ZML9-add-json-output-to-check-doctor-and-finish-comma
+     wbsNodeId: node-ci-integration
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-09T00:13:49Z"
++  - id: SCWBS-DRAFT-MRHVJE4O
++    path: contracts/tasks/SCWBS-DRAFT-MRHVJE4O.yaml
++    branchName: task/SCWBS-DRAFT-MRHVJE4O-fix-issue-130-synchronize-package-lock-json-with
++    wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T03:21:16Z"
+   - id: SCWBS-DRAFT-MRIO2DZN
+     path: contracts/tasks/SCWBS-DRAFT-MRIO2DZN.yaml
+     branchName: codex/issue-130-workspace-installation-verification
+     wbsNodeId: node-fix-issue-130-synchronize-package-lock-json-with
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T03:46:33Z"
++  - id: SCWBS-DRAFT-MRITE4UK
++    path: contracts/tasks/SCWBS-DRAFT-MRITE4UK.yaml
++    branchName: task/SCWBS-DRAFT-MRITE4UK-fix-issue-131-require-integration-and-wjs-tests-
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T07:32:19Z"
++  - id: SCWBS-DRAFT-MRIVCPVS
++    path: contracts/tasks/SCWBS-DRAFT-MRIVCPVS.yaml
++    branchName: task/SCWBS-DRAFT-MRIVCPVS-issue-132-wjs-run-ts-nested-import-apply-cli-run
++    wbsNodeId: node-project
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T07:21:24Z"
+   - id: SCWBS-DRAFT-MRJ3EC8T
+     path: contracts/tasks/SCWBS-DRAFT-MRJ3EC8T.yaml
+     branchName: task/SCWBS-DRAFT-MRJ3EC8T-issue-133-finish-human-gate-next-action-cli-mism
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T10:59:00Z"
+   - id: SCWBS-DRAFT-MRJ4390U
+     path: contracts/tasks/SCWBS-DRAFT-MRJ4390U.yaml
+     branchName: task/SCWBS-DRAFT-MRJ4390U-issue-129-unify-human-gate-validation-across-che
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T11:24:20Z"
+   - id: SCWBS-DRAFT-MRJ5041G
+     path: contracts/tasks/SCWBS-DRAFT-MRJ5041G.yaml
+     branchName: task/SCWBS-DRAFT-MRJ5041G-issue-152-preserve-human-approval-across-metadat
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T11:50:28Z"
+   - id: SCWBS-DRAFT-MRJ5YJ65
+     path: contracts/tasks/SCWBS-DRAFT-MRJ5YJ65.yaml
+     branchName: task/SCWBS-DRAFT-MRJ5YJ65-issue-151-finish-evidence-registry-sync-and-safe
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T12:20:51Z"
+   - id: SCWBS-DRAFT-MRJ713V7
+     path: contracts/tasks/SCWBS-DRAFT-MRJ713V7.yaml
+     branchName: task/SCWBS-DRAFT-MRJ713V7-issue-153-required-check-coverage-policy-validat
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T12:40:26Z"
+   - id: SCWBS-DRAFT-MRJ7P78M
+     path: contracts/tasks/SCWBS-DRAFT-MRJ7P78M.yaml
+     branchName: task/SCWBS-DRAFT-MRJ7P78M-issue-155-block-resolve-lifecycle-and-cli
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T13:10:40Z"
+   - id: SCWBS-DRAFT-MRJ8SH9L
+     path: contracts/tasks/SCWBS-DRAFT-MRJ8SH9L.yaml
+     branchName: task/SCWBS-DRAFT-MRJ8SH9L-issue-156-contractlock-node-dependency-aware-loc
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T13:33:03Z"
+   - id: SCWBS-DRAFT-MRJ9KAIW
+     path: contracts/tasks/SCWBS-DRAFT-MRJ9KAIW.yaml
+     branchName: task/SCWBS-DRAFT-MRJ9KAIW-issue-154-submodule-nested-evidence-pr-provenanc
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T14:08:24Z"
+   - id: SCWBS-DRAFT-MRJAU9CT
+     path: contracts/tasks/SCWBS-DRAFT-MRJAU9CT.yaml
+     branchName: task/SCWBS-DRAFT-MRJAU9CT-issue-157-registry-rebuild-default-summary-quiet
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T14:25:11Z"
++  - id: SCWBS-DRAFT-MRJCX0WS
++    path: contracts/tasks/SCWBS-DRAFT-MRJCX0WS.yaml
++    branchName: task/SCWBS-DRAFT-MRJCX0WS-issue-128-completion-apply-must-not-generate-hum
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T16:10:05Z"
++  - id: SCWBS-DRAFT-MRJFIVE9
++    path: contracts/tasks/SCWBS-DRAFT-MRJFIVE9.yaml
++    branchName: task/SCWBS-DRAFT-MRJFIVE9-issue-101-approval-approve-must-require-explicit
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T16:59:08Z"
++  - id: SCWBS-DRAFT-MRJH8CER
++    path: contracts/tasks/SCWBS-DRAFT-MRJH8CER.yaml
++    branchName: task/SCWBS-DRAFT-MRJH8CER-issue-134-wbs-candidates-addnode-changeset-must-
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T17:45:41Z"
++  - id: SCWBS-DRAFT-MRJIXALN
++    path: contracts/tasks/SCWBS-DRAFT-MRJIXALN.yaml
++    branchName: task/SCWBS-DRAFT-MRJIXALN-issue-135-task-new-wbs-node-must-not-generate-un
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T19:12:20Z"
+   - id: SCWBS-DRAFT-MRJM0BOB
+     path: contracts/tasks/SCWBS-DRAFT-MRJM0BOB.yaml
+     branchName: task/SCWBS-DRAFT-MRJM0BOB-task-contract-schema-completionscope-completiont
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T20:03:47Z"
+   - id: SCWBS-DRAFT-MRJNPICQ
+     path: contracts/tasks/SCWBS-DRAFT-MRJNPICQ.yaml
+     branchName: task/SCWBS-DRAFT-MRJNPICQ-review-record-review-queue
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-13T20:55:46Z"
++  - id: SCWBS-DRAFT-MRJPL60I
++    path: contracts/tasks/SCWBS-DRAFT-MRJPL60I.yaml
++    branchName: task/SCWBS-DRAFT-MRJPL60I-human-gate
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T21:35:11Z"
++  - id: SCWBS-DRAFT-MRJRH1OC
++    path: contracts/tasks/SCWBS-DRAFT-MRJRH1OC.yaml
++    branchName: task/SCWBS-DRAFT-MRJRH1OC-core-approval-block-start-completion
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-13T22:30:48Z"
++  - id: SCWBS-DRAFT-MRK7Z2D4
++    path: contracts/tasks/SCWBS-DRAFT-MRK7Z2D4.yaml
++    branchName: task/SCWBS-DRAFT-MRK7Z2D4-issue-176-review-queue-evidence-bounded-summary
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T06:01:46Z"
++  - id: SCWBS-DRAFT-MRK9OEJJ
++    path: contracts/tasks/SCWBS-DRAFT-MRK9OEJJ.yaml
++    branchName: task/SCWBS-DRAFT-MRK9OEJJ-issue-191-finish-task-health-readiness-merge
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T07:00:39Z"
++  - id: SCWBS-DRAFT-MRKB0YFI
++    path: contracts/tasks/SCWBS-DRAFT-MRKB0YFI.yaml
++    branchName: task/SCWBS-DRAFT-MRKB0YFI-issue-189-requiredchecks-heartbeat-single-flight
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T07:05:45Z"
++  - id: SCWBS-DRAFT-MRKH9ITY
++    path: contracts/tasks/SCWBS-DRAFT-MRKH9ITY.yaml
++    branchName: task/SCWBS-DRAFT-MRKH9ITY-issue-190-integration-suite
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T10:05:02Z"
++  - id: SCWBS-DRAFT-MRKHLDDX
++    path: contracts/tasks/SCWBS-DRAFT-MRKHLDDX.yaml
++    branchName: task/SCWBS-DRAFT-MRKHLDDX-issue-175-test-integration-ai
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T10:09:59Z"
+   - id: SCWBS-DRAFT-MRKHSGIO
+     path: contracts/tasks/SCWBS-DRAFT-MRKHSGIO.yaml
+     branchName: task/SCWBS-DRAFT-MRKHSGIO-issue-145-health-json-aggregation-shallow-clone-
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-14T10:30:04Z"
++  - id: SCWBS-DRAFT-MRKKUDY6
++    path: contracts/tasks/SCWBS-DRAFT-MRKKUDY6.yaml
++    branchName: task/SCWBS-DRAFT-MRKKUDY6-issue-183-allowedpaths-managedcontractpaths-fail
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-14T11:54:08Z"
+   - id: SCWBS-DRAFT-MRKMGEV8
+     path: contracts/tasks/SCWBS-DRAFT-MRKMGEV8.yaml
+     branchName: task/SCWBS-DRAFT-MRKMGEV8-issue-181-required-checks-coverage-core-classifi
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-14T12:50:53Z"
+   - id: SCWBS-DRAFT-MRKOFKM3
+     path: contracts/tasks/SCWBS-DRAFT-MRKOFKM3.yaml
+     branchName: task/SCWBS-DRAFT-MRKOFKM3-issue-186-task-contract-authority-baseline-enfor
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-14T13:38:27Z"
+   - id: SCWBS-DRAFT-MRKQ6SWA
+     path: contracts/tasks/SCWBS-DRAFT-MRKQ6SWA.yaml
+     branchName: task/SCWBS-DRAFT-MRKQ6SWA-issue-184-fail-closed-on-uncommitted-working-tre
+     wbsNodeId: node-core-evidence-diff-guard-completion
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-14T14:50:48Z"
+   - id: SCWBS-DRAFT-MRKRUCAZ
+     path: contracts/tasks/SCWBS-DRAFT-MRKRUCAZ.yaml
+     branchName: task/SCWBS-DRAFT-MRKRUCAZ-issue-182-finish-human-gate-evidence-registry-re
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-15T11:56:08Z"
++  - id: SCWBS-DRAFT-MRM11JDO
++    path: contracts/tasks/SCWBS-DRAFT-MRM11JDO.yaml
++    branchName: task/SCWBS-DRAFT-MRM11JDO-issue-204-finish-nextaction-pr-metadata-pr
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-15T12:35:42Z"
++  - id: SCWBS-DRAFT-MRM46Z18
++    path: contracts/tasks/SCWBS-DRAFT-MRM46Z18.yaml
++    branchName: task/SCWBS-DRAFT-MRM46Z18-issue-210-finish-merge-closed-pr
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T13:59:08Z"
+   - id: SCWBS-DRAFT-MRM5UH9Z
+     path: contracts/tasks/SCWBS-DRAFT-MRM5UH9Z.yaml
+     branchName: task/SCWBS-DRAFT-MRM5UH9Z-issue-211-evidence-subject-head-stability
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T14:38:29Z"
+   - id: SCWBS-DRAFT-MRM7AEPJ
+     path: contracts/tasks/SCWBS-DRAFT-MRM7AEPJ.yaml
+     branchName: task/SCWBS-DRAFT-MRM7AEPJ-issue-203-provenance-verified-metadata-only-ci-f
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T15:49:24Z"
+   - id: SCWBS-DRAFT-MRM9E50G
+     path: contracts/tasks/SCWBS-DRAFT-MRM9E50G.yaml
+     branchName: task/SCWBS-DRAFT-MRM9E50G-issue-202-canonical-required-check-receipt-reuse
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T16:26:43Z"
+   - id: SCWBS-DRAFT-MRMAZ5CU
+     path: contracts/tasks/SCWBS-DRAFT-MRMAZ5CU.yaml
+     branchName: task/SCWBS-DRAFT-MRMAZ5CU-issue-200-direct-integration-single-flight
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T16:56:56Z"
+   - id: SCWBS-DRAFT-MRME5SO8
+     path: contracts/tasks/SCWBS-DRAFT-MRME5SO8.yaml
+     branchName: task/SCWBS-DRAFT-MRME5SO8-issue-139-task-new-fail-closed
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-15T18:31:14Z"
+   - id: SCWBS-DRAFT-MRMY18YN
+     path: contracts/tasks/SCWBS-DRAFT-MRMY18YN.yaml
+     branchName: task/SCWBS-DRAFT-MRMY18YN-issue-222-fail-closed-approval-delegation-policy
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-16T04:09:35Z"
++  - id: SCWBS-DRAFT-MRN2Y0EK
++    path: contracts/tasks/SCWBS-DRAFT-MRN2Y0EK.yaml
++    branchName: task/SCWBS-DRAFT-MRN2Y0EK-issue-222-agents-delegated-approval-guidance-syn
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T05:51:12Z"
+   - id: SCWBS-DRAFT-MRNAN54I
+     path: contracts/tasks/SCWBS-DRAFT-MRNAN54I.yaml
+     branchName: task/SCWBS-DRAFT-MRNAN54I-issue-224-checks-run-integration-concurrent-time
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T09:38:46Z"
+   - id: SCWBS-DRAFT-MRNI5LFR
+     path: contracts/tasks/SCWBS-DRAFT-MRNI5LFR.yaml
+     branchName: task/SCWBS-DRAFT-MRNI5LFR-scwbs-052-replacement-make-governance-maintenanc
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T13:01:57Z"
+   - id: SCWBS-DRAFT-MRNKB9XV
+     path: contracts/tasks/SCWBS-DRAFT-MRNKB9XV.yaml
+     branchName: task/SCWBS-DRAFT-MRNKB9XV-issue-179-read-only-governance-cost-metrics-summ
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T14:17:14Z"
++  - id: SCWBS-DRAFT-MRNMF79U
++    path: contracts/tasks/SCWBS-DRAFT-MRNMF79U.yaml
++    branchName: task/SCWBS-DRAFT-MRNMF79U-issue-179-historical-ci-metrics
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-16T15:11:05Z"
++  - id: SCWBS-DRAFT-MRNPP1D1
++    path: contracts/tasks/SCWBS-DRAFT-MRNPP1D1.yaml
++    branchName: codex/issue-231-review-request-registry-v2
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-16T16:53:09Z"
+   - id: SCWBS-DRAFT-MRNRMETS
+     path: contracts/tasks/SCWBS-DRAFT-MRNRMETS.yaml
+     branchName: task/SCWBS-DRAFT-MRNRMETS-issue-220-shared-lifecycle-integration-test-slee
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T17:32:03Z"
+   - id: SCWBS-DRAFT-MRNTXMFH
+     path: contracts/tasks/SCWBS-DRAFT-MRNTXMFH.yaml
+     branchName: task/SCWBS-DRAFT-MRNTXMFH-issue-179-canonical-required-check-receipt-local
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T18:38:41Z"
+   - id: SCWBS-DRAFT-MRNWE8OG
+     path: contracts/tasks/SCWBS-DRAFT-MRNWE8OG.yaml
+     branchName: task/SCWBS-DRAFT-MRNWE8OG-issue-221-read-only-context-manifest-vertical-sl
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T19:49:38Z"
+   - id: SCWBS-DRAFT-MRNZ33AL
+     path: contracts/tasks/SCWBS-DRAFT-MRNZ33AL.yaml
+     branchName: task/SCWBS-DRAFT-MRNZ33AL-issue-235-github-actions-action-majors
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-16T22:16:47Z"
+   - id: SCWBS-DRAFT-MRO3Q7N9
+     path: contracts/tasks/SCWBS-DRAFT-MRO3Q7N9.yaml
+     branchName: task/SCWBS-DRAFT-MRO3Q7N9-issue-238-task-new-gate-human-gate
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-17T03:28:36Z"
+   - id: SCWBS-DRAFT-MRODUHLZ
+     path: contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
+     branchName: task/SCWBS-DRAFT-MRODUHLZ-issue-239-finish-human-approval-force
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-17T03:46:51Z"
+   - id: SCWBS-DRAFT-MROEIGJG
+     path: contracts/tasks/SCWBS-DRAFT-MROEIGJG.yaml
+     branchName: task/SCWBS-DRAFT-MROEIGJG-issue-179-task-pr-ci-run-failure-governance-metr
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-17T04:00:41Z"
+   - id: SCWBS-DRAFT-MRPHOQ03
+     path: contracts/tasks/SCWBS-DRAFT-MRPHOQ03.yaml
+     branchName: task/SCWBS-DRAFT-MRPHOQ03-issue-215-read-only-task-execution-classificatio
+     wbsNodeId: node-governance-maintenance
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-18T14:31:45Z"
+   - id: SCWBS-DRAFT-MRQHGOF0
+     path: contracts/tasks/SCWBS-DRAFT-MRQHGOF0.yaml
+     branchName: task/SCWBS-DRAFT-MRQHGOF0-issue-245-task-id-path-traversal-fail-closed
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-18T15:39:59Z"
+   - id: SCWBS-DRAFT-MRQJQQK5
+     path: contracts/tasks/SCWBS-DRAFT-MRQJQQK5.yaml
+     branchName: task/SCWBS-DRAFT-MRQJQQK5-issue-251-finish-required-check-failure-diagnost
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-18T16:25:30Z"
+   - id: SCWBS-DRAFT-MRQLDIK2
+     path: contracts/tasks/SCWBS-DRAFT-MRQLDIK2.yaml
+     branchName: task/SCWBS-DRAFT-MRQLDIK2-issue-243-npm-bin-symlink
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-18T16:53:02Z"
+   - id: SCWBS-DRAFT-MRQMEG30
+     path: contracts/tasks/SCWBS-DRAFT-MRQMEG30.yaml
+     branchName: task/SCWBS-DRAFT-MRQMEG30-issue-255-clean-npm-pack-scwbs-bin
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-18T17:58:04Z"
+   - id: SCWBS-DRAFT-MRQQ8J7W
+     path: contracts/tasks/SCWBS-DRAFT-MRQQ8J7W.yaml
+     branchName: task/SCWBS-DRAFT-MRQQ8J7W-root-mjs-lf-checkout
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-18T19:39:36Z"
++  - id: SCWBS-DRAFT-MRRNWP4J
++    path: contracts/tasks/SCWBS-DRAFT-MRRNWP4J.yaml
++    branchName: task/SCWBS-DRAFT-MRRNWP4J-issue-226-delegated-approval-bootstrap-ux
++    wbsNodeId: node-governance-maintenance
++    status: archived
+     dependsOn: []
++    archivedAt: "2026-07-19T13:31:36Z"
++  - id: SCWBS-DRAFT-MRRPSFLC
++    path: contracts/tasks/SCWBS-DRAFT-MRRPSFLC.yaml
++    branchName: task/SCWBS-DRAFT-MRRPSFLC-issue-226-governance-coverage-and-integration-re
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-19T13:10:05Z"
+   - id: SCWBS-DRAFT-MRS4EZSC
+     path: contracts/tasks/SCWBS-DRAFT-MRS4EZSC.yaml
+     branchName: task/SCWBS-DRAFT-MRS4EZSC-issue-244-align-node-and-npm-support-policy
+     wbsNodeId: wbs-less
+-    status: planned
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-20T16:29:49Z"
++  - id: SCWBS-DRAFT-MRTH8LI4
++    path: contracts/tasks/SCWBS-DRAFT-MRTH8LI4.yaml
++    branchName: task/SCWBS-DRAFT-MRTH8LI4-issue-221-code-context-manifest-versioned-json-s
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-20T21:20:49Z"
++  - id: SCWBS-DRAFT-MRTXA8MP
++    path: contracts/tasks/SCWBS-DRAFT-MRTXA8MP.yaml
++    branchName: task/SCWBS-DRAFT-MRTXA8MP-agents-md-start-flow-and-registry-sync-guidance
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-21T01:13:13Z"
++  - id: SCWBS-DRAFT-MRVWAYNG
++    path: contracts/tasks/SCWBS-DRAFT-MRVWAYNG.yaml
++    branchName: task/SCWBS-DRAFT-MRVWAYNG-complete-automatic-registry-synchronization-with
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-22T10:41:02Z"
++  - id: SCWBS-DRAFT-MRVZ1NHY
++    path: contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
++    branchName: task/SCWBS-DRAFT-MRVZ1NHY-issue-272-normalize-wsl-integration-temp-to-linu
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-22T11:18:52Z"
++  - id: SCWBS-DRAFT-MRW0MRQ3
++    path: contracts/tasks/SCWBS-DRAFT-MRW0MRQ3.yaml
++    branchName: task/SCWBS-DRAFT-MRW0MRQ3-issue-273-trust-verified-metadata-only-descendan
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-22T12:48:19Z"
++  - id: SCWBS-DRAFT-MRW5BNB1
++    path: contracts/tasks/SCWBS-DRAFT-MRW5BNB1.yaml
++    branchName: task/SCWBS-DRAFT-MRW5BNB1-issue-261-replacement-provenance-github-ci-requi
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-22T21:07:39Z"
++  - id: SCWBS-DRAFT-MRWBWDEG
++    path: contracts/tasks/SCWBS-DRAFT-MRWBWDEG.yaml
++    branchName: task/SCWBS-DRAFT-MRWBWDEG-issue-276-code-context-reverseimportercounts-uni
++    wbsNodeId: node-governance-maintenance
++    status: archived
++    dependsOn: []
++    archivedAt: "2026-07-22T17:28:01Z"
++  - id: SCWBS-DRAFT-MRX1N60G
++    path: contracts/tasks/SCWBS-DRAFT-MRX1N60G.yaml
++    branchName: codex/SCWBS-DRAFT-MRX1N60G-issue-146-active-archive
++    wbsNodeId: node-governance-maintenance
++    status: active
+     dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 7709647..9d76358 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -91,6 +91,9 @@ npm run scwbs -- task refresh --task WBS-001-004 --apply
+ npm run scwbs -- task refresh --affected
+ npm run scwbs -- task refresh --all
+ npm run scwbs -- task refresh --all --apply
++npm run scwbs -- task index rebuild --check
++npm run scwbs -- task index rebuild --force
++npm run scwbs -- task archive --task WBS-001-004
+ npm run scwbs -- evidence collect --task WBS-001-004
+ npm run scwbs -- evidence collect --task WBS-001-004 --pull-request "#42" --force
+ npm run scwbs -- evidence collect --task WBS-001-004 --test-assertions-added true --tests-disabled false --coverage-decreased false --test-quality-note "Added regression coverage" --force
+@@ -108,6 +111,10 @@ npm run scwbs -- profile set lean
+ 
+ `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
+ 
++`task index rebuild --check` は `contracts/tasks/index.yaml` とTask Contract inventoryの整合性をread-onlyで検査する。`--force` は既存のlifecycle status、`dependsOn`、`archivedAt`を保持しながらcanonical path、branch、WBS node、並び順をatomicに再構築し、Registryも同期する。出力はactive、archived、total、issuesの固定長summaryで、`--json`も全Taskを展開しない。
++
++`task archive --task <id>` はindexを `status: archived` にして既定の `next`、`ai next-task`、`review-queue`、`health`、WBS candidate走査から除外する。Task Contract、Evidence、Approval、Reviewは移動・削除せず、`packet --task`、`finish --task`、`task refresh --task`、`check`、Registryから引き続き明示参照できる。
++
+ `checks run` はrequired checksの正規実行入口であり、全check成功時だけGit common directoryへ一時receiptをatomicに保存する。receiptはtask ID、HEAD、subject fingerprint、resolved command、lockfile hash、Node/platform、recursive submodule statusを記録する。直後の `evidence collect` / `finish` は現在のHEAD、差分、lockfile、submodule、commandが完全一致するpassed resultだけを再利用する。failed、壊れた、古いreceiptは再利用せず、生の `npm test` 等の自己申告もreceiptとして扱わない。`--rerun-checks` は有効なreceiptも無視して再実行する。既定出力はcheckごとの実行・再利用理由だけにbounded化し、正式なJSON shapeは [`schemas/checks-run-summary.schema.json`](schemas/checks-run-summary.schema.json) で定義する。
+ 
+ `ci plan --task <id> --json` は既存のfull / metadata-candidate判定を変更せず、`classification` にread-onlyなTask execution classを併記する。project profileは安全性の下限であり、このreportはrequired checks、artifact、Human Approval、CI jobを削減しない。own Task Contractをbootstrap metadataとして除外できるのは、full history上でcontract-only creation commit、初出blobからのauthority不変、version 2 lockをすべて検証できた場合だけである。shallow history、merge-base・初出commit不明、authority drift、未分類implementation pathは`high-risk`へfail-closedする。正式shapeは [`schemas/task-classification.schema.json`](schemas/task-classification.schema.json)。
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 7402c6d..f63cc6f 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -86,6 +86,22 @@ Task Contractのlockを生成するには以下を実行する。
+ npm run scwbs -- task lock --task WBS-001-004
+ ```
+ 
++### Active/archive lifecycle
++
++`contracts/tasks/index.yaml` はTask Contract inventoryと既定走査用lifecycleの正本である。各entryはTask Contractの `id`、canonical `path`、`branchName`、`wbsNodeId` に加え、`status`、`dependsOn`、必要な場合だけ `archivedAt` を保持する。
++
++statusは `planned`、`active`、`blocked`、`reviewed`、`completed`、`cancelled`、`archived` のいずれかである。`completed`、`cancelled`、`archived` はterminalかつinactiveであり、それ以外はactiveである。`next`、`ai next-task`、`review-queue`、repository-wide `health`、WBS candidate生成はactive Taskだけを既定走査する。
++
++```bash
++npm run scwbs -- task index rebuild --check
++npm run scwbs -- task index rebuild --force
++npm run scwbs -- task archive --task WBS-001-004
++```
++
++`task index rebuild --check` はTask directoryとの欠落、余剰、重複、不正path、未知status、contract metadata driftをfail-closedで検出する。`--force` は既存の有効なlifecycleを保持してindexをatomicに正規化し、Registryを同期する。indexが欠落または不正な場合、既定走査はTaskを黙って消さず全Taskをactiveとして扱う。
++
++archiveはrecordの物理移動や削除ではない。Task、Evidence、Approval、Reviewは元のpathに残り、明示Task操作、監査、Registry rebuildの対象であり続ける。RegistryのTask entryは加法的な `status`、`active`、任意の `archivedAt` を公開する。
++
+ `allowedPaths` は変更してよい最大範囲であり、変更すべき範囲ではない。
+ `forbiddenPaths` と `humanGateRequiredPaths` は `allowedPaths` より優先する。
+ 
+diff --git a/src/cli.ts b/src/cli.ts
+index 3ebec1c..ca176f3 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -30,6 +30,7 @@ import { runReviewQueue } from "./commands/review-queue.js";
+ import { runStart } from "./commands/start.js";
+ import { runStatus } from "./commands/status.js";
+ import { runTaskGenerate } from "./commands/task-generate.js";
++import { runTaskArchive, runTaskIndexRebuild } from "./commands/task-index.js";
+ import { runTaskLock } from "./commands/task-lock.js";
+ import { runTaskNew } from "./commands/task-new.js";
+ import { runTaskRefresh } from "./commands/task-refresh.js";
+@@ -809,6 +810,30 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       exitCode = runTaskLock(root, opts.task);
+     });
+ 
++  const taskIndex = task.command("index").description("Manage the Task Contract lifecycle index");
++  taskIndex
++    .command("rebuild")
++    .description("Check or rebuild contracts/tasks/index.yaml")
++    .option("--check", "check index consistency without writing")
++    .option("--force", "rebuild the index and synchronize the registry")
++    .option("--json", "print bounded JSON summary")
++    .action((opts) => {
++      exitCode = runTaskIndexRebuild(root, {
++        check: opts.check ?? false,
++        force: opts.force ?? false,
++        json: opts.json ?? false
++      });
++    });
++
++  task
++    .command("archive")
++    .description("Exclude a terminal Task from default active scans while retaining its records")
++    .requiredOption("--task <id>", "task id")
++    .option("--json", "print JSON")
++    .action((opts) => {
++      exitCode = runTaskArchive(root, opts.task, { json: opts.json ?? false });
++    });
++
+   task
+     .command("refresh")
+     .description("Refresh a task")
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index 468f163..de255d3 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -1,6 +1,6 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { evidenceExists, listTasks, readBlock, readTask } from "../core/contracts.js";
++import { evidenceExists, listActiveTasks, readBlock, readTask } from "../core/contracts.js";
+ import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+@@ -206,7 +206,7 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
+ 
+ export function buildNextTask(root: string): string {
+   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+-    const candidates = listTasks(root)
++    const candidates = listActiveTasks(root)
+       .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
+       .sort((a, b) => a.taskId.localeCompare(b.taskId));
+     if (candidates.length === 0) return "No available planned tasks.\n";
+@@ -215,7 +215,7 @@ export function buildNextTask(root: string): string {
+   }
+   const wbs = readWbs(root);
+   const nodesById = new Map(wbs.nodes.map((node) => [node.id, node]));
+-  const tasks = listTasks(root);
++  const tasks = listActiveTasks(root);
+   const candidates = tasks
+     .flatMap(({ task }) => {
+       if (!task || task.humanGateRequiredPaths.length > 0) return [];
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 880ff75..f189b45 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,4 +1,4 @@
+-import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
++import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+@@ -378,7 +378,7 @@ function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefin
+   const planBudget = new Map<string, { omitted: number; selectedBytes: number; maxBytes: number }>();
+   const widening = new Map<string, string[]>();
+ 
+-  for (const entry of listTasks(root)) {
++  for (const entry of listActiveTasks(root)) {
+     if (!entry.task) continue;
+     const node = findNode(wbs, entry.task.wbsNodeId);
+     if (!node) continue;
+@@ -507,7 +507,7 @@ export function collectHealthIssues(root: string): Issue[] {
+     }
+   }
+ 
+-  for (const entry of listTasks(root)) {
++  for (const entry of listActiveTasks(root)) {
+     issues.push(...entry.issues);
+     if (!wbs || !entry.task) continue;
+ 
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index 9969964..a5cdf8c 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -1,7 +1,7 @@
+ import { collectCheckIssues } from "./check.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ import { buildNextTask } from "./ai-queue.js";
+-import { listTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
++import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
+ 
+ function hasActiveBlock(root: string, taskId: string): boolean {
+   return readBlock(root, taskId).block?.status === "blocked";
+@@ -17,13 +17,15 @@ function taskIdsFromSection(queue: string, heading: string): string[] {
+ }
+ 
+ export function buildNextAction(root: string): string {
++  const activeTasks = listActiveTasks(root);
++  const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
+   const stale = collectCheckIssues(root).find((issue) => {
+     if (!issue.code.startsWith("task.contractLock")) return false;
+-    const taskId = taskIdFromMessage(issue.message);
+-    return !taskId || !hasActiveBlock(root, taskId);
++    const taskId = activeTaskIds.find((id) => issue.message.includes(id));
++    return Boolean(taskId) && !hasActiveBlock(root, taskId!);
+   });
+   if (stale) {
+-    const taskId = taskIdFromMessage(stale.message) ?? "<task-id>";
++    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
+     return `Next suggested action:
+ 
+ Refresh stale task ${taskId}
+@@ -35,7 +37,7 @@ Command:
+ `;
+   }
+ 
+-  const failedCheck = listTasks(root).flatMap((entry) => {
++  const failedCheck = activeTasks.flatMap((entry) => {
+     if (!entry.task) return [];
+     if (hasActiveBlock(root, entry.task.id)) return [];
+     const { evidence } = readEvidence(root, entry.task.id);
+@@ -75,7 +77,7 @@ Command:
+ `;
+   }
+ 
+-  const missingEvidence = listTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
++  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+   if (missingEvidence?.task) {
+     return `Next suggested action:
+ 
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 9a8b74f..1ac0086 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -3,6 +3,7 @@ import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges,
+ import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
++import { isActiveTaskStatus, readTaskIndex } from "../core/task-index.js";
+ import type { Evidence } from "../core/types.js";
+ 
+ export type RegistryRebuildOptions = {
+@@ -72,6 +73,10 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
+ export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
+   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
+   const contracts: Record<string, unknown>[] = [];
++  const taskIndex = readTaskIndex(root);
++  const taskLifecycle = taskIndex.index && taskIndex.issues.length === 0
++    ? new Map(taskIndex.index.tasks.map((entry) => [entry.id, entry]))
++    : new Map();
+   for (const { spec, path } of listSpecs(root)) {
+     if (!spec) continue;
+     contracts.push({ id: spec.id, type: "spec", path, status: spec.status, version: spec.version, featureId: spec.featureId });
+@@ -82,7 +87,17 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
+   }
+   for (const { task, path } of listTasks(root)) {
+     if (!task) continue;
+-    contracts.push({ id: `TASK-${task.id}`, type: "task", path, featureId: task.featureId });
++    const lifecycle = taskLifecycle.get(task.id);
++    const status = lifecycle?.status ?? "planned";
++    contracts.push({
++      id: `TASK-${task.id}`,
++      type: "task",
++      path,
++      status,
++      active: isActiveTaskStatus(status),
++      ...(lifecycle?.archivedAt ? { archivedAt: lifecycle.archivedAt } : {}),
++      featureId: task.featureId
++    });
+   }
+   let candidateEvidenceIncluded = false;
+   for (const { evidence: storedEvidence, path } of listEvidence(root)) {
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index a9901dc..c2f7ba1 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -1,4 +1,4 @@
+-import { readApproval, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
++import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+@@ -122,7 +122,7 @@ function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): s
+ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+   const wbs = readWbs(root);
+   const entries: ReviewQueueEntry[] = [];
+-  const tasks = listTasks(root);
++  const tasks = listActiveTasks(root);
+   const taskCountByNode = new Map<string, number>();
+   for (const entry of tasks) {
+     if (!entry.task) continue;
+diff --git a/src/commands/task-index.ts b/src/commands/task-index.ts
+new file mode 100644
+index 0000000..a155971
+--- /dev/null
++++ b/src/commands/task-index.ts
+@@ -0,0 +1,125 @@
++import { existsSync, readFileSync } from "node:fs";
++import { listTasks, readTask } from "../core/contracts.js";
++import { resolveFrom } from "../core/paths.js";
++import {
++  buildTaskIndex,
++  collectTaskIndexInventoryIssues,
++  readTaskIndex,
++  taskIndexPath,
++  taskIndexYaml,
++  writeTaskIndexAtomic
++} from "../core/task-index.js";
++import type { TaskIndex, TaskIndexEntry } from "../core/types.js";
++import { syncRegistry } from "./registry-rebuild.js";
++
++export type TaskIndexRebuildOptions = {
++  check?: boolean;
++  force?: boolean;
++  json?: boolean;
++};
++
++type TaskIndexSummary = {
++  schemaVersion: "1.0.0";
++  status: "synchronized" | "out-of-sync" | "rebuilt";
++  active: number;
++  archived: number;
++  total: number;
++  issues: number;
++};
++
++function summary(index: TaskIndex, status: TaskIndexSummary["status"], issues: number): TaskIndexSummary {
++  return {
++    schemaVersion: "1.0.0",
++    status,
++    active: index.tasks.filter((entry) => !["completed", "cancelled", "archived"].includes(entry.status)).length,
++    archived: index.tasks.filter((entry) => entry.status === "archived").length,
++    total: index.tasks.length,
++    issues
++  };
++}
++
++function printSummary(value: TaskIndexSummary, json = false): void {
++  if (json) {
++    console.log(JSON.stringify(value));
++    return;
++  }
++  const prefix = value.status === "out-of-sync" ? "FAIL" : "PASS";
++  console.log(`${prefix} task index ${value.status}`);
++  console.log(`active: ${value.active}`);
++  console.log(`archived: ${value.archived}`);
++  console.log(`total: ${value.total}`);
++  console.log(`issues: ${value.issues}`);
++}
++
++export function runTaskIndexRebuild(root: string, options: TaskIndexRebuildOptions): number {
++  try {
++    if (options.check && options.force) {
++      console.error("Choose one of --check or --force");
++      return 2;
++    }
++    if (!options.check && !options.force) {
++      console.error("Task index rebuild is read-only by default; pass --check or --force");
++      return 2;
++    }
++    const tasks = listTasks(root);
++    const current = readTaskIndex(root);
++    const next = buildTaskIndex(tasks, current.index);
++    const nextYaml = taskIndexYaml(next);
++    const fullPath = resolveFrom(root, taskIndexPath);
++    const currentYaml = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "";
++    const inventoryIssues = collectTaskIndexInventoryIssues(root, tasks);
++    const synchronized = currentYaml === nextYaml && inventoryIssues.length === 0;
++
++    if (options.check) {
++      printSummary(summary(next, synchronized ? "synchronized" : "out-of-sync", inventoryIssues.length), options.json);
++      return synchronized ? 0 : 1;
++    }
++
++    const invalidContracts = tasks.flatMap((entry) => entry.issues);
++    if (invalidContracts.length > 0) {
++      printSummary(summary(next, "out-of-sync", invalidContracts.length), options.json);
++      return 1;
++    }
++    writeTaskIndexAtomic(root, next);
++    syncRegistry(root);
++    printSummary(summary(next, "rebuilt", 0), options.json);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++function archivedEntry(entry: TaskIndexEntry, archivedAt: string): TaskIndexEntry {
++  return { ...entry, status: "archived", archivedAt };
++}
++
++export function runTaskArchive(root: string, taskId: string, options: { now?: string; json?: boolean } = {}): number {
++  try {
++    const taskResult = readTask(root, taskId);
++    if (!taskResult.task) throw new Error(taskResult.issues.map((issue) => issue.message).join("\n"));
++    const indexResult = readTaskIndex(root);
++    const inventoryIssues = collectTaskIndexInventoryIssues(root, listTasks(root));
++    if (!indexResult.index || inventoryIssues.length > 0) {
++      throw new Error(`Task index is invalid; run scwbs task index rebuild --force before archiving`);
++    }
++    const position = indexResult.index.tasks.findIndex((entry) => entry.id === taskId);
++    if (position < 0) throw new Error(`${taskId} is not present in ${taskIndexPath}`);
++    const current = indexResult.index.tasks[position]!;
++    const archivedAt = current.archivedAt ?? options.now ?? new Date().toISOString();
++    indexResult.index.tasks[position] = archivedEntry(current, archivedAt);
++    writeTaskIndexAtomic(root, indexResult.index);
++    syncRegistry(root);
++    const result = { schemaVersion: "1.0.0", taskId, status: "archived", archivedAt };
++    if (options.json) console.log(JSON.stringify(result));
++    else {
++      console.log(`PASS archived ${taskId}`);
++      console.log(`archivedAt: ${archivedAt}`);
++      console.log("Task, Evidence, Approval, and Review records remain in place.");
++    }
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index baf29dc..4a8771d 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -1,7 +1,9 @@
+-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
++import { listTasks } from "../core/contracts.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
++import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
+@@ -99,25 +101,6 @@ export function buildCoreTaskNew(title: string, options: {
+   return { task, fallback };
+ }
+ 
+-function appendTaskIndex(root: string, task: TaskContract): void {
+-  const relativePath = "contracts/tasks/index.yaml";
+-  const fullPath = resolveFrom(root, relativePath);
+-  mkdirSync(path.dirname(fullPath), { recursive: true });
+-  const existing = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "tasks:\n";
+-  const prefix = existing.endsWith("\n") ? existing : `${existing}\n`;
+-  if (new RegExp(`\\bid: ${task.id}\\b`).test(existing)) return;
+-  const entry = [
+-    `  - id: ${task.id}`,
+-    `    path: ${taskPath(task.id)}`,
+-    `    branchName: ${task.branchName ?? ""}`,
+-    `    wbsNodeId: ${task.wbsNodeId}`,
+-    "    status: planned",
+-    "    dependsOn: []",
+-    ""
+-  ].join("\n");
+-  writeFileSync(fullPath, `${prefix}${entry}`, "utf8");
+-}
+-
+ export function runTaskNew(root: string, title: string, options: {
+   paths?: string;
+   forbid?: string;
+@@ -155,7 +138,8 @@ export function runTaskNew(root: string, title: string, options: {
+     writeFileSync(fullPath, yaml, "utf8");
+ 
+     // M1-011: WBS-less operation keeps tasks discoverable via the index.
+-    appendTaskIndex(root, task);
++    const currentIndex = readTaskIndex(root).index;
++    writeTaskIndexAtomic(root, buildTaskIndex(listTasks(root), currentIndex));
+ 
+     // M1-012: WBS-backed operation never edits the WBS directly. The Task
+     // Contract's wbsNodeId field is the canonical association; no changeset
+diff --git a/src/commands/wbs.ts b/src/commands/wbs.ts
+index 48686fb..fae5057 100644
+--- a/src/commands/wbs.ts
++++ b/src/commands/wbs.ts
+@@ -1,6 +1,7 @@
+ import { existsSync, readFileSync } from "node:fs";
+ import { spawnSync } from "node:child_process";
+ import path from "node:path";
++import { listActiveTasks } from "../core/contracts.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import { readWbs, runWjsValidate } from "../core/wbs.js";
+@@ -115,12 +116,7 @@ export function runWbsVerifyChangesets(root: string, options: { base?: string; h
+ }
+ 
+ export function buildWbsCandidatesFromTaskIndex(root: string): string {
+-  const indexPath = resolveFrom(root, "contracts/tasks/index.yaml");
+-  if (!existsSync(indexPath)) {
+-    return `${JSON.stringify({ schemaVersion: "0.1.0", targetWbsId: "scwbs", changeSetId: "changeset-wbs-candidates", author: "scwbs-cli", reason: "No task index exists.", dryRun: true, operations: [] }, null, 2)}\n`;
+-  }
+-  const text = readFileSync(indexPath, "utf8");
+-  const ids = [...text.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]?.trim()).filter((value): value is string => Boolean(value));
++  const ids = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task.id] : []);
+   const wbs = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root) : null;
+   const rootId = wbs?.rootId ?? "node-project";
+   const operations = ids.map((id, index) => ({
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index 17c97be..be8e2f6 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
+ import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+ import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
++import { activeTaskEntries } from "./task-index.js";
+ import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+@@ -117,6 +118,10 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
+     });
+ }
+ 
++export function listActiveTasks(root: string): Array<{ task?: TaskContract; issues: Issue[]; path: string }> {
++  return activeTaskEntries(root, listTasks(root));
++}
++
+ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Issue[]; path: string }> {
+   const dir = resolveFrom(root, defaultSpecsDir);
+   if (!existsSync(dir)) return [];
+diff --git a/src/core/schema/registries.ts b/src/core/schema/registries.ts
+index 8dcb7b0..99366e4 100644
+--- a/src/core/schema/registries.ts
++++ b/src/core/schema/registries.ts
+@@ -19,6 +19,8 @@ const registrySchema = {
+           type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
+           path: { type: "string", minLength: 1 },
+           status: { type: "string" },
++          active: { type: "boolean" },
++          archivedAt: { type: "string" },
+           version: { type: "string" },
+           featureId: { type: "string" },
+           relatedTask: { type: "string" }
+diff --git a/src/core/task-index.ts b/src/core/task-index.ts
+new file mode 100644
+index 0000000..3791047
+--- /dev/null
++++ b/src/core/task-index.ts
+@@ -0,0 +1,171 @@
++import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { isValidTaskId, taskPath, resolveFrom } from "./paths.js";
++import { parseSimpleYaml, stringifySimpleYaml } from "./yaml.js";
++import type { Issue, TaskContract, TaskIndex, TaskIndexEntry, TaskLifecycleStatus } from "./types.js";
++
++export const taskIndexPath = "contracts/tasks/index.yaml";
++export const taskLifecycleStatuses: readonly TaskLifecycleStatus[] = [
++  "planned",
++  "active",
++  "blocked",
++  "reviewed",
++  "completed",
++  "cancelled",
++  "archived"
++];
++const terminalTaskStatuses = new Set<TaskLifecycleStatus>(["completed", "cancelled", "archived"]);
++
++export type TaskListEntry = { task?: TaskContract; issues: Issue[]; path: string };
++
++export function isActiveTaskStatus(status: TaskLifecycleStatus): boolean {
++  return !terminalTaskStatuses.has(status);
++}
++
++function indexIssue(code: string, message: string): Issue {
++  return { severity: "error", code, message };
++}
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function parseEntry(value: unknown, position: number): { entry?: TaskIndexEntry; issues: Issue[] } {
++  const label = `${taskIndexPath}.tasks[${position}]`;
++  if (!isRecord(value)) return { issues: [indexIssue("task.index.entry", `${label} must be an object`)] };
++  const issues: Issue[] = [];
++  const id = typeof value.id === "string" ? value.id : "";
++  const validId = id.length > 0 && isValidTaskId(id);
++  const canonicalPath = validId ? taskPath(id) : "";
++  if (!validId) issues.push(indexIssue("task.index.id", `${label}.id must be a valid Task id`));
++  if (typeof value.path !== "string" || value.path !== canonicalPath) {
++    issues.push(indexIssue("task.index.path", `${label}.path must equal ${canonicalPath || "the canonical Task path"}`));
++  }
++  if (typeof value.branchName !== "string") issues.push(indexIssue("task.index.branchName", `${label}.branchName must be a string`));
++  if (typeof value.wbsNodeId !== "string" || value.wbsNodeId.length === 0) {
++    issues.push(indexIssue("task.index.wbsNodeId", `${label}.wbsNodeId must be a non-empty string`));
++  }
++  const status = typeof value.status === "string" && taskLifecycleStatuses.includes(value.status as TaskLifecycleStatus)
++    ? value.status as TaskLifecycleStatus
++    : undefined;
++  if (!status) issues.push(indexIssue("task.index.status", `${label}.status must be one of ${taskLifecycleStatuses.join(", ")}`));
++  const dependsOn = Array.isArray(value.dependsOn) && value.dependsOn.every((item) => typeof item === "string")
++    ? value.dependsOn as string[]
++    : undefined;
++  if (!dependsOn) issues.push(indexIssue("task.index.dependsOn", `${label}.dependsOn must be an array of Task ids`));
++  if (value.archivedAt !== undefined) {
++    if (typeof value.archivedAt !== "string" || Number.isNaN(Date.parse(value.archivedAt))) {
++      issues.push(indexIssue("task.index.archivedAt", `${label}.archivedAt must be an ISO date-time`));
++    } else if (status !== "archived") {
++      issues.push(indexIssue("task.index.archivedAt", `${label}.archivedAt is only valid for archived status`));
++    }
++  }
++  if (issues.length > 0 || !status || !dependsOn) return { issues };
++  return {
++    entry: {
++      id,
++      path: canonicalPath,
++      branchName: value.branchName as string,
++      wbsNodeId: value.wbsNodeId as string,
++      status,
++      dependsOn,
++      ...(typeof value.archivedAt === "string" ? { archivedAt: value.archivedAt } : {})
++    },
++    issues
++  };
++}
++
++export function readTaskIndex(root: string): { index?: TaskIndex; issues: Issue[] } {
++  const fullPath = resolveFrom(root, taskIndexPath);
++  if (!existsSync(fullPath)) {
++    return { issues: [indexIssue("task.index.missing", `${taskIndexPath} does not exist`)] };
++  }
++  let value: unknown;
++  try {
++    value = parseSimpleYaml(readFileSync(fullPath, "utf8"));
++  } catch (error) {
++    return { issues: [indexIssue("task.index.parse", `${taskIndexPath} could not be parsed: ${error instanceof Error ? error.message : String(error)}`)] };
++  }
++  if (!isRecord(value) || !Array.isArray(value.tasks)) {
++    return { issues: [indexIssue("task.index.tasks", `${taskIndexPath}.tasks must be an array`)] };
++  }
++  const issues: Issue[] = [];
++  const entries: TaskIndexEntry[] = [];
++  const ids = new Set<string>();
++  const paths = new Set<string>();
++  value.tasks.forEach((item, position) => {
++    const parsed = parseEntry(item, position);
++    issues.push(...parsed.issues);
++    if (!parsed.entry) return;
++    if (ids.has(parsed.entry.id)) issues.push(indexIssue("task.index.duplicateId", `${taskIndexPath} contains duplicate id ${parsed.entry.id}`));
++    if (paths.has(parsed.entry.path)) issues.push(indexIssue("task.index.duplicatePath", `${taskIndexPath} contains duplicate path ${parsed.entry.path}`));
++    ids.add(parsed.entry.id);
++    paths.add(parsed.entry.path);
++    entries.push(parsed.entry);
++  });
++  return { index: { tasks: entries }, issues };
++}
++
++export function collectTaskIndexInventoryIssues(root: string, tasks: TaskListEntry[]): Issue[] {
++  const result = readTaskIndex(root);
++  const issues = [...tasks.flatMap((entry) => entry.issues), ...result.issues];
++  if (!result.index) return issues;
++  const indexed = new Map(result.index.tasks.map((entry) => [entry.id, entry]));
++  const contracts = new Map(tasks.flatMap((entry) => entry.task ? [[entry.task.id, entry] as const] : []));
++  for (const [id, contract] of contracts) {
++    const entry = indexed.get(id);
++    if (!entry) {
++      issues.push(indexIssue("task.index.contractMissing", `${contract.path} is not indexed by ${taskIndexPath}`));
++      continue;
++    }
++    if (entry.branchName !== (contract.task?.branchName ?? "")) {
++      issues.push(indexIssue("task.index.branchNameDrift", `${id} branchName does not match its Task Contract`));
++    }
++    if (entry.wbsNodeId !== contract.task?.wbsNodeId) {
++      issues.push(indexIssue("task.index.wbsNodeIdDrift", `${id} wbsNodeId does not match its Task Contract`));
++    }
++  }
++  for (const entry of result.index.tasks) {
++    if (!contracts.has(entry.id)) issues.push(indexIssue("task.index.orphan", `${entry.id} has no Task Contract at ${entry.path}`));
++  }
++  return issues;
++}
++
++export function activeTaskEntries(root: string, tasks: TaskListEntry[]): TaskListEntry[] {
++  const result = readTaskIndex(root);
++  if (!result.index || result.issues.length > 0) return tasks;
++  const statusById = new Map(result.index.tasks.map((entry) => [entry.id, entry.status]));
++  return tasks.filter((entry) => !entry.task || isActiveTaskStatus(statusById.get(entry.task.id) ?? "planned"));
++}
++
++export function buildTaskIndex(tasks: TaskListEntry[], current?: TaskIndex): TaskIndex {
++  const prior = new Map(current?.tasks.map((entry) => [entry.id, entry]) ?? []);
++  const entries = tasks.flatMap((item) => {
++    if (!item.task) return [];
++    const previous = prior.get(item.task.id);
++    const status = previous?.status ?? "planned";
++    return [{
++      id: item.task.id,
++      path: item.path,
++      branchName: item.task.branchName ?? "",
++      wbsNodeId: item.task.wbsNodeId,
++      status,
++      dependsOn: previous?.dependsOn ?? [],
++      ...(status === "archived" && previous?.archivedAt ? { archivedAt: previous.archivedAt } : {})
++    } satisfies TaskIndexEntry];
++  });
++  entries.sort((a, b) => a.id.localeCompare(b.id));
++  return { tasks: entries };
++}
++
++export function taskIndexYaml(index: TaskIndex): string {
++  return stringifySimpleYaml(index as unknown as Record<string, unknown>);
++}
++
++export function writeTaskIndexAtomic(root: string, index: TaskIndex): void {
++  const fullPath = resolveFrom(root, taskIndexPath);
++  mkdirSync(path.dirname(fullPath), { recursive: true });
++  const temporaryPath = `${fullPath}.tmp-${process.pid}`;
++  writeFileSync(temporaryPath, taskIndexYaml(index), "utf8");
++  renameSync(temporaryPath, fullPath);
++}
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 4172b92..a0283c6 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -14,6 +14,8 @@ export type RegistryContract = {
+   type: RegistryContractType;
+   path: string;
+   status?: string;
++  active?: boolean;
++  archivedAt?: string;
+   version?: string;
+   featureId?: string;
+   relatedTask?: string;
+@@ -24,6 +26,22 @@ export type Registry = {
+   contracts: RegistryContract[];
+ };
+ 
++export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
++
++export type TaskIndexEntry = {
++  id: string;
++  path: string;
++  branchName: string;
++  wbsNodeId: string;
++  status: TaskLifecycleStatus;
++  dependsOn: string[];
++  archivedAt?: string;
++};
++
++export type TaskIndex = {
++  tasks: TaskIndexEntry[];
++};
++
+ export type ApprovalStatus = "requested" | "approved" | "rejected";
+ export type ApprovalDelegationScope = "human-gate" | "post-finish";
+ 
+diff --git a/tests/integration/task-index.test.ts b/tests/integration/task-index.test.ts
+new file mode 100644
+index 0000000..2955711
+--- /dev/null
++++ b/tests/integration/task-index.test.ts
+@@ -0,0 +1,162 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test, vi } from "vitest";
++import { buildNextTask } from "../../src/commands/ai-queue.js";
++import { collectCheckIssues } from "../../src/commands/check.js";
++import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
++import { runTaskArchive, runTaskIndexRebuild } from "../../src/commands/task-index.js";
++import { buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
++import { listActiveTasks, listTasks, readTask } from "../../src/core/contracts.js";
++import { collectTaskIndexInventoryIssues, readTaskIndex } from "../../src/core/task-index.js";
++import { makeTempRepo, sampleTask, writeScwbsProject, writeYaml } from "../helpers.js";
++
++function writeIndex(root: string, status: string, extra: Record<string, unknown> = {}): void {
++  writeYaml(root, "contracts/tasks/index.yaml", {
++    tasks: [{
++      id: "WBS-001-004",
++      path: "contracts/tasks/WBS-001-004.yaml",
++      branchName: "task/WBS-001-004-api-implementation",
++      wbsNodeId: "node-api",
++      status,
++      dependsOn: [],
++      ...extra
++    }]
++  });
++}
++
++describe("Task Contract active/archive lifecycle", () => {
++  test("rebuild check detects a missing legacy index and force creates a synchronized inventory", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runTaskIndexRebuild(root, { check: true })).toBe(1);
++    expect(listActiveTasks(root).map((entry) => entry.task?.id)).toEqual(["WBS-001-004"]);
++    expect(runTaskIndexRebuild(root, { force: true })).toBe(0);
++    expect(runTaskIndexRebuild(root, { check: true })).toBe(0);
++    expect(readTaskIndex(root).index?.tasks).toHaveLength(1);
++    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.index."))).toBe(false);
++  });
++
++  test("archive excludes default scans while preserving explicit Task and Registry traceability", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeIndex(root, "active");
++
++    expect(runTaskArchive(root, "WBS-001-004", { now: "2026-07-23T01:02:03.000Z" })).toBe(0);
++    expect(listActiveTasks(root)).toEqual([]);
++    expect(readTask(root, "WBS-001-004").task?.id).toBe("WBS-001-004");
++    expect(buildNextTask(root)).toContain("No available planned tasks.");
++    expect(JSON.parse(buildWbsCandidatesFromTaskIndex(root)).operations).toEqual([]);
++
++    const registry = buildRegistryYaml(root);
++    expect(registry).toContain("status: archived");
++    expect(registry).toContain("active: false");
++    expect(registry).toContain('archivedAt: "2026-07-23T01:02:03.000Z"');
++    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toContain("id: WBS-001-004");
++  });
++
++  test("invalid lifecycle data fails closed without hiding Tasks and force normalizes it", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeIndex(root, "unknown-terminal");
++
++    expect(readTaskIndex(root).issues.some((issue) => issue.code === "task.index.status")).toBe(true);
++    expect(listActiveTasks(root).map((entry) => entry.task?.id)).toEqual(["WBS-001-004"]);
++    expect(runTaskIndexRebuild(root, { check: true })).toBe(1);
++    expect(runTaskIndexRebuild(root, { force: true })).toBe(0);
++    expect(readTaskIndex(root).index?.tasks[0]?.status).toBe("planned");
++
++    writeIndex(root, "planned", { id: "../escape", path: "contracts/tasks/../escape.yaml" });
++    expect(() => readTaskIndex(root)).not.toThrow();
++    expect(readTaskIndex(root).issues.some((issue) => issue.code === "task.index.id")).toBe(true);
++    expect(listActiveTasks(root).map((entry) => entry.task?.id)).toEqual(["WBS-001-004"]);
++  });
++
++  test("force refuses to hide an invalid Task Contract", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runTaskIndexRebuild(root, { force: true })).toBe(0);
++    const before = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");
++    writeYaml(root, "contracts/tasks/BROKEN-001.yaml", { id: "BROKEN-001", type: "task-contract" });
++
++    expect(runTaskIndexRebuild(root, { force: true })).toBe(1);
++    expect(readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8")).toBe(before);
++  });
++
++  test("rebuild detects duplicate, orphan, missing, and contract metadata drift", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [
++        {
++          id: "WBS-001-004",
++          path: "contracts/tasks/WBS-001-004.yaml",
++          branchName: "wrong-branch",
++          wbsNodeId: "wrong-node",
++          status: "active",
++          dependsOn: []
++        },
++        {
++          id: "WBS-001-004",
++          path: "contracts/tasks/WBS-001-004.yaml",
++          branchName: "wrong-branch",
++          wbsNodeId: "wrong-node",
++          status: "active",
++          dependsOn: []
++        },
++        {
++          id: "WBS-999-999",
++          path: "contracts/tasks/WBS-999-999.yaml",
++          branchName: "task/WBS-999-999",
++          wbsNodeId: "node-api",
++          status: "archived",
++          dependsOn: [],
++          archivedAt: "2026-07-23T00:00:00.000Z"
++        }
++      ]
++    });
++
++    const codes = collectTaskIndexInventoryIssues(root, listTasks(root)).map((issue) => issue.code);
++    expect(codes).toContain("task.index.duplicateId");
++    expect(codes).toContain("task.index.duplicatePath");
++    expect(codes).toContain("task.index.orphan");
++    expect(codes).toContain("task.index.branchNameDrift");
++    expect(codes).toContain("task.index.wbsNodeIdDrift");
++  });
++
++  test("JSON rebuild output remains bounded beyond one hundred Tasks", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    for (let index = 5; index <= 105; index += 1) {
++      const id = `WBS-001-${String(index).padStart(3, "0")}`;
++      writeYaml(root, `contracts/tasks/${id}.yaml`, sampleTask({
++        id,
++        branchName: `task/${id}`,
++        featureId: `F-${index}`
++      }) as unknown as Record<string, unknown>);
++    }
++    const output: string[] = [];
++    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
++    try {
++      expect(runTaskIndexRebuild(root, { force: true, json: true })).toBe(0);
++    } finally {
++      log.mockRestore();
++    }
++    const text = output.join("\n");
++    const parsed = JSON.parse(text);
++    expect(parsed).toMatchObject({ schemaVersion: "1.0.0", status: "rebuilt", total: 102 });
++    expect(text.length).toBeLessThan(240);
++    expect(text).not.toContain("WBS-001-105");
++
++    const plain: string[] = [];
++    const plainLog = vi.spyOn(console, "log").mockImplementation((value) => plain.push(String(value)));
++    try {
++      expect(runTaskIndexRebuild(root, { check: true })).toBe(0);
++    } finally {
++      plainLog.mockRestore();
++    }
++    expect(plain).toHaveLength(5);
++    expect(plain.join("\n").length).toBeLessThan(160);
++    expect(plain.join("\n")).not.toContain("WBS-001-105");
++  });
++});

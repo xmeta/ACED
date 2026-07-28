@@ -1,0 +1,224 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml b/contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
+new file mode 100644
+index 0000000..fbc5cd6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MRODUHLZ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRODUHLZ
++branchName: task/SCWBS-DRAFT-MRODUHLZ-issue-239-finish-human-approval-force
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MRODUHLZ.yaml
++  - contracts/approvals/SCWBS-DRAFT-MRODUHLZ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRODUHLZ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MRODUHLZ.yaml
++allowedPaths:
++  - src/commands/finish.ts
++  - tests/integration/finish.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - preflightのread-only契約変更が必要
++  - Approval CLIの上書き規則またはHuman Approval境界の変更が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - stale scopeの既存approvedまたはrejected ApprovalにはHuman用commandへ--forceを付ける
++  - Approvalなしまたはrequestedには不要な--forceを付けない
++  - plain出力とJSONのnextAction・resumeCommand・fixCommandsを同一commandにする
++  - diffHash不一致、head不一致、rejected、requested、missingの回帰テストを追加する
++  - preflightはrequired checks・Evidence候補・Human Gate判定を行わないread-only契約を維持する
++  - AIはHuman Approvalを作成しない境界を維持する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-17T03:33:51.629Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 7f0e482..504b924 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -243,3 +243,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MRODUHLZ
++    path: contracts/tasks/SCWBS-DRAFT-MRODUHLZ.yaml
++    branchName: task/SCWBS-DRAFT-MRODUHLZ-issue-239-finish-human-approval-force
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index ce52cb7..907d9bd 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -11,9 +11,8 @@ import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
+ import { buildCollectedEvidence } from "./evidence-collect.js";
+ import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
+ import { readProfile } from "./profile.js";
+-import type { Profile } from "../core/types.js";
+ import type { WorkingTreeState } from "../core/git.js";
+-import type { Evidence, Issue } from "../core/types.js";
++import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js";
+ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { printIssues } from "../core/report.js";
+@@ -337,8 +336,9 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
+   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
+ }
+ 
+-export function buildHumanApprovalCommand(taskId: string): string {
+-  return `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
++export function buildHumanApprovalCommand(taskId: string, approvalStatus?: ApprovalStatus): string {
++  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
++  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "Evidence and diff reviewed"`;
+ }
+ 
+ function resumeFinishCommand(taskId: string): string {
+@@ -377,7 +377,7 @@ function checkpointFinishMetadata(root: string, evidence: Evidence, writer: Chec
+   return changedWrites.map((file) => file.relativePath);
+ }
+ 
+-function printHumanGate(taskId: string, files: string[], diffHash: string): void {
++function printHumanGate(approvalCommand: string, files: string[], diffHash: string): void {
+   console.log("");
+   console.log("Human approval required.");
+   console.log("");
+@@ -388,7 +388,7 @@ function printHumanGate(taskId: string, files: string[], diffHash: string): void
+   console.log(`  ${diffHash}`);
+   console.log("");
+   console.log("Next action for human reviewer:");
+-  console.log(`  ${buildHumanApprovalCommand(taskId)}`);
++  console.log(`  ${approvalCommand}`);
+   console.log("");
+   console.log("AI agents must stop here.");
+   console.log("Do not approve this task yourself.");
+@@ -625,8 +625,8 @@ export function runFinish(root: string, options: FinishOptions = {}): number {
+   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
+   if (humanGateIssues.length > 0) {
+-    const approvalCommand = buildHumanApprovalCommand(taskId);
+-    if (!json) printHumanGate(taskId, gate.requiredFiles, diffHash);
++    const approvalCommand = buildHumanApprovalCommand(taskId, approval?.status);
++    if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
+     emitJson(finishOutput({
+       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
+       requiresHumanApproval: true, changedFiles: evidence.changedFiles, violations: humanGateIssues,
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 6793645..d1233b0 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -11,6 +11,7 @@ import {
+ import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeYaml, writeText, writeJson } from "../helpers.js";
+ import { buildRegistryYaml } from "../../src/commands/registry-rebuild.js";
+ import { runTaskLock } from "../../src/commands/task-lock.js";
++import { readEvidence } from "../../src/core/contracts.js";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ 
+@@ -718,6 +719,78 @@ describe("finish", () => {
+     expect(text).toContain("Do not approve this task yourself.");
+   }, 30000);
+ 
++  test.each([
++    { name: "approved diffHash mismatch", status: "approved" as const, mismatch: "diffHash" as const, force: true },
++    { name: "approved head mismatch", status: "approved" as const, mismatch: "headCommit" as const, force: true },
++    { name: "rejected", status: "rejected" as const, mismatch: undefined, force: true },
++    { name: "requested", status: "requested" as const, mismatch: undefined, force: false },
++    { name: "missing", status: undefined, mismatch: undefined, force: false }
++  ])("Human Gate recovery command handles $name Approval", ({ status, mismatch, force }) => {
++    const root = prepareFinishRepoWithHumanGate();
++    const taskId = "WBS-001-004";
++
++    if (status === "approved") {
++      expect(captureFinishJson(root, { taskId, baseRef: "base" }).exitCode).toBe(1);
++      const evidence = readEvidence(root, taskId).evidence;
++      expect(evidence).toBeDefined();
++      const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.commit;
++      const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
++      expect(headCommit).toBeTruthy();
++      expect(diffHash).toBeTruthy();
++      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
++        id: `APR-${taskId}`,
++        type: "approval",
++        taskId,
++        status,
++        approvedBy: "human",
++        approvedAt: "2026-07-17T00:00:00.000Z",
++        headCommit: mismatch === "headCommit" ? "stale-head" : headCommit,
++        diffHash: mismatch === "diffHash" ? "sha256:stale-diff" : diffHash
++      });
++    } else if (status) {
++      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
++        id: `APR-${taskId}`,
++        type: "approval",
++        taskId,
++        status
++      });
++    }
++
++    const result = captureFinishJson(root, { taskId, baseRef: "base" });
++    const command = buildHumanApprovalCommand(taskId, status);
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json).toMatchObject({
++      outcome: "awaiting-human-approval",
++      approvalStatus: status ?? "",
++      nextAction: command,
++      resumeCommand: command,
++      fixCommands: [command]
++    });
++    expect(command.includes("--force")).toBe(force);
++  }, 30000);
++
++  test("plain Human Gate output uses the same forced recovery command as JSON", () => {
++    const root = prepareFinishRepoWithHumanGate();
++    const taskId = "WBS-001-004";
++    writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
++      id: `APR-${taskId}`,
++      type: "approval",
++      taskId,
++      status: "rejected"
++    });
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runFinish(root, { taskId, baseRef: "base" })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++
++    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
++  }, 30000);
++
+   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
+     const root = prepareFinishRepoWithHumanGate();
+     const registryFile = path.join(root, "contracts/registry.yaml");

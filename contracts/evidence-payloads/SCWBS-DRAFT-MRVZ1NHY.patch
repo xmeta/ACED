@@ -1,0 +1,355 @@
+diff --git a/contracts/specs/SPEC-LITE-MRVZ1NHY.yaml b/contracts/specs/SPEC-LITE-MRVZ1NHY.yaml
+new file mode 100644
+index 0000000..a2c1417
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MRVZ1NHY.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MRVZ1NHY
++type: spec-contract
++featureId: F-MRVZ1NHY
++title: "Issue #272: normalize WSL integration temp to Linux filesystem"
++status: approved
++version: 0.1.0
++summary: "Issue #272: normalize WSL integration temp to Linux filesystem"
++approvedBy: user-approved-issue-272-plan
++approvedAt: "2026-07-22T20:00:59+09:00"
++acceptanceCriteria:
++  - WSL + Windows側TMPまたはTEMPのfixtureでLinux側/tmpへのfallbackを再現できる
++  - integration runnerが実効temp pathと選択policyをbounded診断として表示する
++  - 明示的なTMPDIRは上書きせず、DrvFS上ならTMPDIR=/tmpを使う具体的な再実行コマンドを表示する
++  - 通常Linux、macOS、Windowsでは従来の実効tempを維持する
++  - canonical、verbose、direct runnerの一時reportと子Vitestが同じ選択済み環境を使う
++  - 現在のWSL環境で手動TMPDIR指定なしのfull integrationがLinux側tempを使って成功し、Issue記録の約20分より短縮する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml b/contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
+new file mode 100644
+index 0000000..f510ac1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
+@@ -0,0 +1,50 @@
++id: SCWBS-DRAFT-MRVZ1NHY
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MRVZ1NHY
++branchName: task/SCWBS-DRAFT-MRVZ1NHY-issue-272-normalize-wsl-integration-temp-to-linu
++allowedPaths:
++  - scripts/integration-test-run.mjs
++  - scripts/integration-test-output.mjs
++  - tests/unit/integration-test-run.test.ts
++  - tests/unit/integration-test-output.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - WSLでTMPDIR未指定かつ実効tempがDrvFS上の場合、integration runnerがLinux側/tmpへ自動fallbackする
++  - 明示的なTMPDIRは安全・DrvFS上のいずれでも上書きせず、DrvFSの場合は具体的なfix commandを表示する
++  - canonical、verbose、direct runnerが同じtemp選択を使い、実効pathと選択policyをbounded表示する
++  - 通常Linux、macOS、Windowsのtemp選択を変えず、既存report JSON schemaを変更しない
++  - 現在のWSL環境で手動TMPDIR指定なしのfull integrationがLinux側tempを使って成功する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MRVZ1NHY.yaml
++  - contracts/specs/SPEC-LITE-MRVZ1NHY.yaml
++  - contracts/evidence/SCWBS-DRAFT-MRVZ1NHY.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:143063c49f22ecb0e576cbfddb498ac7c1144ce29fe29e3775ac9ed25a44464e
++  createdAt: "2026-07-22T11:01:40.257Z"
+diff --git a/scripts/integration-test-output.mjs b/scripts/integration-test-output.mjs
+index b931308..8fdab44 100644
+--- a/scripts/integration-test-output.mjs
++++ b/scripts/integration-test-output.mjs
+@@ -2,15 +2,17 @@
+ 
+ import { spawn } from "node:child_process";
+ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+-import { tmpdir } from "node:os";
+ import path from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+   buildVitestArgs,
+   defaultWorkerCount,
+   formatSummary,
++  formatTempDiagnostic,
++  integrationTempEnv,
+   normalizeReport,
+-  parseArgs as parseRunnerArgs
++  parseArgs as parseRunnerArgs,
++  runtimeIntegrationTemp
+ } from "./integration-test-run.mjs";
+ import { runWithIntegrationSingleFlight } from "./integration-single-flight.mjs";
+ 
+@@ -83,11 +85,11 @@ export function formatFailureDiagnostics(raw, stdout, stderr) {
+   return lines.join("\n");
+ }
+ 
+-async function runCaptured(args) {
++async function runCaptured(args, env) {
+   const stdout = createBoundedCapture();
+   const stderr = createBoundedCapture();
+   const startedAt = performance.now();
+-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: ["ignore", "pipe", "pipe"] });
++  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: ["ignore", "pipe", "pipe"] });
+   child.stdout.on("data", (chunk) => stdout.add(chunk));
+   child.stderr.on("data", (chunk) => stderr.add(chunk));
+   const exitCode = await new Promise((resolve, reject) => {
+@@ -97,7 +99,7 @@ async function runCaptured(args) {
+   return { exitCode, wallDurationMs: performance.now() - startedAt, stdout: stdout.value(), stderr: stderr.value() };
+ }
+ 
+-async function runVerbose(workers) {
++async function runVerbose(workers, env) {
+   const args = [
+     path.join("node_modules", "vitest", "vitest.mjs"),
+     "run",
+@@ -108,7 +110,7 @@ async function runVerbose(workers) {
+     "--testTimeout=10000",
+     "--reporter=verbose"
+   ];
+-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: "inherit" });
++  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: "inherit" });
+   return new Promise((resolve, reject) => {
+     child.on("error", reject);
+     child.on("close", (code) => resolve(code ?? 1));
+@@ -124,6 +126,10 @@ export async function main(argv = process.argv.slice(2)) {
+     return 2;
+   }
+   try {
++    const tempSelection = runtimeIntegrationTemp();
++    const childEnv = integrationTempEnv(process.env, tempSelection);
++    console.log(formatTempDiagnostic(tempSelection));
++    if (tempSelection.warning) console.error(tempSelection.warning);
+     return await runWithIntegrationSingleFlight(process.cwd(), {
+       mode: options.verbose ? "verbose" : "default",
+       workers: options.workers,
+@@ -131,12 +137,12 @@ export async function main(argv = process.argv.slice(2)) {
+       env: process.env,
+       onWait: (message) => console.error(message)
+     }, async () => {
+-      if (options.verbose) return runVerbose(options.workers);
++      if (options.verbose) return runVerbose(options.workers, childEnv);
+ 
+-      const directory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-output-"));
++      const directory = await mkdtemp(path.join(tempSelection.path, "scwbs-integration-output-"));
+       const rawOutputFile = path.join(directory, "vitest.json");
+       try {
+-        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
++        const execution = await runCaptured(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }), childEnv);
+         let raw;
+         try {
+           raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
+diff --git a/scripts/integration-test-run.mjs b/scripts/integration-test-run.mjs
+index 20b68be..50426ef 100644
+--- a/scripts/integration-test-run.mjs
++++ b/scripts/integration-test-run.mjs
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env node
+ 
+ import { spawn } from "node:child_process";
+-import { availableParallelism, tmpdir } from "node:os";
++import { availableParallelism, release, tmpdir } from "node:os";
+ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+ import path from "node:path";
+ import { fileURLToPath } from "node:url";
+@@ -11,6 +11,8 @@ export const MIN_PARALLEL_WORKERS = 2;
+ export const MAX_PARALLEL_WORKERS = 4;
+ export const OUTPUT_CAPTURE_BYTES = 8_000;
+ export const OUTPUT_EDGE_BYTES = OUTPUT_CAPTURE_BYTES / 2;
++export const WSL_LINUX_TEMP = "/tmp";
++export const TEMP_DIAGNOSTIC_PATH_BYTES = 240;
+ 
+ // These files mutate process-global state. Keep this inventory explicit even
+ // though the canonical runner schedules files serially; it records why a
+@@ -33,6 +35,50 @@ export function defaultWorkerCount() {
+   return Math.max(MIN_PARALLEL_WORKERS, Math.min(MAX_PARALLEL_WORKERS, availableParallelism()));
+ }
+ 
++function isWsl(platform, osRelease, env) {
++  return platform === "linux"
++    && (/microsoft/i.test(osRelease) || Boolean(env.WSL_DISTRO_NAME) || Boolean(env.WSL_INTEROP));
++}
++
++function isDrvFsPath(value) {
++  return /^\/mnt\/[a-z](?:\/|$)/i.test(value);
++}
++
++export function selectIntegrationTemp({ platform, osRelease, env, effectiveTemp }) {
++  const explicitTmpdir = typeof env.TMPDIR === "string" && env.TMPDIR.length > 0
++    ? env.TMPDIR
++    : undefined;
++  const wsl = isWsl(platform, osRelease, env);
++  if (explicitTmpdir) {
++    return {
++      path: explicitTmpdir,
++      source: "explicit-tmpdir",
++      warning: wsl && isDrvFsPath(explicitTmpdir)
++        ? "integration temp warning: explicit TMPDIR is on DrvFS; rerun with TMPDIR=/tmp npm run test:integration"
++        : undefined
++    };
++  }
++  if (wsl && isDrvFsPath(effectiveTemp)) {
++    return { path: WSL_LINUX_TEMP, source: "wsl-linux-fallback", warning: undefined };
++  }
++  return { path: effectiveTemp, source: "system", warning: undefined };
++}
++
++export function runtimeIntegrationTemp(env = process.env) {
++  return selectIntegrationTemp({ platform: process.platform, osRelease: release(), env, effectiveTemp: tmpdir() });
++}
++
++export function integrationTempEnv(env, selection) {
++  return selection.source === "wsl-linux-fallback"
++    ? { ...env, TMPDIR: selection.path }
++    : env;
++}
++
++export function formatTempDiagnostic(selection) {
++  const compactPath = String(selection.path).replace(/\s+/g, " ").slice(0, TEMP_DIAGNOSTIC_PATH_BYTES);
++  return `integration temp=${compactPath} tempSource=${selection.source}`;
++}
++
+ export function parseArgs(argv, env = process.env) {
+   let workers = Number(env.SCWBS_INTEGRATION_WORKERS || defaultWorkerCount());
+   let slowest = DEFAULT_SLOWEST_COUNT;
+@@ -147,11 +193,11 @@ export function formatSummary(report, slowest = DEFAULT_SLOWEST_COUNT) {
+   return lines.join("\n");
+ }
+ 
+-async function runVitest(args) {
++async function runVitest(args, env) {
+   const stdout = captureEdge();
+   const stderr = captureEdge();
+   const startedAt = performance.now();
+-  const child = spawn(process.execPath, args, { cwd: process.cwd(), env: process.env, stdio: ["ignore", "pipe", "pipe"] });
++  const child = spawn(process.execPath, args, { cwd: process.cwd(), env, stdio: ["ignore", "pipe", "pipe"] });
+   child.stdout.on("data", (chunk) => stdout.add(chunk));
+   child.stderr.on("data", (chunk) => stderr.add(chunk));
+   const exitCode = await new Promise((resolve, reject) => {
+@@ -163,11 +209,15 @@ async function runVitest(args) {
+ 
+ export async function main(argv = process.argv.slice(2)) {
+   const options = parseArgs(argv);
+-  const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "scwbs-integration-"));
++  const tempSelection = runtimeIntegrationTemp();
++  const childEnv = integrationTempEnv(process.env, tempSelection);
++  console.log(formatTempDiagnostic(tempSelection));
++  if (tempSelection.warning) console.error(tempSelection.warning);
++  const temporaryDirectory = await mkdtemp(path.join(tempSelection.path, "scwbs-integration-"));
+   const rawOutputFile = path.join(temporaryDirectory, "vitest.json");
+ 
+   try {
+-    const execution = await runVitest(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }));
++    const execution = await runVitest(buildVitestArgs({ workers: options.workers, outputFile: rawOutputFile }), childEnv);
+     let raw;
+     try {
+       raw = JSON.parse(await readFile(rawOutputFile, "utf8"));
+diff --git a/tests/unit/integration-test-output.test.ts b/tests/unit/integration-test-output.test.ts
+index 4c366ad..92ee48d 100644
+--- a/tests/unit/integration-test-output.test.ts
++++ b/tests/unit/integration-test-output.test.ts
+@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
+ // @ts-expect-error The production output controller is intentionally dependency-free ESM.
+ import { FAILURE_LIMIT, formatFailureDiagnostics, parseArgs } from "../../scripts/integration-test-output.mjs";
+ // @ts-expect-error The production runner is intentionally dependency-free ESM.
+-import { formatSummary, normalizeReport } from "../../scripts/integration-test-run.mjs";
++import { formatSummary, formatTempDiagnostic, normalizeReport } from "../../scripts/integration-test-run.mjs";
+ // @ts-expect-error The production lock helper is intentionally dependency-free ESM.
+ import {
+   acquireIntegrationRun,
+@@ -51,6 +51,13 @@ describe("integration output controller", () => {
+     expect(Buffer.byteLength(output)).toBeLessThanOrEqual(2_048);
+   });
+ 
++  it("keeps the temp diagnostic to one bounded line", () => {
++    const output = formatTempDiagnostic({ path: "/tmp", source: "wsl-linux-fallback" });
++    expect(output).toBe("integration temp=/tmp tempSource=wsl-linux-fallback");
++    expect(output.split("\n")).toHaveLength(1);
++    expect(Buffer.byteLength(output)).toBeLessThan(256);
++  });
++
+   it("shows a bounded cause and copyable rerun command on failure", () => {
+     const raw = result("failed");
+     const output = formatFailureDiagnostics(raw, { totalBytes: 12_000, text: "stdout head\n... 8000 bytes omitted ...\nstdout tail" }, { totalBytes: 20, text: "stderr detail" });
+diff --git a/tests/unit/integration-test-run.test.ts b/tests/unit/integration-test-run.test.ts
+index fabc9b7..c770e72 100644
+--- a/tests/unit/integration-test-run.test.ts
++++ b/tests/unit/integration-test-run.test.ts
+@@ -4,9 +4,12 @@ import {
+   SERIAL_WITHIN_FILE,
+   buildVitestArgs,
+   defaultWorkerCount,
++  formatTempDiagnostic,
+   formatSummary,
++  integrationTempEnv,
+   normalizeReport,
+-  parseArgs
++  parseArgs,
++  selectIntegrationTemp
+ } from "../../scripts/integration-test-run.mjs";
+ 
+ describe("integration test runner", () => {
+@@ -33,6 +36,43 @@ describe("integration test runner", () => {
+     expect(() => parseArgs(["--slowest", "21"], {})).toThrow(/between 0 and 20/);
+   });
+ 
++  it("falls back to Linux temp for implicit DrvFS temp on WSL", () => {
++    const selection = selectIntegrationTemp({
++      platform: "linux",
++      osRelease: "6.6.87.2-microsoft-standard-WSL2",
++      env: { TMP: "/mnt/c/Users/example/Temp", TEMP: "/mnt/c/Users/example/Temp", WSL_DISTRO_NAME: "Ubuntu" },
++      effectiveTemp: "/mnt/c/Users/example/Temp"
++    });
++    expect(selection).toEqual({ path: "/tmp", source: "wsl-linux-fallback", warning: undefined });
++    expect(integrationTempEnv({ TMP: "/mnt/c/Temp" }, selection)).toMatchObject({ TMPDIR: "/tmp" });
++  });
++
++  it("preserves explicit TMPDIR and warns without overriding explicit DrvFS", () => {
++    const safe = selectIntegrationTemp({
++      platform: "linux", osRelease: "microsoft-standard-WSL2", env: { TMPDIR: "/var/tmp" }, effectiveTemp: "/var/tmp"
++    });
++    expect(safe).toEqual({ path: "/var/tmp", source: "explicit-tmpdir", warning: undefined });
++    const explicitDrvFs = selectIntegrationTemp({
++      platform: "linux", osRelease: "microsoft-standard-WSL2", env: { TMPDIR: "/mnt/d/tmp" }, effectiveTemp: "/mnt/d/tmp"
++    });
++    expect(explicitDrvFs.path).toBe("/mnt/d/tmp");
++    expect(explicitDrvFs.warning).toContain("TMPDIR=/tmp npm run test:integration");
++    const originalEnv = { TMPDIR: "/mnt/d/tmp" };
++    expect(integrationTempEnv(originalEnv, explicitDrvFs)).toBe(originalEnv);
++  });
++
++  it("keeps the system temp on non-WSL platforms and bounds diagnostics", () => {
++    for (const platform of ["linux", "darwin", "win32"]) {
++      expect(selectIntegrationTemp({ platform, osRelease: "generic", env: {}, effectiveTemp: "/system/temp" }))
++        .toEqual({ path: "/system/temp", source: "system", warning: undefined });
++    }
++    const diagnostic = formatTempDiagnostic({ path: `/tmp/${"x".repeat(500)}\nunsafe`, source: "system" });
++    expect(diagnostic).toContain("integration temp=/tmp/");
++    expect(diagnostic).toContain("tempSource=system");
++    expect(diagnostic).not.toContain("\n");
++    expect(Buffer.byteLength(diagnostic)).toBeLessThan(300);
++  });
++
+   it("creates a bounded summary and reproducible file/test duration report", () => {
+     const raw = {
+       success: true,
