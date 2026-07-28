@@ -1,0 +1,119 @@
+diff --git a/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+new file mode 100644
+index 0000000..3dcd69a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
+@@ -0,0 +1,35 @@
++id: SCWBS-CORE-M2-HEALTH
++type: task-contract
++wbsNodeId: node-core-evidence-diff-guard-completion
++featureId: F-1-10-1-2
++branchName: task/SCWBS-CORE-M2-HEALTH-diffhash-health-compat
++contractLock:
++  wbsRevision: "sha256:79aef3986fe73feb78dd848971ec732e5141d86c9b3dbbd9e5fa0fa20290bbcf"
++  wbsNodeId: node-core-evidence-diff-guard-completion
++  createdAt: "2026-07-05T14:15:00.000Z"
++allowedPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - contracts/tasks/SCWBS-CORE-M2-HEALTH.yaml
++  - contracts/evidence/SCWBS-CORE-M2-HEALTH.yaml
++  - contracts/reviews/SCWBS-CORE-M2-HEALTH.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Historical Evidence without diffHash does not flood health on unrelated branches.
++  - Active task branches still warn when current Evidence has no diffHash.
++  - Health output after the M2 metadata migration remains focused on actionable current-branch issues.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index f145fe2..b4a261d 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -128,9 +128,10 @@ function validateEvidenceTrust(root: string, wbs: WbsDocument, task: TaskContrac
+       issues.push({ severity: "warn", code: "health.evidence.git.baseCommit.unknown", message: `${task.id} evidence git.baseCommit was not found: ${evidence.git.baseCommit}` });
+     }
+     const actualDiffHash = evidenceDiffHash(evidence);
+-    if (!actualDiffHash) {
++    const shouldCheckCurrentBranchEvidence = shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence);
++    if (!actualDiffHash && shouldCheckCurrentBranchEvidence) {
+       issues.push({ severity: "warn", code: "health.evidence.diffHash.missing", message: `${task.id} evidence has no diffHash` });
+-    } else if (shouldCheckEvidenceHeadStaleness(currentBranchName, task, evidence)) {
++    } else if (actualDiffHash && shouldCheckCurrentBranchEvidence) {
+       const expectedFiles = branchChangedFiles(root, evidence.git.base);
+       const expectedDiffHash = branchDiffHash(root, evidence.git.base, postEvidenceMetadataFiles(task.id));
+       const actualFiles = [...evidence.changedFiles].sort();
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index ed86547..6c8d3b8 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -1059,6 +1059,56 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(issues.some((issue) => issue.code === "health.evidence.diffHash.stale")).toBe(false);
+   }, 30000);
+ 
++  test("health ignores missing diffHash on historical evidence from other branches", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    const oldHead = headCommit(root) ?? "";
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({
++        git: {
++          branch: "task/WBS-001-004-api-implementation",
++          base: "base",
++          baseCommit: oldHead,
++          changedFilesBasis: "branch-diff",
++          subjectHeadCommit: oldHead,
++          headCommit: oldHead
++        }
++      }) as unknown as Record<string, unknown>
++    );
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.diffHash.missing")).toBe(false);
++  });
++
++  test("health warns when active branch evidence has no diffHash", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    execFileSync("git", ["switch", "-c", "task/WBS-001-004-api-implementation"], { cwd: root, stdio: "ignore" });
++    const evidenceHead = headCommit(root) ?? "";
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({
++        git: {
++          branch: "task/WBS-001-004-api-implementation",
++          base: "base",
++          baseCommit: evidenceHead,
++          changedFilesBasis: "branch-diff",
++          subjectHeadCommit: evidenceHead,
++          headCommit: evidenceHead
++        }
++      }) as unknown as Record<string, unknown>
++    );
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.diffHash.missing")).toBe(true);
++  });
++
+   test("health accepts approval pull request metadata when evidence pull request is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
