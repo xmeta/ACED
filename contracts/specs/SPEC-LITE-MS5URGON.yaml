@@ -1,0 +1,17 @@
+id: SPEC-LITE-MS5URGON
+type: spec-contract
+featureId: F-MS5URGON
+title: "Issue #343: README Minimal Setupに必須wjs submodule初期化手順を追加する"
+status: approved
+version: 0.1.0
+summary: "Issue #343: README Minimal Setupに必須wjs submodule初期化手順を追加する"
+approvedBy: user-requested-issue-343
+approvedAt: "2026-07-29T00:00:00+09:00"
+acceptanceCriteria:
+  - README.mdのMinimal Setupが依存installより前にwjs submodule初期化を要求する
+  - 案内コマンドがgit submodule update --init --recursive wjs、corepack enable、corepack npm installの順序と一致する
+  - wjsがGit submoduleであり通常clone後に初期化が必要な理由を短く説明する
+  - Node/npm要件、Corepack、doctor/check/docs checkの既存説明を変更しない
+  - READMEの他セクション、repository visibility、LICENSE、CONTRIBUTING、coverage、lint等の別課題を修正しない
+  - .gitmodules、doctor実装、既存テストとREADMEの内容が矛盾しない
+  - npm run scwbs -- docs checkとrequired checksが成功する
