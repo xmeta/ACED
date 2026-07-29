@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MS6FWA5D
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS6FWA5D
+branchName: task/SCWBS-DRAFT-MS6FWA5D-issue-347-contributing-md-issue-pr-readme
+allowedPaths:
+  - CONTRIBUTING.md
+  - README.md
+forbiddenPaths:
+  - wjs/**
+  - src/**
+  - tests/**
+  - docs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - CONTRIBUTING.mdに人間向けのIssue登録、ラベル、Task Contract要否、ローカル検証、PR手順を集約する
+  - README.mdからCONTRIBUTING.mdへ明確に導線を追加する
+  - CONTRIBUTING.mdのコマンドとTask Contract/Human Approval境界がAGENTS.md、README.md、実装済みCLIと一致する
+  - CODE_OF_CONDUCT.md、LICENSE、package、workflow、source、tests、docs、WBS正本は変更しない
+  - required checksが成功する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS6FWA5D.yaml
+  - contracts/specs/SPEC-LITE-MS6FWA5D.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS6FWA5D.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS6FWA5D.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS6FWA5D.patch
+  - contracts/approvals/SCWBS-DRAFT-MS6FWA5D.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS6FWA5D.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:d315fda9fc3cf42801df9e1244d24df47b47287d2308a852d812b24277e1b575
+  createdAt: "2026-07-29T18:51:16.658Z"
