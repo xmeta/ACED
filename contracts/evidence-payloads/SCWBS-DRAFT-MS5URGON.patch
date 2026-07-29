@@ -1,0 +1,109 @@
+diff --git a/README.md b/README.md
+index 6dee042..c4868c0 100644
+--- a/README.md
++++ b/README.md
+@@ -35,6 +35,13 @@ This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
+ lockfile is produced by the supported npm release. CI verifies both the
+ minimum supported Node.js version and the current LTS version.
+ 
++The required WJS schema is kept in the `wjs` Git submodule. After a normal
++clone, initialize the submodule before installing dependencies:
++
++```bash
++git submodule update --init --recursive wjs
++```
++
+ Install dependencies:
+ 
+ ```bash
+diff --git a/contracts/specs/SPEC-LITE-MS5URGON.yaml b/contracts/specs/SPEC-LITE-MS5URGON.yaml
+new file mode 100644
+index 0000000..cbc30a3
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS5URGON.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MS5URGON
++type: spec-contract
++featureId: F-MS5URGON
++title: "Issue #343: README Minimal Setupに必須wjs submodule初期化手順を追加する"
++status: approved
++version: 0.1.0
++summary: "Issue #343: README Minimal Setupに必須wjs submodule初期化手順を追加する"
++approvedBy: user-requested-issue-343
++approvedAt: "2026-07-29T00:00:00+09:00"
++acceptanceCriteria:
++  - README.mdのMinimal Setupが依存installより前にwjs submodule初期化を要求する
++  - 案内コマンドがgit submodule update --init --recursive wjs、corepack enable、corepack npm installの順序と一致する
++  - wjsがGit submoduleであり通常clone後に初期化が必要な理由を短く説明する
++  - Node/npm要件、Corepack、doctor/check/docs checkの既存説明を変更しない
++  - READMEの他セクション、repository visibility、LICENSE、CONTRIBUTING、coverage、lint等の別課題を修正しない
++  - .gitmodules、doctor実装、既存テストとREADMEの内容が矛盾しない
++  - npm run scwbs -- docs checkとrequired checksが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS5URGON.yaml b/contracts/tasks/SCWBS-DRAFT-MS5URGON.yaml
+new file mode 100644
+index 0000000..8449bf1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS5URGON.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MS5URGON
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS5URGON
++branchName: task/SCWBS-DRAFT-MS5URGON-issue-343-readme-minimal-setup-wjs-submodule
++allowedPaths:
++  - README.md
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - tests/**
++  - docs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - README.mdのMinimal Setupが依存installより前にwjs submodule初期化を案内する
++  - 案内コマンドがgit submodule update --init --recursive wjs、corepack enable、corepack npm installの順序と一致する
++  - wjsがGit submoduleであり通常clone後に初期化が必要な理由を短く説明する
++  - Node/npm要件、Corepack、doctor/check/docs checkの既存説明と他セクションを変更しない
++  - .gitmodules、doctor実装、既存テストとREADMEの内容が矛盾しない
++  - npm run scwbs -- docs checkとrequired checksが成功する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++stopIf:
++  - README.md以外の実装ファイル変更が必要になる
++  - submodule pointer、wjs/**、package、workflow、source、testsの変更が必要になる
++  - authority baseline後のscope拡張が必要になる
++  - 認証、権限、外部サービス、課金、repository visibilityの判断が必要になる
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS5URGON.yaml
++  - contracts/specs/SPEC-LITE-MS5URGON.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS5URGON.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS5URGON.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MS5URGON.patch
++  - contracts/approvals/SCWBS-DRAFT-MS5URGON.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS5URGON.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:38ab7299e20847a0953717b025d8ba909cd312fa2f65773b40264b644e5feecf
++  createdAt: "2026-07-29T09:00:06.232Z"
