@@ -1,0 +1,16 @@
+id: SPEC-LITE-MS5R97WA
+type: spec-contract
+featureId: F-MS5R97WA
+title: "Issue #348: GitHub Actions の actions/checkout、actions/setup-node、actions/github-script を検証済みのフルコミットSHAへ固定する"
+status: approved
+version: 0.1.0
+summary: "GitHub Actionsの可変major tag参照を検証済みrelease commitへ固定し、既存CI semanticsを維持したまま供給網リスクを縮小する"
+acceptanceCriteria:
+  - actions/checkoutはverified release v7.0.1のfull commit SHAを参照する
+  - actions/setup-nodeはverified release v7.0.0のfull commit SHAを参照する
+  - actions/github-scriptはverified release v9.0.0のfull commit SHAを参照する
+  - 各uses行はrelease versionコメントを持ち、対象3 actionの可変tag参照が残らない
+  - action参照以外のworkflow semantics、permissions、triggers、job構成、required checksを変更しない
+  - Human Approvalとaggregate validate SUCCESSを経なければmainへmergeしない
+approvedBy: user-requested-github-issue-prioritization
+approvedAt: "2026-07-29T16:22:01+09:00"
