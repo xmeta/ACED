@@ -1,0 +1,188 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..d898a13
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,84 @@
++# scwbsへの貢献
++
++このリポジトリは、GitHub IssueとSC-WBSのTask Contractを使って変更を追跡します。小さな修正でも、まず既存Issueと重複しないか確認し、変更の目的・影響範囲・検証結果をIssueまたはPull Requestに記載してください。
++
++## Issueを登録する
++
++次の情報を短くまとめてください。
++
++- 何が起きたか、または何を改善したいか
++- 再現手順、期待する結果、実際の結果（不具合の場合）
++- 影響する利用者・コマンド・ファイル
++- 既存Issueや関連PRへのリンク
++- 提案する解決策がある場合は、非目標と停止条件
++
++Issueを登録する前に、タイトルや本文のキーワードでopen Issueとopen PRを検索してください。ラベルは既存の分類（`bug`、`enhancement`、`documentation`、`priority:*`など）を参考にし、最終的な分類はメンテナーが行います。
++
++## 変更の種類とTask Contract
++
++- typoの修正や、既存の意味を変えない小さな文書修正は、Issueで対象と意図を示したうえで通常のPull Requestとして提案できます。
++- CLI、TypeScript、テスト、依存関係、ワークフロー、Task Contract、Evidence、Registry、WBSに関わる変更は、Task Contractを作成してから着手してください。最小例は次のとおりです。
++
++  ```bash
++  npm run scwbs -- task new "変更の目的" --paths "README.md,docs/scwbs/example.md" --stop "source or schema change required"
++  ```
++
++- `allowedPaths`の外側や`forbiddenPaths`にあるファイルを、作業中の判断だけで変更しないでください。WBS正本（`contracts/wbs/project.wbs.json`）は直接編集せず、承認されたchangeset経由で扱います。
++- AIエージェントに作業を依頼する場合は、Task ContractをGround Truthとして渡してください。AIはHuman Approvalを代行できません。
++
++## ローカルセットアップ
++
++Node.js `>=22.12.0` と npm `>=10` を使用します。通常のclone後は、依存関係をインストールする前にWJS submoduleを初期化してください。
++
++```bash
++git submodule update --init --recursive wjs
++corepack enable
++corepack npm install
++```
++
++セットアップ診断には次を使います。
++
++```bash
++npm run scwbs -- doctor
++npm run scwbs -- check
++```
++
++## Pull Request前の確認
++
++変更内容に応じて、次のコマンドを上から順に実行してください。SC-WBS/npmのコマンドは同時実行せず、前の結果を確認してから次へ進みます。
++
++```bash
++npm test
++npm run test:integration
++npm run typecheck
++npm run build
++npm run scwbs -- check
++npm run scwbs -- registry rebuild --check
++```
++
++文書だけを変更した場合も、該当する文書検証を実行してください。
++
++```bash
++npm run scwbs -- docs check
++```
++
++Pull Request本文には、関連Issue、変更理由、主な変更ファイル、実行した確認コマンドと結果を記載してください。無関係な変更、生成物、秘密情報を混ぜないでください。
++
++## Reviewとmerge
++
++Human Gate対象の変更は、人間が現在の差分とEvidenceを確認してから進めます。AIや自動化が人間の承認を作成してはいけません。`--actor human`、`approval approve`、GitHubのApprove操作をAIに実行させないでください。
++
++CIのaggregate `validate` が現在のPR headで成功し、PRがreadyになった後の通常のmergeは、メンテナーが次のSC-WBS経路で行います。
++
++```bash
++npm run scwbs -- merge --pr <number>
++```
++
++このコマンドはPRのbaseが`main`であること、merge可能であること、現在のheadに対する`validate`成功を確認します。CI未完了・失敗・対象不明の状態ではmergeしません。
++
++## 参照先
++
++- [利用者向けGetting Started](docs/scwbs/getting-started.md)
++- [AIエージェント向けガイド](docs/scwbs/ai-agent-guide.md)
++- [リポジトリ固有の実行ルール](AGENTS.md)
++- [CLIのリファレンス](docs/scwbs/cli-reference.md)
+diff --git a/README.md b/README.md
+index c4868c0..1873641 100644
+--- a/README.md
++++ b/README.md
+@@ -13,6 +13,7 @@ back to Human Gate instead of letting an AI guess.
+ | Reader | Read this first |
+ |---|---|
+ | New human user | `docs/scwbs/getting-started.md` |
++| Human contributor | `CONTRIBUTING.md` |
+ | Docs navigator | `docs/README.md` |
+ | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
+ | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
+diff --git a/contracts/specs/SPEC-LITE-MS6FWA5D.yaml b/contracts/specs/SPEC-LITE-MS6FWA5D.yaml
+new file mode 100644
+index 0000000..69d2b41
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS6FWA5D.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MS6FWA5D
++type: spec-contract
++featureId: F-MS6FWA5D
++title: "Issue #347: CONTRIBUTING.mdで人間のIssue/PR参加手順を案内する"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-347
++approvedAt: "2026-07-30T00:00:00+09:00"
++summary: "Issue #347: CONTRIBUTING.mdに外部コントリビューター向けのIssue/PR手順を集約し、READMEから案内する"
++acceptanceCriteria:
++  - CONTRIBUTING.mdが新設され、Issue登録時の目的、再現情報、ラベルの考え方を案内する
++  - CONTRIBUTING.mdがTask Contractを伴う変更と、typo等の軽微なドキュメント変更の扱いを区別する
++  - CONTRIBUTING.mdがnpm test、npm run test:integration、npm run typecheck、npm run build、npm run scwbs -- checkを実行するPR前チェックリストを示す
++  - CONTRIBUTING.mdがAGENTS.mdをAI向け、README.mdとdocs/scwbs/getting-started.mdを利用者向けの参照先としてリンクする
++  - CONTRIBUTING.mdがHuman Approvalを人間専用とし、AIによるapproveや--actor humanを禁止する既存方針を正確に案内する
++  - README.mdにCONTRIBUTING.mdへのリンクが追加され、既存のMinimal SetupとCore workflow説明を変えない
++  - CODE_OF_CONDUCT.md、LICENSE、package、workflow、source、tests、docs、WBS正本を変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS6FWA5D.yaml b/contracts/tasks/SCWBS-DRAFT-MS6FWA5D.yaml
+new file mode 100644
+index 0000000..d6e999c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS6FWA5D.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MS6FWA5D
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS6FWA5D
++branchName: task/SCWBS-DRAFT-MS6FWA5D-issue-347-contributing-md-issue-pr-readme
++allowedPaths:
++  - CONTRIBUTING.md
++  - README.md
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - tests/**
++  - docs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - CONTRIBUTING.mdに人間向けのIssue登録、ラベル、Task Contract要否、ローカル検証、PR手順を集約する
++  - README.mdからCONTRIBUTING.mdへ明確に導線を追加する
++  - CONTRIBUTING.mdのコマンドとTask Contract/Human Approval境界がAGENTS.md、README.md、実装済みCLIと一致する
++  - CODE_OF_CONDUCT.md、LICENSE、package、workflow、source、tests、docs、WBS正本は変更しない
++  - required checksが成功する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS6FWA5D.yaml
++  - contracts/specs/SPEC-LITE-MS6FWA5D.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS6FWA5D.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS6FWA5D.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MS6FWA5D.patch
++  - contracts/approvals/SCWBS-DRAFT-MS6FWA5D.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS6FWA5D.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d315fda9fc3cf42801df9e1244d24df47b47287d2308a852d812b24277e1b575
++  createdAt: "2026-07-29T18:51:16.658Z"

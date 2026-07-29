@@ -13,6 +13,7 @@ back to Human Gate instead of letting an AI guess.
 | Reader | Read this first |
 |---|---|
 | New human user | `docs/scwbs/getting-started.md` |
+| Human contributor | `CONTRIBUTING.md` |
 | Docs navigator | `docs/README.md` |
 | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
 | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
