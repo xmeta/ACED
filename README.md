@@ -35,6 +35,13 @@ This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
 lockfile is produced by the supported npm release. CI verifies both the
 minimum supported Node.js version and the current LTS version.
 
+The required WJS schema is kept in the `wjs` Git submodule. After a normal
+clone, initialize the submodule before installing dependencies:
+
+```bash
+git submodule update --init --recursive wjs
+```
+
 Install dependencies:
 
 ```bash
