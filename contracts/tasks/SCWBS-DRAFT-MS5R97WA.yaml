@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MS5R97WA
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS5R97WA
+branchName: task/SCWBS-DRAFT-MS5R97WA-issue-348-github-actions-actions-checkout-action
+allowedPaths:
+  - .github/workflows/scwbs.yml
+forbiddenPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - actions/checkout、actions/setup-node、actions/github-script以外のworkflow semantics変更が必要
+  - exact head、full history、recursive submodule、npm cache、required checks、provenanceの既存semanticsを維持できない
+  - allowedPaths外または追加Human Gate pathの変更が必要
+  - 参照するrelease tagとcommit SHAの対応またはcommit verificationをGitHubで確認できない
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - .github/workflows/scwbs.yml内のactions/checkout、actions/setup-node、actions/github-script参照を検証済みreleaseのフルcommit SHAへ固定する
+  - 各固定SHAに対応するrelease versionを同じ行のコメントで明示する
+  - exact head、fetch-depth 0、recursive submodule、npm cache、required checks、provenance検証の既存semanticsを変更しない
+  - workflow内に対象3 actionの可変tag参照が残らず、workflow構文と全required checksが成功する
+  - Human Approvalが.github/workflows/scwbs.ymlの正確な差分scopeを覆う
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS5R97WA.yaml
+  - contracts/specs/SPEC-LITE-MS5R97WA.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS5R97WA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS5R97WA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS5R97WA.patch
+  - contracts/approvals/SCWBS-DRAFT-MS5R97WA.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS5R97WA.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a9af1c126f3550d9bdc150365d1deeedee4efc5f29fd22c4b90cea95f7fd5320
+  createdAt: "2026-07-29T07:22:49.025Z"
