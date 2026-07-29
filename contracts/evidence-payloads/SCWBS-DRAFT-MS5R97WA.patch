@@ -1,0 +1,177 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 07eb319..873357c 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -23,7 +23,7 @@ jobs:
+       subject: ${{ steps.final.outputs.subject }}
+     steps:
+       - name: Checkout exact head with full history
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+           fetch-depth: 0
+@@ -35,7 +35,7 @@ jobs:
+           git switch -C "$CI_BRANCH" HEAD
+           git fetch origin main:refs/remotes/origin/main
+       - name: Set up Node.js
+-        uses: actions/setup-node@v7
++        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+         with:
+           node-version: ${{ env.NODE_VERSION }}
+           cache: npm
+@@ -57,7 +57,7 @@ jobs:
+       - name: Verify successful full CI for implementation subject
+         id: subject-checks
+         if: steps.candidate.outputs.decision == 'metadata-candidate'
+-        uses: actions/github-script@v9
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+         env:
+           SUBJECT: ${{ steps.candidate.outputs.subject }}
+           CANDIDATE_FILE: ${{ runner.temp }}/ci-plan-candidate.json
+@@ -257,11 +257,11 @@ jobs:
+         node-version: ["22.12.0"]
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           submodules: recursive
+       - name: Set up minimum supported Node.js
+-        uses: actions/setup-node@v7
++        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+         with:
+           node-version: ${{ matrix.node-version }}
+           cache: npm
+@@ -284,11 +284,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v7
++        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+         with:
+           node-version: ${{ env.NODE_VERSION }}
+           cache: npm
+@@ -321,11 +321,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v7
++        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+         with:
+           node-version: ${{ env.NODE_VERSION }}
+           cache: npm
+@@ -346,11 +346,11 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout repository
+-        uses: actions/checkout@v7
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           submodules: recursive
+       - name: Set up Node.js
+-        uses: actions/setup-node@v7
++        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+         with:
+           node-version: ${{ env.NODE_VERSION }}
+           cache: npm
+diff --git a/contracts/specs/SPEC-LITE-MS5R97WA.yaml b/contracts/specs/SPEC-LITE-MS5R97WA.yaml
+new file mode 100644
+index 0000000..b14aa4f
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS5R97WA.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MS5R97WA
++type: spec-contract
++featureId: F-MS5R97WA
++title: "Issue #348: GitHub Actions の actions/checkout、actions/setup-node、actions/github-script を検証済みのフルコミットSHAへ固定する"
++status: approved
++version: 0.1.0
++summary: "GitHub Actionsの可変major tag参照を検証済みrelease commitへ固定し、既存CI semanticsを維持したまま供給網リスクを縮小する"
++acceptanceCriteria:
++  - actions/checkoutはverified release v7.0.1のfull commit SHAを参照する
++  - actions/setup-nodeはverified release v7.0.0のfull commit SHAを参照する
++  - actions/github-scriptはverified release v9.0.0のfull commit SHAを参照する
++  - 各uses行はrelease versionコメントを持ち、対象3 actionの可変tag参照が残らない
++  - action参照以外のworkflow semantics、permissions、triggers、job構成、required checksを変更しない
++  - Human Approvalとaggregate validate SUCCESSを経なければmainへmergeしない
++approvedBy: user-requested-github-issue-prioritization
++approvedAt: "2026-07-29T16:22:01+09:00"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS5R97WA.yaml b/contracts/tasks/SCWBS-DRAFT-MS5R97WA.yaml
+new file mode 100644
+index 0000000..1b0e9fc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS5R97WA.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MS5R97WA
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS5R97WA
++branchName: task/SCWBS-DRAFT-MS5R97WA-issue-348-github-actions-actions-checkout-action
++allowedPaths:
++  - .github/workflows/scwbs.yml
++forbiddenPaths:
++  - src/**
++  - tests/**
++  - docs/**
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - actions/checkout、actions/setup-node、actions/github-script以外のworkflow semantics変更が必要
++  - exact head、full history、recursive submodule、npm cache、required checks、provenanceの既存semanticsを維持できない
++  - allowedPaths外または追加Human Gate pathの変更が必要
++  - 参照するrelease tagとcommit SHAの対応またはcommit verificationをGitHubで確認できない
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - .github/workflows/scwbs.yml内のactions/checkout、actions/setup-node、actions/github-script参照を検証済みreleaseのフルcommit SHAへ固定する
++  - 各固定SHAに対応するrelease versionを同じ行のコメントで明示する
++  - exact head、fetch-depth 0、recursive submodule、npm cache、required checks、provenance検証の既存semanticsを変更しない
++  - workflow内に対象3 actionの可変tag参照が残らず、workflow構文と全required checksが成功する
++  - Human Approvalが.github/workflows/scwbs.ymlの正確な差分scopeを覆う
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS5R97WA.yaml
++  - contracts/specs/SPEC-LITE-MS5R97WA.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS5R97WA.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS5R97WA.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MS5R97WA.patch
++  - contracts/approvals/SCWBS-DRAFT-MS5R97WA.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS5R97WA.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a9af1c126f3550d9bdc150365d1deeedee4efc5f29fd22c4b90cea95f7fd5320
++  createdAt: "2026-07-29T07:22:49.025Z"
