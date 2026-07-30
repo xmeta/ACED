@@ -2,6 +2,8 @@ import { collectCheckIssues } from "./check.js";
 import { buildReviewQueue } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
 import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
+import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
+import { readWbs } from "../core/wbs.js";
 
 function hasActiveBlock(root: string, taskId: string): boolean {
   return readBlock(root, taskId).block?.status === "blocked";
@@ -16,7 +18,18 @@ function taskIdsFromSection(queue: string, heading: string): string[] {
   return [...section.matchAll(/^- ([A-Z]+-\d+(?:-\d+)?)/gm)].map((match) => match[1]!);
 }
 
+function discoveryGuidance(root: string): string {
+  const items = readWbs(root).nodes
+    .filter((node) => node.workMode === "discovery" && node.discovery)
+    .map((node) => discoveryNextLine(node.id, node.discovery!));
+  for (const entry of listDiscoveryProbes(root)) {
+    if (entry.probe) items.push(discoveryNextLine(entry.probe.id, discoveryStateFromProbe(entry.probe)));
+  }
+  return items.length === 0 ? "" : `Discovery readiness:\n${items.join("\n")}\n\n`;
+}
+
 export function buildNextAction(root: string): string {
+  const discovery = discoveryGuidance(root);
   const activeTasks = listActiveTasks(root);
   const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
   const stale = collectCheckIssues(root).find((issue) => {
@@ -28,7 +41,7 @@ export function buildNextAction(root: string): string {
     const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
     return `Next suggested action:
 
-Refresh stale task ${taskId}
+${discovery}Refresh stale task ${taskId}
 Reason:
 - ${stale.message}
 
@@ -47,7 +60,7 @@ Command:
   if (failedCheck) {
     return `Next suggested action:
 
-Fix failed check for ${failedCheck.task.id}
+${discovery}Fix failed check for ${failedCheck.task.id}
 Reason:
 - Evidence check failed: ${failedCheck.checkName}
 
@@ -63,12 +76,12 @@ Command:
     if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) {
       return `Next suggested action:
 
-${plannedTasks}
+${discovery}${plannedTasks}
 `;
     }
     return `Next suggested action:
 
-Review blocked candidates
+${discovery}Review blocked candidates
 Reason:
 - Review candidates exist, but completion is blocked by prerequisites
 
@@ -81,7 +94,7 @@ Command:
   if (missingEvidence?.task) {
     return `Next suggested action:
 
-Collect evidence for ${missingEvidence.task.id}
+${discovery}Collect evidence for ${missingEvidence.task.id}
 Reason:
 - Task has no Evidence file yet
 
@@ -97,7 +110,7 @@ Command:
       if (review?.status === "requested") {
         return `Next suggested action:
 
-Human review for ${reviewTask}
+${discovery}Human review for ${reviewTask}
 Reason:
 - Evidence and review metadata exist; review decision is next
 
@@ -110,7 +123,7 @@ Queue context:
       }
       return `Next suggested action:
 
-Human review for ${reviewTask}
+${discovery}Human review for ${reviewTask}
 Reason:
 - Evidence and review metadata exist; human completion review is next
 
@@ -120,7 +133,7 @@ Command:
     }
     return `Next suggested action:
 
-Review ${reviewTask}
+${discovery}Review ${reviewTask}
 Reason:
 - Evidence exists and review queue has a candidate
 
@@ -132,7 +145,7 @@ Command:
   const nextTask = buildNextTask(root);
   return `Next suggested action:
 
-${nextTask.trim() || "No available action."}
+${discovery}${nextTask.trim() || "No available action."}
 `;
 }
 

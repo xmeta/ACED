@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test, vi } from "vitest";
 import { main } from "../../src/cli.js";
 import { collectCheckIssues } from "../../src/commands/check.js";
+import { discoveryStateFromProbe } from "../../src/core/discovery.js";
 import { parseSimpleYaml } from "../../src/core/yaml.js";
 import { makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
 
@@ -29,6 +30,27 @@ function readProbe(root: string, id = "PROBE-cache"): Record<string, unknown> {
 }
 
 describe("Discovery Probe lifecycle", () => {
+  test("derives readiness from explicit exit conditions and preserves unknowns", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(main(newArgs(), root)).toBe(0);
+    expect(discoveryStateFromProbe({
+      ...readProbe(root) as any,
+      status: "active"
+    })).toMatchObject({
+      decisionReadiness: "notReady",
+      openUnknowns: ["Peak degradation"],
+      blockingUnknowns: ["Peak degradation"],
+      nextDecision: "Choose the delivery design"
+    });
+    expect(discoveryStateFromProbe({
+      ...readProbe(root) as any,
+      status: "concluded",
+      exitConditionsMet: true,
+      remainingUnknowns: []
+    })).toMatchObject({ decisionReadiness: "ready", openUnknowns: [], blockingUnknowns: [] });
+  });
+
   test("CLI creates a schema-conformant proposed Probe without implicit overwrite", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
