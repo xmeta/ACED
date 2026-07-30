@@ -1,0 +1,17 @@
+id: SPEC-LITE-MS71HNK4
+type: spec-contract
+featureId: F-MS71HNK4
+title: "Issue #137 上流進捗をprogressPercentではなく不確実性低減と意思決定準備度で表現する"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-137
+approvedAt: "2026-07-30T00:00:00+09:00"
+summary: "Issue #137 上流進捗をprogressPercentではなく不確実性低減と意思決定準備度で表現する"
+acceptanceCriteria:
+  - WBS nodeにworkMode discovery/deliveryを追加し、discoveryではprogressPercentを拒否する
+  - discovery stateをfactsLearned、hypothesesRejected、openUnknowns、blockingUnknowns、decisionReadiness、downstreamInputQuality、exitConditions、exitConditionsMet、nextDecisionで表現する
+  - readinessはexitConditionsMetとblockingUnknownsを根拠に決定的にnotReady/conditionallyReady/readyへ分類し、不明値を縮小しない
+  - 既存Discovery Probeから同じ派生指標を計算し、既存のProbe lifecycleとdelivery block semanticsを壊さない
+  - status --jsonのversioned schemaにdiscovery summaryを追加し、status textとnext outputにunknowns/readiness/nextDecisionを表示する
+  - delivery nodeのprogressPercent/status整合性、既存CLI exit code、既存Probe schemaを維持する
+  - npm test、npm run test:integration、npm run typecheck、npm run build、npm run scwbs -- checkが成功する
