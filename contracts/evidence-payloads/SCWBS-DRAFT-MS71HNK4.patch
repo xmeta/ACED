@@ -1,0 +1,649 @@
+diff --git a/contracts/specs/SPEC-LITE-MS71HNK4.yaml b/contracts/specs/SPEC-LITE-MS71HNK4.yaml
+new file mode 100644
+index 0000000..cb50541
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MS71HNK4.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MS71HNK4
++type: spec-contract
++featureId: F-MS71HNK4
++title: "Issue #137 上流進捗をprogressPercentではなく不確実性低減と意思決定準備度で表現する"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-137
++approvedAt: "2026-07-30T00:00:00+09:00"
++summary: "Issue #137 上流進捗をprogressPercentではなく不確実性低減と意思決定準備度で表現する"
++acceptanceCriteria:
++  - WBS nodeにworkMode discovery/deliveryを追加し、discoveryではprogressPercentを拒否する
++  - discovery stateをfactsLearned、hypothesesRejected、openUnknowns、blockingUnknowns、decisionReadiness、downstreamInputQuality、exitConditions、exitConditionsMet、nextDecisionで表現する
++  - readinessはexitConditionsMetとblockingUnknownsを根拠に決定的にnotReady/conditionallyReady/readyへ分類し、不明値を縮小しない
++  - 既存Discovery Probeから同じ派生指標を計算し、既存のProbe lifecycleとdelivery block semanticsを壊さない
++  - status --jsonのversioned schemaにdiscovery summaryを追加し、status textとnext outputにunknowns/readiness/nextDecisionを表示する
++  - delivery nodeのprogressPercent/status整合性、既存CLI exit code、既存Probe schemaを維持する
++  - npm test、npm run test:integration、npm run typecheck、npm run build、npm run scwbs -- checkが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml b/contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml
+new file mode 100644
+index 0000000..eb6fba7
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml
+@@ -0,0 +1,69 @@
++id: SCWBS-DRAFT-MS71HNK4
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MS71HNK4
++branchName: task/SCWBS-DRAFT-MS71HNK4-issue-137-progresspercent
++allowedPaths:
++  - src/core/types.ts
++  - src/core/schema/wbs.ts
++  - src/core/wbs.ts
++  - src/core/discovery.ts
++  - src/commands/status.ts
++  - src/commands/next.ts
++  - tests/integration/status.test.ts
++  - tests/integration/discovery.test.ts
++  - docs/scwbs/schemas/status.schema.json
++  - docs/sc-wbs-core-revision/05-data-model.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - WBS正本や既存Probeの破壊的な互換性変更が必要になる
++  - package、workflow、認証、DB/migration、外部サービス、Human Gate pathの変更が必要になる
++  - discovery/deliveryのreadiness判定を明示的なexit conditionsから安全に定義できない
++doneCriteria:
++  - WBS nodeでdiscoveryとdeliveryを区別でき、discovery nodeではprogressPercentを使わず不確実性とexit conditionsを保持できる
++  - discovery nodeと既存Discovery ProbeのfactsLearned、hypothesesRejected、openUnknowns、blockingUnknowns、decisionReadiness、nextDecisionを検証できる
++  - readinessが明示的なexit conditionsとblockingUnknownsから決定的にnotReady/conditionallyReady/readyへ分類される
++  - scwbs status --json と scwbs next がblockingUnknowns、decisionReadiness、nextDecisionを表示し、delivery nodeの既存挙動を維持する
++  - status JSON schema、統合テスト、データモデル文書が実装と一致する
++  - WBS正本、package、workflow、認証、DB/migration、外部サービスは変更しない
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml
++  - contracts/specs/SPEC-LITE-MS71HNK4.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS71HNK4.yaml
++  - contracts/evidence/SCWBS-DRAFT-MS71HNK4.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MS71HNK4.patch
++  - contracts/approvals/SCWBS-DRAFT-MS71HNK4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS71HNK4.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:42c1390c709111a8792b9a0afd0af31382bc4c6bddb64a8e01ce863716f74293
++  createdAt: "2026-07-30T04:56:32.209Z"
+diff --git a/docs/sc-wbs-core-revision/05-data-model.md b/docs/sc-wbs-core-revision/05-data-model.md
+index ead4d76..e8f1e0b 100644
+--- a/docs/sc-wbs-core-revision/05-data-model.md
++++ b/docs/sc-wbs-core-revision/05-data-model.md
+@@ -22,6 +22,12 @@ contracts/tasks/index.yaml
+ 
+ Coreでは、WBS-JSONは任意である。
+ 
++### DiscoveryとDeliveryの進捗
++
++WBS nodeは `workMode: discovery|delivery` で上流探索と反復可能なDeliveryを区別する。Discovery nodeでは `progressPercent` を使わず、`discovery` の `factsLearned`、`hypothesesRejected`、`openUnknowns`、`blockingUnknowns`、`exitConditions`、`exitConditionsMet`、`decisionReadiness`、`nextDecision` を正本にする。`decisionReadiness` は、exit conditions未達またはblocking unknownsがある場合は `notReady`、それ以外でopen unknownsが残る場合は `conditionallyReady`、残らない場合は `ready` と判定する。
++
++既存の `contracts/discovery/*.yaml` Probeも同じ派生指標で `scwbs status --json` と `scwbs next` に表示する。これはSource本文やEvidenceの代替ではなく、次の意思決定を明示するためのboundedな状態表示である。
++
+ ## ディレクトリ構成
+ 
+ Core最小構成:
+@@ -398,4 +404,3 @@ path検証では以下を行う。
+ ```
+ 
+ 互換性のない変更を行う場合のみmajor相当を上げる。
+-
+diff --git a/docs/scwbs/schemas/status.schema.json b/docs/scwbs/schemas/status.schema.json
+index acbf1e7..2cdc84b 100644
+--- a/docs/scwbs/schemas/status.schema.json
++++ b/docs/scwbs/schemas/status.schema.json
+@@ -10,7 +10,8 @@
+     "wbsStatus",
+     "completionTrust",
+     "evidenceMissing",
+-    "blockingRelations"
++    "blockingRelations",
++    "discovery"
+   ],
+   "properties": {
+     "version": { "const": "scwbs.status.v1" },
+@@ -75,6 +76,40 @@
+         },
+         "additionalProperties": false
+       }
++    },
++    "discovery": {
++      "type": "object",
++      "required": ["total", "counts", "items"],
++      "properties": {
++        "total": { "type": "integer", "minimum": 0 },
++        "counts": {
++          "type": "object",
++          "required": ["notReady", "conditionallyReady", "ready"],
++          "properties": {
++            "notReady": { "type": "integer", "minimum": 0 },
++            "conditionallyReady": { "type": "integer", "minimum": 0 },
++            "ready": { "type": "integer", "minimum": 0 }
++          },
++          "additionalProperties": false
++        },
++        "items": {
++          "type": "array",
++          "items": {
++            "type": "object",
++            "required": ["id", "source", "decisionReadiness", "openUnknowns", "blockingUnknowns", "nextDecision"],
++            "properties": {
++              "id": { "type": "string" },
++              "source": { "enum": ["wbs", "probe"] },
++              "decisionReadiness": { "enum": ["notReady", "conditionallyReady", "ready"] },
++              "openUnknowns": { "type": "array", "items": { "type": "string" } },
++              "blockingUnknowns": { "type": "array", "items": { "type": "string" } },
++              "nextDecision": { "type": "string", "minLength": 1 }
++            },
++            "additionalProperties": false
++          }
++        }
++      },
++      "additionalProperties": false
+     }
+   },
+   "additionalProperties": false
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index a5cdf8c..88be244 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -2,6 +2,8 @@ import { collectCheckIssues } from "./check.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ import { buildNextTask } from "./ai-queue.js";
+ import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
++import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
++import { readWbs } from "../core/wbs.js";
+ 
+ function hasActiveBlock(root: string, taskId: string): boolean {
+   return readBlock(root, taskId).block?.status === "blocked";
+@@ -16,7 +18,18 @@ function taskIdsFromSection(queue: string, heading: string): string[] {
+   return [...section.matchAll(/^- ([A-Z]+-\d+(?:-\d+)?)/gm)].map((match) => match[1]!);
+ }
+ 
++function discoveryGuidance(root: string): string {
++  const items = readWbs(root).nodes
++    .filter((node) => node.workMode === "discovery" && node.discovery)
++    .map((node) => discoveryNextLine(node.id, node.discovery!));
++  for (const entry of listDiscoveryProbes(root)) {
++    if (entry.probe) items.push(discoveryNextLine(entry.probe.id, discoveryStateFromProbe(entry.probe)));
++  }
++  return items.length === 0 ? "" : `Discovery readiness:\n${items.join("\n")}\n\n`;
++}
++
+ export function buildNextAction(root: string): string {
++  const discovery = discoveryGuidance(root);
+   const activeTasks = listActiveTasks(root);
+   const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
+   const stale = collectCheckIssues(root).find((issue) => {
+@@ -28,7 +41,7 @@ export function buildNextAction(root: string): string {
+     const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
+     return `Next suggested action:
+ 
+-Refresh stale task ${taskId}
++${discovery}Refresh stale task ${taskId}
+ Reason:
+ - ${stale.message}
+ 
+@@ -47,7 +60,7 @@ Command:
+   if (failedCheck) {
+     return `Next suggested action:
+ 
+-Fix failed check for ${failedCheck.task.id}
++${discovery}Fix failed check for ${failedCheck.task.id}
+ Reason:
+ - Evidence check failed: ${failedCheck.checkName}
+ 
+@@ -63,12 +76,12 @@ Command:
+     if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) {
+       return `Next suggested action:
+ 
+-${plannedTasks}
++${discovery}${plannedTasks}
+ `;
+     }
+     return `Next suggested action:
+ 
+-Review blocked candidates
++${discovery}Review blocked candidates
+ Reason:
+ - Review candidates exist, but completion is blocked by prerequisites
+ 
+@@ -81,7 +94,7 @@ Command:
+   if (missingEvidence?.task) {
+     return `Next suggested action:
+ 
+-Collect evidence for ${missingEvidence.task.id}
++${discovery}Collect evidence for ${missingEvidence.task.id}
+ Reason:
+ - Task has no Evidence file yet
+ 
+@@ -97,7 +110,7 @@ Command:
+       if (review?.status === "requested") {
+         return `Next suggested action:
+ 
+-Human review for ${reviewTask}
++${discovery}Human review for ${reviewTask}
+ Reason:
+ - Evidence and review metadata exist; review decision is next
+ 
+@@ -110,7 +123,7 @@ Queue context:
+       }
+       return `Next suggested action:
+ 
+-Human review for ${reviewTask}
++${discovery}Human review for ${reviewTask}
+ Reason:
+ - Evidence and review metadata exist; human completion review is next
+ 
+@@ -120,7 +133,7 @@ Command:
+     }
+     return `Next suggested action:
+ 
+-Review ${reviewTask}
++${discovery}Review ${reviewTask}
+ Reason:
+ - Evidence exists and review queue has a candidate
+ 
+@@ -132,7 +145,7 @@ Command:
+   const nextTask = buildNextTask(root);
+   return `Next suggested action:
+ 
+-${nextTask.trim() || "No available action."}
++${discovery}${nextTask.trim() || "No available action."}
+ `;
+ }
+ 
+diff --git a/src/commands/status.ts b/src/commands/status.ts
+index 127d458..ced36d7 100644
+--- a/src/commands/status.ts
++++ b/src/commands/status.ts
+@@ -1,8 +1,9 @@
+ import { execFileSync } from "node:child_process";
+ import { evidenceExists, listTasks, readEvidence } from "../core/contracts.js";
++import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
+ import { currentBranch, headCommit, isShallowRepository } from "../core/git.js";
+ import { readTaskIndex } from "../core/task-index.js";
+-import type { Issue, TaskContract, WbsDocument } from "../core/types.js";
++import type { DecisionReadiness, Issue, TaskContract, WbsDocument } from "../core/types.js";
+ import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+ import { collectEvidenceTrustIssues, type EvidenceTrustOptions } from "./health.js";
+ 
+@@ -33,6 +34,18 @@ export type StatusJsonOutput = {
+   completionTrust: CompletionTrustSummary;
+   evidenceMissing: string[];
+   blockingRelations: Array<{ source: string; target: string }>;
++  discovery: {
++    total: number;
++    counts: Record<DecisionReadiness, number>;
++    items: Array<{
++      id: string;
++      source: "wbs" | "probe";
++      decisionReadiness: DecisionReadiness;
++      openUnknowns: string[];
++      blockingUnknowns: string[];
++      nextDecision: string;
++    }>;
++  };
+ };
+ 
+ export type StatusOptions = {
+@@ -40,6 +53,34 @@ export type StatusOptions = {
+   strict?: boolean;
+ };
+ 
++function discoverySummary(root: string, wbs: WbsDocument): StatusJsonOutput["discovery"] {
++  const items: StatusJsonOutput["discovery"]["items"] = wbs.nodes
++    .filter((node) => node.workMode === "discovery" && node.discovery)
++    .map((node) => ({
++      id: node.id,
++      source: "wbs" as const,
++      decisionReadiness: node.discovery!.decisionReadiness,
++      openUnknowns: node.discovery!.openUnknowns,
++      blockingUnknowns: node.discovery!.blockingUnknowns,
++      nextDecision: node.discovery!.nextDecision
++    }));
++  for (const entry of listDiscoveryProbes(root)) {
++    if (!entry.probe) continue;
++    const state = discoveryStateFromProbe(entry.probe);
++    items.push({
++      id: entry.probe.id,
++      source: "probe",
++      decisionReadiness: state.decisionReadiness,
++      openUnknowns: state.openUnknowns,
++      blockingUnknowns: state.blockingUnknowns,
++      nextDecision: state.nextDecision
++    });
++  }
++  const counts: StatusJsonOutput["discovery"]["counts"] = { notReady: 0, conditionallyReady: 0, ready: 0 };
++  for (const item of items) counts[item.decisionReadiness] += 1;
++  return { total: items.length, counts, items };
++}
++
+ const completedTaskStatuses = new Set(["completed", "archived"]);
+ 
+ function isUnverifiableTrustIssue(issue: Issue): boolean {
+@@ -221,7 +262,8 @@ export function buildStatusJsonOutput(root: string): StatusJsonOutput {
+     },
+     completionTrust: collectCompletionTrust(root, wbs),
+     evidenceMissing,
+-    blockingRelations: blockers
++    blockingRelations: blockers,
++    discovery: discoverySummary(root, wbs)
+   };
+ }
+ 
+@@ -249,7 +291,17 @@ function buildStatusText(report: StatusJsonOutput): string {
+     "Blocking Relations:",
+     ...(report.blockingRelations.length === 0
+       ? ["- None"]
+-      : report.blockingRelations.map((relation) => `- ${relation.source} blocks ${relation.target}`))
++      : report.blockingRelations.map((relation) => `- ${relation.source} blocks ${relation.target}`)),
++    "",
++    "Discovery Readiness:",
++    ...(report.discovery.total === 0
++      ? ["- None"]
++      : [
++          `- notReady: ${report.discovery.counts.notReady}`,
++          `- conditionallyReady: ${report.discovery.counts.conditionallyReady}`,
++          `- ready: ${report.discovery.counts.ready}`,
++          ...report.discovery.items.map((item) => discoveryNextLine(item.id, item))
++        ])
+   ];
+   return `${lines.join("\n")}\n`;
+ }
+diff --git a/src/core/discovery.ts b/src/core/discovery.ts
+index eca33ce..32d623c 100644
+--- a/src/core/discovery.ts
++++ b/src/core/discovery.ts
+@@ -1,7 +1,7 @@
+ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { resolveFrom } from "./paths.js";
+-import type { Issue } from "./types.js";
++import type { DecisionReadiness, DownstreamInputQuality, Issue, WbsDiscoveryState } from "./types.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "./yaml.js";
+ import { validateDiscoveryProbe } from "./schema/discovery.js";
+ 
+@@ -30,6 +30,38 @@ export type DiscoveryProbe = {
+   remainingUnknowns?: string[];
+ };
+ 
++export function classifyDecisionReadiness(
++  exitConditionsMet: boolean,
++  openUnknowns: string[],
++  blockingUnknowns: string[]
++): DecisionReadiness {
++  if (!exitConditionsMet || blockingUnknowns.length > 0) return "notReady";
++  return openUnknowns.length > 0 ? "conditionallyReady" : "ready";
++}
++
++export function discoveryStateFromProbe(probe: DiscoveryProbe): WbsDiscoveryState {
++  const openUnknowns = probe.status === "concluded" ? (probe.remainingUnknowns ?? []) : probe.unknowns;
++  const blockingUnknowns = probe.status === "concluded" ? [] : openUnknowns;
++  const exitConditionsMet = probe.exitConditionsMet === true;
++  const decisionReadiness = classifyDecisionReadiness(exitConditionsMet, openUnknowns, blockingUnknowns);
++  const downstreamInputQuality: DownstreamInputQuality = decisionReadiness === "ready" ? "reviewable" : "draft";
++  return {
++    factsLearned: probe.factsLearned ?? [],
++    hypothesesRejected: probe.hypothesesRejected ?? [],
++    openUnknowns,
++    blockingUnknowns,
++    decisionReadiness,
++    downstreamInputQuality,
++    exitConditions: probe.exitConditions,
++    exitConditionsMet,
++    nextDecision: probe.nextDecision
++  };
++}
++
++export function discoveryNextLine(id: string, state: Pick<WbsDiscoveryState, "decisionReadiness" | "blockingUnknowns" | "nextDecision">): string {
++  return `- ${id} | ${state.decisionReadiness} | blockingUnknowns=${state.blockingUnknowns.length} | nextDecision=${state.nextDecision}`;
++}
++
+ export const discoveryDirectory = "contracts/discovery";
+ const ID = /^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$/;
+ 
+diff --git a/src/core/schema/wbs.ts b/src/core/schema/wbs.ts
+index 707017c..655e701 100644
+--- a/src/core/schema/wbs.ts
++++ b/src/core/schema/wbs.ts
+@@ -26,6 +26,37 @@ export function validateWbsShape(value: unknown): Issue[] {
+     if (!(typeof node.parentId === "string" || node.parentId === null)) {
+       issues.push(issue("wbs.node", `nodes[${index}].parentId must be string or null`));
+     }
++    if (node.workMode !== undefined && node.workMode !== "discovery" && node.workMode !== "delivery") {
++      issues.push(issue("wbs.discovery.workMode", `nodes[${index}].workMode must be discovery or delivery`));
++    }
++    if (node.workMode === "discovery") {
++      if (node.progressPercent !== undefined) {
++        issues.push(issue("wbs.discovery.progressPercent", `nodes[${index}] discovery nodes must not use progressPercent`));
++      }
++      const state = node.discovery;
++      if (!isObject(state)) {
++        issues.push(issue("wbs.discovery.state", `nodes[${index}].discovery is required for discovery nodes`));
++      } else {
++        for (const key of ["factsLearned", "hypothesesRejected", "openUnknowns", "blockingUnknowns", "exitConditions"]) {
++          if (!isStringArray(state[key])) issues.push(issue("wbs.discovery.state", `nodes[${index}].discovery.${key} must be a string array`));
++        }
++        if (typeof state.exitConditionsMet !== "boolean") {
++          issues.push(issue("wbs.discovery.state", `nodes[${index}].discovery.exitConditionsMet must be boolean`));
++        }
++        if (typeof state.nextDecision !== "string" || state.nextDecision.length === 0) {
++          issues.push(issue("wbs.discovery.state", `nodes[${index}].discovery.nextDecision must be non-empty`));
++        }
++        if (!["notReady", "conditionallyReady", "ready"].includes(String(state.decisionReadiness))) {
++          issues.push(issue("wbs.discovery.readiness", `nodes[${index}].discovery.decisionReadiness is invalid`));
++        }
++        if (!["draft", "reviewable", "approved"].includes(String(state.downstreamInputQuality))) {
++          issues.push(issue("wbs.discovery.quality", `nodes[${index}].discovery.downstreamInputQuality is invalid`));
++        }
++      }
++    }
++    if (node.workMode === "delivery" && node.discovery !== undefined) {
++      issues.push(issue("wbs.delivery.discovery", `nodes[${index}] delivery nodes must not carry discovery state`));
++    }
+   });
+   return issues;
+ }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index f05fe21..ec86640 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -365,6 +365,8 @@ export type WbsNode = {
+   type: "summary" | "deliverable" | "workPackage" | "activity" | "milestone";
+   status?: "draft" | "planned" | "ready" | "inProgress" | "blocked" | "completed" | "cancelled";
+   progressPercent?: number;
++  workMode?: "discovery" | "delivery";
++  discovery?: WbsDiscoveryState;
+   outputs?: string[];
+   owner?: string;
+   assignees?: string[];
+@@ -373,6 +375,21 @@ export type WbsNode = {
+   extensions?: Record<string, unknown>;
+ };
+ 
++export type DecisionReadiness = "notReady" | "conditionallyReady" | "ready";
++export type DownstreamInputQuality = "draft" | "reviewable" | "approved";
++
++export type WbsDiscoveryState = {
++  factsLearned: string[];
++  hypothesesRejected: string[];
++  openUnknowns: string[];
++  blockingUnknowns: string[];
++  decisionReadiness: DecisionReadiness;
++  downstreamInputQuality: DownstreamInputQuality;
++  exitConditions: string[];
++  exitConditionsMet: boolean;
++  nextDecision: string;
++};
++
+ export type WbsRelation = {
+   id: string;
+   type: "dependsOn" | "blocks" | "produces" | "consumes" | "implementsRequirement" | "refinesBpmnTask" | "linkedToIssue" | "relatedTo";
+diff --git a/src/core/wbs.ts b/src/core/wbs.ts
+index 45c0bcc..b432890 100644
+--- a/src/core/wbs.ts
++++ b/src/core/wbs.ts
+@@ -4,6 +4,7 @@ import path from "node:path";
+ import { readJsonFile } from "./json.js";
+ import { defaultWbsPath, resolveFrom } from "./paths.js";
+ import { asWbsDocument, validateWbsShape } from "./schema.js";
++import { classifyDecisionReadiness } from "./discovery.js";
+ import type { Issue, WbsDocument, WbsNode } from "./types.js";
+ 
+ export function readWbs(root: string, relativePath = defaultWbsPath): WbsDocument {
+@@ -63,6 +64,21 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
+       });
+     }
+ 
++    if (node.workMode === "discovery" && node.discovery) {
++      const expected = classifyDecisionReadiness(
++        node.discovery.exitConditionsMet,
++        node.discovery.openUnknowns,
++        node.discovery.blockingUnknowns
++      );
++      if (expected !== node.discovery.decisionReadiness) {
++        issues.push({
++          severity: "error",
++          code: "wbs.discovery.readiness.mismatch",
++          message: `node ${node.id} discovery decisionReadiness is ${node.discovery.decisionReadiness}, expected ${expected}`
++        });
++      }
++    }
++
+     if (node.parentId === null) rootCount += 1;
+   }
+ 
+diff --git a/tests/integration/discovery.test.ts b/tests/integration/discovery.test.ts
+index fe12495..1132c67 100644
+--- a/tests/integration/discovery.test.ts
++++ b/tests/integration/discovery.test.ts
+@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test, vi } from "vitest";
+ import { main } from "../../src/cli.js";
+ import { collectCheckIssues } from "../../src/commands/check.js";
++import { discoveryStateFromProbe } from "../../src/core/discovery.js";
+ import { parseSimpleYaml } from "../../src/core/yaml.js";
+ import { makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
+ 
+@@ -29,6 +30,27 @@ function readProbe(root: string, id = "PROBE-cache"): Record<string, unknown> {
+ }
+ 
+ describe("Discovery Probe lifecycle", () => {
++  test("derives readiness from explicit exit conditions and preserves unknowns", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(newArgs(), root)).toBe(0);
++    expect(discoveryStateFromProbe({
++      ...readProbe(root) as any,
++      status: "active"
++    })).toMatchObject({
++      decisionReadiness: "notReady",
++      openUnknowns: ["Peak degradation"],
++      blockingUnknowns: ["Peak degradation"],
++      nextDecision: "Choose the delivery design"
++    });
++    expect(discoveryStateFromProbe({
++      ...readProbe(root) as any,
++      status: "concluded",
++      exitConditionsMet: true,
++      remainingUnknowns: []
++    })).toMatchObject({ decisionReadiness: "ready", openUnknowns: [], blockingUnknowns: [] });
++  });
++
+   test("CLI creates a schema-conformant proposed Probe without implicit overwrite", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/status.test.ts b/tests/integration/status.test.ts
+index d8eacbe..14a0015 100644
+--- a/tests/integration/status.test.ts
++++ b/tests/integration/status.test.ts
+@@ -14,7 +14,8 @@ import {
+ } from "../../src/commands/status.js";
+ import { readTask } from "../../src/core/contracts.js";
+ import { headCommit } from "../../src/core/git.js";
+-import { readWbs } from "../../src/core/wbs.js";
++import { buildNextAction } from "../../src/commands/next.js";
++import { readWbs, validateWbsDocument } from "../../src/core/wbs.js";
+ import {
+   makeTempRepo,
+   sampleApproval,
+@@ -71,6 +72,48 @@ function writeTrustEvidence(
+ }
+ 
+ describe("status completion trust", () => {
++  test("reports discovery readiness and next decisions without using progressPercent", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const wbs = readWbs(root);
++    wbs.nodes.push({
++      id: "node-probe",
++      parentId: "node-root",
++      code: "1.2",
++      name: "Cache discovery",
++      type: "workPackage",
++      workMode: "discovery",
++      discovery: {
++        factsLearned: ["The baseline is measurable"],
++        hypothesesRejected: [],
++        openUnknowns: ["Peak degradation"],
++        blockingUnknowns: [],
++        decisionReadiness: "conditionallyReady",
++        downstreamInputQuality: "draft",
++        exitConditions: ["Representative run complete"],
++        exitConditionsMet: true,
++        nextDecision: "Choose the delivery design"
++      }
++    });
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
++
++    const report = buildStatusJsonOutput(root);
++    expect(report.discovery).toMatchObject({
++      total: 1,
++      counts: { notReady: 0, conditionallyReady: 1, ready: 0 },
++      items: [{ id: "node-probe", source: "wbs", decisionReadiness: "conditionallyReady", openUnknowns: ["Peak degradation"] }]
++    });
++    expect(buildStatus(root)).toContain("nextDecision=Choose the delivery design");
++    expect(buildNextAction(root)).toContain("Discovery readiness:");
++    expect(buildNextAction(root)).toContain("node-probe | conditionallyReady");
++    expect(validateWbsDocument(root)).toEqual([]);
++
++    const invalid = readWbs(root);
++    invalid.nodes.at(-1)!.progressPercent = 20;
++    writeJson(root, "contracts/wbs/project.wbs.json", invalid);
++    expect(validateWbsDocument(root).some((item) => item.code === "wbs.discovery.progressPercent")).toBe(true);
++  });
++
+   test("reports verified terminal Tasks separately from WBS lifecycle and validates the JSON schema", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");

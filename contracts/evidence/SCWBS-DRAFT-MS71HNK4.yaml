@@ -1,0 +1,74 @@
+id: EVD-SCWBS-DRAFT-MS71HNK4
+type: evidence
+taskId: SCWBS-DRAFT-MS71HNK4
+commit: 7083b53048a06f6c84658297c5338fdf45aa525d
+subjectHeadCommit: 7083b53048a06f6c84658297c5338fdf45aa525d
+diffHash: sha256:b101359f68b5550513b5149e7e62181e77cd56d21b32a3a2ac07c85d3f6a949a
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 7083b53048a06f6c84658297c5338fdf45aa525d
+    treeHash: 56f79743e2e6d1a2cdb0498d2bb4cdc1f0b7e3a7
+    diffHash: sha256:b101359f68b5550513b5149e7e62181e77cd56d21b32a3a2ac07c85d3f6a949a
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MS71HNK4.patch
+    manifestHash: sha256:b101359f68b5550513b5149e7e62181e77cd56d21b32a3a2ac07c85d3f6a949a
+git:
+  branch: task/SCWBS-DRAFT-MS71HNK4-issue-137-progresspercent
+  base: origin/main
+  baseCommit: 48c033e6c493e85950d7a001c076a1da939e25f1
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 7083b53048a06f6c84658297c5338fdf45aa525d
+  diffHash: sha256:b101359f68b5550513b5149e7e62181e77cd56d21b32a3a2ac07c85d3f6a949a
+  headCommit: 7083b53048a06f6c84658297c5338fdf45aa525d
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MS71HNK4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml
+  - docs/sc-wbs-core-revision/05-data-model.md
+  - docs/scwbs/schemas/status.schema.json
+  - src/commands/next.ts
+  - src/commands/status.ts
+  - src/core/discovery.ts
+  - src/core/schema/wbs.ts
+  - src/core/types.ts
+  - src/core/wbs.ts
+  - tests/integration/discovery.test.ts
+  - tests/integration/status.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e115685ef70a4eb76db40e9ad5343630a7376d292a84036042c083a7b6ee0661
+    durationMilliseconds: 15549
+    executedAt: "2026-07-30T05:13:45.715Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3b8f07a1d37eda2beabb7d3d90b3178881092b4c8e134dc4ff320d3a6053d609
+    durationMilliseconds: 190442
+    executedAt: "2026-07-30T05:16:56.162Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e589b49c2bb7b3a19cf588795d6e95c18f1b80e3fe58fa485118eb26fc065477
+    durationMilliseconds: 9716
+    executedAt: "2026-07-30T05:17:05.884Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:63e3335ab4f7af322675a5805c2999d69af88dfec900c9bbaf72c83e664d8384
+    durationMilliseconds: 3836
+    executedAt: "2026-07-30T05:17:09.723Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added discovery readiness derivation, WBS validation, status schema, and next guidance regression coverage.
