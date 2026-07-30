@@ -22,6 +22,12 @@ contracts/tasks/index.yaml
 
 Coreでは、WBS-JSONは任意である。
 
+### DiscoveryとDeliveryの進捗
+
+WBS nodeは `workMode: discovery|delivery` で上流探索と反復可能なDeliveryを区別する。Discovery nodeでは `progressPercent` を使わず、`discovery` の `factsLearned`、`hypothesesRejected`、`openUnknowns`、`blockingUnknowns`、`exitConditions`、`exitConditionsMet`、`decisionReadiness`、`nextDecision` を正本にする。`decisionReadiness` は、exit conditions未達またはblocking unknownsがある場合は `notReady`、それ以外でopen unknownsが残る場合は `conditionallyReady`、残らない場合は `ready` と判定する。
+
+既存の `contracts/discovery/*.yaml` Probeも同じ派生指標で `scwbs status --json` と `scwbs next` に表示する。これはSource本文やEvidenceの代替ではなく、次の意思決定を明示するためのboundedな状態表示である。
+
 ## ディレクトリ構成
 
 Core最小構成:
@@ -398,4 +404,3 @@ path検証では以下を行う。
 ```
 
 互換性のない変更を行う場合のみmajor相当を上げる。
-

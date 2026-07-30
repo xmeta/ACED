@@ -365,12 +365,29 @@ export type WbsNode = {
   type: "summary" | "deliverable" | "workPackage" | "activity" | "milestone";
   status?: "draft" | "planned" | "ready" | "inProgress" | "blocked" | "completed" | "cancelled";
   progressPercent?: number;
+  workMode?: "discovery" | "delivery";
+  discovery?: WbsDiscoveryState;
   outputs?: string[];
   owner?: string;
   assignees?: string[];
   acceptanceCriteria?: string[];
   tags?: string[];
   extensions?: Record<string, unknown>;
+};
+
+export type DecisionReadiness = "notReady" | "conditionallyReady" | "ready";
+export type DownstreamInputQuality = "draft" | "reviewable" | "approved";
+
+export type WbsDiscoveryState = {
+  factsLearned: string[];
+  hypothesesRejected: string[];
+  openUnknowns: string[];
+  blockingUnknowns: string[];
+  decisionReadiness: DecisionReadiness;
+  downstreamInputQuality: DownstreamInputQuality;
+  exitConditions: string[];
+  exitConditionsMet: boolean;
+  nextDecision: string;
 };
 
 export type WbsRelation = {

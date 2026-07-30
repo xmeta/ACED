@@ -1,0 +1,69 @@
+id: SCWBS-DRAFT-MS71HNK4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS71HNK4
+branchName: task/SCWBS-DRAFT-MS71HNK4-issue-137-progresspercent
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/wbs.ts
+  - src/core/wbs.ts
+  - src/core/discovery.ts
+  - src/commands/status.ts
+  - src/commands/next.ts
+  - tests/integration/status.test.ts
+  - tests/integration/discovery.test.ts
+  - docs/scwbs/schemas/status.schema.json
+  - docs/sc-wbs-core-revision/05-data-model.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+stopIf:
+  - WBS正本や既存Probeの破壊的な互換性変更が必要になる
+  - package、workflow、認証、DB/migration、外部サービス、Human Gate pathの変更が必要になる
+  - discovery/deliveryのreadiness判定を明示的なexit conditionsから安全に定義できない
+doneCriteria:
+  - WBS nodeでdiscoveryとdeliveryを区別でき、discovery nodeではprogressPercentを使わず不確実性とexit conditionsを保持できる
+  - discovery nodeと既存Discovery ProbeのfactsLearned、hypothesesRejected、openUnknowns、blockingUnknowns、decisionReadiness、nextDecisionを検証できる
+  - readinessが明示的なexit conditionsとblockingUnknownsから決定的にnotReady/conditionallyReady/readyへ分類される
+  - scwbs status --json と scwbs next がblockingUnknowns、decisionReadiness、nextDecisionを表示し、delivery nodeの既存挙動を維持する
+  - status JSON schema、統合テスト、データモデル文書が実装と一致する
+  - WBS正本、package、workflow、認証、DB/migration、外部サービスは変更しない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS71HNK4.yaml
+  - contracts/specs/SPEC-LITE-MS71HNK4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MS71HNK4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS71HNK4.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS71HNK4.patch
+  - contracts/approvals/SCWBS-DRAFT-MS71HNK4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MS71HNK4.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:42c1390c709111a8792b9a0afd0af31382bc4c6bddb64a8e01ce863716f74293
+  createdAt: "2026-07-30T04:56:32.209Z"

@@ -14,7 +14,8 @@ import {
 } from "../../src/commands/status.js";
 import { readTask } from "../../src/core/contracts.js";
 import { headCommit } from "../../src/core/git.js";
-import { readWbs } from "../../src/core/wbs.js";
+import { buildNextAction } from "../../src/commands/next.js";
+import { readWbs, validateWbsDocument } from "../../src/core/wbs.js";
 import {
   makeTempRepo,
   sampleApproval,
@@ -71,6 +72,48 @@ function writeTrustEvidence(
 }
 
 describe("status completion trust", () => {
+  test("reports discovery readiness and next decisions without using progressPercent", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const wbs = readWbs(root);
+    wbs.nodes.push({
+      id: "node-probe",
+      parentId: "node-root",
+      code: "1.2",
+      name: "Cache discovery",
+      type: "workPackage",
+      workMode: "discovery",
+      discovery: {
+        factsLearned: ["The baseline is measurable"],
+        hypothesesRejected: [],
+        openUnknowns: ["Peak degradation"],
+        blockingUnknowns: [],
+        decisionReadiness: "conditionallyReady",
+        downstreamInputQuality: "draft",
+        exitConditions: ["Representative run complete"],
+        exitConditionsMet: true,
+        nextDecision: "Choose the delivery design"
+      }
+    });
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+
+    const report = buildStatusJsonOutput(root);
+    expect(report.discovery).toMatchObject({
+      total: 1,
+      counts: { notReady: 0, conditionallyReady: 1, ready: 0 },
+      items: [{ id: "node-probe", source: "wbs", decisionReadiness: "conditionallyReady", openUnknowns: ["Peak degradation"] }]
+    });
+    expect(buildStatus(root)).toContain("nextDecision=Choose the delivery design");
+    expect(buildNextAction(root)).toContain("Discovery readiness:");
+    expect(buildNextAction(root)).toContain("node-probe | conditionallyReady");
+    expect(validateWbsDocument(root)).toEqual([]);
+
+    const invalid = readWbs(root);
+    invalid.nodes.at(-1)!.progressPercent = 20;
+    writeJson(root, "contracts/wbs/project.wbs.json", invalid);
+    expect(validateWbsDocument(root).some((item) => item.code === "wbs.discovery.progressPercent")).toBe(true);
+  });
+
   test("reports verified terminal Tasks separately from WBS lifecycle and validates the JSON schema", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");

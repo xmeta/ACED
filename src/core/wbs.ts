@@ -4,6 +4,7 @@ import path from "node:path";
 import { readJsonFile } from "./json.js";
 import { defaultWbsPath, resolveFrom } from "./paths.js";
 import { asWbsDocument, validateWbsShape } from "./schema.js";
+import { classifyDecisionReadiness } from "./discovery.js";
 import type { Issue, WbsDocument, WbsNode } from "./types.js";
 
 export function readWbs(root: string, relativePath = defaultWbsPath): WbsDocument {
@@ -61,6 +62,21 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
         code: "wbs.status.progress.mismatch",
         message: `node ${node.id} progressPercent is 100% but status is ${node.status}`
       });
+    }
+
+    if (node.workMode === "discovery" && node.discovery) {
+      const expected = classifyDecisionReadiness(
+        node.discovery.exitConditionsMet,
+        node.discovery.openUnknowns,
+        node.discovery.blockingUnknowns
+      );
+      if (expected !== node.discovery.decisionReadiness) {
+        issues.push({
+          severity: "error",
+          code: "wbs.discovery.readiness.mismatch",
+          message: `node ${node.id} discovery decisionReadiness is ${node.discovery.decisionReadiness}, expected ${expected}`
+        });
+      }
     }
 
     if (node.parentId === null) rootCount += 1;

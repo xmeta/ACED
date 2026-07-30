@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { resolveFrom } from "./paths.js";
-import type { Issue } from "./types.js";
+import type { DecisionReadiness, DownstreamInputQuality, Issue, WbsDiscoveryState } from "./types.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "./yaml.js";
 import { validateDiscoveryProbe } from "./schema/discovery.js";
 
@@ -29,6 +29,38 @@ export type DiscoveryProbe = {
   hypothesesRejected?: string[];
   remainingUnknowns?: string[];
 };
+
+export function classifyDecisionReadiness(
+  exitConditionsMet: boolean,
+  openUnknowns: string[],
+  blockingUnknowns: string[]
+): DecisionReadiness {
+  if (!exitConditionsMet || blockingUnknowns.length > 0) return "notReady";
+  return openUnknowns.length > 0 ? "conditionallyReady" : "ready";
+}
+
+export function discoveryStateFromProbe(probe: DiscoveryProbe): WbsDiscoveryState {
+  const openUnknowns = probe.status === "concluded" ? (probe.remainingUnknowns ?? []) : probe.unknowns;
+  const blockingUnknowns = probe.status === "concluded" ? [] : openUnknowns;
+  const exitConditionsMet = probe.exitConditionsMet === true;
+  const decisionReadiness = classifyDecisionReadiness(exitConditionsMet, openUnknowns, blockingUnknowns);
+  const downstreamInputQuality: DownstreamInputQuality = decisionReadiness === "ready" ? "reviewable" : "draft";
+  return {
+    factsLearned: probe.factsLearned ?? [],
+    hypothesesRejected: probe.hypothesesRejected ?? [],
+    openUnknowns,
+    blockingUnknowns,
+    decisionReadiness,
+    downstreamInputQuality,
+    exitConditions: probe.exitConditions,
+    exitConditionsMet,
+    nextDecision: probe.nextDecision
+  };
+}
+
+export function discoveryNextLine(id: string, state: Pick<WbsDiscoveryState, "decisionReadiness" | "blockingUnknowns" | "nextDecision">): string {
+  return `- ${id} | ${state.decisionReadiness} | blockingUnknowns=${state.blockingUnknowns.length} | nextDecision=${state.nextDecision}`;
+}
 
 export const discoveryDirectory = "contracts/discovery";
 const ID = /^PROBE-[A-Za-z0-9][A-Za-z0-9._-]*$/;

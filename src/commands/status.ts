@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { evidenceExists, listTasks, readEvidence } from "../core/contracts.js";
+import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
 import { currentBranch, headCommit, isShallowRepository } from "../core/git.js";
 import { readTaskIndex } from "../core/task-index.js";
-import type { Issue, TaskContract, WbsDocument } from "../core/types.js";
+import type { DecisionReadiness, Issue, TaskContract, WbsDocument } from "../core/types.js";
 import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
 import { collectEvidenceTrustIssues, type EvidenceTrustOptions } from "./health.js";
 
@@ -33,12 +34,52 @@ export type StatusJsonOutput = {
   completionTrust: CompletionTrustSummary;
   evidenceMissing: string[];
   blockingRelations: Array<{ source: string; target: string }>;
+  discovery: {
+    total: number;
+    counts: Record<DecisionReadiness, number>;
+    items: Array<{
+      id: string;
+      source: "wbs" | "probe";
+      decisionReadiness: DecisionReadiness;
+      openUnknowns: string[];
+      blockingUnknowns: string[];
+      nextDecision: string;
+    }>;
+  };
 };
 
 export type StatusOptions = {
   json?: boolean;
   strict?: boolean;
 };
+
+function discoverySummary(root: string, wbs: WbsDocument): StatusJsonOutput["discovery"] {
+  const items: StatusJsonOutput["discovery"]["items"] = wbs.nodes
+    .filter((node) => node.workMode === "discovery" && node.discovery)
+    .map((node) => ({
+      id: node.id,
+      source: "wbs" as const,
+      decisionReadiness: node.discovery!.decisionReadiness,
+      openUnknowns: node.discovery!.openUnknowns,
+      blockingUnknowns: node.discovery!.blockingUnknowns,
+      nextDecision: node.discovery!.nextDecision
+    }));
+  for (const entry of listDiscoveryProbes(root)) {
+    if (!entry.probe) continue;
+    const state = discoveryStateFromProbe(entry.probe);
+    items.push({
+      id: entry.probe.id,
+      source: "probe",
+      decisionReadiness: state.decisionReadiness,
+      openUnknowns: state.openUnknowns,
+      blockingUnknowns: state.blockingUnknowns,
+      nextDecision: state.nextDecision
+    });
+  }
+  const counts: StatusJsonOutput["discovery"]["counts"] = { notReady: 0, conditionallyReady: 0, ready: 0 };
+  for (const item of items) counts[item.decisionReadiness] += 1;
+  return { total: items.length, counts, items };
+}
 
 const completedTaskStatuses = new Set(["completed", "archived"]);
 
@@ -221,7 +262,8 @@ export function buildStatusJsonOutput(root: string): StatusJsonOutput {
     },
     completionTrust: collectCompletionTrust(root, wbs),
     evidenceMissing,
-    blockingRelations: blockers
+    blockingRelations: blockers,
+    discovery: discoverySummary(root, wbs)
   };
 }
 
@@ -249,7 +291,17 @@ function buildStatusText(report: StatusJsonOutput): string {
     "Blocking Relations:",
     ...(report.blockingRelations.length === 0
       ? ["- None"]
-      : report.blockingRelations.map((relation) => `- ${relation.source} blocks ${relation.target}`))
+      : report.blockingRelations.map((relation) => `- ${relation.source} blocks ${relation.target}`)),
+    "",
+    "Discovery Readiness:",
+    ...(report.discovery.total === 0
+      ? ["- None"]
+      : [
+          `- notReady: ${report.discovery.counts.notReady}`,
+          `- conditionallyReady: ${report.discovery.counts.conditionallyReady}`,
+          `- ready: ${report.discovery.counts.ready}`,
+          ...report.discovery.items.map((item) => discoveryNextLine(item.id, item))
+        ])
   ];
   return `${lines.join("\n")}\n`;
 }

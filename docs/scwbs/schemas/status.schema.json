@@ -10,7 +10,8 @@
     "wbsStatus",
     "completionTrust",
     "evidenceMissing",
-    "blockingRelations"
+    "blockingRelations",
+    "discovery"
   ],
   "properties": {
     "version": { "const": "scwbs.status.v1" },
@@ -75,6 +76,40 @@
         },
         "additionalProperties": false
       }
+    },
+    "discovery": {
+      "type": "object",
+      "required": ["total", "counts", "items"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "counts": {
+          "type": "object",
+          "required": ["notReady", "conditionallyReady", "ready"],
+          "properties": {
+            "notReady": { "type": "integer", "minimum": 0 },
+            "conditionallyReady": { "type": "integer", "minimum": 0 },
+            "ready": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "decisionReadiness", "openUnknowns", "blockingUnknowns", "nextDecision"],
+            "properties": {
+              "id": { "type": "string" },
+              "source": { "enum": ["wbs", "probe"] },
+              "decisionReadiness": { "enum": ["notReady", "conditionallyReady", "ready"] },
+              "openUnknowns": { "type": "array", "items": { "type": "string" } },
+              "blockingUnknowns": { "type": "array", "items": { "type": "string" } },
+              "nextDecision": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
