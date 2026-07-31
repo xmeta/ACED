@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MS873MHU
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MS873MHU
+branchName: task/SCWBS-DRAFT-MS873MHU-issue-346-gpl-3-0
+allowedPaths:
+  - LICENSE
+  - README.md
+  - package.json
+  - contracts/tasks/SCWBS-DRAFT-MS873MHU.yaml
+  - contracts/specs/SPEC-LITE-MS873MHU.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS873MHU.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS873MHU.patch
+forbiddenPaths:
+  - wjs/**
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - src/**
+  - tests/**
+  - docs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - 'Issue #346の所有者決定どおり、ルートLICENSEにGNU GPL version 3全文を追加する'
+  - README.mdにGPL-3.0の適用範囲とLICENSEへの導線を明記する
+  - package.jsonのlicenseをGPL-3.0-onlyへ設定する。ただしHuman Gate承認前は実施を完了扱いにしない
+  - LICENSE本文は標準GPLv3から変更せず、SPDX識別子とpackage metadataの値を整合させる
+  - 'Issue #346以外のライセンス、可視性、外部サービス、依存関係、WBS正本は変更しない'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MS873MHU.yaml
+  - contracts/specs/SPEC-LITE-MS873MHU.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/evidence/SCWBS-DRAFT-MS873MHU.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MS873MHU.patch
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a08998922193191ade165a1e749912c91a5867eef287cdfbeeb57952f53159e0
+  createdAt: "2026-07-31T00:20:59.835Z"
