@@ -8,6 +8,13 @@ The tool keeps AI-assisted work inside an explicit Task Contract. It records
 Evidence, checks changed files against the contract, and routes risky changes
 back to Human Gate instead of letting an AI guess.
 
+## License
+
+Unless a file states otherwise, the `scwbs` source code and repository-authored
+documentation are licensed under the GNU General Public License version 3.0
+only. See [LICENSE](LICENSE) for the full license text. The `wjs` submodule is
+a separate dependency and retains its own licensing terms.
+
 ## Start Here
 
 | Reader | Read this first |
