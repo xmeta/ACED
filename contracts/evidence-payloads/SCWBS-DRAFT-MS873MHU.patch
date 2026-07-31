@@ -696,6 +696,33 @@ index 1873641..6731b2d 100644
  ## Start Here
  
  | Reader | Read this first |
+diff --git a/contracts/blocks/SCWBS-DRAFT-MS873MHU.yaml b/contracts/blocks/SCWBS-DRAFT-MS873MHU.yaml
+new file mode 100644
+index 0000000..591d12a
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MS873MHU.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MS873MHU
++type: block
++taskId: SCWBS-DRAFT-MS873MHU
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: Task Contract lock後にHuman Approval recordのcontracts/approvals/ pathがallowedPathsから欠落している。承認済みrecordを含むdiffを検証するにはauthority変更が必要だが、lock後のallowedPaths変更は禁止されているため、人間によるTask Contract再作成または明示的なauthority修正が必要
++createdAt: "2026-07-31T03:26:08.182Z"
++history:
++  - status: blocked
++    at: "2026-07-31T03:26:08.182Z"
++    reason: Task Contract lock後にHuman Approval recordのcontracts/approvals/ pathがallowedPathsから欠落している。承認済みrecordを含むdiffを検証するにはauthority変更が必要だが、lock後のallowedPaths変更は禁止されているため、人間によるTask Contract再作成または明示的なauthority修正が必要
++    by: ai-agent
++  - status: resolved
++    at: "2026-07-31T03:35:42.054Z"
++    reason: Human authorized the current Task Contract authority correction; approval, block, and review metadata paths are now managed by the contract.
++    by: human
++resolvedAt: "2026-07-31T03:35:42.054Z"
++resolvedBy: human
++resolution: Human authorized the current Task Contract authority correction; approval, block, and review metadata paths are now managed by the contract.
 diff --git a/contracts/specs/SPEC-LITE-MS873MHU.yaml b/contracts/specs/SPEC-LITE-MS873MHU.yaml
 new file mode 100644
 index 0000000..fc3b5df
@@ -719,10 +746,10 @@ index 0000000..fc3b5df
 +approvedAt: '2026-07-31T00:00:00+09:00'
 diff --git a/contracts/tasks/SCWBS-DRAFT-MS873MHU.yaml b/contracts/tasks/SCWBS-DRAFT-MS873MHU.yaml
 new file mode 100644
-index 0000000..0ca7e59
+index 0000000..62f62bc
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MS873MHU.yaml
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,60 @@
 +id: SCWBS-DRAFT-MS873MHU
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -770,8 +797,11 @@ index 0000000..0ca7e59
 +  - contracts/specs/SPEC-LITE-MS873MHU.yaml
 +  - contracts/tasks/index.yaml
 +  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MS873MHU.yaml
 +  - contracts/evidence/SCWBS-DRAFT-MS873MHU.yaml
 +  - contracts/evidence-payloads/SCWBS-DRAFT-MS873MHU.patch
++  - contracts/approvals/SCWBS-DRAFT-MS873MHU.yaml
++  - contracts/reviews/SCWBS-DRAFT-MS873MHU.yaml
 +contractLock:
 +  lockVersion: "2"
 +  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
@@ -779,7 +809,7 @@ index 0000000..0ca7e59
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:a08998922193191ade165a1e749912c91a5867eef287cdfbeeb57952f53159e0
-+  createdAt: "2026-07-31T00:20:59.835Z"
++  createdAt: "2026-07-31T03:34:41.797Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 29c9f20..7a5ff2b 100644
 --- a/contracts/tasks/index.yaml
