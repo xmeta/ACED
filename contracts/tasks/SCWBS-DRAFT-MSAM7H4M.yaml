@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MSAM7H4M
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSAM7H4M
+branchName: task/SCWBS-DRAFT-MSAM7H4M-issue-360-start-task-new-lifecycle-managed-paths
+allowedPaths:
+  - src/core/managed-contract-paths.ts
+  - src/commands/start.ts
+  - src/commands/task-new.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/tasks.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+  - docs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - Task authorityやHuman Approval境界の仕様変更が必要
+  - 既存TaskのmanagedContractPathsを一括変更する必要がある
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - startとtask-newが同一のcanonical builderからTask自身・Task index・Block・Evidence・Evidence payload・Approval・Review・Registryの具体pathをmanagedContractPathsへ登録する
+  - startは生成するSPECの具体pathもmanagedContractPathsへ登録する
+  - broad globや別Taskのpathを認可せず、既存のHuman Gate境界を維持する
+  - startとtask-newの生成結果に対する回帰テストを追加する
+  - required checksとcheck-diffが成功する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml
+  - contracts/specs/SPEC-LITE-MSAM7H4M.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSAM7H4M.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSAM7H4M.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSAM7H4M.patch
+  - contracts/approvals/SCWBS-DRAFT-MSAM7H4M.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSAM7H4M.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:34c486bf688233f761e10024c0ba207e8c2bc5a70ddba87932c9ac757c74e235
+  createdAt: "2026-08-01T17:00:25.482Z"
