@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { listTasks } from "../core/contracts.js";
+import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
 import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
-import { defaultWbsPath, evidencePayloadPath, taskPath, resolveFrom } from "../core/paths.js";
+import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
 import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
@@ -97,7 +98,7 @@ export function buildCoreTaskNew(title: string, options: {
     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
     doneCriteria: [`Complete ${resolvedTitle}`],
     evidenceRequired: ["test-result", "typecheck-result", "build-result"],
-    managedContractPaths: [evidencePayloadPath(id)]
+    managedContractPaths: taskBootstrapManagedContractPaths(id)
   };
   return { task, fallback };
 }

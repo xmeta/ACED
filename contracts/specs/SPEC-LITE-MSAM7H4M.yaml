@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSAM7H4M
+type: spec-contract
+featureId: F-MSAM7H4M
+title: "Issue #360: start/task-newの標準lifecycle managed pathsをcanonical化する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-01T17:00:07.000Z"
+version: 0.1.0
+summary: "Issue #360: start/task-newの標準lifecycle managed pathsをcanonical化する"
+acceptanceCriteria:
+  - startとtask-newのmanagedContractPathsは同じcanonical builderに基づく
+  - canonical builderはTask自身、Task index、Block、Evidence、Evidence payload、Approval、Review、RegistryをTask ID単位の具体pathで返す
+  - startだけが生成するSPEC pathは同じbuilderの明示的な入力から追加される
+  - broad contracts glob、別Taskのtask-scoped metadata、Human Gate対象をmanaged pathとして認可しない
+  - startとtask-newの生成結果を回帰テストで固定する
