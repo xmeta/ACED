@@ -1,0 +1,227 @@
+diff --git a/contracts/specs/SPEC-LITE-MSAM7H4M.yaml b/contracts/specs/SPEC-LITE-MSAM7H4M.yaml
+new file mode 100644
+index 0000000..f2b6446
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSAM7H4M.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSAM7H4M
++type: spec-contract
++featureId: F-MSAM7H4M
++title: "Issue #360: start/task-newの標準lifecycle managed pathsをcanonical化する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-01T17:00:07.000Z"
++version: 0.1.0
++summary: "Issue #360: start/task-newの標準lifecycle managed pathsをcanonical化する"
++acceptanceCriteria:
++  - startとtask-newのmanagedContractPathsは同じcanonical builderに基づく
++  - canonical builderはTask自身、Task index、Block、Evidence、Evidence payload、Approval、Review、RegistryをTask ID単位の具体pathで返す
++  - startだけが生成するSPEC pathは同じbuilderの明示的な入力から追加される
++  - broad contracts glob、別Taskのtask-scoped metadata、Human Gate対象をmanaged pathとして認可しない
++  - startとtask-newの生成結果を回帰テストで固定する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml b/contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml
+new file mode 100644
+index 0000000..2047e45
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml
+@@ -0,0 +1,64 @@
++id: SCWBS-DRAFT-MSAM7H4M
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSAM7H4M
++branchName: task/SCWBS-DRAFT-MSAM7H4M-issue-360-start-task-new-lifecycle-managed-paths
++allowedPaths:
++  - src/core/managed-contract-paths.ts
++  - src/commands/start.ts
++  - src/commands/task-new.ts
++  - tests/integration/misc.test.ts
++  - tests/integration/tasks.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++  - docs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - Task authorityやHuman Approval境界の仕様変更が必要
++  - 既存TaskのmanagedContractPathsを一括変更する必要がある
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - startとtask-newが同一のcanonical builderからTask自身・Task index・Block・Evidence・Evidence payload・Approval・Review・Registryの具体pathをmanagedContractPathsへ登録する
++  - startは生成するSPECの具体pathもmanagedContractPathsへ登録する
++  - broad globや別Taskのpathを認可せず、既存のHuman Gate境界を維持する
++  - startとtask-newの生成結果に対する回帰テストを追加する
++  - required checksとcheck-diffが成功する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml
++  - contracts/specs/SPEC-LITE-MSAM7H4M.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSAM7H4M.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSAM7H4M.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSAM7H4M.patch
++  - contracts/approvals/SCWBS-DRAFT-MSAM7H4M.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSAM7H4M.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:34c486bf688233f761e10024c0ba207e8c2bc5a70ddba87932c9ac757c74e235
++  createdAt: "2026-08-01T17:00:25.482Z"
+diff --git a/src/commands/start.ts b/src/commands/start.ts
+index 82832f9..5d1a083 100644
+--- a/src/commands/start.ts
++++ b/src/commands/start.ts
+@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { readTask } from "../core/contracts.js";
+ import { currentBranch } from "../core/git.js";
+-import { evidencePayloadPath, resolveFrom, specPath, taskPath } from "../core/paths.js";
++import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
++import { resolveFrom, specPath, taskPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ 
+@@ -61,7 +62,7 @@ export function buildStartArtifacts(goal: string): Record<string, string> {
+       requiredChecks: ["test", "typecheck", "build"],
+       doneCriteria: [`Plan and implement: ${goal}`],
+       evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+-      managedContractPaths: [evidencePayloadPath(taskId)]
++      managedContractPaths: taskBootstrapManagedContractPaths(taskId, { specId })
+     })
+   };
+ }
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index 4592824..a7f598e 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -1,8 +1,9 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { listTasks } from "../core/contracts.js";
++import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+-import { defaultWbsPath, evidencePayloadPath, taskPath, resolveFrom } from "../core/paths.js";
++import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+ import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+@@ -97,7 +98,7 @@ export function buildCoreTaskNew(title: string, options: {
+     requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
+     doneCriteria: [`Complete ${resolvedTitle}`],
+     evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+-    managedContractPaths: [evidencePayloadPath(id)]
++    managedContractPaths: taskBootstrapManagedContractPaths(id)
+   };
+   return { task, fallback };
+ }
+diff --git a/src/core/managed-contract-paths.ts b/src/core/managed-contract-paths.ts
+index e0cca55..3111b73 100644
+--- a/src/core/managed-contract-paths.ts
++++ b/src/core/managed-contract-paths.ts
+@@ -52,3 +52,20 @@ export function taskLifecycleMetadataPaths(taskId: string): string[] {
+     "contracts/registry.yaml"
+   ];
+ }
++
++/**
++ * Concrete trust-root and lifecycle paths that a newly created Task Contract
++ * may need to write. Keep this separate from taskLifecycleMetadataPaths:
++ * bootstrap authority includes the Task, optional SPEC, index, and Block,
++ * while post-implementation diff calculations intentionally do not exclude
++ * those files.
++ */
++export function taskBootstrapManagedContractPaths(taskId: string, options: { specId?: string } = {}): string[] {
++  return [
++    `contracts/tasks/${taskId}.yaml`,
++    ...(options.specId ? [`contracts/specs/${options.specId}.yaml`] : []),
++    "contracts/tasks/index.yaml",
++    `contracts/blocks/${taskId}.yaml`,
++    ...taskLifecycleMetadataPaths(taskId)
++  ];
++}
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 6dcee96..e2c9f27 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -188,11 +188,28 @@ describe("misc", () => {
+   test("start emits schema-shaped WBS addNode operations", () => {
+     const artifacts = buildStartArtifacts("Add reporting");
+     const changeSetPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/changesets/start-"));
++    const taskPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/tasks/"));
++    const specPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/specs/"));
+     expect(changeSetPath).toBeTruthy();
++    expect(taskPath).toBeTruthy();
++    expect(specPath).toBeTruthy();
+     const changeSet = JSON.parse(artifacts[changeSetPath!]);
++    const task = parseSimpleYaml(artifacts[taskPath!]);
++    const taskId = taskPath!.replace(/^contracts\/tasks\//, "").replace(/\.yaml$/, "");
+     expect(changeSet.targetWbsId).toBe("scwbs");
+     expect(changeSet.operations[0].operation).toBe("addNode");
+     expect(changeSet.operations[0].node.parentId).toBe("node-project");
++    expect(task.managedContractPaths).toEqual([
++      taskPath,
++      specPath,
++      "contracts/tasks/index.yaml",
++      `contracts/blocks/${taskId}.yaml`,
++      `contracts/evidence/${taskId}.yaml`,
++      `contracts/evidence-payloads/${taskId}.patch`,
++      `contracts/approvals/${taskId}.yaml`,
++      `contracts/reviews/${taskId}.yaml`,
++      "contracts/registry.yaml"
++    ]);
+   });
+ 
+   test("yaml parser preserves quoted strings with colons", () => {
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 737120e..4c5550b 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -443,13 +443,23 @@ describe("task management", () => {
+   });
+ 
+   test("task new builds safe branch names and default checks", () => {
+-    const { task } = buildCoreTaskNew("Fix Core CLI!");
++    const { task } = buildCoreTaskNew("Fix Core CLI!", { id: "SCWBS-DRAFT-TEST1234" });
+ 
+-    expect(task.id).toMatch(/^SCWBS-DRAFT-/);
+-    expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
++    expect(task.id).toBe("SCWBS-DRAFT-TEST1234");
++    expect(task.branchName).toBe("task/SCWBS-DRAFT-TEST1234-fix-core-cli");
+     expect(task.allowedPaths).toEqual([]);
+     expect(task.wbsNodeId).toBe("wbs-less");
+     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
++    expect(task.managedContractPaths).toEqual([
++      "contracts/tasks/SCWBS-DRAFT-TEST1234.yaml",
++      "contracts/tasks/index.yaml",
++      "contracts/blocks/SCWBS-DRAFT-TEST1234.yaml",
++      "contracts/evidence/SCWBS-DRAFT-TEST1234.yaml",
++      "contracts/evidence-payloads/SCWBS-DRAFT-TEST1234.patch",
++      "contracts/approvals/SCWBS-DRAFT-TEST1234.yaml",
++      "contracts/reviews/SCWBS-DRAFT-TEST1234.yaml",
++      "contracts/registry.yaml"
++    ]);
+   });
+ 
+   test("task new appends custom gates to the standard Human Gates deterministically", () => {

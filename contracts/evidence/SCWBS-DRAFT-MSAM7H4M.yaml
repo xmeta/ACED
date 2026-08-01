@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSAM7H4M
+type: evidence
+taskId: SCWBS-DRAFT-MSAM7H4M
+commit: 047d7935de0400a043288f3cce2b8f94d97e0038
+subjectHeadCommit: 047d7935de0400a043288f3cce2b8f94d97e0038
+diffHash: sha256:33b84247c8ec1125ab4d42f8018db426f33631b1779683c078718fe02868ccd4
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 047d7935de0400a043288f3cce2b8f94d97e0038
+    treeHash: 7e01bbd7b6c59ee6dd4effb58bd655e6ba151720
+    diffHash: sha256:33b84247c8ec1125ab4d42f8018db426f33631b1779683c078718fe02868ccd4
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSAM7H4M.patch
+    manifestHash: sha256:33b84247c8ec1125ab4d42f8018db426f33631b1779683c078718fe02868ccd4
+git:
+  branch: task/SCWBS-DRAFT-MSAM7H4M-issue-360-start-task-new-lifecycle-managed-paths
+  base: origin/main
+  baseCommit: a9a406daa032b08c864ae32c97df94900a0fdf20
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 047d7935de0400a043288f3cce2b8f94d97e0038
+  diffHash: sha256:33b84247c8ec1125ab4d42f8018db426f33631b1779683c078718fe02868ccd4
+  headCommit: 047d7935de0400a043288f3cce2b8f94d97e0038
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSAM7H4M.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSAM7H4M.yaml
+  - src/commands/start.ts
+  - src/commands/task-new.ts
+  - src/core/managed-contract-paths.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:886fb086a589ac1314084cc48eefc21ef347191f5c70032014fde74a4ee184e0
+    durationMilliseconds: 15467
+    executedAt: "2026-08-01T17:03:12.851Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:637519ae63e63580ff53007b236e34c7993259e21b4670acacd0fe17146cc15b
+    durationMilliseconds: 192707
+    executedAt: "2026-08-01T17:06:25.562Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c5ae91c6ee479274e63c1ffa821d93a6523208d1a46c56f64521dfe06c839451
+    durationMilliseconds: 9396
+    executedAt: "2026-08-01T17:06:34.964Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:232ac33b4c1d1961e2dee18a36ba8db3f32a6a010c53d1d4a72bde432f9601af
+    durationMilliseconds: 4202
+    executedAt: "2026-08-01T17:06:39.171Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - startとtask newのcanonical bootstrap managed pathsを直接検証する回帰assertionを追加
