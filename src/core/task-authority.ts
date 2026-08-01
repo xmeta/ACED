@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readApproval, readEvidence, readTask } from "./contracts.js";
 import { commitChangedFiles, fileIntroductionCommit, gitObject, isShallowRepository, mergeBase } from "./git.js";
 import { matchesAny } from "./glob.js";
@@ -38,6 +39,27 @@ export type TaskBootstrapAuthority = {
   reasons: Issue[];
 };
 
+export type TaskAuthorityRepairPreflight = {
+  schemaVersion: "1.0.0";
+  mode: "read-only";
+  mutationAllowed: false;
+  targetTaskId: string;
+  taskPath: string;
+  trustedBaseCommit: string;
+  changedFields: AuthorityField[];
+  managedPathChanges: { added: string[]; removed: string[] };
+  authorityFingerprint: { trusted: string; current: string };
+  impact: {
+    evidencePresent: boolean;
+    approvalStatus: "missing" | "requested" | "approved" | "rejected";
+    evidenceRegenerationRequired: true;
+    approvalReRequestRequired: true;
+    previousApprovalReusable: false;
+  };
+  requiredHumanDecision: string;
+  recoverySteps: Array<{ step: number; actor: "ai" | "human"; action: string; command?: string }>;
+};
+
 function normalizedStrings(values: string[] | undefined): string[] {
   return [...new Set(values ?? [])].sort();
 }
@@ -70,10 +92,77 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
   };
 }
 
+export function taskAuthorityFingerprint(task: TaskContract): string {
+  return `sha256:${createHash("sha256").update(JSON.stringify(taskAuthoritySnapshot(task))).digest("hex")}`;
+}
+
 export function changedTaskAuthorityFields(base: TaskContract, head: TaskContract): AuthorityField[] {
   const baseSnapshot = taskAuthoritySnapshot(base);
   const headSnapshot = taskAuthoritySnapshot(head);
   return TASK_AUTHORITY_FIELDS.filter((field) => JSON.stringify(baseSnapshot[field]) !== JSON.stringify(headSnapshot[field]));
+}
+
+export function buildTaskAuthorityRepairPreflights(
+  root: string,
+  baseRef: string,
+  taskPaths: string[]
+): TaskAuthorityRepairPreflight[] {
+  if (isShallowRepository(root)) return [];
+  const trustedBase = mergeBase(root, baseRef, "HEAD");
+  if (!trustedBase) return [];
+
+  const reports: TaskAuthorityRepairPreflight[] = [];
+  for (const taskPath of [...new Set(taskPaths)].sort()) {
+    const targetTaskId = taskPath.replace(/^contracts\/tasks\//, "").replace(/\.ya?ml$/, "");
+    const { task: trustedTask } = taskAtRef(root, trustedBase, taskPath);
+    const { task: currentTask } = readTask(root, targetTaskId);
+    if (!trustedTask || !currentTask) continue;
+    const changedFields = changedTaskAuthorityFields(trustedTask, currentTask);
+    if (changedFields.length === 0) continue;
+
+    const trustedManagedPaths = new Set(trustedTask.managedContractPaths ?? []);
+    const currentManagedPaths = new Set(currentTask.managedContractPaths ?? []);
+    const { evidence } = readEvidence(root, targetTaskId);
+    const { approval } = readApproval(root, targetTaskId);
+    const approvalStatus = approval?.status ?? "missing";
+    reports.push({
+      schemaVersion: "1.0.0",
+      mode: "read-only",
+      mutationAllowed: false,
+      targetTaskId,
+      taskPath,
+      trustedBaseCommit: trustedBase,
+      changedFields,
+      managedPathChanges: {
+        added: [...currentManagedPaths].filter((item) => !trustedManagedPaths.has(item)).sort(),
+        removed: [...trustedManagedPaths].filter((item) => !currentManagedPaths.has(item)).sort()
+      },
+      authorityFingerprint: {
+        trusted: taskAuthorityFingerprint(trustedTask),
+        current: taskAuthorityFingerprint(currentTask)
+      },
+      impact: {
+        evidencePresent: Boolean(evidence),
+        approvalStatus,
+        evidenceRegenerationRequired: true,
+        approvalReRequestRequired: true,
+        previousApprovalReusable: false
+      },
+      requiredHumanDecision: `A human must explicitly authorize the authority correction for ${targetTaskId} before the Task Contract is edited.`,
+      recoverySteps: [
+        { step: 1, actor: "ai", action: "Record a fail-closed block and stop implementation.", command: `npm run scwbs -- block "Task authority repair requires explicit human authorization" --task ${targetTaskId}` },
+        { step: 2, actor: "human", action: "Review the changed fields and fingerprints, then explicitly authorize or reject the correction." },
+        { step: 3, actor: "human", action: "After authorization, apply only the approved Task Contract correction." },
+        { step: 4, actor: "ai", action: "Refresh the contract lock.", command: `npm run scwbs -- task lock --task ${targetTaskId}` },
+        { step: 5, actor: "ai", action: "Regenerate Evidence for the corrected authority.", command: `npm run scwbs -- evidence collect --task ${targetTaskId} --force` },
+        { step: 6, actor: "ai", action: "Request a fresh Approval for the current Evidence scope.", command: `npm run scwbs -- approval request --task ${targetTaskId} --force` },
+        { step: 7, actor: "human", action: "Review the current Evidence and complete Human Approval. AI must stop and must not execute approval." },
+        { step: 8, actor: "ai", action: "Rebuild the Registry after the Approval record changes.", command: "npm run scwbs -- registry rebuild --force" },
+        { step: 9, actor: "ai", action: "Re-run the governed completion flow.", command: `npm run scwbs -- finish --task ${targetTaskId}` }
+      ]
+    });
+  }
+  return reports;
 }
 
 function taskAtRef(root: string, ref: string, relativePath: string): { task?: TaskContract; issues: Issue[] } {

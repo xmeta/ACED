@@ -83,6 +83,33 @@ function commitEvidence(root: string, subject: string): void {
 }
 
 describe("CI plan", () => {
+  test("authority fingerprints are normalized and cover delegated policy changes", () => {
+    const base = sampleTask({
+      allowedPaths: ["src/b.ts", "src/a.ts"],
+      approvalPolicy: { mode: "human-only" }
+    });
+    const reordered = sampleTask({
+      allowedPaths: ["src/a.ts", "src/b.ts"],
+      approvalPolicy: { mode: "human-only" }
+    });
+    const delegated = sampleTask({
+      allowedPaths: ["src/a.ts", "src/b.ts"],
+      approvalPolicy: {
+        mode: "delegated",
+        delegatedBy: "owner",
+        delegatedTo: "ai-agent",
+        scopes: ["post-finish"],
+        source: "test",
+        reason: "test",
+        expiresAt: "2026-08-02T00:00:00.000Z",
+        tokenSha256: `sha256:${"a".repeat(64)}`
+      }
+    });
+
+    expect(taskAuthorityFingerprint(reordered)).toBe(taskAuthorityFingerprint(base));
+    expect(taskAuthorityFingerprint(delegated)).not.toBe(taskAuthorityFingerprint(base));
+  });
+
   test("selects a metadata candidate only for a verified implementation descendant", () => {
     const { root, subject } = prepareSubject();
     commitEvidence(root, subject);

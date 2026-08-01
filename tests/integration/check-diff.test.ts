@@ -96,9 +96,11 @@ describe("check-diff", () => {
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["branch", "base"], { cwd: root });
 
+    const repairedManagedPath = "contracts/blocks/WBS-001-004.yaml";
     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
       ...baseTask,
-      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"]
+      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"],
+      managedContractPaths: [...(baseTask.managedContractPaths ?? []), repairedManagedPath]
     });
     writeText(root, "src/outside.ts", "export const outside = true;\n");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["contracts/tasks/WBS-001-004.yaml", "src/outside.ts"] }) as unknown as Record<string, unknown>);
@@ -106,6 +108,8 @@ describe("check-diff", () => {
     execFileSync("git", ["commit", "-m", "self widen"], { cwd: root, stdio: "ignore" });
 
     const output: string[] = [];
+    const taskBefore = readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8");
+    const statusBefore = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
     const originalLog = console.log;
     console.log = (message?: unknown) => output.push(String(message));
     try {
@@ -113,9 +117,74 @@ describe("check-diff", () => {
     } finally {
       console.log = originalLog;
     }
-    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
+    const result = JSON.parse(output.join("\n"));
+    expect(result.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
     ]));
+    expect(result.authorityRepairPreflights).toEqual([
+      expect.objectContaining({
+        schemaVersion: "1.0.0",
+        mode: "read-only",
+        mutationAllowed: false,
+        targetTaskId: "WBS-001-004",
+        changedFields: ["allowedPaths", "managedContractPaths"],
+        managedPathChanges: { added: [repairedManagedPath], removed: [] },
+        authorityFingerprint: {
+          trusted: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          current: expect.stringMatching(/^sha256:[0-9a-f]{64}$/)
+        },
+        impact: {
+          evidencePresent: true,
+          approvalStatus: "missing",
+          evidenceRegenerationRequired: true,
+          approvalReRequestRequired: true,
+          previousApprovalReusable: false
+        }
+      })
+    ]);
+    expect(result.authorityRepairPreflights[0].authorityFingerprint.trusted)
+      .not.toBe(result.authorityRepairPreflights[0].authorityFingerprint.current);
+    expect(JSON.stringify(result.authorityRepairPreflights)).not.toContain("approval approve");
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toBe(taskBefore);
+    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe(statusBefore);
+  });
+
+  test("check-diff text explains the fail-closed authority repair sequence without an approval command", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+    const baseTask = sampleTask({
+      branchName,
+      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["branch", "base"], { cwd: root });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...baseTask,
+      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/blocks/WBS-001-004.yaml"]
+    });
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "authority repair proposal"], { cwd: root, stdio: "ignore" });
+
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+
+    const text = output.join("\n");
+    expect(text).toContain("Authority repair preflight (read-only): WBS-001-004");
+    expect(text).toContain("Changed fields: managedContractPaths");
+    expect(text).toContain("Trusted fingerprint: sha256:");
+    expect(text).toContain("Evidence regeneration and Approval re-request are required");
+    expect(text).toContain("AI must stop and must not execute approval");
+    expect(text).toContain("This preflight did not modify any files.");
+    expect(text).not.toContain("approval approve");
   });
 
   test("check-diff also rejects an uncommitted Task Contract expansion", () => {

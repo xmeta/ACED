@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
 import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
@@ -14,8 +13,7 @@ import {
 } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
-import { collectTaskAuthorityIssues } from "../core/task-authority.js";
-import { verifyTaskBootstrapAuthority } from "../core/task-authority.js";
+import { collectTaskAuthorityIssues, taskAuthorityFingerprint, verifyTaskBootstrapAuthority } from "../core/task-authority.js";
 import { matchesAny } from "../core/glob.js";
 import { readWbs } from "../core/wbs.js";
 import type { Issue, TaskContract } from "../core/types.js";
@@ -48,17 +46,7 @@ export type CiPlan = {
   classification: TaskClassificationReport;
 };
 
-export function taskAuthorityFingerprint(task: TaskContract): string {
-  const authority = {
-    allowedPaths: task.allowedPaths,
-    forbiddenPaths: task.forbiddenPaths,
-    humanGateRequiredPaths: task.humanGateRequiredPaths,
-    requiredChecks: task.requiredChecks,
-    managedContractPaths: task.managedContractPaths ?? [],
-    checkCoverageWaivers: task.checkCoverageWaivers ?? []
-  };
-  return `sha256:${createHash("sha256").update(JSON.stringify(authority)).digest("hex")}`;
-}
+export { taskAuthorityFingerprint };
 
 export type TaskClassificationReport = {
   schemaVersion: "1.0.0";
