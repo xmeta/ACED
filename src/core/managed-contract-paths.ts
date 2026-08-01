@@ -52,3 +52,20 @@ export function taskLifecycleMetadataPaths(taskId: string): string[] {
     "contracts/registry.yaml"
   ];
 }
+
+/**
+ * Concrete trust-root and lifecycle paths that a newly created Task Contract
+ * may need to write. Keep this separate from taskLifecycleMetadataPaths:
+ * bootstrap authority includes the Task, optional SPEC, index, and Block,
+ * while post-implementation diff calculations intentionally do not exclude
+ * those files.
+ */
+export function taskBootstrapManagedContractPaths(taskId: string, options: { specId?: string } = {}): string[] {
+  return [
+    `contracts/tasks/${taskId}.yaml`,
+    ...(options.specId ? [`contracts/specs/${options.specId}.yaml`] : []),
+    "contracts/tasks/index.yaml",
+    `contracts/blocks/${taskId}.yaml`,
+    ...taskLifecycleMetadataPaths(taskId)
+  ];
+}

@@ -443,13 +443,23 @@ describe("task management", () => {
   });
 
   test("task new builds safe branch names and default checks", () => {
-    const { task } = buildCoreTaskNew("Fix Core CLI!");
+    const { task } = buildCoreTaskNew("Fix Core CLI!", { id: "SCWBS-DRAFT-TEST1234" });
 
-    expect(task.id).toMatch(/^SCWBS-DRAFT-/);
-    expect(task.branchName).toMatch(/^task\/SCWBS-DRAFT-[A-Z0-9]+-fix-core-cli$/);
+    expect(task.id).toBe("SCWBS-DRAFT-TEST1234");
+    expect(task.branchName).toBe("task/SCWBS-DRAFT-TEST1234-fix-core-cli");
     expect(task.allowedPaths).toEqual([]);
     expect(task.wbsNodeId).toBe("wbs-less");
     expect(task.requiredChecks).toEqual(["test", "typecheck", "build"]);
+    expect(task.managedContractPaths).toEqual([
+      "contracts/tasks/SCWBS-DRAFT-TEST1234.yaml",
+      "contracts/tasks/index.yaml",
+      "contracts/blocks/SCWBS-DRAFT-TEST1234.yaml",
+      "contracts/evidence/SCWBS-DRAFT-TEST1234.yaml",
+      "contracts/evidence-payloads/SCWBS-DRAFT-TEST1234.patch",
+      "contracts/approvals/SCWBS-DRAFT-TEST1234.yaml",
+      "contracts/reviews/SCWBS-DRAFT-TEST1234.yaml",
+      "contracts/registry.yaml"
+    ]);
   });
 
   test("task new appends custom gates to the standard Human Gates deterministically", () => {

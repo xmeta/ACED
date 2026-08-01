@@ -188,11 +188,28 @@ describe("misc", () => {
   test("start emits schema-shaped WBS addNode operations", () => {
     const artifacts = buildStartArtifacts("Add reporting");
     const changeSetPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/changesets/start-"));
+    const taskPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/tasks/"));
+    const specPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/specs/"));
     expect(changeSetPath).toBeTruthy();
+    expect(taskPath).toBeTruthy();
+    expect(specPath).toBeTruthy();
     const changeSet = JSON.parse(artifacts[changeSetPath!]);
+    const task = parseSimpleYaml(artifacts[taskPath!]);
+    const taskId = taskPath!.replace(/^contracts\/tasks\//, "").replace(/\.yaml$/, "");
     expect(changeSet.targetWbsId).toBe("scwbs");
     expect(changeSet.operations[0].operation).toBe("addNode");
     expect(changeSet.operations[0].node.parentId).toBe("node-project");
+    expect(task.managedContractPaths).toEqual([
+      taskPath,
+      specPath,
+      "contracts/tasks/index.yaml",
+      `contracts/blocks/${taskId}.yaml`,
+      `contracts/evidence/${taskId}.yaml`,
+      `contracts/evidence-payloads/${taskId}.patch`,
+      `contracts/approvals/${taskId}.yaml`,
+      `contracts/reviews/${taskId}.yaml`,
+      "contracts/registry.yaml"
+    ]);
   });
 
   test("yaml parser preserves quoted strings with colons", () => {
