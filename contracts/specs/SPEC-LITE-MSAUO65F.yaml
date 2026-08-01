@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSAUO65F
+type: spec-contract
+featureId: F-MSAUO65F
+title: "Issue #361: Task authority違反のread-only repair preflightを構造化する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-01T20:55:04.000Z"
+version: 0.1.0
+summary: "Issue #361: Task authority違反のread-only repair preflightを構造化する"
+acceptanceCriteria:
+  - diff.taskAuthority.change検出時にread-only repair preflightをJSON/textで返す
+  - preflightは変更field、managed path追加削除、trusted/current fingerprintを含む
+  - EvidenceとApprovalの既存状態、再Evidenceと再申請の必要性、旧Approval再利用禁止を含む
+  - 復旧順序はblock、人間判断、契約修正、lock、Evidence、Approval再申請、finishを明示する
+  - AIへapproveやactor human実行を案内せず、authorityやcontract artifactを変更しない
+  - mutating repair、永続監査schema、Human provenance方式の決定は対象外とする

@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MSAUO65F
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSAUO65F
+branchName: task/SCWBS-DRAFT-MSAUO65F-issue-361-task-authority-read-only-repair-prefli
+allowedPaths:
+  - src/core/task-authority.ts
+  - src/commands/check-diff.ts
+  - src/commands/ci-plan.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/ci-plan.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+  - docs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - authorityを自動変更するmutating repairまたは永続監査schemaが必要
+  - Human Approval provenance方式の決定が必要
+doneCriteria:
+  - authority違反時に変更fieldとmanaged path差分をJSON/textで構造化表示する
+  - trusted/current authority fingerprintを決定的に表示する
+  - 旧Evidence/Approvalの存在と再生成・再申請が必要な影響を表示する
+  - block、人間判断、契約修正、lock、Evidence、Approval再申請、finishの順序を表示する
+  - preflightはファイルを変更せず、AIへHuman Approval実行を案内しない
+  - text/JSON回帰テストとrequired checksが成功する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/specs/SPEC-LITE-MSAUO65F.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSAUO65F.patch
+  - contracts/approvals/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:541b2f2ffa03eddabb6a14d12cb351c3973c1ef1ea71c8073b4156b38d1ca737
+  createdAt: "2026-08-01T20:55:36.417Z"
