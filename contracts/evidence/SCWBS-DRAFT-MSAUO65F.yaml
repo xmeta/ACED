@@ -1,0 +1,72 @@
+id: EVD-SCWBS-DRAFT-MSAUO65F
+type: evidence
+taskId: SCWBS-DRAFT-MSAUO65F
+commit: 1cfc481540439f401f869562d587b7060cf4f366
+subjectHeadCommit: 1cfc481540439f401f869562d587b7060cf4f366
+diffHash: sha256:38317d05a9a4dd31ad3f561a71ec06cb7332e4d4fdb8b7cdd56b3681c8cca977
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1cfc481540439f401f869562d587b7060cf4f366
+    treeHash: 99db6420ea30a83763f67f41211e8b5e7ee21eee
+    diffHash: sha256:38317d05a9a4dd31ad3f561a71ec06cb7332e4d4fdb8b7cdd56b3681c8cca977
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSAUO65F.patch
+    manifestHash: sha256:38317d05a9a4dd31ad3f561a71ec06cb7332e4d4fdb8b7cdd56b3681c8cca977
+git:
+  branch: task/SCWBS-DRAFT-MSAUO65F-issue-361-task-authority-read-only-repair-prefli
+  base: origin/main
+  baseCommit: 1f83670c2a71e6c4e712240094370ecd9a033c51
+  changedFilesBasis: branch-diff
+  pullRequest: "364"
+  subjectHeadCommit: 1cfc481540439f401f869562d587b7060cf4f366
+  diffHash: sha256:38317d05a9a4dd31ad3f561a71ec06cb7332e4d4fdb8b7cdd56b3681c8cca977
+  headCommit: 1cfc481540439f401f869562d587b7060cf4f366
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSAUO65F.patch
+  - contracts/evidence/SCWBS-DRAFT-MSAUO65F.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSAUO65F.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml
+  - src/commands/check-diff.ts
+  - src/commands/ci-plan.ts
+  - src/core/task-authority.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/ci-plan.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e38fc2ef612a1e04643736eb93014eb4b3bb807a39f68cb3fc71f66f30bff3eb
+    durationMilliseconds: 14701
+    executedAt: "2026-08-01T21:00:40.722Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:fe24b346e1114fe409c186d31cff1c0ac7e3f83ba33720ed728f7c36ee8b61dc
+    durationMilliseconds: 191635
+    executedAt: "2026-08-01T21:03:52.362Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3d7e4547cf58ffd3ee96489823d10ea6b3b22c8a30d2527fab44f87a28be97bc
+    durationMilliseconds: 8859
+    executedAt: "2026-08-01T21:04:01.225Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:eef8c4770b71ae1becd9fa33de4fddb2649d12ebd1de37ac47fc768208561b78
+    durationMilliseconds: 4041
+    executedAt: "2026-08-01T21:04:05.269Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - authority repair preflightのJSON/text、fingerprint差分、read-only性、AI approval非案内を検証

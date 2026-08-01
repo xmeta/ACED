@@ -5,7 +5,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
-import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
@@ -29,6 +29,28 @@ function shellQuote(value: string): string {
 
 function stashCommand(files: string[]): string {
   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
+}
+
+function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[]): void {
+  for (const report of reports) {
+    console.log("");
+    console.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
+    console.log(`  Changed fields: ${report.changedFields.join(", ")}`);
+    console.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
+    console.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
+    console.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
+    console.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
+    console.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
+    console.log(`  Existing Approval: ${report.impact.approvalStatus}`);
+    console.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
+    console.log(`  Human decision: ${report.requiredHumanDecision}`);
+    console.log("  Recovery sequence:");
+    for (const step of report.recoverySteps) {
+      console.log(`    ${step.step}. [${step.actor}] ${step.action}`);
+      if (step.command) console.log(`       ${step.command}`);
+    }
+    console.log("  This preflight did not modify any files.");
+  }
 }
 
 function normalizedSubmoduleChecks(checks: Array<{ name: string; status: string; url?: string }> | undefined): string {
@@ -257,6 +279,9 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
     ...collectDiffIssues(root, task, files, options.evidence)
   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
+  const authorityRepairPreflights = diffIssues.some((issue) => issue.code === "diff.taskAuthority.change")
+    ? buildTaskAuthorityRepairPreflights(root, baseRef, authorityFiles)
+    : [];
 
   const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
   const requiresHumanApproval = humanGateIssues.length > 0;
@@ -284,10 +309,12 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       taskId,
       issues: diffIssues,
       workingTree,
+      ...(authorityRepairPreflights.length > 0 ? { authorityRepairPreflights } : {}),
       ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
     }, null, 2));
   } else {
     printIssues(diffIssues);
+    printAuthorityRepairPreflights(authorityRepairPreflights);
     if (requiresHumanApproval) {
       console.log("");
       console.log("Human approval required.");
