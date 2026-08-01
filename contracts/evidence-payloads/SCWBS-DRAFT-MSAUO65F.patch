@@ -1,0 +1,454 @@
+diff --git a/contracts/specs/SPEC-LITE-MSAUO65F.yaml b/contracts/specs/SPEC-LITE-MSAUO65F.yaml
+new file mode 100644
+index 0000000..f0423d7
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSAUO65F.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSAUO65F
++type: spec-contract
++featureId: F-MSAUO65F
++title: "Issue #361: Task authority違反のread-only repair preflightを構造化する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-01T20:55:04.000Z"
++version: 0.1.0
++summary: "Issue #361: Task authority違反のread-only repair preflightを構造化する"
++acceptanceCriteria:
++  - diff.taskAuthority.change検出時にread-only repair preflightをJSON/textで返す
++  - preflightは変更field、managed path追加削除、trusted/current fingerprintを含む
++  - EvidenceとApprovalの既存状態、再Evidenceと再申請の必要性、旧Approval再利用禁止を含む
++  - 復旧順序はblock、人間判断、契約修正、lock、Evidence、Approval再申請、finishを明示する
++  - AIへapproveやactor human実行を案内せず、authorityやcontract artifactを変更しない
++  - mutating repair、永続監査schema、Human provenance方式の決定は対象外とする
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml b/contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml
+new file mode 100644
+index 0000000..7893692
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MSAUO65F
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSAUO65F
++branchName: task/SCWBS-DRAFT-MSAUO65F-issue-361-task-authority-read-only-repair-prefli
++allowedPaths:
++  - src/core/task-authority.ts
++  - src/commands/check-diff.ts
++  - src/commands/ci-plan.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/ci-plan.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++  - docs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - authorityを自動変更するmutating repairまたは永続監査schemaが必要
++  - Human Approval provenance方式の決定が必要
++doneCriteria:
++  - authority違反時に変更fieldとmanaged path差分をJSON/textで構造化表示する
++  - trusted/current authority fingerprintを決定的に表示する
++  - 旧Evidence/Approvalの存在と再生成・再申請が必要な影響を表示する
++  - block、人間判断、契約修正、lock、Evidence、Approval再申請、finishの順序を表示する
++  - preflightはファイルを変更せず、AIへHuman Approval実行を案内しない
++  - text/JSON回帰テストとrequired checksが成功する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSAUO65F.yaml
++  - contracts/specs/SPEC-LITE-MSAUO65F.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSAUO65F.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSAUO65F.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSAUO65F.patch
++  - contracts/approvals/SCWBS-DRAFT-MSAUO65F.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSAUO65F.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:541b2f2ffa03eddabb6a14d12cb351c3973c1ef1ea71c8073b4156b38d1ca737
++  createdAt: "2026-08-01T20:55:36.417Z"
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 8aea2e8..156d079 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -5,7 +5,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+-import { collectTaskAuthorityIssues } from "../core/task-authority.js";
++import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
+ import type { Evidence, Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+ import { collectWbsChangesetGateIssues } from "./check.js";
+@@ -31,6 +31,28 @@ function stashCommand(files: string[]): string {
+   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
+ }
+ 
++function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[]): void {
++  for (const report of reports) {
++    console.log("");
++    console.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
++    console.log(`  Changed fields: ${report.changedFields.join(", ")}`);
++    console.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
++    console.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
++    console.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
++    console.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
++    console.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
++    console.log(`  Existing Approval: ${report.impact.approvalStatus}`);
++    console.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
++    console.log(`  Human decision: ${report.requiredHumanDecision}`);
++    console.log("  Recovery sequence:");
++    for (const step of report.recoverySteps) {
++      console.log(`    ${step.step}. [${step.actor}] ${step.action}`);
++      if (step.command) console.log(`       ${step.command}`);
++    }
++    console.log("  This preflight did not modify any files.");
++  }
++}
++
+ function normalizedSubmoduleChecks(checks: Array<{ name: string; status: string; url?: string }> | undefined): string {
+   return JSON.stringify([...(checks ?? [])]
+     .map((check) => ({ name: check.name, status: check.status, url: check.url }))
+@@ -257,6 +279,9 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
+     ...collectDiffIssues(root, task, files, options.evidence)
+   ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
++  const authorityRepairPreflights = diffIssues.some((issue) => issue.code === "diff.taskAuthority.change")
++    ? buildTaskAuthorityRepairPreflights(root, baseRef, authorityFiles)
++    : [];
+ 
+   const humanGateIssues = diffIssues.filter((issue) => issue.code === "diff.humanGate");
+   const requiresHumanApproval = humanGateIssues.length > 0;
+@@ -284,10 +309,12 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       taskId,
+       issues: diffIssues,
+       workingTree,
++      ...(authorityRepairPreflights.length > 0 ? { authorityRepairPreflights } : {}),
+       ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
+     }, null, 2));
+   } else {
+     printIssues(diffIssues);
++    printAuthorityRepairPreflights(authorityRepairPreflights);
+     if (requiresHumanApproval) {
+       console.log("");
+       console.log("Human approval required.");
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+index c83ab53..8d410da 100644
+--- a/src/commands/ci-plan.ts
++++ b/src/commands/ci-plan.ts
+@@ -1,5 +1,4 @@
+ import { spawnSync } from "node:child_process";
+-import { createHash } from "node:crypto";
+ import { existsSync } from "node:fs";
+ import { collectCheckCoverageIssues, collectCheckCoveragePolicyIssues } from "../core/check-coverage.js";
+ import { listTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+@@ -14,8 +13,7 @@ import {
+ } from "../core/git.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
+-import { collectTaskAuthorityIssues } from "../core/task-authority.js";
+-import { verifyTaskBootstrapAuthority } from "../core/task-authority.js";
++import { collectTaskAuthorityIssues, taskAuthorityFingerprint, verifyTaskBootstrapAuthority } from "../core/task-authority.js";
+ import { matchesAny } from "../core/glob.js";
+ import { readWbs } from "../core/wbs.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+@@ -48,17 +46,7 @@ export type CiPlan = {
+   classification: TaskClassificationReport;
+ };
+ 
+-export function taskAuthorityFingerprint(task: TaskContract): string {
+-  const authority = {
+-    allowedPaths: task.allowedPaths,
+-    forbiddenPaths: task.forbiddenPaths,
+-    humanGateRequiredPaths: task.humanGateRequiredPaths,
+-    requiredChecks: task.requiredChecks,
+-    managedContractPaths: task.managedContractPaths ?? [],
+-    checkCoverageWaivers: task.checkCoverageWaivers ?? []
+-  };
+-  return `sha256:${createHash("sha256").update(JSON.stringify(authority)).digest("hex")}`;
+-}
++export { taskAuthorityFingerprint };
+ 
+ export type TaskClassificationReport = {
+   schemaVersion: "1.0.0";
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+index 0debed3..d4e9148 100644
+--- a/src/core/task-authority.ts
++++ b/src/core/task-authority.ts
+@@ -1,3 +1,4 @@
++import { createHash } from "node:crypto";
+ import { readApproval, readEvidence, readTask } from "./contracts.js";
+ import { commitChangedFiles, fileIntroductionCommit, gitObject, isShallowRepository, mergeBase } from "./git.js";
+ import { matchesAny } from "./glob.js";
+@@ -38,6 +39,27 @@ export type TaskBootstrapAuthority = {
+   reasons: Issue[];
+ };
+ 
++export type TaskAuthorityRepairPreflight = {
++  schemaVersion: "1.0.0";
++  mode: "read-only";
++  mutationAllowed: false;
++  targetTaskId: string;
++  taskPath: string;
++  trustedBaseCommit: string;
++  changedFields: AuthorityField[];
++  managedPathChanges: { added: string[]; removed: string[] };
++  authorityFingerprint: { trusted: string; current: string };
++  impact: {
++    evidencePresent: boolean;
++    approvalStatus: "missing" | "requested" | "approved" | "rejected";
++    evidenceRegenerationRequired: true;
++    approvalReRequestRequired: true;
++    previousApprovalReusable: false;
++  };
++  requiredHumanDecision: string;
++  recoverySteps: Array<{ step: number; actor: "ai" | "human"; action: string; command?: string }>;
++};
++
+ function normalizedStrings(values: string[] | undefined): string[] {
+   return [...new Set(values ?? [])].sort();
+ }
+@@ -70,12 +92,79 @@ export function taskAuthoritySnapshot(task: TaskContract): AuthoritySnapshot {
+   };
+ }
+ 
++export function taskAuthorityFingerprint(task: TaskContract): string {
++  return `sha256:${createHash("sha256").update(JSON.stringify(taskAuthoritySnapshot(task))).digest("hex")}`;
++}
++
+ export function changedTaskAuthorityFields(base: TaskContract, head: TaskContract): AuthorityField[] {
+   const baseSnapshot = taskAuthoritySnapshot(base);
+   const headSnapshot = taskAuthoritySnapshot(head);
+   return TASK_AUTHORITY_FIELDS.filter((field) => JSON.stringify(baseSnapshot[field]) !== JSON.stringify(headSnapshot[field]));
+ }
+ 
++export function buildTaskAuthorityRepairPreflights(
++  root: string,
++  baseRef: string,
++  taskPaths: string[]
++): TaskAuthorityRepairPreflight[] {
++  if (isShallowRepository(root)) return [];
++  const trustedBase = mergeBase(root, baseRef, "HEAD");
++  if (!trustedBase) return [];
++
++  const reports: TaskAuthorityRepairPreflight[] = [];
++  for (const taskPath of [...new Set(taskPaths)].sort()) {
++    const targetTaskId = taskPath.replace(/^contracts\/tasks\//, "").replace(/\.ya?ml$/, "");
++    const { task: trustedTask } = taskAtRef(root, trustedBase, taskPath);
++    const { task: currentTask } = readTask(root, targetTaskId);
++    if (!trustedTask || !currentTask) continue;
++    const changedFields = changedTaskAuthorityFields(trustedTask, currentTask);
++    if (changedFields.length === 0) continue;
++
++    const trustedManagedPaths = new Set(trustedTask.managedContractPaths ?? []);
++    const currentManagedPaths = new Set(currentTask.managedContractPaths ?? []);
++    const { evidence } = readEvidence(root, targetTaskId);
++    const { approval } = readApproval(root, targetTaskId);
++    const approvalStatus = approval?.status ?? "missing";
++    reports.push({
++      schemaVersion: "1.0.0",
++      mode: "read-only",
++      mutationAllowed: false,
++      targetTaskId,
++      taskPath,
++      trustedBaseCommit: trustedBase,
++      changedFields,
++      managedPathChanges: {
++        added: [...currentManagedPaths].filter((item) => !trustedManagedPaths.has(item)).sort(),
++        removed: [...trustedManagedPaths].filter((item) => !currentManagedPaths.has(item)).sort()
++      },
++      authorityFingerprint: {
++        trusted: taskAuthorityFingerprint(trustedTask),
++        current: taskAuthorityFingerprint(currentTask)
++      },
++      impact: {
++        evidencePresent: Boolean(evidence),
++        approvalStatus,
++        evidenceRegenerationRequired: true,
++        approvalReRequestRequired: true,
++        previousApprovalReusable: false
++      },
++      requiredHumanDecision: `A human must explicitly authorize the authority correction for ${targetTaskId} before the Task Contract is edited.`,
++      recoverySteps: [
++        { step: 1, actor: "ai", action: "Record a fail-closed block and stop implementation.", command: `npm run scwbs -- block "Task authority repair requires explicit human authorization" --task ${targetTaskId}` },
++        { step: 2, actor: "human", action: "Review the changed fields and fingerprints, then explicitly authorize or reject the correction." },
++        { step: 3, actor: "human", action: "After authorization, apply only the approved Task Contract correction." },
++        { step: 4, actor: "ai", action: "Refresh the contract lock.", command: `npm run scwbs -- task lock --task ${targetTaskId}` },
++        { step: 5, actor: "ai", action: "Regenerate Evidence for the corrected authority.", command: `npm run scwbs -- evidence collect --task ${targetTaskId} --force` },
++        { step: 6, actor: "ai", action: "Request a fresh Approval for the current Evidence scope.", command: `npm run scwbs -- approval request --task ${targetTaskId} --force` },
++        { step: 7, actor: "human", action: "Review the current Evidence and complete Human Approval. AI must stop and must not execute approval." },
++        { step: 8, actor: "ai", action: "Rebuild the Registry after the Approval record changes.", command: "npm run scwbs -- registry rebuild --force" },
++        { step: 9, actor: "ai", action: "Re-run the governed completion flow.", command: `npm run scwbs -- finish --task ${targetTaskId}` }
++      ]
++    });
++  }
++  return reports;
++}
++
+ function taskAtRef(root: string, ref: string, relativePath: string): { task?: TaskContract; issues: Issue[] } {
+   const source = gitObject(root, ref, relativePath);
+   if (source === undefined) return { issues: [] };
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 93194ac..945868e 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -96,9 +96,11 @@ describe("check-diff", () => {
+     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["branch", "base"], { cwd: root });
+ 
++    const repairedManagedPath = "contracts/blocks/WBS-001-004.yaml";
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+       ...baseTask,
+-      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"]
++      allowedPaths: [...baseTask.allowedPaths, "src/outside.ts"],
++      managedContractPaths: [...(baseTask.managedContractPaths ?? []), repairedManagedPath]
+     });
+     writeText(root, "src/outside.ts", "export const outside = true;\n");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ changedFiles: ["contracts/tasks/WBS-001-004.yaml", "src/outside.ts"] }) as unknown as Record<string, unknown>);
+@@ -106,6 +108,8 @@ describe("check-diff", () => {
+     execFileSync("git", ["commit", "-m", "self widen"], { cwd: root, stdio: "ignore" });
+ 
+     const output: string[] = [];
++    const taskBefore = readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8");
++    const statusBefore = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
+     const originalLog = console.log;
+     console.log = (message?: unknown) => output.push(String(message));
+     try {
+@@ -113,9 +117,74 @@ describe("check-diff", () => {
+     } finally {
+       console.log = originalLog;
+     }
+-    expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
++    const result = JSON.parse(output.join("\n"));
++    expect(result.issues).toEqual(expect.arrayContaining([
+       expect.objectContaining({ code: "diff.taskAuthority.change", message: expect.stringContaining("allowedPaths") })
+     ]));
++    expect(result.authorityRepairPreflights).toEqual([
++      expect.objectContaining({
++        schemaVersion: "1.0.0",
++        mode: "read-only",
++        mutationAllowed: false,
++        targetTaskId: "WBS-001-004",
++        changedFields: ["allowedPaths", "managedContractPaths"],
++        managedPathChanges: { added: [repairedManagedPath], removed: [] },
++        authorityFingerprint: {
++          trusted: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
++          current: expect.stringMatching(/^sha256:[0-9a-f]{64}$/)
++        },
++        impact: {
++          evidencePresent: true,
++          approvalStatus: "missing",
++          evidenceRegenerationRequired: true,
++          approvalReRequestRequired: true,
++          previousApprovalReusable: false
++        }
++      })
++    ]);
++    expect(result.authorityRepairPreflights[0].authorityFingerprint.trusted)
++      .not.toBe(result.authorityRepairPreflights[0].authorityFingerprint.current);
++    expect(JSON.stringify(result.authorityRepairPreflights)).not.toContain("approval approve");
++    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toBe(taskBefore);
++    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe(statusBefore);
++  });
++
++  test("check-diff text explains the fail-closed authority repair sequence without an approval command", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const branchName = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
++    const baseTask = sampleTask({
++      branchName,
++      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", baseTask as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["branch", "base"], { cwd: root });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...baseTask,
++      managedContractPaths: ["contracts/tasks/WBS-001-004.yaml", "contracts/blocks/WBS-001-004.yaml"]
++    });
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "authority repair proposal"], { cwd: root, stdio: "ignore" });
++
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runCheckDiff(root, "WBS-001-004", { baseRef: "base" })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++
++    const text = output.join("\n");
++    expect(text).toContain("Authority repair preflight (read-only): WBS-001-004");
++    expect(text).toContain("Changed fields: managedContractPaths");
++    expect(text).toContain("Trusted fingerprint: sha256:");
++    expect(text).toContain("Evidence regeneration and Approval re-request are required");
++    expect(text).toContain("AI must stop and must not execute approval");
++    expect(text).toContain("This preflight did not modify any files.");
++    expect(text).not.toContain("approval approve");
+   });
+ 
+   test("check-diff also rejects an uncommitted Task Contract expansion", () => {
+diff --git a/tests/integration/ci-plan.test.ts b/tests/integration/ci-plan.test.ts
+index c5d95bd..94ed984 100644
+--- a/tests/integration/ci-plan.test.ts
++++ b/tests/integration/ci-plan.test.ts
+@@ -83,6 +83,33 @@ function commitEvidence(root: string, subject: string): void {
+ }
+ 
+ describe("CI plan", () => {
++  test("authority fingerprints are normalized and cover delegated policy changes", () => {
++    const base = sampleTask({
++      allowedPaths: ["src/b.ts", "src/a.ts"],
++      approvalPolicy: { mode: "human-only" }
++    });
++    const reordered = sampleTask({
++      allowedPaths: ["src/a.ts", "src/b.ts"],
++      approvalPolicy: { mode: "human-only" }
++    });
++    const delegated = sampleTask({
++      allowedPaths: ["src/a.ts", "src/b.ts"],
++      approvalPolicy: {
++        mode: "delegated",
++        delegatedBy: "owner",
++        delegatedTo: "ai-agent",
++        scopes: ["post-finish"],
++        source: "test",
++        reason: "test",
++        expiresAt: "2026-08-02T00:00:00.000Z",
++        tokenSha256: `sha256:${"a".repeat(64)}`
++      }
++    });
++
++    expect(taskAuthorityFingerprint(reordered)).toBe(taskAuthorityFingerprint(base));
++    expect(taskAuthorityFingerprint(delegated)).not.toBe(taskAuthorityFingerprint(base));
++  });
++
+   test("selects a metadata candidate only for a verified implementation descendant", () => {
+     const { root, subject } = prepareSubject();
+     commitEvidence(root, subject);
