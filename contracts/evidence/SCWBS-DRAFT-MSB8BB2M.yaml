@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSB8BB2M
+type: evidence
+taskId: SCWBS-DRAFT-MSB8BB2M
+commit: d6b21ad475494f2dadb4f10fe3efefc1cb9cda63
+subjectHeadCommit: d6b21ad475494f2dadb4f10fe3efefc1cb9cda63
+diffHash: sha256:70c9648b389d89f6a5ecd4f53e75c3fbf9b3da6f74f3c6dd12b3fd2722607a7f
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: d6b21ad475494f2dadb4f10fe3efefc1cb9cda63
+    treeHash: 864e91f6c66644b0cfcc532f3cdbe41a90589eee
+    diffHash: sha256:70c9648b389d89f6a5ecd4f53e75c3fbf9b3da6f74f3c6dd12b3fd2722607a7f
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSB8BB2M.patch
+    manifestHash: sha256:70c9648b389d89f6a5ecd4f53e75c3fbf9b3da6f74f3c6dd12b3fd2722607a7f
+git:
+  branch: task/SCWBS-DRAFT-MSB8BB2M-issue-366-human-gate-json-action-human-command-a
+  base: origin/main
+  baseCommit: 7dc86b34d9b3a6b785fa9080c33e1be636035dba
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: d6b21ad475494f2dadb4f10fe3efefc1cb9cda63
+  diffHash: sha256:70c9648b389d89f6a5ecd4f53e75c3fbf9b3da6f74f3c6dd12b3fd2722607a7f
+  headCommit: d6b21ad475494f2dadb4f10fe3efefc1cb9cda63
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSB8BB2M.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:4d42dc61fb66c7dbf85413e1bda47799d23fb6db68ca2477af47bf4d4422930e
+    durationMilliseconds: 17664
+    executedAt: "2026-08-02T03:22:48.960Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a639d2fdd7cd5573d985d21fa218daae6c397630bc1db60d057d2656e9c7c2ed
+    durationMilliseconds: 203373
+    executedAt: "2026-08-02T03:26:12.338Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3e75521eba532082bb451546deea8c976a5d432810b593d503fe79aa6e7da703
+    durationMilliseconds: 8839
+    executedAt: "2026-08-02T03:26:21.199Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:02417c5d3c6f09765bdb7f4831dee8c64bd7c9021b2ddc9658e250da0f2aa343
+    durationMilliseconds: 3793
+    executedAt: "2026-08-02T03:26:24.995Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Human Gate action ownership、Human command、AI stop、非Human Gate非混入、schemaを検証
