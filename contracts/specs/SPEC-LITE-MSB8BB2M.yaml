@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSB8BB2M
+type: spec-contract
+featureId: F-MSB8BB2M
+title: "Issue #366: Human Gate JSON actionをhuman commandとAI stopへ構造分離する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-02T03:16:56.000Z"
+version: 0.1.0
+summary: "Issue #366: Human Gate JSON actionをhuman commandとAI stopへ構造分離する"
+acceptanceCriteria:
+  - check-diff --jsonのHuman Gate結果はnextActionOwner human、humanAction command、aiNextAction stopを含む
+  - finish --jsonのawaiting-human-approval結果は同じaction envelopeを含む
+  - Human Gate以外ではhuman action ownershipを出力しない
+  - nextAction、resumeCommand、fixCommandsと既存のforce判定は後方互換で維持する
+  - finish-summary schemaはoptional action ownership fieldsを検証する
+  - text出力は人間用commandとAI停止を明確に分離する
+  - AIはapproval approve、actor human、approved record作成を実行しない

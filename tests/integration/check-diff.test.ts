@@ -707,7 +707,11 @@ describe("check-diff", () => {
     } finally {
       console.log = originalLog;
     }
-    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
+    const result = JSON.parse(output.join("\n"));
+    expect(result).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
+    expect(result.nextActionOwner).toBeUndefined();
+    expect(result.humanAction).toBeUndefined();
+    expect(result.aiNextAction).toBeUndefined();
   });
 
   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
@@ -916,6 +920,7 @@ describe("check-diff", () => {
     expect(text).toContain("  - src/security/secret.ts");
     expect(text).toContain("Current diff hash:");
     expect(text).toContain("Next action for human reviewer:");
+    expect(text).toContain("Action owner: human only");
     expect(text).toContain("AI agents must stop here.");
     expect(text).toContain("Do not approve this task yourself.");
   }, 30000);
@@ -954,8 +959,20 @@ describe("check-diff", () => {
     }
 
     const result = JSON.parse(output.join("\n"));
+    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`;
     expect(result.requiresHumanApproval).toBe(true);
-    expect(result.nextAction).toBe(`npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`);
+    expect(result.nextAction).toBe(command);
+    expect(result).toMatchObject({
+      nextActionOwner: "human",
+      humanAction: {
+        command,
+        reason: expect.stringContaining("human reviewer")
+      },
+      aiNextAction: {
+        action: "stop",
+        reason: expect.stringContaining("AI must not execute")
+      }
+    });
   }, 30000);
 
   test("check-diff uses branch diff files from the requested base", () => {

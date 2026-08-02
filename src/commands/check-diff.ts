@@ -10,6 +10,26 @@ import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
 
+export type HumanGateActionOwnership = {
+  nextActionOwner: "human";
+  humanAction: { command: string; reason: string };
+  aiNextAction: { action: "stop"; reason: string };
+};
+
+export function buildHumanGateActionOwnership(command: string): HumanGateActionOwnership {
+  return {
+    nextActionOwner: "human",
+    humanAction: {
+      command,
+      reason: "A human reviewer must approve the current Evidence and diff scope."
+    },
+    aiNextAction: {
+      action: "stop",
+      reason: "Human Approval is required. AI must not execute the human approval command."
+    }
+  };
+}
+
 const SENSITIVE_META_PATHS = [
   "package.json",
   "package-lock.json",
@@ -310,7 +330,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       issues: diffIssues,
       workingTree,
       ...(authorityRepairPreflights.length > 0 ? { authorityRepairPreflights } : {}),
-      ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
+      ...(requiresHumanApproval ? {
+        requiresHumanApproval: true,
+        nextAction,
+        ...buildHumanGateActionOwnership(nextAction)
+      } : {})
     }, null, 2));
   } else {
     printIssues(diffIssues);
@@ -328,6 +352,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       console.log(`  ${diffHash}`);
       console.log("");
       console.log("Next action for human reviewer:");
+      console.log("  Action owner: human only");
       console.log(`  ${nextAction}`);
       console.log("");
       console.log("AI agents must stop here.");

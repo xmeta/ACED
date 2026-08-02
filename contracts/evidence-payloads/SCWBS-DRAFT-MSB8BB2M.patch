@@ -1,0 +1,331 @@
+diff --git a/contracts/specs/SPEC-LITE-MSB8BB2M.yaml b/contracts/specs/SPEC-LITE-MSB8BB2M.yaml
+new file mode 100644
+index 0000000..f219e91
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSB8BB2M.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSB8BB2M
++type: spec-contract
++featureId: F-MSB8BB2M
++title: "Issue #366: Human Gate JSON actionをhuman commandとAI stopへ構造分離する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-02T03:16:56.000Z"
++version: 0.1.0
++summary: "Issue #366: Human Gate JSON actionをhuman commandとAI stopへ構造分離する"
++acceptanceCriteria:
++  - check-diff --jsonのHuman Gate結果はnextActionOwner human、humanAction command、aiNextAction stopを含む
++  - finish --jsonのawaiting-human-approval結果は同じaction envelopeを含む
++  - Human Gate以外ではhuman action ownershipを出力しない
++  - nextAction、resumeCommand、fixCommandsと既存のforce判定は後方互換で維持する
++  - finish-summary schemaはoptional action ownership fieldsを検証する
++  - text出力は人間用commandとAI停止を明確に分離する
++  - AIはapproval approve、actor human、approved record作成を実行しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml b/contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml
+new file mode 100644
+index 0000000..2f96015
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MSB8BB2M
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSB8BB2M
++branchName: task/SCWBS-DRAFT-MSB8BB2M-issue-366-human-gate-json-action-human-command-a
++allowedPaths:
++  - src/commands/check-diff.ts
++  - src/commands/finish.ts
++  - docs/scwbs/schemas/finish-summary.schema.json
++  - tests/integration/check-diff.test.ts
++  - tests/integration/finish.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - README.md
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - 既存JSON fieldの削除やschemaVersion変更が必要
++  - Human identity provenance方式の決定が必要
++doneCriteria:
++  - check-diff JSONのHuman Gate結果がnextActionOwner、humanAction、aiNextActionを返す
++  - finish JSONのawaiting-human-approval結果が同じaction ownershipを返す
++  - Human Gate以外の結果へhuman ownerを付与しない
++  - 既存の人間用command、force判定、JSON fieldを後方互換で維持する
++  - finish JSON schemaとplain/JSON回帰テストを更新する
++  - AIによるHuman Approval実行やapproved record作成を行わない
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml
++  - contracts/specs/SPEC-LITE-MSB8BB2M.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSB8BB2M.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSB8BB2M.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSB8BB2M.patch
++  - contracts/approvals/SCWBS-DRAFT-MSB8BB2M.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSB8BB2M.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:ea294a092ab72aa306c80701fd31fc7adbcb701f36e9ac8bdb57e9349dda4639
++  createdAt: "2026-08-02T03:17:38.939Z"
+diff --git a/docs/scwbs/schemas/finish-summary.schema.json b/docs/scwbs/schemas/finish-summary.schema.json
+index 57c3678..f756abb 100644
+--- a/docs/scwbs/schemas/finish-summary.schema.json
++++ b/docs/scwbs/schemas/finish-summary.schema.json
+@@ -35,6 +35,25 @@
+     "approvalStatus": { "type": "string" },
+     "nextAction": { "type": "string" },
+     "resumeCommand": { "type": "string" },
++    "nextActionOwner": { "const": "human" },
++    "humanAction": {
++      "type": "object",
++      "required": ["command", "reason"],
++      "properties": {
++        "command": { "type": "string" },
++        "reason": { "type": "string" }
++      },
++      "additionalProperties": false
++    },
++    "aiNextAction": {
++      "type": "object",
++      "required": ["action", "reason"],
++      "properties": {
++        "action": { "const": "stop" },
++        "reason": { "type": "string" }
++      },
++      "additionalProperties": false
++    },
+     "mutatedFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+     "humanGateFiles": { "type": "array", "items": { "type": "string" } },
+     "diffHash": { "type": "string" },
+@@ -53,5 +72,25 @@
+     },
+     "fixCommands": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+   },
++  "allOf": [
++    {
++      "if": {
++        "properties": { "outcome": { "const": "awaiting-human-approval" } },
++        "required": ["outcome"]
++      },
++      "then": {
++        "required": ["nextActionOwner", "humanAction", "aiNextAction"]
++      },
++      "else": {
++        "not": {
++          "anyOf": [
++            { "required": ["nextActionOwner"] },
++            { "required": ["humanAction"] },
++            { "required": ["aiNextAction"] }
++          ]
++        }
++      }
++    }
++  ],
+   "additionalProperties": false
+ }
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 156d079..f322361 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -10,6 +10,26 @@ import type { Evidence, Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+ import { collectWbsChangesetGateIssues } from "./check.js";
+ 
++export type HumanGateActionOwnership = {
++  nextActionOwner: "human";
++  humanAction: { command: string; reason: string };
++  aiNextAction: { action: "stop"; reason: string };
++};
++
++export function buildHumanGateActionOwnership(command: string): HumanGateActionOwnership {
++  return {
++    nextActionOwner: "human",
++    humanAction: {
++      command,
++      reason: "A human reviewer must approve the current Evidence and diff scope."
++    },
++    aiNextAction: {
++      action: "stop",
++      reason: "Human Approval is required. AI must not execute the human approval command."
++    }
++  };
++}
++
+ const SENSITIVE_META_PATHS = [
+   "package.json",
+   "package-lock.json",
+@@ -310,7 +330,11 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       issues: diffIssues,
+       workingTree,
+       ...(authorityRepairPreflights.length > 0 ? { authorityRepairPreflights } : {}),
+-      ...(requiresHumanApproval ? { requiresHumanApproval: true, nextAction } : {})
++      ...(requiresHumanApproval ? {
++        requiresHumanApproval: true,
++        nextAction,
++        ...buildHumanGateActionOwnership(nextAction)
++      } : {})
+     }, null, 2));
+   } else {
+     printIssues(diffIssues);
+@@ -328,6 +352,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       console.log(`  ${diffHash}`);
+       console.log("");
+       console.log("Next action for human reviewer:");
++      console.log("  Action owner: human only");
+       console.log(`  ${nextAction}`);
+       console.log("");
+       console.log("AI agents must stop here.");
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index f98b87f..b8f9e3e 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -7,7 +7,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
+ import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
++import { buildHumanGateActionOwnership, evaluateWorkingTreeGuard, runCheckDiff, type HumanGateActionOwnership } from "./check-diff.js";
+ import { buildCollectedEvidence } from "./evidence-collect.js";
+ import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
+ import { readProfile } from "./profile.js";
+@@ -48,7 +48,7 @@ export type FinishJsonOutput = {
+   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+   fixCommands: string[];
+   workingTree?: WorkingTreeState;
+-};
++} & Partial<HumanGateActionOwnership>;
+ 
+ type TestQuality = NonNullable<Evidence["testQuality"]>;
+ type CheckpointWriter = (files: AtomicFileWrite[]) => string[];
+@@ -419,6 +419,7 @@ function printHumanGate(approvalCommand: string, files: string[], diffHash: stri
+   console.log(`  ${diffHash}`);
+   console.log("");
+   console.log("Next action for human reviewer:");
++  console.log("  Action owner: human only");
+   console.log(`  ${approvalCommand}`);
+   console.log("");
+   console.log("AI agents must stop here.");
+@@ -665,7 +666,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
+       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+       approvalStatus: approval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
+       mutatedFiles, humanGateFiles: gate.requiredFiles, diffHash, readinessWarnings: [],
+-      fixCommands: [approvalCommand]
++      fixCommands: [approvalCommand], ...buildHumanGateActionOwnership(approvalCommand)
+     }), json);
+     return 1;
+   }
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 945868e..e71a771 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -707,7 +707,11 @@ describe("check-diff", () => {
+     } finally {
+       console.log = originalLog;
+     }
+-    expect(JSON.parse(output.join("\n"))).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
++    const result = JSON.parse(output.join("\n"));
++    expect(result).toMatchObject({ status: "pass", taskId: "WBS-001-004", issues: [] });
++    expect(result.nextActionOwner).toBeUndefined();
++    expect(result.humanAction).toBeUndefined();
++    expect(result.aiNextAction).toBeUndefined();
+   });
+ 
+   test("check-diff requires a semantic WBS operation change set when WBS changes", () => {
+@@ -916,6 +920,7 @@ describe("check-diff", () => {
+     expect(text).toContain("  - src/security/secret.ts");
+     expect(text).toContain("Current diff hash:");
+     expect(text).toContain("Next action for human reviewer:");
++    expect(text).toContain("Action owner: human only");
+     expect(text).toContain("AI agents must stop here.");
+     expect(text).toContain("Do not approve this task yourself.");
+   }, 30000);
+@@ -954,8 +959,20 @@ describe("check-diff", () => {
+     }
+ 
+     const result = JSON.parse(output.join("\n"));
++    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`;
+     expect(result.requiresHumanApproval).toBe(true);
+-    expect(result.nextAction).toBe(`npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`);
++    expect(result.nextAction).toBe(command);
++    expect(result).toMatchObject({
++      nextActionOwner: "human",
++      humanAction: {
++        command,
++        reason: expect.stringContaining("human reviewer")
++      },
++      aiNextAction: {
++        action: "stop",
++        reason: expect.stringContaining("AI must not execute")
++      }
++    });
+   }, 30000);
+ 
+   test("check-diff uses branch diff files from the requested base", () => {
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 5e28561..e92888e 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -323,6 +323,9 @@ describe("finish", () => {
+       readinessWarnings: [],
+       fixCommands: []
+     });
++    expect(json.nextActionOwner).toBeUndefined();
++    expect(json.humanAction).toBeUndefined();
++    expect(json.aiNextAction).toBeUndefined();
+     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
+     expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+   }, 30000);
+@@ -774,8 +777,19 @@ describe("finish", () => {
+       approvalStatus: status ?? "",
+       nextAction: command,
+       resumeCommand: command,
+-      fixCommands: [command]
++      fixCommands: [command],
++      nextActionOwner: "human",
++      humanAction: {
++        command,
++        reason: expect.stringContaining("human reviewer")
++      },
++      aiNextAction: {
++        action: "stop",
++        reason: expect.stringContaining("AI must not execute")
++      }
+     });
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(result.json)).toBe(true);
+     expect(command.includes("--force")).toBe(force);
+   }, 30000);
+ 
+@@ -797,6 +811,7 @@ describe("finish", () => {
+       console.log = originalLog;
+     }
+ 
++    expect(output).toContain("  Action owner: human only");
+     expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
+   }, 30000);
+ 

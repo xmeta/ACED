@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MSB8BB2M
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSB8BB2M
+branchName: task/SCWBS-DRAFT-MSB8BB2M-issue-366-human-gate-json-action-human-command-a
+allowedPaths:
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - README.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - 既存JSON fieldの削除やschemaVersion変更が必要
+  - Human identity provenance方式の決定が必要
+doneCriteria:
+  - check-diff JSONのHuman Gate結果がnextActionOwner、humanAction、aiNextActionを返す
+  - finish JSONのawaiting-human-approval結果が同じaction ownershipを返す
+  - Human Gate以外の結果へhuman ownerを付与しない
+  - 既存の人間用command、force判定、JSON fieldを後方互換で維持する
+  - finish JSON schemaとplain/JSON回帰テストを更新する
+  - AIによるHuman Approval実行やapproved record作成を行わない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSB8BB2M.yaml
+  - contracts/specs/SPEC-LITE-MSB8BB2M.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSB8BB2M.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSB8BB2M.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSB8BB2M.patch
+  - contracts/approvals/SCWBS-DRAFT-MSB8BB2M.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSB8BB2M.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:ea294a092ab72aa306c80701fd31fc7adbcb701f36e9ac8bdb57e9349dda4639
+  createdAt: "2026-08-02T03:17:38.939Z"

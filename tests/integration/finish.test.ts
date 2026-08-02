@@ -323,6 +323,9 @@ describe("finish", () => {
       readinessWarnings: [],
       fixCommands: []
     });
+    expect(json.nextActionOwner).toBeUndefined();
+    expect(json.humanAction).toBeUndefined();
+    expect(json.aiNextAction).toBeUndefined();
     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
     expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
   }, 30000);
@@ -774,8 +777,19 @@ describe("finish", () => {
       approvalStatus: status ?? "",
       nextAction: command,
       resumeCommand: command,
-      fixCommands: [command]
+      fixCommands: [command],
+      nextActionOwner: "human",
+      humanAction: {
+        command,
+        reason: expect.stringContaining("human reviewer")
+      },
+      aiNextAction: {
+        action: "stop",
+        reason: expect.stringContaining("AI must not execute")
+      }
     });
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/finish-summary.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(result.json)).toBe(true);
     expect(command.includes("--force")).toBe(force);
   }, 30000);
 
@@ -797,6 +811,7 @@ describe("finish", () => {
       console.log = originalLog;
     }
 
+    expect(output).toContain("  Action owner: human only");
     expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
   }, 30000);
 

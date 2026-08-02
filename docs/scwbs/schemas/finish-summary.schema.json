@@ -35,6 +35,25 @@
     "approvalStatus": { "type": "string" },
     "nextAction": { "type": "string" },
     "resumeCommand": { "type": "string" },
+    "nextActionOwner": { "const": "human" },
+    "humanAction": {
+      "type": "object",
+      "required": ["command", "reason"],
+      "properties": {
+        "command": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "aiNextAction": {
+      "type": "object",
+      "required": ["action", "reason"],
+      "properties": {
+        "action": { "const": "stop" },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "mutatedFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "humanGateFiles": { "type": "array", "items": { "type": "string" } },
     "diffHash": { "type": "string" },
@@ -53,5 +72,25 @@
     },
     "fixCommands": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "outcome": { "const": "awaiting-human-approval" } },
+        "required": ["outcome"]
+      },
+      "then": {
+        "required": ["nextActionOwner", "humanAction", "aiNextAction"]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["nextActionOwner"] },
+            { "required": ["humanAction"] },
+            { "required": ["aiNextAction"] }
+          ]
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }
