@@ -1,0 +1,88 @@
+id: SCWBS-DRAFT-MSBXX2QX
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSBXX2QX
+branchName: task/SCWBS-DRAFT-MSBXX2QX-issue-221-task-wbs-policy-cli
+allowedPaths:
+  - src/cli.ts
+  - src/cli/command-context.ts
+  - src/cli/register-discovery.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-task.ts
+  - src/cli/register-wbs.ts
+  - src/core/task-wbs-policy.ts
+  - src/commands/ai-packet.ts
+  - src/commands/ai-queue.ts
+  - src/commands/check.ts
+  - src/commands/check-diff.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - src/commands/review-queue.ts
+  - src/commands/status.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-refresh.ts
+  - src/commands/trace.ts
+  - tests/unit/task-wbs-policy.test.ts
+  - tests/integration/cli-registration.test.ts
+  - contracts/check-coverage.yaml
+  - docs/sc-wbs-core/04-ai-work-packet.md
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - .github/**
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - tsconfig.json
+  - tsconfig.tests.json
+  - vitest.config.ts
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+  - lint
+stopIf:
+  - a public CLI command name, option, exit code, or JSON schema must change
+  - package, workflow, TypeScript configuration, or WBS changes are required
+  - implementation requires a path outside the fixed allowedPaths
+  - the refactor cannot preserve existing WBS-less and missing-node fail-closed behavior
+doneCriteria:
+  - a single public Task-WBS policy API distinguishes WBS-less, missing-node, and resolved-node associations
+  - current command consumers use that API for WBS participation and node resolution instead of duplicating the policy
+  - discovery, governance, task, and WBS command registration is split from src/cli.ts by domain
+  - existing public CLI command names, options, help-visible behavior, exit codes, and JSON schemas remain compatible
+  - check coverage classifies each new implementation module and unit plus integration regressions pass
+  - Issue 221 automated read telemetry, persistent indexes, and hard limits remain explicitly out of scope
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+  - lint-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/specs/SPEC-LITE-MSBXX2QX.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSBXX2QX.patch
+  - contracts/approvals/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:822b99e1b21e07aa154b78d6fa09c370fe416893f6ae3a81b3eadda31b95dd7a
+  createdAt: "2026-08-02T15:15:48.352Z"

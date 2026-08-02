@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSBXX2QX
+type: spec-contract
+featureId: F-MSBXX2QX
+title: "Issue #221: Task-WBS policyを集約しCLI登録境界を非破壊で分割する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-03T00:00:00+09:00"
+version: 0.1.0
+summary: "Issue #221: Task-WBS policyを集約しCLI登録境界を非破壊で分割する"
+acceptanceCriteria:
+  - a single public Task-WBS policy API classifies WBS-less, missing-node, and resolved-node associations and preserves fail-closed semantics
+  - command consumers stop duplicating Task-WBS participation and node-resolution policy while retaining their existing user-facing behavior
+  - discovery, governance, task, and WBS command registration is split into domain modules without changing public command names, options, exit codes, or JSON schemas
+  - new implementation modules are covered by check coverage and focused unit plus integration regression tests
+  - existing canonical test, integration, typecheck, build, and lint checks pass
+  - automated read telemetry, persistent context indexes, hard limits, package changes, workflow changes, and unrelated Issue work are excluded
