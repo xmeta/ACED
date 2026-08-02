@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSBT74DY
+type: spec-contract
+featureId: F-MSBT74DY
+title: "Issue #344 ESLint Prettier static analysis and formatting baseline"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-02T22:02:31+09:00"
+version: 0.1.0
+summary: "Issue #344 ESLint Prettier static analysis and formatting baseline"
+acceptanceCriteria:
+  - ESLint flat config supports the repository minimum Node 22.12.0 and current TypeScript 6 toolchain
+  - npm run lint covers src, tests, and scripts while baseline findings are warnings rather than a bulk-fix requirement
+  - npm run format provides an explicit Prettier write command and ignores generated, dependency, and retained-Evidence paths
+  - CI runs lint in both the core and minimum supported Node jobs without weakening aggregate validate semantics
+  - README explains the commands and that warning escalation is a later measured step
+  - canonical test, integration, WJS, typecheck, build, and lint checks pass without reformatting existing source

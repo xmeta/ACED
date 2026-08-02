@@ -1,0 +1,76 @@
+id: SCWBS-DRAFT-MSBT74DY
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSBT74DY
+branchName: task/SCWBS-DRAFT-MSBT74DY-issue-344-eslint-prettier-static-analysis-and-fo
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - eslint.config.js
+  - prettier.config.js
+  - .prettierignore
+  - .github/workflows/scwbs.yml
+  - README.md
+forbiddenPaths:
+  - wjs/**
+  - src/**
+  - tests/**
+  - scripts/**
+  - tsconfig.json
+  - tsconfig.tests.json
+  - vitest.config.ts
+  - AGENTS.md
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - eslint.config.js
+  - prettier.config.js
+  - .prettierignore
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - test:wjs
+  - typecheck
+  - build
+  - lint
+stopIf:
+  - package dependency or CI changes lack Human Approval for the current Evidence scope
+  - lint adoption requires bulk edits under src, tests, scripts, or wjs
+  - the selected ESLint release does not support Node 22.12.0 or TypeScript 6
+  - changes outside allowedPaths are required
+doneCriteria:
+  - Node 22.12.0 and TypeScript 6 compatible ESLint flat config is installed with TypeScript rules
+  - lint runs across src, tests, and scripts and reports the existing baseline without failing on warnings
+  - Prettier configuration plus an explicit format command is available without bulk-formatting existing source
+  - core and minimum-node CI execute lint and aggregate validate remains fail-closed
+  - README documents lint and format commands and phased warning enforcement
+  - no existing source, test, script, WJS, or generated Evidence payload is reformatted
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - wjs-test-result
+  - typecheck-result
+  - build-result
+  - lint-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSBT74DY.yaml
+  - contracts/specs/SPEC-LITE-MSBT74DY.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSBT74DY.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSBT74DY.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSBT74DY.patch
+  - contracts/approvals/SCWBS-DRAFT-MSBT74DY.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSBT74DY.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:457e40b86780d62d3bcbbd8f1bbc827bf85c2e2a397125299473d73616613d55
+  createdAt: "2026-08-02T13:03:01.550Z"
