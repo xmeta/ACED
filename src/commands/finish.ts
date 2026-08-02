@@ -7,7 +7,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
 import { gitCommonDir } from "../core/required-check-run.js";
 import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import { evaluateWorkingTreeGuard, runCheckDiff } from "./check-diff.js";
+import { buildHumanGateActionOwnership, evaluateWorkingTreeGuard, runCheckDiff, type HumanGateActionOwnership } from "./check-diff.js";
 import { buildCollectedEvidence } from "./evidence-collect.js";
 import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
@@ -48,7 +48,7 @@ export type FinishJsonOutput = {
   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
   fixCommands: string[];
   workingTree?: WorkingTreeState;
-};
+} & Partial<HumanGateActionOwnership>;
 
 type TestQuality = NonNullable<Evidence["testQuality"]>;
 type CheckpointWriter = (files: AtomicFileWrite[]) => string[];
@@ -419,6 +419,7 @@ function printHumanGate(approvalCommand: string, files: string[], diffHash: stri
   console.log(`  ${diffHash}`);
   console.log("");
   console.log("Next action for human reviewer:");
+  console.log("  Action owner: human only");
   console.log(`  ${approvalCommand}`);
   console.log("");
   console.log("AI agents must stop here.");
@@ -665,7 +666,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
       approvalStatus: approval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
       mutatedFiles, humanGateFiles: gate.requiredFiles, diffHash, readinessWarnings: [],
-      fixCommands: [approvalCommand]
+      fixCommands: [approvalCommand], ...buildHumanGateActionOwnership(approvalCommand)
     }), json);
     return 1;
   }
