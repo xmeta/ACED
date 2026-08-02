@@ -1,18 +1,18 @@
 diff --git a/contracts/blocks/SCWBS-DRAFT-MSB9E92E.yaml b/contracts/blocks/SCWBS-DRAFT-MSB9E92E.yaml
 new file mode 100644
-index 0000000..c974b67
+index 0000000..f422934
 --- /dev/null
 +++ b/contracts/blocks/SCWBS-DRAFT-MSB9E92E.yaml
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,22 @@
 +id: BLK-SCWBS-DRAFT-MSB9E92E
 +type: block
 +taskId: SCWBS-DRAFT-MSB9E92E
-+status: resolved
-+category: human-gate
-+level: 1
-+requiredHumanDecision: Complete the required human gate decision before implementation continues.
-+reason: "Issue #345の実装にはpackage.json、package-lock.json、vitest.config.tsのHuman Gate承認が必要"
-+createdAt: "2026-08-02T03:49:01.973Z"
++status: blocked
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: finishが標準Human Gate paths（tsconfig.json、.github/**）の契約欠落と、Approval/EvidenceのheadCommit・diffHash scope不一致を検出。Task authority修復と人間による再承認が必要
++createdAt: "2026-08-02T11:22:25.157Z"
 +history:
 +  - status: blocked
 +    at: "2026-08-02T03:49:01.973Z"
@@ -22,9 +22,10 @@ index 0000000..c974b67
 +    at: "2026-08-02T04:44:03.807Z"
 +    reason: Human Gate承認済み。実装を再開する
 +    by: human
-+resolvedAt: "2026-08-02T04:44:03.807Z"
-+resolvedBy: human
-+resolution: Human Gate承認済み。実装を再開する
++  - status: blocked
++    at: "2026-08-02T11:22:25.157Z"
++    reason: finishが標準Human Gate paths（tsconfig.json、.github/**）の契約欠落と、Approval/EvidenceのheadCommit・diffHash scope不一致を検出。Task authority修復と人間による再承認が必要
++    by: ai-agent
 diff --git a/contracts/specs/SPEC-LITE-MSB9E92E.yaml b/contracts/specs/SPEC-LITE-MSB9E92E.yaml
 new file mode 100644
 index 0000000..b5b3f02
@@ -48,10 +49,10 @@ index 0000000..b5b3f02
 +  - npm test、typecheck、buildの既存コマンドが回帰なく通過する
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSB9E92E.yaml b/contracts/tasks/SCWBS-DRAFT-MSB9E92E.yaml
 new file mode 100644
-index 0000000..f404204
+index 0000000..fa43ba6
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSB9E92E.yaml
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,58 @@
 +id: SCWBS-DRAFT-MSB9E92E
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -71,7 +72,9 @@ index 0000000..f404204
 +humanGateRequiredPaths:
 +  - package.json
 +  - package-lock.json
++  - tsconfig.json
 +  - vitest.config.ts
++  - .github/**
 +requiredChecks:
 +  - test
 +  - typecheck
@@ -107,7 +110,7 @@ index 0000000..f404204
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:dd009314670a2c074eb861614c2d3d4521eb3a60025381b403dec86703eb20cb
-+  createdAt: "2026-08-02T03:48:43.621Z"
++  createdAt: "2026-08-02T11:29:13.353Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 9343ed8..e7bfbb0 100644
 --- a/contracts/tasks/index.yaml
