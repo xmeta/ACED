@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MSB9E92E
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSB9E92E
+branchName: task/SCWBS-DRAFT-MSB9E92E-issue-345-aced-v8-text-lcov-ci
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - vitest.config.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - .github/**
+  - src/**
+  - tests/**
+  - docs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - カバレッジ閾値による既存テストの失敗導入が必要
+  - CI workflow、GitHub Actions、外部ストレージ、Git LFSの変更が必要
+doneCriteria:
+  - VitestのV8カバレッジプロバイダをdevDependenciesへ追加する
+  - vitest.config.tsでprovider v8、text、lcov reporterを設定する
+  - test:coverage scriptでunit testのカバレッジ計測を再実行できる
+  - カバレッジ閾値による強制失敗、CIゲート、アーティファクト保存はこのTaskへ含めない
+  - 既存のtest、typecheck、buildの挙動とrequired check名を維持する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSB9E92E.yaml
+  - contracts/specs/SPEC-LITE-MSB9E92E.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSB9E92E.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSB9E92E.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSB9E92E.patch
+  - contracts/approvals/SCWBS-DRAFT-MSB9E92E.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSB9E92E.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:dd009314670a2c074eb861614c2d3d4521eb3a60025381b403dec86703eb20cb
+  createdAt: "2026-08-02T11:29:13.353Z"

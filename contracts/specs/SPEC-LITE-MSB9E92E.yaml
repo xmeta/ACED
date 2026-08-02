@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSB9E92E
+type: spec-contract
+featureId: F-MSB9E92E
+title: "Issue #345: ACED自身のV8カバレッジ計測とレポート"
+status: approved
+approvedBy: user-requested-issue-345
+approvedAt: "2026-08-02T12:47:59+09:00"
+version: 0.1.0
+summary: "ACEDのunit testにV8カバレッジ計測とtext/lcovレポートを追加する。閾値強制とCIゲートは後続とする。"
+acceptanceCriteria:
+  - package.jsonとpackage-lock.jsonが同じ4.1.9系の@vitest/coverage-v8を開発依存として解決する
+  - vitest.config.tsがprovider v8、text、lcov reporterを設定し、既存のunit test対象を維持する
+  - npm run test:coverageがunit testを実行し、text summaryとcoverage/lcov.infoを生成する
+  - カバレッジ閾値、CIゲート、GitHub artifact保存、Git LFS、外部ストレージは実装しない
+  - npm test、typecheck、buildの既存コマンドが回帰なく通過する
