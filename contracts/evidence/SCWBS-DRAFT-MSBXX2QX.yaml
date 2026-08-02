@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MSBXX2QX
+type: evidence
+taskId: SCWBS-DRAFT-MSBXX2QX
+commit: c0957dc942f5eda9372d9b85eb37ca6218a09476
+subjectHeadCommit: c0957dc942f5eda9372d9b85eb37ca6218a09476
+diffHash: sha256:c0bd52f6da21695e1a86cd387095007b20e39a29aa13376a13dbb6db4d21a145
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: c0957dc942f5eda9372d9b85eb37ca6218a09476
+    treeHash: b59f335accbe1b693f975fcc670b32e1cb8e788e
+    diffHash: sha256:c0bd52f6da21695e1a86cd387095007b20e39a29aa13376a13dbb6db4d21a145
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSBXX2QX.patch
+    manifestHash: sha256:c0bd52f6da21695e1a86cd387095007b20e39a29aa13376a13dbb6db4d21a145
+git:
+  branch: task/SCWBS-DRAFT-MSBXX2QX-issue-221-task-wbs-policy-cli
+  base: origin/main
+  baseCommit: 8e519cac5d078ab0edcf044fc541c6330b1e66d9
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: c0957dc942f5eda9372d9b85eb37ca6218a09476
+  diffHash: sha256:c0bd52f6da21695e1a86cd387095007b20e39a29aa13376a13dbb6db4d21a145
+  headCommit: c0957dc942f5eda9372d9b85eb37ca6218a09476
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSBXX2QX.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
+  - contracts/tasks/index.yaml
+  - docs/sc-wbs-core/04-ai-work-packet.md
+  - src/cli.ts
+  - src/cli/command-context.ts
+  - src/cli/register-discovery.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-task.ts
+  - src/cli/register-wbs.ts
+  - src/commands/ai-packet.ts
+  - src/commands/ai-queue.ts
+  - src/commands/check.ts
+  - src/commands/completion.ts
+  - src/commands/health.ts
+  - src/commands/review-queue.ts
+  - src/commands/status.ts
+  - src/commands/task-lock.ts
+  - src/commands/trace.ts
+  - src/core/task-wbs-policy.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/unit/task-wbs-policy.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:42e2e4ef22436a7ebdab9de845fe9db744b1d2078769cb431264c7b5ba3008e1
+    durationMilliseconds: 28950
+    executedAt: "2026-08-02T15:43:11.937Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:c38672e493fc18593c9fca60d2c43c8c43e75981a4f0268f260af8b87b5c4467
+    durationMilliseconds: 263134
+    executedAt: "2026-08-02T15:47:35.108Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ed5a55be572a71c2094b16ae2150f29772f7b003fa6bfa2ada12268d9cda11ee
+    durationMilliseconds: 9954
+    executedAt: "2026-08-02T15:47:45.103Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:4ab5a68f6a1d322c1ab297455655c89d6f8c053f346609f94938683f45f520a5
+    durationMilliseconds: 4170
+    executedAt: "2026-08-02T15:47:49.297Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:fe8105a408cf7e4333f1ff0ec38db5216ba4772483dd69b452f194a48e9bdf7c
+    durationMilliseconds: 8861
+    executedAt: "2026-08-02T15:47:58.173Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Task-WBS association and domain CLI registration regressions added; no tests disabled and coverage not decreased
