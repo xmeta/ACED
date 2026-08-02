@@ -9,9 +9,9 @@ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
 import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
-import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
+import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
-import { isWbsLessTask } from "../core/node-utils.js";
+import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
 import { discoveryIssues } from "../core/discovery.js";
 
@@ -58,7 +58,7 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
 
   const wbs = readWbs(root);
   if (task.contractLock.lockVersion === "2") {
-    if (!isWbsLessTask(task)) {
+    if (taskWbsAssociation(wbs, task).kind !== "wbs-less") {
       const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
       if (task.contractLock.wbsScopeRevision !== scopeRevision) {
         issues.push({
@@ -113,7 +113,8 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
 
 function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocument, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
   const issues: Issue[] = [];
-  if (isWbsLessTask(task)) {
+  const association = taskWbsAssociation(wbs, task);
+  if (association.kind === "wbs-less") {
     issues.push(...specIssues);
     issues.push(...validateContractLock(root, task, spec, specPath));
     if (evidenceExists(root, task.id)) {
@@ -126,11 +127,11 @@ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocum
     }
     return issues;
   }
-  const node = findNode(wbs, task.wbsNodeId);
-  if (!node) {
-    issues.push({ severity: "error", code: "task.wbsNodeId", message: `${task.id} references missing WBS node: ${task.wbsNodeId}` });
+  if (association.kind === "missing-node") {
+    issues.push({ severity: "error", code: "task.wbsNodeId", message: missingTaskWbsNodeMessage(task, association) });
     return issues;
   }
+  const node = association.node;
   issues.push(...specIssues);
   issues.push(...validateContractLock(root, task, spec, specPath));
 

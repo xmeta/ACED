@@ -3,10 +3,11 @@ import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { validateDelegatedApproval } from "../core/human-gate.js";
 import { matchesAny } from "../core/glob.js";
-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
+import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
-import { findNode, readWbs } from "../core/wbs.js";
+import { readWbs } from "../core/wbs.js";
 import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
+import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { runWbsApply } from "./wbs.js";
 
@@ -61,11 +62,12 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
       continue;
     }
 
-    const targetNode = findNode(wbs, targetTask.wbsNodeId);
-    if (!targetNode) {
-      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
+    const targetAssociation = taskWbsAssociation(wbs, targetTask);
+    if (targetAssociation.kind !== "node") {
+      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
       continue;
     }
+    const targetNode = targetAssociation.node;
     if (targetNode.id !== task.wbsNodeId) {
       blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
       continue;
@@ -137,10 +139,10 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
   for (const taskId of taskIds) {
     const { task, issues: taskIssues } = readTask(root, taskId);
     if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
-    if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
-
-    const node = findNode(wbs, task.wbsNodeId);
-    if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+    const association = taskWbsAssociation(wbs, task);
+    if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
+    if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
+    const node = association.node;
     if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) {
       throw new Error(`${task.id} targets root WBS node ${node.id}; rerun with --allow-root only after explicit human decision`);
     }

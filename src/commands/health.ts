@@ -5,7 +5,8 @@ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { hasErrors } from "../core/report.js";
 import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import { isDoneNode, readWbs } from "../core/wbs.js";
+import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
 import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
@@ -107,7 +108,8 @@ export function collectEvidenceTrustIssues(
   options: EvidenceTrustOptions = {}
 ): Issue[] {
   const issues: Issue[] = [];
-  const node = findNode(wbs, task.wbsNodeId);
+  const association = taskWbsAssociation(wbs, task);
+  const node = association.kind === "node" ? association.node : undefined;
   const checkCommitReachability = options.checkCommitReachability ?? true;
   const completed = options.completed ?? Boolean(node && isDoneNode(node));
   const currentHead = options.repositoryState ? options.repositoryState.currentHead : headCommit(root);
@@ -471,8 +473,9 @@ function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefin
 
   for (const entry of listActiveTasks(root)) {
     if (!entry.task) continue;
-    const node = findNode(wbs, entry.task.wbsNodeId);
-    if (!node) continue;
+    const association = taskWbsAssociation(wbs, entry.task);
+    if (association.kind !== "node") continue;
+    const node = association.node;
     if (isDoneNode(node)) continue;
 
     let manifest;

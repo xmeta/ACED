@@ -1,8 +1,9 @@
 import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import { isDoneNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
+import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 
 type ReviewQueueEntry = {
   taskId: string;
@@ -68,11 +69,12 @@ function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readW
       continue;
     }
 
-    const targetNode = findNode(wbs, targetTask.wbsNodeId);
-    if (!targetNode) {
-      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
+    const targetAssociation = taskWbsAssociation(wbs, targetTask);
+    if (targetAssociation.kind !== "node") {
+      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
       continue;
     }
+    const targetNode = targetAssociation.node;
     if (targetNode.id !== task.wbsNodeId) {
       blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
       continue;
@@ -115,7 +117,7 @@ function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readW
   return { blockers, targets };
 }
 
-function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): string | undefined {
+function nodeReadinessBlocker(node: Extract<ReturnType<typeof taskWbsAssociation>, { kind: "node" }>["node"]): string | undefined {
   return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
 }
 
@@ -132,8 +134,9 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
   for (const entry of tasks) {
     const task = entry.task;
     if (!task) continue;
-    const node = findNode(wbs, task.wbsNodeId);
-    if (!node) continue;
+    const association = taskWbsAssociation(wbs, task);
+    if (association.kind !== "node") continue;
+    const node = association.node;
 
     const reasons: string[] = [];
     const warnings: string[] = [];

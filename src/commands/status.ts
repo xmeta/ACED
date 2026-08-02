@@ -4,7 +4,8 @@ import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from 
 import { currentBranch, headCommit, isShallowRepository } from "../core/git.js";
 import { readTaskIndex } from "../core/task-index.js";
 import type { DecisionReadiness, Issue, TaskContract, WbsDocument } from "../core/types.js";
-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
+import { isDoneNode, readWbs } from "../core/wbs.js";
+import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { collectEvidenceTrustIssues, type EvidenceTrustOptions } from "./health.js";
 
 export type CompletionTrustLevel = "verified" | "degraded" | "unverifiable" | "not-evaluated";
@@ -236,8 +237,8 @@ export function buildStatusJsonOutput(root: string): StatusJsonOutput {
   const evidenceMissing: string[] = [];
   for (const entry of listTasks(root)) {
     if (!entry.task) continue;
-    const node = findNode(wbs, entry.task.wbsNodeId);
-    if (node && isDoneNode(node) && !evidenceExists(root, entry.task.id)) {
+    const association = taskWbsAssociation(wbs, entry.task);
+    if (association.kind === "node" && isDoneNode(association.node) && !evidenceExists(root, entry.task.id)) {
       evidenceMissing.push(entry.task.id);
     }
   }

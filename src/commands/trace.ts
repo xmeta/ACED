@@ -1,12 +1,12 @@
 import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
-import { findNode, readWbs } from "../core/wbs.js";
-import { isWbsLessTask } from "../core/node-utils.js";
+import { readWbs } from "../core/wbs.js";
+import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 
 export function buildTrace(root: string, taskId: string): string {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const wbs = readWbs(root);
-  const node = findNode(wbs, task.wbsNodeId);
+  const association = taskWbsAssociation(wbs, task);
   const { registry } = readRegistry(root);
   const { spec } = resolveSpecForTask(root, registry, task);
   const { evidence } = readEvidence(root, task.id);
@@ -15,7 +15,7 @@ export function buildTrace(root: string, taskId: string): string {
   return `Trace ${task.id}
 
 Spec: ${spec ? `${spec.id} v${spec.version} ${spec.status}` : "missing"}
-  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : isWbsLessTask(task) ? "WBS-less" : `missing ${task.wbsNodeId}`}
+  -> WBS node: ${association.kind === "node" ? `${association.node.code} ${association.node.name} (${association.node.status ?? "planned"})` : association.kind === "wbs-less" ? "WBS-less" : `missing ${association.nodeId}`}
   -> Task: ${task.id}${task.mode ? ` (${task.mode})` : ""}
   -> Evidence: ${evidence ? `${evidence.id} (${evidence.checks.length} checks)` : "missing"}
   -> Review: ${review ? `${review.id} ${review.status}` : "missing"}

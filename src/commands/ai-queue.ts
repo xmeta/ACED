@@ -3,8 +3,9 @@ import path from "node:path";
 import { evidenceExists, listActiveTasks, readBlock, readTask } from "../core/contracts.js";
 import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import { findNode, readWbs } from "../core/wbs.js";
+import { readWbs } from "../core/wbs.js";
 import { isWbsLessTask } from "../core/node-utils.js";
+import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
 import { buildReviewQueue } from "./review-queue.js";
 
@@ -29,9 +30,10 @@ function loadTaskAndNode(root: string, taskId: string) {
     throw new Error(issues.map((issue) => issue.message).join("\n"));
   }
   const wbs = readWbs(root);
-  if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
-  const node = findNode(wbs, task.wbsNodeId);
-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+  const association = taskWbsAssociation(wbs, task);
+  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
+  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
+  const node = association.node;
   return { task, wbs, node };
 }
 
@@ -221,8 +223,9 @@ export function buildNextTask(root: string): string {
       if (!task || task.humanGateRequiredPaths.length > 0) return [];
       if (evidenceExists(root, task.id)) return [];
       if (readBlock(root, task.id).block?.status === "blocked") return [];
-      const node = findNode(wbs, task.wbsNodeId);
-      if (!node) return [];
+      const association = taskWbsAssociation(wbs, task);
+      if (association.kind !== "node") return [];
+      const node = association.node;
       const status = node.status ?? "planned";
       if (status !== "planned") return [];
       const dependencies = (wbs.relations ?? []).filter((relation) => relation.type === "dependsOn" && relation.source === node.id);
