@@ -240,6 +240,8 @@ Run the full local verification set:
 npm test                    # unit tests only (fast)
 npm run test:integration    # integration tests (heavier)
 npm run test:all            # all tests
+npm run lint                # ESLint baseline (warnings are reported but do not fail yet)
+npm run format              # format source, tests, scripts, docs, and root config files
 npm run typecheck
 npm run build
 npm run scwbs -- check
@@ -253,6 +255,13 @@ The production build continues to use `tsconfig.json`. Test code uses
 `tsconfig.tests.json` with no output, while scripts use `scripts/tsconfig.json`
 with `checkJs`; implicit JavaScript parameter types remain a documented
 migration boundary, but other inferred type errors are checked.
+
+`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`.
+The initial baseline reports recommended JavaScript and TypeScript findings as
+warnings so adoption does not require a bulk source rewrite. Warning counts
+should be measured before individual rules are promoted to errors. Prettier is
+available through the explicit `npm run format` write command and is not run
+automatically by CI.
 
 For a walkthrough with decision points, use
 `docs/scwbs/getting-started.md`.

@@ -274,6 +274,7 @@ jobs:
       - name: Install dependencies and run core tests
         run: |
           corepack npm ci --no-audit --no-fund
+          npm run lint
           npm test
           npm run typecheck
           npm run build
@@ -302,6 +303,8 @@ jobs:
         run: corepack npm ci --no-audit --no-fund
       - name: Verify npm workspaces
         run: npm ls --workspaces --depth=0
+      - name: Lint
+        run: npm run lint
       - name: Unit tests
         run: npm test
       - name: Typecheck
