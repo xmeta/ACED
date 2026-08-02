@@ -22,6 +22,7 @@
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
     "test": "vitest run tests/unit",
+    "test:coverage": "vitest run tests/unit --coverage",
     "test:integration": "node scripts/integration-test-output.mjs",
     "test:integration:verbose": "node scripts/integration-test-output.mjs --verbose",
     "test:wjs": "npm test -w wjs",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.0.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
