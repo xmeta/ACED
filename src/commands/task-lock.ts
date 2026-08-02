@@ -3,10 +3,10 @@ import { fileSha256 } from "../core/hash.js";
 import { resolveFrom, taskPath } from "../core/paths.js";
 import { readRegistry, readTask, resolveSpecForTask } from "../core/contracts.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import { isWbsLessTask } from "../core/node-utils.js";
 import type { TaskContract } from "../core/types.js";
 import { readWbs } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { syncRegistry } from "./registry-rebuild.js";
 
 export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
@@ -18,11 +18,12 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
   const { registry } = readRegistry(root);
   const { spec, path: specPath } = resolveSpecForTask(root, registry, task);
   const wbs = readWbs(root);
+  const association = taskWbsAssociation(wbs, task);
   return {
     ...task,
     contractLock: {
       lockVersion: "2",
-      ...(!isWbsLessTask(task) ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
+      ...(association.kind !== "wbs-less" ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
       wbsGlobalRevision: wbsGlobalRevision(wbs),
       wbsNodeId: task.wbsNodeId,
       ...(spec?.version && specPath ? { specVersion: spec.version, specRevision: fileSha256(root, specPath) } : {}),

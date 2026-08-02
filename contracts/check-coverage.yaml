@@ -1,6 +1,7 @@
 implementationRoots:
   - src/commands
   - src/core
+  - src/cli
 rules:
   - id: wjs-tests
     classification: behavior-critical
@@ -61,6 +62,13 @@ rules:
       - src/commands/wbs.ts
     requires:
       - test:integration
+  - id: cli-registration-integration
+    classification: behavior-critical
+    rationale: Domain registration modules define the public CLI command tree and require integration coverage.
+    paths:
+      - src/cli/**
+    requires:
+      - test:integration
   - id: core-workflow-safety-integration
     classification: behavior-critical
     rationale: These modules implement Git, Evidence, Approval, Human Gate, Registry, Contract Lock, parsing, path, and WBS enforcement used across CLI workflows.
@@ -103,6 +111,7 @@ rules:
       - src/core/submodule-provenance.ts
       - src/core/task-authority.ts
       - src/core/task-index.ts
+      - src/core/task-wbs-policy.ts
       - src/core/wbs-lock.ts
       - src/core/wbs.ts
       - src/core/yaml.ts

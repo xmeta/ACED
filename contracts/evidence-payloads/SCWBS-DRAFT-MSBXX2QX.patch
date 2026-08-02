@@ -1,0 +1,2027 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 055d0e5..bd82fc8 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -1,6 +1,7 @@
+ implementationRoots:
+   - src/commands
+   - src/core
++  - src/cli
+ rules:
+   - id: wjs-tests
+     classification: behavior-critical
+@@ -61,6 +62,13 @@ rules:
+       - src/commands/wbs.ts
+     requires:
+       - test:integration
++  - id: cli-registration-integration
++    classification: behavior-critical
++    rationale: Domain registration modules define the public CLI command tree and require integration coverage.
++    paths:
++      - src/cli/**
++    requires:
++      - test:integration
+   - id: core-workflow-safety-integration
+     classification: behavior-critical
+     rationale: These modules implement Git, Evidence, Approval, Human Gate, Registry, Contract Lock, parsing, path, and WBS enforcement used across CLI workflows.
+@@ -103,6 +111,7 @@ rules:
+       - src/core/submodule-provenance.ts
+       - src/core/task-authority.ts
+       - src/core/task-index.ts
++      - src/core/task-wbs-policy.ts
+       - src/core/wbs-lock.ts
+       - src/core/wbs.ts
+       - src/core/yaml.ts
+diff --git a/contracts/specs/SPEC-LITE-MSBXX2QX.yaml b/contracts/specs/SPEC-LITE-MSBXX2QX.yaml
+new file mode 100644
+index 0000000..3bb733a
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSBXX2QX.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSBXX2QX
++type: spec-contract
++featureId: F-MSBXX2QX
++title: "Issue #221: Task-WBS policyを集約しCLI登録境界を非破壊で分割する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-03T00:00:00+09:00"
++version: 0.1.0
++summary: "Issue #221: Task-WBS policyを集約しCLI登録境界を非破壊で分割する"
++acceptanceCriteria:
++  - a single public Task-WBS policy API classifies WBS-less, missing-node, and resolved-node associations and preserves fail-closed semantics
++  - command consumers stop duplicating Task-WBS participation and node-resolution policy while retaining their existing user-facing behavior
++  - discovery, governance, task, and WBS command registration is split into domain modules without changing public command names, options, exit codes, or JSON schemas
++  - new implementation modules are covered by check coverage and focused unit plus integration regression tests
++  - existing canonical test, integration, typecheck, build, and lint checks pass
++  - automated read telemetry, persistent context indexes, hard limits, package changes, workflow changes, and unrelated Issue work are excluded
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml b/contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
+new file mode 100644
+index 0000000..fd03c89
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
+@@ -0,0 +1,88 @@
++id: SCWBS-DRAFT-MSBXX2QX
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSBXX2QX
++branchName: task/SCWBS-DRAFT-MSBXX2QX-issue-221-task-wbs-policy-cli
++allowedPaths:
++  - src/cli.ts
++  - src/cli/command-context.ts
++  - src/cli/register-discovery.ts
++  - src/cli/register-governance.ts
++  - src/cli/register-task.ts
++  - src/cli/register-wbs.ts
++  - src/core/task-wbs-policy.ts
++  - src/commands/ai-packet.ts
++  - src/commands/ai-queue.ts
++  - src/commands/check.ts
++  - src/commands/check-diff.ts
++  - src/commands/completion.ts
++  - src/commands/finish.ts
++  - src/commands/health.ts
++  - src/commands/review-queue.ts
++  - src/commands/status.ts
++  - src/commands/task-lock.ts
++  - src/commands/task-refresh.ts
++  - src/commands/trace.ts
++  - tests/unit/task-wbs-policy.test.ts
++  - tests/integration/cli-registration.test.ts
++  - contracts/check-coverage.yaml
++  - docs/sc-wbs-core/04-ai-work-packet.md
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - .github/**
++  - AGENTS.md
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++  - tsconfig.json
++  - tsconfig.tests.json
++  - vitest.config.ts
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++  - lint
++stopIf:
++  - a public CLI command name, option, exit code, or JSON schema must change
++  - package, workflow, TypeScript configuration, or WBS changes are required
++  - implementation requires a path outside the fixed allowedPaths
++  - the refactor cannot preserve existing WBS-less and missing-node fail-closed behavior
++doneCriteria:
++  - a single public Task-WBS policy API distinguishes WBS-less, missing-node, and resolved-node associations
++  - current command consumers use that API for WBS participation and node resolution instead of duplicating the policy
++  - discovery, governance, task, and WBS command registration is split from src/cli.ts by domain
++  - existing public CLI command names, options, help-visible behavior, exit codes, and JSON schemas remain compatible
++  - check coverage classifies each new implementation module and unit plus integration regressions pass
++  - Issue 221 automated read telemetry, persistent indexes, and hard limits remain explicitly out of scope
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++  - lint-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
++  - contracts/specs/SPEC-LITE-MSBXX2QX.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSBXX2QX.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSBXX2QX.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSBXX2QX.patch
++  - contracts/approvals/SCWBS-DRAFT-MSBXX2QX.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSBXX2QX.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:822b99e1b21e07aa154b78d6fa09c370fe416893f6ae3a81b3eadda31b95dd7a
++  createdAt: "2026-08-02T15:15:48.352Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 4fbcb4d..37b4686 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1448,3 +1448,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-02T14:37:03.522Z"
++  - id: SCWBS-DRAFT-MSBXX2QX
++    path: contracts/tasks/SCWBS-DRAFT-MSBXX2QX.yaml
++    branchName: task/SCWBS-DRAFT-MSBXX2QX-issue-221-task-wbs-policy-cli
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/sc-wbs-core/04-ai-work-packet.md b/docs/sc-wbs-core/04-ai-work-packet.md
+index 6499b6a..2d39ce3 100644
+--- a/docs/sc-wbs-core/04-ai-work-packet.md
++++ b/docs/sc-wbs-core/04-ai-work-packet.md
+@@ -140,6 +140,14 @@ versioned JSON schemaは [`docs/scwbs/schemas/code-context-manifest.schema.json`
+ 7. `completeness.status` は `widening` が空なら `complete`、それ以外は `widening-required` とする。
+ 8. `constraints.sourceContentIncluded`、`grantsEditAuthority`、`permitsRequiredCheckOmission` は manifest v1 では常に `false` とする。
+ 
++## 実装境界とWBS関連付け
++
++Task-oriented contextの実装は、次の境界を維持する。
++
++- TaskがWBS完了へ参加するか、参照nodeが存在するか、どのnodeへ解決されたかは `taskWbsAssociation` の結果（`wbs-less` / `missing-node` / `node`）を正本とする。`missing-node`をWBS-lessとして縮小してはならない。
++- CLIのcommand registrationはdiscovery、governance、task、WBSのdomain moduleへ分離する。公開command名、option、help、exit code、JSON schemaはこの内部境界の変更理由だけでは変えない。
++- Context manifestはread-only navigationのままとする。実読込telemetry、persistent index、hard budget enforcementは、効果とauthorityを独立に判断する後続事項であり、manifest v1へ暗黙追加しない。
++
+ ## 実装AIに渡す標準プロンプト
+ 
+ ```text
+diff --git a/src/cli.ts b/src/cli.ts
+index 724b963..8d99098 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -2,69 +2,35 @@
+ import { Command, CommanderError } from "commander";
+ import { fileURLToPath } from "node:url";
+ import { realpathSync } from "node:fs";
+-import { runAiBlock, runAiNextTask, runHumanBlockResolve } from "./commands/ai-queue.js";
++import { runAiBlock, runHumanBlockResolve } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
+-import { runAiRun } from "./commands/ai-run.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+-import { runApprovalDelegationPrepare } from "./commands/approval-delegation.js";
+ import { runCheck } from "./commands/check.js";
+ import { runDocsCheck } from "./commands/docs-check.js";
+ import { runCheckDiff } from "./commands/check-diff.js";
+ import { runCiPlan } from "./commands/ci-plan.js";
+ import { runChecksRun } from "./commands/checks-run.js";
+-import { runCompletionApply } from "./commands/completion.js";
+ import { runDoctor } from "./commands/doctor.js";
+-import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "./commands/discovery.js";
+-import { runEvidenceCollect, runEvidenceRetain } from "./commands/evidence-collect.js";
+-import { runEvidenceAnnotate } from "./commands/evidence-annotate.js";
+ import { runFinish } from "./commands/finish.js";
+ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+ import { runInit } from "./commands/init.js";
+-import { runLiteTask, runPromote } from "./commands/lite.js";
++import { runPromote } from "./commands/lite.js";
+ import { runMerge } from "./commands/merge.js";
+ import { runMetricsGovernance } from "./commands/metrics.js";
+ import { runNext } from "./commands/next.js";
+ import { runPlan } from "./commands/plan.js";
+-import { runProfileSet, runProfileShow } from "./commands/profile.js";
+-import { runRegistryRebuild } from "./commands/registry-rebuild.js";
+-import { runReviewApprove, runReviewChangesRequested, runReviewClose, runReviewRequest, runReviewRoute } from "./commands/review-request.js";
+ import { runReviewQueue } from "./commands/review-queue.js";
+ import { runStart } from "./commands/start.js";
+ import { runStatus } from "./commands/status.js";
+-import { runTaskGenerate } from "./commands/task-generate.js";
+-import { runTaskArchive, runTaskIndexRebuild } from "./commands/task-index.js";
+-import { runTaskLock } from "./commands/task-lock.js";
+-import { runTaskNew } from "./commands/task-new.js";
+-import { runTaskRefresh } from "./commands/task-refresh.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+-import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "./commands/wbs.js";
++import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
++import { registerDiscoveryCommands } from "./cli/register-discovery.js";
++import { registerGovernanceCommands } from "./cli/register-governance.js";
++import { registerTaskCommands } from "./cli/register-task.js";
++import { registerWbsCommands } from "./cli/register-wbs.js";
+ import { isValidTaskId } from "./core/paths.js";
+-import type { Evidence } from "./core/types.js";
+-
+-function parseBool(val: unknown): boolean | undefined {
+-  if (val === undefined || val === "") return undefined;
+-  if (val === true || val === "true") return true;
+-  if (val === false || val === "false") return false;
+-  return undefined;
+-}
+-
+-function parseTestQuality(opts: Record<string, unknown>): Evidence["testQuality"] | undefined {
+-  const assertionsAdded = parseBool(opts.testAssertionsAdded);
+-  const testsDisabled = parseBool(opts.testsDisabled);
+-  const coverageDecreased = parseBool(opts.coverageDecreased);
+-  const note = opts.testQualityNote as string | undefined;
+-  if (assertionsAdded === undefined && testsDisabled === undefined && coverageDecreased === undefined && note === undefined) {
+-    return undefined;
+-  }
+-  return {
+-    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
+-    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
+-    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
+-    ...(note ? { notes: [note] } : {})
+-  };
+-}
+ 
+ export function main(argv = process.argv.slice(2), root = process.cwd()): number {
+   let exitCode = 0;
+@@ -97,6 +63,13 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .showSuggestionAfterError(true)
+     .allowExcessArguments(true);
+ 
++  const commandContext: CommandContext = {
++    root,
++    setExitCode(code) {
++      exitCode = code;
++    }
++  };
++
+   program
+     .command("init")
+     .description("Initialize a new project")
+@@ -118,48 +91,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json", "output a versioned JSON report")
+     .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
+ 
+-  const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
+-  discovery
+-    .command("new")
+-    .requiredOption("--probe <id>", "PROBE-prefixed id")
+-    .requiredOption("--question <text>", "decision-driving question")
+-    .requiredOption("--timebox <value>", "timebox")
+-    .requiredOption("--cost-limit <value>", "cost limit")
+-    .requiredOption("--next-decision <text>", "decision enabled by the probe")
+-    .option("--hypotheses <items>", "comma-separated hypotheses")
+-    .option("--activities <items>", "comma-separated activities")
+-    .option("--evidence-expected <items>", "comma-separated expected evidence")
+-    .option("--unknowns <items>", "comma-separated unknowns")
+-    .option("--exit-conditions <items>", "comma-separated exit conditions")
+-    .option("--delivery-task <id>", "delivery Task blocked until conclusion")
+-    .option("--json", "output versioned JSON")
+-    .action((opts) => { exitCode = runDiscoveryNew(root, opts); });
+-  discovery
+-    .command("start")
+-    .requiredOption("--probe <id>", "Probe id")
+-    .option("--json", "output versioned JSON")
+-    .action((opts) => { exitCode = runDiscoveryStart(root, opts.probe, opts.json ?? false); });
+-  discovery
+-    .command("conclude")
+-    .requiredOption("--probe <id>", "Probe id")
+-    .requiredOption("--outcome <status>", "concluded|inconclusive")
+-    .option("--facts <items>", "comma-separated learned facts")
+-    .option("--rejected <items>", "comma-separated rejected hypotheses")
+-    .option("--remaining <items>", "comma-separated remaining unknowns")
+-    .option("--exit-conditions-met <boolean>", "whether every exit condition is met")
+-    .option("--next-decision <text>", "updated next decision")
+-    .option("--json", "output versioned JSON")
+-    .action((opts) => {
+-      if (opts.outcome !== "concluded" && opts.outcome !== "inconclusive") {
+-        console.error("Invalid --outcome; expected concluded or inconclusive");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runDiscoveryConclude(root, opts.probe, {
+-        ...opts,
+-        exitConditionsMet: parseBool(opts.exitConditionsMet)
+-      });
+-    });
++  registerDiscoveryCommands(program, commandContext);
+ 
+   const ci = program.command("ci");
+   ci
+@@ -497,501 +429,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       exitCode = runCheckDiff(root, opts.task, { baseRef: opts.base, json: opts.json ?? false });
+     });
+ 
+-  const ai = program.command("ai");
+-  ai
+-    .command("packet")
+-    .description("Build AI work packet")
+-    .option("--task <id>", "task id")
+-    .option("--relation-depth <n>", "relation depth", parseInt)
+-    .option("--format <type>", "output format")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      const format: string = opts.format ?? "default";
+-      if (!["default", "compact", "codex", "claude", "cursor"].includes(format)) {
+-        console.error("Invalid --format");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runAiPacket(root, opts.task, opts.relationDepth ?? 1, format as "default" | "compact" | "codex" | "claude" | "cursor");
+-    });
+-
+-  ai
+-    .command("run")
+-    .description("Print a dry-run AI task plan")
+-    .option("--task <id>", "task id")
+-    .option("--agent <agent>", "agent type")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runAiRun(root, opts.task, opts.agent);
+-    });
+-
+-  ai
+-    .command("block")
+-    .description("AI: block a task")
+-    .option("--task <id>", "task id")
+-    .option("--reason <text>", "block reason")
+-    .option("--spec-change", "spec change flag")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      if (!opts.reason) {
+-        console.error("Missing --reason <reason>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runAiBlock(root, opts.task, opts.reason, { specChange: opts.specChange ?? false });
+-    });
+-
+-  ai
+-    .command("next-task")
+-    .description("Show next AI task")
+-    .action(() => { exitCode = runAiNextTask(root); });
+-
+-  const approval = program.command("approval");
+-  approval
+-    .command("request")
+-    .description("Request task approval")
+-    .option("--task <id>", "task id")
+-    .option("--pull-request <id>", "pull request id")
+-    .option("--note <text>", "approval note")
+-    .option("--force", "force request")
+-    .action(function (this: Command, opts) {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      const trailing = (this.args as string[]).filter((a) => !a.startsWith("-"));
+-      const note = trailing.length > 0 ? [opts.note, ...trailing].filter(Boolean).join(" ") : opts.note;
+-      exitCode = runApprovalRequest(root, opts.task, {
+-        pullRequest: opts.pullRequest,
+-        note,
+-        force: opts.force ?? false
+-      });
+-    });
+-
+-  approval
+-    .command("approve")
+-    .description("Approve a task")
+-    .option("--task <id>", "task id")
+-    .option("--pull-request <id>", "pull request id")
+-    .option("--reason <text>", "approval reason")
+-    .option("--actor <text>", "approval actor")
+-    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
+-    .option("--force", "force approval")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runApprovalApprove(root, opts.task, {
+-        pullRequest: opts.pullRequest,
+-        reason: opts.reason,
+-        actor: opts.actor,
+-        scope: opts.scope,
+-        force: opts.force ?? false
+-      });
+-    });
+-
+-  const approvalDelegation = approval.command("delegation");
+-  approvalDelegation
+-    .command("prepare")
+-    .description("Prepare a secret-free delegated approval policy patch before a Task Contract creation commit")
+-    .option("--task <id>", "task id")
+-    .requiredOption("--scopes <scopes>", "comma-separated scopes: human-gate,post-finish")
+-    .requiredOption("--expires-at <utc>", "future UTC expiry")
+-    .requiredOption("--source <source>", "delegation policy source")
+-    .requiredOption("--reason <reason>", "delegation reason")
+-    .requiredOption("--delegated-by <principal>", "delegating principal")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runApprovalDelegationPrepare(root, opts.task, opts);
+-    });
+-
+-  const completion = program.command("completion");
+-  completion
+-    .command("apply")
+-    .description("Apply completion")
+-    .option("--tasks <ids>", "task ids (comma separated)")
+-    .option("--task <id>", "completion task id")
+-    .option("--reason <text>", "completion reason")
+-    .option("--apply", "apply changes")
+-    .option("--allow-root", "allow root changes")
+-    .action((opts) => {
+-      exitCode = runCompletionApply(root, opts.tasks, opts.task, {
+-        reason: opts.reason,
+-        apply: opts.apply ?? false,
+-        allowRoot: opts.allowRoot ?? false
+-      });
+-    });
+-
+-  const evidence = program.command("evidence");
+-  evidence
+-    .command("collect")
+-    .description("Collect evidence for a task")
+-    .option("--task <id>", "task id")
+-    .option("--base <ref>", "base reference")
+-    .option("--pull-request <id>", "pull request id")
+-    .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
+-    .option("--force", "force collection")
+-    .option("--test-assertions-added <bool>", "test assertions added")
+-    .option("--tests-disabled <bool>", "tests disabled")
+-    .option("--coverage-decreased <bool>", "coverage decreased")
+-    .option("--test-quality-note <text>", "test quality note")
+-    .option("--rerun-checks", "rerun required checks even when cached results are valid")
+-    .option("--json", "print a versioned JSON summary")
+-    .option("--verbose", "print the summary and full Evidence YAML")
+-    .option("--output <target>", "print full Evidence YAML; target must be -")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runEvidenceCollect(root, opts.task, {
+-        force: opts.force ?? false,
+-        baseRef: opts.base,
+-        pullRequest: opts.pullRequest,
+-        ciReceipt: opts.ciReceipt,
+-        testQuality: parseTestQuality(opts),
+-        rerunChecks: opts.rerunChecks ?? false,
+-        json: opts.json ?? false,
+-        verbose: opts.verbose ?? false,
+-        output: opts.output
+-      });
+-    });
+-
+-  evidence
+-    .command("annotate")
+-    .description("Update Evidence metadata without changing subject provenance or checks")
+-    .option("--task <id>", "task id")
+-    .option("--pull-request <id>", "pull request id")
+-    .option("--test-assertions-added <bool>", "test assertions added")
+-    .option("--tests-disabled <bool>", "tests disabled")
+-    .option("--coverage-decreased <bool>", "coverage decreased")
+-    .option("--test-quality-note <text>", "test quality note")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runEvidenceAnnotate(root, opts.task, {
+-        pullRequest: opts.pullRequest,
+-        testQuality: parseTestQuality(opts)
+-      });
+-    });
+-
+-  evidence
+-    .command("retain")
+-    .description("Retain an existing Evidence subject as a tracked patch payload")
+-    .option("--task <id>", "task id")
+-    .option("--fetch-pr-head", "fetch the recorded GitHub pull request head when the subject is unavailable")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runEvidenceRetain(root, opts.task, {
+-        fetchPrHead: opts.fetchPrHead ?? false
+-      });
+-    });
+-
+-  const registry = program.command("registry");
+-  registry
+-    .command("rebuild")
+-    .description("Rebuild registry")
+-    .option("--check", "check only")
+-    .option("--force", "force rebuild")
+-    .option("--quiet", "suppress successful output")
+-    .option("--json", "print a versioned JSON summary")
+-    .option("--verbose", "print the summary and full registry YAML")
+-    .option("--output <target>", "print full registry YAML; target must be -")
+-    .action((opts) => {
+-      exitCode = runRegistryRebuild(root, {
+-        check: opts.check ?? false,
+-        force: opts.force ?? false,
+-        quiet: opts.quiet ?? false,
+-        json: opts.json ?? false,
+-        verbose: opts.verbose ?? false,
+-        output: opts.output
+-      });
+-    });
+-
+-  const profile = program.command("profile");
+-  profile
+-    .command("show")
+-    .description("Show profile")
+-    .action(() => { exitCode = runProfileShow(root); });
+-
+-  profile
+-    .command("set")
+-    .description("Set profile through a WBS changeset")
+-    .argument("<profile>", "profile name")
+-    .action((profileName: string) => {
+-      if (!profileName) {
+-        console.error("Missing profile");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runProfileSet(root, profileName);
+-    });
+-
+-  const review = program.command("review");
+-  review
+-    .command("request")
+-    .description("Request a review")
+-    .option("--task <id>", "task id")
+-    .option("--pull-request <id>", "pull request id")
+-    .option("--force", "force request")
+-    .option("--json", "print a versioned JSON summary")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runReviewRequest(root, opts.task, {
+-        pullRequest: opts.pullRequest,
+-        force: opts.force ?? false,
+-        json: opts.json ?? false
+-      });
+-    });
+-
+-  review
+-    .command("route")
+-    .description("Route a review")
+-    .option("--task <id>", "task id")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runReviewRoute(root, opts.task);
+-    });
+-
+-  review
+-    .command("approve")
+-    .description("Approve a review")
+-    .option("--task <id>", "task id")
+-    .option("--actor <text>", "review actor (must be human)")
+-    .option("--findings <text>", "review findings")
+-    .option("--force", "force approve")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runReviewApprove(root, opts.task, { reviewedBy: opts.actor, findings: opts.findings, force: opts.force ?? false });
+-    });
+-
+-  review
+-    .command("changes-requested")
+-    .description("Request changes for a review")
+-    .option("--task <id>", "task id")
+-    .option("--actor <text>", "review actor (must be human)")
+-    .option("--findings <text>", "review findings")
+-    .option("--force", "force changes-requested")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runReviewChangesRequested(root, opts.task, { reviewedBy: opts.actor, findings: opts.findings, force: opts.force ?? false });
+-    });
+-
+-  review
+-    .command("close")
+-    .description("Close a review")
+-    .option("--task <id>", "task id")
+-    .option("--actor <text>", "review actor (must be human)")
+-    .option("--force", "force close")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runReviewClose(root, opts.task, { reviewedBy: opts.actor, force: opts.force ?? false });
+-    });
+-
+-  const lite = program.command("lite");
+-  lite
+-    .command("task")
+-    .description("Create a lite task")
+-    .argument("[title...]", "task title")
+-    .action((titleParts: string[]) => {
+-      const title = titleParts.join(" ").trim();
+-      if (!title) {
+-        console.error("Missing lite task title");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runLiteTask(root, title);
+-    });
+-
+-  const task = program.command("task");
+-  task
+-    .command("generate")
+-    .description("Generate a task")
+-    .option("--node <id>", "WBS node id")
+-    .option("--task <id>", "task id")
+-    .option("--force", "force generation")
+-    .action((opts) => {
+-      if (!opts.node) {
+-        console.error("Missing --node <node-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runTaskGenerate(root, opts.node, opts.task, { force: opts.force ?? false });
+-    });
+-
+-  task
+-    .command("new")
+-    .description("Create a new task contract")
+-    .argument("[title...]", "task title")
+-    .option("--paths <paths>", "allowed paths (comma separated)")
+-    .option("--forbid <paths>", "forbidden paths (comma separated)")
+-    .option("--gate <paths>", "human gate paths (comma separated)")
+-    .option("--stop <reasons>", "stop reasons (comma separated)")
+-    .option("--no-stop-conditions", "explicitly acknowledge an empty stop condition list")
+-    .option("--checks <checks>", "required checks (comma separated)")
+-    .option("--wbs-node <id>", "WBS node id")
+-    .action((titleParts: string[], opts) => {
+-      const title = titleParts.join(" ").trim();
+-      exitCode = runTaskNew(root, title, {
+-        paths: opts.paths,
+-        forbid: opts.forbid,
+-        gate: opts.gate,
+-        stop: opts.stop,
+-        noStopConditions: opts.noStopConditions,
+-        checks: opts.checks,
+-        wbsNode: opts.wbsNode
+-      });
+-    });
+-
+-  task
+-    .command("lock")
+-    .description("Lock a task")
+-    .option("--task <id>", "task id")
+-    .action((opts) => {
+-      if (!opts.task) {
+-        console.error("Missing --task <task-id>");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runTaskLock(root, opts.task);
+-    });
+-
+-  const taskIndex = task.command("index").description("Manage the Task Contract lifecycle index");
+-  taskIndex
+-    .command("rebuild")
+-    .description("Check or rebuild contracts/tasks/index.yaml")
+-    .option("--check", "check index consistency without writing")
+-    .option("--force", "rebuild the index and synchronize the registry")
+-    .option("--json", "print bounded JSON summary")
+-    .action((opts) => {
+-      exitCode = runTaskIndexRebuild(root, {
+-        check: opts.check ?? false,
+-        force: opts.force ?? false,
+-        json: opts.json ?? false
+-      });
+-    });
+-
+-  task
+-    .command("archive")
+-    .description("Exclude a terminal Task from default active scans while retaining its records")
+-    .requiredOption("--task <id>", "task id")
+-    .option("--json", "print JSON")
+-    .action((opts) => {
+-      exitCode = runTaskArchive(root, opts.task, { json: opts.json ?? false });
+-    });
+-
+-  task
+-    .command("refresh")
+-    .description("Refresh a task")
+-    .option("--task <id>", "task id")
+-    .option("--affected", "preview Task Contracts affected by current WBS or Spec changes")
+-    .option("--all", "preview or refresh every Task Contract")
+-    .option("--apply", "apply changes")
+-    .action((opts) => {
+-      const selectors = [Boolean(opts.task), Boolean(opts.affected), Boolean(opts.all)].filter(Boolean).length;
+-      if (selectors !== 1) {
+-        console.error("Specify exactly one of --task <task-id>, --affected, or --all");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runTaskRefresh(root, opts.task, { apply: opts.apply ?? false, affected: opts.affected ?? false, all: opts.all ?? false });
+-    });
+-
+-  const wbs = program.command("wbs");
+-  wbs
+-    .command("validate")
+-    .description("Validate WBS")
+-    .action(() => { exitCode = runWbsValidate(root); });
+-
+-  wbs
+-    .command("candidates")
+-    .description("Show WBS candidates")
+-    .action(() => { exitCode = runWbsCandidates(root); });
+-
+-  wbs
+-    .command("verify-changesets")
+-    .description("Verify WBS changesets")
+-    .option("--base <path>", "base wbs.json path")
+-    .option("--head <path>", "head wbs.json path")
+-    .option("--changeset <path>", "changeset file path", (val: string, prev: string[]) => prev.concat(val), [] as string[])
+-    .action((opts) => {
+-      exitCode = runWbsVerifyChangesets(root, {
+-        base: opts.base,
+-        head: opts.head,
+-        changeSets: opts.changeset ?? []
+-      });
+-    });
+-
+-  wbs
+-    .command("apply")
+-    .description("Apply a WBS changeset")
+-    .argument("<change-set>", "changeset json file")
+-    .option("--force", "force apply")
+-    .option("--output <file>", "output file")
+-    .option("-o <file>", "output file (short)")
+-    .action((changeSet: string, opts) => {
+-      if (!changeSet) {
+-        console.error("Missing change-set.json");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runWbsApply(root, changeSet, {
+-        force: opts.force ?? false,
+-        output: opts.output ?? opts.O
+-      });
+-    });
++  registerGovernanceCommands(program, commandContext);
++  registerTaskCommands(program, commandContext);
++  registerWbsCommands(program, commandContext);
+ 
+   if (argv.length === 0) {
+     program.outputHelp();
+diff --git a/src/cli/command-context.ts b/src/cli/command-context.ts
+new file mode 100644
+index 0000000..003a8e3
+--- /dev/null
++++ b/src/cli/command-context.ts
+@@ -0,0 +1,34 @@
++import type { Evidence } from "../core/types.js";
++
++export type CommandContext = {
++  root: string;
++  setExitCode: (code: number) => void;
++};
++
++export function parseBool(value: unknown): boolean | undefined {
++  if (value === undefined || value === "") return undefined;
++  if (value === true || value === "true") return true;
++  if (value === false || value === "false") return false;
++  return undefined;
++}
++
++export function parseTestQuality(options: Record<string, unknown>): Evidence["testQuality"] | undefined {
++  const assertionsAdded = parseBool(options.testAssertionsAdded);
++  const testsDisabled = parseBool(options.testsDisabled);
++  const coverageDecreased = parseBool(options.coverageDecreased);
++  const note = options.testQualityNote as string | undefined;
++  if (
++    assertionsAdded === undefined &&
++    testsDisabled === undefined &&
++    coverageDecreased === undefined &&
++    note === undefined
++  ) {
++    return undefined;
++  }
++  return {
++    ...(assertionsAdded !== undefined ? { assertionsAdded } : {}),
++    ...(testsDisabled !== undefined ? { testsDisabled } : {}),
++    ...(coverageDecreased !== undefined ? { coverageDecreased } : {}),
++    ...(note ? { notes: [note] } : {})
++  };
++}
+diff --git a/src/cli/register-discovery.ts b/src/cli/register-discovery.ts
+new file mode 100644
+index 0000000..f1638c7
+--- /dev/null
++++ b/src/cli/register-discovery.ts
+@@ -0,0 +1,55 @@
++import type { Command } from "commander";
++import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
++import { parseBool, type CommandContext } from "./command-context.js";
++
++export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
++  const { root, setExitCode } = context;
++  const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
++  discovery
++    .command("new")
++    .requiredOption("--probe <id>", "PROBE-prefixed id")
++    .requiredOption("--question <text>", "decision-driving question")
++    .requiredOption("--timebox <value>", "timebox")
++    .requiredOption("--cost-limit <value>", "cost limit")
++    .requiredOption("--next-decision <text>", "decision enabled by the probe")
++    .option("--hypotheses <items>", "comma-separated hypotheses")
++    .option("--activities <items>", "comma-separated activities")
++    .option("--evidence-expected <items>", "comma-separated expected evidence")
++    .option("--unknowns <items>", "comma-separated unknowns")
++    .option("--exit-conditions <items>", "comma-separated exit conditions")
++    .option("--delivery-task <id>", "delivery Task blocked until conclusion")
++    .option("--json", "output versioned JSON")
++    .action((options) => {
++      setExitCode(runDiscoveryNew(root, options));
++    });
++  discovery
++    .command("start")
++    .requiredOption("--probe <id>", "Probe id")
++    .option("--json", "output versioned JSON")
++    .action((options) => {
++      setExitCode(runDiscoveryStart(root, options.probe, options.json ?? false));
++    });
++  discovery
++    .command("conclude")
++    .requiredOption("--probe <id>", "Probe id")
++    .requiredOption("--outcome <status>", "concluded|inconclusive")
++    .option("--facts <items>", "comma-separated learned facts")
++    .option("--rejected <items>", "comma-separated rejected hypotheses")
++    .option("--remaining <items>", "comma-separated remaining unknowns")
++    .option("--exit-conditions-met <boolean>", "whether every exit condition is met")
++    .option("--next-decision <text>", "updated next decision")
++    .option("--json", "output versioned JSON")
++    .action((options) => {
++      if (options.outcome !== "concluded" && options.outcome !== "inconclusive") {
++        console.error("Invalid --outcome; expected concluded or inconclusive");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runDiscoveryConclude(root, options.probe, {
++          ...options,
++          exitConditionsMet: parseBool(options.exitConditionsMet)
++        })
++      );
++    });
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+new file mode 100644
+index 0000000..e8ccb22
+--- /dev/null
++++ b/src/cli/register-governance.ts
+@@ -0,0 +1,391 @@
++import { type Command } from "commander";
++import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
++import { runAiPacket } from "../commands/ai-packet.js";
++import { runAiRun } from "../commands/ai-run.js";
++import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js";
++import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
++import { runCompletionApply } from "../commands/completion.js";
++import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
++import { runEvidenceCollect, runEvidenceRetain } from "../commands/evidence-collect.js";
++import { runProfileSet, runProfileShow } from "../commands/profile.js";
++import { runRegistryRebuild } from "../commands/registry-rebuild.js";
++import {
++  runReviewApprove,
++  runReviewChangesRequested,
++  runReviewClose,
++  runReviewRequest,
++  runReviewRoute
++} from "../commands/review-request.js";
++import { parseTestQuality, type CommandContext } from "./command-context.js";
++
++export function registerGovernanceCommands(program: Command, context: CommandContext): void {
++  const { root, setExitCode } = context;
++  const ai = program.command("ai");
++  ai.command("packet")
++    .description("Build AI work packet")
++    .option("--task <id>", "task id")
++    .option("--relation-depth <n>", "relation depth", parseInt)
++    .option("--format <type>", "output format")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      const format: string = options.format ?? "default";
++      if (!["default", "compact", "codex", "claude", "cursor"].includes(format)) {
++        console.error("Invalid --format");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runAiPacket(
++          root,
++          options.task,
++          options.relationDepth ?? 1,
++          format as "default" | "compact" | "codex" | "claude" | "cursor"
++        )
++      );
++    });
++
++  ai.command("run")
++    .description("Print a dry-run AI task plan")
++    .option("--task <id>", "task id")
++    .option("--agent <agent>", "agent type")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runAiRun(root, options.task, options.agent));
++    });
++
++  ai.command("block")
++    .description("AI: block a task")
++    .option("--task <id>", "task id")
++    .option("--reason <text>", "block reason")
++    .option("--spec-change", "spec change flag")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      if (!options.reason) {
++        console.error("Missing --reason <reason>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runAiBlock(root, options.task, options.reason, { specChange: options.specChange ?? false }));
++    });
++
++  ai.command("next-task")
++    .description("Show next AI task")
++    .action(() => {
++      setExitCode(runAiNextTask(root));
++    });
++
++  const approval = program.command("approval");
++  approval
++    .command("request")
++    .description("Request task approval")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--note <text>", "approval note")
++    .option("--force", "force request")
++    .action(function (this: Command, options) {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      const trailing = (this.args as string[]).filter((argument) => !argument.startsWith("-"));
++      const note = trailing.length > 0 ? [options.note, ...trailing].filter(Boolean).join(" ") : options.note;
++      setExitCode(
++        runApprovalRequest(root, options.task, {
++          pullRequest: options.pullRequest,
++          note,
++          force: options.force ?? false
++        })
++      );
++    });
++
++  approval
++    .command("approve")
++    .description("Approve a task")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--reason <text>", "approval reason")
++    .option("--actor <text>", "approval actor")
++    .option("--scope <scope>", "delegated approval scope human-gate|post-finish")
++    .option("--force", "force approval")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runApprovalApprove(root, options.task, {
++          pullRequest: options.pullRequest,
++          reason: options.reason,
++          actor: options.actor,
++          scope: options.scope,
++          force: options.force ?? false
++        })
++      );
++    });
++
++  const approvalDelegation = approval.command("delegation");
++  approvalDelegation
++    .command("prepare")
++    .description("Prepare a secret-free delegated approval policy patch before a Task Contract creation commit")
++    .option("--task <id>", "task id")
++    .requiredOption("--scopes <scopes>", "comma-separated scopes: human-gate,post-finish")
++    .requiredOption("--expires-at <utc>", "future UTC expiry")
++    .requiredOption("--source <source>", "delegation policy source")
++    .requiredOption("--reason <reason>", "delegation reason")
++    .requiredOption("--delegated-by <principal>", "delegating principal")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runApprovalDelegationPrepare(root, options.task, options));
++    });
++
++  const completion = program.command("completion");
++  completion
++    .command("apply")
++    .description("Apply completion")
++    .option("--tasks <ids>", "task ids (comma separated)")
++    .option("--task <id>", "completion task id")
++    .option("--reason <text>", "completion reason")
++    .option("--apply", "apply changes")
++    .option("--allow-root", "allow root changes")
++    .action((options) => {
++      setExitCode(
++        runCompletionApply(root, options.tasks, options.task, {
++          reason: options.reason,
++          apply: options.apply ?? false,
++          allowRoot: options.allowRoot ?? false
++        })
++      );
++    });
++
++  const evidence = program.command("evidence");
++  evidence
++    .command("collect")
++    .description("Collect evidence for a task")
++    .option("--task <id>", "task id")
++    .option("--base <ref>", "base reference")
++    .option("--pull-request <id>", "pull request id")
++    .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
++    .option("--force", "force collection")
++    .option("--test-assertions-added <bool>", "test assertions added")
++    .option("--tests-disabled <bool>", "tests disabled")
++    .option("--coverage-decreased <bool>", "coverage decreased")
++    .option("--test-quality-note <text>", "test quality note")
++    .option("--rerun-checks", "rerun required checks even when cached results are valid")
++    .option("--json", "print a versioned JSON summary")
++    .option("--verbose", "print the summary and full Evidence YAML")
++    .option("--output <target>", "print full Evidence YAML; target must be -")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runEvidenceCollect(root, options.task, {
++          force: options.force ?? false,
++          baseRef: options.base,
++          pullRequest: options.pullRequest,
++          ciReceipt: options.ciReceipt,
++          testQuality: parseTestQuality(options),
++          rerunChecks: options.rerunChecks ?? false,
++          json: options.json ?? false,
++          verbose: options.verbose ?? false,
++          output: options.output
++        })
++      );
++    });
++
++  evidence
++    .command("annotate")
++    .description("Update Evidence metadata without changing subject provenance or checks")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--test-assertions-added <bool>", "test assertions added")
++    .option("--tests-disabled <bool>", "tests disabled")
++    .option("--coverage-decreased <bool>", "coverage decreased")
++    .option("--test-quality-note <text>", "test quality note")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runEvidenceAnnotate(root, options.task, {
++          pullRequest: options.pullRequest,
++          testQuality: parseTestQuality(options)
++        })
++      );
++    });
++
++  evidence
++    .command("retain")
++    .description("Retain an existing Evidence subject as a tracked patch payload")
++    .option("--task <id>", "task id")
++    .option("--fetch-pr-head", "fetch the recorded GitHub pull request head when the subject is unavailable")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runEvidenceRetain(root, options.task, { fetchPrHead: options.fetchPrHead ?? false }));
++    });
++
++  const registry = program.command("registry");
++  registry
++    .command("rebuild")
++    .description("Rebuild registry")
++    .option("--check", "check only")
++    .option("--force", "force rebuild")
++    .option("--quiet", "suppress successful output")
++    .option("--json", "print a versioned JSON summary")
++    .option("--verbose", "print the summary and full registry YAML")
++    .option("--output <target>", "print full registry YAML; target must be -")
++    .action((options) => {
++      setExitCode(
++        runRegistryRebuild(root, {
++          check: options.check ?? false,
++          force: options.force ?? false,
++          quiet: options.quiet ?? false,
++          json: options.json ?? false,
++          verbose: options.verbose ?? false,
++          output: options.output
++        })
++      );
++    });
++
++  const profile = program.command("profile");
++  profile
++    .command("show")
++    .description("Show profile")
++    .action(() => {
++      setExitCode(runProfileShow(root));
++    });
++
++  profile
++    .command("set")
++    .description("Set profile through a WBS changeset")
++    .argument("<profile>", "profile name")
++    .action((profileName: string) => {
++      if (!profileName) {
++        console.error("Missing profile");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runProfileSet(root, profileName));
++    });
++
++  const review = program.command("review");
++  review
++    .command("request")
++    .description("Request a review")
++    .option("--task <id>", "task id")
++    .option("--pull-request <id>", "pull request id")
++    .option("--force", "force request")
++    .option("--json", "print a versioned JSON summary")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runReviewRequest(root, options.task, {
++          pullRequest: options.pullRequest,
++          force: options.force ?? false,
++          json: options.json ?? false
++        })
++      );
++    });
++
++  review
++    .command("route")
++    .description("Route a review")
++    .option("--task <id>", "task id")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runReviewRoute(root, options.task));
++    });
++
++  review
++    .command("approve")
++    .description("Approve a review")
++    .option("--task <id>", "task id")
++    .option("--actor <text>", "review actor (must be human)")
++    .option("--findings <text>", "review findings")
++    .option("--force", "force approve")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runReviewApprove(root, options.task, {
++          reviewedBy: options.actor,
++          findings: options.findings,
++          force: options.force ?? false
++        })
++      );
++    });
++
++  review
++    .command("changes-requested")
++    .description("Request changes for a review")
++    .option("--task <id>", "task id")
++    .option("--actor <text>", "review actor (must be human)")
++    .option("--findings <text>", "review findings")
++    .option("--force", "force changes-requested")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runReviewChangesRequested(root, options.task, {
++          reviewedBy: options.actor,
++          findings: options.findings,
++          force: options.force ?? false
++        })
++      );
++    });
++
++  review
++    .command("close")
++    .description("Close a review")
++    .option("--task <id>", "task id")
++    .option("--actor <text>", "review actor (must be human)")
++    .option("--force", "force close")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runReviewClose(root, options.task, { reviewedBy: options.actor, force: options.force ?? false }));
++    });
++}
+diff --git a/src/cli/register-task.ts b/src/cli/register-task.ts
+new file mode 100644
+index 0000000..3cd9987
+--- /dev/null
++++ b/src/cli/register-task.ts
+@@ -0,0 +1,135 @@
++import type { Command } from "commander";
++import { runLiteTask } from "../commands/lite.js";
++import { runTaskGenerate } from "../commands/task-generate.js";
++import { runTaskArchive, runTaskIndexRebuild } from "../commands/task-index.js";
++import { runTaskLock } from "../commands/task-lock.js";
++import { runTaskNew } from "../commands/task-new.js";
++import { runTaskRefresh } from "../commands/task-refresh.js";
++import type { CommandContext } from "./command-context.js";
++
++export function registerTaskCommands(program: Command, context: CommandContext): void {
++  const { root, setExitCode } = context;
++  const lite = program.command("lite");
++  lite
++    .command("task")
++    .description("Create a lite task")
++    .argument("[title...]", "task title")
++    .action((titleParts: string[]) => {
++      const title = titleParts.join(" ").trim();
++      if (!title) {
++        console.error("Missing lite task title");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runLiteTask(root, title));
++    });
++
++  const task = program.command("task");
++  task
++    .command("generate")
++    .description("Generate a task")
++    .option("--node <id>", "WBS node id")
++    .option("--task <id>", "task id")
++    .option("--force", "force generation")
++    .action((options) => {
++      if (!options.node) {
++        console.error("Missing --node <node-id>");
++        setExitCode(2);
++        return;
++      }
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runTaskGenerate(root, options.node, options.task, { force: options.force ?? false }));
++    });
++
++  task
++    .command("new")
++    .description("Create a new task contract")
++    .argument("[title...]", "task title")
++    .option("--paths <paths>", "allowed paths (comma separated)")
++    .option("--forbid <paths>", "forbidden paths (comma separated)")
++    .option("--gate <paths>", "human gate paths (comma separated)")
++    .option("--stop <reasons>", "stop reasons (comma separated)")
++    .option("--no-stop-conditions", "explicitly acknowledge an empty stop condition list")
++    .option("--checks <checks>", "required checks (comma separated)")
++    .option("--wbs-node <id>", "WBS node id")
++    .action((titleParts: string[], options) => {
++      const title = titleParts.join(" ").trim();
++      setExitCode(
++        runTaskNew(root, title, {
++          paths: options.paths,
++          forbid: options.forbid,
++          gate: options.gate,
++          stop: options.stop,
++          noStopConditions: options.noStopConditions,
++          checks: options.checks,
++          wbsNode: options.wbsNode
++        })
++      );
++    });
++
++  task
++    .command("lock")
++    .description("Lock a task")
++    .option("--task <id>", "task id")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runTaskLock(root, options.task));
++    });
++
++  const taskIndex = task.command("index").description("Manage the Task Contract lifecycle index");
++  taskIndex
++    .command("rebuild")
++    .description("Check or rebuild contracts/tasks/index.yaml")
++    .option("--check", "check index consistency without writing")
++    .option("--force", "rebuild the index and synchronize the registry")
++    .option("--json", "print bounded JSON summary")
++    .action((options) => {
++      setExitCode(
++        runTaskIndexRebuild(root, {
++          check: options.check ?? false,
++          force: options.force ?? false,
++          json: options.json ?? false
++        })
++      );
++    });
++
++  task
++    .command("archive")
++    .description("Exclude a terminal Task from default active scans while retaining its records")
++    .requiredOption("--task <id>", "task id")
++    .option("--json", "print JSON")
++    .action((options) => {
++      setExitCode(runTaskArchive(root, options.task, { json: options.json ?? false }));
++    });
++
++  task
++    .command("refresh")
++    .description("Refresh a task")
++    .option("--task <id>", "task id")
++    .option("--affected", "preview Task Contracts affected by current WBS or Spec changes")
++    .option("--all", "preview or refresh every Task Contract")
++    .option("--apply", "apply changes")
++    .action((options) => {
++      const selectors = [Boolean(options.task), Boolean(options.affected), Boolean(options.all)].filter(Boolean).length;
++      if (selectors !== 1) {
++        console.error("Specify exactly one of --task <task-id>, --affected, or --all");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runTaskRefresh(root, options.task, {
++          apply: options.apply ?? false,
++          affected: options.affected ?? false,
++          all: options.all ?? false
++        })
++      );
++    });
++}
+diff --git a/src/cli/register-wbs.ts b/src/cli/register-wbs.ts
+new file mode 100644
+index 0000000..0b3a6ac
+--- /dev/null
++++ b/src/cli/register-wbs.ts
+@@ -0,0 +1,63 @@
++import type { Command } from "commander";
++import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "../commands/wbs.js";
++import type { CommandContext } from "./command-context.js";
++
++export function registerWbsCommands(program: Command, context: CommandContext): void {
++  const { root, setExitCode } = context;
++  const wbs = program.command("wbs");
++  wbs
++    .command("validate")
++    .description("Validate WBS")
++    .action(() => {
++      setExitCode(runWbsValidate(root));
++    });
++
++  wbs
++    .command("candidates")
++    .description("Show WBS candidates")
++    .action(() => {
++      setExitCode(runWbsCandidates(root));
++    });
++
++  wbs
++    .command("verify-changesets")
++    .description("Verify WBS changesets")
++    .option("--base <path>", "base wbs.json path")
++    .option("--head <path>", "head wbs.json path")
++    .option(
++      "--changeset <path>",
++      "changeset file path",
++      (value: string, previous: string[]) => previous.concat(value),
++      [] as string[]
++    )
++    .action((options) => {
++      setExitCode(
++        runWbsVerifyChangesets(root, {
++          base: options.base,
++          head: options.head,
++          changeSets: options.changeset ?? []
++        })
++      );
++    });
++
++  wbs
++    .command("apply")
++    .description("Apply a WBS changeset")
++    .argument("<change-set>", "changeset json file")
++    .option("--force", "force apply")
++    .option("--output <file>", "output file")
++    .option("-o <file>", "output file (short)")
++    .action((changeSet: string, options) => {
++      if (!changeSet) {
++        console.error("Missing change-set.json");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(
++        runWbsApply(root, changeSet, {
++          force: options.force ?? false,
++          output: options.output ?? options.O
++        })
++      );
++    });
++}
+diff --git a/src/commands/ai-packet.ts b/src/commands/ai-packet.ts
+index 98964e9..b16215f 100644
+--- a/src/commands/ai-packet.ts
++++ b/src/commands/ai-packet.ts
+@@ -8,6 +8,7 @@ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/type
+ import type { TaskContract } from "../core/types.js";
+ import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
++import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
+ import { probesForTask } from "../core/discovery.js";
+ 
+@@ -174,8 +175,10 @@ ${submodulePacket(root, task)}
+ `;
+   }
+   const wbs = readWbs(root);
+-  const node = findNode(wbs, task.wbsNodeId);
+-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
++  const association = taskWbsAssociation(wbs, task);
++  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
++  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot resolve a WBS node`);
++  const node = association.node;
+ 
+   const selectedNodes = relationDepthNodes(wbs, node, Math.max(0, relationDepth));
+   const relatedRelations = (wbs.relations ?? []).filter((relation) => selectedNodes.has(relation.source) && selectedNodes.has(relation.target));
+@@ -301,8 +304,10 @@ Next:
+ `;
+   }
+   const wbs = readWbs(root);
+-  const node = findNode(wbs, task.wbsNodeId);
+-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
++  const association = taskWbsAssociation(wbs, task);
++  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
++  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot resolve a WBS node`);
++  const node = association.node;
+ 
+   return `# Tiny Packet
+ Task: ${task.id}
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index de255d3..add333f 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -3,8 +3,9 @@ import path from "node:path";
+ import { evidenceExists, listActiveTasks, readBlock, readTask } from "../core/contracts.js";
+ import { blockPath, defaultWbsPath, resolveFrom, specChangePath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import { findNode, readWbs } from "../core/wbs.js";
++import { readWbs } from "../core/wbs.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
++import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ 
+@@ -29,9 +30,10 @@ function loadTaskAndNode(root: string, taskId: string) {
+     throw new Error(issues.map((issue) => issue.message).join("\n"));
+   }
+   const wbs = readWbs(root);
+-  if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
+-  const node = findNode(wbs, task.wbsNodeId);
+-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
++  const association = taskWbsAssociation(wbs, task);
++  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and has no WBS node to update`);
++  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
++  const node = association.node;
+   return { task, wbs, node };
+ }
+ 
+@@ -221,8 +223,9 @@ export function buildNextTask(root: string): string {
+       if (!task || task.humanGateRequiredPaths.length > 0) return [];
+       if (evidenceExists(root, task.id)) return [];
+       if (readBlock(root, task.id).block?.status === "blocked") return [];
+-      const node = findNode(wbs, task.wbsNodeId);
+-      if (!node) return [];
++      const association = taskWbsAssociation(wbs, task);
++      if (association.kind !== "node") return [];
++      const node = association.node;
+       const status = node.status ?? "planned";
+       if (status !== "planned") return [];
+       const dependencies = (wbs.relations ?? []).filter((relation) => relation.type === "dependsOn" && relation.source === node.id);
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 66315d4..f24ffa5 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -9,9 +9,9 @@ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { readProfile } from "./profile.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+ import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
+-import { findNode, isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
++import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+-import { isWbsLessTask } from "../core/node-utils.js";
++import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
+ import { discoveryIssues } from "../core/discovery.js";
+ 
+@@ -58,7 +58,7 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
+ 
+   const wbs = readWbs(root);
+   if (task.contractLock.lockVersion === "2") {
+-    if (!isWbsLessTask(task)) {
++    if (taskWbsAssociation(wbs, task).kind !== "wbs-less") {
+       const scopeRevision = wbsScopeRevision(wbs, task.wbsNodeId);
+       if (task.contractLock.wbsScopeRevision !== scopeRevision) {
+         issues.push({
+@@ -113,7 +113,8 @@ function validateContractLock(root: string, task: TaskContract, spec?: SpecContr
+ 
+ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocument, task: TaskContract, spec?: SpecContract, specPath?: string): Issue[] {
+   const issues: Issue[] = [];
+-  if (isWbsLessTask(task)) {
++  const association = taskWbsAssociation(wbs, task);
++  if (association.kind === "wbs-less") {
+     issues.push(...specIssues);
+     issues.push(...validateContractLock(root, task, spec, specPath));
+     if (evidenceExists(root, task.id)) {
+@@ -126,11 +127,11 @@ function validateTaskAgainstWbs(root: string, specIssues: Issue[], wbs: WbsDocum
+     }
+     return issues;
+   }
+-  const node = findNode(wbs, task.wbsNodeId);
+-  if (!node) {
+-    issues.push({ severity: "error", code: "task.wbsNodeId", message: `${task.id} references missing WBS node: ${task.wbsNodeId}` });
++  if (association.kind === "missing-node") {
++    issues.push({ severity: "error", code: "task.wbsNodeId", message: missingTaskWbsNodeMessage(task, association) });
+     return issues;
+   }
++  const node = association.node;
+   issues.push(...specIssues);
+   issues.push(...validateContractLock(root, task, spec, specPath));
+ 
+diff --git a/src/commands/completion.ts b/src/commands/completion.ts
+index fae076b..7989d1a 100644
+--- a/src/commands/completion.ts
++++ b/src/commands/completion.ts
+@@ -3,10 +3,11 @@ import path from "node:path";
+ import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { validateDelegatedApproval } from "../core/human-gate.js";
+ import { matchesAny } from "../core/glob.js";
+-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, isWbsLessTask, parseTaskIds } from "../core/node-utils.js";
++import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+-import { findNode, readWbs } from "../core/wbs.js";
++import { readWbs } from "../core/wbs.js";
+ import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
++import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { runRegistryRebuild } from "./registry-rebuild.js";
+ import { runWbsApply } from "./wbs.js";
+ 
+@@ -61,11 +62,12 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
+       continue;
+     }
+ 
+-    const targetNode = findNode(wbs, targetTask.wbsNodeId);
+-    if (!targetNode) {
+-      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
++    const targetAssociation = taskWbsAssociation(wbs, targetTask);
++    if (targetAssociation.kind !== "node") {
++      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
+       continue;
+     }
++    const targetNode = targetAssociation.node;
+     if (targetNode.id !== task.wbsNodeId) {
+       blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+       continue;
+@@ -137,10 +139,10 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+   for (const taskId of taskIds) {
+     const { task, issues: taskIssues } = readTask(root, taskId);
+     if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
+-    if (isWbsLessTask(task)) throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
+-
+-    const node = findNode(wbs, task.wbsNodeId);
+-    if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
++    const association = taskWbsAssociation(wbs, task);
++    if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
++    if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
++    const node = association.node;
+     if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) {
+       throw new Error(`${task.id} targets root WBS node ${node.id}; rerun with --allow-root only after explicit human decision`);
+     }
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index c25fcfe..ca52462 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -5,7 +5,8 @@ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { hasErrors } from "../core/report.js";
+ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } from "../core/types.js";
+-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
++import { isDoneNode, readWbs } from "../core/wbs.js";
++import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
+ import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
+@@ -107,7 +108,8 @@ export function collectEvidenceTrustIssues(
+   options: EvidenceTrustOptions = {}
+ ): Issue[] {
+   const issues: Issue[] = [];
+-  const node = findNode(wbs, task.wbsNodeId);
++  const association = taskWbsAssociation(wbs, task);
++  const node = association.kind === "node" ? association.node : undefined;
+   const checkCommitReachability = options.checkCommitReachability ?? true;
+   const completed = options.completed ?? Boolean(node && isDoneNode(node));
+   const currentHead = options.repositoryState ? options.repositoryState.currentHead : headCommit(root);
+@@ -471,8 +473,9 @@ function collectCodeContextHealthIssues(root: string, wbs: WbsDocument | undefin
+ 
+   for (const entry of listActiveTasks(root)) {
+     if (!entry.task) continue;
+-    const node = findNode(wbs, entry.task.wbsNodeId);
+-    if (!node) continue;
++    const association = taskWbsAssociation(wbs, entry.task);
++    if (association.kind !== "node") continue;
++    const node = association.node;
+     if (isDoneNode(node)) continue;
+ 
+     let manifest;
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index c2f7ba1..5048e39 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -1,8 +1,9 @@
+ import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
+-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
++import { isDoneNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
++import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ 
+ type ReviewQueueEntry = {
+   taskId: string;
+@@ -68,11 +69,12 @@ function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readW
+       continue;
+     }
+ 
+-    const targetNode = findNode(wbs, targetTask.wbsNodeId);
+-    if (!targetNode) {
+-      blockers.push(`${targetTask.id} references missing WBS node: ${targetTask.wbsNodeId}`);
++    const targetAssociation = taskWbsAssociation(wbs, targetTask);
++    if (targetAssociation.kind !== "node") {
++      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
+       continue;
+     }
++    const targetNode = targetAssociation.node;
+     if (targetNode.id !== task.wbsNodeId) {
+       blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+       continue;
+@@ -115,7 +117,7 @@ function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readW
+   return { blockers, targets };
+ }
+ 
+-function nodeReadinessBlocker(node: NonNullable<ReturnType<typeof findNode>>): string | undefined {
++function nodeReadinessBlocker(node: Extract<ReturnType<typeof taskWbsAssociation>, { kind: "node" }>["node"]): string | undefined {
+   return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
+ }
+ 
+@@ -132,8 +134,9 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+   for (const entry of tasks) {
+     const task = entry.task;
+     if (!task) continue;
+-    const node = findNode(wbs, task.wbsNodeId);
+-    if (!node) continue;
++    const association = taskWbsAssociation(wbs, task);
++    if (association.kind !== "node") continue;
++    const node = association.node;
+ 
+     const reasons: string[] = [];
+     const warnings: string[] = [];
+diff --git a/src/commands/status.ts b/src/commands/status.ts
+index ced36d7..4eb14ad 100644
+--- a/src/commands/status.ts
++++ b/src/commands/status.ts
+@@ -4,7 +4,8 @@ import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from
+ import { currentBranch, headCommit, isShallowRepository } from "../core/git.js";
+ import { readTaskIndex } from "../core/task-index.js";
+ import type { DecisionReadiness, Issue, TaskContract, WbsDocument } from "../core/types.js";
+-import { findNode, isDoneNode, readWbs } from "../core/wbs.js";
++import { isDoneNode, readWbs } from "../core/wbs.js";
++import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { collectEvidenceTrustIssues, type EvidenceTrustOptions } from "./health.js";
+ 
+ export type CompletionTrustLevel = "verified" | "degraded" | "unverifiable" | "not-evaluated";
+@@ -236,8 +237,8 @@ export function buildStatusJsonOutput(root: string): StatusJsonOutput {
+   const evidenceMissing: string[] = [];
+   for (const entry of listTasks(root)) {
+     if (!entry.task) continue;
+-    const node = findNode(wbs, entry.task.wbsNodeId);
+-    if (node && isDoneNode(node) && !evidenceExists(root, entry.task.id)) {
++    const association = taskWbsAssociation(wbs, entry.task);
++    if (association.kind === "node" && isDoneNode(association.node) && !evidenceExists(root, entry.task.id)) {
+       evidenceMissing.push(entry.task.id);
+     }
+   }
+diff --git a/src/commands/task-lock.ts b/src/commands/task-lock.ts
+index 172cf19..346832c 100644
+--- a/src/commands/task-lock.ts
++++ b/src/commands/task-lock.ts
+@@ -3,10 +3,10 @@ import { fileSha256 } from "../core/hash.js";
+ import { resolveFrom, taskPath } from "../core/paths.js";
+ import { readRegistry, readTask, resolveSpecForTask } from "../core/contracts.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import { isWbsLessTask } from "../core/node-utils.js";
+ import type { TaskContract } from "../core/types.js";
+ import { readWbs } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
++import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ 
+ export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
+@@ -18,11 +18,12 @@ export function buildLockedTask(root: string, taskId: string, createdAt = new Da
+   const { registry } = readRegistry(root);
+   const { spec, path: specPath } = resolveSpecForTask(root, registry, task);
+   const wbs = readWbs(root);
++  const association = taskWbsAssociation(wbs, task);
+   return {
+     ...task,
+     contractLock: {
+       lockVersion: "2",
+-      ...(!isWbsLessTask(task) ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
++      ...(association.kind !== "wbs-less" ? { wbsScopeRevision: wbsScopeRevision(wbs, task.wbsNodeId) } : {}),
+       wbsGlobalRevision: wbsGlobalRevision(wbs),
+       wbsNodeId: task.wbsNodeId,
+       ...(spec?.version && specPath ? { specVersion: spec.version, specRevision: fileSha256(root, specPath) } : {}),
+diff --git a/src/commands/trace.ts b/src/commands/trace.ts
+index 405bda3..18f7e1e 100644
+--- a/src/commands/trace.ts
++++ b/src/commands/trace.ts
+@@ -1,12 +1,12 @@
+ import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
+-import { findNode, readWbs } from "../core/wbs.js";
+-import { isWbsLessTask } from "../core/node-utils.js";
++import { readWbs } from "../core/wbs.js";
++import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ 
+ export function buildTrace(root: string, taskId: string): string {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const wbs = readWbs(root);
+-  const node = findNode(wbs, task.wbsNodeId);
++  const association = taskWbsAssociation(wbs, task);
+   const { registry } = readRegistry(root);
+   const { spec } = resolveSpecForTask(root, registry, task);
+   const { evidence } = readEvidence(root, task.id);
+@@ -15,7 +15,7 @@ export function buildTrace(root: string, taskId: string): string {
+   return `Trace ${task.id}
+ 
+ Spec: ${spec ? `${spec.id} v${spec.version} ${spec.status}` : "missing"}
+-  -> WBS node: ${node ? `${node.code} ${node.name} (${node.status ?? "planned"})` : isWbsLessTask(task) ? "WBS-less" : `missing ${task.wbsNodeId}`}
++  -> WBS node: ${association.kind === "node" ? `${association.node.code} ${association.node.name} (${association.node.status ?? "planned"})` : association.kind === "wbs-less" ? "WBS-less" : `missing ${association.nodeId}`}
+   -> Task: ${task.id}${task.mode ? ` (${task.mode})` : ""}
+   -> Evidence: ${evidence ? `${evidence.id} (${evidence.checks.length} checks)` : "missing"}
+   -> Review: ${review ? `${review.id} ${review.status}` : "missing"}
+diff --git a/src/core/task-wbs-policy.ts b/src/core/task-wbs-policy.ts
+new file mode 100644
+index 0000000..5b63068
+--- /dev/null
++++ b/src/core/task-wbs-policy.ts
+@@ -0,0 +1,28 @@
++import type { TaskContract, WbsDocument, WbsNode } from "./types.js";
++import { WBS_LESS_TASK_NODE_ID } from "./node-utils.js";
++import { findNode } from "./wbs.js";
++
++export type TaskWbsAssociation =
++  | { kind: "wbs-less"; nodeId: typeof WBS_LESS_TASK_NODE_ID }
++  | { kind: "missing-node"; nodeId: string }
++  | { kind: "node"; nodeId: string; node: WbsNode };
++
++/**
++ * Canonical read-only policy for deciding whether a Task participates in the
++ * WBS and, when it does, resolving its node without silently treating a
++ * missing node as WBS-less.
++ */
++export function taskWbsAssociation(wbs: WbsDocument, task: TaskContract): TaskWbsAssociation {
++  if (task.wbsNodeId === WBS_LESS_TASK_NODE_ID) {
++    return { kind: "wbs-less", nodeId: WBS_LESS_TASK_NODE_ID };
++  }
++  const node = findNode(wbs, task.wbsNodeId);
++  return node ? { kind: "node", nodeId: task.wbsNodeId, node } : { kind: "missing-node", nodeId: task.wbsNodeId };
++}
++
++export function missingTaskWbsNodeMessage(
++  task: TaskContract,
++  association: Extract<TaskWbsAssociation, { kind: "missing-node" }>
++): string {
++  return `${task.id} references missing WBS node: ${association.nodeId}`;
++}
+diff --git a/tests/integration/cli-registration.test.ts b/tests/integration/cli-registration.test.ts
+new file mode 100644
+index 0000000..172f4e8
+--- /dev/null
++++ b/tests/integration/cli-registration.test.ts
+@@ -0,0 +1,56 @@
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo } from "../helpers.js";
++
++function captureHelp(args: string[], root: string): { exitCode: number; stdout: string } {
++  const output: string[] = [];
++  const originalWrite = process.stdout.write;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    return { exitCode: main(args, root), stdout: output.join("") };
++  } finally {
++    process.stdout.write = originalWrite;
++  }
++}
++
++describe("domain CLI registration", () => {
++  test("keeps every extracted top-level command visible", () => {
++    const output = captureHelp(["--help"], makeTempRepo());
++    expect(output.exitCode).toBe(0);
++    for (const command of [
++      "discovery",
++      "ai",
++      "approval",
++      "completion",
++      "evidence",
++      "registry",
++      "profile",
++      "review",
++      "lite",
++      "task",
++      "wbs"
++    ]) {
++      expect(output.stdout).toMatch(new RegExp(`\\n  ${command}(?: \\S+)?\\s`));
++    }
++  });
++
++  test("preserves discovery and governance subcommands and options", () => {
++    const root = makeTempRepo();
++    expect(captureHelp(["discovery", "--help"], root).stdout).toContain("new [options]");
++    expect(captureHelp(["discovery", "--help"], root).stdout).toContain("conclude [options]");
++    expect(captureHelp(["approval", "approve", "--help"], root).stdout).toContain("--scope <scope>");
++    expect(captureHelp(["evidence", "collect", "--help"], root).stdout).toContain("--output <target>");
++    expect(captureHelp(["review", "request", "--help"], root).stdout).toContain("--json");
++  });
++
++  test("preserves task and WBS subcommands and options", () => {
++    const root = makeTempRepo();
++    expect(captureHelp(["task", "new", "--help"], root).stdout).toContain("--no-stop-conditions");
++    expect(captureHelp(["task", "index", "rebuild", "--help"], root).stdout).toContain("--force");
++    expect(captureHelp(["wbs", "verify-changesets", "--help"], root).stdout).toContain("--changeset <path>");
++    expect(captureHelp(["wbs", "apply", "--help"], root).stdout).toContain("-o <file>");
++  });
++});
+diff --git a/tests/unit/task-wbs-policy.test.ts b/tests/unit/task-wbs-policy.test.ts
+new file mode 100644
+index 0000000..d57b3b9
+--- /dev/null
++++ b/tests/unit/task-wbs-policy.test.ts
+@@ -0,0 +1,34 @@
++import { describe, expect, test } from "vitest";
++import { taskWbsAssociation } from "../../src/core/task-wbs-policy.js";
++import type { TaskContract, WbsDocument } from "../../src/core/types.js";
++import { sampleTask, sampleWbs } from "../helpers.js";
++
++function task(overrides: Partial<TaskContract> = {}): TaskContract {
++  return sampleTask(overrides);
++}
++
++describe("taskWbsAssociation", () => {
++  test("classifies WBS-less tasks without resolving a node", () => {
++    expect(taskWbsAssociation(sampleWbs(), task({ wbsNodeId: "wbs-less" }))).toEqual({
++      kind: "wbs-less",
++      nodeId: "wbs-less"
++    });
++  });
++
++  test("returns the resolved node for a WBS-backed task", () => {
++    const wbs = sampleWbs();
++    const association = taskWbsAssociation(wbs, task({ wbsNodeId: "node-api" }));
++    expect(association.kind).toBe("node");
++    if (association.kind === "node") {
++      expect(association.node).toBe(wbs.nodes.find((node) => node.id === "node-api"));
++    }
++  });
++
++  test("keeps a missing WBS node distinct from WBS-less", () => {
++    const wbs = sampleWbs() as WbsDocument;
++    expect(taskWbsAssociation(wbs, task({ wbsNodeId: "node-missing" }))).toEqual({
++      kind: "missing-node",
++      nodeId: "node-missing"
++    });
++  });
++});

@@ -8,6 +8,7 @@ import type { AiPacketFormat, Profile, WbsDocument, WbsNode } from "../core/type
 import type { TaskContract } from "../core/types.js";
 import { checkCoverageSummary, checkCoverageSummaryForAllowedPaths, readCheckCoveragePolicy } from "../core/check-coverage.js";
 import { isWbsLessTask } from "../core/node-utils.js";
+import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { buildCodeContextManifestJson, type CodeContextOptions } from "../core/code-context.js";
 import { probesForTask } from "../core/discovery.js";
 
@@ -174,8 +175,10 @@ ${submodulePacket(root, task)}
 `;
   }
   const wbs = readWbs(root);
-  const node = findNode(wbs, task.wbsNodeId);
-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+  const association = taskWbsAssociation(wbs, task);
+  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
+  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot resolve a WBS node`);
+  const node = association.node;
 
   const selectedNodes = relationDepthNodes(wbs, node, Math.max(0, relationDepth));
   const relatedRelations = (wbs.relations ?? []).filter((relation) => selectedNodes.has(relation.source) && selectedNodes.has(relation.target));
@@ -301,8 +304,10 @@ Next:
 `;
   }
   const wbs = readWbs(root);
-  const node = findNode(wbs, task.wbsNodeId);
-  if (!node) throw new Error(`${task.id} references missing WBS node: ${task.wbsNodeId}`);
+  const association = taskWbsAssociation(wbs, task);
+  if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
+  if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot resolve a WBS node`);
+  const node = association.node;
 
   return `# Tiny Packet
 Task: ${task.id}

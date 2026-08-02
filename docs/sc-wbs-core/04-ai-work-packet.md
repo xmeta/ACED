@@ -140,6 +140,14 @@ versioned JSON schemaは [`docs/scwbs/schemas/code-context-manifest.schema.json`
 7. `completeness.status` は `widening` が空なら `complete`、それ以外は `widening-required` とする。
 8. `constraints.sourceContentIncluded`、`grantsEditAuthority`、`permitsRequiredCheckOmission` は manifest v1 では常に `false` とする。
 
+## 実装境界とWBS関連付け
+
+Task-oriented contextの実装は、次の境界を維持する。
+
+- TaskがWBS完了へ参加するか、参照nodeが存在するか、どのnodeへ解決されたかは `taskWbsAssociation` の結果（`wbs-less` / `missing-node` / `node`）を正本とする。`missing-node`をWBS-lessとして縮小してはならない。
+- CLIのcommand registrationはdiscovery、governance、task、WBSのdomain moduleへ分離する。公開command名、option、help、exit code、JSON schemaはこの内部境界の変更理由だけでは変えない。
+- Context manifestはread-only navigationのままとする。実読込telemetry、persistent index、hard budget enforcementは、効果とauthorityを独立に判断する後続事項であり、manifest v1へ暗黙追加しない。
+
 ## 実装AIに渡す標準プロンプト
 
 ```text
