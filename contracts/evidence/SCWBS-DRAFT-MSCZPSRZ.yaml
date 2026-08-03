@@ -1,0 +1,62 @@
+id: EVD-SCWBS-DRAFT-MSCZPSRZ
+type: evidence
+taskId: SCWBS-DRAFT-MSCZPSRZ
+commit: 6af7c43b067e45679b7f104bc6414434fd6e8951
+subjectHeadCommit: 6af7c43b067e45679b7f104bc6414434fd6e8951
+diffHash: sha256:ee065010fa26ff6e9472de0acb609b47a2f56817d5814a2840cf008b2db24d71
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 6af7c43b067e45679b7f104bc6414434fd6e8951
+    treeHash: d143cd84ab2abcb09c1d3adb218e6f0ece373f9c
+    diffHash: sha256:ee065010fa26ff6e9472de0acb609b47a2f56817d5814a2840cf008b2db24d71
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSCZPSRZ.patch
+    manifestHash: sha256:ee065010fa26ff6e9472de0acb609b47a2f56817d5814a2840cf008b2db24d71
+git:
+  branch: task/SCWBS-DRAFT-MSCZPSRZ-issue-378-required-check-single-flight-lock-pid
+  base: origin/main
+  baseCommit: 8d1823b3c05280c88972031ea0ff4d5c9a7ea0a2
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 6af7c43b067e45679b7f104bc6414434fd6e8951
+  diffHash: sha256:ee065010fa26ff6e9472de0acb609b47a2f56817d5814a2840cf008b2db24d71
+  headCommit: 6af7c43b067e45679b7f104bc6414434fd6e8951
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSCZPSRZ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/tasks/index.yaml
+  - src/core/required-check-run.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:60e12988a7980860d77283a842f4c53a74ea69f2554896586bdf11b1b56a72c9
+    durationMilliseconds: 19560
+    executedAt: "2026-08-03T09:50:38.608Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b9e6e82dc92a69d0af480ef7cf1d05a422f31f6e52fbc7b4e083363d43788085
+    durationMilliseconds: 229743
+    executedAt: "2026-08-03T09:54:28.373Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ebf213b03d3548faa647afbe96d1aeca4e8843d6800e92f8a9257478c64273bd
+    durationMilliseconds: 12395
+    executedAt: "2026-08-03T09:54:40.840Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:09a3c6825922ab96f263e1fea929f4ef73068ca5aad6bf57a46831c37063e973
+    durationMilliseconds: 4646
+    executedAt: "2026-08-03T09:54:45.497Z"
