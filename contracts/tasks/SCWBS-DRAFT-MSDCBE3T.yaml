@@ -1,0 +1,56 @@
+id: SCWBS-DRAFT-MSDCBE3T
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSDCBE3T
+branchName: task/SCWBS-DRAFT-MSDCBE3T-issue-377-review-validation-dead-code
+allowedPaths:
+  - src/commands/check.ts
+  - docs/implementation-gaps.md
+  - contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/specs/SPEC-LITE-MSDCBE3T.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSDCBE3T.patch
+  - contracts/approvals/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - '`skipReviewValidation` is removed from `src/commands/check.ts` and no source reference remains.'
+  - '`docs/implementation-gaps.md` states that review independence is not enforced by `scwbs check` and remains a policy gap.'
+  - Existing check behavior remains covered by the required test, typecheck, and build checks.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/specs/SPEC-LITE-MSDCBE3T.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSDCBE3T.patch
+  - contracts/approvals/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSDCBE3T.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:749bcf2f0aec87b1364b5d41bc844a988d456195194d2171f4d360293f9347d5
+  createdAt: "2026-08-03T14:46:10.568Z"

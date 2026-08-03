@@ -42,7 +42,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
 | Test quality | Diff-aware assertion and coverage inspection | `testQuality` can be recorded as Evidence metadata, but source diffs and coverage reports are not parsed yet |
 | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
-| Review independence | Separate independent review mode | Single-session review is still policy-driven, not enforced by the tool |
+| Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
 | CI integration | PR feedback and CI evidence correlation | GitHub Actions run the local checks, but PR feedback and Evidence links to CI runs are not wired into the workflow yet |
 | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
 | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |

@@ -1,0 +1,109 @@
+diff --git a/contracts/specs/SPEC-LITE-MSDCBE3T.yaml b/contracts/specs/SPEC-LITE-MSDCBE3T.yaml
+new file mode 100644
+index 0000000..d133833
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSDCBE3T.yaml
+@@ -0,0 +1,13 @@
++id: SPEC-LITE-MSDCBE3T
++type: spec-contract
++featureId: F-MSDCBE3T
++title: "GitHub Issue #377: remove the unused skipReviewValidation helper and clarify that review independence is not enforced by scwbs check"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-github-issue-377
++approvedAt: "2026-08-03T00:00:00Z"
++summary: "GitHub Issue #377: remove the unused skipReviewValidation helper and clarify that review independence is not enforced by scwbs check"
++acceptanceCriteria:
++  - '`skipReviewValidation` is deleted because `scwbs check` has no review-validation call site, and repository search finds no remaining source reference.'
++  - '`docs/implementation-gaps.md` explicitly records that review independence is policy-driven and is not enforced by `scwbs check`.'
++  - 'The change does not add review validation or alter the existing `scwbs check` result set.'
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml b/contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
+new file mode 100644
+index 0000000..3450144
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
+@@ -0,0 +1,56 @@
++id: SCWBS-DRAFT-MSDCBE3T
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSDCBE3T
++branchName: task/SCWBS-DRAFT-MSDCBE3T-issue-377-review-validation-dead-code
++allowedPaths:
++  - src/commands/check.ts
++  - docs/implementation-gaps.md
++  - contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/specs/SPEC-LITE-MSDCBE3T.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSDCBE3T.patch
++  - contracts/approvals/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - '`skipReviewValidation` is removed from `src/commands/check.ts` and no source reference remains.'
++  - '`docs/implementation-gaps.md` states that review independence is not enforced by `scwbs check` and remains a policy gap.'
++  - Existing check behavior remains covered by the required test, typecheck, and build checks.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/specs/SPEC-LITE-MSDCBE3T.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSDCBE3T.patch
++  - contracts/approvals/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSDCBE3T.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:749bcf2f0aec87b1364b5d41bc844a988d456195194d2171f4d360293f9347d5
++  createdAt: "2026-08-03T14:46:10.568Z"
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index e08d8ab..3b8af5a 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -42,7 +42,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
+ | Test quality | Diff-aware assertion and coverage inspection | `testQuality` can be recorded as Evidence metadata, but source diffs and coverage reports are not parsed yet |
+ | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
+-| Review independence | Separate independent review mode | Single-session review is still policy-driven, not enforced by the tool |
++| Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
+ | CI integration | PR feedback and CI evidence correlation | GitHub Actions run the local checks, but PR feedback and Evidence links to CI runs are not wired into the workflow yet |
+ | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
+ | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index f24ffa5..b7d725c 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -225,10 +225,6 @@ function skipSpecValidation(profile: Profile): boolean {
+   return profile === "Lean";
+ }
+ 
+-function skipReviewValidation(profile: Profile): boolean {
+-  return profile === "Lean";
+-}
+-
+ function validateCompletionTaskIds(root: string): Issue[] {
+   const issues: Issue[] = [];
+   const tasks = listTasks(root);

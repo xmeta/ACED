@@ -225,10 +225,6 @@ function skipSpecValidation(profile: Profile): boolean {
   return profile === "Lean";
 }
 
-function skipReviewValidation(profile: Profile): boolean {
-  return profile === "Lean";
-}
-
 function validateCompletionTaskIds(root: string): Issue[] {
   const issues: Issue[] = [];
   const tasks = listTasks(root);
