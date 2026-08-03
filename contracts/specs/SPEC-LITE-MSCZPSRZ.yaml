@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSCZPSRZ
+type: spec-contract
+featureId: F-MSCZPSRZ
+title: "Issue #378: required-check single-flight lockのPID再利用による永久ブロックを防止する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-03T00:00:00+09:00"
+version: 0.1.0
+summary: "PIDが別processに再利用された際にrequired-check lockが永久化する問題を、保守的な経過時間上限と回帰testで解消する"
+acceptanceCriteria:
+  - PIDが生存していてもstartedAtから保守的な最大実行時間を超えたlockをstaleと判定し回復できる
+  - 有効なstartedAtを持つ短時間の生存PID lockは引き続き重複実行を拒否する
+  - 死亡PIDと不正lockの既存回復挙動を維持する
+  - PID再利用を模したintegration回帰testとtest、test:integration、typecheck、buildが成功する
+  - public CLI、JSON schema、lock stateの必須fieldを破壊的に変更しない
