@@ -1,0 +1,14 @@
+id: SPEC-LITE-MSD9SKUE
+type: spec-contract
+featureId: F-MSD9SKUE
+title: "Issue #376 lint warning cap and phased enforcement"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-03T12:00:00+09:00"
+version: 0.1.0
+summary: "Keep the measured ESLint baseline as a finite gate and document how to tighten it incrementally."
+acceptanceCriteria:
+  - npm run lint uses --max-warnings=37, matching the measured 37-warning baseline before implementation
+  - npm run lint exits non-zero when the warning count exceeds 37
+  - README explains that 37 is a measured temporary cap and must be lowered only after warnings are removed and remeasured
+  - no source, test, script, WJS, dependency, or CI changes are required for this bounded phase
