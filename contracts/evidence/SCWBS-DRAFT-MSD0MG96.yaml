@@ -1,0 +1,59 @@
+id: EVD-SCWBS-DRAFT-MSD0MG96
+type: evidence
+taskId: SCWBS-DRAFT-MSD0MG96
+commit: b80ec4f972026e633b0b13280a60b1f8eb33f027
+subjectHeadCommit: b80ec4f972026e633b0b13280a60b1f8eb33f027
+diffHash: sha256:306c1971a6c4d150ffc8528bbb6528f7bf9fa7e8e03e8609d749d4e98bb8775d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: b80ec4f972026e633b0b13280a60b1f8eb33f027
+    treeHash: 1f27a0952e459b373cb4332ca1e4270f16afb626
+    diffHash: sha256:306c1971a6c4d150ffc8528bbb6528f7bf9fa7e8e03e8609d749d4e98bb8775d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSD0MG96.patch
+    manifestHash: sha256:306c1971a6c4d150ffc8528bbb6528f7bf9fa7e8e03e8609d749d4e98bb8775d
+git:
+  branch: task/SCWBS-DRAFT-MSD0MG96-issue-379-integration-runner-10-timeout-fresh-cl
+  base: origin/main
+  baseCommit: a25b7ade76c74d849631a473c98c0c3b8d46b0a2
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: b80ec4f972026e633b0b13280a60b1f8eb33f027
+  diffHash: sha256:306c1971a6c4d150ffc8528bbb6528f7bf9fa7e8e03e8609d749d4e98bb8775d
+  headCommit: b80ec4f972026e633b0b13280a60b1f8eb33f027
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSD0MG96.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml
+  - tests/integration/status.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:1778abf9c986d3d5bbde2af4b5620b2fcce9fbb2c768415bbdeb997f5b67c119
+    durationMilliseconds: 18007
+    executedAt: "2026-08-03T09:21:36.847Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:416d9230576ca412d29c0e895bfc0245df69c9b1159fa478e90f31c8812ca218
+    durationMilliseconds: 212815
+    executedAt: "2026-08-03T09:25:09.673Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:cd8dccc422791ae5ad0d36d5b7c2bb8d0893a0a5e21611ae6a9c2b411ea3fca7
+    durationMilliseconds: 10191
+    executedAt: "2026-08-03T09:25:19.910Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:06a01963e331bf14a47849e9398b94ccadcb71788f22bf43d37de4337e3f9671
+    durationMilliseconds: 4033
+    executedAt: "2026-08-03T09:25:23.949Z"

@@ -1,0 +1,115 @@
+diff --git a/contracts/specs/SPEC-LITE-MSD0MG96.yaml b/contracts/specs/SPEC-LITE-MSD0MG96.yaml
+new file mode 100644
+index 0000000..bd24968
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSD0MG96.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSD0MG96
++type: spec-contract
++featureId: F-MSD0MG96
++title: "Issue #379: I/O-heavy fresh-clone provenance testのtimeout budgetを明示する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-03T00:00:00+09:00"
++version: 0.1.0
++summary: "fresh cloneとEvidence収集を行うI/O-heavy testに有限なtest単位timeoutを持たせ、suite全体の固定10秒budgetによる誤検出を防ぐ"
++acceptanceCriteria:
++  - fresh-clone provenance testにI/O-heavy分類の明示的で有限なtimeout budgetを設定する
++  - canonical runnerの10秒既定値とrerun commandから実行してもtest単位overrideで成功する
++  - integration suite全体のtimeoutと対象testのassertionを変更しない
++  - 変更前の10秒timeoutと変更後のwall timeをIssueに記録する
++  - test、test:integration、typecheck、buildが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml b/contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml
+new file mode 100644
+index 0000000..2ed8f9f
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml
+@@ -0,0 +1,66 @@
++id: SCWBS-DRAFT-MSD0MG96
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSD0MG96
++branchName: task/SCWBS-DRAFT-MSD0MG96-issue-379-integration-runner-10-timeout-fresh-cl
++allowedPaths:
++  - tests/integration/status.test.ts
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - scripts/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - tsconfig.tests.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - README.md
++  - docs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - integration suite全体のtimeout引き上げやrunnerのpublic option変更が必要
++  - 対象testのassertionまたはprovenance意味を弱める必要がある
++doneCriteria:
++  - fresh-clone provenance testにI/O-heavy分類の明示的で有限なtimeout budgetを設定する
++  - canonical runnerの10秒既定値とそのrerun commandでもtest単位overrideが適用され成功する
++  - integration suite全体のtimeoutと対象testのassertionを変更しない
++  - 変更前の10秒timeoutと変更後のwall timeをIssueに記録する
++  - test、test:integration、typecheck、buildが成功する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml
++  - contracts/specs/SPEC-LITE-MSD0MG96.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSD0MG96.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSD0MG96.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSD0MG96.patch
++  - contracts/approvals/SCWBS-DRAFT-MSD0MG96.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSD0MG96.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d890aea8431e55dd6204777ec8ea8c7c1e0a75872c1eeb5d5906d5cffd516b7c
++  createdAt: "2026-08-03T09:19:25.093Z"
+diff --git a/tests/integration/status.test.ts b/tests/integration/status.test.ts
+index 14a0015..d266174 100644
+--- a/tests/integration/status.test.ts
++++ b/tests/integration/status.test.ts
+@@ -27,6 +27,8 @@ import {
+   writeYaml
+ } from "../helpers.js";
+ 
++const freshCloneTestTimeoutMs = 30_000;
++
+ function writeTerminalTaskIndex(root: string, status: "completed" | "archived" | "cancelled" = "archived"): void {
+   const task = sampleTask();
+   writeYaml(root, "contracts/tasks/index.yaml", {
+@@ -251,7 +253,7 @@ describe("status completion trust", () => {
+       notEvaluated: 0
+     });
+     rmSync(clone, { recursive: true, force: true });
+-  });
++  }, freshCloneTestTimeoutMs);
+ 
+   test("supports bounded JSON, strict mode, help, and excludes cancelled Tasks", () => {
+     const root = makeTempRepo();
