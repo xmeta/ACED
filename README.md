@@ -240,7 +240,7 @@ Run the full local verification set:
 npm test                    # unit tests only (fast)
 npm run test:integration    # integration tests (heavier)
 npm run test:all            # all tests
-npm run lint                # ESLint baseline (warnings are reported but do not fail yet)
+npm run lint                # ESLint baseline gate (currently up to 37 warnings)
 npm run format              # format source, tests, scripts, docs, and root config files
 npm run typecheck
 npm run build
@@ -257,9 +257,11 @@ with `checkJs`; implicit JavaScript parameter types remain a documented
 migration boundary, but other inferred type errors are checked.
 
 `npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`.
-The initial baseline reports recommended JavaScript and TypeScript findings as
-warnings so adoption does not require a bulk source rewrite. Warning counts
-should be measured before individual rules are promoted to errors. Prettier is
+The measured baseline is currently 37 warnings, and the command fails when a
+change increases that count. This finite cap provides a phased adoption path:
+remove existing warnings, then lower `--max-warnings` to the new measured
+baseline. Individual rules can be promoted to errors in later, separately
+scoped changes; this task does not bulk-rewrite existing source. Prettier is
 available through the explicit `npm run format` write command and is not run
 automatically by CI.
 
