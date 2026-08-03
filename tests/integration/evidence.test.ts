@@ -212,6 +212,26 @@ describe("evidence collect", () => {
     releaseRequiredCheckRun(recovered);
   });
 
+  test("required-check single-flight recovers a live PID lock after its maximum age", () => {
+    const root = prepareEvidenceOutputRepo();
+    const lockPath = requiredCheckLockPath(root);
+    const first = acquireRequiredCheckRun(root, "WBS-001-004", 1);
+    writeText(root, path.relative(root, lockPath), JSON.stringify({
+      ...first.state,
+      runId: "reused-pid-run",
+      pid: process.pid,
+      startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString()
+    }));
+    let recovered: ReturnType<typeof acquireRequiredCheckRun> | undefined;
+    try {
+      recovered = acquireRequiredCheckRun(root, "WBS-001-005", 1);
+      expect(recovered.state.taskId).toBe("WBS-001-005");
+    } finally {
+      if (recovered) releaseRequiredCheckRun(recovered);
+      else rmSync(lockPath, { force: true });
+    }
+  });
+
   test("required-check integration child inherits the existing repository lease", () => {
     const root = prepareEvidenceOutputRepo();
     const lease = acquireRequiredCheckRun(root, "WBS-001-004", 1);

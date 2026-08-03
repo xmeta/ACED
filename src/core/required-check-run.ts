@@ -23,6 +23,8 @@ export type RequiredCheckRunLease = {
 };
 
 const invalidLockGraceMs = 5_000;
+// Required checks normally finish within hours; a full day keeps recovery conservative.
+const maximumLockAgeMs = 24 * 60 * 60 * 1_000;
 
 export function gitCommonDir(root: string): string {
   const result = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
@@ -58,7 +60,11 @@ function readState(lockPath: string): RequiredCheckRunState | undefined {
 }
 
 function staleOrInvalid(lockPath: string, state: RequiredCheckRunState | undefined): boolean {
-  if (state) return !processIsAlive(state.pid);
+  if (state) {
+    if (!processIsAlive(state.pid)) return true;
+    const startedAt = Date.parse(state.startedAt);
+    return Number.isFinite(startedAt) && Date.now() - startedAt >= maximumLockAgeMs;
+  }
   try {
     return Date.now() - statSync(lockPath).mtimeMs >= invalidLockGraceMs;
   } catch {
