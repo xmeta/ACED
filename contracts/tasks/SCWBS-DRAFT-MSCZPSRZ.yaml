@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MSCZPSRZ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSCZPSRZ
+branchName: task/SCWBS-DRAFT-MSCZPSRZ-issue-378-required-check-single-flight-lock-pid
+allowedPaths:
+  - src/core/required-check-run.ts
+  - tests/integration/evidence.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - tsconfig.tests.json
+  - vitest.config.ts
+  - .github/**
+  - AGENTS.md
+  - README.md
+  - docs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+  - OS固有のprocess identity、外部service、または新しい設定入力が必要
+  - 正常な短時間実行中lockの排他性を弱める必要がある
+doneCriteria:
+  - PIDが生存していてもstartedAtから保守的な最大実行時間を超えたlockをstaleと判定し回復できる
+  - 有効なstartedAtを持つ短時間の生存PID lockは引き続き重複実行を拒否する
+  - 死亡PIDと不正lockの既存回復挙動を維持する
+  - PID再利用を模したintegration回帰testと既存required checksが成功する
+  - public CLI、JSON schema、lock stateの必須fieldを破壊的に変更しない
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/specs/SPEC-LITE-MSCZPSRZ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSCZPSRZ.patch
+  - contracts/approvals/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSCZPSRZ.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:77500b657be9e3278d4cf3d4abeaaec04f87e61a8099c36261cea330df7f2389
+  createdAt: "2026-08-03T08:54:05.277Z"

@@ -1,0 +1,193 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml b/contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml
+new file mode 100644
+index 0000000..1cc992a
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSCZPSRZ
++type: block
++taskId: SCWBS-DRAFT-MSCZPSRZ
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: "required check test:integrationが無関係な固定10秒timeout不具合 Issue #379 で失敗し、allowedPaths外の修正が必要"
++createdAt: "2026-08-03T09:07:26.151Z"
++history:
++  - status: blocked
++    at: "2026-08-03T09:07:26.151Z"
++    reason: "required check test:integrationが無関係な固定10秒timeout不具合 Issue #379 で失敗し、allowedPaths外の修正が必要"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-03T09:41:00.794Z"
++    reason: "Issue #379をPR #380で解決し、archive PR #381とpost-merge検証も完了したため再開する"
++    by: human
++resolvedAt: "2026-08-03T09:41:00.794Z"
++resolvedBy: human
++resolution: "Issue #379をPR #380で解決し、archive PR #381とpost-merge検証も完了したため再開する"
+diff --git a/contracts/specs/SPEC-LITE-MSCZPSRZ.yaml b/contracts/specs/SPEC-LITE-MSCZPSRZ.yaml
+new file mode 100644
+index 0000000..6bb89f7
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSCZPSRZ.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSCZPSRZ
++type: spec-contract
++featureId: F-MSCZPSRZ
++title: "Issue #378: required-check single-flight lockのPID再利用による永久ブロックを防止する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-03T00:00:00+09:00"
++version: 0.1.0
++summary: "PIDが別processに再利用された際にrequired-check lockが永久化する問題を、保守的な経過時間上限と回帰testで解消する"
++acceptanceCriteria:
++  - PIDが生存していてもstartedAtから保守的な最大実行時間を超えたlockをstaleと判定し回復できる
++  - 有効なstartedAtを持つ短時間の生存PID lockは引き続き重複実行を拒否する
++  - 死亡PIDと不正lockの既存回復挙動を維持する
++  - PID再利用を模したintegration回帰testとtest、test:integration、typecheck、buildが成功する
++  - public CLI、JSON schema、lock stateの必須fieldを破壊的に変更しない
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml b/contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
+new file mode 100644
+index 0000000..e85c7ea
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
+@@ -0,0 +1,65 @@
++id: SCWBS-DRAFT-MSCZPSRZ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSCZPSRZ
++branchName: task/SCWBS-DRAFT-MSCZPSRZ-issue-378-required-check-single-flight-lock-pid
++allowedPaths:
++  - src/core/required-check-run.ts
++  - tests/integration/evidence.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - tsconfig.tests.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - README.md
++  - docs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - OS固有のprocess identity、外部service、または新しい設定入力が必要
++  - 正常な短時間実行中lockの排他性を弱める必要がある
++doneCriteria:
++  - PIDが生存していてもstartedAtから保守的な最大実行時間を超えたlockをstaleと判定し回復できる
++  - 有効なstartedAtを持つ短時間の生存PID lockは引き続き重複実行を拒否する
++  - 死亡PIDと不正lockの既存回復挙動を維持する
++  - PID再利用を模したintegration回帰testと既存required checksが成功する
++  - public CLI、JSON schema、lock stateの必須fieldを破壊的に変更しない
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
++  - contracts/specs/SPEC-LITE-MSCZPSRZ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSCZPSRZ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSCZPSRZ.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSCZPSRZ.patch
++  - contracts/approvals/SCWBS-DRAFT-MSCZPSRZ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSCZPSRZ.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:77500b657be9e3278d4cf3d4abeaaec04f87e61a8099c36261cea330df7f2389
++  createdAt: "2026-08-03T08:54:05.277Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 1a9dc28..368c184 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1455,6 +1455,12 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-02T15:53:58.621Z"
++  - id: SCWBS-DRAFT-MSCZPSRZ
++    path: contracts/tasks/SCWBS-DRAFT-MSCZPSRZ.yaml
++    branchName: task/SCWBS-DRAFT-MSCZPSRZ-issue-378-required-check-single-flight-lock-pid
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+   - id: SCWBS-DRAFT-MSD0MG96
+     path: contracts/tasks/SCWBS-DRAFT-MSD0MG96.yaml
+     branchName: task/SCWBS-DRAFT-MSD0MG96-issue-379-integration-runner-10-timeout-fresh-cl
+diff --git a/src/core/required-check-run.ts b/src/core/required-check-run.ts
+index fb89ed2..8e408ef 100644
+--- a/src/core/required-check-run.ts
++++ b/src/core/required-check-run.ts
+@@ -23,6 +23,8 @@ export type RequiredCheckRunLease = {
+ };
+ 
+ const invalidLockGraceMs = 5_000;
++// Required checks normally finish within hours; a full day keeps recovery conservative.
++const maximumLockAgeMs = 24 * 60 * 60 * 1_000;
+ 
+ export function gitCommonDir(root: string): string {
+   const result = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" });
+@@ -58,7 +60,11 @@ function readState(lockPath: string): RequiredCheckRunState | undefined {
+ }
+ 
+ function staleOrInvalid(lockPath: string, state: RequiredCheckRunState | undefined): boolean {
+-  if (state) return !processIsAlive(state.pid);
++  if (state) {
++    if (!processIsAlive(state.pid)) return true;
++    const startedAt = Date.parse(state.startedAt);
++    return Number.isFinite(startedAt) && Date.now() - startedAt >= maximumLockAgeMs;
++  }
+   try {
+     return Date.now() - statSync(lockPath).mtimeMs >= invalidLockGraceMs;
+   } catch {
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 44799c8..bf9b639 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -212,6 +212,26 @@ describe("evidence collect", () => {
+     releaseRequiredCheckRun(recovered);
+   });
+ 
++  test("required-check single-flight recovers a live PID lock after its maximum age", () => {
++    const root = prepareEvidenceOutputRepo();
++    const lockPath = requiredCheckLockPath(root);
++    const first = acquireRequiredCheckRun(root, "WBS-001-004", 1);
++    writeText(root, path.relative(root, lockPath), JSON.stringify({
++      ...first.state,
++      runId: "reused-pid-run",
++      pid: process.pid,
++      startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString()
++    }));
++    let recovered: ReturnType<typeof acquireRequiredCheckRun> | undefined;
++    try {
++      recovered = acquireRequiredCheckRun(root, "WBS-001-005", 1);
++      expect(recovered.state.taskId).toBe("WBS-001-005");
++    } finally {
++      if (recovered) releaseRequiredCheckRun(recovered);
++      else rmSync(lockPath, { force: true });
++    }
++  });
++
+   test("required-check integration child inherits the existing repository lease", () => {
+     const root = prepareEvidenceOutputRepo();
+     const lease = acquireRequiredCheckRun(root, "WBS-001-004", 1);
