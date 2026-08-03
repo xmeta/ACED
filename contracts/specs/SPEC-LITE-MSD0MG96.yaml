@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSD0MG96
+type: spec-contract
+featureId: F-MSD0MG96
+title: "Issue #379: I/O-heavy fresh-clone provenance testのtimeout budgetを明示する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-03T00:00:00+09:00"
+version: 0.1.0
+summary: "fresh cloneとEvidence収集を行うI/O-heavy testに有限なtest単位timeoutを持たせ、suite全体の固定10秒budgetによる誤検出を防ぐ"
+acceptanceCriteria:
+  - fresh-clone provenance testにI/O-heavy分類の明示的で有限なtimeout budgetを設定する
+  - canonical runnerの10秒既定値とrerun commandから実行してもtest単位overrideで成功する
+  - integration suite全体のtimeoutと対象testのassertionを変更しない
+  - 変更前の10秒timeoutと変更後のwall timeをIssueに記録する
+  - test、test:integration、typecheck、buildが成功する
