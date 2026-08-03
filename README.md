@@ -234,12 +234,19 @@ Tests are split into two groups:
 - `tests/unit/` – fast, lightweight tests used by the default `npm test` command.
 - `tests/integration/` – heavier tests that create temporary Git repositories.
 
+Coverage commands use the same two scopes:
+
+- `npm run test:coverage` – unit-only coverage for fast local feedback.
+- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report is written to `coverage/`. The deliberately large receipt-bound stress case is excluded from this instrumented run because its per-test timeout is lower than its synchronous filesystem workload; the complete integration suite remains covered by `npm run test:integration`.
+
 Run the full local verification set:
 
 ```bash
 npm test                    # unit tests only (fast)
 npm run test:integration    # integration tests (heavier)
 npm run test:all            # all tests
+npm run test:coverage       # unit-only coverage (fast)
+npm run test:coverage:all   # unit and integration coverage
 npm run lint                # ESLint baseline gate (currently up to 37 warnings)
 npm run format              # format source, tests, scripts, docs, and root config files
 npm run typecheck

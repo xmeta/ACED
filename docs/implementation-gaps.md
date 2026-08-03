@@ -29,6 +29,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
 - WBS status summary
 - WJS semantic apply wrapper
+- Unit and integration test coverage measurement, including a CI-retained report
 
 ## Still Missing
 
@@ -40,7 +41,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
 | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
 | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
-| Test quality | Diff-aware assertion and coverage inspection | `testQuality` can be recorded as Evidence metadata, but source diffs and coverage reports are not parsed yet |
+| Test quality | Diff-aware assertion and coverage inspection | Unit-only and combined unit/integration coverage reports are measured locally and in CI, but source diffs and coverage reports are not parsed and no threshold gate is enforced |
 | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
 | Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
 | CI integration | PR feedback and CI evidence correlation | GitHub Actions run the local checks, but PR feedback and Evidence links to CI runs are not wired into the workflow yet |

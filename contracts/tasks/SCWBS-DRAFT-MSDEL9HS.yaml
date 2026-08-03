@@ -1,0 +1,60 @@
+id: SCWBS-DRAFT-MSDEL9HS
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSDEL9HS
+branchName: task/SCWBS-DRAFT-MSDEL9HS-issue-375-effective-coverage-ci
+allowedPaths:
+  - package.json
+  - .github/workflows/scwbs.yml
+  - README.md
+  - docs/implementation-gaps.md
+  - contracts/tasks/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/specs/SPEC-LITE-MSDEL9HS.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSDEL9HS.patch
+  - contracts/approvals/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - '`test:coverage` remains the documented unit-only fast path.'
+  - '`test:coverage:all` measures both unit and integration tests with the existing V8 coverage provider and produces a reviewable report.'
+  - CI runs the combined coverage command and retains its report as an artifact without adding a coverage threshold gate.
+  - README and docs/implementation-gaps.md distinguish unit-only and combined coverage, and record the CI measurement boundary.
+  - No source behavior, integration runner semantics, or coverage threshold policy changes are introduced.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/specs/SPEC-LITE-MSDEL9HS.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSDEL9HS.patch
+  - contracts/approvals/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSDEL9HS.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:f92275dda5930a84e40f569cd9fe8e8add7034296a422a5ce011764070d78dd9
+  createdAt: "2026-08-03T15:49:18.931Z"
