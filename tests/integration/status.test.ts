@@ -27,6 +27,8 @@ import {
   writeYaml
 } from "../helpers.js";
 
+const freshCloneTestTimeoutMs = 30_000;
+
 function writeTerminalTaskIndex(root: string, status: "completed" | "archived" | "cancelled" = "archived"): void {
   const task = sampleTask();
   writeYaml(root, "contracts/tasks/index.yaml", {
@@ -251,7 +253,7 @@ describe("status completion trust", () => {
       notEvaluated: 0
     });
     rmSync(clone, { recursive: true, force: true });
-  });
+  }, freshCloneTestTimeoutMs);
 
   test("supports bounded JSON, strict mode, help, and excludes cancelled Tasks", () => {
     const root = makeTempRepo();
