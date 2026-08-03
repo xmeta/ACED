@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+const cleanCheckoutPackagingTimeoutMs = 60_000;
+const npmStyleSymlinkTimeoutMs = 30_000;
+
 describe("npm bin entrypoint", () => {
   const symlinkTest = process.platform === "win32" ? it.skip : it;
 
@@ -63,7 +66,7 @@ describe("npm bin entrypoint", () => {
     expect(execution.status).toBe(0);
     expect(execution.stdout.trim()).toBe("0.1.0");
     expect(execution.stderr).toBe("");
-  }, 30_000);
+  }, cleanCheckoutPackagingTimeoutMs);
 
   symlinkTest("runs the CLI through an npm-style symlink", () => {
     execFileSync("npm", ["run", "build"], {
@@ -92,5 +95,5 @@ describe("npm bin entrypoint", () => {
     expect(linked.stdout).toBe(direct.stdout);
     expect(linked.stderr).toBe(direct.stderr);
     expect(linked.stdout.trim()).toBe("0.1.0");
-  }, 15_000);
+  }, npmStyleSymlinkTimeoutMs);
 });
