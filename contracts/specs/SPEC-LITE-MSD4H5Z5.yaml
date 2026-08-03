@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSD4H5Z5
+type: spec-contract
+featureId: F-MSD4H5Z5
+title: "Issue #382: 4-worker integration負荷でpackaging testがtimeoutする問題を、assertionを弱めず有限budgetとbounded failure診断で安定化する"
+status: approved
+approvedBy: xmeta
+approvedAt: "2026-08-03T00:00:00+09:00"
+version: 0.1.0
+summary: "4-worker負荷でCPU/I/O-heavyなpackaging testが固定budgetを超える問題を、assertionを維持した有限budgetと欠落しないbounded failure診断で安定化する"
+acceptanceCriteria:
+  - packaging testのCPU/I/O-heavy phaseを特定し、assertionを維持した有限なtest単位timeoutまたはfile内serial化で安定化する
+  - 既定4 workersと2 workersのfull integrationが繰り返し成功する
+  - 複数失敗時のbounded診断が各failureのfile、test名、原因、rerun commandを保持する
+  - 変更前後のwall time、timeout数、receipt再実行回数をIssueに記録する
+  - test、test:integration、typecheck、buildが成功する

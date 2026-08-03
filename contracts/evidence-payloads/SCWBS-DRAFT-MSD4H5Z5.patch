@@ -1,0 +1,124 @@
+diff --git a/contracts/specs/SPEC-LITE-MSD4H5Z5.yaml b/contracts/specs/SPEC-LITE-MSD4H5Z5.yaml
+new file mode 100644
+index 0000000..a686477
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSD4H5Z5.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSD4H5Z5
++type: spec-contract
++featureId: F-MSD4H5Z5
++title: "Issue #382: 4-worker integration負荷でpackaging testがtimeoutする問題を、assertionを弱めず有限budgetとbounded failure診断で安定化する"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-03T00:00:00+09:00"
++version: 0.1.0
++summary: "4-worker負荷でCPU/I/O-heavyなpackaging testが固定budgetを超える問題を、assertionを維持した有限budgetと欠落しないbounded failure診断で安定化する"
++acceptanceCriteria:
++  - packaging testのCPU/I/O-heavy phaseを特定し、assertionを維持した有限なtest単位timeoutまたはfile内serial化で安定化する
++  - 既定4 workersと2 workersのfull integrationが繰り返し成功する
++  - 複数失敗時のbounded診断が各failureのfile、test名、原因、rerun commandを保持する
++  - 変更前後のwall time、timeout数、receipt再実行回数をIssueに記録する
++  - test、test:integration、typecheck、buildが成功する
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSD4H5Z5.yaml b/contracts/tasks/SCWBS-DRAFT-MSD4H5Z5.yaml
+new file mode 100644
+index 0000000..e3a105b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSD4H5Z5.yaml
+@@ -0,0 +1,67 @@
++id: SCWBS-DRAFT-MSD4H5Z5
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSD4H5Z5
++branchName: task/SCWBS-DRAFT-MSD4H5Z5-issue-382-4-worker-integration-packaging-test-ti
++allowedPaths:
++  - tests/integration/packaging.test.ts
++  - scripts/integration-test-output.mjs
++  - tests/unit/integration-test-output.test.ts
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - tsconfig.tests.json
++  - vitest.config.ts
++  - .github/**
++  - AGENTS.md
++  - README.md
++  - docs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++stopIf:
++  - allowedPaths外またはHuman Gate対象の変更が必要
++  - integration suite全体のtimeout、worker既定値、packageまたはCI設定の変更が必要
++  - packaging assertionまたはbounded診断の情報量を弱める必要がある
++doneCriteria:
++  - packaging testのCPU/I/O-heavy phaseを特定し、assertionを維持した有限なtest単位timeoutまたはfile内serial化で安定化する
++  - 既定4 workersと2 workersのfull integrationが繰り返し成功する
++  - 複数失敗時のbounded診断が各failureのfile、test名、原因、rerun commandを保持する
++  - 変更前後のwall time、timeout数、receipt再実行回数をIssueに記録する
++  - test、test:integration、typecheck、buildが成功する
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSD4H5Z5.yaml
++  - contracts/specs/SPEC-LITE-MSD4H5Z5.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSD4H5Z5.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSD4H5Z5.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSD4H5Z5.patch
++  - contracts/approvals/SCWBS-DRAFT-MSD4H5Z5.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSD4H5Z5.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:0b4074813e463ddb66cd6d78053699bd0e31b01a74a1f856739c891d13cb5e77
++  createdAt: "2026-08-03T11:06:41.389Z"
+diff --git a/tests/integration/packaging.test.ts b/tests/integration/packaging.test.ts
+index 121870f..a67b805 100644
+--- a/tests/integration/packaging.test.ts
++++ b/tests/integration/packaging.test.ts
+@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
+ import path from "node:path";
+ import { describe, expect, it } from "vitest";
+ 
++const cleanCheckoutPackagingTimeoutMs = 60_000;
++const npmStyleSymlinkTimeoutMs = 30_000;
++
+ describe("npm bin entrypoint", () => {
+   const symlinkTest = process.platform === "win32" ? it.skip : it;
+ 
+@@ -63,7 +66,7 @@ describe("npm bin entrypoint", () => {
+     expect(execution.status).toBe(0);
+     expect(execution.stdout.trim()).toBe("0.1.0");
+     expect(execution.stderr).toBe("");
+-  }, 30_000);
++  }, cleanCheckoutPackagingTimeoutMs);
+ 
+   symlinkTest("runs the CLI through an npm-style symlink", () => {
+     execFileSync("npm", ["run", "build"], {
+@@ -92,5 +95,5 @@ describe("npm bin entrypoint", () => {
+     expect(linked.stdout).toBe(direct.stdout);
+     expect(linked.stderr).toBe(direct.stderr);
+     expect(linked.stdout.trim()).toBe("0.1.0");
+-  }, 15_000);
++  }, npmStyleSymlinkTimeoutMs);
+ });

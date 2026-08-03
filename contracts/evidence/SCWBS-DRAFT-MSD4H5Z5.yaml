@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MSD4H5Z5
+type: evidence
+taskId: SCWBS-DRAFT-MSD4H5Z5
+commit: fdc1b1eca2887e9e763bf7e1d4016b19eb2fde71
+subjectHeadCommit: fdc1b1eca2887e9e763bf7e1d4016b19eb2fde71
+diffHash: sha256:1d7096f3fe1ef484d79d01a9a9364365e3f12b38600ee589a3b4ca50a6d4a824
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: fdc1b1eca2887e9e763bf7e1d4016b19eb2fde71
+    treeHash: 9ac187294897edc10c9d07d383ab1a03e3cde65e
+    diffHash: sha256:1d7096f3fe1ef484d79d01a9a9364365e3f12b38600ee589a3b4ca50a6d4a824
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSD4H5Z5.patch
+    manifestHash: sha256:1d7096f3fe1ef484d79d01a9a9364365e3f12b38600ee589a3b4ca50a6d4a824
+git:
+  branch: task/SCWBS-DRAFT-MSD4H5Z5-issue-382-4-worker-integration-packaging-test-ti
+  base: origin/main
+  baseCommit: a74d65e99867f074f593db27defa8c1fbe844a19
+  changedFilesBasis: branch-diff
+  pullRequest: "385"
+  subjectHeadCommit: fdc1b1eca2887e9e763bf7e1d4016b19eb2fde71
+  diffHash: sha256:1d7096f3fe1ef484d79d01a9a9364365e3f12b38600ee589a3b4ca50a6d4a824
+  headCommit: fdc1b1eca2887e9e763bf7e1d4016b19eb2fde71
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSD4H5Z5.patch
+  - contracts/evidence/SCWBS-DRAFT-MSD4H5Z5.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSD4H5Z5.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSD4H5Z5.yaml
+  - tests/integration/packaging.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c3b371ed7973cacdce76d7792be2f0fd37f536c1dfd507954936ba1f1d76bfdb
+    durationMilliseconds: 19552
+    executedAt: "2026-08-03T11:25:07.001Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e3b5df9bd397bcd0cdd8018200f559a726b61a8a40b6a1a04be63e3c1eb51f86
+    durationMilliseconds: 213723
+    executedAt: "2026-08-03T11:28:40.772Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:b873987ae4a462e12990f33f79d98dabb5c9954ccf5b6b2115927cb28d80b927
+    durationMilliseconds: 14438
+    executedAt: "2026-08-03T11:28:55.730Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:3f22a60bdabd99f637d08f16c213dce2f56715996a1a488652a09d7a6bb6c2d0
+    durationMilliseconds: 5118
+    executedAt: "2026-08-03T11:29:00.885Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 既存assertionを変更せず、CPU/I/O-heavy packaging testの有限な個別timeoutのみを30秒/15秒から60秒/30秒へ調整。bounded複数失敗診断は既存unit testで維持を確認。
