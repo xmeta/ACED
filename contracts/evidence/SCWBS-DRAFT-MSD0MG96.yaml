@@ -25,6 +25,7 @@ git:
   diffHash: sha256:306c1971a6c4d150ffc8528bbb6528f7bf9fa7e8e03e8609d749d4e98bb8775d
   headCommit: b80ec4f972026e633b0b13280a60b1f8eb33f027
 changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSD0MG96.yaml
   - contracts/evidence-payloads/SCWBS-DRAFT-MSD0MG96.patch
   - contracts/evidence/SCWBS-DRAFT-MSD0MG96.yaml
   - contracts/registry.yaml
@@ -60,3 +61,9 @@ checks:
     cacheKey: sha256:06a01963e331bf14a47849e9398b94ccadcb71788f22bf43d37de4337e3f9671
     durationMilliseconds: 4033
     executedAt: "2026-08-03T09:25:23.949Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - I/O-heavy fresh-clone provenance testに30秒の個別timeoutを追加。assertion、suite全体の上限、coverageは変更なし。固定10秒rerunで13.78秒PASS、integration 463/463 PASS。
