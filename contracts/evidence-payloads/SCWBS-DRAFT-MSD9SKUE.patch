@@ -1,0 +1,131 @@
+diff --git a/README.md b/README.md
+index 975da34..67f9ce4 100644
+--- a/README.md
++++ b/README.md
+@@ -240,7 +240,7 @@ Run the full local verification set:
+ npm test                    # unit tests only (fast)
+ npm run test:integration    # integration tests (heavier)
+ npm run test:all            # all tests
+-npm run lint                # ESLint baseline (warnings are reported but do not fail yet)
++npm run lint                # ESLint baseline gate (currently up to 37 warnings)
+ npm run format              # format source, tests, scripts, docs, and root config files
+ npm run typecheck
+ npm run build
+@@ -257,9 +257,11 @@ with `checkJs`; implicit JavaScript parameter types remain a documented
+ migration boundary, but other inferred type errors are checked.
+ 
+ `npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`.
+-The initial baseline reports recommended JavaScript and TypeScript findings as
+-warnings so adoption does not require a bulk source rewrite. Warning counts
+-should be measured before individual rules are promoted to errors. Prettier is
++The measured baseline is currently 37 warnings, and the command fails when a
++change increases that count. This finite cap provides a phased adoption path:
++remove existing warnings, then lower `--max-warnings` to the new measured
++baseline. Individual rules can be promoted to errors in later, separately
++scoped changes; this task does not bulk-rewrite existing source. Prettier is
+ available through the explicit `npm run format` write command and is not run
+ automatically by CI.
+ 
+diff --git a/contracts/specs/SPEC-LITE-MSD9SKUE.yaml b/contracts/specs/SPEC-LITE-MSD9SKUE.yaml
+new file mode 100644
+index 0000000..22a7027
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSD9SKUE.yaml
+@@ -0,0 +1,14 @@
++id: SPEC-LITE-MSD9SKUE
++type: spec-contract
++featureId: F-MSD9SKUE
++title: "Issue #376 lint warning cap and phased enforcement"
++status: approved
++approvedBy: xmeta
++approvedAt: "2026-08-03T12:00:00+09:00"
++version: 0.1.0
++summary: "Keep the measured ESLint baseline as a finite gate and document how to tighten it incrementally."
++acceptanceCriteria:
++  - npm run lint uses --max-warnings=37, matching the measured 37-warning baseline before implementation
++  - npm run lint exits non-zero when the warning count exceeds 37
++  - README explains that 37 is a measured temporary cap and must be lowered only after warnings are removed and remeasured
++  - no source, test, script, WJS, dependency, or CI changes are required for this bounded phase
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSD9SKUE.yaml b/contracts/tasks/SCWBS-DRAFT-MSD9SKUE.yaml
+new file mode 100644
+index 0000000..85e1449
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSD9SKUE.yaml
+@@ -0,0 +1,64 @@
++id: SCWBS-DRAFT-MSD9SKUE
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSD9SKUE
++branchName: task/SCWBS-DRAFT-MSD9SKUE-issue-376-lint
++allowedPaths:
++  - package.json
++  - README.md
++forbiddenPaths:
++  - wjs/**
++  - src/**
++  - tests/**
++  - scripts/**
++  - eslint.config.js
++  - package-lock.json
++  - .github/**
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - test:wjs
++  - typecheck
++  - build
++  - lint
++stopIf:
++  - package dependency or CI changes lack Human Approval for the current Evidence scope
++  - existing source, test, script, or WJS files require bulk cleanup to satisfy the new warning cap
++  - changes outside allowedPaths are required
++doneCriteria:
++  - npm run lint uses a finite max-warnings cap of 37 matching the measured current baseline
++  - npm run lint fails when warnings exceed the recorded baseline instead of accepting an unlimited warning count
++  - README documents the measured baseline, phased warning enforcement, and cap maintenance rule
++  - existing source, test, script, WJS, and generated Evidence files are not bulk-reformatted or cleaned up
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - wjs-test-result
++  - typecheck-result
++  - build-result
++  - lint-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSD9SKUE.yaml
++  - contracts/specs/SPEC-LITE-MSD9SKUE.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSD9SKUE.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSD9SKUE.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSD9SKUE.patch
++  - contracts/approvals/SCWBS-DRAFT-MSD9SKUE.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSD9SKUE.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:58335cb153fe3da254861e01fad330d0adebc77bd115ad827ce7a4226bcbe201
++  createdAt: "2026-08-03T13:35:39.541Z"
+diff --git a/package.json b/package.json
+index a09620d..5b15314 100644
+--- a/package.json
++++ b/package.json
+@@ -22,7 +22,7 @@
+   "scripts": {
+     "build": "tsc -p tsconfig.json",
+     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.{js,mjs,ts}\" \"*.{js,json,md,ts,yaml,yml}\" \".github/**/*.yml\" \"docs/**/*.{json,md,yaml,yml}\"",
+-    "lint": "eslint src tests scripts --max-warnings=-1",
++    "lint": "eslint src tests scripts --max-warnings=37",
+     "prepack": "npm run build",
+     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
+     "test": "vitest run tests/unit",
