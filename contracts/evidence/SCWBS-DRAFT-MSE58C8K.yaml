@@ -1,29 +1,29 @@
 id: EVD-SCWBS-DRAFT-MSE58C8K
 type: evidence
 taskId: SCWBS-DRAFT-MSE58C8K
-commit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
-subjectHeadCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
-diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+commit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
+subjectHeadCommit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
+diffHash: sha256:2a7fcdef81890f7028b05ff37975ebacb93aed30b695f4062436c7d60cd189cd
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
-    treeHash: 30383650dd9d980a0052e51fc045e7e0b117208f
-    diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+    commit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
+    treeHash: 88504539635ab88e06c0ce625033d307112ae921
+    diffHash: sha256:2a7fcdef81890f7028b05ff37975ebacb93aed30b695f4062436c7d60cd189cd
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
-    manifestHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+    manifestHash: sha256:2a7fcdef81890f7028b05ff37975ebacb93aed30b695f4062436c7d60cd189cd
 git:
   branch: task/SCWBS-DRAFT-MSE58C8K-github-issue-393-automatically-record-verified-c
   base: origin/main
   baseCommit: 3456dee1652ee1258fa5eef1e2d5e2cba0b00b63
   changedFilesBasis: branch-diff
   pullRequest: "393"
-  subjectHeadCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
-  diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
-  headCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+  subjectHeadCommit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
+  diffHash: sha256:2a7fcdef81890f7028b05ff37975ebacb93aed30b695f4062436c7d60cd189cd
+  headCommit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
 changedFiles:
   - .github/workflows/scwbs.yml
   - README.md
@@ -43,32 +43,82 @@ changedFiles:
   - src/core/types.ts
   - tests/integration/evidence.test.ts
   - tests/unit/coverage-evidence.test.ts
+coverageReceipt:
+  schemaVersion: 1.0.0
+  command: npm run test:coverage:all
+  scope: unit-and-integration
+  repository: xmeta/ACED
+  taskId: SCWBS-DRAFT-MSE58C8K
+  pullRequest: "393"
+  subjectHeadCommit: 4409089cc637ef913642fa8bbab93dbe7ccfc57d
+  workflowPath: .github/workflows/scwbs.yml
+  workflowRunId: "30890869384"
+  workflowRunUrl: https://github.com/xmeta/ACED/actions/runs/30890869384
+  artifactName: coverage-aec62efd511ef1c2c2c8531709df069641c7a489
+  testFiles:
+    total: 83
+    passed: 83
+    failed: 0
+    skipped: 0
+  tests:
+    total: 558
+    passed: 556
+    failed: 0
+    skipped: 2
+  metrics:
+    statements:
+      total: 7730
+      covered: 6047
+      skipped: 0
+      percent: 78.22
+    branches:
+      total: 6855
+      covered: 4816
+      skipped: 0
+      percent: 70.25
+    functions:
+      total: 1373
+      covered: 1156
+      skipped: 0
+      percent: 84.19
+    lines:
+      total: 6731
+      covered: 5445
+      skipped: 0
+      percent: 80.89
+  skippedTests:
+    - name: finish lifecycle receipts bounds events per Task and receipts per repository
+      reason: excluded or skipped by test selection
+    - name: issue 179 gate, publish, and health observability health receipts retain at most 50 events for at most 100 Tasks
+      reason: excluded or skipped by test selection
+  generatedAt: "2026-08-04T08:13:08.207Z"
+  payloadDigest: sha256:8d765e981decfb4086a19a9f275a873da7f2f127d957c1e932a72697fee6706d
 checks:
   - name: test
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:790c79276e87eb018eb0afe2cfca92765a033c6def05f80ee57dc1163c1612ea
-    durationMilliseconds: 19553
-    executedAt: "2026-08-04T07:48:22.891Z"
+    cacheKey: sha256:6255929d41901acb367cda0ca65feb165617187e18f4ae87b6568c7bd2bc721e
+    durationMilliseconds: 15573
+    executedAt: "2026-08-04T08:14:30.683Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:c8886351ff3bcf21ba203aab798f33d51f12f40cef584e770374e4c0a0a51fae
-    durationMilliseconds: 329925
-    executedAt: "2026-08-04T07:53:52.823Z"
+    cacheKey: sha256:caa74077333bd7f6e1e14b9e5a704e6ef050c54d72bcd08407d3317983811f4c
+    durationMilliseconds: 247052
+    executedAt: "2026-08-04T08:18:37.744Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:4836f609dbd0ed191302283c63b78ab23eca17a8ffae2742a2217d6c310ba450
-    durationMilliseconds: 12017
-    executedAt: "2026-08-04T07:54:04.879Z"
+    cacheKey: sha256:f4447b864f34092e3102c552ddb9e4826e677b43459fb2d3619bfa9c0b148008
+    durationMilliseconds: 8911
+    executedAt: "2026-08-04T08:18:46.661Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:13fffe6834d671947f12b798e534fab70b667597fdb6a86dd9aaeadf610f7dc1
-    durationMilliseconds: 4674
-    executedAt: "2026-08-04T07:54:09.566Z"
+    cacheKey: sha256:d10555a3a936f4e83379b569328bd9e3f8699385add94f88e352705d382a86cc
+    durationMilliseconds: 3840
+    executedAt: "2026-08-04T08:18:50.505Z"
