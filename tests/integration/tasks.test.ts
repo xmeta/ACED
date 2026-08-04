@@ -257,6 +257,10 @@ describe("task management", () => {
     const preview = buildTaskRefreshPreview(root, "WBS-001-004");
     expect(preview).toContain("Task Contract refresh preview");
     expect(preview).toContain("Safe updates");
+    expect(preview).toContain("Refresh policy");
+    expect(preview).toContain("Human Gate boundary");
+    expect(preview).toContain("contractLock metadata only");
+    expect(preview).toContain("A refresh is not approval for a semantic contract change");
     expect(runTaskRefresh(root, "WBS-001-004", { apply: true })).toBe(0);
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
   });

@@ -204,6 +204,15 @@ npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
 
+`task refresh` is the bounded stale-lock workflow. The preview reports which lock
+inputs changed (scoped WBS, global policy, referenced node, or Spec lock) and
+classifies the operation as lock metadata only. It does not change
+`allowedPaths`, `forbiddenPaths`, `doneCriteria`, `requiredChecks`, or
+`humanGateRequiredPaths`, and it is not approval for a semantic contract change.
+If the WBS/Spec change requires new authority, stop and use the Human Approval
+or new Task/Spec workflow. `--affected` is always preview-only; `--all --apply`
+is an explicit bulk migration and must not be used as an implicit repair.
+
 `profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
 
 `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。

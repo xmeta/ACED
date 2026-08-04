@@ -222,6 +222,12 @@ Fix:
 - Review request draft作成
 - stale lockの検出とrefresh提案
 
+stale lockのrefreshは `task refresh --task <id>` のpreviewで理由と安全な
+更新範囲を確認してから行う。refreshは `contractLock` メタデータだけを
+更新し、Taskのauthorityを変更しない。WBS/Specの意味変更を受け入れる
+ためにscopeやchecksなどを変更する必要がある場合は、refreshを承認代わり
+に使わず、Human Approvalまたは新しいTask/Specのライフサイクルへ戻る。
+
 自動修復してはいけないもの:
 
 - human approval

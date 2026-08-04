@@ -1,0 +1,75 @@
+id: EVD-SCWBS-DRAFT-MSF6DA4C
+type: evidence
+taskId: SCWBS-DRAFT-MSF6DA4C
+commit: d98827a49b7da7033069568aa9858f6014c5fc1d
+subjectHeadCommit: d98827a49b7da7033069568aa9858f6014c5fc1d
+diffHash: sha256:5842a74b8aad80827f6f982ce103af95ff8fd5a8846538556517473bf1802a7e
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: d98827a49b7da7033069568aa9858f6014c5fc1d
+    treeHash: 978d3edcacc260c4ab5d7ca1068336049611b165
+    diffHash: sha256:5842a74b8aad80827f6f982ce103af95ff8fd5a8846538556517473bf1802a7e
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSF6DA4C.patch
+    manifestHash: sha256:5842a74b8aad80827f6f982ce103af95ff8fd5a8846538556517473bf1802a7e
+git:
+  branch: task/SCWBS-DRAFT-MSF6DA4C-issue-399-stale-task-contract-lock-refresh-polic
+  base: origin/main
+  baseCommit: 7802cc4c1af655a35c553b9ab640c34fd6d0b445
+  changedFilesBasis: branch-diff
+  pullRequest: "411"
+  subjectHeadCommit: d98827a49b7da7033069568aa9858f6014c5fc1d
+  diffHash: sha256:5842a74b8aad80827f6f982ce103af95ff8fd5a8846538556517473bf1802a7e
+  headCommit: d98827a49b7da7033069568aa9858f6014c5fc1d
+changedFiles:
+  - contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF6DA4C.patch
+  - contracts/evidence/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSF6DA4C.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - src/commands/task-refresh.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:5d481ec62c436fcdae9354556725c36d72600fa837551d3f5210395753b7a6f9
+    durationMilliseconds: 15308
+    executedAt: "2026-08-04T21:44:56.167Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a140d4d45bdb4099bb909e287363b202843258ca7c5aba945d4a8c1c0b6f1505
+    durationMilliseconds: 255129
+    executedAt: "2026-08-04T21:49:11.299Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:1967b1e9e2d4021fc13f42d6ebb071360a103d377991c63d6b0b00c45e074ffa
+    durationMilliseconds: 9013
+    executedAt: "2026-08-04T21:49:20.317Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:70d4c9b322d3a1502176822e488c94e594fc806a7e952ff3217236ce1984ba14
+    durationMilliseconds: 3785
+    executedAt: "2026-08-04T21:49:24.105Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for stale-lock refresh policy and Human Gate boundary; no tests were disabled and coverage did not decrease.

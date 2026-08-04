@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MSF6DA4C
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF6DA4C
+branchName: task/SCWBS-DRAFT-MSF6DA4C-issue-399-stale-task-contract-lock-refresh-polic
+allowedPaths:
+  - src/commands/task-refresh.ts
+  - tests/integration/tasks.test.ts
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/task-contract.md
+  - docs/sc-wbs-core/02-command-first-workflow.md
+  - contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema change required
+  - migration required
+  - authentication or authorization design change
+  - destructive retention or history rewrite
+  - external service or billing change
+  - allowed path expansion
+  - Human Gate required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - '`scwbs task refresh --task <id>` previews the exact stale-lock reasons and distinguishes lock-only refresh from authority changes.'
+  - '`--apply` updates only contractLock metadata; it never changes allowedPaths, doneCriteria, requiredChecks, or humanGateRequiredPaths.'
+  - '`--affected` remains preview-only and `--all --apply` is explicitly documented as an intentional bulk operation.'
+  - Health, doctor, next, and check guidance consistently point operators to the refresh workflow for stale locks.
+  - Repository documentation no longer lists stale-lock refresh as missing and integration coverage protects the policy-facing output.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/specs/SPEC-LITE-MSF6DA4C.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF6DA4C.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF6DA4C.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 1.0.0
+  specRevision: sha256:e7d4c0840d38ce4a093a06d5b13266abf4dab1685586272f504978b6790268ef
+  createdAt: "2026-08-04T21:35:28.671Z"

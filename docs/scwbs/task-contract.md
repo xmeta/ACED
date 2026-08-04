@@ -79,6 +79,7 @@ contractLock:
 Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。ただしread-onlyかつwarning-onlyの `extensions.scwbs.governanceCost.warningBudgets` はTask authorityを変更しないためglobal revisionから除外する。`profile` とその他のSC-WBS policyは引き続き対象である。
 
 AI Work Packet生成時および `scwbs check` では、これらのrevisionと現在のWBS-JSON、Spec Contractの鮮度を比較する。旧 `wbsRevision` whole-file lockは読み取り互換を維持するが、`task refresh --affected` ではmigration対象として表示する。`task refresh --task <id> --apply` で個別移行し、全更新が意図される場合だけ `task refresh --all --apply` を使う。
+Refreshはlockメタデータだけを更新するbounded operationであり、`allowedPaths`、`forbiddenPaths`、`doneCriteria`、`requiredChecks`、`humanGateRequiredPaths`は変更しない。previewは変更理由とHuman Gate境界を表示する。WBS/Specの意味変更を受け入れるためにTask authorityを変更する必要がある場合、refreshを承認代わりに使わず、Human Approvalまたは新しいTask/Specのライフサイクルへ戻す。
 WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
 staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
 Task Contractのlockを生成するには以下を実行する。

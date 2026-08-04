@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSF6DA4C
+type: spec-contract
+featureId: F-MSF6DA4C
+title: "Issue #399: stale Task Contract Lock refresh policy and diagnostics"
+status: approved
+version: 1.0.0
+summary: "Make the existing stale Task Contract Lock refresh behavior an explicit, safe, and documented SC-WBS policy."
+acceptanceCriteria:
+  - "`scwbs task refresh --task <id>` previews the lock fields that would change and explains that Task authority fields are not changed."
+  - "Stale-lock detection and refresh reasons cover the scoped WBS revision, global policy revision, referenced WBS node, and Spec lock."
+  - "`--affected` is preview-only; individual `--apply` and explicit `--all --apply` semantics are documented, including the stop condition for authority changes."
+  - "`scwbs check`, `scwbs health`, `scwbs doctor`, and `scwbs next` provide consistent refresh guidance for stale locks."
+  - "The implementation-gap documentation reflects the delivered policy and integration tests protect the operator-facing refresh contract."
+approvedBy: user-requested-issue-399
+approvedAt: "2026-08-05T00:00:00Z"

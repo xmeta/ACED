@@ -1,0 +1,31 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1
+type: discovery-probe
+status: concluded
+question: "Issue #399: define and document stale Task Contract Lock refresh policy"
+hypotheses:
+  - Existing repository capabilities can support the goal
+activities:
+  - Inspect current contracts and record bounded evidence
+evidenceExpected:
+  - Current-state inventory
+unknowns:
+  - Delivery scope and acceptance criteria
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - Decision-driving evidence recorded
+nextDecision: "Approve a bounded delivery Spec for Issue #399 documentation and policy regression coverage"
+createdAt: "2026-08-04T21:31:50.269Z"
+startedAt: "2026-08-04T21:32:02.770Z"
+concludedAt: "2026-08-04T21:32:30.978Z"
+exitConditionsMet: true
+factsLearned:
+  - task refresh exists with preview/apply and affected/all modes
+  - health and doctor surface stale lock diagnostics
+  - implementation-gaps docs are stale and omit current policy
+hypothesesRejected:
+  - new lock command is unnecessary
+  - bulk refresh without explicit apply is unsafe
+remainingUnknowns:
+  - document exact safe refresh policy and add regression coverage for policy-facing guidance
