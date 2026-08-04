@@ -6,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildVitestArgs,
-  defaultWorkerCount,
   formatSummary,
   formatTempDiagnostic,
   integrationTempEnv,

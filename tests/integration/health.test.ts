@@ -4,7 +4,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildCodeContextManifest } from "../../src/core/code-context.js";
 import { buildHealthJsonOutput, buildHealthText, collectEvidenceTrustIssues, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
 import type { Issue } from "../../src/core/types.js";
 import { main } from "../../src/cli.js";

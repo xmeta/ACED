@@ -1,5 +1,5 @@
 import type { Issue, Registry } from "../types.js";
-import { ajv, formatSchemaPath, isObject, issue, stringArraySchema } from "./shared.js";
+import { ajv, formatSchemaPath, isObject, issue } from "./shared.js";
 import type { ErrorObject } from "ajv";
 
 const registrySchema = {

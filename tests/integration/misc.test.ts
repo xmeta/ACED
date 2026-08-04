@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { runInit } from "../../src/commands/init.js";
 import { collectCheckIssues, collectWbsChangesetGateIssues, runCheck } from "../../src/commands/check.js";
 import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
 import { readProfile, runProfileSet } from "../../src/commands/profile.js";
@@ -13,14 +12,12 @@ import { runTaskLock } from "../../src/commands/task-lock.js";
 import { runFix } from "../../src/commands/fix.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
 import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
-import { runWbsValidate, runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
-import { readBlock, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
+import { readBlock, readSpecChange } from "../../src/core/contracts.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
-import { validateWbsDocument } from "../../src/core/wbs.js";
 import { resolveCheckCommand, isKnownCheck } from "../../src/core/check-catalog.js";
 import { main } from "../../src/cli.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
-import type { WbsDocument } from "../../src/core/types.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
   const stdout: string[] = [];

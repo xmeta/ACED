@@ -49,8 +49,8 @@ function planPath(root: string): string {
   return path.join(root, "contracts/plans/PLAN-CACHE.json");
 }
 
-function readPlan(root: string): Record<string, any> {
-  return JSON.parse(readFileSync(planPath(root), "utf8")) as Record<string, any>;
+function readPlan(root: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(planPath(root), "utf8")) as Record<string, unknown>;
 }
 
 describe("Rolling Wave Planning", () => {

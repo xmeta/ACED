@@ -1,6 +1,5 @@
 const { execFileSync } = require("node:child_process");
 const { readdirSync } = require("node:fs");
-const path = require("node:path");
 
 const tasksDir = "contracts/tasks";
 const files = readdirSync(tasksDir)

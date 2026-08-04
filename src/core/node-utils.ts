@@ -1,5 +1,5 @@
 import type { TaskContract, WbsDocument } from "./types.js";
-import { findNode, isDoneNode } from "./wbs.js";
+import { isDoneNode } from "./wbs.js";
 
 export const WBS_LESS_TASK_NODE_ID = "wbs-less";
 

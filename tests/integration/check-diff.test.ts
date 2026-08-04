@@ -1,11 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
 import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
 
