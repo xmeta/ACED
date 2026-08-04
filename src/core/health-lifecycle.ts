@@ -61,16 +61,40 @@ export function isHealthLifecycleReceipt(value: unknown): value is HealthLifecyc
     && receipt.events.length <= healthLifecycleEventLimit && receipt.events.every(isEvent);
 }
 
+function warnCorruptReceipt(file: string, reason: "read-failed" | "invalid-json" | "invalid-schema" | "task-id-mismatch"): void {
+  console.error(`WARN health lifecycle receipt corrupted: ${file} (${reason})`);
+}
+
+function readReceipt(file: string): HealthLifecycleReceipt | undefined {
+  let content: string;
+  try {
+    content = readFileSync(file, "utf8");
+  } catch {
+    warnCorruptReceipt(file, "read-failed");
+    return undefined;
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(content);
+  } catch {
+    warnCorruptReceipt(file, "invalid-json");
+    return undefined;
+  }
+  if (!isHealthLifecycleReceipt(value)) {
+    warnCorruptReceipt(file, "invalid-schema");
+    return undefined;
+  }
+  return value;
+}
+
 function prune(root: string, protectedFile: string): void {
   const directory = healthLifecycleDirectory(root);
   const files = readdirSync(directory, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
     .map((entry) => {
       const file = path.join(directory, entry.name);
       let observedAt = statSync(file).mtime.toISOString();
-      try {
-        const value: unknown = JSON.parse(readFileSync(file, "utf8"));
-        if (isHealthLifecycleReceipt(value)) observedAt = value.events.at(-1)?.observedAt ?? observedAt;
-      } catch {}
+      const value = readReceipt(file);
+      if (value) observedAt = value.events.at(-1)?.observedAt ?? observedAt;
       return { file, observedAt, name: entry.name };
     }).sort((left, right) => left.observedAt.localeCompare(right.observedAt) || left.name.localeCompare(right.name));
   while (files.length > healthLifecycleTaskLimit) {
@@ -87,10 +111,9 @@ export function recordHealthLifecycleEvent(root: string, taskId: string, event: 
   const file = receiptPath(root, taskId);
   let existing: HealthLifecycleReceipt | undefined;
   if (existsSync(file)) {
-    try {
-      const value: unknown = JSON.parse(readFileSync(file, "utf8"));
-      if (isHealthLifecycleReceipt(value) && value.taskId === taskId) existing = value;
-    } catch {}
+    const value = readReceipt(file);
+    if (value?.taskId === taskId) existing = value;
+    else if (value) warnCorruptReceipt(file, "task-id-mismatch");
   }
   const events = [...(existing?.events ?? []), event];
   const receipt: HealthLifecycleReceipt = {

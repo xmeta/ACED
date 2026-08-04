@@ -1,10 +1,12 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { summarizeGithubPullRequests } from "../../src/core/github-pull-requests.js";
 import { buildHealthLifecycleEvent, healthLifecycleDirectory, recordHealthLifecycleEvent } from "../../src/core/health-lifecycle.js";
 import { buildHealthLifecycleSummary, buildHumanGateSummary } from "../../src/commands/metrics.js";
 import { makeTempRepo, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+
+const healthReceiptRetentionTimeoutMs = 60_000;
 
 describe("issue 179 gate, publish, and health observability", () => {
   test("summarizes bounded Task pull request publish loops and leaves unmerged duration null", () => {
@@ -43,22 +45,38 @@ describe("issue 179 gate, publish, and health observability", () => {
 
   test("health receipt is local, bounded, corrupt-aware, and only returns comparable delta", () => {
     const root = makeTempRepo();
-    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
-      { severity: "warn", code: "health.a", message: "a" },
-      { severity: "warn", code: "health.b", message: "b" }
-    ], new Date("2026-07-23T00:00:00Z")));
-    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
-      { severity: "warn", code: "health.a", message: "a" }
-    ], new Date("2026-07-23T00:01:00Z")));
-    recordHealthLifecycleEvent(root, "TASK-B", buildHealthLifecycleEvent([], new Date("2026-07-23T00:02:00Z")));
-    mkdirSync(healthLifecycleDirectory(root), { recursive: true });
-    writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "corrupt.json")), "{broken\n");
-    const summary = buildHealthLifecycleSummary(root);
-    if (summary.status !== "available") throw new Error(summary.reason);
-    expect(summary).toMatchObject({ receiptCount: 2, invalidReceiptCount: 1, eventCount: 3 });
-    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-A")?.warningDelta).toBe(-1);
-    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-B")?.warningDelta).toBeNull();
-    expect(readFileSync(path.join(healthLifecycleDirectory(root), "TASK-A.json"), "utf8")).toContain("\"events\"");
+    const warnings: string[] = [];
+    const errorSpy = vi.spyOn(console, "error").mockImplementation((...args) => warnings.push(args.join(" ")));
+    try {
+      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
+        { severity: "warn", code: "health.a", message: "a" },
+        { severity: "warn", code: "health.b", message: "b" }
+      ], new Date("2026-07-23T00:00:00Z")));
+      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
+        { severity: "warn", code: "health.a", message: "a" }
+      ], new Date("2026-07-23T00:01:00Z")));
+      recordHealthLifecycleEvent(root, "TASK-B", buildHealthLifecycleEvent([], new Date("2026-07-23T00:02:00Z")));
+      mkdirSync(healthLifecycleDirectory(root), { recursive: true });
+      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "corrupt.json")), "{broken\n");
+      const summary = buildHealthLifecycleSummary(root);
+      if (summary.status !== "available") throw new Error(summary.reason);
+      expect(summary).toMatchObject({ receiptCount: 2, invalidReceiptCount: 1, eventCount: 3 });
+      expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-A")?.warningDelta).toBe(-1);
+      expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-B")?.warningDelta).toBeNull();
+      expect(readFileSync(path.join(healthLifecycleDirectory(root), "TASK-A.json"), "utf8")).toContain("\"events\"");
+
+      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "TASK-C.json")), "{broken\n");
+      recordHealthLifecycleEvent(root, "TASK-C", buildHealthLifecycleEvent([], new Date("2026-07-23T00:03:00Z")));
+      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "invalid-schema.json")), JSON.stringify({ schemaVersion: "1.0.0" }));
+      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([], new Date("2026-07-23T00:04:00Z")));
+      expect(warnings).toEqual(expect.arrayContaining([
+        expect.stringContaining("TASK-C.json (invalid-json)"),
+        expect.stringContaining("corrupt.json (invalid-json)"),
+        expect.stringContaining("invalid-schema.json (invalid-schema)")
+      ]));
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   test("health receipts retain at most 50 events for at most 100 Tasks", () => {
@@ -75,5 +93,5 @@ describe("issue 179 gate, publish, and health observability", () => {
     expect(summary.eventCount).toBe(100);
     expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 100, truncated: true });
     expect(summary.taskTrend.items).toHaveLength(20);
-  });
+  }, healthReceiptRetentionTimeoutMs);
 });
