@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MSF0ZT44
+type: evidence
+taskId: SCWBS-DRAFT-MSF0ZT44
+commit: 41e871012f986b30fb01f9b1014e226fd0dd8b50
+subjectHeadCommit: 41e871012f986b30fb01f9b1014e226fd0dd8b50
+diffHash: sha256:c98532b5a805dd62e2150e58736265ede8c3650c24d8c270e0a48d8e2d4a6750
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 41e871012f986b30fb01f9b1014e226fd0dd8b50
+    treeHash: e1a6dd8d6468cb3d5083a5e799cefbc4d8588a04
+    diffHash: sha256:c98532b5a805dd62e2150e58736265ede8c3650c24d8c270e0a48d8e2d4a6750
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSF0ZT44.patch
+    manifestHash: sha256:c98532b5a805dd62e2150e58736265ede8c3650c24d8c270e0a48d8e2d4a6750
+git:
+  branch: task/SCWBS-DRAFT-MSF0ZT44-issue-396-remove-windows-shell-invocation-from-c
+  base: origin/main
+  baseCommit: 9b4820ce9d86fce6f3b83d38b181be0b88b8919e
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 41e871012f986b30fb01f9b1014e226fd0dd8b50
+  diffHash: sha256:c98532b5a805dd62e2150e58736265ede8c3650c24d8c270e0a48d8e2d4a6750
+  headCommit: 41e871012f986b30fb01f9b1014e226fd0dd8b50
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSF0ZT44.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - tests/unit/process-command.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:02e82683d5d935d586a7f50855667ad31439edcc94a2a2da41811590a91260c2
+    durationMilliseconds: 16960
+    executedAt: "2026-08-04T19:13:45.160Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:94d9685efd50d183572f9a07aefb25816acb7768749daa26713e4a7232a21835
+    durationMilliseconds: 247157
+    executedAt: "2026-08-04T19:17:52.323Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2e6cdaced33fa541b89c3e92fc5e9e4e836942aaf295e9224d167be63ae30be2
+    durationMilliseconds: 8730
+    executedAt: "2026-08-04T19:18:01.058Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:dd8df36a8f7c289ec801ef92f1fde926ddba77f8eb2a189c5284460a6af025af
+    durationMilliseconds: 3866
+    executedAt: "2026-08-04T19:18:04.928Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for Windows direct command resolution and preserved argument data; no tests were disabled and coverage did not decrease.
