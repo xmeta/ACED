@@ -23,7 +23,7 @@ import {
 } from "../core/git.js";
 import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
@@ -93,6 +93,7 @@ export type EvidenceCollectOptions = {
   output?: string;
   quiet?: boolean;
   ciReceipt?: string;
+  coverageReceipt?: string;
 };
 
 function postEvidenceMetadataFiles(taskId: string): string[] {
@@ -214,6 +215,60 @@ function verifyCiReceipt(
   return receipt as CiReceipt;
 }
 
+function verifyCoverageReceipt(
+  root: string,
+  task: TaskContract,
+  taskId: string,
+  receiptValue: unknown,
+  expected: { pullRequest?: string; subjectHead: string }
+): CoverageReceipt {
+  const failures: string[] = [];
+  if (!isRecord(receiptValue)) throw new Error("Coverage receipt rejected: JSON root must be an object");
+  const receipt = receiptValue as Partial<CoverageReceipt>;
+  const requiredStrings = [
+    "repository", "command", "scope", "subjectHeadCommit", "workflowRunId", "workflowRunUrl", "artifactName", "payloadDigest", "generatedAt"
+  ] as const;
+  for (const key of requiredStrings) {
+    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
+  }
+  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
+  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
+  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
+  const expectedPullRequest = expected.pullRequest?.replace(/^#/, "");
+  if (!expectedPullRequest || receipt.pullRequest !== expectedPullRequest) failures.push("pullRequest does not match the current PR");
+  if (receipt.subjectHeadCommit !== expected.subjectHead) failures.push("subjectHeadCommit is stale or does not match the Evidence subject");
+  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
+    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
+  }
+  if (typeof receipt.generatedAt === "string" && Number.isNaN(Date.parse(receipt.generatedAt))) failures.push("generatedAt is not a valid timestamp");
+  if (typeof receipt.repository === "string") {
+    try {
+      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
+    }
+  }
+  if (typeof receipt.payloadDigest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(receipt.payloadDigest)) {
+    failures.push("payloadDigest is not a valid SHA-256 digest");
+  }
+  if (!receipt.testFiles || !receipt.tests || !receipt.metrics) {
+    failures.push("test counts and coverage metrics are required");
+  } else {
+    if (receipt.tests.failed !== 0 || receipt.testFiles.failed !== 0) failures.push("coverage receipt contains failed tests");
+    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
+      const value = receipt.metrics[metric];
+      if (!value || ![value.total, value.covered, value.skipped, value.percent].every((number) => typeof number === "number" && Number.isFinite(number))) {
+        failures.push(`metrics.${metric} is incomplete`);
+      }
+    }
+  }
+  if (!Array.isArray(receipt.skippedTests) || receipt.skippedTests.some((entry) => !isRecord(entry) || typeof entry.name !== "string" || typeof entry.reason !== "string")) {
+    failures.push("skippedTests must contain named reasons");
+  }
+  if (failures.length > 0) throw new Error(`Coverage receipt rejected:\n- ${failures.join("\n- ")}`);
+  return receipt as CoverageReceipt;
+}
+
 function stableSubjectHead(
   root: string,
   currentHead: string | undefined,
@@ -284,7 +339,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
   };
 }
 
-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): Evidence {
+export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): Evidence {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const baseRef = options.baseRef ?? "origin/main";
@@ -318,6 +373,12 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       baseRef,
       baseCommit: baseCommit ?? "",
       diffHash
+    })
+    : undefined;
+  const coverageReceipt = options.coverageReceipt
+    ? verifyCoverageReceipt(root, task, taskId, options.coverageReceipt, {
+      pullRequest,
+      subjectHead: subjectHead ?? ""
     })
     : undefined;
   const cacheSubject = task.requiredChecks.length > 0
@@ -420,12 +481,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
     changedFiles,
     ...(submodules.length > 0 ? { submodules } : {}),
     ...(ciReceipt ? { ciReceipt } : {}),
+    ...(coverageReceipt ? { coverageReceipt } : {}),
     checks,
     ...(testQuality ? { testQuality } : {})
   };
 }
 
-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): string {
+export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): string {
   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
 }
 
@@ -497,12 +559,16 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
     const ciReceipt = options.ciReceipt
       ? JSON.parse(readFileSync(path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt), "utf8")) as CiReceipt
       : undefined;
+    const coverageReceipt = options.coverageReceipt
+      ? JSON.parse(readFileSync(path.isAbsolute(options.coverageReceipt) ? options.coverageReceipt : resolveFrom(root, options.coverageReceipt), "utf8")) as CoverageReceipt
+      : undefined;
     const evidence = buildCollectedEvidence(root, taskId, {
       baseRef: options.baseRef,
       pullRequest: options.pullRequest,
       testQuality: options.testQuality,
       rerunChecks: options.rerunChecks,
-      ciReceipt
+      ciReceipt,
+      coverageReceipt
     });
     const baseCommit = evidence.git?.baseCommit;
     const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;

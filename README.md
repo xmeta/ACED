@@ -237,7 +237,8 @@ Tests are split into two groups:
 Coverage commands use the same two scopes:
 
 - `npm run test:coverage` – unit-only coverage for fast local feedback.
-- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report is written to `coverage/`. The deliberately large receipt-bound stress case is excluded from this instrumented run because its per-test timeout is lower than its synchronous filesystem workload; the complete integration suite remains covered by `npm run test:integration`.
+- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report and machine-readable inputs are written to `coverage/`. The deliberately large receipt-bound stress cases are excluded from this instrumented run because their per-test timeouts are lower than their synchronous filesystem workloads; the complete integration suite remains covered by `npm run test:integration`.
+- CI converts those inputs into `coverage/coverage-receipt.json` and `coverage/evidence-snapshot.json`. The receipt records the test counts, skip reasons, Statements/Branches/Functions/Lines metrics, PR/head/workflow/artifact provenance, and a payload digest. To attach a verified receipt to normal Task Evidence, use `npm run scwbs -- evidence collect --task <task-id> --pull-request <number> --coverage-receipt coverage/coverage-receipt.json`; mismatched head, PR, repository, or workflow provenance is rejected. The workflow only uploads artifacts and retains read-only permissions; it does not push Evidence or enforce a coverage threshold.
 
 Run the full local verification set:
 

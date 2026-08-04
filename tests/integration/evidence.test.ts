@@ -10,7 +10,7 @@ import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifac
 import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
 import { readEvidence, readTask } from "../../src/core/contracts.js";
 import { validateEvidenceSchema } from "../../src/core/schema/records.js";
-import type { CiReceipt } from "../../src/core/types.js";
+import type { CiReceipt, CoverageReceipt } from "../../src/core/types.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
 import {
   acquireRequiredCheckRun,
@@ -156,6 +156,47 @@ describe("evidence collect", () => {
       jobCount: 4
     });
   });
+
+  test("attaches a provenance-verified coverage receipt to Evidence", () => {
+    const { root, taskId, receipt } = prepareCiReceiptRepo();
+    const coverageReceipt: CoverageReceipt = {
+      schemaVersion: "1.0.0",
+      command: "npm run test:coverage:all",
+      scope: "unit-and-integration",
+      repository: "xmeta/ACED",
+      taskId,
+      pullRequest: "42",
+      subjectHeadCommit: receipt.headCommit as string,
+      workflowPath: ".github/workflows/scwbs.yml",
+      workflowRunId: "12345",
+      workflowRunUrl: "https://github.com/xmeta/ACED/actions/runs/12345",
+      artifactName: "coverage-test",
+      payloadDigest: `sha256:${"a".repeat(64)}`,
+      testFiles: { total: 1, passed: 1, failed: 0, skipped: 0 },
+      tests: { total: 2, passed: 2, failed: 0, skipped: 0 },
+      metrics: {
+        statements: { total: 10, covered: 8, skipped: 0, percent: 80 },
+        branches: { total: 10, covered: 7, skipped: 0, percent: 70 },
+        functions: { total: 10, covered: 9, skipped: 0, percent: 90 },
+        lines: { total: 10, covered: 8, skipped: 0, percent: 80 }
+      },
+      skippedTests: [],
+      generatedAt: "2026-07-22T14:00:00.000Z"
+    };
+    const evidence = buildCollectedEvidence(root, taskId, {
+      baseRef: "base",
+      pullRequest: "#42",
+      coverageReceipt
+    });
+
+    expect(evidence.coverageReceipt).toEqual(coverageReceipt);
+    expect(validateEvidenceSchema(evidence)).toEqual([]);
+    expect(() => buildCollectedEvidence(root, taskId, {
+      baseRef: "base",
+      pullRequest: "#42",
+      coverageReceipt: { ...coverageReceipt, subjectHeadCommit: "0".repeat(40) }
+    })).toThrow(/subjectHeadCommit is stale/);
+  }, 30000);
 
   test("rejects stale, mixed-run, fork, and incomplete CI provenance", () => {
     const { root, taskId, receipt } = prepareCiReceiptRepo();

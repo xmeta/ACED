@@ -309,6 +309,14 @@ jobs:
         run: npm test
       - name: Combined unit and integration coverage
         run: npm run test:coverage:all
+      - name: Create coverage receipt and Evidence snapshot
+        env:
+          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+          SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
+          SCWBS_SUBJECT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          SCWBS_ARTIFACT_NAME: coverage-${{ github.sha }}
+          SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/coverage-evidence.mjs
       - name: Upload combined coverage report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
