@@ -313,9 +313,10 @@ jobs:
         id: subject
         env:
           SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+          SCWBS_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          subject_head="$(git log -1 --format=%H -- \
+          subject_head="$(git log -1 --format=%H "$SCWBS_BRANCH_HEAD" -- \
             . \
             ":(exclude)contracts/evidence/${SCWBS_TASK_ID}.yaml" \
             ":(exclude)contracts/evidence-payloads/${SCWBS_TASK_ID}.patch" \
