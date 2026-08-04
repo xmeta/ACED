@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSF4KZ6F
+type: spec-contract
+featureId: F-MSF4KZ6F
+title: "Issue #138: separate existing Task pre-flight from discovery/bootstrap start"
+status: approved
+version: 1.0.0
+summary: "Separate delivery Task pre-flight from bounded Discovery and project bootstrap entry points."
+acceptanceCriteria:
+  - "Unknown Task IDs fail closed and do not create contracts or WBS changesets."
+  - "`scwbs task start <task-id>` performs existing Task pre-flight; the legacy top-level alias has the same existing-Task-only behavior."
+  - "`scwbs discovery` and `scwbs project bootstrap` create or advance Discovery Probe artifacts without creating delivery Task Contracts."
+  - "CLI help and primary operator documentation use the separated command surface consistently."
+  - "Integration tests cover the command boundary and preserve the existing Discovery Probe lifecycle."
+approvedBy: user-requested-issue-138
+approvedAt: "2026-08-05T00:00:00Z"

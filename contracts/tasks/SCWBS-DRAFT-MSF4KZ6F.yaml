@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MSF4KZ6F
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF4KZ6F
+branchName: task/SCWBS-DRAFT-MSF4KZ6F-issue-138-separate-existing-task-pre-flight-from
+allowedPaths:
+  - src/commands/start.ts
+  - src/commands/discovery.ts
+  - src/cli.ts
+  - src/cli/register-task.ts
+  - src/cli/register-discovery.ts
+  - src/cli/register-project.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/discovery.test.ts
+  - tests/integration/cli-help.test.ts
+  - README.md
+  - AGENTS.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/ai-agent-guide.md
+  - docs/scwbs/getting-started.md
+  - docs/sc-wbs-core/07-cli-core-spec.md
+  - docs/sc-wbs-core/02-command-first-workflow.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Unknown values passed to the Task start entry point fail closed without creating a Spec, Task Contract, or WBS changeset.
+  - Existing Task pre-flight is available as `scwbs task start <task-id>` and the legacy top-level alias accepts only existing Task IDs.
+  - Discovery and project bootstrap entry points create only bounded Discovery Probe artifacts and never create delivery Task Contracts directly.
+  - The CLI help and the repository's primary operator documents describe the same separated command surface.
+  - Regression tests cover unknown Task IDs, Task pre-flight, bootstrap non-delivery behavior, and existing Discovery Probe transitions.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF4KZ6F.yaml
+  - contracts/specs/SPEC-LITE-MSF4KZ6F.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF4KZ6F.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF4KZ6F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF4KZ6F.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF4KZ6F.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF4KZ6F.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 1.0.0
+  specRevision: sha256:391b301c8dcabf23a83e007ee7ce607ab85efd3f7a52131e739c2f75a523fd57
+  createdAt: "2026-08-04T21:02:47.156Z"
