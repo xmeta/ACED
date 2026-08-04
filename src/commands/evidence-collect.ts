@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { readEvidence, readTask } from "../core/contracts.js";
+import { listEvidence, readEvidence, readTask } from "../core/contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
 import { resolveCheckCommand } from "../core/check-catalog.js";
 import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
@@ -21,12 +21,13 @@ import {
   resolveCommit,
   workingTreeState
 } from "../core/git.js";
-import { evidencePath, resolveFrom } from "../core/paths.js";
+import { evidencePayloadPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+import { readTaskIndex } from "../core/task-index.js";
 import { printIssues } from "../core/report.js";
 import { resolveSpawnCommand } from "./checks-run.js";
 import { evaluateWorkingTreeGuard } from "./check-diff.js";
@@ -709,6 +710,122 @@ export function runEvidenceRetain(
     writeFileSync(fullEvidencePath, stringifySimpleYaml(updatedEvidence as unknown as Record<string, unknown>), "utf8");
     syncRegistry(root);
     console.log(`retained ${taskId} provenance at ${artifact.relativePath}`);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export type EvidencePruneOptions = {
+  json?: boolean;
+  apply?: boolean;
+};
+
+export type EvidencePruneSummary = {
+  schemaVersion: "scwbs.evidence-prune.v1";
+  status: "plan";
+  readOnly: true;
+  payloads: {
+    count: number;
+    totalBytes: number;
+    byRetentionMode: Record<string, number>;
+  };
+  archivedCandidates: Array<{
+    taskId: string;
+    payloadPath: string;
+    bytes: number;
+    archivedAt?: string;
+    retentionMode: string;
+    eligible: false;
+    reason: "retention-cutoff-requires-human-decision";
+  }>;
+  humanDecision: {
+    required: true;
+    decisions: ["retention-cutoff", "archive-durability", "audit-trust-after-removal", "git-history-rewrite"];
+  };
+};
+
+function prunePayloadTaskId(file: string): string | undefined {
+  if (!file.endsWith(".patch")) return undefined;
+  const taskId = file.slice(0, -".patch".length);
+  return taskId.length > 0 ? taskId : undefined;
+}
+
+function formatEvidencePruneSummary(summary: EvidencePruneSummary): string {
+  const modes = Object.entries(summary.payloads.byRetentionMode)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([mode, count]) => `${mode}=${count}`)
+    .join(", ");
+  return [
+    "Evidence prune plan (read-only)",
+    `payloads: ${summary.payloads.count}`,
+    `bytes: ${summary.payloads.totalBytes}`,
+    `retention modes: ${modes || "none"}`,
+    `archived candidates: ${summary.archivedCandidates.length}`,
+    "next: human decision required for retention cutoff, archive durability, audit trust, and Git history policy"
+  ].join("\n") + "\n";
+}
+
+export function buildEvidencePruneSummary(root: string): EvidencePruneSummary {
+  const indexResult = readTaskIndex(root);
+  if (!indexResult.index || indexResult.issues.length > 0) {
+    throw new Error(indexResult.issues.map((issue) => issue.message).join("\n") || "Task index is invalid");
+  }
+  const evidenceByTask = new Map(
+    listEvidence(root).flatMap((entry) => entry.evidence ? [[entry.evidence.taskId, entry.evidence] as const] : [])
+  );
+  const payloadDir = resolveFrom(root, "contracts/evidence-payloads");
+  const payloads = existsSync(payloadDir)
+    ? readdirSync(payloadDir).filter((file) => file.endsWith(".patch")).sort()
+    : [];
+  const byRetentionMode: Record<string, number> = {};
+  let totalBytes = 0;
+  const archived = new Map(indexResult.index.tasks.filter((entry) => entry.status === "archived").map((entry) => [entry.id, entry]));
+  const archivedCandidates: EvidencePruneSummary["archivedCandidates"] = [];
+
+  for (const file of payloads) {
+    const taskId = prunePayloadTaskId(file);
+    if (!taskId) continue;
+    const bytes = statSync(path.join(payloadDir, file)).size;
+    totalBytes += bytes;
+    const retentionMode = evidenceByTask.get(taskId)?.provenance?.retention.mode ?? "legacy";
+    byRetentionMode[retentionMode] = (byRetentionMode[retentionMode] ?? 0) + 1;
+    const task = archived.get(taskId);
+    if (task) {
+      archivedCandidates.push({
+        taskId,
+        payloadPath: evidencePayloadPath(taskId),
+        bytes,
+        ...(task.archivedAt ? { archivedAt: task.archivedAt } : {}),
+        retentionMode,
+        eligible: false,
+        reason: "retention-cutoff-requires-human-decision"
+      });
+    }
+  }
+
+  archivedCandidates.sort((left, right) => left.taskId.localeCompare(right.taskId));
+  return {
+    schemaVersion: "scwbs.evidence-prune.v1",
+    status: "plan",
+    readOnly: true,
+    payloads: { count: payloads.length, totalBytes, byRetentionMode },
+    archivedCandidates,
+    humanDecision: {
+      required: true,
+      decisions: ["retention-cutoff", "archive-durability", "audit-trust-after-removal", "git-history-rewrite"]
+    }
+  };
+}
+
+export function runEvidencePrune(root: string, options: EvidencePruneOptions = {}): number {
+  try {
+    if (options.apply) {
+      throw new Error("Evidence prune is read-only in this Task; payload deletion, external archive, and Git history rewrite require a new human-approved Task Contract");
+    }
+    const summary = buildEvidencePruneSummary(root);
+    process.stdout.write(options.json ? `${JSON.stringify(summary, null, 2)}\n` : formatEvidencePruneSummary(summary));
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

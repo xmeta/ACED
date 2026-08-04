@@ -413,6 +413,11 @@ payload自身を除外するため、metadata-only descendantや再収集でhash
 base、diffHash、changedFilesが再現できない場合は書き込まない。
 `--fetch-pr-head` はrecorded PRのhead refだけを取得し、subject ancestryを検証する。
 
+`evidence prune [--json]` はtracked patch-artifactの件数、サイズ、retention mode、
+archived Task候補を表示するread-only inventoryである。候補はretention cutoffを
+自動選択せず、`--apply` は常にfail closedする。保持期限、外部archiveの耐久性、
+payload削除後の監査trust、Git履歴の書換えはHuman Decisionと新しいTask Contractが必要である。
+
 `evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
 
 `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
