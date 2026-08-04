@@ -1,0 +1,14 @@
+id: SPEC-LITE-MSEPJUX4
+type: spec-contract
+featureId: F-MSEPJUX4
+title: "Issue #395: fast-uri のHigh脆弱性 GHSA-7p8r-x3mc-p8w7 を最小依存更新で解消する"
+status: approved
+version: 0.1.0
+summary: "fast-uri を脆弱な範囲外へ更新し、High/Critical監査結果をゼロにする"
+approvedBy: user-requested-issue-395
+approvedAt: "2026-08-04T22:30:00+09:00"
+acceptanceCriteria:
+  - package-lock.json resolves fast-uri 3.1.5 or newer, outside the vulnerable range >=3.0.0 <3.1.5
+  - corepack npm audit reports zero high and critical vulnerabilities
+  - unit, integration, typecheck, and build checks pass
+  - no source, test, documentation, CI workflow, WJS, or semver-major changes are included
