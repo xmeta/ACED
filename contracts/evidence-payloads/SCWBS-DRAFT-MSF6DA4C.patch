@@ -1,0 +1,262 @@
+diff --git a/contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml b/contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml
+new file mode 100644
+index 0000000..57b44e4
+--- /dev/null
++++ b/contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml
+@@ -0,0 +1,31 @@
++schemaVersion: 1.0.0
++id: PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1
++type: discovery-probe
++status: concluded
++question: "Issue #399: define and document stale Task Contract Lock refresh policy"
++hypotheses:
++  - Existing repository capabilities can support the goal
++activities:
++  - Inspect current contracts and record bounded evidence
++evidenceExpected:
++  - Current-state inventory
++unknowns:
++  - Delivery scope and acceptance criteria
++timebox: 1h
++costLimit: one engineer-hour
++exitConditions:
++  - Decision-driving evidence recorded
++nextDecision: "Approve a bounded delivery Spec for Issue #399 documentation and policy regression coverage"
++createdAt: "2026-08-04T21:31:50.269Z"
++startedAt: "2026-08-04T21:32:02.770Z"
++concludedAt: "2026-08-04T21:32:30.978Z"
++exitConditionsMet: true
++factsLearned:
++  - task refresh exists with preview/apply and affected/all modes
++  - health and doctor surface stale lock diagnostics
++  - implementation-gaps docs are stale and omit current policy
++hypothesesRejected:
++  - new lock command is unnecessary
++  - bulk refresh without explicit apply is unsafe
++remainingUnknowns:
++  - document exact safe refresh policy and add regression coverage for policy-facing guidance
+diff --git a/contracts/specs/SPEC-LITE-MSF6DA4C.yaml b/contracts/specs/SPEC-LITE-MSF6DA4C.yaml
+new file mode 100644
+index 0000000..66cffbc
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSF6DA4C.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSF6DA4C
++type: spec-contract
++featureId: F-MSF6DA4C
++title: "Issue #399: stale Task Contract Lock refresh policy and diagnostics"
++status: approved
++version: 1.0.0
++summary: "Make the existing stale Task Contract Lock refresh behavior an explicit, safe, and documented SC-WBS policy."
++acceptanceCriteria:
++  - "`scwbs task refresh --task <id>` previews the lock fields that would change and explains that Task authority fields are not changed."
++  - "Stale-lock detection and refresh reasons cover the scoped WBS revision, global policy revision, referenced WBS node, and Spec lock."
++  - "`--affected` is preview-only; individual `--apply` and explicit `--all --apply` semantics are documented, including the stop condition for authority changes."
++  - "`scwbs check`, `scwbs health`, `scwbs doctor`, and `scwbs next` provide consistent refresh guidance for stale locks."
++  - "The implementation-gap documentation reflects the delivered policy and integration tests protect the operator-facing refresh contract."
++approvedBy: user-requested-issue-399
++approvedAt: "2026-08-05T00:00:00Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml b/contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
+new file mode 100644
+index 0000000..40df3d7
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MSF6DA4C
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSF6DA4C
++branchName: task/SCWBS-DRAFT-MSF6DA4C-issue-399-stale-task-contract-lock-refresh-polic
++allowedPaths:
++  - src/commands/task-refresh.ts
++  - tests/integration/tasks.test.ts
++  - docs/implementation-gaps.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/task-contract.md
++  - docs/sc-wbs-core/02-command-first-workflow.md
++  - contracts/discovery/PROBE-bootstrap-issue-399-define-and-document-stale--MSF6B8N1.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - migration required
++  - authentication or authorization design change
++  - destructive retention or history rewrite
++  - external service or billing change
++  - allowed path expansion
++  - Human Gate required
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - '`scwbs task refresh --task <id>` previews the exact stale-lock reasons and distinguishes lock-only refresh from authority changes.'
++  - '`--apply` updates only contractLock metadata; it never changes allowedPaths, doneCriteria, requiredChecks, or humanGateRequiredPaths.'
++  - '`--affected` remains preview-only and `--all --apply` is explicitly documented as an intentional bulk operation.'
++  - Health, doctor, next, and check guidance consistently point operators to the refresh workflow for stale locks.
++  - Repository documentation no longer lists stale-lock refresh as missing and integration coverage protects the policy-facing output.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
++  - contracts/specs/SPEC-LITE-MSF6DA4C.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSF6DA4C.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF6DA4C.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF6DA4C.patch
++  - contracts/approvals/SCWBS-DRAFT-MSF6DA4C.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF6DA4C.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 1.0.0
++  specRevision: sha256:e7d4c0840d38ce4a093a06d5b13266abf4dab1685586272f504978b6790268ef
++  createdAt: "2026-08-04T21:35:28.671Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 5eb0d5e..691f675 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1539,3 +1539,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-04T21:15:14.519Z"
++  - id: SCWBS-DRAFT-MSF6DA4C
++    path: contracts/tasks/SCWBS-DRAFT-MSF6DA4C.yaml
++    branchName: task/SCWBS-DRAFT-MSF6DA4C-issue-399-stale-task-contract-lock-refresh-polic
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 7c3e239..c8aaf1a 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -18,6 +18,8 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Base/head-aware Evidence changed file collection
+ - Evidence PR metadata capture and refresh preservation
+ - Evidence testQuality metadata capture and refresh preservation
++- Stale Task Contract Lock detection and refresh policy (`task refresh --task`, `--affected`, and explicit `--all --apply`)
++- Human Gate boundary for lock-only refreshes; refresh never changes Task authority fields or approves semantic contract changes
+ - Tracked patch Evidence retention and subject reconstruction after squash merge
+ - Fail-closed patch provenance verification in health/status
+ - Bounded legacy Evidence migration through `evidence retain`
+@@ -35,8 +37,6 @@ This document tracks the pieces that are intentionally still missing from the cu
+ 
+ | Area | Missing Piece | Why It Matters |
+ |---|---|---|
+-| Contract freshness | Lock refresh policy and commands | Approved Spec Contract artifacts now exist, but the CLI does not yet define when stale locks may be refreshed |
+-| Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
+ | Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
+ | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
+ | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
+@@ -52,7 +52,6 @@ This document tracks the pieces that are intentionally still missing from the cu
+ 
+ ## Near-Term Follow-Ups
+ 
+-- Define a lock refresh policy for stale Task Contracts.
+ - Add a command to create lightweight spec-change proposal artifacts.
+ - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
+ - Make `ai next-task` priority-aware.
+diff --git a/docs/sc-wbs-core/02-command-first-workflow.md b/docs/sc-wbs-core/02-command-first-workflow.md
+index 2259dbd..48a3921 100644
+--- a/docs/sc-wbs-core/02-command-first-workflow.md
++++ b/docs/sc-wbs-core/02-command-first-workflow.md
+@@ -222,6 +222,12 @@ Fix:
+ - Review request draft作成
+ - stale lockの検出とrefresh提案
+ 
++stale lockのrefreshは `task refresh --task <id>` のpreviewで理由と安全な
++更新範囲を確認してから行う。refreshは `contractLock` メタデータだけを
++更新し、Taskのauthorityを変更しない。WBS/Specの意味変更を受け入れる
++ためにscopeやchecksなどを変更する必要がある場合は、refreshを承認代わり
++に使わず、Human Approvalまたは新しいTask/Specのライフサイクルへ戻る。
++
+ 自動修復してはいけないもの:
+ 
+ - human approval
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 89be302..32183f7 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -204,6 +204,15 @@ npm run scwbs -- profile show
+ npm run scwbs -- profile set lean
+ ```
+ 
++`task refresh` is the bounded stale-lock workflow. The preview reports which lock
++inputs changed (scoped WBS, global policy, referenced node, or Spec lock) and
++classifies the operation as lock metadata only. It does not change
++`allowedPaths`, `forbiddenPaths`, `doneCriteria`, `requiredChecks`, or
++`humanGateRequiredPaths`, and it is not approval for a semantic contract change.
++If the WBS/Spec change requires new authority, stop and use the Human Approval
++or new Task/Spec workflow. `--affected` is always preview-only; `--all --apply`
++is an explicit bulk migration and must not be used as an implicit repair.
++
+ `profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
+ 
+ `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 7c189f8..9731334 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -79,6 +79,7 @@ contractLock:
+ Task Contractは、生成時点のWBS scope hash、global policy hash、Spec versionを `contractLock` として記録する。`wbsScopeRevision` は対象node、ancestor、transitive dependency、produces/consumesで関連するartifactだけを対象にし、無関係なsibling nodeを除外する。`wbsGlobalRevision` はWBS ID、root ID、schema versionとroot `extensions.scwbs` policyを対象にする。ただしread-onlyかつwarning-onlyの `extensions.scwbs.governanceCost.warningBudgets` はTask authorityを変更しないためglobal revisionから除外する。`profile` とその他のSC-WBS policyは引き続き対象である。
+ 
+ AI Work Packet生成時および `scwbs check` では、これらのrevisionと現在のWBS-JSON、Spec Contractの鮮度を比較する。旧 `wbsRevision` whole-file lockは読み取り互換を維持するが、`task refresh --affected` ではmigration対象として表示する。`task refresh --task <id> --apply` で個別移行し、全更新が意図される場合だけ `task refresh --all --apply` を使う。
++Refreshはlockメタデータだけを更新するbounded operationであり、`allowedPaths`、`forbiddenPaths`、`doneCriteria`、`requiredChecks`、`humanGateRequiredPaths`は変更しない。previewは変更理由とHuman Gate境界を表示する。WBS/Specの意味変更を受け入れるためにTask authorityを変更する必要がある場合、refreshを承認代わりに使わず、Human Approvalまたは新しいTask/Specのライフサイクルへ戻す。
+ WBS nodeのID、親子関係、依存関係、outputs、または参照SpecのversionがTask Contract生成時点から変更されている場合、そのTask Contractはstaleとして扱う。
+ staleなTask Contractに基づいてAIは実装してはならない。実装前にTask Contractを再生成するか、人間の承認を受けてlockを更新する。
+ Task Contractのlockを生成するには以下を実行する。
+diff --git a/src/commands/task-refresh.ts b/src/commands/task-refresh.ts
+index 2c64354..a425a8a 100644
+--- a/src/commands/task-refresh.ts
++++ b/src/commands/task-refresh.ts
+@@ -9,6 +9,7 @@ export function buildTaskRefreshPreview(root: string, taskId: string): string {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const refreshed = buildLockedTask(root, taskId);
++  const reasons = taskRefreshReasons(root, taskId);
+   const lines = ["Task Contract refresh preview:", "", "Safe updates:"];
+   const oldLock = task.contractLock ?? {};
+   const newLock = refreshed.contractLock ?? {};
+@@ -17,8 +18,13 @@ export function buildTaskRefreshPreview(root: string, taskId: string): string {
+   }
+   if (lines.length === 3) lines.push("- None");
+   lines.push("");
+-  lines.push("Needs human decision:");
+-  lines.push("- allowedPaths, doneCriteria, requiredChecks, and humanGateRequiredPaths are not changed by refresh");
++  lines.push("Refresh policy:");
++  lines.push("- This command changes contractLock metadata only; it never changes Task authority fields");
++  lines.push(`- Detected reasons: ${reasons.length > 0 ? reasons.join("; ") : "none; the current lock is fresh"}`);
++  lines.push("");
++  lines.push("Human Gate boundary:");
++  lines.push("- If accepting the underlying WBS or Spec change requires changing scope, checks, or other authority, stop and use the Human Approval / new Task workflow");
++  lines.push("- A refresh is not approval for a semantic contract change");
+   return `${lines.join("\n")}\n`;
+ }
+ 
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 4c5550b..e2c9875 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -257,6 +257,10 @@ describe("task management", () => {
+     const preview = buildTaskRefreshPreview(root, "WBS-001-004");
+     expect(preview).toContain("Task Contract refresh preview");
+     expect(preview).toContain("Safe updates");
++    expect(preview).toContain("Refresh policy");
++    expect(preview).toContain("Human Gate boundary");
++    expect(preview).toContain("contractLock metadata only");
++    expect(preview).toContain("A refresh is not approval for a semantic contract change");
+     expect(runTaskRefresh(root, "WBS-001-004", { apply: true })).toBe(0);
+     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("task.contractLock"))).toBe(false);
+   });
