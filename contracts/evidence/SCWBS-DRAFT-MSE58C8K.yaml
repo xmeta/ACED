@@ -1,0 +1,130 @@
+id: EVD-SCWBS-DRAFT-MSE58C8K
+type: evidence
+taskId: SCWBS-DRAFT-MSE58C8K
+commit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+subjectHeadCommit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+diffHash: sha256:8b91f8c69c09f4dc757dced8e5562def2d408b6d9fa67aff59e9837560793aec
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+    treeHash: 28ec2dc131c67659e078100d6773839283dd8fd9
+    diffHash: sha256:8b91f8c69c09f4dc757dced8e5562def2d408b6d9fa67aff59e9837560793aec
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
+    manifestHash: sha256:8b91f8c69c09f4dc757dced8e5562def2d408b6d9fa67aff59e9837560793aec
+git:
+  branch: task/SCWBS-DRAFT-MSE58C8K-github-issue-393-automatically-record-verified-c
+  base: origin/main
+  baseCommit: 3456dee1652ee1258fa5eef1e2d5e2cba0b00b63
+  changedFilesBasis: branch-diff
+  pullRequest: "393"
+  subjectHeadCommit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+  diffHash: sha256:8b91f8c69c09f4dc757dced8e5562def2d408b6d9fa67aff59e9837560793aec
+  headCommit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - README.md
+  - contracts/approvals/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
+  - contracts/evidence/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSE58C8K.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
+  - docs/implementation-gaps.md
+  - package.json
+  - scripts/coverage-evidence.mjs
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/evidence.test.ts
+  - tests/unit/coverage-evidence.test.ts
+coverageReceipt:
+  schemaVersion: 1.0.0
+  command: npm run test:coverage:all
+  scope: unit-and-integration
+  repository: xmeta/ACED
+  taskId: SCWBS-DRAFT-MSE58C8K
+  pullRequest: "393"
+  subjectHeadCommit: 5414a2e6db717c6dd6e09d3fabe53ea5199e7125
+  workflowPath: .github/workflows/scwbs.yml
+  workflowRunId: "30896656045"
+  workflowRunUrl: https://github.com/xmeta/ACED/actions/runs/30896656045
+  artifactName: coverage-21a6ac92c783a247d5681beac791cb42b648c6bd
+  testFiles:
+    total: 83
+    passed: 83
+    failed: 0
+    skipped: 0
+  tests:
+    total: 558
+    passed: 556
+    failed: 0
+    skipped: 2
+  metrics:
+    statements:
+      total: 7730
+      covered: 6047
+      skipped: 0
+      percent: 78.22
+    branches:
+      total: 6862
+      covered: 4823
+      skipped: 0
+      percent: 70.28
+    functions:
+      total: 1373
+      covered: 1156
+      skipped: 0
+      percent: 84.19
+    lines:
+      total: 6731
+      covered: 5445
+      skipped: 0
+      percent: 80.89
+  skippedTests:
+    - name: finish lifecycle receipts bounds events per Task and receipts per repository
+      reason: excluded or skipped by test selection
+    - name: issue 179 gate, publish, and health observability health receipts retain at most 50 events for at most 100 Tasks
+      reason: excluded or skipped by test selection
+  generatedAt: "2026-08-04T09:33:18.257Z"
+  payloadDigest: sha256:c771b92592beff5854782f6fbaac02d6e31a673e8446ce390a9ded9dee972c3f
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:9de5b9ac75359242468da964aea2cf620eb6ee7e1329c6940e6c8d7df954f229
+    durationMilliseconds: 15282
+    executedAt: "2026-08-04T09:34:47.714Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e26761d32f7d30b2961848322d51748829c9b8840b4c2263305279f1ad7b557a
+    durationMilliseconds: 272320
+    executedAt: "2026-08-04T09:39:20.040Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:73fa766a0fd6552fe5e39cdec84f625185ae5557618ec9aae0e1b4c0e2711982
+    durationMilliseconds: 9745
+    executedAt: "2026-08-04T09:39:29.792Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:9af95f242f46dbfadaed06ae89626deb0fdac4d387efecf50ca3488e6e0a7a5a
+    durationMilliseconds: 4247
+    executedAt: "2026-08-04T09:39:34.044Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 'CI receiptにStatements 78.22%等の実測値を記録。Issue #393はcoverage threshold/regression gateを導入せず、比較不能な基準値による低下判定は行わない。'

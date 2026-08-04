@@ -27,7 +27,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
     "test": "vitest run tests/unit",
     "test:coverage": "vitest run tests/unit --coverage",
-    "test:coverage:all": "vitest run tests/unit tests/integration --coverage --pool=forks --maxWorkers=4 --no-file-parallelism --testTimeout=60000 -t='^(?!.*bounds events per Task and receipts per repository)'",
+    "test:coverage:all": "vitest run tests/unit tests/integration --coverage --coverage.reporter=text --coverage.reporter=json-summary --pool=forks --maxWorkers=4 --no-file-parallelism --testTimeout=60000 --reporter=default --reporter=json --outputFile.json=coverage/test-results.json -t='^(?!.*bounds events per Task and receipts per repository)(?!.*health receipts retain at most 50 events for at most 100 Tasks)'",
     "test:integration": "node scripts/integration-test-output.mjs",
     "test:integration:verbose": "node scripts/integration-test-output.mjs --verbose",
     "test:wjs": "npm test -w wjs",

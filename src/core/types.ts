@@ -213,6 +213,46 @@ export type CiReceipt = {
   jobs: CiReceiptJob[];
 };
 
+export type CoverageMetric = {
+  total: number;
+  covered: number;
+  skipped: number;
+  percent: number;
+};
+
+export type CoverageTestCounts = {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+};
+
+export type CoverageReceipt = {
+  schemaVersion: "1.0.0";
+  command: string;
+  scope: string;
+  repository?: string;
+  taskId?: string;
+  pullRequest?: string;
+  subjectHeadCommit: string;
+  workflowPath: ".github/workflows/scwbs.yml";
+  workflowRunId: string;
+  workflowRunUrl: string;
+  artifactName: string;
+  artifactDigest?: string;
+  payloadDigest: string;
+  testFiles: CoverageTestCounts;
+  tests: CoverageTestCounts;
+  metrics: {
+    statements: CoverageMetric;
+    branches: CoverageMetric;
+    functions: CoverageMetric;
+    lines: CoverageMetric;
+  };
+  skippedTests: Array<{ name: string; reason: string }>;
+  generatedAt: string;
+};
+
 export type Evidence = {
   id: string;
   type: "evidence";
@@ -247,6 +287,7 @@ export type Evidence = {
   };
   changedFiles: string[];
   ciReceipt?: CiReceipt;
+  coverageReceipt?: CoverageReceipt;
   submodules?: Array<{
     path: string;
     repository: string;

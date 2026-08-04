@@ -309,6 +309,34 @@ jobs:
         run: npm test
       - name: Combined unit and integration coverage
         run: npm run test:coverage:all
+      - name: Resolve implementation subject head
+        id: subject
+        env:
+          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+          SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
+          SCWBS_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SCWBS_PULL_REQUEST" ]; then
+            git fetch --no-tags --depth=1 origin "refs/pull/${SCWBS_PULL_REQUEST}/head"
+          fi
+          subject_head="$(git log -1 --format=%H "$SCWBS_BRANCH_HEAD" -- \
+            . \
+            ":(exclude)contracts/evidence/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/evidence-payloads/${SCWBS_TASK_ID}.patch" \
+            ":(exclude)contracts/approvals/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/reviews/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/registry.yaml")"
+          test -n "$subject_head"
+          echo "subject_head=$subject_head" >> "$GITHUB_OUTPUT"
+      - name: Create coverage receipt and Evidence snapshot
+        env:
+          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+          SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
+          SCWBS_SUBJECT_HEAD: ${{ steps.subject.outputs.subject_head }}
+          SCWBS_ARTIFACT_NAME: coverage-${{ github.sha }}
+          SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/coverage-evidence.mjs
       - name: Upload combined coverage report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

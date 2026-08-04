@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSE58C8K
+type: spec-contract
+featureId: F-MSE58C8K
+title: "GitHub Issue #393: automatically record verified CI coverage in SC-WBS Evidence"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-github-issue-393
+approvedAt: "2026-08-04T00:00:00Z"
+summary: "GitHub Issue #393: automatically record verified CI coverage in SC-WBS Evidence"
+acceptanceCriteria:
+  - 'Generate a versioned machine-readable coverage receipt containing command, scope, test counts, coverage totals, skip reasons, subject commit, PR, workflow run, and artifact provenance.'
+  - 'Extend Evidence collection to verify the receipt against the current Task Contract subject, branch diff, PR, and trusted workflow metadata, failing closed on mismatch.'
+  - 'Store the verified coverage summary in Evidence and publish an Evidence snapshot plus coverage report as CI artifacts without granting CI write access to PR branches or main.'
+  - 'Keep the existing unit-only coverage fast path, required check names, Human Gate behavior, protected merge path, and no-threshold coverage policy unchanged.'
+  - 'Add focused regression coverage and update README plus implementation-gap documentation.'

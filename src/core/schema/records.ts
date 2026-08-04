@@ -3,6 +3,30 @@ import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from 
 import { taskIdPatternSource } from "../paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
+const coverageMetricSchema = {
+  type: "object",
+  required: ["total", "covered", "skipped", "percent"],
+  additionalProperties: false,
+  properties: {
+    total: { type: "number", minimum: 0 },
+    covered: { type: "number", minimum: 0 },
+    skipped: { type: "number", minimum: 0 },
+    percent: { type: "number", minimum: 0, maximum: 100 }
+  }
+};
+
+const coverageCountsSchema = {
+  type: "object",
+  required: ["total", "passed", "failed", "skipped"],
+  additionalProperties: false,
+  properties: {
+    total: { type: "number", minimum: 0 },
+    passed: { type: "number", minimum: 0 },
+    failed: { type: "number", minimum: 0 },
+    skipped: { type: "number", minimum: 0 }
+  }
+};
+
 const evidenceSchema = {
   type: "object",
   required: ["id", "type", "taskId", "changedFiles", "checks"],
@@ -85,6 +109,55 @@ const evidenceSchema = {
             }
           }
         }
+      }
+    },
+    coverageReceipt: {
+      type: "object",
+      required: [
+        "schemaVersion", "command", "scope", "subjectHeadCommit", "workflowPath", "workflowRunId",
+        "workflowRunUrl", "artifactName", "payloadDigest", "testFiles", "tests", "metrics", "skippedTests", "generatedAt"
+      ],
+      additionalProperties: false,
+      properties: {
+        schemaVersion: { const: "1.0.0" },
+        command: { type: "string", minLength: 1 },
+        scope: { type: "string", minLength: 1 },
+        repository: { type: "string", minLength: 1 },
+        taskId: { type: "string", minLength: 1 },
+        pullRequest: { type: "string", pattern: "^[1-9][0-9]*$" },
+        subjectHeadCommit: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
+        workflowPath: { const: ".github/workflows/scwbs.yml" },
+        workflowRunId: { type: "string", minLength: 1 },
+        workflowRunUrl: { type: "string", minLength: 1 },
+        artifactName: { type: "string", minLength: 1 },
+        artifactDigest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
+        payloadDigest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
+        testFiles: coverageCountsSchema,
+        tests: coverageCountsSchema,
+        metrics: {
+          type: "object",
+          required: ["statements", "branches", "functions", "lines"],
+          additionalProperties: false,
+          properties: {
+            statements: coverageMetricSchema,
+            branches: coverageMetricSchema,
+            functions: coverageMetricSchema,
+            lines: coverageMetricSchema
+          }
+        },
+        skippedTests: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["name", "reason"],
+            additionalProperties: false,
+            properties: {
+              name: { type: "string", minLength: 1 },
+              reason: { type: "string", minLength: 1 }
+            }
+          }
+        },
+        generatedAt: { type: "string", minLength: 1 }
       }
     },
     changedFiles: stringArraySchema,

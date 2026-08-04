@@ -183,6 +183,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .option("--base <ref>", "base reference")
     .option("--pull-request <id>", "pull request id")
     .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
+    .option("--coverage-receipt <path>", "verified CI coverage receipt JSON")
     .option("--force", "force collection")
     .option("--test-assertions-added <bool>", "test assertions added")
     .option("--tests-disabled <bool>", "tests disabled")
@@ -204,6 +205,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
           baseRef: options.base,
           pullRequest: options.pullRequest,
           ciReceipt: options.ciReceipt,
+          coverageReceipt: options.coverageReceipt,
           testQuality: parseTestQuality(options),
           rerunChecks: options.rerunChecks ?? false,
           json: options.json ?? false,
