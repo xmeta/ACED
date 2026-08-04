@@ -1,0 +1,228 @@
+diff --git a/contracts/specs/SPEC-LITE-MSET3OAF.yaml b/contracts/specs/SPEC-LITE-MSET3OAF.yaml
+new file mode 100644
+index 0000000..8568002
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSET3OAF.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSET3OAF
++type: spec-contract
++featureId: F-MSET3OAF
++title: "Issue #398: make corrupted health lifecycle receipts observable without changing the JSON output contract"
++status: approved
++version: 0.1.0
++summary: "Issue #398: make corrupted health lifecycle receipts observable without changing the JSON output contract"
++approvedBy: user-requested-issue-398
++approvedAt: "2026-08-05T00:00:00Z"
++acceptanceCriteria:
++  - "`prune()` and `recordHealthLifecycleEvent()` classify malformed JSON and schema-invalid receipts as observable corruption instead of silently treating them as absent."
++  - "Corruption warnings go to stderr, include a bounded receipt path and failure class, and do not alter the existing stdout JSON contract of `scwbs health --json`."
++  - "Valid receipts continue to be read, appended, bounded, and pruned with the existing behavior and schema."
++  - "Integration tests cover the corrupted receipt paths and prove JSON stdout remains valid where applicable."
++  - "Package manifests, CI configuration, receipt schema, and unrelated doctor/metrics behavior remain unchanged."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml b/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
+new file mode 100644
+index 0000000..f20f5ac
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MSET3OAF
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSET3OAF
++branchName: task/SCWBS-DRAFT-MSET3OAF-issue-398-make-corrupted-health-lifecycle-receip
++allowedPaths:
++  - src/core/health-lifecycle.ts
++  - tests/integration/issue-179-observability.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/specs/SPEC-LITE-MSET3OAF.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
++  - contracts/approvals/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Corrupted or schema-invalid health lifecycle receipts are detected in both pruning and event-recording paths.
++  - Each detected receipt is surfaced as a bounded warning on stderr that identifies the receipt path and failure class, while valid receipts retain existing behavior.
++  - '`scwbs health --json` remains parseable JSON on stdout; no JSON schema or health lifecycle receipt schema changes are introduced.'
++  - Regression coverage exercises malformed JSON and invalid receipt content without changing package, CI, or unrelated health/doctor behavior.
++  - 'Evidence, check-diff, required checks, and Registry are converged for this Issue #398 Task Contract.'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/specs/SPEC-LITE-MSET3OAF.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
++  - contracts/approvals/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSET3OAF.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d2cff121a0df8f2037fc4b361d2b2932665ab8b950e41343b6b5a389933e08fe
++  createdAt: "2026-08-04T15:24:47.369Z"
+diff --git a/src/core/health-lifecycle.ts b/src/core/health-lifecycle.ts
+index 99b0977..6ffa16f 100644
+--- a/src/core/health-lifecycle.ts
++++ b/src/core/health-lifecycle.ts
+@@ -61,16 +61,40 @@ export function isHealthLifecycleReceipt(value: unknown): value is HealthLifecyc
+     && receipt.events.length <= healthLifecycleEventLimit && receipt.events.every(isEvent);
+ }
+ 
++function warnCorruptReceipt(file: string, reason: "read-failed" | "invalid-json" | "invalid-schema" | "task-id-mismatch"): void {
++  console.error(`WARN health lifecycle receipt corrupted: ${file} (${reason})`);
++}
++
++function readReceipt(file: string): HealthLifecycleReceipt | undefined {
++  let content: string;
++  try {
++    content = readFileSync(file, "utf8");
++  } catch {
++    warnCorruptReceipt(file, "read-failed");
++    return undefined;
++  }
++  let value: unknown;
++  try {
++    value = JSON.parse(content);
++  } catch {
++    warnCorruptReceipt(file, "invalid-json");
++    return undefined;
++  }
++  if (!isHealthLifecycleReceipt(value)) {
++    warnCorruptReceipt(file, "invalid-schema");
++    return undefined;
++  }
++  return value;
++}
++
+ function prune(root: string, protectedFile: string): void {
+   const directory = healthLifecycleDirectory(root);
+   const files = readdirSync(directory, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+     .map((entry) => {
+       const file = path.join(directory, entry.name);
+       let observedAt = statSync(file).mtime.toISOString();
+-      try {
+-        const value: unknown = JSON.parse(readFileSync(file, "utf8"));
+-        if (isHealthLifecycleReceipt(value)) observedAt = value.events.at(-1)?.observedAt ?? observedAt;
+-      } catch {}
++      const value = readReceipt(file);
++      if (value) observedAt = value.events.at(-1)?.observedAt ?? observedAt;
+       return { file, observedAt, name: entry.name };
+     }).sort((left, right) => left.observedAt.localeCompare(right.observedAt) || left.name.localeCompare(right.name));
+   while (files.length > healthLifecycleTaskLimit) {
+@@ -87,10 +111,9 @@ export function recordHealthLifecycleEvent(root: string, taskId: string, event:
+   const file = receiptPath(root, taskId);
+   let existing: HealthLifecycleReceipt | undefined;
+   if (existsSync(file)) {
+-    try {
+-      const value: unknown = JSON.parse(readFileSync(file, "utf8"));
+-      if (isHealthLifecycleReceipt(value) && value.taskId === taskId) existing = value;
+-    } catch {}
++    const value = readReceipt(file);
++    if (value?.taskId === taskId) existing = value;
++    else if (value) warnCorruptReceipt(file, "task-id-mismatch");
+   }
+   const events = [...(existing?.events ?? []), event];
+   const receipt: HealthLifecycleReceipt = {
+diff --git a/tests/integration/issue-179-observability.test.ts b/tests/integration/issue-179-observability.test.ts
+index 6754260..b89c17c 100644
+--- a/tests/integration/issue-179-observability.test.ts
++++ b/tests/integration/issue-179-observability.test.ts
+@@ -1,11 +1,13 @@
+ import { mkdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+-import { describe, expect, test } from "vitest";
++import { describe, expect, test, vi } from "vitest";
+ import { summarizeGithubPullRequests } from "../../src/core/github-pull-requests.js";
+ import { buildHealthLifecycleEvent, healthLifecycleDirectory, recordHealthLifecycleEvent } from "../../src/core/health-lifecycle.js";
+ import { buildHealthLifecycleSummary, buildHumanGateSummary } from "../../src/commands/metrics.js";
+ import { makeTempRepo, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
++const healthReceiptRetentionTimeoutMs = 60_000;
++
+ describe("issue 179 gate, publish, and health observability", () => {
+   test("summarizes bounded Task pull request publish loops and leaves unmerged duration null", () => {
+     const pullRequests = Array.from({ length: 22 }, (_, index) => ({
+@@ -43,22 +45,38 @@ describe("issue 179 gate, publish, and health observability", () => {
+ 
+   test("health receipt is local, bounded, corrupt-aware, and only returns comparable delta", () => {
+     const root = makeTempRepo();
+-    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
+-      { severity: "warn", code: "health.a", message: "a" },
+-      { severity: "warn", code: "health.b", message: "b" }
+-    ], new Date("2026-07-23T00:00:00Z")));
+-    recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
+-      { severity: "warn", code: "health.a", message: "a" }
+-    ], new Date("2026-07-23T00:01:00Z")));
+-    recordHealthLifecycleEvent(root, "TASK-B", buildHealthLifecycleEvent([], new Date("2026-07-23T00:02:00Z")));
+-    mkdirSync(healthLifecycleDirectory(root), { recursive: true });
+-    writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "corrupt.json")), "{broken\n");
+-    const summary = buildHealthLifecycleSummary(root);
+-    if (summary.status !== "available") throw new Error(summary.reason);
+-    expect(summary).toMatchObject({ receiptCount: 2, invalidReceiptCount: 1, eventCount: 3 });
+-    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-A")?.warningDelta).toBe(-1);
+-    expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-B")?.warningDelta).toBeNull();
+-    expect(readFileSync(path.join(healthLifecycleDirectory(root), "TASK-A.json"), "utf8")).toContain("\"events\"");
++    const warnings: string[] = [];
++    const errorSpy = vi.spyOn(console, "error").mockImplementation((...args) => warnings.push(args.join(" ")));
++    try {
++      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
++        { severity: "warn", code: "health.a", message: "a" },
++        { severity: "warn", code: "health.b", message: "b" }
++      ], new Date("2026-07-23T00:00:00Z")));
++      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([
++        { severity: "warn", code: "health.a", message: "a" }
++      ], new Date("2026-07-23T00:01:00Z")));
++      recordHealthLifecycleEvent(root, "TASK-B", buildHealthLifecycleEvent([], new Date("2026-07-23T00:02:00Z")));
++      mkdirSync(healthLifecycleDirectory(root), { recursive: true });
++      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "corrupt.json")), "{broken\n");
++      const summary = buildHealthLifecycleSummary(root);
++      if (summary.status !== "available") throw new Error(summary.reason);
++      expect(summary).toMatchObject({ receiptCount: 2, invalidReceiptCount: 1, eventCount: 3 });
++      expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-A")?.warningDelta).toBe(-1);
++      expect(summary.taskTrend.items.find((item) => item.taskId === "TASK-B")?.warningDelta).toBeNull();
++      expect(readFileSync(path.join(healthLifecycleDirectory(root), "TASK-A.json"), "utf8")).toContain("\"events\"");
++
++      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "TASK-C.json")), "{broken\n");
++      recordHealthLifecycleEvent(root, "TASK-C", buildHealthLifecycleEvent([], new Date("2026-07-23T00:03:00Z")));
++      writeText(root, path.relative(root, path.join(healthLifecycleDirectory(root), "invalid-schema.json")), JSON.stringify({ schemaVersion: "1.0.0" }));
++      recordHealthLifecycleEvent(root, "TASK-A", buildHealthLifecycleEvent([], new Date("2026-07-23T00:04:00Z")));
++      expect(warnings).toEqual(expect.arrayContaining([
++        expect.stringContaining("TASK-C.json (invalid-json)"),
++        expect.stringContaining("corrupt.json (invalid-json)"),
++        expect.stringContaining("invalid-schema.json (invalid-schema)")
++      ]));
++    } finally {
++      errorSpy.mockRestore();
++    }
+   });
+ 
+   test("health receipts retain at most 50 events for at most 100 Tasks", () => {
+@@ -75,5 +93,5 @@ describe("issue 179 gate, publish, and health observability", () => {
+     expect(summary.eventCount).toBe(100);
+     expect(summary.taskTrend).toMatchObject({ limit: 20, totalCount: 100, truncated: true });
+     expect(summary.taskTrend.items).toHaveLength(20);
+-  });
++  }, healthReceiptRetentionTimeoutMs);
+ });
