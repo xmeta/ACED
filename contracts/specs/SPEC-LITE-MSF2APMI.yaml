@@ -1,0 +1,14 @@
+id: SPEC-LITE-MSF2APMI
+type: spec-contract
+featureId: F-MSF2APMI
+title: "Issue #400: generate Markdown documentation from SC-WBS contracts"
+status: approved
+version: 0.1.0
+summary: "Add a deterministic docs generate command that renders WBS status, Task-to-Spec references, and Human Gate declarations into docs/generated without overwriting hand-maintained docs."
+acceptanceCriteria:
+  - '`scwbs docs generate` writes only the deterministic generated Markdown artifact under `docs/generated/`.'
+  - '`scwbs docs generate --check` is read-only and returns failure when the artifact is missing or stale.'
+  - 'The generated document includes WBS status counts, Task Contract rows with Spec references, and Human Gate declarations.'
+  - 'The command preserves hand-maintained documentation and remains compatible with `scwbs docs check`.'
+approvedBy: user-requested-issue-400
+approvedAt: "2026-08-05T00:00:00Z"
