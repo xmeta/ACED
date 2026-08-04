@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSET3OAF
+type: spec-contract
+featureId: F-MSET3OAF
+title: "Issue #398: make corrupted health lifecycle receipts observable without changing the JSON output contract"
+status: approved
+version: 0.1.0
+summary: "Issue #398: make corrupted health lifecycle receipts observable without changing the JSON output contract"
+approvedBy: user-requested-issue-398
+approvedAt: "2026-08-05T00:00:00Z"
+acceptanceCriteria:
+  - "`prune()` and `recordHealthLifecycleEvent()` classify malformed JSON and schema-invalid receipts as observable corruption instead of silently treating them as absent."
+  - "Corruption warnings go to stderr, include a bounded receipt path and failure class, and do not alter the existing stdout JSON contract of `scwbs health --json`."
+  - "Valid receipts continue to be read, appended, bounded, and pruned with the existing behavior and schema."
+  - "Integration tests cover the corrupted receipt paths and prove JSON stdout remains valid where applicable."
+  - "Package manifests, CI configuration, receipt schema, and unrelated doctor/metrics behavior remain unchanged."

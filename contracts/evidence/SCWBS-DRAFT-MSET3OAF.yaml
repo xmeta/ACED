@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSET3OAF
+type: evidence
+taskId: SCWBS-DRAFT-MSET3OAF
+commit: 307679faea245bcfdcb76d108327449a26b4ce9c
+subjectHeadCommit: 307679faea245bcfdcb76d108327449a26b4ce9c
+diffHash: sha256:dad9c2e64d93418a02dbb7e38eb1b32e926902c9022a16cb7591bb6f0f952d5b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 307679faea245bcfdcb76d108327449a26b4ce9c
+    treeHash: 986151625047d949d4512a8b00bc67aba7fa46b0
+    diffHash: sha256:dad9c2e64d93418a02dbb7e38eb1b32e926902c9022a16cb7591bb6f0f952d5b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
+    manifestHash: sha256:dad9c2e64d93418a02dbb7e38eb1b32e926902c9022a16cb7591bb6f0f952d5b
+git:
+  branch: task/SCWBS-DRAFT-MSET3OAF-issue-398-make-corrupted-health-lifecycle-receip
+  base: origin/main
+  baseCommit: a2f92f7b2609e03979f9a773bd881a1bedc40701
+  changedFilesBasis: branch-diff
+  pullRequest: "403"
+  subjectHeadCommit: 307679faea245bcfdcb76d108327449a26b4ce9c
+  diffHash: sha256:dad9c2e64d93418a02dbb7e38eb1b32e926902c9022a16cb7591bb6f0f952d5b
+  headCommit: 307679faea245bcfdcb76d108327449a26b4ce9c
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
+  - contracts/evidence/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSET3OAF.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
+  - src/core/health-lifecycle.ts
+  - tests/integration/issue-179-observability.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2c3632f7a790fccd765c6049b4f1fc037af44cea1d621f7b544dbe6dd3c86c1d
+    durationMilliseconds: 14747
+    executedAt: "2026-08-04T15:46:00.537Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1d3c6df49d69b08cbc5476cea56aaada8fae798ff03dae3250d5a8c2e79d7ead
+    durationMilliseconds: 265203
+    executedAt: "2026-08-04T15:50:25.744Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3eafe3b43a861b7091669e32a79f6f27b9e4aa13a822076a9cc162bd364f58ee
+    durationMilliseconds: 9586
+    executedAt: "2026-08-04T15:50:35.334Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:08c24c296cc5335f92772653aee78cfc771f24ad948ca2bc096fc7bb400ab29d
+    durationMilliseconds: 4211
+    executedAt: "2026-08-04T15:50:39.548Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for malformed and schema-invalid health lifecycle receipts; no tests were disabled and coverage did not decrease.

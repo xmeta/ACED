@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MSET3OAF
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSET3OAF
+branchName: task/SCWBS-DRAFT-MSET3OAF-issue-398-make-corrupted-health-lifecycle-receip
+allowedPaths:
+  - src/core/health-lifecycle.ts
+  - tests/integration/issue-179-observability.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/specs/SPEC-LITE-MSET3OAF.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
+  - contracts/approvals/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - "Corrupted or schema-invalid health lifecycle receipts are detected in both pruning and event-recording paths."
+  - "Each detected receipt is surfaced as a bounded warning on stderr that identifies the receipt path and failure class, while valid receipts retain existing behavior."
+  - "`scwbs health --json` remains parseable JSON on stdout; no JSON schema or health lifecycle receipt schema changes are introduced."
+  - "Regression coverage exercises malformed JSON and invalid receipt content without changing package, CI, or unrelated health/doctor behavior."
+  - "Evidence, check-diff, required checks, and Registry are converged for this Issue #398 Task Contract."
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/specs/SPEC-LITE-MSET3OAF.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSET3OAF.patch
+  - contracts/approvals/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSET3OAF.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:d2cff121a0df8f2037fc4b361d2b2932665ab8b950e41343b6b5a389933e08fe
+  createdAt: "2026-08-04T15:24:47.369Z"
