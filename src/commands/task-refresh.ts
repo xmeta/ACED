@@ -9,6 +9,7 @@ export function buildTaskRefreshPreview(root: string, taskId: string): string {
   const { task, issues } = readTask(root, taskId);
   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
   const refreshed = buildLockedTask(root, taskId);
+  const reasons = taskRefreshReasons(root, taskId);
   const lines = ["Task Contract refresh preview:", "", "Safe updates:"];
   const oldLock = task.contractLock ?? {};
   const newLock = refreshed.contractLock ?? {};
@@ -17,8 +18,13 @@ export function buildTaskRefreshPreview(root: string, taskId: string): string {
   }
   if (lines.length === 3) lines.push("- None");
   lines.push("");
-  lines.push("Needs human decision:");
-  lines.push("- allowedPaths, doneCriteria, requiredChecks, and humanGateRequiredPaths are not changed by refresh");
+  lines.push("Refresh policy:");
+  lines.push("- This command changes contractLock metadata only; it never changes Task authority fields");
+  lines.push(`- Detected reasons: ${reasons.length > 0 ? reasons.join("; ") : "none; the current lock is fresh"}`);
+  lines.push("");
+  lines.push("Human Gate boundary:");
+  lines.push("- If accepting the underlying WBS or Spec change requires changing scope, checks, or other authority, stop and use the Human Approval / new Task workflow");
+  lines.push("- A refresh is not approval for a semantic contract change");
   return `${lines.join("\n")}\n`;
 }
 

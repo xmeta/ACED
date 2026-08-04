@@ -18,6 +18,8 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Base/head-aware Evidence changed file collection
 - Evidence PR metadata capture and refresh preservation
 - Evidence testQuality metadata capture and refresh preservation
+- Stale Task Contract Lock detection and refresh policy (`task refresh --task`, `--affected`, and explicit `--all --apply`)
+- Human Gate boundary for lock-only refreshes; refresh never changes Task authority fields or approves semantic contract changes
 - Tracked patch Evidence retention and subject reconstruction after squash merge
 - Fail-closed patch provenance verification in health/status
 - Bounded legacy Evidence migration through `evidence retain`
@@ -35,8 +37,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 
 | Area | Missing Piece | Why It Matters |
 |---|---|---|
-| Contract freshness | Lock refresh policy and commands | Approved Spec Contract artifacts now exist, but the CLI does not yet define when stale locks may be refreshed |
-| Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
 | Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
 | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
 | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
@@ -52,7 +52,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 
 ## Near-Term Follow-Ups
 
-- Define a lock refresh policy for stale Task Contracts.
 - Add a command to create lightweight spec-change proposal artifacts.
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
 - Make `ai next-task` priority-aware.
