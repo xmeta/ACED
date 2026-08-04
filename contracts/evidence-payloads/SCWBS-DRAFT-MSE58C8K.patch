@@ -457,7 +457,7 @@ index e8ccb22..fd482ea 100644
            rerunChecks: options.rerunChecks ?? false,
            json: options.json ?? false,
 diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
-index 7e1a8b6..6599cd6 100644
+index 7e1a8b6..ff8c301 100644
 --- a/src/commands/evidence-collect.ts
 +++ b/src/commands/evidence-collect.ts
 @@ -23,7 +23,7 @@ import {
@@ -547,7 +547,7 @@ index 7e1a8b6..6599cd6 100644
    const { task, issues } = readTask(root, taskId);
    if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
    const baseRef = options.baseRef ?? "origin/main";
-@@ -320,6 +375,12 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+@@ -320,6 +375,18 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
        diffHash
      })
      : undefined;
@@ -556,11 +556,17 @@ index 7e1a8b6..6599cd6 100644
 +      pullRequest,
 +      subjectHead: subjectHead ?? ""
 +    })
-+    : undefined;
++    : existingEvidence?.coverageReceipt
++      && existingEvidence.coverageReceipt.subjectHeadCommit === subjectHead
++      && (!pullRequest
++        || !existingEvidence.coverageReceipt.pullRequest
++        || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
++      ? existingEvidence.coverageReceipt
++      : undefined;
    const cacheSubject = task.requiredChecks.length > 0
      ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
      : undefined;
-@@ -420,12 +481,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+@@ -420,12 +487,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
      changedFiles,
      ...(submodules.length > 0 ? { submodules } : {}),
      ...(ciReceipt ? { ciReceipt } : {}),
@@ -575,7 +581,7 @@ index 7e1a8b6..6599cd6 100644
    return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
  }
  
-@@ -497,12 +559,16 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+@@ -497,12 +565,16 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
      const ciReceipt = options.ciReceipt
        ? JSON.parse(readFileSync(path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt), "utf8")) as CiReceipt
        : undefined;
@@ -744,7 +750,7 @@ index ec86640..b60b4bd 100644
      path: string;
      repository: string;
 diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
-index bf9b639..44ed5ed 100644
+index bf9b639..4b870c6 100644
 --- a/tests/integration/evidence.test.ts
 +++ b/tests/integration/evidence.test.ts
 @@ -10,7 +10,7 @@ import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifac
@@ -756,7 +762,7 @@ index bf9b639..44ed5ed 100644
  import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
  import {
    acquireRequiredCheckRun,
-@@ -157,6 +157,47 @@ describe("evidence collect", () => {
+@@ -157,6 +157,52 @@ describe("evidence collect", () => {
      });
    });
  
@@ -794,6 +800,11 @@ index bf9b639..44ed5ed 100644
 +
 +    expect(evidence.coverageReceipt).toEqual(coverageReceipt);
 +    expect(validateEvidenceSchema(evidence)).toEqual([]);
++    writeYaml(root, `contracts/evidence/${taskId}.yaml`, evidence as unknown as Record<string, unknown>);
++    expect(buildCollectedEvidence(root, taskId, {
++      baseRef: "base",
++      pullRequest: "#42"
++    }).coverageReceipt).toEqual(coverageReceipt);
 +    expect(() => buildCollectedEvidence(root, taskId, {
 +      baseRef: "base",
 +      pullRequest: "#42",
