@@ -23,6 +23,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Tracked patch Evidence retention and subject reconstruction after squash merge
 - Fail-closed patch provenance verification in health/status
 - Bounded legacy Evidence migration through `evidence retain`
+- Read-only Evidence retention inventory and prune planning through `evidence prune` (current baseline: 148 tracked payloads / 5,933,400 bytes); deletion, external archive durability, audit trust changes, and Git history rewriting remain Human Decision work
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Sensitive meta/config file guardrails in check-diff
@@ -57,4 +58,5 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
 - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+- Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
 - Add PR feedback and CI run metadata capture for Evidence once the contract model stabilizes.

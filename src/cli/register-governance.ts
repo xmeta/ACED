@@ -6,7 +6,7 @@ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js
 import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
 import { runCompletionApply } from "../commands/completion.js";
 import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
-import { runEvidenceCollect, runEvidenceRetain } from "../commands/evidence-collect.js";
+import { runEvidenceCollect, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
 import { runProfileSet, runProfileShow } from "../commands/profile.js";
 import { runRegistryRebuild } from "../commands/registry-rebuild.js";
 import {
@@ -250,6 +250,15 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         return;
       }
       setExitCode(runEvidenceRetain(root, options.task, { fetchPrHead: options.fetchPrHead ?? false }));
+    });
+
+  evidence
+    .command("prune")
+    .description("Show a read-only Evidence retention inventory and prune plan")
+    .option("--json", "print a versioned JSON summary")
+    .option("--apply", "reserved for a separately approved retention Task; always fails closed here")
+    .action((options) => {
+      setExitCode(runEvidencePrune(root, { json: options.json ?? false, apply: options.apply ?? false }));
     });
 
   const registry = program.command("registry");

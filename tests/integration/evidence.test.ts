@@ -6,6 +6,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect, runEvidenceRetain } from "../../src/commands/evidence-collect.js";
 import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
+import { buildEvidencePruneSummary, runEvidencePrune } from "../../src/commands/evidence-collect.js";
 import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifact } from "../../src/core/git.js";
 import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
 import { readEvidence, readTask } from "../../src/core/contracts.js";
@@ -1023,4 +1024,57 @@ describe("evidence collect", () => {
     expect(readFileSync(passedMarker, "utf8")).toBe("1");
     expect(readFileSync(failedMarker, "utf8")).toBe("2");
   }, 30000);
+
+  test("evidence prune reports a deterministic read-only inventory and refuses apply", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const taskId = "WBS-001-004";
+    writeYaml(root, "contracts/tasks/index.yaml", {
+      tasks: [{
+        id: taskId,
+        path: `contracts/tasks/${taskId}.yaml`,
+        branchName: "task/WBS-001-004-api-implementation",
+        wbsNodeId: "node-governance-maintenance",
+        status: "archived",
+        dependsOn: [],
+        archivedAt: "2026-07-01T00:00:00Z"
+      }]
+    });
+    writeYaml(root, `contracts/evidence/${taskId}.yaml`, sampleEvidence({
+      provenance: {
+        schemaVersion: "1.0.0",
+        subject: {
+          commit: "a".repeat(40),
+          treeHash: "b".repeat(40),
+          diffHash: `sha256:${"c".repeat(64)}`,
+          canonicalization: "git-diff-binary-v1"
+        },
+        retention: {
+          mode: "patch-artifact",
+          locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
+          manifestHash: `sha256:${"d".repeat(64)}`
+        }
+      }
+    }) as unknown as Record<string, unknown>);
+    writeText(root, `contracts/evidence-payloads/${taskId}.patch`, "payload\n");
+
+    const before = readFileSync(path.join(root, `contracts/evidence-payloads/${taskId}.patch`), "utf8");
+    const summary = buildEvidencePruneSummary(root);
+    expect(summary).toMatchObject({
+      schemaVersion: "scwbs.evidence-prune.v1",
+      status: "plan",
+      readOnly: true,
+      payloads: { count: 1, totalBytes: before.length, byRetentionMode: { "patch-artifact": 1 } },
+      humanDecision: { required: true }
+    });
+    expect(summary.archivedCandidates).toEqual([expect.objectContaining({
+      taskId,
+      eligible: false,
+      reason: "retention-cutoff-requires-human-decision"
+    })]);
+    const applied = captureOutput(() => runEvidencePrune(root, { apply: true }));
+    expect(applied.result).toBe(1);
+    expect(applied.stderr).toContain("require a new human-approved Task Contract");
+    expect(readFileSync(path.join(root, `contracts/evidence-payloads/${taskId}.patch`), "utf8")).toBe(before);
+  });
 });

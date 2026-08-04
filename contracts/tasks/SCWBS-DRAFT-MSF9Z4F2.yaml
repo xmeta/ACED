@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MSF9Z4F2
+type: task-contract
+status: approved
+approvedBy: user-recommended-issue-349
+approvedAt: "2026-08-05T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF9Z4F2
+branchName: task/SCWBS-DRAFT-MSF9Z4F2-issue-349-evidence-retention-inventory-and-prune
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - src/cli/register-governance.ts
+  - tests/integration/evidence.test.ts
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
+  - contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - retention cutoff or external archive policy requires human decision
+  - Git history rewrite or payload deletion required
+  - external storage integration or security policy required
+  - allowed path expansion required
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+  - lint
+doneCriteria:
+  - scwbs evidence prune --json reports tracked patch-artifact counts, bytes, retention modes, and archived-task candidates without modifying the worktree
+  - default behavior is read-only and candidates require an explicit human-approved retention cutoff before any deletion or archive action
+  - the command refuses Git history rewrites, direct payload deletion, and unverified external storage operations
+  - CLI reference and implementation-gaps documentation state the current 148-payload baseline and the remaining Human Decision boundary
+  - focused integration coverage verifies deterministic inventory output and read-only guards
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF9Z4F2.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:185908c670d6ee89e65581ba17a7f99aa9e347d986b72e47face3d9f368dee0b
+  createdAt: "2026-08-04T23:15:35.080Z"
