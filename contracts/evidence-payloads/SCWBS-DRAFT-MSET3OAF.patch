@@ -21,10 +21,10 @@ index 0000000..8568002
 +  - "Package manifests, CI configuration, receipt schema, and unrelated doctor/metrics behavior remain unchanged."
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml b/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
 new file mode 100644
-index 0000000..f20f5ac
+index 0000000..c7f4e2d
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSET3OAF.yaml
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,58 @@
 +id: SCWBS-DRAFT-MSET3OAF
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -52,14 +52,15 @@ index 0000000..f20f5ac
 +  - .github/**
 +requiredChecks:
 +  - test
++  - test:integration
 +  - typecheck
 +  - build
 +doneCriteria:
-+  - Corrupted or schema-invalid health lifecycle receipts are detected in both pruning and event-recording paths.
-+  - Each detected receipt is surfaced as a bounded warning on stderr that identifies the receipt path and failure class, while valid receipts retain existing behavior.
-+  - '`scwbs health --json` remains parseable JSON on stdout; no JSON schema or health lifecycle receipt schema changes are introduced.'
-+  - Regression coverage exercises malformed JSON and invalid receipt content without changing package, CI, or unrelated health/doctor behavior.
-+  - 'Evidence, check-diff, required checks, and Registry are converged for this Issue #398 Task Contract.'
++  - "Corrupted or schema-invalid health lifecycle receipts are detected in both pruning and event-recording paths."
++  - "Each detected receipt is surfaced as a bounded warning on stderr that identifies the receipt path and failure class, while valid receipts retain existing behavior."
++  - "`scwbs health --json` remains parseable JSON on stdout; no JSON schema or health lifecycle receipt schema changes are introduced."
++  - "Regression coverage exercises malformed JSON and invalid receipt content without changing package, CI, or unrelated health/doctor behavior."
++  - "Evidence, check-diff, required checks, and Registry are converged for this Issue #398 Task Contract."
 +evidenceRequired:
 +  - test-result
 +  - typecheck-result
