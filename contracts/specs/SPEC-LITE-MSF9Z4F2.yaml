@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSF9Z4F2
+type: spec-contract
+featureId: F-MSF9Z4F2
+title: "Issue #349: Evidence retention inventory and safe prune boundary"
+status: approved
+version: 0.1.0
+summary: "Provide a deterministic read-only inventory and candidate plan while keeping retention, deletion, external archive, and Git history decisions human-controlled"
+approvedBy: user-recommended-issue-349
+approvedAt: "2026-08-05T00:00:00Z"
+acceptanceCriteria:
+  - evidence prune --json reports a versioned summary of tracked payload count, total bytes, retention modes, and archived Task candidates
+  - inventory reads Task index and Evidence provenance without changing Evidence, payloads, Registry, or Git refs
+  - default execution is read-only and a clean working tree is required for any future mutating mode
+  - no automatic age cutoff, external storage upload, payload deletion, or Git history rewrite is introduced
+  - output identifies that an explicit Human Decision is required for retention cutoff, archive durability, and audit trust semantics
+  - existing evidence retain and health behavior remain unchanged
