@@ -1,0 +1,50 @@
+id: SCWBS-DRAFT-MSEPJUX4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSEPJUX4
+branchName: task/SCWBS-DRAFT-MSEPJUX4-issue-395-fast-uri-high-ghsa-7p8r-x3mc-p8w7
+allowedPaths:
+  - package.json
+  - package-lock.json
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSEPJUX4.patch
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - package-lock.json resolves fast-uri 3.1.5 or newer, outside the vulnerable range >=3.0.0 <3.1.5
+  - corepack npm audit reports zero high and critical vulnerabilities
+  - unit, integration, typecheck, and build checks pass
+  - no source, test, documentation, CI workflow, WJS, or semver-major changes are included
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+  - audit-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSEPJUX4.yaml
+  - contracts/specs/SPEC-LITE-MSEPJUX4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSEPJUX4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSEPJUX4.yaml
+  - contracts/approvals/SCWBS-DRAFT-MSEPJUX4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSEPJUX4.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:ef43928b39b79aaef2973f169633a11aad07083cef634286f9a648a8a2d748df
+  createdAt: "2026-08-04T14:06:22.934Z"
