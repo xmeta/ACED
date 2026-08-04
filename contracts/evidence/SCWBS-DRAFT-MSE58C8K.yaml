@@ -1,0 +1,70 @@
+id: EVD-SCWBS-DRAFT-MSE58C8K
+type: evidence
+taskId: SCWBS-DRAFT-MSE58C8K
+commit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+subjectHeadCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+    treeHash: 30383650dd9d980a0052e51fc045e7e0b117208f
+    diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
+    manifestHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+git:
+  branch: task/SCWBS-DRAFT-MSE58C8K-github-issue-393-automatically-record-verified-c
+  base: origin/main
+  baseCommit: 3456dee1652ee1258fa5eef1e2d5e2cba0b00b63
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+  diffHash: sha256:0c1098cf6f1a41db1adaaed756a120cc39f75cb87a7d0b068d005cc4ddd4ec7d
+  headCommit: 457a85dd228f1aafafd740b4fd68d0370da4f1b9
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - README.md
+  - contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSE58C8K.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
+  - docs/implementation-gaps.md
+  - package.json
+  - scripts/coverage-evidence.mjs
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/evidence.test.ts
+  - tests/unit/coverage-evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:790c79276e87eb018eb0afe2cfca92765a033c6def05f80ee57dc1163c1612ea
+    durationMilliseconds: 19553
+    executedAt: "2026-08-04T07:48:22.891Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:c8886351ff3bcf21ba203aab798f33d51f12f40cef584e770374e4c0a0a51fae
+    durationMilliseconds: 329925
+    executedAt: "2026-08-04T07:53:52.823Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4836f609dbd0ed191302283c63b78ab23eca17a8ffae2742a2217d6c310ba450
+    durationMilliseconds: 12017
+    executedAt: "2026-08-04T07:54:04.879Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:13fffe6834d671947f12b798e534fab70b667597fdb6a86dd9aaeadf610f7dc1
+    durationMilliseconds: 4674
+    executedAt: "2026-08-04T07:54:09.566Z"

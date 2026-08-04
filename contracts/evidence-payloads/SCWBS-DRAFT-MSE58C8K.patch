@@ -1,0 +1,881 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 4c40b41..3b42297 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -309,6 +309,14 @@ jobs:
+         run: npm test
+       - name: Combined unit and integration coverage
+         run: npm run test:coverage:all
++      - name: Create coverage receipt and Evidence snapshot
++        env:
++          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
++          SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
++          SCWBS_SUBJECT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
++          SCWBS_ARTIFACT_NAME: coverage-${{ github.sha }}
++          SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
++        run: node scripts/coverage-evidence.mjs
+       - name: Upload combined coverage report
+         if: always()
+         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+diff --git a/README.md b/README.md
+index 1153345..e406d11 100644
+--- a/README.md
++++ b/README.md
+@@ -237,7 +237,8 @@ Tests are split into two groups:
+ Coverage commands use the same two scopes:
+ 
+ - `npm run test:coverage` – unit-only coverage for fast local feedback.
+-- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report is written to `coverage/`. The deliberately large receipt-bound stress case is excluded from this instrumented run because its per-test timeout is lower than its synchronous filesystem workload; the complete integration suite remains covered by `npm run test:integration`.
++- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report and machine-readable inputs are written to `coverage/`. The deliberately large receipt-bound stress cases are excluded from this instrumented run because their per-test timeouts are lower than their synchronous filesystem workloads; the complete integration suite remains covered by `npm run test:integration`.
++- CI converts those inputs into `coverage/coverage-receipt.json` and `coverage/evidence-snapshot.json`. The receipt records the test counts, skip reasons, Statements/Branches/Functions/Lines metrics, PR/head/workflow/artifact provenance, and a payload digest. To attach a verified receipt to normal Task Evidence, use `npm run scwbs -- evidence collect --task <task-id> --pull-request <number> --coverage-receipt coverage/coverage-receipt.json`; mismatched head, PR, repository, or workflow provenance is rejected. The workflow only uploads artifacts and retains read-only permissions; it does not push Evidence or enforce a coverage threshold.
+ 
+ Run the full local verification set:
+ 
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml b/contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
+new file mode 100644
+index 0000000..06baec0
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
+@@ -0,0 +1,29 @@
++id: BLK-SCWBS-DRAFT-MSE58C8K
++type: block
++taskId: SCWBS-DRAFT-MSE58C8K
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: Task ContractのrequiredChecksにtest:integrationがなく、source変更のcheckCoverageを満たせないためauthority repairのHuman Decisionが必要
++createdAt: "2026-08-04T07:35:51.942Z"
++history:
++  - status: blocked
++    at: "2026-08-04T04:16:35.825Z"
++    reason: "Human Gate required: Issue #393 requires package.json and .github/workflows/scwbs.yml changes for verified coverage Evidence automation"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-04T06:15:03.924Z"
++    reason: "Issue #393のCI coverage receiptとEvidence snapshot方針を承認"
++    by: human
++  - status: blocked
++    at: "2026-08-04T07:35:51.942Z"
++    reason: Task ContractのrequiredChecksにtest:integrationがなく、source変更のcheckCoverageを満たせないためauthority repairのHuman Decisionが必要
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-04T07:45:15.337Z"
++    reason: requiredChecksへtest:integrationを追加するauthority repairを承認する
++    by: human
++resolvedAt: "2026-08-04T07:45:15.337Z"
++resolvedBy: human
++resolution: requiredChecksへtest:integrationを追加するauthority repairを承認する
+diff --git a/contracts/specs/SPEC-LITE-MSE58C8K.yaml b/contracts/specs/SPEC-LITE-MSE58C8K.yaml
+new file mode 100644
+index 0000000..6eb0c87
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSE58C8K.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSE58C8K
++type: spec-contract
++featureId: F-MSE58C8K
++title: "GitHub Issue #393: automatically record verified CI coverage in SC-WBS Evidence"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-github-issue-393
++approvedAt: "2026-08-04T00:00:00Z"
++summary: "GitHub Issue #393: automatically record verified CI coverage in SC-WBS Evidence"
++acceptanceCriteria:
++  - 'Generate a versioned machine-readable coverage receipt containing command, scope, test counts, coverage totals, skip reasons, subject commit, PR, workflow run, and artifact provenance.'
++  - 'Extend Evidence collection to verify the receipt against the current Task Contract subject, branch diff, PR, and trusted workflow metadata, failing closed on mismatch.'
++  - 'Store the verified coverage summary in Evidence and publish an Evidence snapshot plus coverage report as CI artifacts without granting CI write access to PR branches or main.'
++  - 'Keep the existing unit-only coverage fast path, required check names, Human Gate behavior, protected merge path, and no-threshold coverage policy unchanged.'
++  - 'Add focused regression coverage and update README plus implementation-gap documentation.'
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml b/contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
+new file mode 100644
+index 0000000..0697f2e
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MSE58C8K
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSE58C8K
++branchName: task/SCWBS-DRAFT-MSE58C8K-github-issue-393-automatically-record-verified-c
++allowedPaths:
++  - package.json
++  - .github/workflows/scwbs.yml
++  - README.md
++  - docs/implementation-gaps.md
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/commands/evidence-collect.ts
++  - src/cli/register-governance.ts
++  - scripts/coverage-evidence.mjs
++  - tests/integration/evidence.test.ts
++  - tests/unit/coverage-evidence.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - CI generates a versioned machine-readable coverage receipt for the combined coverage run
++  - Evidence collection verifies and records the coverage summary, skip reason, PR, head, workflow run, and artifact provenance
++  - Invalid or mismatched coverage receipts are rejected without weakening existing Evidence or Human Gate checks
++  - CI retains the Evidence snapshot and coverage artifact without pushing from an untrusted PR workflow
++  - Documentation describes the automatic Evidence path and its no-threshold policy
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
++  - contracts/specs/SPEC-LITE-MSE58C8K.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSE58C8K.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
++  - contracts/approvals/SCWBS-DRAFT-MSE58C8K.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSE58C8K.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:9c3122f5d2c02e4ec8d17eb63943a186bdda384bb082a8c1b777374717242b8d
++  createdAt: "2026-08-04T07:47:30.312Z"
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 2573f4e..7c3e239 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -29,7 +29,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
+ - WBS status summary
+ - WJS semantic apply wrapper
+-- Unit and integration test coverage measurement, including a CI-retained report
++- Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
+ 
+ ## Still Missing
+ 
+@@ -40,11 +40,11 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
+ | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
+ | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
+-| Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can capture PR numbers, but CI run correlation and a dedicated publish gate are not wired into the workflow yet |
+-| Test quality | Diff-aware assertion and coverage inspection | Unit-only and combined unit/integration coverage reports are measured locally and in CI, but source diffs and coverage reports are not parsed and no threshold gate is enforced |
++| Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
++| Test quality | Diff-aware assertion and coverage inspection | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope |
+ | Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
+ | Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
+-| CI integration | PR feedback and CI evidence correlation | GitHub Actions run the local checks, but PR feedback and Evidence links to CI runs are not wired into the workflow yet |
++| CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
+ | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
+ | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
+ | Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
+diff --git a/package.json b/package.json
+index 58fca7b..c99d653 100644
+--- a/package.json
++++ b/package.json
+@@ -27,7 +27,7 @@
+     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
+     "test": "vitest run tests/unit",
+     "test:coverage": "vitest run tests/unit --coverage",
+-    "test:coverage:all": "vitest run tests/unit tests/integration --coverage --pool=forks --maxWorkers=4 --no-file-parallelism --testTimeout=60000 -t='^(?!.*bounds events per Task and receipts per repository)'",
++    "test:coverage:all": "vitest run tests/unit tests/integration --coverage --coverage.reporter=text --coverage.reporter=json-summary --pool=forks --maxWorkers=4 --no-file-parallelism --testTimeout=60000 --reporter=default --reporter=json --outputFile.json=coverage/test-results.json -t='^(?!.*bounds events per Task and receipts per repository)(?!.*health receipts retain at most 50 events for at most 100 Tasks)'",
+     "test:integration": "node scripts/integration-test-output.mjs",
+     "test:integration:verbose": "node scripts/integration-test-output.mjs --verbose",
+     "test:wjs": "npm test -w wjs",
+diff --git a/scripts/coverage-evidence.mjs b/scripts/coverage-evidence.mjs
+new file mode 100644
+index 0000000..f596b3d
+--- /dev/null
++++ b/scripts/coverage-evidence.mjs
+@@ -0,0 +1,218 @@
++import { createHash } from "node:crypto";
++import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import path from "node:path";
++
++const WORKFLOW_PATH = ".github/workflows/scwbs.yml";
++const SCHEMA_VERSION = "1.0.0";
++const METRIC_NAMES = ["statements", "branches", "functions", "lines"];
++
++function usage() {
++  return [
++    "Usage: node scripts/coverage-evidence.mjs [options]",
++    "  --coverage-summary <path>  Vitest json-summary coverage file",
++    "  --test-results <path>      Vitest json reporter output",
++    "  --output <path>            Coverage receipt output",
++    "  --snapshot <path>          Evidence snapshot output",
++    "  --task-id <id>             SC-WBS Task ID (optional on main push)",
++    "  --pull-request <number>    Pull request number (optional on main push)",
++    "  --help                     Show this help"
++  ].join("\n");
++}
++
++function parseArgs(argv) {
++  const values = {};
++  for (let index = 0; index < argv.length; index += 1) {
++    const argument = argv[index];
++    if (argument === "--help") return { help: true };
++    if (!argument.startsWith("--")) throw new Error(`Unknown argument: ${argument}`);
++    const key = argument.slice(2);
++    const value = argv[index + 1];
++    if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value`);
++    values[key] = value;
++    index += 1;
++  }
++  return values;
++}
++
++function readJson(filePath, label) {
++  try {
++    return JSON.parse(readFileSync(filePath, "utf8"));
++  } catch (error) {
++    throw new Error(
++      `Unable to read ${label} at ${filePath}: ${error instanceof Error ? error.message : String(error)}`
++    );
++  }
++}
++
++function requiredNumber(value, label) {
++  if (!Number.isFinite(value) || value < 0) throw new Error(`${label} must be a non-negative number`);
++  return value;
++}
++
++function metricFromSummary(summary, name) {
++  const value = summary?.total?.[name];
++  if (!value || typeof value !== "object") throw new Error(`coverage summary is missing total.${name}`);
++  return {
++    total: requiredNumber(value.total, `total.${name}.total`),
++    covered: requiredNumber(value.covered, `total.${name}.covered`),
++    skipped: requiredNumber(value.skipped ?? 0, `total.${name}.skipped`),
++    percent: requiredNumber(value.pct, `total.${name}.pct`)
++  };
++}
++
++function testCounts(results) {
++  const tests = {
++    total: requiredNumber(results?.numTotalTests, "numTotalTests"),
++    passed: requiredNumber(results?.numPassedTests, "numPassedTests"),
++    failed: requiredNumber(results?.numFailedTests, "numFailedTests"),
++    skipped: requiredNumber((results?.numPendingTests ?? 0) + (results?.numTodoTests ?? 0), "skipped tests")
++  };
++  const testFiles = {
++    total: requiredNumber(results?.numTotalTestSuites, "numTotalTestSuites"),
++    passed: requiredNumber(results?.numPassedTestSuites, "numPassedTestSuites"),
++    failed: requiredNumber(results?.numFailedTestSuites, "numFailedTestSuites"),
++    skipped: requiredNumber(
++      (results?.numPendingTestSuites ?? 0) + (results?.numTodoTestSuites ?? 0),
++      "skipped test files"
++    )
++  };
++  if (tests.passed + tests.failed + tests.skipped !== tests.total) {
++    throw new Error("test result counts do not add up to numTotalTests");
++  }
++  if (testFiles.passed + testFiles.failed + testFiles.skipped > testFiles.total) {
++    throw new Error("test file result counts exceed numTotalTestSuites");
++  }
++  return { testFiles, tests };
++}
++
++function skippedTests(results) {
++  const entries = [];
++  for (const testFile of results?.testResults ?? []) {
++    for (const assertion of testFile.assertionResults ?? []) {
++      if (assertion.status === "passed") continue;
++      const status = assertion.status ?? "skipped";
++      entries.push({
++        name: assertion.fullName ?? assertion.title ?? "unknown test",
++        reason:
++          status === "todo"
++            ? "todo test"
++            : status === "failed"
++              ? "failed test"
++              : "excluded or skipped by test selection"
++      });
++    }
++  }
++  return entries.sort((left, right) => left.name.localeCompare(right.name));
++}
++
++function sha256(value) {
++  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
++}
++
++function repositoryFromEnvironment(env) {
++  const repository = env.GITHUB_REPOSITORY;
++  if (repository) return repository;
++  return undefined;
++}
++
++function taskIdFromEnvironment(env) {
++  if (env.SCWBS_TASK_ID) return env.SCWBS_TASK_ID;
++  const branch = env.GITHUB_HEAD_REF || env.GITHUB_REF_NAME || "";
++  return branch.match(/(SCWBS-[A-Z0-9]+)/)?.[1];
++}
++
++function pullRequestFromEnvironment(env) {
++  if (env.SCWBS_PULL_REQUEST) return env.SCWBS_PULL_REQUEST.replace(/^#/, "");
++  return undefined;
++}
++
++export function buildCoverageReceipt({
++  coverageSummary,
++  testResults,
++  environment = process.env,
++  command = "npm run test:coverage:all",
++  scope = "unit-and-integration"
++}) {
++  const counts = testCounts(testResults);
++  const receipt = {
++    schemaVersion: SCHEMA_VERSION,
++    command,
++    scope,
++    ...(repositoryFromEnvironment(environment) ? { repository: repositoryFromEnvironment(environment) } : {}),
++    ...(taskIdFromEnvironment(environment) ? { taskId: taskIdFromEnvironment(environment) } : {}),
++    ...(pullRequestFromEnvironment(environment) ? { pullRequest: pullRequestFromEnvironment(environment) } : {}),
++    subjectHeadCommit: environment.SCWBS_SUBJECT_HEAD || environment.GITHUB_SHA || "",
++    workflowPath: WORKFLOW_PATH,
++    workflowRunId: environment.GITHUB_RUN_ID || "",
++    workflowRunUrl:
++      environment.SCWBS_WORKFLOW_RUN_URL ||
++      (environment.GITHUB_SERVER_URL && environment.GITHUB_REPOSITORY && environment.GITHUB_RUN_ID
++        ? `${environment.GITHUB_SERVER_URL}/${environment.GITHUB_REPOSITORY}/actions/runs/${environment.GITHUB_RUN_ID}`
++        : ""),
++    artifactName: environment.SCWBS_ARTIFACT_NAME || "",
++    testFiles: counts.testFiles,
++    tests: counts.tests,
++    metrics: Object.fromEntries(METRIC_NAMES.map((name) => [name, metricFromSummary(coverageSummary, name)])),
++    skippedTests: skippedTests(testResults),
++    generatedAt: environment.SCWBS_GENERATED_AT || new Date().toISOString()
++  };
++  const requiredProvenance = ["subjectHeadCommit", "workflowRunId", "workflowRunUrl", "artifactName"];
++  const missing = requiredProvenance.filter((key) => !receipt[key]);
++  if (missing.length > 0) throw new Error(`coverage receipt provenance is incomplete: ${missing.join(", ")}`);
++  const payload = JSON.stringify({ coverageSummary, testResults });
++  return { ...receipt, payloadDigest: sha256(payload) };
++}
++
++export function buildEvidenceSnapshot(receipt) {
++  return {
++    schemaVersion: SCHEMA_VERSION,
++    type: "evidence-snapshot",
++    taskId: receipt.taskId ?? null,
++    subjectHeadCommit: receipt.subjectHeadCommit,
++    pullRequest: receipt.pullRequest ?? null,
++    coverageReceipt: receipt
++  };
++}
++
++export function createCoverageEvidence({
++  coverageSummaryPath,
++  testResultsPath,
++  outputPath,
++  snapshotPath,
++  environment = process.env
++}) {
++  const coverageSummary = readJson(coverageSummaryPath, "coverage summary");
++  const testResults = readJson(testResultsPath, "test results");
++  const receipt = buildCoverageReceipt({ coverageSummary, testResults, environment });
++  const snapshot = buildEvidenceSnapshot(receipt);
++  mkdirSync(path.dirname(outputPath), { recursive: true });
++  mkdirSync(path.dirname(snapshotPath), { recursive: true });
++  writeFileSync(outputPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
++  writeFileSync(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
++  return { receipt, snapshot };
++}
++
++if (import.meta.url === `file://${process.argv[1]}`) {
++  try {
++    const options = parseArgs(process.argv.slice(2));
++    if (options.help) {
++      console.log(usage());
++      process.exit(0);
++    }
++    const coverageSummaryPath = options["coverage-summary"] || "coverage/coverage-summary.json";
++    const testResultsPath = options["test-results"] || "coverage/test-results.json";
++    const outputPath = options.output || "coverage/coverage-receipt.json";
++    const snapshotPath = options.snapshot || "coverage/evidence-snapshot.json";
++    const environment = {
++      ...process.env,
++      ...(options["task-id"] ? { SCWBS_TASK_ID: options["task-id"] } : {}),
++      ...(options["pull-request"] ? { SCWBS_PULL_REQUEST: options["pull-request"] } : {})
++    };
++    createCoverageEvidence({ coverageSummaryPath, testResultsPath, outputPath, snapshotPath, environment });
++    console.log(`coverage receipt written to ${outputPath}`);
++    console.log(`Evidence snapshot written to ${snapshotPath}`);
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    process.exitCode = 1;
++  }
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index e8ccb22..fd482ea 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -183,6 +183,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+     .option("--base <ref>", "base reference")
+     .option("--pull-request <id>", "pull request id")
+     .option("--ci-receipt <path>", "verified GitHub CI receipt JSON")
++    .option("--coverage-receipt <path>", "verified CI coverage receipt JSON")
+     .option("--force", "force collection")
+     .option("--test-assertions-added <bool>", "test assertions added")
+     .option("--tests-disabled <bool>", "tests disabled")
+@@ -204,6 +205,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+           baseRef: options.base,
+           pullRequest: options.pullRequest,
+           ciReceipt: options.ciReceipt,
++          coverageReceipt: options.coverageReceipt,
+           testQuality: parseTestQuality(options),
+           rerunChecks: options.rerunChecks ?? false,
+           json: options.json ?? false,
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 7e1a8b6..6599cd6 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -23,7 +23,7 @@ import {
+ } from "../core/git.js";
+ import { evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { CiReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
++import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+@@ -93,6 +93,7 @@ export type EvidenceCollectOptions = {
+   output?: string;
+   quiet?: boolean;
+   ciReceipt?: string;
++  coverageReceipt?: string;
+ };
+ 
+ function postEvidenceMetadataFiles(taskId: string): string[] {
+@@ -214,6 +215,60 @@ function verifyCiReceipt(
+   return receipt as CiReceipt;
+ }
+ 
++function verifyCoverageReceipt(
++  root: string,
++  task: TaskContract,
++  taskId: string,
++  receiptValue: unknown,
++  expected: { pullRequest?: string; subjectHead: string }
++): CoverageReceipt {
++  const failures: string[] = [];
++  if (!isRecord(receiptValue)) throw new Error("Coverage receipt rejected: JSON root must be an object");
++  const receipt = receiptValue as Partial<CoverageReceipt>;
++  const requiredStrings = [
++    "repository", "command", "scope", "subjectHeadCommit", "workflowRunId", "workflowRunUrl", "artifactName", "payloadDigest", "generatedAt"
++  ] as const;
++  for (const key of requiredStrings) {
++    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
++  }
++  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
++  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
++  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
++  const expectedPullRequest = expected.pullRequest?.replace(/^#/, "");
++  if (!expectedPullRequest || receipt.pullRequest !== expectedPullRequest) failures.push("pullRequest does not match the current PR");
++  if (receipt.subjectHeadCommit !== expected.subjectHead) failures.push("subjectHeadCommit is stale or does not match the Evidence subject");
++  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
++    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
++  }
++  if (typeof receipt.generatedAt === "string" && Number.isNaN(Date.parse(receipt.generatedAt))) failures.push("generatedAt is not a valid timestamp");
++  if (typeof receipt.repository === "string") {
++    try {
++      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
++    } catch (error) {
++      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
++    }
++  }
++  if (typeof receipt.payloadDigest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(receipt.payloadDigest)) {
++    failures.push("payloadDigest is not a valid SHA-256 digest");
++  }
++  if (!receipt.testFiles || !receipt.tests || !receipt.metrics) {
++    failures.push("test counts and coverage metrics are required");
++  } else {
++    if (receipt.tests.failed !== 0 || receipt.testFiles.failed !== 0) failures.push("coverage receipt contains failed tests");
++    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
++      const value = receipt.metrics[metric];
++      if (!value || ![value.total, value.covered, value.skipped, value.percent].every((number) => typeof number === "number" && Number.isFinite(number))) {
++        failures.push(`metrics.${metric} is incomplete`);
++      }
++    }
++  }
++  if (!Array.isArray(receipt.skippedTests) || receipt.skippedTests.some((entry) => !isRecord(entry) || typeof entry.name !== "string" || typeof entry.reason !== "string")) {
++    failures.push("skippedTests must contain named reasons");
++  }
++  if (failures.length > 0) throw new Error(`Coverage receipt rejected:\n- ${failures.join("\n- ")}`);
++  return receipt as CoverageReceipt;
++}
++
+ function stableSubjectHead(
+   root: string,
+   currentHead: string | undefined,
+@@ -284,7 +339,7 @@ function runCheck(root: string, check: string, cacheKey: string, lease: Required
+   };
+ }
+ 
+-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): Evidence {
++export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): Evidence {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+   const baseRef = options.baseRef ?? "origin/main";
+@@ -320,6 +375,12 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+       diffHash
+     })
+     : undefined;
++  const coverageReceipt = options.coverageReceipt
++    ? verifyCoverageReceipt(root, task, taskId, options.coverageReceipt, {
++      pullRequest,
++      subjectHead: subjectHead ?? ""
++    })
++    : undefined;
+   const cacheSubject = task.requiredChecks.length > 0
+     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+     : undefined;
+@@ -420,12 +481,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: {
+     changedFiles,
+     ...(submodules.length > 0 ? { submodules } : {}),
+     ...(ciReceipt ? { ciReceipt } : {}),
++    ...(coverageReceipt ? { coverageReceipt } : {}),
+     checks,
+     ...(testQuality ? { testQuality } : {})
+   };
+ }
+ 
+-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt } = {}): string {
++export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): string {
+   return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+@@ -497,12 +559,16 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
+     const ciReceipt = options.ciReceipt
+       ? JSON.parse(readFileSync(path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt), "utf8")) as CiReceipt
+       : undefined;
++    const coverageReceipt = options.coverageReceipt
++      ? JSON.parse(readFileSync(path.isAbsolute(options.coverageReceipt) ? options.coverageReceipt : resolveFrom(root, options.coverageReceipt), "utf8")) as CoverageReceipt
++      : undefined;
+     const evidence = buildCollectedEvidence(root, taskId, {
+       baseRef: options.baseRef,
+       pullRequest: options.pullRequest,
+       testQuality: options.testQuality,
+       rerunChecks: options.rerunChecks,
+-      ciReceipt
++      ciReceipt,
++      coverageReceipt
+     });
+     const baseCommit = evidence.git?.baseCommit;
+     const subjectCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.commit;
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 954175d..5e6c3ff 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -3,6 +3,30 @@ import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from
+ import { taskIdPatternSource } from "../paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+ 
++const coverageMetricSchema = {
++  type: "object",
++  required: ["total", "covered", "skipped", "percent"],
++  additionalProperties: false,
++  properties: {
++    total: { type: "number", minimum: 0 },
++    covered: { type: "number", minimum: 0 },
++    skipped: { type: "number", minimum: 0 },
++    percent: { type: "number", minimum: 0, maximum: 100 }
++  }
++};
++
++const coverageCountsSchema = {
++  type: "object",
++  required: ["total", "passed", "failed", "skipped"],
++  additionalProperties: false,
++  properties: {
++    total: { type: "number", minimum: 0 },
++    passed: { type: "number", minimum: 0 },
++    failed: { type: "number", minimum: 0 },
++    skipped: { type: "number", minimum: 0 }
++  }
++};
++
+ const evidenceSchema = {
+   type: "object",
+   required: ["id", "type", "taskId", "changedFiles", "checks"],
+@@ -87,6 +111,55 @@ const evidenceSchema = {
+         }
+       }
+     },
++    coverageReceipt: {
++      type: "object",
++      required: [
++        "schemaVersion", "command", "scope", "subjectHeadCommit", "workflowPath", "workflowRunId",
++        "workflowRunUrl", "artifactName", "payloadDigest", "testFiles", "tests", "metrics", "skippedTests", "generatedAt"
++      ],
++      additionalProperties: false,
++      properties: {
++        schemaVersion: { const: "1.0.0" },
++        command: { type: "string", minLength: 1 },
++        scope: { type: "string", minLength: 1 },
++        repository: { type: "string", minLength: 1 },
++        taskId: { type: "string", minLength: 1 },
++        pullRequest: { type: "string", pattern: "^[1-9][0-9]*$" },
++        subjectHeadCommit: { type: "string", pattern: "^[0-9a-f]{40}(?:[0-9a-f]{24})?$" },
++        workflowPath: { const: ".github/workflows/scwbs.yml" },
++        workflowRunId: { type: "string", minLength: 1 },
++        workflowRunUrl: { type: "string", minLength: 1 },
++        artifactName: { type: "string", minLength: 1 },
++        artifactDigest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
++        payloadDigest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
++        testFiles: coverageCountsSchema,
++        tests: coverageCountsSchema,
++        metrics: {
++          type: "object",
++          required: ["statements", "branches", "functions", "lines"],
++          additionalProperties: false,
++          properties: {
++            statements: coverageMetricSchema,
++            branches: coverageMetricSchema,
++            functions: coverageMetricSchema,
++            lines: coverageMetricSchema
++          }
++        },
++        skippedTests: {
++          type: "array",
++          items: {
++            type: "object",
++            required: ["name", "reason"],
++            additionalProperties: false,
++            properties: {
++              name: { type: "string", minLength: 1 },
++              reason: { type: "string", minLength: 1 }
++            }
++          }
++        },
++        generatedAt: { type: "string", minLength: 1 }
++      }
++    },
+     changedFiles: stringArraySchema,
+     submodules: {
+       type: "array",
+diff --git a/src/core/types.ts b/src/core/types.ts
+index ec86640..b60b4bd 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -213,6 +213,46 @@ export type CiReceipt = {
+   jobs: CiReceiptJob[];
+ };
+ 
++export type CoverageMetric = {
++  total: number;
++  covered: number;
++  skipped: number;
++  percent: number;
++};
++
++export type CoverageTestCounts = {
++  total: number;
++  passed: number;
++  failed: number;
++  skipped: number;
++};
++
++export type CoverageReceipt = {
++  schemaVersion: "1.0.0";
++  command: string;
++  scope: string;
++  repository?: string;
++  taskId?: string;
++  pullRequest?: string;
++  subjectHeadCommit: string;
++  workflowPath: ".github/workflows/scwbs.yml";
++  workflowRunId: string;
++  workflowRunUrl: string;
++  artifactName: string;
++  artifactDigest?: string;
++  payloadDigest: string;
++  testFiles: CoverageTestCounts;
++  tests: CoverageTestCounts;
++  metrics: {
++    statements: CoverageMetric;
++    branches: CoverageMetric;
++    functions: CoverageMetric;
++    lines: CoverageMetric;
++  };
++  skippedTests: Array<{ name: string; reason: string }>;
++  generatedAt: string;
++};
++
+ export type Evidence = {
+   id: string;
+   type: "evidence";
+@@ -247,6 +287,7 @@ export type Evidence = {
+   };
+   changedFiles: string[];
+   ciReceipt?: CiReceipt;
++  coverageReceipt?: CoverageReceipt;
+   submodules?: Array<{
+     path: string;
+     repository: string;
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index bf9b639..44ed5ed 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -10,7 +10,7 @@ import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifac
+ import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
+ import { readEvidence, readTask } from "../../src/core/contracts.js";
+ import { validateEvidenceSchema } from "../../src/core/schema/records.js";
+-import type { CiReceipt } from "../../src/core/types.js";
++import type { CiReceipt, CoverageReceipt } from "../../src/core/types.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../../src/core/check-cache.js";
+ import {
+   acquireRequiredCheckRun,
+@@ -157,6 +157,47 @@ describe("evidence collect", () => {
+     });
+   });
+ 
++  test("attaches a provenance-verified coverage receipt to Evidence", () => {
++    const { root, taskId, receipt } = prepareCiReceiptRepo();
++    const coverageReceipt: CoverageReceipt = {
++      schemaVersion: "1.0.0",
++      command: "npm run test:coverage:all",
++      scope: "unit-and-integration",
++      repository: "xmeta/ACED",
++      taskId,
++      pullRequest: "42",
++      subjectHeadCommit: receipt.headCommit as string,
++      workflowPath: ".github/workflows/scwbs.yml",
++      workflowRunId: "12345",
++      workflowRunUrl: "https://github.com/xmeta/ACED/actions/runs/12345",
++      artifactName: "coverage-test",
++      payloadDigest: `sha256:${"a".repeat(64)}`,
++      testFiles: { total: 1, passed: 1, failed: 0, skipped: 0 },
++      tests: { total: 2, passed: 2, failed: 0, skipped: 0 },
++      metrics: {
++        statements: { total: 10, covered: 8, skipped: 0, percent: 80 },
++        branches: { total: 10, covered: 7, skipped: 0, percent: 70 },
++        functions: { total: 10, covered: 9, skipped: 0, percent: 90 },
++        lines: { total: 10, covered: 8, skipped: 0, percent: 80 }
++      },
++      skippedTests: [],
++      generatedAt: "2026-07-22T14:00:00.000Z"
++    };
++    const evidence = buildCollectedEvidence(root, taskId, {
++      baseRef: "base",
++      pullRequest: "#42",
++      coverageReceipt
++    });
++
++    expect(evidence.coverageReceipt).toEqual(coverageReceipt);
++    expect(validateEvidenceSchema(evidence)).toEqual([]);
++    expect(() => buildCollectedEvidence(root, taskId, {
++      baseRef: "base",
++      pullRequest: "#42",
++      coverageReceipt: { ...coverageReceipt, subjectHeadCommit: "0".repeat(40) }
++    })).toThrow(/subjectHeadCommit is stale/);
++  }, 30000);
++
+   test("rejects stale, mixed-run, fork, and incomplete CI provenance", () => {
+     const { root, taskId, receipt } = prepareCiReceiptRepo();
+     const cases = [
+diff --git a/tests/unit/coverage-evidence.test.ts b/tests/unit/coverage-evidence.test.ts
+new file mode 100644
+index 0000000..db0147c
+--- /dev/null
++++ b/tests/unit/coverage-evidence.test.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, test } from "vitest";
++import { buildCoverageReceipt, buildEvidenceSnapshot } from "../../scripts/coverage-evidence.mjs";
++
++const coverageSummary = {
++  total: {
++    statements: { total: 100, covered: 78, skipped: 0, pct: 78 },
++    branches: { total: 80, covered: 56, skipped: 0, pct: 70 },
++    functions: { total: 40, covered: 33, skipped: 0, pct: 82.5 },
++    lines: { total: 90, covered: 73, skipped: 0, pct: 81.11 }
++  }
++};
++
++const testResults = {
++  numTotalTestSuites: 1,
++  numPassedTestSuites: 1,
++  numFailedTestSuites: 0,
++  numPendingTestSuites: 0,
++  numTodoTestSuites: 0,
++  numTotalTests: 3,
++  numPassedTests: 2,
++  numFailedTests: 0,
++  numPendingTests: 1,
++  numTodoTests: 0,
++  testResults: [
++    {
++      assertionResults: [
++        { fullName: "suite passes", status: "passed" },
++        { fullName: "suite skips one", status: "skipped" },
++        { fullName: "suite passes twice", status: "passed" }
++      ]
++    }
++  ]
++};
++
++const environment = {
++  GITHUB_REPOSITORY: "xmeta/ACED",
++  GITHUB_SHA: "a".repeat(40),
++  GITHUB_RUN_ID: "12345",
++  GITHUB_SERVER_URL: "https://github.com",
++  SCWBS_TASK_ID: "SCWBS-DRAFT-MSE58C8K",
++  SCWBS_PULL_REQUEST: "393",
++  SCWBS_ARTIFACT_NAME: "coverage-abc",
++  SCWBS_GENERATED_AT: "2026-08-04T00:00:00.000Z"
++};
++
++describe("coverage Evidence receipt", () => {
++  test("records machine-readable coverage, skips, and trusted CI provenance", () => {
++    const receipt = buildCoverageReceipt({ coverageSummary, testResults, environment });
++
++    expect(receipt).toMatchObject({
++      schemaVersion: "1.0.0",
++      taskId: "SCWBS-DRAFT-MSE58C8K",
++      pullRequest: "393",
++      subjectHeadCommit: "a".repeat(40),
++      workflowPath: ".github/workflows/scwbs.yml",
++      workflowRunUrl: "https://github.com/xmeta/ACED/actions/runs/12345",
++      testFiles: { total: 1, passed: 1, failed: 0, skipped: 0 },
++      tests: { total: 3, passed: 2, failed: 0, skipped: 1 },
++      metrics: { statements: { percent: 78 }, lines: { covered: 73 } },
++      skippedTests: [{ name: "suite skips one", reason: "excluded or skipped by test selection" }]
++    });
++    expect(receipt.payloadDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
++    expect(buildEvidenceSnapshot(receipt)).toEqual({
++      schemaVersion: "1.0.0",
++      type: "evidence-snapshot",
++      taskId: "SCWBS-DRAFT-MSE58C8K",
++      subjectHeadCommit: "a".repeat(40),
++      pullRequest: "393",
++      coverageReceipt: receipt
++    });
++  });
++
++  test("fails closed when coverage or test counts are incomplete", () => {
++    expect(() =>
++      buildCoverageReceipt({
++        coverageSummary: { total: { ...coverageSummary.total, lines: undefined } },
++        testResults,
++        environment
++      })
++    ).toThrow(/coverage summary is missing total.lines/);
++    expect(() =>
++      buildCoverageReceipt({
++        coverageSummary,
++        testResults: { ...testResults, numPendingTests: 2 },
++        environment
++      })
++    ).toThrow(/test result counts do not add up/);
++  });
++});
