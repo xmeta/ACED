@@ -309,11 +309,26 @@ jobs:
         run: npm test
       - name: Combined unit and integration coverage
         run: npm run test:coverage:all
+      - name: Resolve implementation subject head
+        id: subject
+        env:
+          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+        run: |
+          set -euo pipefail
+          subject_head="$(git log -1 --format=%H -- \
+            . \
+            ":(exclude)contracts/evidence/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/evidence-payloads/${SCWBS_TASK_ID}.patch" \
+            ":(exclude)contracts/approvals/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/reviews/${SCWBS_TASK_ID}.yaml" \
+            ":(exclude)contracts/registry.yaml")"
+          test -n "$subject_head"
+          echo "subject_head=$subject_head" >> "$GITHUB_OUTPUT"
       - name: Create coverage receipt and Evidence snapshot
         env:
           SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
           SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number || '' }}
-          SCWBS_SUBJECT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          SCWBS_SUBJECT_HEAD: ${{ steps.subject.outputs.subject_head }}
           SCWBS_ARTIFACT_NAME: coverage-${{ github.sha }}
           SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node scripts/coverage-evidence.mjs
