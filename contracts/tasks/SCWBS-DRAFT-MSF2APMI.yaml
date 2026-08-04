@@ -1,0 +1,50 @@
+id: SCWBS-DRAFT-MSF2APMI
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF2APMI
+branchName: task/SCWBS-DRAFT-MSF2APMI-issue-400-generate-markdown-documentation-from-s
+allowedPaths:
+  - src/cli.ts
+  - src/commands/docs-generate.ts
+  - tests/integration/docs-generate.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - '`scwbs docs generate` writes deterministic Contract-derived Markdown only under docs/generated/'
+  - '`scwbs docs generate --check` detects missing or stale generated output without writing files'
+  - Generated Markdown contains WBS status, Task-to-Spec references, and Human Gate declarations
+  - Existing hand-maintained documentation remains untouched and docs check continues to pass
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml
+  - contracts/specs/SPEC-LITE-MSF2APMI.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF2APMI.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF2APMI.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF2APMI.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF2APMI.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF2APMI.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:5fb4aa2041fbad36e7647cbaded3ff284951e07764d9998520df187844898629
+  createdAt: "2026-08-04T19:41:24.066Z"
