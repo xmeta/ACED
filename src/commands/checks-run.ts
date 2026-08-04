@@ -42,19 +42,29 @@ export type ChecksRunSummary = {
 
 export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?: boolean };
 
+export function resolveSpawnCommand(command: readonly string[], platform: NodeJS.Platform = process.platform): string[] {
+  if (platform !== "win32") return [...command];
+
+  const [executable, ...args] = command;
+  if (executable === "npm") return ["npm.cmd", ...args];
+  if (executable === "gh") return ["gh.exe", ...args];
+  return [...command];
+}
+
 function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
   const command = resolveCheckCommand(check);
+  const spawnCommand = resolveSpawnCommand(command);
   updateRequiredCheckRun(lease, check, index);
   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
   const heartbeat = startRequiredCheckHeartbeat(lease);
   const startedAt = performance.now();
   let result: SpawnSyncReturns<string>;
   try {
-    result = spawnSync(command[0] ?? "npm", command.slice(1), {
+    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
       cwd: root,
       encoding: "utf8",
       env: requiredCheckChildEnv(lease),
-      shell: process.platform === "win32"
+      shell: false
     });
   } finally {
     stopRequiredCheckHeartbeat(heartbeat);

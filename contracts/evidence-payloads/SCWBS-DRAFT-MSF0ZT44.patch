@@ -1,0 +1,219 @@
+diff --git a/contracts/specs/SPEC-LITE-MSF0ZT44.yaml b/contracts/specs/SPEC-LITE-MSF0ZT44.yaml
+new file mode 100644
+index 0000000..fc0e13c
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSF0ZT44.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSF0ZT44
++type: spec-contract
++featureId: F-MSF0ZT44
++title: "Issue #396: remove Windows shell invocation from checks and pull-request detection without changing supported behavior"
++status: approved
++version: 0.1.0
++summary: "Issue #396: remove Windows shell invocation from checks and pull-request detection without changing supported behavior"
++acceptanceCriteria:
++  - 'checks-run.ts and evidence-collect.ts invoke child processes with shell disabled on POSIX and Windows'
++  - 'Windows resolves npm to npm.cmd and gh to gh.exe while preserving argument order and values; POSIX commands remain unchanged'
++  - 'Regression tests prove shell metacharacters in branch/check arguments are passed as data and no command concatenation is introduced'
++  - 'Existing required-check, evidence, stdout, and error behavior remains unchanged apart from removing shell interpretation'
++  - 'Scope excludes package configuration, workflow files, WJS, API changes, and changes to supported check definitions'
++approvedBy: user-requested-issue-396
++approvedAt: "2026-08-05T00:00:00Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml b/contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
+new file mode 100644
+index 0000000..3a3927f
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MSF0ZT44
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSF0ZT44
++branchName: task/SCWBS-DRAFT-MSF0ZT44-issue-396-remove-windows-shell-invocation-from-c
++allowedPaths:
++  - src/commands/checks-run.ts
++  - src/commands/evidence-collect.ts
++  - src/core/process-command.ts
++  - tests/unit/process-command.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/specs/SPEC-LITE-MSF0ZT44.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF0ZT44.patch
++  - contracts/blocks/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/approvals/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - src/commands/checks-run.ts and src/commands/evidence-collect.ts execute child processes without shell interpolation on every platform
++  - Windows execution resolves npm and gh to directly executable commands without changing the command arguments or supported check behavior
++  - Branch names and check names remain data-only arguments, so shell metacharacters cannot trigger an additional command
++  - Unit regression coverage verifies Windows command resolution and POSIX command compatibility
++  - No package, workflow, WJS, API, or output-contract changes are introduced
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++stopIf:
++  - Windows direct execution cannot preserve npm or gh behavior without a package, workflow, or release-policy change
++  - a package, workflow, WJS, authentication, authorization, or external-service change is required
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/specs/SPEC-LITE-MSF0ZT44.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF0ZT44.patch
++  - contracts/approvals/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF0ZT44.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:15ebeffeee7a092ec234ca1fdc1ede1af666879a7982e19a78736a61d18af65f
++  createdAt: "2026-08-04T19:04:34.409Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index bed3e60..0b28e77 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1518,3 +1518,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-04T15:58:22.905Z"
++  - id: SCWBS-DRAFT-MSF0ZT44
++    path: contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
++    branchName: task/SCWBS-DRAFT-MSF0ZT44-issue-396-remove-windows-shell-invocation-from-c
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/checks-run.ts b/src/commands/checks-run.ts
+index 74c5a62..52e36be 100644
+--- a/src/commands/checks-run.ts
++++ b/src/commands/checks-run.ts
+@@ -42,19 +42,29 @@ export type ChecksRunSummary = {
+ 
+ export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?: boolean };
+ 
++export function resolveSpawnCommand(command: readonly string[], platform: NodeJS.Platform = process.platform): string[] {
++  if (platform !== "win32") return [...command];
++
++  const [executable, ...args] = command;
++  if (executable === "npm") return ["npm.cmd", ...args];
++  if (executable === "gh") return ["gh.exe", ...args];
++  return [...command];
++}
++
+ function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
+   const command = resolveCheckCommand(check);
++  const spawnCommand = resolveSpawnCommand(command);
+   updateRequiredCheckRun(lease, check, index);
+   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
+   const heartbeat = startRequiredCheckHeartbeat(lease);
+   const startedAt = performance.now();
+   let result: SpawnSyncReturns<string>;
+   try {
+-    result = spawnSync(command[0] ?? "npm", command.slice(1), {
++    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
+       cwd: root,
+       encoding: "utf8",
+       env: requiredCheckChildEnv(lease),
+-      shell: process.platform === "win32"
++      shell: false
+     });
+   } finally {
+     stopRequiredCheckHeartbeat(heartbeat);
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index ff8c301..d2ff001 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -28,6 +28,7 @@ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { printIssues } from "../core/report.js";
++import { resolveSpawnCommand } from "./checks-run.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
+ import { taskAuthorityFingerprint } from "./ci-plan.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+@@ -45,10 +46,11 @@ import {
+ export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
+   if (!branchName) return undefined;
+   try {
+-    const result = spawnSync("gh", ["pr", "list", "--head", branchName, "--state", "open", "--json", "number"], {
++    const command = resolveSpawnCommand(["gh", "pr", "list", "--head", branchName, "--state", "open", "--json", "number"]);
++    const result = spawnSync(command[0] ?? "gh", command.slice(1), {
+       cwd: root,
+       encoding: "utf8",
+-      shell: process.platform === "win32"
++      shell: false
+     });
+     if (result.status !== 0 || !result.stdout) return undefined;
+     const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
+@@ -302,17 +304,18 @@ function commandForCheck(check: string): string[] {
+ 
+ function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
+   const command = commandForCheck(check);
++  const spawnCommand = resolveSpawnCommand(command);
+   updateRequiredCheckRun(lease, check, checkIndex);
+   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
+   const heartbeat = startRequiredCheckHeartbeat(lease);
+   const startedAt = performance.now();
+   let result: SpawnSyncReturns<string>;
+   try {
+-    result = spawnSync(command[0] ?? "npm", command.slice(1), {
++    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
+       cwd: root,
+       encoding: "utf8",
+       env: requiredCheckChildEnv(lease),
+-      shell: process.platform === "win32"
++      shell: false
+     });
+   } finally {
+     stopRequiredCheckHeartbeat(heartbeat);
+diff --git a/tests/unit/process-command.test.ts b/tests/unit/process-command.test.ts
+new file mode 100644
+index 0000000..3f8f659
+--- /dev/null
++++ b/tests/unit/process-command.test.ts
+@@ -0,0 +1,26 @@
++import { describe, expect, it } from "vitest";
++import { resolveSpawnCommand } from "../../src/commands/checks-run.js";
++
++describe("resolveSpawnCommand", () => {
++  it("uses directly executable Windows entry points without changing arguments", () => {
++    const branchName = "feature&echo injected";
++    expect(resolveSpawnCommand(["gh", "pr", "list", "--head", branchName], "win32")).toEqual([
++      "gh.exe",
++      "pr",
++      "list",
++      "--head",
++      branchName
++    ]);
++    expect(resolveSpawnCommand(["npm", "run", "test&echo injected"], "win32")).toEqual([
++      "npm.cmd",
++      "run",
++      "test&echo injected"
++    ]);
++  });
++
++  it("keeps POSIX commands unchanged", () => {
++    const command = ["npm", "run", "test&echo injected"];
++    expect(resolveSpawnCommand(command, "linux")).toEqual(command);
++    expect(command).toEqual(["npm", "run", "test&echo injected"]);
++  });
++});
