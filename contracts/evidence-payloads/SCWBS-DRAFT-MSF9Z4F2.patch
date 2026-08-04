@@ -1,0 +1,440 @@
+diff --git a/contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml b/contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml
+new file mode 100644
+index 0000000..c4c9cdb
+--- /dev/null
++++ b/contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml
+@@ -0,0 +1,47 @@
++schemaVersion: 1.0.0
++id: PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4
++type: discovery-probe
++status: concluded
++question: Can ACED add a safe Evidence retention inventory and opt-in external archive workflow without changing audit semantics or rewriting Git history?
++hypotheses:
++  - existing patch-artifact Evidence can be classified by archivedAt and age
++  - Git-history pruning requires an explicit human decision
++  - external archive locator semantics are not currently verifiable by health
++activities:
++  - inspect Task index and Evidence inventory
++  - inspect provenance schema and health semantics
++  - run bounded local probes
++evidenceExpected:
++  - payload count and size
++  - archivedAt distribution
++  - provenance mode distribution
++  - health behavior for bundle retention
++unknowns:
++  - retention cutoff
++  - external storage owner
++  - acceptable audit degradation
++timebox: 30 minutes
++costLimit: read-only repository inventory plus bounded local tests
++exitConditions:
++  - inventory and schema findings are recorded
++  - implementation boundary is explicit
++  - decision is made to implement only safe slice or block
++nextDecision: implement a read-only retention inventory and dry-run plan with explicit human-gated apply boundary; do not delete payloads or rewrite history
++createdAt: "2026-08-04T23:12:32.852Z"
++startedAt: "2026-08-04T23:12:45.298Z"
++concludedAt: "2026-08-04T23:13:37.352Z"
++exitConditionsMet: true
++factsLearned:
++  - repository currently tracks 148 patch-artifact payloads totaling 5933400 bytes
++  - all indexed Tasks are archived 222 of 222
++  - all current Evidence payloads use patch-artifact retention
++  - existing health verification treats bundle retention as not-evaluated
++  - Git history pruning cannot be achieved by deleting current-tree files
++hypothesesRejected:
++  - automatic age-based deletion is safe without a human retention cutoff
++  - external archive storage can be treated as verifiable by current health
++remainingUnknowns:
++  - retention cutoff
++  - external storage owner and durability
++  - acceptable trust status after payload removal
++  - Git history rewrite policy
+diff --git a/contracts/specs/SPEC-LITE-MSF9Z4F2.yaml b/contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
+new file mode 100644
+index 0000000..97539c7
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSF9Z4F2
++type: spec-contract
++featureId: F-MSF9Z4F2
++title: "Issue #349: Evidence retention inventory and safe prune boundary"
++status: approved
++version: 0.1.0
++summary: "Provide a deterministic read-only inventory and candidate plan while keeping retention, deletion, external archive, and Git history decisions human-controlled"
++approvedBy: user-recommended-issue-349
++approvedAt: "2026-08-05T00:00:00Z"
++acceptanceCriteria:
++  - evidence prune --json reports a versioned summary of tracked payload count, total bytes, retention modes, and archived Task candidates
++  - inventory reads Task index and Evidence provenance without changing Evidence, payloads, Registry, or Git refs
++  - default execution is read-only and a clean working tree is required for any future mutating mode
++  - no automatic age cutoff, external storage upload, payload deletion, or Git history rewrite is introduced
++  - output identifies that an explicit Human Decision is required for retention cutoff, archive durability, and audit trust semantics
++  - existing evidence retain and health behavior remain unchanged
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml b/contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
+new file mode 100644
+index 0000000..5229caa
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MSF9Z4F2
++type: task-contract
++status: approved
++approvedBy: user-recommended-issue-349
++approvedAt: "2026-08-05T00:00:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSF9Z4F2
++branchName: task/SCWBS-DRAFT-MSF9Z4F2-issue-349-evidence-retention-inventory-and-prune
++allowedPaths:
++  - src/commands/evidence-collect.ts
++  - src/cli/register-governance.ts
++  - tests/integration/evidence.test.ts
++  - docs/implementation-gaps.md
++  - docs/scwbs/cli-reference.md
++  - contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
++  - contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - retention cutoff or external archive policy requires human decision
++  - Git history rewrite or payload deletion required
++  - external storage integration or security policy required
++  - allowed path expansion required
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++  - lint
++doneCriteria:
++  - scwbs evidence prune --json reports tracked patch-artifact counts, bytes, retention modes, and archived-task candidates without modifying the worktree
++  - default behavior is read-only and candidates require an explicit human-approved retention cutoff before any deletion or archive action
++  - the command refuses Git history rewrites, direct payload deletion, and unverified external storage operations
++  - CLI reference and implementation-gaps documentation state the current 148-payload baseline and the remaining Human Decision boundary
++  - focused integration coverage verifies deterministic inventory output and read-only guards
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
++  - contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSF9Z4F2.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF9Z4F2.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF9Z4F2.patch
++  - contracts/approvals/SCWBS-DRAFT-MSF9Z4F2.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF9Z4F2.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:185908c670d6ee89e65581ba17a7f99aa9e347d986b72e47face3d9f368dee0b
++  createdAt: "2026-08-04T23:15:35.080Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 92b99b9..080300d 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1553,3 +1553,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-04T22:52:48.600Z"
++  - id: SCWBS-DRAFT-MSF9Z4F2
++    path: contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
++    branchName: task/SCWBS-DRAFT-MSF9Z4F2-issue-349-evidence-retention-inventory-and-prune
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index c8aaf1a..e6ae4e9 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -23,6 +23,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Tracked patch Evidence retention and subject reconstruction after squash merge
+ - Fail-closed patch provenance verification in health/status
+ - Bounded legacy Evidence migration through `evidence retain`
++- Read-only Evidence retention inventory and prune planning through `evidence prune` (current baseline: 148 tracked payloads / 5,933,400 bytes); deletion, external archive durability, audit trust changes, and Git history rewriting remain Human Decision work
+ - AI blocked-task change-set generation
+ - Dependency-aware planned-task candidate listing for simple queue handoff
+ - Sensitive meta/config file guardrails in check-diff
+@@ -57,4 +58,5 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Make `ai next-task` priority-aware.
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+ - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
++- Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
+ - Add PR feedback and CI run metadata capture for Evidence once the contract model stabilizes.
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 32183f7..e04fa03 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -413,6 +413,11 @@ payload自身を除外するため、metadata-only descendantや再収集でhash
+ base、diffHash、changedFilesが再現できない場合は書き込まない。
+ `--fetch-pr-head` はrecorded PRのhead refだけを取得し、subject ancestryを検証する。
+ 
++`evidence prune [--json]` はtracked patch-artifactの件数、サイズ、retention mode、
++archived Task候補を表示するread-only inventoryである。候補はretention cutoffを
++自動選択せず、`--apply` は常にfail closedする。保持期限、外部archiveの耐久性、
++payload削除後の監査trust、Git履歴の書換えはHuman Decisionと新しいTask Contractが必要である。
++
+ `evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+ 
+ `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index fd482ea..6fcd70d 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -6,7 +6,7 @@ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js
+ import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
+ import { runCompletionApply } from "../commands/completion.js";
+ import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
+-import { runEvidenceCollect, runEvidenceRetain } from "../commands/evidence-collect.js";
++import { runEvidenceCollect, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
+ import { runProfileSet, runProfileShow } from "../commands/profile.js";
+ import { runRegistryRebuild } from "../commands/registry-rebuild.js";
+ import {
+@@ -252,6 +252,15 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runEvidenceRetain(root, options.task, { fetchPrHead: options.fetchPrHead ?? false }));
+     });
+ 
++  evidence
++    .command("prune")
++    .description("Show a read-only Evidence retention inventory and prune plan")
++    .option("--json", "print a versioned JSON summary")
++    .option("--apply", "reserved for a separately approved retention Task; always fails closed here")
++    .action((options) => {
++      setExitCode(runEvidencePrune(root, { json: options.json ?? false, apply: options.apply ?? false }));
++    });
++
+   const registry = program.command("registry");
+   registry
+     .command("rebuild")
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index d2ff001..76c93e3 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -1,7 +1,7 @@
+-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+-import { readEvidence, readTask } from "../core/contracts.js";
++import { listEvidence, readEvidence, readTask } from "../core/contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+ import { resolveCheckCommand } from "../core/check-catalog.js";
+ import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
+@@ -21,12 +21,13 @@ import {
+   resolveCommit,
+   workingTreeState
+ } from "../core/git.js";
+-import { evidencePath, resolveFrom } from "../core/paths.js";
++import { evidencePayloadPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+ import { summarizeCheckOutput } from "../core/check-output-summary.js";
+ import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
++import { readTaskIndex } from "../core/task-index.js";
+ import { printIssues } from "../core/report.js";
+ import { resolveSpawnCommand } from "./checks-run.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
+@@ -715,3 +716,119 @@ export function runEvidenceRetain(
+     return 1;
+   }
+ }
++
++export type EvidencePruneOptions = {
++  json?: boolean;
++  apply?: boolean;
++};
++
++export type EvidencePruneSummary = {
++  schemaVersion: "scwbs.evidence-prune.v1";
++  status: "plan";
++  readOnly: true;
++  payloads: {
++    count: number;
++    totalBytes: number;
++    byRetentionMode: Record<string, number>;
++  };
++  archivedCandidates: Array<{
++    taskId: string;
++    payloadPath: string;
++    bytes: number;
++    archivedAt?: string;
++    retentionMode: string;
++    eligible: false;
++    reason: "retention-cutoff-requires-human-decision";
++  }>;
++  humanDecision: {
++    required: true;
++    decisions: ["retention-cutoff", "archive-durability", "audit-trust-after-removal", "git-history-rewrite"];
++  };
++};
++
++function prunePayloadTaskId(file: string): string | undefined {
++  if (!file.endsWith(".patch")) return undefined;
++  const taskId = file.slice(0, -".patch".length);
++  return taskId.length > 0 ? taskId : undefined;
++}
++
++function formatEvidencePruneSummary(summary: EvidencePruneSummary): string {
++  const modes = Object.entries(summary.payloads.byRetentionMode)
++    .sort(([left], [right]) => left.localeCompare(right))
++    .map(([mode, count]) => `${mode}=${count}`)
++    .join(", ");
++  return [
++    "Evidence prune plan (read-only)",
++    `payloads: ${summary.payloads.count}`,
++    `bytes: ${summary.payloads.totalBytes}`,
++    `retention modes: ${modes || "none"}`,
++    `archived candidates: ${summary.archivedCandidates.length}`,
++    "next: human decision required for retention cutoff, archive durability, audit trust, and Git history policy"
++  ].join("\n") + "\n";
++}
++
++export function buildEvidencePruneSummary(root: string): EvidencePruneSummary {
++  const indexResult = readTaskIndex(root);
++  if (!indexResult.index || indexResult.issues.length > 0) {
++    throw new Error(indexResult.issues.map((issue) => issue.message).join("\n") || "Task index is invalid");
++  }
++  const evidenceByTask = new Map(
++    listEvidence(root).flatMap((entry) => entry.evidence ? [[entry.evidence.taskId, entry.evidence] as const] : [])
++  );
++  const payloadDir = resolveFrom(root, "contracts/evidence-payloads");
++  const payloads = existsSync(payloadDir)
++    ? readdirSync(payloadDir).filter((file) => file.endsWith(".patch")).sort()
++    : [];
++  const byRetentionMode: Record<string, number> = {};
++  let totalBytes = 0;
++  const archived = new Map(indexResult.index.tasks.filter((entry) => entry.status === "archived").map((entry) => [entry.id, entry]));
++  const archivedCandidates: EvidencePruneSummary["archivedCandidates"] = [];
++
++  for (const file of payloads) {
++    const taskId = prunePayloadTaskId(file);
++    if (!taskId) continue;
++    const bytes = statSync(path.join(payloadDir, file)).size;
++    totalBytes += bytes;
++    const retentionMode = evidenceByTask.get(taskId)?.provenance?.retention.mode ?? "legacy";
++    byRetentionMode[retentionMode] = (byRetentionMode[retentionMode] ?? 0) + 1;
++    const task = archived.get(taskId);
++    if (task) {
++      archivedCandidates.push({
++        taskId,
++        payloadPath: evidencePayloadPath(taskId),
++        bytes,
++        ...(task.archivedAt ? { archivedAt: task.archivedAt } : {}),
++        retentionMode,
++        eligible: false,
++        reason: "retention-cutoff-requires-human-decision"
++      });
++    }
++  }
++
++  archivedCandidates.sort((left, right) => left.taskId.localeCompare(right.taskId));
++  return {
++    schemaVersion: "scwbs.evidence-prune.v1",
++    status: "plan",
++    readOnly: true,
++    payloads: { count: payloads.length, totalBytes, byRetentionMode },
++    archivedCandidates,
++    humanDecision: {
++      required: true,
++      decisions: ["retention-cutoff", "archive-durability", "audit-trust-after-removal", "git-history-rewrite"]
++    }
++  };
++}
++
++export function runEvidencePrune(root: string, options: EvidencePruneOptions = {}): number {
++  try {
++    if (options.apply) {
++      throw new Error("Evidence prune is read-only in this Task; payload deletion, external archive, and Git history rewrite require a new human-approved Task Contract");
++    }
++    const summary = buildEvidencePruneSummary(root);
++    process.stdout.write(options.json ? `${JSON.stringify(summary, null, 2)}\n` : formatEvidencePruneSummary(summary));
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/tests/integration/evidence.test.ts b/tests/integration/evidence.test.ts
+index 4b870c6..7a9c968 100644
+--- a/tests/integration/evidence.test.ts
++++ b/tests/integration/evidence.test.ts
+@@ -6,6 +6,7 @@ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildCollectedEvidence, buildEvidenceCollectSummary, runEvidenceCollect, runEvidenceRetain } from "../../src/commands/evidence-collect.js";
+ import { runEvidenceAnnotate } from "../../src/commands/evidence-annotate.js";
++import { buildEvidencePruneSummary, runEvidencePrune } from "../../src/commands/evidence-collect.js";
+ import { branchDiffHash, commitExists, headCommit, mergeBase, verifyPatchArtifact } from "../../src/core/git.js";
+ import { taskAuthorityFingerprint } from "../../src/commands/ci-plan.js";
+ import { readEvidence, readTask } from "../../src/core/contracts.js";
+@@ -1023,4 +1024,57 @@ describe("evidence collect", () => {
+     expect(readFileSync(passedMarker, "utf8")).toBe("1");
+     expect(readFileSync(failedMarker, "utf8")).toBe("2");
+   }, 30000);
++
++  test("evidence prune reports a deterministic read-only inventory and refuses apply", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const taskId = "WBS-001-004";
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [{
++        id: taskId,
++        path: `contracts/tasks/${taskId}.yaml`,
++        branchName: "task/WBS-001-004-api-implementation",
++        wbsNodeId: "node-governance-maintenance",
++        status: "archived",
++        dependsOn: [],
++        archivedAt: "2026-07-01T00:00:00Z"
++      }]
++    });
++    writeYaml(root, `contracts/evidence/${taskId}.yaml`, sampleEvidence({
++      provenance: {
++        schemaVersion: "1.0.0",
++        subject: {
++          commit: "a".repeat(40),
++          treeHash: "b".repeat(40),
++          diffHash: `sha256:${"c".repeat(64)}`,
++          canonicalization: "git-diff-binary-v1"
++        },
++        retention: {
++          mode: "patch-artifact",
++          locator: `repo:contracts/evidence-payloads/${taskId}.patch`,
++          manifestHash: `sha256:${"d".repeat(64)}`
++        }
++      }
++    }) as unknown as Record<string, unknown>);
++    writeText(root, `contracts/evidence-payloads/${taskId}.patch`, "payload\n");
++
++    const before = readFileSync(path.join(root, `contracts/evidence-payloads/${taskId}.patch`), "utf8");
++    const summary = buildEvidencePruneSummary(root);
++    expect(summary).toMatchObject({
++      schemaVersion: "scwbs.evidence-prune.v1",
++      status: "plan",
++      readOnly: true,
++      payloads: { count: 1, totalBytes: before.length, byRetentionMode: { "patch-artifact": 1 } },
++      humanDecision: { required: true }
++    });
++    expect(summary.archivedCandidates).toEqual([expect.objectContaining({
++      taskId,
++      eligible: false,
++      reason: "retention-cutoff-requires-human-decision"
++    })]);
++    const applied = captureOutput(() => runEvidencePrune(root, { apply: true }));
++    expect(applied.result).toBe(1);
++    expect(applied.stderr).toContain("require a new human-approved Task Contract");
++    expect(readFileSync(path.join(root, `contracts/evidence-payloads/${taskId}.patch`), "utf8")).toBe(before);
++  });
+ });

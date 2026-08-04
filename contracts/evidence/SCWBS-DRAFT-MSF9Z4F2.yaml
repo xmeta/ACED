@@ -1,0 +1,78 @@
+id: EVD-SCWBS-DRAFT-MSF9Z4F2
+type: evidence
+taskId: SCWBS-DRAFT-MSF9Z4F2
+commit: 012ab693ec6ae1acf802c34e0a754da0ef42cb7a
+subjectHeadCommit: 012ab693ec6ae1acf802c34e0a754da0ef42cb7a
+diffHash: sha256:e01b27f2680d54e02aa06d832508585a5d344cc4ee3b9abb485cbdb00d4d91c2
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 012ab693ec6ae1acf802c34e0a754da0ef42cb7a
+    treeHash: c9efe35f0b8ff84c18d0b80c2518d1e62498107c
+    diffHash: sha256:e01b27f2680d54e02aa06d832508585a5d344cc4ee3b9abb485cbdb00d4d91c2
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSF9Z4F2.patch
+    manifestHash: sha256:e01b27f2680d54e02aa06d832508585a5d344cc4ee3b9abb485cbdb00d4d91c2
+git:
+  branch: task/SCWBS-DRAFT-MSF9Z4F2-issue-349-evidence-retention-inventory-and-prune
+  base: origin/main
+  baseCommit: 85e10314cc4c1cd5828763fecb7e063d634fb899
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 012ab693ec6ae1acf802c34e0a754da0ef42cb7a
+  diffHash: sha256:e01b27f2680d54e02aa06d832508585a5d344cc4ee3b9abb485cbdb00d4d91c2
+  headCommit: 012ab693ec6ae1acf802c34e0a754da0ef42cb7a
+changedFiles:
+  - contracts/discovery/PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSF9Z4F2.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSF9Z4F2.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - tests/integration/evidence.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:60b2f6e951b2aef7fd3da219a5fac407920addd56ef9889efc81f806db3da34b
+    durationMilliseconds: 14404
+    executedAt: "2026-08-04T23:28:55.612Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:4f97f4789bfac82802e372e3b556f62c75fba32010dce424760078e6beab3ffa
+    durationMilliseconds: 262362
+    executedAt: "2026-08-04T23:33:17.978Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:0740d289ee675f3ed98adffe3d285f24d2a4fc2642eecb29bbd9ca988848e92d
+    durationMilliseconds: 10206
+    executedAt: "2026-08-04T23:33:28.188Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:03f1ee94d1a4609597ecd667b486d43f03a58f5df83baaaab7eba8fee63b54e0
+    durationMilliseconds: 4777
+    executedAt: "2026-08-04T23:33:32.970Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:ba73b73bfb81f7600158055b4e48b4e5e6c879b9fcd68cbee2658b4d2a645f7a
+    durationMilliseconds: 8789
+    executedAt: "2026-08-04T23:33:41.764Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added deterministic read-only Evidence retention inventory and apply refusal coverage; no existing tests disabled and no coverage decrease observed.
