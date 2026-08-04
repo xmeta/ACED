@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MSF0ZT44
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF0ZT44
+branchName: task/SCWBS-DRAFT-MSF0ZT44-issue-396-remove-windows-shell-invocation-from-c
+allowedPaths:
+  - src/commands/checks-run.ts
+  - src/commands/evidence-collect.ts
+  - src/core/process-command.ts
+  - tests/unit/process-command.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/specs/SPEC-LITE-MSF0ZT44.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF0ZT44.patch
+  - contracts/blocks/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/approvals/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - src/commands/checks-run.ts and src/commands/evidence-collect.ts execute child processes without shell interpolation on every platform
+  - Windows execution resolves npm and gh to directly executable commands without changing the command arguments or supported check behavior
+  - Branch names and check names remain data-only arguments, so shell metacharacters cannot trigger an additional command
+  - Unit regression coverage verifies Windows command resolution and POSIX command compatibility
+  - No package, workflow, WJS, API, or output-contract changes are introduced
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+stopIf:
+  - Windows direct execution cannot preserve npm or gh behavior without a package, workflow, or release-policy change
+  - a package, workflow, WJS, authentication, authorization, or external-service change is required
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/specs/SPEC-LITE-MSF0ZT44.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF0ZT44.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF0ZT44.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:15ebeffeee7a092ec234ca1fdc1ede1af666879a7982e19a78736a61d18af65f
+  createdAt: "2026-08-04T19:04:34.409Z"

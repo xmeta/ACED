@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSF0ZT44
+type: spec-contract
+featureId: F-MSF0ZT44
+title: "Issue #396: remove Windows shell invocation from checks and pull-request detection without changing supported behavior"
+status: approved
+version: 0.1.0
+summary: "Issue #396: remove Windows shell invocation from checks and pull-request detection without changing supported behavior"
+acceptanceCriteria:
+  - 'checks-run.ts and evidence-collect.ts invoke child processes with shell disabled on POSIX and Windows'
+  - 'Windows resolves npm to npm.cmd and gh to gh.exe while preserving argument order and values; POSIX commands remain unchanged'
+  - 'Regression tests prove shell metacharacters in branch/check arguments are passed as data and no command concatenation is introduced'
+  - 'Existing required-check, evidence, stdout, and error behavior remains unchanged apart from removing shell interpretation'
+  - 'Scope excludes package configuration, workflow files, WJS, API changes, and changes to supported check definitions'
+approvedBy: user-requested-issue-396
+approvedAt: "2026-08-05T00:00:00Z"
