@@ -25,6 +25,7 @@ import { evidencePath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
+import { resolveSpawnCommand } from "../core/process-command.js";
 import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { printIssues } from "../core/report.js";
@@ -45,10 +46,11 @@ import {
 export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
   if (!branchName) return undefined;
   try {
-    const result = spawnSync("gh", ["pr", "list", "--head", branchName, "--state", "open", "--json", "number"], {
+    const command = resolveSpawnCommand(["gh", "pr", "list", "--head", branchName, "--state", "open", "--json", "number"]);
+    const result = spawnSync(command[0] ?? "gh", command.slice(1), {
       cwd: root,
       encoding: "utf8",
-      shell: process.platform === "win32"
+      shell: false
     });
     if (result.status !== 0 || !result.stdout) return undefined;
     const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
@@ -302,17 +304,18 @@ function commandForCheck(check: string): string[] {
 
 function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
   const command = commandForCheck(check);
+  const spawnCommand = resolveSpawnCommand(command);
   updateRequiredCheckRun(lease, check, checkIndex);
   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
   const heartbeat = startRequiredCheckHeartbeat(lease);
   const startedAt = performance.now();
   let result: SpawnSyncReturns<string>;
   try {
-    result = spawnSync(command[0] ?? "npm", command.slice(1), {
+    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
       cwd: root,
       encoding: "utf8",
       env: requiredCheckChildEnv(lease),
-      shell: process.platform === "win32"
+      shell: false
     });
   } finally {
     stopRequiredCheckHeartbeat(heartbeat);

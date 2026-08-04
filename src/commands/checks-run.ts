@@ -8,6 +8,7 @@ import { headCommit } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
+import { resolveSpawnCommand } from "../core/process-command.js";
 import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
@@ -44,17 +45,18 @@ export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?:
 
 function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
   const command = resolveCheckCommand(check);
+  const spawnCommand = resolveSpawnCommand(command);
   updateRequiredCheckRun(lease, check, index);
   process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
   const heartbeat = startRequiredCheckHeartbeat(lease);
   const startedAt = performance.now();
   let result: SpawnSyncReturns<string>;
   try {
-    result = spawnSync(command[0] ?? "npm", command.slice(1), {
+    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
       cwd: root,
       encoding: "utf8",
       env: requiredCheckChildEnv(lease),
-      shell: process.platform === "win32"
+      shell: false
     });
   } finally {
     stopRequiredCheckHeartbeat(heartbeat);
