@@ -34,6 +34,18 @@ function captureStderr(action: () => number): { exitCode: number; stderr: string
 }
 
 describe("CLI help lifecycle semantics", () => {
+  test("separates Task pre-flight from Discovery and project bootstrap", () => {
+    const root = makeTempRepo();
+
+    const taskStart = captureHelp(["task", "start", "--help"], root);
+    expect(taskStart.exitCode).toBe(0);
+    expect(taskStart.stdout.replace(/\s+/g, " ")).toContain("Run pre-flight for an existing Task Contract");
+
+    const bootstrap = captureHelp(["project", "bootstrap", "--help"], root);
+    expect(bootstrap.exitCode).toBe(0);
+    expect(bootstrap.stdout.replace(/\s+/g, " ")).toContain("without a delivery Task Contract");
+  });
+
   test("describes status strict scope and finish preflight side effects", () => {
     const root = makeTempRepo();
 

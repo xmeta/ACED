@@ -300,7 +300,8 @@ Common commands:
 ```bash
 npm run scwbs -- next
 npm run scwbs -- task new "作業名" --paths "src/commands/example.ts,tests/integration/example.test.ts" --stop "schema or dependency change required"
-npm run scwbs -- start <goal>
+npm run scwbs -- task start <task-id>
+npm run scwbs -- project bootstrap "<goal>"
 npm run scwbs -- packet --task <task-id>           # tiny (default)
 npm run scwbs -- packet --task <task-id> --standard
 npm run scwbs -- packet --task <task-id> --full

@@ -30,6 +30,7 @@ import { runServe, runUi } from "./commands/ui.js";
 import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
 import { registerDiscoveryCommands } from "./cli/register-discovery.js";
 import { registerGovernanceCommands } from "./cli/register-governance.js";
+import { registerProjectCommands } from "./cli/register-project.js";
 import { registerTaskCommands } from "./cli/register-task.js";
 import { registerWbsCommands } from "./cli/register-wbs.js";
 import { isValidTaskId } from "./core/paths.js";
@@ -240,6 +241,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .action((opts) => { exitCode = runDocsGenerate(root, { check: opts.check ?? false }); });
 
   registerDiscoveryCommands(program, commandContext);
+  registerProjectCommands(program, commandContext);
 
   const ci = program.command("ci");
   ci
@@ -487,16 +489,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("start")
-    .description("Start a task with a goal")
-    .argument("<goal...>", "task goal text")
-    .action((goalParts: string[]) => {
-      const goal = goalParts.join(" ").trim();
-      if (!goal) {
-        console.error("Missing goal text");
-        exitCode = 2;
-        return;
-      }
-      exitCode = runStart(root, goal);
+    .description("Legacy alias for Task pre-flight; accepts existing Task IDs only")
+    .argument("<task-id>", "existing Task Contract id")
+    .action((taskId: string) => {
+      exitCode = runStart(root, taskId);
     });
 
   program

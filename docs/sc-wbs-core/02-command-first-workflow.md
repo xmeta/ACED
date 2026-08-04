@@ -28,7 +28,7 @@ contracts/tasks/WBS-001.yaml
 ### 2. AIに作業を渡す
 
 ```bash
-scwbs start WBS-001
+scwbs task start WBS-001
 scwbs packet --tiny
 ```
 
@@ -188,7 +188,7 @@ AIが覚えるべき通常コマンドは少なくする。ここで重要なの
 
 ```bash
 scwbs next
-scwbs start <task-id>
+scwbs task start <task-id>
 scwbs packet --tiny
 scwbs finish
 scwbs block "<reason>"

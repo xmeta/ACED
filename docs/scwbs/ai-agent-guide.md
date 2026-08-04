@@ -31,7 +31,7 @@ Before editing:
 Useful command:
 
 ```bash
-npm run scwbs -- start <task-id>
+npm run scwbs -- task start <task-id>
 ```
 
 If more task context is needed:
@@ -141,7 +141,7 @@ npm run scwbs -- ai block --task <task-id> --reason "<reason>"
 
 ```bash
 npm run scwbs -- next
-npm run scwbs -- start <task-id>
+npm run scwbs -- task start <task-id>
 npm run scwbs -- packet --task <task-id> --tiny
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 npm run scwbs -- check

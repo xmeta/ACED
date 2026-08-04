@@ -66,10 +66,9 @@ contracts/tasks/<task-id>.yaml
 
 既存ファイルを上書きしない。上書きには明示的な `--force` を必要とする。
 
-### `scwbs start <goal>`
+### `scwbs task start <task-id>`
 
-作業開始のpre-flight、または新規Taskの開始を行う。
-引数に既存のtask-idを指定した場合はpre-flightを、新規のgoal文字列を指定した場合はspec/task/changesetドラフトを生成する。
+既存 Task Contract の pre-flight だけを行う。未知の Task ID は fail closed で拒否する。トップレベルの `scwbs start <task-id>` は後方互換 alias である。
 
 処理（既存task-idの場合）:
 
@@ -81,13 +80,15 @@ contracts/tasks/<task-id>.yaml
 - Tiny Packet生成案内
 ```
 
-処理（新規goalの場合）:
+### `scwbs project bootstrap <goal>`
 
 ```text
-- spec/task/changesetドラフト生成
-- branch名の提示
-- 次アクションの表示
+- bounded Discovery Probe の作成
+- delivery Task Contract は作成しない
+- Spec/Decision Gate 後に `task new` で明示的に Task 化する
 ```
+
+`scwbs discovery start <goal>` は Discovery Probe を active で開始する短縮経路であり、delivery Task Contract は作成しない。既存 Probe の遷移には `scwbs discovery start --probe <id>` を使う。
 
 ### `scwbs packet`
 

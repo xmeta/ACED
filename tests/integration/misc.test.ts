@@ -5,7 +5,6 @@ import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { runInit } from "../../src/commands/init.js";
 import { collectCheckIssues, collectWbsChangesetGateIssues, runCheck } from "../../src/commands/check.js";
-import { buildStartArtifacts } from "../../src/commands/start.js";
 import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
 import { readProfile, runProfileSet } from "../../src/commands/profile.js";
 import { buildStatus } from "../../src/commands/status.js";
@@ -185,33 +184,6 @@ describe("misc", () => {
     expect(collectCheckIssues(root).some((issue) => issue.code === "wbs.changeset.required")).toBe(false);
   });
 
-  test("start emits schema-shaped WBS addNode operations", () => {
-    const artifacts = buildStartArtifacts("Add reporting");
-    const changeSetPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/changesets/start-"));
-    const taskPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/tasks/"));
-    const specPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/specs/"));
-    expect(changeSetPath).toBeTruthy();
-    expect(taskPath).toBeTruthy();
-    expect(specPath).toBeTruthy();
-    const changeSet = JSON.parse(artifacts[changeSetPath!]);
-    const task = parseSimpleYaml(artifacts[taskPath!]);
-    const taskId = taskPath!.replace(/^contracts\/tasks\//, "").replace(/\.yaml$/, "");
-    expect(changeSet.targetWbsId).toBe("scwbs");
-    expect(changeSet.operations[0].operation).toBe("addNode");
-    expect(changeSet.operations[0].node.parentId).toBe("node-project");
-    expect(task.managedContractPaths).toEqual([
-      taskPath,
-      specPath,
-      "contracts/tasks/index.yaml",
-      `contracts/blocks/${taskId}.yaml`,
-      `contracts/evidence/${taskId}.yaml`,
-      `contracts/evidence-payloads/${taskId}.patch`,
-      `contracts/approvals/${taskId}.yaml`,
-      `contracts/reviews/${taskId}.yaml`,
-      "contracts/registry.yaml"
-    ]);
-  });
-
   test("yaml parser preserves quoted strings with colons", () => {
     const parsed = parseSimpleYaml(stringifySimpleYaml({
       doneCriteria: ["Plan and implement: Replace YAML parser"]
@@ -220,16 +192,30 @@ describe("misc", () => {
     expect(parsed.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
   });
 
-  test("start artifacts can be read back as valid task contracts", () => {
+  test("unknown Task IDs fail closed without creating delivery artifacts", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    expect(main(["start", "Replace YAML parser"], root)).toBe(0);
+    const before = readdirSync(path.join(root, "contracts/tasks")).sort();
+    const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
+    const changesetsPath = path.join(root, "contracts/changesets");
+    const beforeChangesets = existsSync(changesetsPath) ? readdirSync(changesetsPath).sort() : [];
+    expect(main(["task", "start", "Replace YAML parser"], root)).toBe(1);
+    expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(before);
+    expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
+    expect(existsSync(changesetsPath) ? readdirSync(changesetsPath).sort() : []).toEqual(beforeChangesets);
+  });
 
-    const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
-    expect(taskFileName).toBeTruthy();
-    const taskId = taskFileName!.replace(/\.yaml$/, "");
-    const { task } = readTask(root, taskId);
-    expect(task?.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+  test("project bootstrap creates only a Discovery Probe", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(main(["project", "bootstrap", "Replace YAML parser"], root)).toBe(0);
+
+    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-bootstrap-"));
+    expect(probeFileName).toBeTruthy();
+    const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFileName!), "utf8"));
+    expect(probe).toMatchObject({ type: "discovery-probe", status: "proposed" });
+    expect(probe).not.toHaveProperty("deliveryTaskId");
+    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
   });
 
   test("help flags do not run mutating commands", () => {
@@ -253,7 +239,7 @@ describe("misc", () => {
       return true;
     }) as typeof process.stdout.write;
     try {
-      expect(main(["start", "WBS-001-004"], root)).toBe(1);
+      expect(main(["task", "start", "WBS-001-004"], root)).toBe(1);
     } finally {
       process.stdout.write = originalWrite;
     }

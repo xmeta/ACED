@@ -435,13 +435,15 @@ npm run scwbs -- completion apply \
 ## Lightweight Entry Points
 
 ```bash
-npm run scwbs -- start "natural language goal"
+npm run scwbs -- task start <task-id>
+npm run scwbs -- project bootstrap "goal"
+npm run scwbs -- discovery start "decision-driving goal"
 npm run scwbs -- plan --spec SPEC-001
 npm run scwbs -- lite task "small change title"
 npm run scwbs -- promote --task SCWBS-001
 ```
 
-These commands generate drafts or candidates. They do not directly rewrite the canonical WBS.
+`task start` is the existing-Task pre-flight entry point. `project bootstrap` creates only a bounded Discovery Probe; it does not create a delivery Task Contract or directly rewrite the canonical WBS. The top-level `start <task-id>` remains a legacy alias for the pre-flight command.
 
 ## Trace And UI
 

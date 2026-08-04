@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
+import { runDiscoveryConclude, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
 import { parseBool, type CommandContext } from "./command-context.js";
 
 export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
@@ -24,10 +24,34 @@ export function registerDiscoveryCommands(program: Command, context: CommandCont
     });
   discovery
     .command("start")
-    .requiredOption("--probe <id>", "Probe id")
+    .argument("[goal...]", "decision-driving goal; creates and starts a Probe")
+    .option("--probe <id>", "existing Probe id to activate")
+    .option("--timebox <value>", "timebox for a goal-created Probe")
+    .option("--cost-limit <value>", "cost limit for a goal-created Probe")
+    .option("--next-decision <text>", "decision enabled by a goal-created Probe")
     .option("--json", "output versioned JSON")
-    .action((options) => {
-      setExitCode(runDiscoveryStart(root, options.probe, options.json ?? false));
+    .action((goalParts: string[], options) => {
+      if (options.probe && goalParts.length > 0) {
+        console.error("Use either --probe <id> or a goal, not both");
+        setExitCode(2);
+        return;
+      }
+      if (options.probe) {
+        setExitCode(runDiscoveryStart(root, options.probe, options.json ?? false));
+        return;
+      }
+      const goal = goalParts.join(" ").trim();
+      if (!goal) {
+        console.error("Provide --probe <id> or a discovery goal");
+        setExitCode(2);
+        return;
+      }
+      setExitCode(runDiscoveryGoalStart(root, goal, {
+        timebox: options.timebox,
+        costLimit: options.costLimit,
+        nextDecision: options.nextDecision,
+        json: options.json ?? false
+      }));
     });
   discovery
     .command("conclude")

@@ -5,6 +5,7 @@ import { runTaskArchive, runTaskIndexRebuild } from "../commands/task-index.js";
 import { runTaskLock } from "../commands/task-lock.js";
 import { runTaskNew } from "../commands/task-new.js";
 import { runTaskRefresh } from "../commands/task-refresh.js";
+import { runStart } from "../commands/start.js";
 import type { CommandContext } from "./command-context.js";
 
 export function registerTaskCommands(program: Command, context: CommandContext): void {
@@ -25,6 +26,14 @@ export function registerTaskCommands(program: Command, context: CommandContext):
     });
 
   const task = program.command("task");
+  task
+    .command("start")
+    .description("Run pre-flight for an existing Task Contract")
+    .argument("<task-id>", "existing Task Contract id")
+    .action((taskId: string) => {
+      setExitCode(runStart(root, taskId));
+    });
+
   task
     .command("generate")
     .description("Generate a task")
