@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveSpawnCommand } from "../../src/core/process-command.js";
+import { resolveSpawnCommand } from "../../src/commands/checks-run.js";
 
 describe("resolveSpawnCommand", () => {
   it("uses directly executable Windows entry points without changing arguments", () => {

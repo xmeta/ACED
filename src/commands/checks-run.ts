@@ -8,7 +8,6 @@ import { headCommit } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import type { Evidence, EvidenceCheckStatus } from "../core/types.js";
 import { summarizeCheckOutput } from "../core/check-output-summary.js";
-import { resolveSpawnCommand } from "../core/process-command.js";
 import {
   acquireRequiredCheckRun,
   formatRequiredCheckProgress,
@@ -42,6 +41,15 @@ export type ChecksRunSummary = {
 };
 
 export type ChecksRunOptions = { baseRef?: string; rerunChecks?: boolean; json?: boolean };
+
+export function resolveSpawnCommand(command: readonly string[], platform: NodeJS.Platform = process.platform): string[] {
+  if (platform !== "win32") return [...command];
+
+  const [executable, ...args] = command;
+  if (executable === "npm") return ["npm.cmd", ...args];
+  if (executable === "gh") return ["gh.exe", ...args];
+  return [...command];
+}
 
 function executeCheck(root: string, taskId: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, index: number): Evidence["checks"][number] {
   const command = resolveCheckCommand(check);
