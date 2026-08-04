@@ -1,0 +1,94 @@
+id: EVD-SCWBS-DRAFT-MSF89PXB
+type: evidence
+taskId: SCWBS-DRAFT-MSF89PXB
+commit: e06f44a9ff325c44da8b545c427c018fccb5e711
+subjectHeadCommit: e06f44a9ff325c44da8b545c427c018fccb5e711
+diffHash: sha256:07dc24a707e470497a3fdf0941dd3a53be1641e455e895802bd2b5a75f65f8a7
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: e06f44a9ff325c44da8b545c427c018fccb5e711
+    treeHash: d2a9da9755917016518ab8aa291e3cdc023e747c
+    diffHash: sha256:07dc24a707e470497a3fdf0941dd3a53be1641e455e895802bd2b5a75f65f8a7
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSF89PXB.patch
+    manifestHash: sha256:07dc24a707e470497a3fdf0941dd3a53be1641e455e895802bd2b5a75f65f8a7
+git:
+  branch: task/SCWBS-DRAFT-MSF89PXB-issue-397-eliminate-existing-eslint-warnings-wit
+  base: origin/main
+  baseCommit: 5b2d0fa52a5c47e356313a4efcd3d45ab2e419fa
+  changedFilesBasis: branch-diff
+  pullRequest: "413"
+  subjectHeadCommit: e06f44a9ff325c44da8b545c427c018fccb5e711
+  diffHash: sha256:07dc24a707e470497a3fdf0941dd3a53be1641e455e895802bd2b5a75f65f8a7
+  headCommit: e06f44a9ff325c44da8b545c427c018fccb5e711
+changedFiles:
+  - contracts/discovery/PROBE-bootstrap-issue-397-bounded-warning-cleanup-ex-MSF88MKK.yaml
+  - contracts/discovery/PROBE-bootstrap-issue-397-remove-eslint-warnings-whi-MSF86JS3.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF89PXB.patch
+  - contracts/evidence/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSF89PXB.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/tasks/index.yaml
+  - scripts/integration-test-output.mjs
+  - scripts/refresh-all-tasks.cjs
+  - src/commands/ci-plan.ts
+  - src/core/managed-contract-paths.ts
+  - src/core/node-utils.ts
+  - src/core/schema/registries.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/discovery.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/planning.test.ts
+  - tests/integration/review.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/check-output-summary.test.ts
+  - tests/unit/contracts.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:875b3c31aeb6d64e8fe1902cb8c70385b84d467a0a94a2aa32659616b3f93263
+    durationMilliseconds: 15388
+    executedAt: "2026-08-04T22:39:22.715Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1a0f288e070a2855c6094a5472c626c35be9c10e2fc9d35f400b3700abb3ed67
+    durationMilliseconds: 269777
+    executedAt: "2026-08-04T22:43:52.496Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ba51243b6c196f91f8721f0bc15a50770d2a3058763a5fa13c2f5f8cc6763ce1
+    durationMilliseconds: 10539
+    executedAt: "2026-08-04T22:44:03.039Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:4633ccb80f4d8bb4c7d858437fb62c65eabfa60cd2373cf9e08dc4b5a058a7cc
+    durationMilliseconds: 4541
+    executedAt: "2026-08-04T22:44:07.585Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:c107f01c3ef4d025933671f907daee7de81efa4dadea39561b07aaaacaf88eca
+    durationMilliseconds: 8621
+    executedAt: "2026-08-04T22:44:16.210Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Removed unused imports, replaced test any casts with typed unknown casts, and preserved existing test behavior; no tests were disabled.

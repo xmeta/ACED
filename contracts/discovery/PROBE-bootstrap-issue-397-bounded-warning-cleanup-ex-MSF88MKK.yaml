@@ -1,0 +1,30 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-397-bounded-warning-cleanup-ex-MSF88MKK
+type: discovery-probe
+status: concluded
+question: "Issue #397 bounded warning cleanup excluding Human Gate enforcement"
+hypotheses:
+  - Existing repository capabilities can support the goal
+activities:
+  - Inspect current contracts and record bounded evidence
+evidenceExpected:
+  - Current-state inventory
+unknowns:
+  - Delivery scope and acceptance criteria
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - Decision-driving evidence recorded
+nextDecision: Create a bounded delivery Task for source/scripts/tests warning cleanup
+createdAt: "2026-08-04T22:25:47.588Z"
+startedAt: "2026-08-04T22:25:59.820Z"
+concludedAt: "2026-08-04T22:26:13.374Z"
+exitConditionsMet: true
+factsLearned:
+  - All 35 current warnings are removable in source/scripts/tests without changing ESLint rules
+  - package.json
+  - or .github workflow
+hypothesesRejected:
+  - Changing package.json or .github workflow without Human Approval
+remainingUnknowns:
+  - CI threshold enforcement remains a separate Human Gate

@@ -12,7 +12,7 @@ import {
   resolveCommit
 } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
-import { approvalPath, evidencePath, resolveFrom, reviewPath } from "../core/paths.js";
+import { approvalPath, resolveFrom, reviewPath } from "../core/paths.js";
 import { collectTaskAuthorityIssues, taskAuthorityFingerprint, verifyTaskBootstrapAuthority } from "../core/task-authority.js";
 import { matchesAny } from "../core/glob.js";
 import { readWbs } from "../core/wbs.js";

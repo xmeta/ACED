@@ -5,7 +5,7 @@ function diagnostic(index: number): string {
   return [
     `failed test=tests/integration/example-${index}.test.ts :: failure ${index}`,
     `cause=expected ${index} to equal ${index + 1}`,
-    `rerun=npx vitest run tests/integration/example-${index}.test.ts -t \"failure ${index}\"`
+    `rerun=npx vitest run tests/integration/example-${index}.test.ts -t "failure ${index}"`
   ].join("\n");
 }
 

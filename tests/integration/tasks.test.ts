@@ -1,9 +1,8 @@
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test, vi } from "vitest";
-import { collectCheckIssues, runCheck } from "../../src/commands/check.js";
+import { collectCheckIssues } from "../../src/commands/check.js";
 
 import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
 import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
@@ -13,7 +12,7 @@ import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/c
 import { buildNextTask } from "../../src/commands/ai-queue.js";
 import { main } from "../../src/cli.js";
 import { validateTaskContract, validateTaskContractSchema } from "../../src/core/schema.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
 
 const wjsValidatorModule = "../../wjs/tools/validate.js";
 const { validateJsonWithSchema } = await import(wjsValidatorModule) as {
@@ -437,7 +436,7 @@ describe("task management", () => {
     expect(actual).toContain("  - package-lock.json");
     expect(actual).toContain("  - tsconfig.json");
     expect(actual).toContain("  - vitest.config.ts");
-    expect(actual.match(/  - \.github\/\*\*/g)).toHaveLength(1);
+    expect(actual.match(/ {2}- \.github\/\*\*/g)).toHaveLength(1);
     expect(actual).toContain("requiredChecks:");
     expect(actual).toContain("  - typecheck");
     const index = readFileSync(path.join(root, "contracts/tasks/index.yaml"), "utf8");

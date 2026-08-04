@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildApprovalApproveYaml, buildApprovalRequestYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { main } from "../../src/cli.js";
 import { readApproval } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
 
 const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
 const OTHER_STRONG_TOKEN = "fedcba9876543210fedcba9876543210";

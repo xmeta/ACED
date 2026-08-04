@@ -3,7 +3,7 @@ import { evidencePayloadPath } from "./paths.js";
 import type { TaskContract } from "./types.js";
 
 const TASK_SCOPED_DIRECTORIES = new Set(["tasks", "evidence", "approvals", "reviews", "blocks"]);
-const GLOB_OR_TRAVERSAL = /[*?\[\]{}]|(^|\/)\.\.(\/|$)/;
+const GLOB_OR_TRAVERSAL = /[*?]|[{}]|\[|\]|(^|\/)\.\.(\/|$)/;
 
 function normalizePath(input: string): string {
   return input.replace(/\\/g, "/").replace(/^\.\//, "");

@@ -1,0 +1,14 @@
+id: SPEC-LITE-MSF89PXB
+type: spec-contract
+featureId: F-MSF89PXB
+title: "Issue #397 bounded ESLint warning cleanup"
+status: approved
+approvedBy: user-requested-issue-397
+approvedAt: "2026-08-05T00:00:00Z"
+version: 0.1.0
+summary: "Remove the measured ESLint warnings from source, scripts, and tests while preserving the separate Human Gate for CI threshold enforcement."
+acceptanceCriteria:
+  - npm run lint reports zero warnings and zero errors after the scoped cleanup
+  - source behavior and test intent remain unchanged; unused bindings are removed and test any types are replaced with appropriate unknown or concrete types
+  - no changes are made to package.json, package-lock.json, tsconfig.json, vitest.config.ts, or .github/**
+  - the remaining --max-warnings=0 CI enforcement decision is recorded as a Human Gate follow-up rather than silently changed by AI

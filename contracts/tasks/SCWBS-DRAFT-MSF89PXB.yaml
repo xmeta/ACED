@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MSF89PXB
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-397
+approvedAt: "2026-08-05T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSF89PXB
+branchName: task/SCWBS-DRAFT-MSF89PXB-issue-397-eliminate-existing-eslint-warnings-wit
+allowedPaths:
+  - scripts/integration-test-output.mjs
+  - scripts/refresh-all-tasks.cjs
+  - src/commands/ci-plan.ts
+  - src/core/managed-contract-paths.ts
+  - src/core/node-utils.ts
+  - src/core/schema/registries.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/discovery.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/misc.test.ts
+  - tests/integration/planning.test.ts
+  - tests/integration/review.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/unit/check-output-summary.test.ts
+  - tests/unit/contracts.test.ts
+  - contracts/specs/SPEC-LITE-MSF89PXB.yaml
+  - contracts/discovery/PROBE-bootstrap-issue-397-remove-eslint-warnings-whi-MSF86JS3.yaml
+  - contracts/discovery/PROBE-bootstrap-issue-397-bounded-warning-cleanup-ex-MSF88MKK.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - Human Approval required for package.json or .github workflow changes
+  - security or policy changes
+  - scope expansion
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+  - lint
+doneCriteria:
+  - npm run lint reports zero warnings after removing unused bindings, unsafe test any types, and literal-format lint violations in the scoped source/scripts/tests files
+  - package.json and .github workflow enforcement remain unchanged and are explicitly recorded as a Human Gate follow-up
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/specs/SPEC-LITE-MSF89PXB.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSF89PXB.patch
+  - contracts/approvals/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSF89PXB.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a464491f17db3a75755762d44f8d05d67b836799baef34433b359cc5340d6966
+  createdAt: "2026-08-04T22:28:18.510Z"

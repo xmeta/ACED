@@ -1,0 +1,30 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-397-remove-eslint-warnings-whi-MSF86JS3
+type: discovery-probe
+status: inconclusive
+question: "Issue #397: remove ESLint warnings while preserving the Human Gate for CI warning enforcement"
+hypotheses:
+  - Existing repository capabilities can support the goal
+activities:
+  - Inspect current contracts and record bounded evidence
+evidenceExpected:
+  - Current-state inventory
+unknowns:
+  - Delivery scope and acceptance criteria
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - Decision-driving evidence recorded
+nextDecision: Deliver warning cleanup in a bounded Task; stop before package.json/.github CI enforcement pending Human Gate
+createdAt: "2026-08-04T22:24:10.659Z"
+startedAt: "2026-08-04T22:24:23.139Z"
+concludedAt: "2026-08-04T22:25:33.299Z"
+exitConditionsMet: false
+factsLearned:
+  - 'Issue #397 is open with 35 current ESLint warnings'
+  - all warning sites are in source/scripts/tests
+  - package.json lint threshold and .github workflow enforcement are Human Gate paths
+hypothesesRejected:
+  - Changing ESLint rules or suppressing intentional warnings without review
+remainingUnknowns:
+  - Human approval for package.json and .github workflow changes required to enforce --max-warnings=0

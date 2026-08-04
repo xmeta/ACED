@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -6,7 +5,7 @@ import { buildCompletionPreview, runCompletionApply } from "../../src/commands/c
 import { runApprovalApprove } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { readApproval } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("completion apply", () => {
   const delegationToken = "0123456789abcdef0123456789abcdef";

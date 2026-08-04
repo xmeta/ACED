@@ -35,7 +35,7 @@ describe("Discovery Probe lifecycle", () => {
     writeScwbsProject(root);
     expect(main(newArgs(), root)).toBe(0);
     expect(discoveryStateFromProbe({
-      ...readProbe(root) as any,
+      ...readProbe(root) as unknown as Parameters<typeof discoveryStateFromProbe>[0],
       status: "active"
     })).toMatchObject({
       decisionReadiness: "notReady",
@@ -44,7 +44,7 @@ describe("Discovery Probe lifecycle", () => {
       nextDecision: "Choose the delivery design"
     });
     expect(discoveryStateFromProbe({
-      ...readProbe(root) as any,
+      ...readProbe(root) as unknown as Parameters<typeof discoveryStateFromProbe>[0],
       status: "concluded",
       exitConditionsMet: true,
       remainingUnknowns: []
