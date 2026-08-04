@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MSE58C8K
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSE58C8K
+branchName: task/SCWBS-DRAFT-MSE58C8K-github-issue-393-automatically-record-verified-c
+allowedPaths:
+  - package.json
+  - .github/workflows/scwbs.yml
+  - README.md
+  - docs/implementation-gaps.md
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/commands/evidence-collect.ts
+  - src/cli/register-governance.ts
+  - scripts/coverage-evidence.mjs
+  - tests/integration/evidence.test.ts
+  - tests/unit/coverage-evidence.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - CI generates a versioned machine-readable coverage receipt for the combined coverage run
+  - Evidence collection verifies and records the coverage summary, skip reason, PR, head, workflow run, and artifact provenance
+  - Invalid or mismatched coverage receipts are rejected without weakening existing Evidence or Human Gate checks
+  - CI retains the Evidence snapshot and coverage artifact without pushing from an untrusted PR workflow
+  - Documentation describes the automatic Evidence path and its no-threshold policy
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/specs/SPEC-LITE-MSE58C8K.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSE58C8K.patch
+  - contracts/approvals/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSE58C8K.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:9c3122f5d2c02e4ec8d17eb63943a186bdda384bb082a8c1b777374717242b8d
+  createdAt: "2026-08-04T04:15:20.302Z"
