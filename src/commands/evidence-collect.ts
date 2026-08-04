@@ -380,7 +380,13 @@ export function buildCollectedEvidence(root: string, taskId: string, options: { 
       pullRequest,
       subjectHead: subjectHead ?? ""
     })
-    : undefined;
+    : existingEvidence?.coverageReceipt
+      && existingEvidence.coverageReceipt.subjectHeadCommit === subjectHead
+      && (!pullRequest
+        || !existingEvidence.coverageReceipt.pullRequest
+        || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
+      ? existingEvidence.coverageReceipt
+      : undefined;
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
     : undefined;

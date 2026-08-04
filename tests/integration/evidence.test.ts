@@ -191,6 +191,11 @@ describe("evidence collect", () => {
 
     expect(evidence.coverageReceipt).toEqual(coverageReceipt);
     expect(validateEvidenceSchema(evidence)).toEqual([]);
+    writeYaml(root, `contracts/evidence/${taskId}.yaml`, evidence as unknown as Record<string, unknown>);
+    expect(buildCollectedEvidence(root, taskId, {
+      baseRef: "base",
+      pullRequest: "#42"
+    }).coverageReceipt).toEqual(coverageReceipt);
     expect(() => buildCollectedEvidence(root, taskId, {
       baseRef: "base",
       pullRequest: "#42",
