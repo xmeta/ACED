@@ -1,3 +1,23 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSEPJUX4.yaml b/contracts/blocks/SCWBS-DRAFT-MSEPJUX4.yaml
+new file mode 100644
+index 0000000..ca0da0e
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSEPJUX4.yaml
+@@ -0,0 +1,14 @@
++id: BLK-SCWBS-DRAFT-MSEPJUX4
++type: block
++taskId: SCWBS-DRAFT-MSEPJUX4
++status: blocked
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: "Evidence payload path requires Task Contract authority repair: contracts/evidence-payloads/SCWBS-DRAFT-MSEPJUX4.patch is outside allowedPaths; human must decide whether to add the generated managed path before approval"
++createdAt: "2026-08-04T13:59:40.569Z"
++history:
++  - status: blocked
++    at: "2026-08-04T13:59:40.569Z"
++    reason: "Evidence payload path requires Task Contract authority repair: contracts/evidence-payloads/SCWBS-DRAFT-MSEPJUX4.patch is outside allowedPaths; human must decide whether to add the generated managed path before approval"
++    by: ai-agent
 diff --git a/contracts/specs/SPEC-LITE-MSEPJUX4.yaml b/contracts/specs/SPEC-LITE-MSEPJUX4.yaml
 new file mode 100644
 index 0000000..492c5df
@@ -20,10 +40,10 @@ index 0000000..492c5df
 +  - no source, test, documentation, CI workflow, WJS, or semver-major changes are included
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSEPJUX4.yaml b/contracts/tasks/SCWBS-DRAFT-MSEPJUX4.yaml
 new file mode 100644
-index 0000000..8c9c1c6
+index 0000000..3aa7cd4
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSEPJUX4.yaml
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,50 @@
 +id: SCWBS-DRAFT-MSEPJUX4
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -32,6 +52,7 @@ index 0000000..8c9c1c6
 +allowedPaths:
 +  - package.json
 +  - package-lock.json
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSEPJUX4.patch
 +forbiddenPaths:
 +  - wjs/**
 +humanGateRequiredPaths:
@@ -72,7 +93,7 @@ index 0000000..8c9c1c6
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:ef43928b39b79aaef2973f169633a11aad07083cef634286f9a648a8a2d748df
-+  createdAt: "2026-08-04T13:43:41.577Z"
++  createdAt: "2026-08-04T14:06:22.934Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 25b2b7a..8a2861a 100644
 --- a/contracts/tasks/index.yaml
