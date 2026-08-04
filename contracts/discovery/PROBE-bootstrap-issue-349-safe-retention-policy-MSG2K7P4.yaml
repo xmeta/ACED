@@ -1,0 +1,47 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-349-safe-retention-policy-MSG2K7P4
+type: discovery-probe
+status: concluded
+question: Can ACED add a safe Evidence retention inventory and opt-in external archive workflow without changing audit semantics or rewriting Git history?
+hypotheses:
+  - existing patch-artifact Evidence can be classified by archivedAt and age
+  - Git-history pruning requires an explicit human decision
+  - external archive locator semantics are not currently verifiable by health
+activities:
+  - inspect Task index and Evidence inventory
+  - inspect provenance schema and health semantics
+  - run bounded local probes
+evidenceExpected:
+  - payload count and size
+  - archivedAt distribution
+  - provenance mode distribution
+  - health behavior for bundle retention
+unknowns:
+  - retention cutoff
+  - external storage owner
+  - acceptable audit degradation
+timebox: 30 minutes
+costLimit: read-only repository inventory plus bounded local tests
+exitConditions:
+  - inventory and schema findings are recorded
+  - implementation boundary is explicit
+  - decision is made to implement only safe slice or block
+nextDecision: implement a read-only retention inventory and dry-run plan with explicit human-gated apply boundary; do not delete payloads or rewrite history
+createdAt: "2026-08-04T23:12:32.852Z"
+startedAt: "2026-08-04T23:12:45.298Z"
+concludedAt: "2026-08-04T23:13:37.352Z"
+exitConditionsMet: true
+factsLearned:
+  - repository currently tracks 148 patch-artifact payloads totaling 5933400 bytes
+  - all indexed Tasks are archived 222 of 222
+  - all current Evidence payloads use patch-artifact retention
+  - existing health verification treats bundle retention as not-evaluated
+  - Git history pruning cannot be achieved by deleting current-tree files
+hypothesesRejected:
+  - automatic age-based deletion is safe without a human retention cutoff
+  - external archive storage can be treated as verifiable by current health
+remainingUnknowns:
+  - retention cutoff
+  - external storage owner and durability
+  - acceptable trust status after payload removal
+  - Git history rewrite policy
