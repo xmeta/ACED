@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { Command, CommanderError } from "commander";
 import { fileURLToPath } from "node:url";
-import { realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { runAiBlock, runHumanBlockResolve } from "./commands/ai-queue.js";
 import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
 import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runDocsCheck } from "./commands/docs-check.js";
+import { buildStatusJsonOutput } from "./commands/status.js";
 import { runCheckDiff } from "./commands/check-diff.js";
 import { runCiPlan } from "./commands/ci-plan.js";
 import { runChecksRun } from "./commands/checks-run.js";
@@ -31,6 +33,147 @@ import { registerGovernanceCommands } from "./cli/register-governance.js";
 import { registerTaskCommands } from "./cli/register-task.js";
 import { registerWbsCommands } from "./cli/register-wbs.js";
 import { isValidTaskId } from "./core/paths.js";
+import { listActiveTasks, listSpecs, readApproval, readRegistry } from "./core/contracts.js";
+import { resolveFrom } from "./core/paths.js";
+import { readTaskIndex } from "./core/task-index.js";
+import type { Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "./core/types.js";
+import { readWbs } from "./core/wbs.js";
+
+export const generatedContractsDocPath = "docs/generated/scwbs-contracts.md";
+
+export type DocsGenerateOptions = {
+  check?: boolean;
+};
+
+function markdownCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function taskStatusById(root: string): Map<string, string> {
+  const result = readTaskIndex(root);
+  return new Map(result.index?.tasks.map((entry) => [entry.id, entry.status]) ?? []);
+}
+
+function registrySpecForTask(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
+  return registry?.contracts.find((contract) =>
+    contract.type === "spec" && (contract.relatedTask === task.id || contract.featureId === task.featureId)
+  );
+}
+
+function specForTask(
+  registry: Registry | undefined,
+  specs: Array<{ spec?: SpecContract; path: string }>,
+  task: TaskContract
+): SpecContract | undefined {
+  const contract = registrySpecForTask(registry, task);
+  if (contract) return specs.find((entry) => entry.path === contract.path)?.spec;
+  return specs.find((entry) => entry.spec?.featureId === task.featureId)?.spec;
+}
+
+function wbsNode(wbs: WbsDocument, task: TaskContract): { code: string; name: string } {
+  const node = wbs.nodes.find((candidate) => candidate.id === task.wbsNodeId);
+  return { code: node?.code ?? "?", name: node?.name ?? task.wbsNodeId };
+}
+
+function formatGeneratedStatusSection(root: string): string[] {
+  const report = buildStatusJsonOutput(root);
+  return [
+    "## WBS Status",
+    "",
+    `- Project: ${markdownCell(report.project)}`,
+    `- Total nodes: ${report.wbsStatus.total}`,
+    ...Object.entries(report.wbsStatus.counts).map(([status, count]) => `- ${status}: ${count}`),
+    `- Evidence missing: ${report.evidenceMissing.length === 0 ? "None" : report.evidenceMissing.join(", ")}`,
+    `- Blocking relations: ${report.blockingRelations.length}`,
+    ""
+  ];
+}
+
+function formatGeneratedTaskSection(root: string, wbs: WbsDocument): string[] {
+  const { registry } = readRegistry(root);
+  const specs = listSpecs(root);
+  const statuses = taskStatusById(root);
+  const tasks = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task] : []).sort((left, right) => left.id.localeCompare(right.id));
+  const lines = [
+    "## Task Contracts",
+    "",
+    "| Task ID | Status | WBS | Spec |",
+    "| --- | --- | --- | --- |"
+  ];
+  if (tasks.length === 0) lines.push("| None |  |  |  |");
+  for (const task of tasks) {
+    const node = wbsNode(wbs, task);
+    const spec = specForTask(registry, specs, task);
+    const specLabel = spec ? `${spec.id} (${spec.status})` : "None";
+    lines.push(`| ${markdownCell(task.id)} | ${statuses.get(task.id) ?? "planned"} | ${markdownCell(`${node.code} ${node.name}`)} | ${markdownCell(specLabel)} |`);
+  }
+  lines.push("");
+  return lines;
+}
+
+function formatGeneratedHumanGateSection(root: string): string[] {
+  const tasks = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task] : [])
+    .filter((task) => task.humanGateRequiredPaths.length > 0)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const lines = [
+    "## Human Gate Declarations",
+    "",
+    "| Task ID | Approval | Required paths |",
+    "| --- | --- | --- |"
+  ];
+  if (tasks.length === 0) lines.push("| None |  |  |");
+  for (const task of tasks) {
+    const { approval } = readApproval(root, task.id);
+    lines.push(`| ${markdownCell(task.id)} | ${approval?.status ?? "not-requested"} | ${markdownCell(task.humanGateRequiredPaths.join(", "))} |`);
+  }
+  lines.push("");
+  return lines;
+}
+
+export function buildGeneratedContractsMarkdown(root: string): string {
+  const wbs = readWbs(root);
+  const lines = [
+    "<!-- Generated by `scwbs docs generate`; do not edit manually. -->",
+    "# SC-WBS Contract Summary",
+    "",
+    "This file is derived from the current WBS, Task Contracts, Specs, and Approval records.",
+    "",
+    ...formatGeneratedStatusSection(root),
+    ...formatGeneratedTaskSection(root, wbs),
+    ...formatGeneratedHumanGateSection(root)
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+export function runDocsGenerate(root: string, options: DocsGenerateOptions = {}): number {
+  try {
+    const expected = buildGeneratedContractsMarkdown(root);
+    const outputPath = resolveFrom(root, generatedContractsDocPath);
+    if (options.check) {
+      if (!existsSync(outputPath)) {
+        console.error(`STALE ${generatedContractsDocPath}: generated file is missing`);
+        return 1;
+      }
+      const current = readFileSync(outputPath, "utf8");
+      if (current !== expected) {
+        console.error(`STALE ${generatedContractsDocPath}: regenerate with scwbs docs generate`);
+        return 1;
+      }
+      console.log(`PASS docs generate --check (${generatedContractsDocPath})`);
+      return 0;
+    }
+
+    mkdirSync(path.dirname(outputPath), { recursive: true });
+    if (!existsSync(outputPath) || readFileSync(outputPath, "utf8") !== expected) {
+      writeFileSync(outputPath, expected, "utf8");
+    }
+    console.log(`generated ${generatedContractsDocPath}`);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
 
 export function main(argv = process.argv.slice(2), root = process.cwd()): number {
   let exitCode = 0;
@@ -90,6 +233,11 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Check documentation status, ownership, successors, and CLI applicability")
     .option("--json", "output a versioned JSON report")
     .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
+  docs
+    .command("generate")
+    .description("Generate deterministic Markdown from SC-WBS contracts")
+    .option("--check", "check generated Markdown freshness without writing")
+    .action((opts) => { exitCode = runDocsGenerate(root, { check: opts.check ?? false }); });
 
   registerDiscoveryCommands(program, commandContext);
 
