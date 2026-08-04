@@ -1,0 +1,297 @@
+diff --git a/contracts/specs/SPEC-LITE-MSF2APMI.yaml b/contracts/specs/SPEC-LITE-MSF2APMI.yaml
+new file mode 100644
+index 0000000..fcb8577
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSF2APMI.yaml
+@@ -0,0 +1,14 @@
++id: SPEC-LITE-MSF2APMI
++type: spec-contract
++featureId: F-MSF2APMI
++title: "Issue #400: generate Markdown documentation from SC-WBS contracts"
++status: approved
++version: 0.1.0
++summary: "Add a deterministic docs generate command that renders WBS status, Task-to-Spec references, and Human Gate declarations into docs/generated without overwriting hand-maintained docs."
++acceptanceCriteria:
++  - '`scwbs docs generate` writes only the deterministic generated Markdown artifact under `docs/generated/`.'
++  - '`scwbs docs generate --check` is read-only and returns failure when the artifact is missing or stale.'
++  - 'The generated document includes WBS status counts, Task Contract rows with Spec references, and Human Gate declarations.'
++  - 'The command preserves hand-maintained documentation and remains compatible with `scwbs docs check`.'
++approvedBy: user-requested-issue-400
++approvedAt: "2026-08-05T00:00:00Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml b/contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml
+new file mode 100644
+index 0000000..4c45360
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml
+@@ -0,0 +1,50 @@
++id: SCWBS-DRAFT-MSF2APMI
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSF2APMI
++branchName: task/SCWBS-DRAFT-MSF2APMI-issue-400-generate-markdown-documentation-from-s
++allowedPaths:
++  - src/cli.ts
++  - src/commands/docs-generate.ts
++  - tests/integration/docs-generate.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - '`scwbs docs generate` writes deterministic Contract-derived Markdown only under docs/generated/'
++  - '`scwbs docs generate --check` detects missing or stale generated output without writing files'
++  - Generated Markdown contains WBS status, Task-to-Spec references, and Human Gate declarations
++  - Existing hand-maintained documentation remains untouched and docs check continues to pass
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml
++  - contracts/specs/SPEC-LITE-MSF2APMI.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSF2APMI.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF2APMI.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF2APMI.patch
++  - contracts/approvals/SCWBS-DRAFT-MSF2APMI.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF2APMI.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5fb4aa2041fbad36e7647cbaded3ff284951e07764d9998520df187844898629
++  createdAt: "2026-08-04T19:41:24.066Z"
+diff --git a/src/cli.ts b/src/cli.ts
+index 8d99098..1447065 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -1,12 +1,14 @@
+ #!/usr/bin/env node
+ import { Command, CommanderError } from "commander";
+ import { fileURLToPath } from "node:url";
+-import { realpathSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
++import path from "node:path";
+ import { runAiBlock, runHumanBlockResolve } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
+ import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+ import { runCheck } from "./commands/check.js";
+ import { runDocsCheck } from "./commands/docs-check.js";
++import { buildStatusJsonOutput } from "./commands/status.js";
+ import { runCheckDiff } from "./commands/check-diff.js";
+ import { runCiPlan } from "./commands/ci-plan.js";
+ import { runChecksRun } from "./commands/checks-run.js";
+@@ -31,6 +33,147 @@ import { registerGovernanceCommands } from "./cli/register-governance.js";
+ import { registerTaskCommands } from "./cli/register-task.js";
+ import { registerWbsCommands } from "./cli/register-wbs.js";
+ import { isValidTaskId } from "./core/paths.js";
++import { listActiveTasks, listSpecs, readApproval, readRegistry } from "./core/contracts.js";
++import { resolveFrom } from "./core/paths.js";
++import { readTaskIndex } from "./core/task-index.js";
++import type { Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "./core/types.js";
++import { readWbs } from "./core/wbs.js";
++
++export const generatedContractsDocPath = "docs/generated/scwbs-contracts.md";
++
++export type DocsGenerateOptions = {
++  check?: boolean;
++};
++
++function markdownCell(value: string): string {
++  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
++}
++
++function taskStatusById(root: string): Map<string, string> {
++  const result = readTaskIndex(root);
++  return new Map(result.index?.tasks.map((entry) => [entry.id, entry.status]) ?? []);
++}
++
++function registrySpecForTask(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
++  return registry?.contracts.find((contract) =>
++    contract.type === "spec" && (contract.relatedTask === task.id || contract.featureId === task.featureId)
++  );
++}
++
++function specForTask(
++  registry: Registry | undefined,
++  specs: Array<{ spec?: SpecContract; path: string }>,
++  task: TaskContract
++): SpecContract | undefined {
++  const contract = registrySpecForTask(registry, task);
++  if (contract) return specs.find((entry) => entry.path === contract.path)?.spec;
++  return specs.find((entry) => entry.spec?.featureId === task.featureId)?.spec;
++}
++
++function wbsNode(wbs: WbsDocument, task: TaskContract): { code: string; name: string } {
++  const node = wbs.nodes.find((candidate) => candidate.id === task.wbsNodeId);
++  return { code: node?.code ?? "?", name: node?.name ?? task.wbsNodeId };
++}
++
++function formatGeneratedStatusSection(root: string): string[] {
++  const report = buildStatusJsonOutput(root);
++  return [
++    "## WBS Status",
++    "",
++    `- Project: ${markdownCell(report.project)}`,
++    `- Total nodes: ${report.wbsStatus.total}`,
++    ...Object.entries(report.wbsStatus.counts).map(([status, count]) => `- ${status}: ${count}`),
++    `- Evidence missing: ${report.evidenceMissing.length === 0 ? "None" : report.evidenceMissing.join(", ")}`,
++    `- Blocking relations: ${report.blockingRelations.length}`,
++    ""
++  ];
++}
++
++function formatGeneratedTaskSection(root: string, wbs: WbsDocument): string[] {
++  const { registry } = readRegistry(root);
++  const specs = listSpecs(root);
++  const statuses = taskStatusById(root);
++  const tasks = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task] : []).sort((left, right) => left.id.localeCompare(right.id));
++  const lines = [
++    "## Task Contracts",
++    "",
++    "| Task ID | Status | WBS | Spec |",
++    "| --- | --- | --- | --- |"
++  ];
++  if (tasks.length === 0) lines.push("| None |  |  |  |");
++  for (const task of tasks) {
++    const node = wbsNode(wbs, task);
++    const spec = specForTask(registry, specs, task);
++    const specLabel = spec ? `${spec.id} (${spec.status})` : "None";
++    lines.push(`| ${markdownCell(task.id)} | ${statuses.get(task.id) ?? "planned"} | ${markdownCell(`${node.code} ${node.name}`)} | ${markdownCell(specLabel)} |`);
++  }
++  lines.push("");
++  return lines;
++}
++
++function formatGeneratedHumanGateSection(root: string): string[] {
++  const tasks = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task] : [])
++    .filter((task) => task.humanGateRequiredPaths.length > 0)
++    .sort((left, right) => left.id.localeCompare(right.id));
++  const lines = [
++    "## Human Gate Declarations",
++    "",
++    "| Task ID | Approval | Required paths |",
++    "| --- | --- | --- |"
++  ];
++  if (tasks.length === 0) lines.push("| None |  |  |");
++  for (const task of tasks) {
++    const { approval } = readApproval(root, task.id);
++    lines.push(`| ${markdownCell(task.id)} | ${approval?.status ?? "not-requested"} | ${markdownCell(task.humanGateRequiredPaths.join(", "))} |`);
++  }
++  lines.push("");
++  return lines;
++}
++
++export function buildGeneratedContractsMarkdown(root: string): string {
++  const wbs = readWbs(root);
++  const lines = [
++    "<!-- Generated by `scwbs docs generate`; do not edit manually. -->",
++    "# SC-WBS Contract Summary",
++    "",
++    "This file is derived from the current WBS, Task Contracts, Specs, and Approval records.",
++    "",
++    ...formatGeneratedStatusSection(root),
++    ...formatGeneratedTaskSection(root, wbs),
++    ...formatGeneratedHumanGateSection(root)
++  ];
++  return `${lines.join("\n")}\n`;
++}
++
++export function runDocsGenerate(root: string, options: DocsGenerateOptions = {}): number {
++  try {
++    const expected = buildGeneratedContractsMarkdown(root);
++    const outputPath = resolveFrom(root, generatedContractsDocPath);
++    if (options.check) {
++      if (!existsSync(outputPath)) {
++        console.error(`STALE ${generatedContractsDocPath}: generated file is missing`);
++        return 1;
++      }
++      const current = readFileSync(outputPath, "utf8");
++      if (current !== expected) {
++        console.error(`STALE ${generatedContractsDocPath}: regenerate with scwbs docs generate`);
++        return 1;
++      }
++      console.log(`PASS docs generate --check (${generatedContractsDocPath})`);
++      return 0;
++    }
++
++    mkdirSync(path.dirname(outputPath), { recursive: true });
++    if (!existsSync(outputPath) || readFileSync(outputPath, "utf8") !== expected) {
++      writeFileSync(outputPath, expected, "utf8");
++    }
++    console.log(`generated ${generatedContractsDocPath}`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+ 
+ export function main(argv = process.argv.slice(2), root = process.cwd()): number {
+   let exitCode = 0;
+@@ -90,6 +233,11 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .description("Check documentation status, ownership, successors, and CLI applicability")
+     .option("--json", "output a versioned JSON report")
+     .action((opts) => { exitCode = runDocsCheck(root, { json: opts.json ?? false }); });
++  docs
++    .command("generate")
++    .description("Generate deterministic Markdown from SC-WBS contracts")
++    .option("--check", "check generated Markdown freshness without writing")
++    .action((opts) => { exitCode = runDocsGenerate(root, { check: opts.check ?? false }); });
+ 
+   registerDiscoveryCommands(program, commandContext);
+ 
+diff --git a/tests/integration/docs-generate.test.ts b/tests/integration/docs-generate.test.ts
+new file mode 100644
+index 0000000..ea9885e
+--- /dev/null
++++ b/tests/integration/docs-generate.test.ts
+@@ -0,0 +1,35 @@
++import { existsSync, readFileSync } from "node:fs";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { buildGeneratedContractsMarkdown, generatedContractsDocPath } from "../../src/cli.js";
++import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
++
++describe("docs generate", () => {
++  test("renders WBS, Task-to-Spec, and Human Gate data deterministically", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const expected = buildGeneratedContractsMarkdown(root);
++    expect(main(["docs", "generate"], root)).toBe(0);
++    expect(readFileSync(`${root}/${generatedContractsDocPath}`, "utf8")).toBe(expected);
++    expect(expected).toContain("# SC-WBS Contract Summary");
++    expect(expected).toContain("WBS-001-004");
++    expect(expected).toContain("SPEC-F001-API (approved)");
++    expect(expected).toContain("src/security/**");
++    expect(expected).toContain("planned: 2");
++  });
++
++  test("checks freshness without writing and rejects stale output", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(["docs", "generate"], root)).toBe(0);
++    expect(main(["docs", "generate", "--check"], root)).toBe(0);
++
++    const outputPath = `${root}/${generatedContractsDocPath}`;
++    const before = readFileSync(outputPath, "utf8");
++    writeText(root, generatedContractsDocPath, `${before}\nmanual drift\n`);
++    expect(main(["docs", "generate", "--check"], root)).toBe(1);
++    expect(existsSync(outputPath)).toBe(true);
++    expect(readFileSync(outputPath, "utf8")).toContain("manual drift");
++  });
++});

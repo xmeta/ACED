@@ -1,0 +1,66 @@
+id: EVD-SCWBS-DRAFT-MSF2APMI
+type: evidence
+taskId: SCWBS-DRAFT-MSF2APMI
+commit: 1a71ee45b91d28487296ad956722c4fa3675a4f6
+subjectHeadCommit: 1a71ee45b91d28487296ad956722c4fa3675a4f6
+diffHash: sha256:bf103507d522da24dd2a12dac0a4c440dc2551b28237e1430f78ef87346e2a7d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1a71ee45b91d28487296ad956722c4fa3675a4f6
+    treeHash: d43377732f350ad1e6a28ce043cb7e4eb3ce80cd
+    diffHash: sha256:bf103507d522da24dd2a12dac0a4c440dc2551b28237e1430f78ef87346e2a7d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSF2APMI.patch
+    manifestHash: sha256:bf103507d522da24dd2a12dac0a4c440dc2551b28237e1430f78ef87346e2a7d
+git:
+  branch: task/SCWBS-DRAFT-MSF2APMI-issue-400-generate-markdown-documentation-from-s
+  base: origin/main
+  baseCommit: 7819504fec3588afc0eb91d771655b2d8830e8c6
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 1a71ee45b91d28487296ad956722c4fa3675a4f6
+  diffHash: sha256:bf103507d522da24dd2a12dac0a4c440dc2551b28237e1430f78ef87346e2a7d
+  headCommit: 1a71ee45b91d28487296ad956722c4fa3675a4f6
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSF2APMI.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSF2APMI.yaml
+  - src/cli.ts
+  - tests/integration/docs-generate.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:271a3e38d0746d4ea991e7e0882d088be78bc49f03e1ed3da1b152167a822218
+    durationMilliseconds: 16119
+    executedAt: "2026-08-04T19:50:19.000Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1f9b4f527493f158a24e9894228e5a8a95f0677df80de493c573217a32308473
+    durationMilliseconds: 263185
+    executedAt: "2026-08-04T20:01:02.378Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:305198fb780b7cd1fcc21cd2532f47af6cd8c7b817b76972ca76cf719088ec6d
+    durationMilliseconds: 10284
+    executedAt: "2026-08-04T19:54:53.588Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:184958cdce9eaadafbb1a77bfc324f0fcf010a6849eda535141aa824608568f6
+    durationMilliseconds: 4321
+    executedAt: "2026-08-04T19:54:57.914Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added integration coverage for deterministic Contract Markdown generation and read-only freshness checks; no tests were disabled and coverage did not decrease.
