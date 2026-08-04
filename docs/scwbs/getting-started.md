@@ -75,7 +75,7 @@ git switch -c <branchName>
 Start the task:
 
 ```bash
-npm run scwbs -- start <task-id>
+npm run scwbs -- task start <task-id>
 ```
 
 If branch status is `mismatch`, fix the branch before editing files.

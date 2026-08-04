@@ -17,6 +17,10 @@ function items(value: string | undefined): string[] {
   return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
 }
 
+function slug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 36) || "goal";
+}
+
 function emit(output: DiscoveryOutput, json = false): void {
   if (json) console.log(JSON.stringify(output));
   else console.log([
@@ -66,6 +70,64 @@ export function runDiscoveryNew(root: string, options: {
       path,
       nextAction: `npm run scwbs -- discovery start --probe ${probe.id}`
     }, options.json);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function runProjectBootstrap(root: string, goal: string, json = false): number {
+  const stamp = Date.now().toString(36).toUpperCase();
+  return runDiscoveryNew(root, {
+    probe: `PROBE-bootstrap-${slug(goal)}-${stamp}`,
+    question: goal,
+    hypotheses: "Existing repository capabilities can support the goal",
+    activities: "Inspect current contracts and record bounded evidence",
+    evidenceExpected: "Current-state inventory",
+    unknowns: "Delivery scope and acceptance criteria",
+    timebox: "1h",
+    costLimit: "one engineer-hour",
+    exitConditions: "Decision-driving evidence recorded",
+    nextDecision: "Approve a delivery Spec before creating a Task Contract",
+    json
+  });
+}
+
+export function runDiscoveryGoalStart(root: string, goal: string, options: {
+  timebox?: string;
+  costLimit?: string;
+  nextDecision?: string;
+  json?: boolean;
+} = {}): number {
+  try {
+    const stamp = Date.now().toString(36).toUpperCase();
+    const now = new Date().toISOString();
+    const probe: DiscoveryProbe = {
+      schemaVersion: "1.0.0",
+      id: `PROBE-${slug(goal)}-${stamp}`,
+      type: "discovery-probe",
+      status: "active",
+      question: goal,
+      hypotheses: ["The current repository can provide a bounded path to the goal"],
+      activities: ["Inspect current contracts and record decision-driving evidence"],
+      evidenceExpected: ["Current-state inventory"],
+      unknowns: ["Delivery scope and acceptance criteria"],
+      timebox: options.timebox ?? "1h",
+      costLimit: options.costLimit ?? "one engineer-hour",
+      exitConditions: ["Decision-driving evidence recorded"],
+      nextDecision: options.nextDecision ?? "Approve a delivery Spec before creating a Task Contract",
+      createdAt: now,
+      startedAt: now
+    };
+    const path = writeDiscoveryProbe(root, probe);
+    emit({
+      version: "scwbs.discovery.v1",
+      status: "active",
+      probeId: probe.id,
+      path,
+      nextAction: `npm run scwbs -- discovery conclude --probe ${probe.id} --outcome concluded|inconclusive`
+    }, options.json ?? false);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

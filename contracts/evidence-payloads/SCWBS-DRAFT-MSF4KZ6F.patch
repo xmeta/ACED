@@ -1,0 +1,778 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 2b6d6cc..f33fcfb 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -22,7 +22,7 @@ AI が使ってよい最小フロー:
+ 
+ ```bash
+ npm run scwbs -- next
+-npm run scwbs -- start <goal>
++npm run scwbs -- task start <task-id>
+ npm run scwbs -- packet --task <task-id>
+ npm run scwbs -- finish --task <task-id>
+ npm run scwbs -- block "Human Gate required" --task <task-id>
+@@ -71,15 +71,16 @@ GitHub側で禁止しない。repository visibility・GitHub plan・外部費用
+ 5. 追加文脈が必要な場合は、まず `npm run scwbs -- packet --task <task-id>` を使い、それでも不足する場合だけ `npm run scwbs -- ai packet --task <task-id> --relation-depth 1` を使う。
+ 6. 不足情報がある場合でも、推測で危険変更を進めてはいけない。
+ 
+-## 新規 Task Contract を start する場合
++## Discovery と新規 Task Contract を開始する場合
+ 
+-1. `npm run scwbs -- start <goal>`
+-2. 生成された draft 契約を最小の `allowedPaths` に引き締め、SPEC-LITE の `acceptanceCriteria` を具体化して `status: approved`・`approvedBy` を記入する
+-3. WBS 新規ノードは既定で作らず、既存ノード（例: `node-governance-maintenance`）を `wbsNodeId` に再利用する。`start` が生成した changeset は apply せず削除し、`managedContractPaths` からも外す。新規ノードが真に必要な場合のみ changeset を apply し、既存の code と重複しない一意の階層番号を設定する（`start` は code 固定 `"draft"` を生成し `wbs.code.duplicate` になる既知問題、Issue #267）
+-4. `npm run scwbs -- registry rebuild --force` で SPEC-LITE を registry に索引する
+-5. `npm run scwbs -- task lock --task <task-id>` で contractLock v2 を付与する。**registry rebuild より先に lock してはならない**（task lock は registry 経由で SPEC を解決するため、先に lock すると specRevision が欠落し finish 時に `contractLock.stale` でブロックされる）
+-6. managed ファイルのみ（`contracts/tasks/<id>.yaml`、`contracts/specs/SPEC-LITE-<id>.yaml`、`contracts/registry.yaml`、必要なら `contracts/tasks/index.yaml`）の契約作成コミットを作る。WBS 正本・changeset・実装ファイルを混ぜない（混ぜると `check-diff` の task-authority 検査で fail する）
+-7. 作成コミット後は `allowedPaths` / `managedContractPaths` 等の authority フィールドを変更しない（`diff.taskAuthority.change` で fail する）。変更が必要な場合は block して人間に確認する
++1. 探索段階では `npm run scwbs -- project bootstrap "<goal>"` または `npm run scwbs -- discovery new ...` を使う。これらは Discovery Probe だけを生成し、delivery Task Contract を作らない
++2. Spec/Decision Gate 後に `npm run scwbs -- task new "<title>" ...` で delivery Task Contract を作る。既存 Task の着手前確認は `npm run scwbs -- task start <task-id>` を使う
++3. 生成された draft 契約を最小の `allowedPaths` に引き締め、SPEC-LITE の `acceptanceCriteria` を具体化して `status: approved`・`approvedBy` を記入する
++4. WBS 新規ノードは既定で作らず、既存ノード（例: `node-governance-maintenance`）を `wbsNodeId` に再利用する。新規ノードが真に必要な場合のみ changeset を apply し、既存の code と重複しない一意の階層番号を設定する
++5. `npm run scwbs -- registry rebuild --force` で SPEC-LITE を registry に索引する
++6. `npm run scwbs -- task lock --task <task-id>` で contractLock v2 を付与する。**registry rebuild より先に lock してはならない**（task lock は registry 経由で SPEC を解決するため、先に lock すると specRevision が欠落し finish 時に `contractLock.stale` でブロックされる）
++7. managed ファイルのみ（`contracts/tasks/<id>.yaml`、`contracts/specs/SPEC-LITE-<id>.yaml`、`contracts/registry.yaml`、必要なら `contracts/tasks/index.yaml`）の契約作成コミットを作る。WBS 正本・changeset・実装ファイルを混ぜない（混ぜると `check-diff` の task-authority 検査で fail する）
++8. 作成コミット後は `allowedPaths` / `managedContractPaths` 等の authority フィールドを変更しない（`diff.taskAuthority.change` で fail する）。変更が必要な場合は block して人間に確認する
+ 
+ ## 実装中の停止条件
+ 
+diff --git a/README.md b/README.md
+index e406d11..0fcec41 100644
+--- a/README.md
++++ b/README.md
+@@ -300,7 +300,8 @@ Common commands:
+ ```bash
+ npm run scwbs -- next
+ npm run scwbs -- task new "作業名" --paths "src/commands/example.ts,tests/integration/example.test.ts" --stop "schema or dependency change required"
+-npm run scwbs -- start <goal>
++npm run scwbs -- task start <task-id>
++npm run scwbs -- project bootstrap "<goal>"
+ npm run scwbs -- packet --task <task-id>           # tiny (default)
+ npm run scwbs -- packet --task <task-id> --standard
+ npm run scwbs -- packet --task <task-id> --full
+diff --git a/contracts/specs/SPEC-LITE-MSF4KZ6F.yaml b/contracts/specs/SPEC-LITE-MSF4KZ6F.yaml
+new file mode 100644
+index 0000000..fa709fc
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSF4KZ6F.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSF4KZ6F
++type: spec-contract
++featureId: F-MSF4KZ6F
++title: "Issue #138: separate existing Task pre-flight from discovery/bootstrap start"
++status: approved
++version: 1.0.0
++summary: "Separate delivery Task pre-flight from bounded Discovery and project bootstrap entry points."
++acceptanceCriteria:
++  - "Unknown Task IDs fail closed and do not create contracts or WBS changesets."
++  - "`scwbs task start <task-id>` performs existing Task pre-flight; the legacy top-level alias has the same existing-Task-only behavior."
++  - "`scwbs discovery` and `scwbs project bootstrap` create or advance Discovery Probe artifacts without creating delivery Task Contracts."
++  - "CLI help and primary operator documentation use the separated command surface consistently."
++  - "Integration tests cover the command boundary and preserve the existing Discovery Probe lifecycle."
++approvedBy: user-requested-issue-138
++approvedAt: "2026-08-05T00:00:00Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSF4KZ6F.yaml b/contracts/tasks/SCWBS-DRAFT-MSF4KZ6F.yaml
+new file mode 100644
+index 0000000..9885733
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSF4KZ6F.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MSF4KZ6F
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSF4KZ6F
++branchName: task/SCWBS-DRAFT-MSF4KZ6F-issue-138-separate-existing-task-pre-flight-from
++allowedPaths:
++  - src/commands/start.ts
++  - src/commands/discovery.ts
++  - src/cli.ts
++  - src/cli/register-task.ts
++  - src/cli/register-discovery.ts
++  - src/cli/register-project.ts
++  - tests/integration/misc.test.ts
++  - tests/integration/discovery.test.ts
++  - tests/integration/cli-help.test.ts
++  - README.md
++  - AGENTS.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/ai-agent-guide.md
++  - docs/scwbs/getting-started.md
++  - docs/sc-wbs-core/07-cli-core-spec.md
++  - docs/sc-wbs-core/02-command-first-workflow.md
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Unknown values passed to the Task start entry point fail closed without creating a Spec, Task Contract, or WBS changeset.
++  - Existing Task pre-flight is available as `scwbs task start <task-id>` and the legacy top-level alias accepts only existing Task IDs.
++  - Discovery and project bootstrap entry points create only bounded Discovery Probe artifacts and never create delivery Task Contracts directly.
++  - The CLI help and the repository's primary operator documents describe the same separated command surface.
++  - Regression tests cover unknown Task IDs, Task pre-flight, bootstrap non-delivery behavior, and existing Discovery Probe transitions.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSF4KZ6F.yaml
++  - contracts/specs/SPEC-LITE-MSF4KZ6F.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSF4KZ6F.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSF4KZ6F.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSF4KZ6F.patch
++  - contracts/approvals/SCWBS-DRAFT-MSF4KZ6F.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSF4KZ6F.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 1.0.0
++  specRevision: sha256:391b301c8dcabf23a83e007ee7ce607ab85efd3f7a52131e739c2f75a523fd57
++  createdAt: "2026-08-04T21:02:47.156Z"
+diff --git a/docs/sc-wbs-core/02-command-first-workflow.md b/docs/sc-wbs-core/02-command-first-workflow.md
+index 9b03eb4..2259dbd 100644
+--- a/docs/sc-wbs-core/02-command-first-workflow.md
++++ b/docs/sc-wbs-core/02-command-first-workflow.md
+@@ -28,7 +28,7 @@ contracts/tasks/WBS-001.yaml
+ ### 2. AIに作業を渡す
+ 
+ ```bash
+-scwbs start WBS-001
++scwbs task start WBS-001
+ scwbs packet --tiny
+ ```
+ 
+@@ -188,7 +188,7 @@ AIが覚えるべき通常コマンドは少なくする。ここで重要なの
+ 
+ ```bash
+ scwbs next
+-scwbs start <task-id>
++scwbs task start <task-id>
+ scwbs packet --tiny
+ scwbs finish
+ scwbs block "<reason>"
+diff --git a/docs/sc-wbs-core/07-cli-core-spec.md b/docs/sc-wbs-core/07-cli-core-spec.md
+index 0b2d3a4..29c556b 100644
+--- a/docs/sc-wbs-core/07-cli-core-spec.md
++++ b/docs/sc-wbs-core/07-cli-core-spec.md
+@@ -66,10 +66,9 @@ contracts/tasks/<task-id>.yaml
+ 
+ 既存ファイルを上書きしない。上書きには明示的な `--force` を必要とする。
+ 
+-### `scwbs start <goal>`
++### `scwbs task start <task-id>`
+ 
+-作業開始のpre-flight、または新規Taskの開始を行う。
+-引数に既存のtask-idを指定した場合はpre-flightを、新規のgoal文字列を指定した場合はspec/task/changesetドラフトを生成する。
++既存 Task Contract の pre-flight だけを行う。未知の Task ID は fail closed で拒否する。トップレベルの `scwbs start <task-id>` は後方互換 alias である。
+ 
+ 処理（既存task-idの場合）:
+ 
+@@ -81,14 +80,16 @@ contracts/tasks/<task-id>.yaml
+ - Tiny Packet生成案内
+ ```
+ 
+-処理（新規goalの場合）:
++### `scwbs project bootstrap <goal>`
+ 
+ ```text
+-- spec/task/changesetドラフト生成
+-- branch名の提示
+-- 次アクションの表示
++- bounded Discovery Probe の作成
++- delivery Task Contract は作成しない
++- Spec/Decision Gate 後に `task new` で明示的に Task 化する
+ ```
+ 
++`scwbs discovery start <goal>` は Discovery Probe を active で開始する短縮経路であり、delivery Task Contract は作成しない。既存 Probe の遷移には `scwbs discovery start --probe <id>` を使う。
++
+ ### `scwbs packet`
+ 
+ 現在taskのPacketを出力する。既定は `--tiny`。
+diff --git a/docs/scwbs/ai-agent-guide.md b/docs/scwbs/ai-agent-guide.md
+index 8e6723b..396183f 100644
+--- a/docs/scwbs/ai-agent-guide.md
++++ b/docs/scwbs/ai-agent-guide.md
+@@ -31,7 +31,7 @@ Before editing:
+ Useful command:
+ 
+ ```bash
+-npm run scwbs -- start <task-id>
++npm run scwbs -- task start <task-id>
+ ```
+ 
+ If more task context is needed:
+@@ -141,7 +141,7 @@ npm run scwbs -- ai block --task <task-id> --reason "<reason>"
+ 
+ ```bash
+ npm run scwbs -- next
+-npm run scwbs -- start <task-id>
++npm run scwbs -- task start <task-id>
+ npm run scwbs -- packet --task <task-id> --tiny
+ npm run scwbs -- ai packet --task <task-id> --relation-depth 1
+ npm run scwbs -- check
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index bc571b1..89be302 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -435,13 +435,15 @@ npm run scwbs -- completion apply \
+ ## Lightweight Entry Points
+ 
+ ```bash
+-npm run scwbs -- start "natural language goal"
++npm run scwbs -- task start <task-id>
++npm run scwbs -- project bootstrap "goal"
++npm run scwbs -- discovery start "decision-driving goal"
+ npm run scwbs -- plan --spec SPEC-001
+ npm run scwbs -- lite task "small change title"
+ npm run scwbs -- promote --task SCWBS-001
+ ```
+ 
+-These commands generate drafts or candidates. They do not directly rewrite the canonical WBS.
++`task start` is the existing-Task pre-flight entry point. `project bootstrap` creates only a bounded Discovery Probe; it does not create a delivery Task Contract or directly rewrite the canonical WBS. The top-level `start <task-id>` remains a legacy alias for the pre-flight command.
+ 
+ ## Trace And UI
+ 
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index 6f13d08..ba86373 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -75,7 +75,7 @@ git switch -c <branchName>
+ Start the task:
+ 
+ ```bash
+-npm run scwbs -- start <task-id>
++npm run scwbs -- task start <task-id>
+ ```
+ 
+ If branch status is `mismatch`, fix the branch before editing files.
+diff --git a/src/cli.ts b/src/cli.ts
+index 1447065..44ce181 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -30,6 +30,7 @@ import { runServe, runUi } from "./commands/ui.js";
+ import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
+ import { registerDiscoveryCommands } from "./cli/register-discovery.js";
+ import { registerGovernanceCommands } from "./cli/register-governance.js";
++import { registerProjectCommands } from "./cli/register-project.js";
+ import { registerTaskCommands } from "./cli/register-task.js";
+ import { registerWbsCommands } from "./cli/register-wbs.js";
+ import { isValidTaskId } from "./core/paths.js";
+@@ -240,6 +241,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .action((opts) => { exitCode = runDocsGenerate(root, { check: opts.check ?? false }); });
+ 
+   registerDiscoveryCommands(program, commandContext);
++  registerProjectCommands(program, commandContext);
+ 
+   const ci = program.command("ci");
+   ci
+@@ -487,16 +489,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   program
+     .command("start")
+-    .description("Start a task with a goal")
+-    .argument("<goal...>", "task goal text")
+-    .action((goalParts: string[]) => {
+-      const goal = goalParts.join(" ").trim();
+-      if (!goal) {
+-        console.error("Missing goal text");
+-        exitCode = 2;
+-        return;
+-      }
+-      exitCode = runStart(root, goal);
++    .description("Legacy alias for Task pre-flight; accepts existing Task IDs only")
++    .argument("<task-id>", "existing Task Contract id")
++    .action((taskId: string) => {
++      exitCode = runStart(root, taskId);
+     });
+ 
+   program
+diff --git a/src/cli/register-discovery.ts b/src/cli/register-discovery.ts
+index f1638c7..d41e1fc 100644
+--- a/src/cli/register-discovery.ts
++++ b/src/cli/register-discovery.ts
+@@ -1,5 +1,5 @@
+ import type { Command } from "commander";
+-import { runDiscoveryConclude, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
++import { runDiscoveryConclude, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
+ import { parseBool, type CommandContext } from "./command-context.js";
+ 
+ export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
+@@ -24,10 +24,34 @@ export function registerDiscoveryCommands(program: Command, context: CommandCont
+     });
+   discovery
+     .command("start")
+-    .requiredOption("--probe <id>", "Probe id")
++    .argument("[goal...]", "decision-driving goal; creates and starts a Probe")
++    .option("--probe <id>", "existing Probe id to activate")
++    .option("--timebox <value>", "timebox for a goal-created Probe")
++    .option("--cost-limit <value>", "cost limit for a goal-created Probe")
++    .option("--next-decision <text>", "decision enabled by a goal-created Probe")
+     .option("--json", "output versioned JSON")
+-    .action((options) => {
+-      setExitCode(runDiscoveryStart(root, options.probe, options.json ?? false));
++    .action((goalParts: string[], options) => {
++      if (options.probe && goalParts.length > 0) {
++        console.error("Use either --probe <id> or a goal, not both");
++        setExitCode(2);
++        return;
++      }
++      if (options.probe) {
++        setExitCode(runDiscoveryStart(root, options.probe, options.json ?? false));
++        return;
++      }
++      const goal = goalParts.join(" ").trim();
++      if (!goal) {
++        console.error("Provide --probe <id> or a discovery goal");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runDiscoveryGoalStart(root, goal, {
++        timebox: options.timebox,
++        costLimit: options.costLimit,
++        nextDecision: options.nextDecision,
++        json: options.json ?? false
++      }));
+     });
+   discovery
+     .command("conclude")
+diff --git a/src/cli/register-project.ts b/src/cli/register-project.ts
+new file mode 100644
+index 0000000..55d1f16
+--- /dev/null
++++ b/src/cli/register-project.ts
+@@ -0,0 +1,22 @@
++import type { Command } from "commander";
++import { runProjectBootstrap } from "../commands/discovery.js";
++import type { CommandContext } from "./command-context.js";
++
++export function registerProjectCommands(program: Command, context: CommandContext): void {
++  const { root, setExitCode } = context;
++  const project = program.command("project").description("Manage project bootstrap artifacts");
++  project
++    .command("bootstrap")
++    .description("Create a bounded Discovery Probe without a delivery Task Contract")
++    .argument("<goal...>", "decision-driving project goal")
++    .option("--json", "output versioned JSON")
++    .action((goalParts: string[], options) => {
++      const goal = goalParts.join(" ").trim();
++      if (!goal) {
++        console.error("Missing project goal");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runProjectBootstrap(root, goal, options.json ?? false));
++    });
++}
+diff --git a/src/cli/register-task.ts b/src/cli/register-task.ts
+index 3cd9987..2c49907 100644
+--- a/src/cli/register-task.ts
++++ b/src/cli/register-task.ts
+@@ -5,6 +5,7 @@ import { runTaskArchive, runTaskIndexRebuild } from "../commands/task-index.js";
+ import { runTaskLock } from "../commands/task-lock.js";
+ import { runTaskNew } from "../commands/task-new.js";
+ import { runTaskRefresh } from "../commands/task-refresh.js";
++import { runStart } from "../commands/start.js";
+ import type { CommandContext } from "./command-context.js";
+ 
+ export function registerTaskCommands(program: Command, context: CommandContext): void {
+@@ -25,6 +26,14 @@ export function registerTaskCommands(program: Command, context: CommandContext):
+     });
+ 
+   const task = program.command("task");
++  task
++    .command("start")
++    .description("Run pre-flight for an existing Task Contract")
++    .argument("<task-id>", "existing Task Contract id")
++    .action((taskId: string) => {
++      setExitCode(runStart(root, taskId));
++    });
++
+   task
+     .command("generate")
+     .description("Generate a task")
+diff --git a/src/commands/discovery.ts b/src/commands/discovery.ts
+index 45b955d..13a4948 100644
+--- a/src/commands/discovery.ts
++++ b/src/commands/discovery.ts
+@@ -17,6 +17,10 @@ function items(value: string | undefined): string[] {
+   return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+ }
+ 
++function slug(value: string): string {
++  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 36) || "goal";
++}
++
+ function emit(output: DiscoveryOutput, json = false): void {
+   if (json) console.log(JSON.stringify(output));
+   else console.log([
+@@ -73,6 +77,64 @@ export function runDiscoveryNew(root: string, options: {
+   }
+ }
+ 
++export function runProjectBootstrap(root: string, goal: string, json = false): number {
++  const stamp = Date.now().toString(36).toUpperCase();
++  return runDiscoveryNew(root, {
++    probe: `PROBE-bootstrap-${slug(goal)}-${stamp}`,
++    question: goal,
++    hypotheses: "Existing repository capabilities can support the goal",
++    activities: "Inspect current contracts and record bounded evidence",
++    evidenceExpected: "Current-state inventory",
++    unknowns: "Delivery scope and acceptance criteria",
++    timebox: "1h",
++    costLimit: "one engineer-hour",
++    exitConditions: "Decision-driving evidence recorded",
++    nextDecision: "Approve a delivery Spec before creating a Task Contract",
++    json
++  });
++}
++
++export function runDiscoveryGoalStart(root: string, goal: string, options: {
++  timebox?: string;
++  costLimit?: string;
++  nextDecision?: string;
++  json?: boolean;
++} = {}): number {
++  try {
++    const stamp = Date.now().toString(36).toUpperCase();
++    const now = new Date().toISOString();
++    const probe: DiscoveryProbe = {
++      schemaVersion: "1.0.0",
++      id: `PROBE-${slug(goal)}-${stamp}`,
++      type: "discovery-probe",
++      status: "active",
++      question: goal,
++      hypotheses: ["The current repository can provide a bounded path to the goal"],
++      activities: ["Inspect current contracts and record decision-driving evidence"],
++      evidenceExpected: ["Current-state inventory"],
++      unknowns: ["Delivery scope and acceptance criteria"],
++      timebox: options.timebox ?? "1h",
++      costLimit: options.costLimit ?? "one engineer-hour",
++      exitConditions: ["Decision-driving evidence recorded"],
++      nextDecision: options.nextDecision ?? "Approve a delivery Spec before creating a Task Contract",
++      createdAt: now,
++      startedAt: now
++    };
++    const path = writeDiscoveryProbe(root, probe);
++    emit({
++      version: "scwbs.discovery.v1",
++      status: "active",
++      probeId: probe.id,
++      path,
++      nextAction: `npm run scwbs -- discovery conclude --probe ${probe.id} --outcome concluded|inconclusive`
++    }, options.json ?? false);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
+ export function runDiscoveryStart(root: string, id: string, json = false): number {
+   try {
+     const result = readDiscoveryProbe(root, id);
+diff --git a/src/commands/start.ts b/src/commands/start.ts
+index 5d1a083..bc4698f 100644
+--- a/src/commands/start.ts
++++ b/src/commands/start.ts
+@@ -1,111 +1,42 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+-import path from "node:path";
+ import { readTask } from "../core/contracts.js";
+ import { currentBranch } from "../core/git.js";
+-import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
+-import { resolveFrom, specPath, taskPath } from "../core/paths.js";
+-import { stringifySimpleYaml } from "../core/yaml.js";
+-import { syncRegistry } from "./registry-rebuild.js";
+ 
+-function slug(value: string): string {
+-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "goal";
+-}
+-
+-export function buildStartArtifacts(goal: string): Record<string, string> {
+-  const stamp = Date.now().toString(36).toUpperCase();
+-  const specId = `SPEC-LITE-${stamp}`;
+-  const taskId = `SCWBS-DRAFT-${stamp}`;
+-  const nodeId = `node-${slug(goal)}`;
+-  return {
+-    [specPath(specId)]: stringifySimpleYaml({
+-      id: specId,
+-      type: "spec-contract",
+-      featureId: `F-${stamp}`,
+-      title: goal,
+-      status: "draft",
+-      version: "0.1.0",
+-      summary: goal,
+-      acceptanceCriteria: [`Define acceptance criteria for: ${goal}`]
+-    }),
+-    [`contracts/changesets/start-${stamp}.json`]: `${JSON.stringify({
+-      schemaVersion: "0.1.0",
+-      targetWbsId: "scwbs",
+-      changeSetId: `changeset-start-${stamp}`,
+-      author: "scwbs",
+-      reason: `Start lightweight SC-WBS flow for: ${goal}`,
+-      dryRun: true,
+-      operations: [{
+-        operationId: "op-001",
+-        operation: "addNode",
+-        node: {
+-          id: nodeId,
+-          parentId: "node-project",
+-          code: "draft",
+-          name: goal,
+-          type: "workPackage",
+-          status: "draft"
+-        },
+-        position: {
+-          mode: "last"
+-        }
+-      }]
+-    }, null, 2)}\n`,
+-    [taskPath(taskId)]: stringifySimpleYaml({
+-      id: taskId,
+-      type: "task-contract",
+-      wbsNodeId: nodeId,
+-      featureId: `F-${stamp}`,
+-      branchName: `task/${taskId}-${slug(goal)}`,
+-      allowedPaths: ["src/**", "tests/**", "docs/**", "contracts/**"],
+-      forbiddenPaths: ["wjs/**"],
+-      humanGateRequiredPaths: ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"],
+-      requiredChecks: ["test", "typecheck", "build"],
+-      doneCriteria: [`Plan and implement: ${goal}`],
+-      evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+-      managedContractPaths: taskBootstrapManagedContractPaths(taskId, { specId })
+-    })
+-  };
+-}
+-
+-export function runStart(root: string, goal: string): number {
++/** Run the pre-flight view for an existing Task Contract only. */
++export function runStart(root: string, taskId: string): number {
+   try {
+-    const { task } = readTask(root, goal);
+-    if (task) {
+-      const branch = currentBranch(root) ?? "(unknown)";
+-      const branchStatus = task.branchName === branch ? "ok" : "mismatch";
+-      const lines = [
+-        `Task: ${task.id}`,
+-        `Branch: ${branch}`,
+-        `Expected branch: ${task.branchName ?? "(none)"}`,
+-        `Branch status: ${branchStatus}`,
+-        `WBS node: ${task.wbsNodeId}`,
+-        `Contract lock: ${task.contractLock?.wbsScopeRevision ?? task.contractLock?.wbsRevision ?? "(none)"}`,
+-        `Global contract lock: ${task.contractLock?.wbsGlobalRevision ?? "(legacy or none)"}`,
+-        "Allowed paths:",
+-        ...task.allowedPaths.map((item) => `- ${item}`),
+-        "Forbidden paths:",
+-        ...task.forbiddenPaths.map((item) => `- ${item}`),
+-        "Human gate paths:",
+-        ...task.humanGateRequiredPaths.map((item) => `- ${item}`),
+-        "Stop if:",
+-        ...((task.stopIf ?? []).length > 0 ? (task.stopIf ?? []).map((item) => `- ${item}`) : ["- (none)"]),
+-        "Checks:",
+-        ...task.requiredChecks.map((item) => `- ${item}`)
+-      ];
+-      process.stdout.write(`${lines.join("\n")}\n`);
+-      return branchStatus === "ok" ? 0 : 1;
++    const { task, issues } = readTask(root, taskId);
++    if (!task) {
++      const detail = issues.map((issue) => issue.message).join("\n");
++      throw new Error(
++        `Unknown Task ID: ${taskId}. Task pre-flight accepts existing Task Contracts only. `
++        + `Create a bounded Discovery Probe with 'scwbs discovery new' or 'scwbs project bootstrap'.`
++        + (detail ? `\n${detail}` : "")
++      );
+     }
+ 
+-    const artifacts = buildStartArtifacts(goal);
+-    for (const [relativePath, content] of Object.entries(artifacts)) {
+-      const fullPath = resolveFrom(root, relativePath);
+-      if (existsSync(fullPath)) throw new Error(`${relativePath} already exists`);
+-      mkdirSync(path.dirname(fullPath), { recursive: true });
+-      writeFileSync(fullPath, content, "utf8");
+-      console.log(`created ${relativePath}`);
+-    }
+-    syncRegistry(root);
+-    return 0;
++    const branch = currentBranch(root) ?? "(unknown)";
++    const branchStatus = task.branchName === branch ? "ok" : "mismatch";
++    const lines = [
++      `Task: ${task.id}`,
++      `Branch: ${branch}`,
++      `Expected branch: ${task.branchName ?? "(none)"}`,
++      `Branch status: ${branchStatus}`,
++      `WBS node: ${task.wbsNodeId}`,
++      `Contract lock: ${task.contractLock?.wbsScopeRevision ?? task.contractLock?.wbsRevision ?? "(none)"}`,
++      `Global contract lock: ${task.contractLock?.wbsGlobalRevision ?? "(legacy or none)"}`,
++      "Allowed paths:",
++      ...task.allowedPaths.map((item) => `- ${item}`),
++      "Forbidden paths:",
++      ...task.forbiddenPaths.map((item) => `- ${item}`),
++      "Human gate paths:",
++      ...task.humanGateRequiredPaths.map((item) => `- ${item}`),
++      "Stop if:",
++      ...((task.stopIf ?? []).length > 0 ? (task.stopIf ?? []).map((item) => `- ${item}`) : ["- (none)"]),
++      "Checks:",
++      ...task.requiredChecks.map((item) => `- ${item}`)
++    ];
++    process.stdout.write(`${lines.join("\n")}\n`);
++    return branchStatus === "ok" ? 0 : 1;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+     return 1;
+diff --git a/tests/integration/cli-help.test.ts b/tests/integration/cli-help.test.ts
+index 6682cc1..43eaf80 100644
+--- a/tests/integration/cli-help.test.ts
++++ b/tests/integration/cli-help.test.ts
+@@ -34,6 +34,18 @@ function captureStderr(action: () => number): { exitCode: number; stderr: string
+ }
+ 
+ describe("CLI help lifecycle semantics", () => {
++  test("separates Task pre-flight from Discovery and project bootstrap", () => {
++    const root = makeTempRepo();
++
++    const taskStart = captureHelp(["task", "start", "--help"], root);
++    expect(taskStart.exitCode).toBe(0);
++    expect(taskStart.stdout.replace(/\s+/g, " ")).toContain("Run pre-flight for an existing Task Contract");
++
++    const bootstrap = captureHelp(["project", "bootstrap", "--help"], root);
++    expect(bootstrap.exitCode).toBe(0);
++    expect(bootstrap.stdout.replace(/\s+/g, " ")).toContain("without a delivery Task Contract");
++  });
++
+   test("describes status strict scope and finish preflight side effects", () => {
+     const root = makeTempRepo();
+ 
+diff --git a/tests/integration/discovery.test.ts b/tests/integration/discovery.test.ts
+index 1132c67..1ef16a3 100644
+--- a/tests/integration/discovery.test.ts
++++ b/tests/integration/discovery.test.ts
+@@ -1,4 +1,4 @@
+-import { readFileSync } from "node:fs";
++import { readFileSync, readdirSync } from "node:fs";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test, vi } from "vitest";
+@@ -90,6 +90,18 @@ describe("Discovery Probe lifecycle", () => {
+     }
+   });
+ 
++  test("goal-form Discovery start creates an active Probe without a delivery Task", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(["discovery", "start", "Choose a bounded cache strategy"], root)).toBe(0);
++    const probeFile = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-choose-a-bounded-cache-strategy-"));
++    expect(probeFile).toBeTruthy();
++    const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFile!), "utf8"));
++    expect(probe).toMatchObject({ type: "discovery-probe", status: "active" });
++    expect(probe).not.toHaveProperty("deliveryTaskId");
++    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
++  });
++
+   test("rejects unsafe ids, invalid transitions, and incomplete conclusions", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index e2c9f27..29d9a20 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -5,7 +5,6 @@ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { runInit } from "../../src/commands/init.js";
+ import { collectCheckIssues, collectWbsChangesetGateIssues, runCheck } from "../../src/commands/check.js";
+-import { buildStartArtifacts } from "../../src/commands/start.js";
+ import { buildDoctorReport, collectEnvironmentDiagnostics } from "../../src/commands/doctor.js";
+ import { readProfile, runProfileSet } from "../../src/commands/profile.js";
+ import { buildStatus } from "../../src/commands/status.js";
+@@ -185,33 +184,6 @@ describe("misc", () => {
+     expect(collectCheckIssues(root).some((issue) => issue.code === "wbs.changeset.required")).toBe(false);
+   });
+ 
+-  test("start emits schema-shaped WBS addNode operations", () => {
+-    const artifacts = buildStartArtifacts("Add reporting");
+-    const changeSetPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/changesets/start-"));
+-    const taskPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/tasks/"));
+-    const specPath = Object.keys(artifacts).find((item) => item.startsWith("contracts/specs/"));
+-    expect(changeSetPath).toBeTruthy();
+-    expect(taskPath).toBeTruthy();
+-    expect(specPath).toBeTruthy();
+-    const changeSet = JSON.parse(artifacts[changeSetPath!]);
+-    const task = parseSimpleYaml(artifacts[taskPath!]);
+-    const taskId = taskPath!.replace(/^contracts\/tasks\//, "").replace(/\.yaml$/, "");
+-    expect(changeSet.targetWbsId).toBe("scwbs");
+-    expect(changeSet.operations[0].operation).toBe("addNode");
+-    expect(changeSet.operations[0].node.parentId).toBe("node-project");
+-    expect(task.managedContractPaths).toEqual([
+-      taskPath,
+-      specPath,
+-      "contracts/tasks/index.yaml",
+-      `contracts/blocks/${taskId}.yaml`,
+-      `contracts/evidence/${taskId}.yaml`,
+-      `contracts/evidence-payloads/${taskId}.patch`,
+-      `contracts/approvals/${taskId}.yaml`,
+-      `contracts/reviews/${taskId}.yaml`,
+-      "contracts/registry.yaml"
+-    ]);
+-  });
+-
+   test("yaml parser preserves quoted strings with colons", () => {
+     const parsed = parseSimpleYaml(stringifySimpleYaml({
+       doneCriteria: ["Plan and implement: Replace YAML parser"]
+@@ -220,16 +192,30 @@ describe("misc", () => {
+     expect(parsed.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+   });
+ 
+-  test("start artifacts can be read back as valid task contracts", () => {
++  test("unknown Task IDs fail closed without creating delivery artifacts", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const before = readdirSync(path.join(root, "contracts/tasks")).sort();
++    const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
++    const changesetsPath = path.join(root, "contracts/changesets");
++    const beforeChangesets = existsSync(changesetsPath) ? readdirSync(changesetsPath).sort() : [];
++    expect(main(["task", "start", "Replace YAML parser"], root)).toBe(1);
++    expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(before);
++    expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
++    expect(existsSync(changesetsPath) ? readdirSync(changesetsPath).sort() : []).toEqual(beforeChangesets);
++  });
++
++  test("project bootstrap creates only a Discovery Probe", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+-    expect(main(["start", "Replace YAML parser"], root)).toBe(0);
++    expect(main(["project", "bootstrap", "Replace YAML parser"], root)).toBe(0);
+ 
+-    const taskFileName = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+-    expect(taskFileName).toBeTruthy();
+-    const taskId = taskFileName!.replace(/\.yaml$/, "");
+-    const { task } = readTask(root, taskId);
+-    expect(task?.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
++    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-bootstrap-"));
++    expect(probeFileName).toBeTruthy();
++    const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFileName!), "utf8"));
++    expect(probe).toMatchObject({ type: "discovery-probe", status: "proposed" });
++    expect(probe).not.toHaveProperty("deliveryTaskId");
++    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
+   });
+ 
+   test("help flags do not run mutating commands", () => {
+@@ -253,7 +239,7 @@ describe("misc", () => {
+       return true;
+     }) as typeof process.stdout.write;
+     try {
+-      expect(main(["start", "WBS-001-004"], root)).toBe(1);
++      expect(main(["task", "start", "WBS-001-004"], root)).toBe(1);
+     } finally {
+       process.stdout.write = originalWrite;
+     }

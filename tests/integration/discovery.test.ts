@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test, vi } from "vitest";
@@ -88,6 +88,18 @@ describe("Discovery Probe lifecycle", () => {
       log.mockRestore();
       error.mockRestore();
     }
+  });
+
+  test("goal-form Discovery start creates an active Probe without a delivery Task", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(main(["discovery", "start", "Choose a bounded cache strategy"], root)).toBe(0);
+    const probeFile = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-choose-a-bounded-cache-strategy-"));
+    expect(probeFile).toBeTruthy();
+    const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFile!), "utf8"));
+    expect(probe).toMatchObject({ type: "discovery-probe", status: "active" });
+    expect(probe).not.toHaveProperty("deliveryTaskId");
+    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
   });
 
   test("rejects unsafe ids, invalid transitions, and incomplete conclusions", () => {
