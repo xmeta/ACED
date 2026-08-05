@@ -1,59 +1,74 @@
 id: EVD-SCWBS-DRAFT-MSGIQZRD
 type: evidence
 taskId: SCWBS-DRAFT-MSGIQZRD
-commit: 64374c0bcd72e5b61015ff4531cfc9016f592677
-subjectHeadCommit: 64374c0bcd72e5b61015ff4531cfc9016f592677
-diffHash: sha256:bfd2ab730e817dd3d5daf6e9c8cdf9ae3f37372f5319a7fab61dca61ba317613
+commit: d092d330a33648c19e3d14391aac11940b639b00
+subjectHeadCommit: d092d330a33648c19e3d14391aac11940b639b00
+diffHash: sha256:b9b1c7758725813d7d48296c9483c999a9ca72ab7dc5040efbd40125a28aed89
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: 64374c0bcd72e5b61015ff4531cfc9016f592677
-    treeHash: 3bc44fd2e471f492abc1d8ebc4ae636dcb75cec3
-    diffHash: sha256:bfd2ab730e817dd3d5daf6e9c8cdf9ae3f37372f5319a7fab61dca61ba317613
+    commit: d092d330a33648c19e3d14391aac11940b639b00
+    treeHash: 2ba703adc7cbea32990b1db290dbf9f5b2781f92
+    diffHash: sha256:b9b1c7758725813d7d48296c9483c999a9ca72ab7dc5040efbd40125a28aed89
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
-    manifestHash: sha256:bfd2ab730e817dd3d5daf6e9c8cdf9ae3f37372f5319a7fab61dca61ba317613
+    manifestHash: sha256:b9b1c7758725813d7d48296c9483c999a9ca72ab7dc5040efbd40125a28aed89
 git:
   branch: task/SCWBS-DRAFT-MSGIQZRD-issue-144-human-approval-provenance
   base: origin/main
   baseCommit: c9ad517daa47bfd6c58788bb6696080c44a05081
   changedFilesBasis: branch-diff
-  subjectHeadCommit: 64374c0bcd72e5b61015ff4531cfc9016f592677
-  diffHash: sha256:bfd2ab730e817dd3d5daf6e9c8cdf9ae3f37372f5319a7fab61dca61ba317613
-  headCommit: 64374c0bcd72e5b61015ff4531cfc9016f592677
+  subjectHeadCommit: d092d330a33648c19e3d14391aac11940b639b00
+  diffHash: sha256:b9b1c7758725813d7d48296c9483c999a9ca72ab7dc5040efbd40125a28aed89
+  headCommit: d092d330a33648c19e3d14391aac11940b639b00
 changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
+  - contracts/evidence/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
   - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/tasks/index.yaml
+  - src/commands/approval-request.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check.test.ts
 checks:
   - name: test
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:af5a0f714f78b69cc50c2a47c7c18239315e97a446a93e5cdab45730082ed3ca
-    durationMilliseconds: 14961
-    executedAt: "2026-08-05T20:09:41.032Z"
+    cacheKey: sha256:b4860a9b6f96ad344ea2bf11c9f1df796d72ed8dd858f0a8364329abee8bdd4e
+    durationMilliseconds: 14904
+    executedAt: "2026-08-05T20:43:17.595Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:89c5d3b6322d05964207da0fc0a4a1420619b26695ac425a70d6e5da48df2ab1
-    durationMilliseconds: 246779
-    executedAt: "2026-08-05T20:13:47.820Z"
+    cacheKey: sha256:61d54cad8d53818d43d6bb12bcbd73e0ecb576f9913b4c1dea1ca97aca72b3f8
+    durationMilliseconds: 243722
+    executedAt: "2026-08-05T20:47:21.321Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:3c0f86d8f3ca9765f3e4a24b3cf6d4303b58fb127b179fa38590d40fe5686ec8
-    durationMilliseconds: 8908
-    executedAt: "2026-08-05T20:13:56.735Z"
+    cacheKey: sha256:33efbda1fca65645b8a8ff042900baf8ef592864d3ed2389cd7db85c01a22873
+    durationMilliseconds: 8745
+    executedAt: "2026-08-05T20:47:30.069Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:c0ca583a067bed31cbf8e78f949ad7069248e06ddce78b702f7e451c441e93f6
-    durationMilliseconds: 3682
-    executedAt: "2026-08-05T20:14:00.423Z"
+    cacheKey: sha256:4d9abdd248857b9493ccf961abefd0ef2577d40783f66adf3f6910be7e57d16a
+    durationMilliseconds: 3731
+    executedAt: "2026-08-05T20:47:33.804Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - PR-bound human Approvalのprovenance欠落をcheck-diff経由で拒否する回帰テストを許可範囲内へ収束
