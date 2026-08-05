@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MSG92BH6
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSG92BH6
+branchName: task/SCWBS-DRAFT-MSG92BH6-issue-420-human-gate-and-delegated-approval-unit
+allowedPaths:
+  - tests/unit/human-gate.test.ts
+forbiddenPaths:
+  - wjs/**
+  - src/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - A production approval or identity semantic change is required
+  - Any implementation or fixture requires paths outside tests/unit/human-gate.test.ts
+  - Adding coverage thresholds or changing test configuration requires Human Approval
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - tests/unit/human-gate.test.ts directly exercises delegated approval authorization for valid, expired, missing-token, short-token, scope-mismatch, and token-mismatch inputs
+  - tests/unit/human-gate.test.ts directly exercises delegated approval validation for invalid provenance, expiry, missing proof, and tampered proof
+  - tests/unit/human-gate.test.ts directly exercises Human Gate approval scope matching and metadata-only descendant handling without changing production approval semantics
+  - the focused unit suite passes without changing package, TypeScript, Vitest, CI, or coverage-threshold configuration
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/specs/SPEC-LITE-MSG92BH6.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG92BH6.patch
+  - contracts/approvals/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:dfa3467251da096826ad1820a0c8645076d6b06ea99488add5b211a6414d4961
+  createdAt: "2026-08-05T15:37:33.778Z"

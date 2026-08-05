@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MSG92BH6
+type: evidence
+taskId: SCWBS-DRAFT-MSG92BH6
+commit: 7f821924e17fba6e49eb9efea5b0afbf1e4ef945
+subjectHeadCommit: 7f821924e17fba6e49eb9efea5b0afbf1e4ef945
+diffHash: sha256:56e2c80a2b73c1a597e1c6495df1fdca83ae15ee23c90c0428d8d0620c7b3c58
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 7f821924e17fba6e49eb9efea5b0afbf1e4ef945
+    treeHash: 0df600883bb0361fc36c422f5401e86dc7474995
+    diffHash: sha256:56e2c80a2b73c1a597e1c6495df1fdca83ae15ee23c90c0428d8d0620c7b3c58
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSG92BH6.patch
+    manifestHash: sha256:56e2c80a2b73c1a597e1c6495df1fdca83ae15ee23c90c0428d8d0620c7b3c58
+git:
+  branch: task/SCWBS-DRAFT-MSG92BH6-issue-420-human-gate-and-delegated-approval-unit
+  base: origin/main
+  baseCommit: ad7cae854a8ff9325fe04dfe0b2e2dace3c12127
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 7f821924e17fba6e49eb9efea5b0afbf1e4ef945
+  diffHash: sha256:56e2c80a2b73c1a597e1c6495df1fdca83ae15ee23c90c0428d8d0620c7b3c58
+  headCommit: 7f821924e17fba6e49eb9efea5b0afbf1e4ef945
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG92BH6.patch
+  - contracts/evidence/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSG92BH6.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSG92BH6.yaml
+  - contracts/tasks/index.yaml
+  - tests/unit/human-gate.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2873722346a489d3d4d56a2733a85973fa9871947b4dcfb33fc2b881b1c5fe17
+    durationMilliseconds: 16571
+    executedAt: "2026-08-05T15:43:32.737Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6d0e59b3a33bd038128e1543d2e9a1b27075f877d761e05cdbf7ba384ee044a0
+    durationMilliseconds: 255607
+    executedAt: "2026-08-05T15:47:48.349Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:905086e06ba2d0e12f4ba9f3633a487484d61371019a1a6c0b1e5acaddbee69b
+    durationMilliseconds: 8493
+    executedAt: "2026-08-05T15:47:56.846Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:583fdd70bdb8ff09716fdbeadc6eb7caea821d4c5c14cf5f452f4bca085ab847
+    durationMilliseconds: 3766
+    executedAt: "2026-08-05T15:48:00.616Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added direct unit coverage for delegated approval authorization, proof validation, and Human Gate scope handling.
