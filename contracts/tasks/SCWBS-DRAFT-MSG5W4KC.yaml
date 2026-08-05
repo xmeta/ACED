@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MSG5W4KC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSG5W4KC
+branchName: task/SCWBS-DRAFT-MSG5W4KC-issue-432-auto-complete-checkcoverage-requiremen
+allowedPaths:
+  - src/commands/task-new.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/core/check-coverage.ts
+  - tests/integration/tasks.test.ts
+  - contracts/specs/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The checkCoverage policy cannot be read or is malformed
+  - An allowed implementation path is unclassified and cannot be mapped to a required check
+  - The required Evidence mapping is ambiguous
+  - The fix requires changes outside allowedPaths or changes Human Gate semantics
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #432: auto-complete checkCoverage requirements before Task lock'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/specs/SPEC-LITE-MSG5W4KC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG5W4KC.patch
+  - contracts/approvals/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 1.0.0
+  specRevision: sha256:2f8cd30f449136600d27f97ce562f456de4c1696a7fdf2d2301cdb7de8f0f3f9
+  createdAt: "2026-08-05T14:08:24.211Z"
