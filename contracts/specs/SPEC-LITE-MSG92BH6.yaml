@@ -1,0 +1,14 @@
+id: SPEC-LITE-MSG92BH6
+type: spec-contract
+featureId: F-MSG92BH6
+title: "Issue #420: Human Gate and delegated approval unit coverage"
+status: approved
+version: 0.1.0
+summary: "Add direct unit coverage for high-risk Human Gate and delegated approval validation branches without changing approval semantics or test configuration."
+approvedBy: user-requested-issue-420
+approvedAt: "2026-08-06T00:00:00+09:00"
+acceptanceCriteria:
+  - valid delegated approval authorization succeeds, while expiry, missing or short token, disallowed scope, and token mismatch fail closed
+  - delegated approval validation rejects policy/provenance, expiry, missing proof, and tampered proof mismatches
+  - Human Gate validation covers missing, non-approved, matching-scope, mismatched-scope, and metadata-only descendant approval cases
+  - no production approval, identity, package, CI, or coverage-threshold semantics change
