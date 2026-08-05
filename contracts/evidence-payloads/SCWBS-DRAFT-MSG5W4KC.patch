@@ -1,0 +1,386 @@
+diff --git a/contracts/specs/SPEC-LITE-MSG5W4KC.yaml b/contracts/specs/SPEC-LITE-MSG5W4KC.yaml
+new file mode 100644
+index 0000000..020d81a
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSG5W4KC.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MSG5W4KC
++type: spec-contract
++featureId: F-MSG5W4KC
++title: "Issue #432: Task生成時のcheckCoverage必須検証を自動補完する"
++status: approved
++version: "1.0.0"
++summary: "allowedPathsとcheckCoverageをTask生成・開始・ロック前に照合し、必要なrequiredChecksとEvidence種別をfail-closedに扱う。"
++sourcePaths:
++  - src/commands/task-new.ts
++  - src/commands/start.ts
++  - src/commands/task-lock.ts
++  - src/core/check-coverage.ts
++acceptanceCriteria:
++  - "task newがallowedPathsに対応するcheckCoverageのrequiredChecksを自動追加し、対応するevidenceRequiredも補完する"
++  - "Task開始・ロック時にcheckCoverageポリシーの不備や未充足を具体的に表示してfail-closedにする"
++  - "既存の明示的waiverとHuman Gateの扱いを変更しない"
++  - "unit/integration testで自動補完、失敗診断、既存互換性を検証する"
++approvedBy: user-directed-task
++approvedAt: "2026-08-05T00:00:00+09:00"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml b/contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
+new file mode 100644
+index 0000000..c00605a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
+@@ -0,0 +1,54 @@
++id: SCWBS-DRAFT-MSG5W4KC
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSG5W4KC
++branchName: task/SCWBS-DRAFT-MSG5W4KC-issue-432-auto-complete-checkcoverage-requiremen
++allowedPaths:
++  - src/commands/task-new.ts
++  - src/commands/start.ts
++  - src/commands/task-lock.ts
++  - src/core/check-coverage.ts
++  - tests/integration/tasks.test.ts
++  - contracts/specs/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The checkCoverage policy cannot be read or is malformed
++  - An allowed implementation path is unclassified and cannot be mapped to a required check
++  - The required Evidence mapping is ambiguous
++  - The fix requires changes outside allowedPaths or changes Human Gate semantics
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - 'Complete Issue #432: auto-complete checkCoverage requirements before Task lock'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
++  - contracts/specs/SPEC-LITE-MSG5W4KC.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSG5W4KC.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSG5W4KC.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSG5W4KC.patch
++  - contracts/approvals/SCWBS-DRAFT-MSG5W4KC.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSG5W4KC.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 1.0.0
++  specRevision: sha256:2f8cd30f449136600d27f97ce562f456de4c1696a7fdf2d2301cdb7de8f0f3f9
++  createdAt: "2026-08-05T14:08:24.211Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 35ea245..020884f 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1602,3 +1602,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T12:39:10.490Z"
++  - id: SCWBS-DRAFT-MSG5W4KC
++    path: contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
++    branchName: task/SCWBS-DRAFT-MSG5W4KC-issue-432-auto-complete-checkcoverage-requiremen
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/start.ts b/src/commands/start.ts
+index bc4698f..6a623a7 100644
+--- a/src/commands/start.ts
++++ b/src/commands/start.ts
+@@ -1,5 +1,6 @@
+ import { readTask } from "../core/contracts.js";
+ import { currentBranch } from "../core/git.js";
++import { checkCoveragePreflightIssues } from "../core/check-coverage.js";
+ 
+ /** Run the pre-flight view for an existing Task Contract only. */
+ export function runStart(root: string, taskId: string): number {
+@@ -14,6 +15,12 @@ export function runStart(root: string, taskId: string): number {
+       );
+     }
+ 
++    const coverageIssues = checkCoveragePreflightIssues(root, task);
++    if (coverageIssues.length > 0) {
++      for (const issue of coverageIssues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
++      return 1;
++    }
++
+     const branch = currentBranch(root) ?? "(unknown)";
+     const branchStatus = task.branchName === branch ? "ok" : "mismatch";
+     const lines = [
+diff --git a/src/commands/task-lock.ts b/src/commands/task-lock.ts
+index 346832c..fcb45d9 100644
+--- a/src/commands/task-lock.ts
++++ b/src/commands/task-lock.ts
+@@ -8,6 +8,7 @@ import { readWbs } from "../core/wbs.js";
+ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+ import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { syncRegistry } from "./registry-rebuild.js";
++import { checkCoveragePreflightIssues } from "../core/check-coverage.js";
+ 
+ export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
+   const { task, issues } = readTask(root, taskId);
+@@ -39,6 +40,12 @@ export function buildLockedTaskYaml(root: string, taskId: string, createdAt?: Da
+ export function runTaskLock(root: string, taskId: string): number {
+   try {
+     syncRegistry(root);
++    const { task, issues } = readTask(root, taskId);
++    if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
++    const coverageIssues = checkCoveragePreflightIssues(root, task);
++    if (coverageIssues.length > 0) {
++      throw new Error(coverageIssues.map((issue) => `${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`).join("\n"));
++    }
+     const yaml = buildLockedTaskYaml(root, taskId);
+     writeFileSync(resolveFrom(root, taskPath(taskId)), yaml, "utf8");
+     syncRegistry(root);
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index a7f598e..b841033 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -1,6 +1,7 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { listTasks } from "../core/contracts.js";
++import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
+ import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+@@ -117,7 +118,14 @@ export function runTaskNew(root: string, title: string, options: {
+       console.error("Task creation is fail-closed: provide --stop <reasons> or explicitly acknowledge an empty stop list with --no-stop-conditions");
+       return 1;
+     }
+-    const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
++    const built = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
++    const { task: completedTask, requirements } = completeCheckCoverageRequirements(root, built.task);
++    if (requirements.issues.length > 0) {
++      for (const issue of requirements.issues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
++      return 1;
++    }
++    const task = completedTask;
++    const fallback = built.fallback;
+     if (!isWbsLessTask(task)) {
+       if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+         console.error(`Cannot validate --wbs-node ${task.wbsNodeId}: WBS document is missing`);
+@@ -161,6 +169,8 @@ export function runTaskNew(root: string, title: string, options: {
+     if (isWbsLessTask(task)) {
+       process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
+     }
++    const addedChecks = requirements.missingChecks;
++    if (addedChecks.length > 0) process.stdout.write(`Notice: checkCoverage added required checks: ${addedChecks.join(", ")}\n`);
+ 
+     syncRegistry(root);
+     process.stdout.write(yaml);
+diff --git a/src/core/check-coverage.ts b/src/core/check-coverage.ts
+index 16a1485..9647a1f 100644
+--- a/src/core/check-coverage.ts
++++ b/src/core/check-coverage.ts
+@@ -57,6 +57,14 @@ export type CheckCoverageReport = {
+   unclassifiedFiles: string[];
+ };
+ 
++export type CheckCoverageRequirements = {
++  requiredChecks: string[];
++  evidenceRequired: string[];
++  missingChecks: string[];
++  missingEvidence: string[];
++  issues: Issue[];
++};
++
+ function normalizePath(value: string): string {
+   return value.replace(/\\/g, "/").replace(/^\.\//, "");
+ }
+@@ -175,6 +183,100 @@ export function checkCoverageSummaryForAllowedPaths(policy: CheckCoveragePolicy,
+   return checkCoverageSummary(policy, task, representativePaths);
+ }
+ 
++function evidenceForCheck(check: string): string | undefined {
++  const family = check.split(":", 1)[0];
++  if (["test", "typecheck", "build", "lint"].includes(family)) return `${family}-result`;
++  return undefined;
++}
++
++export function checkCoverageRequirements(root: string, task: TaskContract): CheckCoverageRequirements {
++  const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
++  if (policyIssues.length > 0) {
++    return {
++      requiredChecks: [...task.requiredChecks],
++      evidenceRequired: [...task.evidenceRequired],
++      missingChecks: [],
++      missingEvidence: [],
++      issues: policyIssues
++    };
++  }
++
++  const summary = checkCoverageSummaryForAllowedPaths(policy, task);
++  const requiredChecks = [...new Set([...task.requiredChecks, ...summary.required])];
++  const requiredEvidence = new Set(task.evidenceRequired);
++  const issues: Issue[] = summary.unclassifiedFiles.map((file) => ({
++    severity: "error",
++    code: "checkCoverage.unclassified",
++    message: `${task.id} allowed path ${file} is not classified by ${defaultCheckCoveragePath}`,
++    fixCommand: `Classify ${file} in ${defaultCheckCoveragePath} before creating or locking this Task`
++  }));
++
++  for (const check of summary.required) {
++    const evidence = evidenceForCheck(check);
++    if (!evidence) {
++      issues.push({
++        severity: "error",
++        code: "checkCoverage.evidenceMapping",
++        message: `${task.id} requires ${check}, but no evidenceRequired mapping is defined for that check`,
++        fixCommand: `Define an evidenceRequired mapping for ${check} before creating or locking this Task`
++      });
++      continue;
++    }
++    requiredEvidence.add(evidence);
++  }
++
++  const missingChecks = summary.required.filter((check) => !task.requiredChecks.includes(check));
++  const missingEvidence = [...requiredEvidence].filter((evidence) => !task.evidenceRequired.includes(evidence));
++  return {
++    requiredChecks,
++    evidenceRequired: [...requiredEvidence],
++    missingChecks,
++    missingEvidence,
++    issues
++  };
++}
++
++export function completeCheckCoverageRequirements(root: string, task: TaskContract): { task: TaskContract; requirements: CheckCoverageRequirements } {
++  const requirements = checkCoverageRequirements(root, task);
++  return {
++    task: {
++      ...task,
++      requiredChecks: requirements.requiredChecks,
++      evidenceRequired: requirements.evidenceRequired
++    },
++    requirements
++  };
++}
++
++export function checkCoveragePreflightIssues(root: string, task: TaskContract): Issue[] {
++  const requirements = checkCoverageRequirements(root, task);
++  const issues = [...requirements.issues];
++  const waivers = new Set((task.checkCoverageWaivers ?? []).map((waiver) => waiver.check));
++  for (const check of requirements.missingChecks) {
++    if (waivers.has(check)) continue;
++    const evidence = evidenceForCheck(check);
++    const missingEvidence = evidence && requirements.missingEvidence.includes(evidence) ? ` and evidence ${evidence}` : "";
++    issues.push({
++      severity: "error",
++      code: "checkCoverage.missing",
++      message: `${task.id} requires missing check ${check}${missingEvidence} for its allowed paths`,
++      fixCommand: `Add ${check}${missingEvidence ? ` and ${evidence}` : ""} to contracts/tasks/${task.id}.yaml or define an explicit waiver`
++    });
++  }
++  for (const evidence of requirements.missingEvidence) {
++    const mappedCheck = requirements.requiredChecks.find((check) => evidenceForCheck(check) === evidence);
++    if (mappedCheck && waivers.has(mappedCheck)) continue;
++    if (issues.some((issue) => issue.message.includes(`evidence ${evidence}`))) continue;
++    issues.push({
++      severity: "error",
++      code: "checkCoverage.evidenceRequired",
++      message: `${task.id} requires missing evidence ${evidence} for its allowed paths`,
++      fixCommand: `Add ${evidence} to contracts/tasks/${task.id}.yaml`
++    });
++  }
++  return issues;
++}
++
+ export function collectCheckCoverageIssues(root: string, task: TaskContract, files: string[]): Issue[] {
+   const { policy, issues } = readCheckCoveragePolicy(root);
+   if (issues.length > 0) return issues;
+diff --git a/tests/integration/tasks.test.ts b/tests/integration/tasks.test.ts
+index 4269482..69ae9cf 100644
+--- a/tests/integration/tasks.test.ts
++++ b/tests/integration/tasks.test.ts
+@@ -7,6 +7,7 @@ import { collectCheckIssues } from "../../src/commands/check.js";
+ import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
+ import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
+ import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
++import { runStart } from "../../src/commands/start.js";
+ import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh, taskRefreshReasons } from "../../src/commands/task-refresh.js";
+ import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
+ import { buildNextTask } from "../../src/commands/ai-queue.js";
+@@ -445,6 +446,68 @@ describe("task management", () => {
+     expect(index).toContain("dependsOn: []");
+   });
+ 
++  test("task new adds checkCoverage checks and evidence before writing the draft", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      implementationRoots: ["src/commands"],
++      rules: [{
++        id: "command",
++        classification: "behavior-critical",
++        rationale: "Command workflows require integration coverage.",
++        paths: ["src/commands/task-new.ts"],
++        requires: ["test:integration"]
++      }]
++    });
++
++    expect(runTaskNew(root, "Coverage-aware draft", {
++      paths: "src/commands/task-new.ts",
++      checks: "typecheck",
++      noStopConditions: true
++    })).toBe(0);
++
++    const taskFile = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
++    const yaml = readFileSync(path.join(root, "contracts/tasks", taskFile ?? ""), "utf8");
++    expect(yaml).toContain("  - test:integration");
++    expect(yaml).toContain("  - test-result");
++  });
++
++  test("task new fails closed when checkCoverage policy cannot be read", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      rules: "invalid"
++    });
++
++    expect(runTaskNew(root, "Invalid coverage draft", {
++      paths: "src/commands/task-new.ts",
++      noStopConditions: true
++    })).toBe(1);
++    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
++  });
++
++  test("task lock and task start reject missing checkCoverage requirements", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/check-coverage.yaml", {
++      implementationRoots: ["src/core"],
++      rules: [{
++        id: "core",
++        classification: "behavior-critical",
++        rationale: "Core workflows require integration coverage.",
++        paths: ["src/core/git.ts"],
++        requires: ["test:integration"]
++      }]
++    });
++    const task = sampleTask({ allowedPaths: ["src/core/git.ts"], branchName: "master" });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
++    const before = readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8");
++
++    expect(runTaskLock(root, task.id)).toBe(1);
++    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toBe(before);
++    expect(runStart(root, task.id)).toBe(1);
++  });
++
+   test("task new builds safe branch names and default checks", () => {
+     const { task } = buildCoreTaskNew("Fix Core CLI!", { id: "SCWBS-DRAFT-TEST1234" });
+ 

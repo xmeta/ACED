@@ -1,0 +1,19 @@
+id: SPEC-LITE-MSG5W4KC
+type: spec-contract
+featureId: F-MSG5W4KC
+title: "Issue #432: Task生成時のcheckCoverage必須検証を自動補完する"
+status: approved
+version: "1.0.0"
+summary: "allowedPathsとcheckCoverageをTask生成・開始・ロック前に照合し、必要なrequiredChecksとEvidence種別をfail-closedに扱う。"
+sourcePaths:
+  - src/commands/task-new.ts
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/core/check-coverage.ts
+acceptanceCriteria:
+  - "task newがallowedPathsに対応するcheckCoverageのrequiredChecksを自動追加し、対応するevidenceRequiredも補完する"
+  - "Task開始・ロック時にcheckCoverageポリシーの不備や未充足を具体的に表示してfail-closedにする"
+  - "既存の明示的waiverとHuman Gateの扱いを変更しない"
+  - "unit/integration testで自動補完、失敗診断、既存互換性を検証する"
+approvedBy: user-directed-task
+approvedAt: "2026-08-05T00:00:00+09:00"

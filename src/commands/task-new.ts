@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { listTasks } from "../core/contracts.js";
+import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
 import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
 import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
 import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
@@ -117,7 +118,14 @@ export function runTaskNew(root: string, title: string, options: {
       console.error("Task creation is fail-closed: provide --stop <reasons> or explicitly acknowledge an empty stop list with --no-stop-conditions");
       return 1;
     }
-    const { task, fallback } = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
+    const built = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
+    const { task: completedTask, requirements } = completeCheckCoverageRequirements(root, built.task);
+    if (requirements.issues.length > 0) {
+      for (const issue of requirements.issues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
+      return 1;
+    }
+    const task = completedTask;
+    const fallback = built.fallback;
     if (!isWbsLessTask(task)) {
       if (!existsSync(resolveFrom(root, defaultWbsPath))) {
         console.error(`Cannot validate --wbs-node ${task.wbsNodeId}: WBS document is missing`);
@@ -161,6 +169,8 @@ export function runTaskNew(root: string, title: string, options: {
     if (isWbsLessTask(task)) {
       process.stdout.write("Notice: no --wbs-node was provided; this task is WBS-less and will not enter WBS completion queues.\n");
     }
+    const addedChecks = requirements.missingChecks;
+    if (addedChecks.length > 0) process.stdout.write(`Notice: checkCoverage added required checks: ${addedChecks.join(", ")}\n`);
 
     syncRegistry(root);
     process.stdout.write(yaml);

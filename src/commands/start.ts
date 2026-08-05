@@ -1,5 +1,6 @@
 import { readTask } from "../core/contracts.js";
 import { currentBranch } from "../core/git.js";
+import { checkCoveragePreflightIssues } from "../core/check-coverage.js";
 
 /** Run the pre-flight view for an existing Task Contract only. */
 export function runStart(root: string, taskId: string): number {
@@ -12,6 +13,12 @@ export function runStart(root: string, taskId: string): number {
         + `Create a bounded Discovery Probe with 'scwbs discovery new' or 'scwbs project bootstrap'.`
         + (detail ? `\n${detail}` : "")
       );
+    }
+
+    const coverageIssues = checkCoveragePreflightIssues(root, task);
+    if (coverageIssues.length > 0) {
+      for (const issue of coverageIssues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
+      return 1;
     }
 
     const branch = currentBranch(root) ?? "(unknown)";

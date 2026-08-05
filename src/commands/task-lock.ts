@@ -8,6 +8,7 @@ import { readWbs } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
 import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { syncRegistry } from "./registry-rebuild.js";
+import { checkCoveragePreflightIssues } from "../core/check-coverage.js";
 
 export function buildLockedTask(root: string, taskId: string, createdAt = new Date()): TaskContract {
   const { task, issues } = readTask(root, taskId);
@@ -39,6 +40,12 @@ export function buildLockedTaskYaml(root: string, taskId: string, createdAt?: Da
 export function runTaskLock(root: string, taskId: string): number {
   try {
     syncRegistry(root);
+    const { task, issues } = readTask(root, taskId);
+    if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+    const coverageIssues = checkCoveragePreflightIssues(root, task);
+    if (coverageIssues.length > 0) {
+      throw new Error(coverageIssues.map((issue) => `${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`).join("\n"));
+    }
     const yaml = buildLockedTaskYaml(root, taskId);
     writeFileSync(resolveFrom(root, taskPath(taskId)), yaml, "utf8");
     syncRegistry(root);

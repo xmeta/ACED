@@ -1,0 +1,72 @@
+id: EVD-SCWBS-DRAFT-MSG5W4KC
+type: evidence
+taskId: SCWBS-DRAFT-MSG5W4KC
+commit: 1907de25a2363ecdc17bf25d2fd2e78a52f33b62
+subjectHeadCommit: 1907de25a2363ecdc17bf25d2fd2e78a52f33b62
+diffHash: sha256:34068ad0003cbcf2b50e2aabf0ee3efa57d5442801e072c5e28dd24e8770bddf
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1907de25a2363ecdc17bf25d2fd2e78a52f33b62
+    treeHash: 7f5a861126baa2e1899770eba30663aed6848aac
+    diffHash: sha256:34068ad0003cbcf2b50e2aabf0ee3efa57d5442801e072c5e28dd24e8770bddf
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSG5W4KC.patch
+    manifestHash: sha256:34068ad0003cbcf2b50e2aabf0ee3efa57d5442801e072c5e28dd24e8770bddf
+git:
+  branch: task/SCWBS-DRAFT-MSG5W4KC-issue-432-auto-complete-checkcoverage-requiremen
+  base: origin/main
+  baseCommit: 6d8afd7d90bd96eb07a4487772ad01baa903d628
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 1907de25a2363ecdc17bf25d2fd2e78a52f33b62
+  diffHash: sha256:34068ad0003cbcf2b50e2aabf0ee3efa57d5442801e072c5e28dd24e8770bddf
+  headCommit: 1907de25a2363ecdc17bf25d2fd2e78a52f33b62
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG5W4KC.patch
+  - contracts/evidence/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSG5W4KC.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSG5W4KC.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/start.ts
+  - src/commands/task-lock.ts
+  - src/commands/task-new.ts
+  - src/core/check-coverage.ts
+  - tests/integration/tasks.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c6ad05b2e3954368ca0c6ffc983d8e895f1d2dd4f24121f68983d349da292482
+    durationMilliseconds: 13729
+    executedAt: "2026-08-05T14:15:19.860Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:7a68ed2a9db3fe33537702eed6811bf0747deb348df64af9ae8c63178ba6bcb0
+    durationMilliseconds: 167849
+    executedAt: "2026-08-05T14:18:07.713Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2ca04ad8e757f4f7a1d39ad016e0d6db15a61fb28b229cd3aa7166584b3e566a
+    durationMilliseconds: 8157
+    executedAt: "2026-08-05T14:18:15.874Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:47c14b6e12294d5dfd5abf458a87db61b8f686324979448f6e846adecff9591c
+    durationMilliseconds: 3504
+    executedAt: "2026-08-05T14:18:19.382Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added integration coverage for checkCoverage auto-completion and fail-closed start/lock diagnostics.

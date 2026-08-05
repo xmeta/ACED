@@ -57,6 +57,14 @@ export type CheckCoverageReport = {
   unclassifiedFiles: string[];
 };
 
+export type CheckCoverageRequirements = {
+  requiredChecks: string[];
+  evidenceRequired: string[];
+  missingChecks: string[];
+  missingEvidence: string[];
+  issues: Issue[];
+};
+
 function normalizePath(value: string): string {
   return value.replace(/\\/g, "/").replace(/^\.\//, "");
 }
@@ -173,6 +181,100 @@ export function checkCoverageSummaryForAllowedPaths(policy: CheckCoveragePolicy,
     rule.paths.filter((policyPath) => task.allowedPaths.some((allowedPath) => patternsMayOverlap(policyPath, allowedPath)))
   );
   return checkCoverageSummary(policy, task, representativePaths);
+}
+
+function evidenceForCheck(check: string): string | undefined {
+  const family = check.split(":", 1)[0];
+  if (["test", "typecheck", "build", "lint"].includes(family)) return `${family}-result`;
+  return undefined;
+}
+
+export function checkCoverageRequirements(root: string, task: TaskContract): CheckCoverageRequirements {
+  const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
+  if (policyIssues.length > 0) {
+    return {
+      requiredChecks: [...task.requiredChecks],
+      evidenceRequired: [...task.evidenceRequired],
+      missingChecks: [],
+      missingEvidence: [],
+      issues: policyIssues
+    };
+  }
+
+  const summary = checkCoverageSummaryForAllowedPaths(policy, task);
+  const requiredChecks = [...new Set([...task.requiredChecks, ...summary.required])];
+  const requiredEvidence = new Set(task.evidenceRequired);
+  const issues: Issue[] = summary.unclassifiedFiles.map((file) => ({
+    severity: "error",
+    code: "checkCoverage.unclassified",
+    message: `${task.id} allowed path ${file} is not classified by ${defaultCheckCoveragePath}`,
+    fixCommand: `Classify ${file} in ${defaultCheckCoveragePath} before creating or locking this Task`
+  }));
+
+  for (const check of summary.required) {
+    const evidence = evidenceForCheck(check);
+    if (!evidence) {
+      issues.push({
+        severity: "error",
+        code: "checkCoverage.evidenceMapping",
+        message: `${task.id} requires ${check}, but no evidenceRequired mapping is defined for that check`,
+        fixCommand: `Define an evidenceRequired mapping for ${check} before creating or locking this Task`
+      });
+      continue;
+    }
+    requiredEvidence.add(evidence);
+  }
+
+  const missingChecks = summary.required.filter((check) => !task.requiredChecks.includes(check));
+  const missingEvidence = [...requiredEvidence].filter((evidence) => !task.evidenceRequired.includes(evidence));
+  return {
+    requiredChecks,
+    evidenceRequired: [...requiredEvidence],
+    missingChecks,
+    missingEvidence,
+    issues
+  };
+}
+
+export function completeCheckCoverageRequirements(root: string, task: TaskContract): { task: TaskContract; requirements: CheckCoverageRequirements } {
+  const requirements = checkCoverageRequirements(root, task);
+  return {
+    task: {
+      ...task,
+      requiredChecks: requirements.requiredChecks,
+      evidenceRequired: requirements.evidenceRequired
+    },
+    requirements
+  };
+}
+
+export function checkCoveragePreflightIssues(root: string, task: TaskContract): Issue[] {
+  const requirements = checkCoverageRequirements(root, task);
+  const issues = [...requirements.issues];
+  const waivers = new Set((task.checkCoverageWaivers ?? []).map((waiver) => waiver.check));
+  for (const check of requirements.missingChecks) {
+    if (waivers.has(check)) continue;
+    const evidence = evidenceForCheck(check);
+    const missingEvidence = evidence && requirements.missingEvidence.includes(evidence) ? ` and evidence ${evidence}` : "";
+    issues.push({
+      severity: "error",
+      code: "checkCoverage.missing",
+      message: `${task.id} requires missing check ${check}${missingEvidence} for its allowed paths`,
+      fixCommand: `Add ${check}${missingEvidence ? ` and ${evidence}` : ""} to contracts/tasks/${task.id}.yaml or define an explicit waiver`
+    });
+  }
+  for (const evidence of requirements.missingEvidence) {
+    const mappedCheck = requirements.requiredChecks.find((check) => evidenceForCheck(check) === evidence);
+    if (mappedCheck && waivers.has(mappedCheck)) continue;
+    if (issues.some((issue) => issue.message.includes(`evidence ${evidence}`))) continue;
+    issues.push({
+      severity: "error",
+      code: "checkCoverage.evidenceRequired",
+      message: `${task.id} requires missing evidence ${evidence} for its allowed paths`,
+      fixCommand: `Add ${evidence} to contracts/tasks/${task.id}.yaml`
+    });
+  }
+  return issues;
 }
 
 export function collectCheckCoverageIssues(root: string, task: TaskContract, files: string[]): Issue[] {
