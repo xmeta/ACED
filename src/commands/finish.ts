@@ -15,7 +15,7 @@ import type { WorkingTreeState } from "../core/git.js";
 import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js";
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
-import { printIssues } from "../core/report.js";
+import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
 
 export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
@@ -312,28 +312,11 @@ function collectFinishPreflightIssues(root: string, taskId: string, baseRef: str
   return issues;
 }
 
-function captureStdout<T>(fn: () => T): { result: T; output: string } {
-  const chunks: string[] = [];
-  const originalWrite = process.stdout.write.bind(process.stdout);
-  const originalLog = console.log;
-  process.stdout.write = ((chunk: unknown) => {
-    chunks.push(String(chunk));
-    return true;
-  }) as typeof process.stdout.write;
-  console.log = (...args: unknown[]) => {
-    chunks.push(`${args.map(String).join(" ")}\n`);
-  };
-  try {
-    return { result: fn(), output: chunks.join("") };
-  } finally {
-    process.stdout.write = originalWrite;
-    console.log = originalLog;
-  }
-}
-
-function runSilentIfJson<T>(json: boolean, fn: () => T): { result: T; output: string } {
-  if (!json) return { result: fn(), output: "" };
-  return captureStdout(fn);
+function runWithReporterIfJson<T>(json: boolean, fn: (reporter: Reporter) => T): { result: T; output: string } {
+  if (!json) return { result: fn(createConsoleReporter()), output: "" };
+  const { reporter, output } = createBufferedStdoutReporter();
+  const result = fn(reporter);
+  return { result, output: output() };
 }
 
 function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
@@ -590,8 +573,8 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
   if (json) console.error("PASS required checks");
   else console.log("PASS required checks");
 
-  const { result: diffExit, output: checkDiffOutput } = captureStdout(() =>
-    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true, evidence })
+  const { result: diffExit, output: checkDiffOutput } = runWithReporterIfJson(true, (reporter) =>
+    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true, evidence, reporter })
   );
   let checkDiffResult: { issues?: Issue[] } = {};
   try {
@@ -640,7 +623,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
   if (json) console.error("PASS Evidence and registry checkpoint synchronized");
   else console.log("PASS registry synchronized");
 
-  const { result: registryExit } = runSilentIfJson(json, () => runRegistryRebuild(root, { check: true, force: false }));
+  const { result: registryExit } = runWithReporterIfJson(json, (reporter) => runRegistryRebuild(root, { check: true, force: false, reporter }));
   if (registryExit !== 0) {
     const nextAction = resumeFinishCommand(taskId);
     emitJson(finishOutput({

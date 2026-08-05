@@ -4,7 +4,7 @@ import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
-import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
+import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand } from "../core/report.js";
 import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
@@ -51,25 +51,25 @@ function stashCommand(files: string[]): string {
   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
 }
 
-function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[]): void {
+function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[], reporter: Reporter): void {
   for (const report of reports) {
-    console.log("");
-    console.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
-    console.log(`  Changed fields: ${report.changedFields.join(", ")}`);
-    console.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
-    console.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
-    console.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
-    console.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
-    console.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
-    console.log(`  Existing Approval: ${report.impact.approvalStatus}`);
-    console.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
-    console.log(`  Human decision: ${report.requiredHumanDecision}`);
-    console.log("  Recovery sequence:");
+    reporter.log("");
+    reporter.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
+    reporter.log(`  Changed fields: ${report.changedFields.join(", ")}`);
+    reporter.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
+    reporter.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
+    reporter.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
+    reporter.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
+    reporter.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
+    reporter.log(`  Existing Approval: ${report.impact.approvalStatus}`);
+    reporter.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
+    reporter.log(`  Human decision: ${report.requiredHumanDecision}`);
+    reporter.log("  Recovery sequence:");
     for (const step of report.recoverySteps) {
-      console.log(`    ${step.step}. [${step.actor}] ${step.action}`);
-      if (step.command) console.log(`       ${step.command}`);
+      reporter.log(`    ${step.step}. [${step.actor}] ${step.action}`);
+      if (step.command) reporter.log(`       ${step.command}`);
     }
-    console.log("  This preflight did not modify any files.");
+    reporter.log("  This preflight did not modify any files.");
   }
 }
 
@@ -261,12 +261,13 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract, evid
   }));
 }
 
-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence } = {}): number {
+export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence; reporter?: Reporter } = {}): number {
+  const reporter = options.reporter ?? createConsoleReporter();
   const { task, issues } = readTask(root, taskId);
   if (!task) {
     const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
-    else printIssues(taskIssues);
+    if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
+    else printIssues(taskIssues, reporter);
     return 1;
   }
   const baseRef = options.baseRef ?? "origin/main";
@@ -288,8 +289,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       message: error instanceof Error ? error.message : String(error),
       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
     }] as Issue[];
-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
-    else printIssues(baseIssues);
+    if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
+    else printIssues(baseIssues, reporter);
     return 1;
   }
   const diffIssues = withDefaultFixCommand([
@@ -318,13 +319,13 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   }
 
   if (diffIssues.length === 0) {
-    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
-    else console.log(`PASS check-diff ${taskId}`);
+    if (options.json) reporter.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
+    else reporter.log(`PASS check-diff ${taskId}`);
     return 0;
   }
 
   if (options.json) {
-    console.log(JSON.stringify({
+    reporter.log(JSON.stringify({
       status: hasErrors(diffIssues) ? "fail" : "warn",
       taskId,
       issues: diffIssues,
@@ -337,26 +338,26 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       } : {})
     }, null, 2));
   } else {
-    printIssues(diffIssues);
-    printAuthorityRepairPreflights(authorityRepairPreflights);
+    printIssues(diffIssues, reporter);
+    printAuthorityRepairPreflights(authorityRepairPreflights, reporter);
     if (requiresHumanApproval) {
-      console.log("");
-      console.log("Human approval required.");
-      console.log("");
-      console.log("Changed human-gated paths:");
+      reporter.log("");
+      reporter.log("Human approval required.");
+      reporter.log("");
+      reporter.log("Changed human-gated paths:");
       for (const file of humanGateFiles) {
-        console.log(`  - ${file}`);
+        reporter.log(`  - ${file}`);
       }
-      console.log("");
-      console.log("Current diff hash:");
-      console.log(`  ${diffHash}`);
-      console.log("");
-      console.log("Next action for human reviewer:");
-      console.log("  Action owner: human only");
-      console.log(`  ${nextAction}`);
-      console.log("");
-      console.log("AI agents must stop here.");
-      console.log("Do not approve this task yourself.");
+      reporter.log("");
+      reporter.log("Current diff hash:");
+      reporter.log(`  ${diffHash}`);
+      reporter.log("");
+      reporter.log("Next action for human reviewer:");
+      reporter.log("  Action owner: human only");
+      reporter.log(`  ${nextAction}`);
+      reporter.log("");
+      reporter.log("AI agents must stop here.");
+      reporter.log("Do not approve this task yourself.");
     }
   }
   return hasErrors(diffIssues) ? 1 : 0;
