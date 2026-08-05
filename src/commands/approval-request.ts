@@ -2,7 +2,9 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+import { changedFilesBetween, isCommitAncestor } from "../core/git.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
@@ -54,7 +56,7 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
 
 type GitHubReviewProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "actorUrl" | "verifiedAt" | "verificationLevel">;
 
-function verifyGitHubReviewProvenance(root: string, pullRequest: string, evidence: Evidence): GitHubReviewProvenance {
+function verifyGitHubReviewProvenance(root: string, taskId: string, pullRequest: string, evidence: Evidence): GitHubReviewProvenance {
   const number = normalizePullRequestNumber(pullRequest);
   const headCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
   const diffHash = evidence.diffHash ?? evidence.git?.diffHash;
@@ -73,7 +75,16 @@ function verifyGitHubReviewProvenance(root: string, pullRequest: string, evidenc
   }
   if (!payload || typeof payload !== "object") throw new Error(`GitHub PR #${number} provenance response is invalid`);
   const record = payload as { number?: unknown; url?: unknown; headRefOid?: unknown; reviews?: unknown };
-  if (record.number !== number || typeof record.url !== "string" || typeof record.headRefOid !== "string" || record.headRefOid !== headCommit || !Array.isArray(record.reviews)) {
+  let headMatchesEvidence = record.headRefOid === headCommit;
+  if (!headMatchesEvidence && typeof record.headRefOid === "string" && isCommitAncestor(root, headCommit, record.headRefOid)) {
+    try {
+      headMatchesEvidence = changedFilesBetween(root, headCommit, record.headRefOid)
+        .every((file) => taskLifecycleMetadataPaths(taskId).includes(file.replace(/\\/g, "/")));
+    } catch {
+      headMatchesEvidence = false;
+    }
+  }
+  if (record.number !== number || typeof record.url !== "string" || typeof record.headRefOid !== "string" || !headMatchesEvidence || !Array.isArray(record.reviews)) {
     throw new Error(`GitHub PR #${number} provenance does not match Evidence headCommit`);
   }
   const review = [...record.reviews].reverse().find((candidate) => {
@@ -229,7 +240,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     const evidencePullRequest = normalizePullRequestNumber(evidence?.git?.pullRequest);
     if (resolvedActor === "human" && evidencePullRequest !== undefined) {
       if (!evidence) throw new Error("Standard human approval requires Evidence");
-      humanProvenance = verifyGitHubReviewProvenance(root, `#${evidencePullRequest}`, evidence);
+      humanProvenance = verifyGitHubReviewProvenance(root, taskId, `#${evidencePullRequest}`, evidence);
       approvalExecution = {
         ...approvalExecution,
         approvedBy: humanProvenance.actorId
