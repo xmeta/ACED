@@ -131,14 +131,14 @@ export function validateHumanApprovalProvenance(approval: ApprovalRecord, requir
   if (!provenanceKeys.some((key) => approval[key] !== undefined)) return [];
   const issues: Issue[] = [];
   const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
-  for (const key of provenanceKeys) {
+  for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
     if (!approval[key]) add("approval.provenance.missing", `Human Approval is missing verified ${key}`);
   }
-  if (approval.actorSource !== "github-review" || approval.verificationLevel !== "standard") {
-    add("approval.provenance.level", "Human Approval requires standard GitHub review provenance");
+  if (approval.actorSource !== "tty" || approval.verificationLevel !== "lean") {
+    add("approval.provenance.level", "Human Approval requires lean interactive TTY provenance");
   }
   if (approval.actorId && approval.approvedBy !== approval.actorId) {
-    add("approval.provenance.actor", "approvedBy must match the verified GitHub review actorId");
+    add("approval.provenance.actor", "approvedBy must match the verified human actorId");
   }
   return issues;
 }

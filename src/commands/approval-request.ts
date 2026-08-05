@@ -1,10 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-import { changedFilesBetween, isCommitAncestor } from "../core/git.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
-import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
@@ -54,62 +52,35 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
   };
 }
 
-type GitHubReviewProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "actorUrl" | "verifiedAt" | "verificationLevel">;
+type TtyHumanProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "verifiedAt" | "verificationLevel">;
 
-function verifyGitHubReviewProvenance(root: string, taskId: string, pullRequest: string, evidence: Evidence): GitHubReviewProvenance {
-  const number = normalizePullRequestNumber(pullRequest);
+function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: string): TtyHumanProvenance {
   const headCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
   const diffHash = evidence.diffHash ?? evidence.git?.diffHash;
-  if (number === undefined || !headCommit || !diffHash) {
-    throw new Error("Standard human approval requires Evidence pullRequest, subjectHeadCommit, and diffHash");
+  if (!headCommit || !diffHash) {
+    throw new Error("Lean human approval requires Evidence subjectHeadCommit and diffHash");
   }
-  let payload: unknown;
+  if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
+    throw new Error("Lean human approval requires an interactive TTY; approval remains unapproved");
+  }
+  let actorId: string;
   try {
-    payload = JSON.parse(execFileSync("gh", ["pr", "view", String(number), "--json", "number,url,headRefOid,reviews"], {
-      cwd: root,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"]
-    }));
+    actorId = os.userInfo().username.trim();
   } catch {
-    throw new Error(`Unable to verify GitHub review provenance for PR #${number}; approval remains unapproved`);
+    throw new Error("Unable to verify the current OS user for Lean human approval; approval remains unapproved");
   }
-  if (!payload || typeof payload !== "object") throw new Error(`GitHub PR #${number} provenance response is invalid`);
-  const record = payload as { number?: unknown; url?: unknown; headRefOid?: unknown; reviews?: unknown };
-  let headMatchesEvidence = record.headRefOid === headCommit;
-  if (!headMatchesEvidence && typeof record.headRefOid === "string" && isCommitAncestor(root, headCommit, record.headRefOid)) {
-    try {
-      headMatchesEvidence = changedFilesBetween(root, headCommit, record.headRefOid)
-        .every((file) => taskLifecycleMetadataPaths(taskId).includes(file.replace(/\\/g, "/")));
-    } catch {
-      headMatchesEvidence = false;
-    }
+  if (!actorId) {
+    throw new Error("The current OS user is unavailable for Lean human approval; approval remains unapproved");
   }
-  if (record.number !== number || typeof record.url !== "string" || typeof record.headRefOid !== "string" || !headMatchesEvidence || !Array.isArray(record.reviews)) {
-    throw new Error(`GitHub PR #${number} provenance does not match Evidence headCommit`);
-  }
-  const review = [...record.reviews].reverse().find((candidate) => {
-    if (!candidate || typeof candidate !== "object") return false;
-    const item = candidate as { state?: unknown; commit_id?: unknown; submitted_at?: unknown; html_url?: unknown; user?: { login?: unknown }; author?: { login?: unknown } };
-    const actorId = item.user?.login ?? item.author?.login;
-    return item.state === "APPROVED"
-      && item.commit_id === record.headRefOid
-      && typeof actorId === "string"
-      && actorId.length > 0
-      && typeof item.html_url === "string"
-      && item.html_url.length > 0
-      && typeof item.submitted_at === "string"
-      && item.submitted_at.length > 0;
-  }) as { html_url: string; submitted_at: string; user?: { login?: string }; author?: { login?: string } } | undefined;
-  const actorId = review?.user?.login ?? review?.author?.login;
-  if (!review || !actorId) {
-    throw new Error(`GitHub PR #${number} has no APPROVED review for Evidence headCommit; approval remains unapproved`);
+  const confirmation = `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+  if (reason !== confirmation) {
+    throw new Error(`Lean human approval requires exact TTY confirmation in --reason: ${confirmation}`);
   }
   return {
     actorId,
-    actorSource: "github-review",
-    actorUrl: review.html_url,
-    verifiedAt: review.submitted_at,
-    verificationLevel: "standard"
+    actorSource: "tty",
+    verifiedAt: new Date().toISOString(),
+    verificationLevel: "lean"
   };
 }
 
@@ -166,7 +137,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
   try {
     const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
     let delegatedSubject: { headCommit: string; diffHash: string } | undefined;
-    let humanProvenance: GitHubReviewProvenance | undefined;
+    let humanProvenance: TtyHumanProvenance | undefined;
     let approvalExecution: Pick<ApprovalRecord, "approvedBy" | "approvedAt" | "approvalMode" | "delegationSource" | "delegatedBy" | "executedBy" | "delegationScope" | "delegationProof"> = {
       approvedBy: options.approvedBy,
       approvalMode: "human"
@@ -238,9 +209,11 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     }
 
     const evidencePullRequest = normalizePullRequestNumber(evidence?.git?.pullRequest);
-    if (resolvedActor === "human" && evidencePullRequest !== undefined) {
-      if (!evidence) throw new Error("Standard human approval requires Evidence");
-      humanProvenance = verifyGitHubReviewProvenance(root, taskId, `#${evidencePullRequest}`, evidence);
+    const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+    const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+    if (resolvedActor === "human" && evidencePullRequest !== undefined && evidenceHead && evidenceDiffHash) {
+      if (!evidence) throw new Error("Lean human approval requires Evidence");
+      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason);
       approvalExecution = {
         ...approvalExecution,
         approvedBy: humanProvenance.actorId

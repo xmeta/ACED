@@ -1,5 +1,6 @@
 import { chmodSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
@@ -41,6 +42,21 @@ function withCurrentPullRequest(root: string, payload: unknown | undefined, acti
     return action();
   } finally {
     process.env.PATH = previousPath;
+  }
+}
+
+function withInteractiveTty(action: () => number): number {
+  const stdinDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+  const stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+  Object.defineProperty(process.stdin, "isTTY", { configurable: true, value: true });
+  Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
+  try {
+    return action();
+  } finally {
+    if (stdinDescriptor) Object.defineProperty(process.stdin, "isTTY", stdinDescriptor);
+    else delete (process.stdin as unknown as { isTTY?: boolean }).isTTY;
+    if (stdoutDescriptor) Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);
+    else delete (process.stdout as unknown as { isTTY?: boolean }).isTTY;
   }
 }
 
@@ -121,30 +137,25 @@ describe("approval", () => {
       git: { pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
 
-    const result = withCurrentPullRequest(root, {
-      number: 42,
-      url: "https://github.com/xmeta/ACED/pull/42",
-      headRefOid: "abc1234",
-      reviews: [{
-        state: "APPROVED",
-        commit_id: "abc1234",
-        submitted_at: "2026-08-06T00:01:00.000Z",
-        html_url: "https://github.com/xmeta/ACED/pull/42#pullrequestreview-1",
-        user: { login: "reviewer" }
-      }]
-    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false }));
+    const result = withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      pullRequest: "#42",
+      reason: "CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234",
+      actor: "human",
+      force: false
+    }));
+    const actorId = os.userInfo().username;
     expect(result).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("status: approved");
-    expect(actual).toContain("approvedBy: reviewer");
-    expect(actual).toContain("actorId: reviewer");
-    expect(actual).toContain("actorSource: github-review");
-    expect(actual).toContain("verificationLevel: standard");
+    expect(actual).toContain(`approvedBy: ${actorId}`);
+    expect(actual).toContain(`actorId: ${actorId}`);
+    expect(actual).toContain("actorSource: tty");
+    expect(actual).toContain("verificationLevel: lean");
     expect(actual).toContain("approvedAt:");
     expect(actual).toContain("headCommit: abc1234");
     expect(actual).toContain("diffHash: diff1234");
     expect(actual).toContain('pullRequest: "#42"');
-    expect(actual).toContain("reason: Evidence and PR reviewed");
+    expect(actual).toContain("reason: CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234");
   });
 
   test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
@@ -155,15 +166,15 @@ describe("approval", () => {
       diffHash: "diff1234",
       git: { pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
-    const output = captureOutput(() => withCurrentPullRequest(root, {
-      number: 42,
-      url: "https://github.com/xmeta/ACED/pull/42",
-      headRefOid: "abc1234",
-      reviews: []
-    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Reviewed", actor: "human", force: false })));
+    const output = captureOutput(() => withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      pullRequest: "#42",
+      reason: "Reviewed",
+      actor: "human",
+      force: false
+    })));
 
     expect(output.result).toBe(1);
-    expect(output.stderr).toContain("no APPROVED review");
+    expect(output.stderr).toContain("exact TTY confirmation");
     expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
