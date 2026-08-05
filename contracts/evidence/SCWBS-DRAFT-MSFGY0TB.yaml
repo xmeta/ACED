@@ -24,8 +24,11 @@ git:
   diffHash: sha256:e70e5194a0c108400cbebe39b7d78e60fbb64e0cb82bdc6e7e9de2ff615323d1
   headCommit: 2496a483f1af108f1c478af36644142f4d462d48
 changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSFGY0TB.yaml
   - contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml
   - contracts/discovery/PROBE-issue-421-finish-reporter.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFGY0TB.patch
+  - contracts/evidence/SCWBS-DRAFT-MSFGY0TB.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MSFGY0TB.yaml
   - contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
@@ -64,3 +67,9 @@ checks:
     cacheKey: sha256:be8345fde1d79dcf34e8ecdcd0c346a6ac13c93a3403544c54d9746014308d26
     durationMilliseconds: 3493
     executedAt: "2026-08-05T03:17:55.454Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Reporterのbuffered stdoutとInjected Reporter経由のIssue出力をユニットテストで追加し、既存のfinish/check-diff/registry-rebuild統合テスト469件を維持
