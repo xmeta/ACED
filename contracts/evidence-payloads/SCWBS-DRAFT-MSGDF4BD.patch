@@ -1,0 +1,555 @@
+diff --git a/contracts/specs/SPEC-LITE-MSGDF4BD.yaml b/contracts/specs/SPEC-LITE-MSGDF4BD.yaml
+new file mode 100644
+index 0000000..f5bc160
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSGDF4BD.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSGDF4BD
++type: spec-contract
++featureId: F-MSGDF4BD
++title: "Issue #434: PR後EvidenceとApprovalの再収束ガイド"
++status: approved
++version: 0.1.0
++summary: "現在ブランチの既存PRを読み取り、Evidence・Review・Approvalの不一致時に一意の回復コマンドを示す。承認意味論とHuman Gate所有権は変更しない。"
++approvedBy: user-requested-issue-434
++approvedAt: "2026-08-06T00:00:00+09:00"
++acceptanceCriteria:
++  - current branch open PR number is read-only discoverable through the existing GitHub CLI integration and unavailable or malformed responses fail safe without inventing metadata
++  - finish and check-diff report evidence collect with the detected PR number before any new PR creation when an existing PR is not recorded in Evidence or Review
++  - approval request does not create a requested record whose PR metadata conflicts with the current branch PR or Evidence; the message identifies the mismatch and the recovery order
++  - health exposes a distinct warning and fixCommand for a detected current branch PR missing from Evidence, while Human Approval remains human-only
++  - integration regression tests cover detected/missing/matching/conflicting/unavailable PR states and preserve existing PR-state and approval behavior
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml b/contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
+new file mode 100644
+index 0000000..57d8291
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
+@@ -0,0 +1,68 @@
++id: SCWBS-DRAFT-MSGDF4BD
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSGDF4BD
++branchName: task/SCWBS-DRAFT-MSGDF4BD-issue-434-pr-evidence-approval
++allowedPaths:
++  - src/core/github-pull-request.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/commands/approval-request.ts
++  - src/commands/health.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/health.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - approval identity or authorization semantics change is required
++  - existing PR cannot be queried without changing protected CI or repository settings
++  - implementation or fixture requires paths outside the listed source and test files
++  - Human Gate output ownership is weakened or AI approval is enabled
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - current branch PR detection is read-only, degrades safely when GitHub CLI is unavailable, and never changes approval identity or authorization semantics
++  - finish and check-diff identify an existing current-branch PR when Evidence and Review omit PR metadata, and emit evidence collect as the first actionable recovery command
++  - approval request refuses to create a stale request when an existing current-branch PR conflicts with the requested or recorded Evidence PR metadata, while preserving human-only approval ownership
++  - health reports a distinct actionable warning for a current-branch PR that is absent from Evidence, and integration tests cover matching, missing, conflicting, unavailable, and human-only paths
++  - no package, CI, Vitest, WBS, approval-policy, or coverage-threshold files change
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
++  - contracts/specs/SPEC-LITE-MSGDF4BD.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSGDF4BD.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSGDF4BD.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSGDF4BD.patch
++  - contracts/approvals/SCWBS-DRAFT-MSGDF4BD.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSGDF4BD.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a56de29a8f269af3869997396f06b29c105b73488b30072f6f8df647c19cdda4
++  createdAt: "2026-08-05T17:39:17.262Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 62310f1..d3e003e 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1616,3 +1616,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T15:53:42.743Z"
++  - id: SCWBS-DRAFT-MSGDF4BD
++    path: contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
++    branchName: task/SCWBS-DRAFT-MSGDF4BD-issue-434-pr-evidence-approval
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index 3fba358..d5e5b26 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -6,6 +6,7 @@ import { approvalPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
++import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
+ 
+ export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
+   return {
+@@ -59,6 +60,19 @@ function evidenceSubject(root: string, taskId: string): { headCommit?: string; d
+ 
+ export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
+   try {
++    const current = detectCurrentPullRequest(root);
++    const evidencePullRequest = normalizePullRequestNumber(readEvidence(root, taskId).evidence?.git?.pullRequest);
++    const requestedPullRequest = normalizePullRequestNumber(options.pullRequest);
++    if (current && evidencePullRequest !== current.number) {
++      console.error(`${taskId} current branch already has PR #${current.number}, but Evidence records ${evidencePullRequest ? `PR #${evidencePullRequest}` : "no PR"}`);
++      console.error(`fixCommand: ${pullRequestEvidenceCommand(taskId, current.number)}`);
++      return 1;
++    }
++    if (current && requestedPullRequest !== undefined && requestedPullRequest !== current.number) {
++      console.error(`${taskId} approval request PR #${requestedPullRequest} does not match current branch PR #${current.number}`);
++      console.error(`fixCommand: ${pullRequestEvidenceCommand(taskId, current.number)}`);
++      return 1;
++    }
+     const relativePath = approvalPath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     if (existsSync(fullPath) && !options.force) {
+@@ -66,7 +80,10 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+       return 1;
+     }
+ 
+-    const yaml = buildApprovalRequestYaml(taskId, options);
++    const yaml = buildApprovalRequestYaml(taskId, {
++      ...options,
++      ...(current ? { pullRequest: `#${current.number}` } : {})
++    });
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
+     syncRegistry(root);
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 19f818d..c437b35 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -9,6 +9,7 @@ import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type Ta
+ import type { Evidence, Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+ import { collectWbsChangesetGateIssues } from "./check.js";
++import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
+ 
+ export type HumanGateActionOwnership = {
+   nextActionOwner: "human";
+@@ -261,6 +262,20 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract, evid
+   }));
+ }
+ 
++export function collectCurrentPullRequestIssues(root: string, task: TaskContract, evidenceOverride?: Evidence): Issue[] {
++  const current = detectCurrentPullRequest(root);
++  if (!current) return [];
++  const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
++  const recorded = normalizePullRequestNumber(evidence?.git?.pullRequest);
++  if (recorded === current.number) return [];
++  return [{
++    severity: "error",
++    code: "diff.pullRequest.current.metadata",
++    message: `${task.id} current branch already has PR #${current.number}, but Evidence records ${recorded ? `PR #${recorded}` : "no PR"}`,
++    fixCommand: pullRequestEvidenceCommand(task.id, current.number)
++  }];
++}
++
+ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence; reporter?: Reporter } = {}): number {
+   const reporter = options.reporter ?? createConsoleReporter();
+   const { task, issues } = readTask(root, taskId);
+@@ -296,6 +311,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   const diffIssues = withDefaultFixCommand([
+     ...collectBranchIssues(task, currentBranch(root)),
+     ...collectEvidenceGateIssues(root, task, options.evidence),
++    ...collectCurrentPullRequestIssues(root, task, options.evidence),
+     ...workingTreeIssues,
+     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
+     ...collectDiffIssues(root, task, files, options.evidence)
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index bebc4ec..6b6adb8 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -17,6 +17,9 @@ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+ import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
+ import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
++import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
++
++export { normalizePullRequestNumber } from "./health.js";
+ 
+ export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
+ export type FinishOutcome =
+@@ -68,12 +71,6 @@ type PullRequestView = { isDraft?: boolean; state?: string; statusCheckRollup?:
+ const FAILED_CHECK_CONCLUSIONS = new Set(["ACTION_REQUIRED", "CANCELLED", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
+ const SUCCESSFUL_CHECK_CONCLUSIONS = new Set(["NEUTRAL", "SKIPPED", "SUCCESS"]);
+ 
+-export function normalizePullRequestNumber(value: string | undefined): number | undefined {
+-  if (!value) return undefined;
+-  const match = value.trim().match(/^(?:#|.*\/pull\/)?([1-9]\d*)\/?$/);
+-  return match?.[1] ? Number(match[1]) : undefined;
+-}
+-
+ export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
+   try {
+     const output = execFileSync(
+@@ -244,6 +241,19 @@ function collectPullRequestMetadata(root: string, taskId: string): PullRequestMe
+       }
+     };
+   }
++  const current = detectCurrentPullRequest(root);
++  if (current && (evidence !== current.number || (review !== undefined && review !== current.number))) {
++    return {
++      evidence,
++      review,
++      issue: {
++        severity: "error",
++        code: "finish.pullRequest.current.metadata.mismatch",
++        message: `${taskId} current branch already has PR #${current.number}, but Evidence/Review metadata is missing or points elsewhere`,
++        fixCommand: pullRequestEvidenceCommand(taskId, current.number)
++      }
++    };
++  }
+   return { evidence, review, selected: evidence ?? review };
+ }
+ 
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index ca52462..396a02f 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -1,3 +1,6 @@
++import { execFileSync } from "node:child_process";
++import { readFileSync } from "node:fs";
++import path from "node:path";
+ import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+@@ -15,6 +18,56 @@ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget
+ import { verifyPatchArtifact } from "../core/git.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ 
++export type CurrentPullRequest = {
++  number: number;
++  state?: string;
++  isDraft?: boolean;
++  headRefName?: string;
++  baseRefName?: string;
++};
++
++type GithubPullRequestView = {
++  number?: unknown;
++  state?: unknown;
++  isDraft?: unknown;
++  headRefName?: unknown;
++  baseRefName?: unknown;
++};
++
++export function normalizePullRequestNumber(value: string | undefined): number | undefined {
++  if (!value) return undefined;
++  const match = value.trim().match(/^(?:#|.*\/pull\/)?([1-9]\d*)\/?$/);
++  return match?.[1] ? Number(match[1]) : undefined;
++}
++
++/** Read the current branch PR without mutating repository state; unavailable GitHub access fails safe. */
++export function detectCurrentPullRequest(root: string): CurrentPullRequest | undefined {
++  try {
++    const gitConfig = readFileSync(path.join(root, ".git", "config"), "utf8");
++    if (!/\[remote "origin"\]/.test(gitConfig)) return undefined;
++    const output = execFileSync(
++      "gh",
++      ["pr", "view", "--json", "number,state,isDraft,headRefName,baseRefName"],
++      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
++    );
++    const view = JSON.parse(output) as GithubPullRequestView;
++    if (typeof view.number !== "number" || !Number.isInteger(view.number) || view.number < 1) return undefined;
++    return {
++      number: view.number,
++      ...(typeof view.state === "string" ? { state: view.state } : {}),
++      ...(typeof view.isDraft === "boolean" ? { isDraft: view.isDraft } : {}),
++      ...(typeof view.headRefName === "string" ? { headRefName: view.headRefName } : {}),
++      ...(typeof view.baseRefName === "string" ? { baseRefName: view.baseRefName } : {})
++    };
++  } catch {
++    return undefined;
++  }
++}
++
++export function pullRequestEvidenceCommand(taskId: string, pullRequest: number): string {
++  return `npm run scwbs -- evidence collect --task ${taskId} --pull-request ${pullRequest} --force`;
++}
++
+ type EvidenceLevel = "A" | "B" | "C";
+ 
+ export type HealthOptions = {
+@@ -271,6 +324,18 @@ export function collectEvidenceTrustIssues(
+       fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --pull-request <pr-number>`
+     });
+   }
++  const currentPullRequest = currentBranchName && (currentBranchName === task.branchName || currentBranchName === evidence.git?.branch)
++    ? detectCurrentPullRequest(root)
++    : undefined;
++  const recordedPullRequest = normalizePullRequestNumber(evidence.git?.pullRequest);
++  if (currentPullRequest && recordedPullRequest !== currentPullRequest.number) {
++    issues.push({
++      severity: "warn",
++      code: "health.evidence.git.pullRequest.currentBranch",
++      message: `${task.id} current branch already has PR #${currentPullRequest.number}, but Evidence records ${recordedPullRequest ? `PR #${recordedPullRequest}` : "no PR"}`,
++      fixCommand: pullRequestEvidenceCommand(task.id, currentPullRequest.number)
++    });
++  }
+ 
+   for (const file of evidence.changedFiles) {
+     const managed = matchesManagedContractPath(task, file);
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index 66ffd00..4914cbc 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -1,11 +1,12 @@
+-import { readFileSync } from "node:fs";
++import { chmodSync, readFileSync } from "node:fs";
++import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ import { main } from "../../src/cli.js";
+ import { readApproval } from "../../src/core/contracts.js";
+-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
++import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
+ const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
+ const OTHER_STRONG_TOKEN = "fedcba9876543210fedcba9876543210";
+@@ -28,6 +29,21 @@ function captureOutput(action: () => number): { result: number; stdout: string;
+   }
+ }
+ 
++function withCurrentPullRequest(root: string, payload: unknown | undefined, action: () => number): number {
++  const gh = path.join(root, "bin/gh");
++  writeText(root, "bin/gh", payload === undefined
++    ? "#!/usr/bin/env node\nprocess.exit(1);\n"
++    : `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
++  chmodSync(gh, 0o755);
++  const previousPath = process.env.PATH;
++  process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
++  try {
++    return action();
++  } finally {
++    process.env.PATH = previousPath;
++  }
++}
++
+ describe("approval", () => {
+   test("approval request writes a requested approval record", () => {
+     const root = makeTempRepo();
+@@ -40,6 +56,32 @@ describe("approval", () => {
+     expect(actual).toContain('pullRequest: "#42"');
+   });
+ 
++  test("approval request records the detected current branch PR after Evidence matches", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ git: { pullRequest: "#42" } }) as unknown as Record<string, unknown>);
++
++    withCurrentPullRequest(root, { number: 42, state: "OPEN", isDraft: false }, () => {
++      const result = runApprovalRequest(root, "WBS-001-004", { note: "Awaiting human review", force: false });
++      expect(result).toBe(0);
++      return result;
++    });
++    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toContain('pullRequest: "#42"');
++  });
++
++  test("approval request stops and points to Evidence collection when an existing PR is unrecorded", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++    const output = captureOutput(() => withCurrentPullRequest(root, { number: 42 }, () =>
++      runApprovalRequest(root, "WBS-001-004", { note: "Awaiting human review", force: false })));
++
++    expect(output.result).toBe(1);
++    expect(output.stderr).toContain("current branch already has PR #42");
++    expect(output.stderr).toContain("evidence collect --task WBS-001-004 --pull-request 42 --force");
++  });
++
+   test("approval request refuses to overwrite an existing record without force", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 6d9d6df..24e1733 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -2,10 +2,11 @@ import { execFileSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
++import { collectBranchIssues, collectCurrentPullRequestIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
+ import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
++import { chmodSync } from "node:fs";
+ 
+ const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+ 
+@@ -37,6 +38,38 @@ function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
+ }
+ 
+ describe("check-diff", () => {
++  test("current branch PR metadata is required when a PR is discoverable, but unavailable GitHub access is non-blocking", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++    const gh = path.join(root, "bin/gh");
++    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ number: 42 }));\n");
++    chmodSync(gh, 0o755);
++    const previousPath = process.env.PATH;
++    process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
++    try {
++      const task = sampleTask();
++      expect(collectCurrentPullRequestIssues(root, task, sampleEvidence({ git: { pullRequest: "#41" } }))).toEqual([
++        expect.objectContaining({
++          code: "diff.pullRequest.current.metadata",
++          fixCommand: expect.stringContaining("--pull-request 42 --force")
++        })
++      ]);
++      expect(collectCurrentPullRequestIssues(root, task, sampleEvidence({ git: { pullRequest: "#42" } }))).toEqual([]);
++    } finally {
++      process.env.PATH = previousPath;
++    }
++
++    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.exit(1);\n");
++    chmodSync(gh, 0o755);
++    const unavailablePath = process.env.PATH;
++    process.env.PATH = `${path.dirname(gh)}:${unavailablePath ?? ""}`;
++    try {
++      expect(collectCurrentPullRequestIssues(root, sampleTask(), sampleEvidence())).toEqual([]);
++    } finally {
++      process.env.PATH = unavailablePath;
++    }
++  });
+   test("authority comparison detects every scope field but ignores contractLock refresh metadata", () => {
+     const base = sampleTask({ managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] });
+     const refreshed = sampleTask({
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index e92888e..9af37e4 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -39,6 +39,23 @@ function readBounded(file: string): string {
+   }
+ }
+ 
++function withCurrentPullRequest(root: string, payload: unknown, action: () => void): void {
++  const gh = path.join(root, "bin/current-pr-gh");
++  writeText(root, "bin/current-pr-gh", `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
++  chmodSync(gh, 0o755);
++  const previousPath = process.env.PATH;
++  execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++  process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
++  const linkedGh = path.join(root, "bin/gh");
++  writeText(root, "bin/gh", `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
++  chmodSync(linkedGh, 0o755);
++  try {
++    action();
++  } finally {
++    process.env.PATH = previousPath;
++  }
++}
++
+ async function waitForCommandStart(marker: string, lockPath: string, timeoutMs = 5_000): Promise<void> {
+   const deadline = Date.now() + timeoutMs;
+   while (Date.now() < deadline) {
+@@ -428,6 +445,27 @@ describe("finish", () => {
+     expect(result.json.nextAction).toContain("review request --task WBS-001-004 --pull-request 42 --force");
+   });
+ 
++  test("finish points to Evidence collection when the current branch already has an unrecorded PR", () => {
++    const root = prepareFinishRepo();
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
++    }) as unknown as Record<string, unknown>);
++
++    const result = (() => {
++      let captured: ReturnType<typeof captureFinishJson> | undefined;
++      withCurrentPullRequest(root, { number: 73, state: "OPEN", isDraft: false }, () => {
++        captured = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
++      });
++      return captured!;
++    })();
++
++    expect(result.exitCode).toBe(1);
++    expect(result.json.readinessWarnings).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "finish.pullRequest.current.metadata.mismatch" })
++    ]));
++    expect(result.json.nextAction).toContain("evidence collect --task WBS-001-004 --pull-request 73 --force");
++  }, 30000);
++
+   test("plain and JSON finish output return the same PR next action", () => {
+     const jsonRoot = prepareFinishRepo(true);
+     const jsonResult = captureFinishJson(jsonRoot, {
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index eccff68..8bfd9fd 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -1,6 +1,6 @@
+ import { execFileSync } from "node:child_process";
+ import { createHash } from "node:crypto";
+-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+@@ -15,6 +15,28 @@ import { verifyPatchArtifact } from "../../src/core/git.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("health", () => {
++  test("health warns when the current branch PR is absent from Evidence", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++    const gh = path.join(root, "bin/gh");
++    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ number: 42 }));\n");
++    chmodSync(gh, 0o755);
++    const previousPath = process.env.PATH;
++    process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
++    try {
++      const task = sampleTask({ requiredChecks: [], branchName: "master" });
++      const issues = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, sampleEvidence());
++      expect(issues).toEqual(expect.arrayContaining([
++        expect.objectContaining({
++          code: "health.evidence.git.pullRequest.currentBranch",
++          fixCommand: expect.stringContaining("--pull-request 42 --force")
++        })
++      ]));
++    } finally {
++      process.env.PATH = previousPath;
++    }
++  });
+   test("patch provenance fails closed for missing, tampered, unsafe, or inconsistent artifacts", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({ requiredChecks: [] });
