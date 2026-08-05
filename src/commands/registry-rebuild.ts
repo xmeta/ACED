@@ -4,6 +4,7 @@ import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
 import { isActiveTaskStatus, readTaskIndex } from "../core/task-index.js";
+import { createConsoleReporter, type Reporter } from "../core/report.js";
 import type { Evidence } from "../core/types.js";
 
 export type RegistryRebuildOptions = {
@@ -13,6 +14,7 @@ export type RegistryRebuildOptions = {
   json?: boolean;
   verbose?: boolean;
   output?: string;
+  reporter?: Reporter;
 };
 
 export type RegistryRebuildSummary = {
@@ -48,26 +50,26 @@ export function buildRegistryRebuildSummary(current: string, next: string, statu
   return { schemaVersion: "1.0.0", status, added, updated, removed, path: defaultRegistryPath };
 }
 
-function printSummary(summary: RegistryRebuildSummary): void {
-  console.log("PASS registry rebuilt");
-  console.log(`added: ${summary.added}`);
-  console.log(`updated: ${summary.updated}`);
-  console.log(`removed: ${summary.removed}`);
-  console.log(`path: ${summary.path}`);
+function printSummary(summary: RegistryRebuildSummary, reporter: Reporter): void {
+  reporter.log("PASS registry rebuilt");
+  reporter.log(`added: ${summary.added}`);
+  reporter.log(`updated: ${summary.updated}`);
+  reporter.log(`removed: ${summary.removed}`);
+  reporter.log(`path: ${summary.path}`);
 }
 
-function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: RegistryRebuildOptions): void {
+function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: RegistryRebuildOptions, reporter: Reporter): void {
   if (options.quiet) return;
   if (options.json) {
-    console.log(JSON.stringify(summary));
+    reporter.log(JSON.stringify(summary));
     return;
   }
   if (options.output === "-") {
-    process.stdout.write(yaml);
+    reporter.write(yaml);
     return;
   }
-  printSummary(summary);
-  if (options.verbose) process.stdout.write(yaml);
+  printSummary(summary, reporter);
+  if (options.verbose) reporter.write(yaml);
 }
 
 export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
@@ -142,10 +144,11 @@ export function syncRegistry(root: string): RegistryRebuildSummary {
 }
 
 export function runRegistryRebuild(root: string, options: RegistryRebuildOptions): number {
+  const reporter = options.reporter ?? createConsoleReporter();
   try {
     const outputModes = [options.quiet, options.json, options.verbose, options.output !== undefined].filter(Boolean).length;
     if (outputModes > 1 || (options.output !== undefined && options.output !== "-")) {
-      console.error("Choose one of --quiet, --json, --verbose, or --output -");
+      reporter.error("Choose one of --quiet, --json, --verbose, or --output -");
       return 2;
     }
     const next = buildRegistryYaml(root);
@@ -153,27 +156,27 @@ export function runRegistryRebuild(root: string, options: RegistryRebuildOptions
     const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "";
     if (options.check) {
       if (current === next) {
-        if (options.output === "-") process.stdout.write(next);
-        else if (options.json) console.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "synchronized")));
+        if (options.output === "-") reporter.write(next);
+        else if (options.json) reporter.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "synchronized")));
         else if (!options.quiet) {
-          console.log("PASS registry rebuild --check");
-          if (options.verbose) process.stdout.write(next);
+          reporter.log("PASS registry rebuild --check");
+          if (options.verbose) reporter.write(next);
         }
         return 0;
       }
-      if (options.json) console.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "out-of-sync")));
-      else console.error(`${defaultRegistryPath} is out of sync; run scwbs registry rebuild --force`);
+      if (options.json) reporter.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "out-of-sync")));
+      else reporter.error(`${defaultRegistryPath} is out of sync; run scwbs registry rebuild --force`);
       return 1;
     }
     if (existsSync(fullPath) && !options.force && current !== next) {
-      console.error(`${defaultRegistryPath} differs; rerun with --force to overwrite`);
+      reporter.error(`${defaultRegistryPath} differs; rerun with --force to overwrite`);
       return 1;
     }
     writeFileSync(fullPath, next, "utf8");
-    printSuccess(buildRegistryRebuildSummary(current, next, "rebuilt"), next, options);
+    printSuccess(buildRegistryRebuildSummary(current, next, "rebuilt"), next, options, reporter);
     return 0;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    reporter.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }

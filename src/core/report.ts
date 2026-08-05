@@ -1,11 +1,44 @@
 import type { Issue } from "./types.js";
 
-export function printIssues(issues: Issue[]): void {
+export type Reporter = {
+  log(message?: unknown): void;
+  error(message?: unknown): void;
+  write(chunk: string | Uint8Array): void;
+};
+
+export function createConsoleReporter(): Reporter {
+  return {
+    log: (message) => console.log(message),
+    error: (message) => console.error(message),
+    write: (chunk) => {
+      process.stdout.write(chunk);
+    }
+  };
+}
+
+export function createBufferedStdoutReporter(): { reporter: Reporter; output: () => string } {
+  let stdout = "";
+  const consoleReporter = createConsoleReporter();
+  return {
+    reporter: {
+      log: (message) => {
+        stdout += `${String(message)}\n`;
+      },
+      error: consoleReporter.error,
+      write: (chunk) => {
+        stdout += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+      }
+    },
+    output: () => stdout
+  };
+}
+
+export function printIssues(issues: Issue[], reporter: Reporter = createConsoleReporter()): void {
   for (const item of issues) {
     const prefix = item.severity === "error" ? "ERROR" : "WARN";
-    console.log(`${prefix} ${item.code}: ${item.message}`);
+    reporter.log(`${prefix} ${item.code}: ${item.message}`);
     if (item.severity === "error" && item.fixCommand) {
-      console.log(`  fixCommand: ${item.fixCommand}`);
+      reporter.log(`  fixCommand: ${item.fixCommand}`);
     }
   }
 }

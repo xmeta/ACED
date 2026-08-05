@@ -1,0 +1,45 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-421-finish-reporter
+type: discovery-probe
+status: concluded
+question: "Issue #421のfinish.tsのJSON出力捕捉をReporter注入へ置換し、出力文言と非JSON挙動を変えずに安全に分離できるか"
+hypotheses:
+  - finish.tsのcaptureStdoutとrunSilentIfJsonだけでReporter境界を導入できる
+  - 既存の出力文言とJSON結果を維持できる
+  - 他コマンドやCI変更は不要
+activities:
+  - 'GitHub Issue #421本文と関連Issue確認'
+  - finish.ts/report.tsと既存テスト確認
+  - package scriptsとSC-WBSのgate分類確認
+  - 差分範囲と停止条件の確定
+evidenceExpected:
+  - 'Issue #421本文'
+  - finish.ts/report.ts関連実装
+  - finish.tsのJSON出力テスト
+  - git statusと既存Task/Registry状態
+  - Task ContractのallowedPathsとHuman Gate分類
+unknowns:
+  - Reporterインターフェースの最小形
+  - finish.tsの非同期呼び出し境界
+  - Human Approvalの可否
+timebox: 30m
+costLimit: unobserved
+exitConditions:
+  - finish.tsと必要最小限のcore/report.tsまたはテストだけに収まり、出力契約・CI・CLI仕様を変更しない
+nextDecision: finish.tsのJSON captureをReporter注入へ置換する限定Taskを作成し、出力意味論の変更をHuman Gateで確認する
+createdAt: "2026-08-05T02:27:30.922Z"
+startedAt: "2026-08-05T02:27:42.085Z"
+concludedAt: "2026-08-05T02:29:13.555Z"
+exitConditionsMet: true
+factsLearned:
+  - finish.tsのcaptureStdoutはconsole.logとprocess.stdout.writeのグローバル差し替えに依存している
+  - check-diffとregistry-rebuildは出力先を注入できない
+  - 既存のfinish統合テストでJSON出力契約を検証できる
+  - Reporter導入にはfinish.tsと出力生成側3ファイルの最小変更が必要
+hypothesesRejected:
+  - src全体296箇所を一括置換
+  - CLI出力文言やJSONスキーマ変更
+  - CIやpackage設定の変更
+remainingUnknowns:
+  - Reporterの最小インターフェース設計についてHuman Approvalが必要
+  - 既存の非JSON出力とテスト捕捉の互換性

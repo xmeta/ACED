@@ -1,0 +1,607 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml b/contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml
+new file mode 100644
+index 0000000..33ee104
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSFGY0TB
++type: block
++taskId: SCWBS-DRAFT-MSFGY0TB
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: check-diffがTask生成コミットへのDiscovery混在と、src変更に対するtest:integration requiredChecks欠落を検出した。後者はlock・実装後のTask authority変更に当たり、requiredChecks拡張と契約専用コミット履歴修復の人間判断が必要
++createdAt: "2026-08-05T02:40:23.022Z"
++history:
++  - status: blocked
++    at: "2026-08-05T02:40:23.022Z"
++    reason: check-diffがTask生成コミットへのDiscovery混在と、src変更に対するtest:integration requiredChecks欠落を検出した。後者はlock・実装後のTask authority変更に当たり、requiredChecks拡張と契約専用コミット履歴修復の人間判断が必要
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-05T03:10:40.494Z"
++    reason: requiredChecksへのtest:integration追加と契約専用コミット履歴の修復を承認
++    by: human
++resolvedAt: "2026-08-05T03:10:40.494Z"
++resolvedBy: human
++resolution: requiredChecksへのtest:integration追加と契約専用コミット履歴の修復を承認
+diff --git a/contracts/discovery/PROBE-issue-421-finish-reporter.yaml b/contracts/discovery/PROBE-issue-421-finish-reporter.yaml
+new file mode 100644
+index 0000000..2cdd781
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-421-finish-reporter.yaml
+@@ -0,0 +1,45 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-421-finish-reporter
++type: discovery-probe
++status: concluded
++question: "Issue #421のfinish.tsのJSON出力捕捉をReporter注入へ置換し、出力文言と非JSON挙動を変えずに安全に分離できるか"
++hypotheses:
++  - finish.tsのcaptureStdoutとrunSilentIfJsonだけでReporter境界を導入できる
++  - 既存の出力文言とJSON結果を維持できる
++  - 他コマンドやCI変更は不要
++activities:
++  - 'GitHub Issue #421本文と関連Issue確認'
++  - finish.ts/report.tsと既存テスト確認
++  - package scriptsとSC-WBSのgate分類確認
++  - 差分範囲と停止条件の確定
++evidenceExpected:
++  - 'Issue #421本文'
++  - finish.ts/report.ts関連実装
++  - finish.tsのJSON出力テスト
++  - git statusと既存Task/Registry状態
++  - Task ContractのallowedPathsとHuman Gate分類
++unknowns:
++  - Reporterインターフェースの最小形
++  - finish.tsの非同期呼び出し境界
++  - Human Approvalの可否
++timebox: 30m
++costLimit: unobserved
++exitConditions:
++  - finish.tsと必要最小限のcore/report.tsまたはテストだけに収まり、出力契約・CI・CLI仕様を変更しない
++nextDecision: finish.tsのJSON captureをReporter注入へ置換する限定Taskを作成し、出力意味論の変更をHuman Gateで確認する
++createdAt: "2026-08-05T02:27:30.922Z"
++startedAt: "2026-08-05T02:27:42.085Z"
++concludedAt: "2026-08-05T02:29:13.555Z"
++exitConditionsMet: true
++factsLearned:
++  - finish.tsのcaptureStdoutはconsole.logとprocess.stdout.writeのグローバル差し替えに依存している
++  - check-diffとregistry-rebuildは出力先を注入できない
++  - 既存のfinish統合テストでJSON出力契約を検証できる
++  - Reporter導入にはfinish.tsと出力生成側3ファイルの最小変更が必要
++hypothesesRejected:
++  - src全体296箇所を一括置換
++  - CLI出力文言やJSONスキーマ変更
++  - CIやpackage設定の変更
++remainingUnknowns:
++  - Reporterの最小インターフェース設計についてHuman Approvalが必要
++  - 既存の非JSON出力とテスト捕捉の互換性
+diff --git a/contracts/specs/SPEC-LITE-MSFGY0TB.yaml b/contracts/specs/SPEC-LITE-MSFGY0TB.yaml
+new file mode 100644
+index 0000000..879587b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSFGY0TB.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSFGY0TB
++type: spec-contract
++featureId: F-MSFGY0TB
++title: "Issue #421 finish.tsのReporter出力境界を限定的に導入"
++status: approved
++approvedBy: user-requested-issue-421
++approvedAt: "2026-08-05T02:30:00Z"
++version: 0.1.0
++summary: "finish.tsのJSON出力捕捉からグローバルなconsole/process.stdout差し替えを除き、Reporter注入で既存の出力契約を維持する。"
++acceptanceCriteria:
++  - core/report.ts exports a minimal Reporter abstraction with console-compatible and buffered-stdout implementations
++  - finish.ts does not temporarily replace console.log or process.stdout.write for JSON capture
++  - finish.ts passes the selected Reporter to check-diff and registry-rebuild while preserving existing JSON schema, exit codes, and non-JSON messages
++  - direct check-diff and registry-rebuild callers retain their existing default output behavior
++  - regression tests cover buffered output and the finish JSON output boundary
++  - changes remain limited to the Task allowed paths; no package, CI, dependency, or unrelated command changes
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml b/contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
+new file mode 100644
+index 0000000..019f475
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
+@@ -0,0 +1,71 @@
++id: SCWBS-DRAFT-MSFGY0TB
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-421
++approvedAt: "2026-08-05T02:30:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSFGY0TB
++branchName: task/SCWBS-DRAFT-MSFGY0TB-issue-421-finish-ts-reporter
++allowedPaths:
++  - src/core/report.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/commands/registry-rebuild.ts
++  - tests/unit/report.test.ts
++  - contracts/specs/SPEC-LITE-MSFGY0TB.yaml
++  - contracts/discovery/PROBE-issue-421-finish-reporter.yaml
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - docs/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/report.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/commands/registry-rebuild.ts
++stopIf:
++  - Reporter設計または出力意味論の変更で合意できない
++  - allowedPaths外の変更が必要
++  - CLI JSONスキーマやCI/package設定の変更が必要
++  - 非同期出力の安全性を保証できない
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - Reporterの注入先をcore/report.tsに定義し、buffered stdout実装がconsole.logまたはprocess.stdout.writeをグローバルに差し替えない
++  - finish.tsのJSON経路がcheck-diffとregistry-rebuildへReporterを渡し、既存のJSONスキーマ・終了コード・非JSON出力文言を維持する
++  - Reporterの基本動作とfinishのJSON出力境界を回帰テストで検証する
++  - package設定、CI、他コマンドの出力フォーマット、依存関係を変更しない
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
++  - contracts/specs/SPEC-LITE-MSFGY0TB.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSFGY0TB.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSFGY0TB.patch
++  - contracts/approvals/SCWBS-DRAFT-MSFGY0TB.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSFGY0TB.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:7c96e19ac95290403971efa880fef19080088b2a50d2d9ca271ffde8f4eb1deb
++  createdAt: "2026-08-05T03:12:34.489Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 1e502b3..ff0128e 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1567,3 +1567,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T01:55:23.953Z"
++  - id: SCWBS-DRAFT-MSFGY0TB
++    path: contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
++    branchName: task/SCWBS-DRAFT-MSFGY0TB-issue-421-finish-ts-reporter
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index f322361..19f818d 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -4,7 +4,7 @@ import { matchesAny } from "../core/glob.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+-import { hasErrors, printIssues, withDefaultFixCommand } from "../core/report.js";
++import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand } from "../core/report.js";
+ import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
+ import type { Evidence, Issue, TaskContract } from "../core/types.js";
+ import { runWjsValidate } from "../core/wbs.js";
+@@ -51,25 +51,25 @@ function stashCommand(files: string[]): string {
+   return `git stash push --include-untracked -m "scwbs: clean working tree before Evidence" -- ${files.map(shellQuote).join(" ")}`;
+ }
+ 
+-function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[]): void {
++function printAuthorityRepairPreflights(reports: TaskAuthorityRepairPreflight[], reporter: Reporter): void {
+   for (const report of reports) {
+-    console.log("");
+-    console.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
+-    console.log(`  Changed fields: ${report.changedFields.join(", ")}`);
+-    console.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
+-    console.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
+-    console.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
+-    console.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
+-    console.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
+-    console.log(`  Existing Approval: ${report.impact.approvalStatus}`);
+-    console.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
+-    console.log(`  Human decision: ${report.requiredHumanDecision}`);
+-    console.log("  Recovery sequence:");
++    reporter.log("");
++    reporter.log(`Authority repair preflight (read-only): ${report.targetTaskId}`);
++    reporter.log(`  Changed fields: ${report.changedFields.join(", ")}`);
++    reporter.log(`  Trusted fingerprint: ${report.authorityFingerprint.trusted}`);
++    reporter.log(`  Current fingerprint: ${report.authorityFingerprint.current}`);
++    reporter.log(`  Managed paths added: ${report.managedPathChanges.added.join(", ") || "(none)"}`);
++    reporter.log(`  Managed paths removed: ${report.managedPathChanges.removed.join(", ") || "(none)"}`);
++    reporter.log(`  Existing Evidence: ${report.impact.evidencePresent ? "present" : "missing"}`);
++    reporter.log(`  Existing Approval: ${report.impact.approvalStatus}`);
++    reporter.log("  Impact: Evidence regeneration and Approval re-request are required; previous Approval is not reusable.");
++    reporter.log(`  Human decision: ${report.requiredHumanDecision}`);
++    reporter.log("  Recovery sequence:");
+     for (const step of report.recoverySteps) {
+-      console.log(`    ${step.step}. [${step.actor}] ${step.action}`);
+-      if (step.command) console.log(`       ${step.command}`);
++      reporter.log(`    ${step.step}. [${step.actor}] ${step.action}`);
++      if (step.command) reporter.log(`       ${step.command}`);
+     }
+-    console.log("  This preflight did not modify any files.");
++    reporter.log("  This preflight did not modify any files.");
+   }
+ }
+ 
+@@ -261,12 +261,13 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract, evid
+   }));
+ }
+ 
+-export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence } = {}): number {
++export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence; reporter?: Reporter } = {}): number {
++  const reporter = options.reporter ?? createConsoleReporter();
+   const { task, issues } = readTask(root, taskId);
+   if (!task) {
+     const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
+-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
+-    else printIssues(taskIssues);
++    if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
++    else printIssues(taskIssues, reporter);
+     return 1;
+   }
+   const baseRef = options.baseRef ?? "origin/main";
+@@ -288,8 +289,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       message: error instanceof Error ? error.message : String(error),
+       fixCommand: `npm run scwbs -- check-diff --task ${taskId} --base <a-valid-ref>`
+     }] as Issue[];
+-    if (options.json) console.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
+-    else printIssues(baseIssues);
++    if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: baseIssues, workingTree }, null, 2));
++    else printIssues(baseIssues, reporter);
+     return 1;
+   }
+   const diffIssues = withDefaultFixCommand([
+@@ -318,13 +319,13 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   }
+ 
+   if (diffIssues.length === 0) {
+-    if (options.json) console.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
+-    else console.log(`PASS check-diff ${taskId}`);
++    if (options.json) reporter.log(JSON.stringify({ status: "pass", taskId, issues: [], workingTree, requiresHumanApproval: false, nextAction: "" }, null, 2));
++    else reporter.log(`PASS check-diff ${taskId}`);
+     return 0;
+   }
+ 
+   if (options.json) {
+-    console.log(JSON.stringify({
++    reporter.log(JSON.stringify({
+       status: hasErrors(diffIssues) ? "fail" : "warn",
+       taskId,
+       issues: diffIssues,
+@@ -337,26 +338,26 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+       } : {})
+     }, null, 2));
+   } else {
+-    printIssues(diffIssues);
+-    printAuthorityRepairPreflights(authorityRepairPreflights);
++    printIssues(diffIssues, reporter);
++    printAuthorityRepairPreflights(authorityRepairPreflights, reporter);
+     if (requiresHumanApproval) {
+-      console.log("");
+-      console.log("Human approval required.");
+-      console.log("");
+-      console.log("Changed human-gated paths:");
++      reporter.log("");
++      reporter.log("Human approval required.");
++      reporter.log("");
++      reporter.log("Changed human-gated paths:");
+       for (const file of humanGateFiles) {
+-        console.log(`  - ${file}`);
++        reporter.log(`  - ${file}`);
+       }
+-      console.log("");
+-      console.log("Current diff hash:");
+-      console.log(`  ${diffHash}`);
+-      console.log("");
+-      console.log("Next action for human reviewer:");
+-      console.log("  Action owner: human only");
+-      console.log(`  ${nextAction}`);
+-      console.log("");
+-      console.log("AI agents must stop here.");
+-      console.log("Do not approve this task yourself.");
++      reporter.log("");
++      reporter.log("Current diff hash:");
++      reporter.log(`  ${diffHash}`);
++      reporter.log("");
++      reporter.log("Next action for human reviewer:");
++      reporter.log("  Action owner: human only");
++      reporter.log(`  ${nextAction}`);
++      reporter.log("");
++      reporter.log("AI agents must stop here.");
++      reporter.log("Do not approve this task yourself.");
+     }
+   }
+   return hasErrors(diffIssues) ? 1 : 0;
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index b8f9e3e..bebc4ec 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -15,7 +15,7 @@ import type { WorkingTreeState } from "../core/git.js";
+ import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js";
+ import { collectTaskHealthIssues } from "./health.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
+-import { printIssues } from "../core/report.js";
++import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
+ import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
+ 
+ export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
+@@ -312,28 +312,11 @@ function collectFinishPreflightIssues(root: string, taskId: string, baseRef: str
+   return issues;
+ }
+ 
+-function captureStdout<T>(fn: () => T): { result: T; output: string } {
+-  const chunks: string[] = [];
+-  const originalWrite = process.stdout.write.bind(process.stdout);
+-  const originalLog = console.log;
+-  process.stdout.write = ((chunk: unknown) => {
+-    chunks.push(String(chunk));
+-    return true;
+-  }) as typeof process.stdout.write;
+-  console.log = (...args: unknown[]) => {
+-    chunks.push(`${args.map(String).join(" ")}\n`);
+-  };
+-  try {
+-    return { result: fn(), output: chunks.join("") };
+-  } finally {
+-    process.stdout.write = originalWrite;
+-    console.log = originalLog;
+-  }
+-}
+-
+-function runSilentIfJson<T>(json: boolean, fn: () => T): { result: T; output: string } {
+-  if (!json) return { result: fn(), output: "" };
+-  return captureStdout(fn);
++function runWithReporterIfJson<T>(json: boolean, fn: (reporter: Reporter) => T): { result: T; output: string } {
++  if (!json) return { result: fn(createConsoleReporter()), output: "" };
++  const { reporter, output } = createBufferedStdoutReporter();
++  const result = fn(reporter);
++  return { result, output: output() };
+ }
+ 
+ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
+@@ -590,8 +573,8 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
+   if (json) console.error("PASS required checks");
+   else console.log("PASS required checks");
+ 
+-  const { result: diffExit, output: checkDiffOutput } = captureStdout(() =>
+-    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true, evidence })
++  const { result: diffExit, output: checkDiffOutput } = runWithReporterIfJson(true, (reporter) =>
++    runCheckDiff(root, taskId, { baseRef: options.baseRef, json: true, evidence, reporter })
+   );
+   let checkDiffResult: { issues?: Issue[] } = {};
+   try {
+@@ -640,7 +623,7 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
+   if (json) console.error("PASS Evidence and registry checkpoint synchronized");
+   else console.log("PASS registry synchronized");
+ 
+-  const { result: registryExit } = runSilentIfJson(json, () => runRegistryRebuild(root, { check: true, force: false }));
++  const { result: registryExit } = runWithReporterIfJson(json, (reporter) => runRegistryRebuild(root, { check: true, force: false, reporter }));
+   if (registryExit !== 0) {
+     const nextAction = resumeFinishCommand(taskId);
+     emitJson(finishOutput({
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 1ac0086..c8c281e 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -4,6 +4,7 @@ import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "
+ import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+ import { isActiveTaskStatus, readTaskIndex } from "../core/task-index.js";
++import { createConsoleReporter, type Reporter } from "../core/report.js";
+ import type { Evidence } from "../core/types.js";
+ 
+ export type RegistryRebuildOptions = {
+@@ -13,6 +14,7 @@ export type RegistryRebuildOptions = {
+   json?: boolean;
+   verbose?: boolean;
+   output?: string;
++  reporter?: Reporter;
+ };
+ 
+ export type RegistryRebuildSummary = {
+@@ -48,26 +50,26 @@ export function buildRegistryRebuildSummary(current: string, next: string, statu
+   return { schemaVersion: "1.0.0", status, added, updated, removed, path: defaultRegistryPath };
+ }
+ 
+-function printSummary(summary: RegistryRebuildSummary): void {
+-  console.log("PASS registry rebuilt");
+-  console.log(`added: ${summary.added}`);
+-  console.log(`updated: ${summary.updated}`);
+-  console.log(`removed: ${summary.removed}`);
+-  console.log(`path: ${summary.path}`);
++function printSummary(summary: RegistryRebuildSummary, reporter: Reporter): void {
++  reporter.log("PASS registry rebuilt");
++  reporter.log(`added: ${summary.added}`);
++  reporter.log(`updated: ${summary.updated}`);
++  reporter.log(`removed: ${summary.removed}`);
++  reporter.log(`path: ${summary.path}`);
+ }
+ 
+-function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: RegistryRebuildOptions): void {
++function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: RegistryRebuildOptions, reporter: Reporter): void {
+   if (options.quiet) return;
+   if (options.json) {
+-    console.log(JSON.stringify(summary));
++    reporter.log(JSON.stringify(summary));
+     return;
+   }
+   if (options.output === "-") {
+-    process.stdout.write(yaml);
++    reporter.write(yaml);
+     return;
+   }
+-  printSummary(summary);
+-  if (options.verbose) process.stdout.write(yaml);
++  printSummary(summary, reporter);
++  if (options.verbose) reporter.write(yaml);
+ }
+ 
+ export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
+@@ -142,10 +144,11 @@ export function syncRegistry(root: string): RegistryRebuildSummary {
+ }
+ 
+ export function runRegistryRebuild(root: string, options: RegistryRebuildOptions): number {
++  const reporter = options.reporter ?? createConsoleReporter();
+   try {
+     const outputModes = [options.quiet, options.json, options.verbose, options.output !== undefined].filter(Boolean).length;
+     if (outputModes > 1 || (options.output !== undefined && options.output !== "-")) {
+-      console.error("Choose one of --quiet, --json, --verbose, or --output -");
++      reporter.error("Choose one of --quiet, --json, --verbose, or --output -");
+       return 2;
+     }
+     const next = buildRegistryYaml(root);
+@@ -153,27 +156,27 @@ export function runRegistryRebuild(root: string, options: RegistryRebuildOptions
+     const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : "";
+     if (options.check) {
+       if (current === next) {
+-        if (options.output === "-") process.stdout.write(next);
+-        else if (options.json) console.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "synchronized")));
++        if (options.output === "-") reporter.write(next);
++        else if (options.json) reporter.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "synchronized")));
+         else if (!options.quiet) {
+-          console.log("PASS registry rebuild --check");
+-          if (options.verbose) process.stdout.write(next);
++          reporter.log("PASS registry rebuild --check");
++          if (options.verbose) reporter.write(next);
+         }
+         return 0;
+       }
+-      if (options.json) console.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "out-of-sync")));
+-      else console.error(`${defaultRegistryPath} is out of sync; run scwbs registry rebuild --force`);
++      if (options.json) reporter.log(JSON.stringify(buildRegistryRebuildSummary(current, next, "out-of-sync")));
++      else reporter.error(`${defaultRegistryPath} is out of sync; run scwbs registry rebuild --force`);
+       return 1;
+     }
+     if (existsSync(fullPath) && !options.force && current !== next) {
+-      console.error(`${defaultRegistryPath} differs; rerun with --force to overwrite`);
++      reporter.error(`${defaultRegistryPath} differs; rerun with --force to overwrite`);
+       return 1;
+     }
+     writeFileSync(fullPath, next, "utf8");
+-    printSuccess(buildRegistryRebuildSummary(current, next, "rebuilt"), next, options);
++    printSuccess(buildRegistryRebuildSummary(current, next, "rebuilt"), next, options, reporter);
+     return 0;
+   } catch (error) {
+-    console.error(error instanceof Error ? error.message : String(error));
++    reporter.error(error instanceof Error ? error.message : String(error));
+     return 1;
+   }
+ }
+diff --git a/src/core/report.ts b/src/core/report.ts
+index 156c8f3..5e5c9be 100644
+--- a/src/core/report.ts
++++ b/src/core/report.ts
+@@ -1,11 +1,44 @@
+ import type { Issue } from "./types.js";
+ 
+-export function printIssues(issues: Issue[]): void {
++export type Reporter = {
++  log(message?: unknown): void;
++  error(message?: unknown): void;
++  write(chunk: string | Uint8Array): void;
++};
++
++export function createConsoleReporter(): Reporter {
++  return {
++    log: (message) => console.log(message),
++    error: (message) => console.error(message),
++    write: (chunk) => {
++      process.stdout.write(chunk);
++    }
++  };
++}
++
++export function createBufferedStdoutReporter(): { reporter: Reporter; output: () => string } {
++  let stdout = "";
++  const consoleReporter = createConsoleReporter();
++  return {
++    reporter: {
++      log: (message) => {
++        stdout += `${String(message)}\n`;
++      },
++      error: consoleReporter.error,
++      write: (chunk) => {
++        stdout += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
++      }
++    },
++    output: () => stdout
++  };
++}
++
++export function printIssues(issues: Issue[], reporter: Reporter = createConsoleReporter()): void {
+   for (const item of issues) {
+     const prefix = item.severity === "error" ? "ERROR" : "WARN";
+-    console.log(`${prefix} ${item.code}: ${item.message}`);
++    reporter.log(`${prefix} ${item.code}: ${item.message}`);
+     if (item.severity === "error" && item.fixCommand) {
+-      console.log(`  fixCommand: ${item.fixCommand}`);
++      reporter.log(`  fixCommand: ${item.fixCommand}`);
+     }
+   }
+ }
+diff --git a/tests/unit/report.test.ts b/tests/unit/report.test.ts
+new file mode 100644
+index 0000000..f9e0e7f
+--- /dev/null
++++ b/tests/unit/report.test.ts
+@@ -0,0 +1,39 @@
++import { describe, expect, test } from "vitest";
++import { createBufferedStdoutReporter, printIssues, type Reporter } from "../../src/core/report.js";
++
++describe("Reporter", () => {
++  test("buffers stdout without replacing global output functions", () => {
++    const originalLog = console.log;
++    const originalWrite = process.stdout.write;
++    const { reporter, output } = createBufferedStdoutReporter();
++
++    reporter.log("one");
++    reporter.write("two");
++    reporter.write(new Uint8Array([116, 104, 114, 101, 101]));
++
++    expect(output()).toBe("one\ntwothree");
++    expect(console.log).toBe(originalLog);
++    expect(process.stdout.write).toBe(originalWrite);
++  });
++
++  test("printIssues writes through the injected Reporter", () => {
++    const lines: string[] = [];
++    const reporter: Reporter = {
++      log: (message) => lines.push(String(message)),
++      error: () => undefined,
++      write: () => undefined
++    };
++
++    printIssues([{
++      severity: "error",
++      code: "example.failure",
++      message: "repair required",
++      fixCommand: "npm run fix"
++    }], reporter);
++
++    expect(lines).toEqual([
++      "ERROR example.failure: repair required",
++      "  fixCommand: npm run fix"
++    ]);
++  });
++});

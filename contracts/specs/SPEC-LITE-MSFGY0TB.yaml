@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSFGY0TB
+type: spec-contract
+featureId: F-MSFGY0TB
+title: "Issue #421 finish.tsのReporter出力境界を限定的に導入"
+status: approved
+approvedBy: user-requested-issue-421
+approvedAt: "2026-08-05T02:30:00Z"
+version: 0.1.0
+summary: "finish.tsのJSON出力捕捉からグローバルなconsole/process.stdout差し替えを除き、Reporter注入で既存の出力契約を維持する。"
+acceptanceCriteria:
+  - core/report.ts exports a minimal Reporter abstraction with console-compatible and buffered-stdout implementations
+  - finish.ts does not temporarily replace console.log or process.stdout.write for JSON capture
+  - finish.ts passes the selected Reporter to check-diff and registry-rebuild while preserving existing JSON schema, exit codes, and non-JSON messages
+  - direct check-diff and registry-rebuild callers retain their existing default output behavior
+  - regression tests cover buffered output and the finish JSON output boundary
+  - changes remain limited to the Task allowed paths; no package, CI, dependency, or unrelated command changes
