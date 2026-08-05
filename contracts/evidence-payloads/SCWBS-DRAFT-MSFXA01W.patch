@@ -1,0 +1,102 @@
+diff --git a/contracts/specs/SPEC-LITE-MSFXA01W.yaml b/contracts/specs/SPEC-LITE-MSFXA01W.yaml
+new file mode 100644
+index 0000000..7175945
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSFXA01W.yaml
+@@ -0,0 +1,13 @@
++id: SPEC-LITE-MSFXA01W
++type: spec-contract
++featureId: F-MSFXA01W
++title: "Remove unused listEvidence import from Evidence build"
++status: approved
++approvedBy: user-requested-warning-fix
++approvedAt: "2026-08-05T09:00:00+09:00"
++version: 0.1.0
++summary: "src/core/evidence/build.tsの未使用listEvidence importだけを削除し、Evidence収集の挙動と公開exportを変更しない。"
++acceptanceCriteria:
++  - src/core/evidence/build.ts imports only the contracts helpers it uses
++  - The unused listEvidence warning is removed without changing runtime behavior
++  - Existing test, typecheck, and build checks remain green
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml b/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
+new file mode 100644
+index 0000000..66b86e8
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
+@@ -0,0 +1,52 @@
++id: SCWBS-DRAFT-MSFXA01W
++type: task-contract
++status: approved
++approvedBy: user-requested-warning-fix
++approvedAt: "2026-08-05T09:00:00+09:00"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSFXA01W
++branchName: task/SCWBS-DRAFT-MSFXA01W-remove-unused-listevidence-import-from-evidence-
++allowedPaths:
++  - src/core/evidence/build.ts
++  - contracts/specs/SPEC-LITE-MSFXA01W.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/evidence/build.ts
++stopIf:
++  - scope expansion or behavior change
++  - package or CI policy changes
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - src/core/evidence/build.ts no longer imports the unused listEvidence symbol
++  - The change does not alter Evidence collection behavior or public exports
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
++  - contracts/specs/SPEC-LITE-MSFXA01W.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSFXA01W.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSFXA01W.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSFXA01W.patch
++  - contracts/approvals/SCWBS-DRAFT-MSFXA01W.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSFXA01W.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:1b0e7dfc0c9bbf1ab8069aa76c8ba2dd94de452de56f9d3debdb14516d80e7f4
++  createdAt: "2026-08-05T10:07:39.506Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index dfbffd1..95261fc 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1588,3 +1588,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T08:24:43.133Z"
++  - id: SCWBS-DRAFT-MSFXA01W
++    path: contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
++    branchName: task/SCWBS-DRAFT-MSFXA01W-remove-unused-listevidence-import-from-evidence-
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/core/evidence/build.ts b/src/core/evidence/build.ts
+index aeb6b31..57ee3a6 100644
+--- a/src/core/evidence/build.ts
++++ b/src/core/evidence/build.ts
+@@ -1,5 +1,5 @@
+ import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+-import { listEvidence, readEvidence, readTask } from "../contracts.js";
++import { readEvidence, readTask } from "../contracts.js";
+ import { buildCheckCacheKey, buildCheckCacheSubject } from "../check-cache.js";
+ import { resolveCheckCommand } from "../check-catalog.js";
+ import { collectCheckReceiptProvenance, readCheckReceipt } from "../check-receipt.js";

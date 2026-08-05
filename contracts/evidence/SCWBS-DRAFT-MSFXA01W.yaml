@@ -1,0 +1,53 @@
+id: EVD-SCWBS-DRAFT-MSFXA01W
+type: evidence
+taskId: SCWBS-DRAFT-MSFXA01W
+commit: 8044299f1a9042cf39272ad99ab11d17453d85bc
+subjectHeadCommit: 8044299f1a9042cf39272ad99ab11d17453d85bc
+diffHash: sha256:37dd02006e16655ddf34ce909902d9f464494d865bd1a3e8b4ceed6f89847fde
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 8044299f1a9042cf39272ad99ab11d17453d85bc
+    treeHash: dec52138691a92c11f942e4821b156adcc0d21ff
+    diffHash: sha256:37dd02006e16655ddf34ce909902d9f464494d865bd1a3e8b4ceed6f89847fde
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSFXA01W.patch
+    manifestHash: sha256:37dd02006e16655ddf34ce909902d9f464494d865bd1a3e8b4ceed6f89847fde
+git:
+  branch: task/SCWBS-DRAFT-MSFXA01W-remove-unused-listevidence-import-from-evidence-
+  base: origin/main
+  baseCommit: 180457fb79f6cb20a94e17e8a1d24eff779c1976
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 8044299f1a9042cf39272ad99ab11d17453d85bc
+  diffHash: sha256:37dd02006e16655ddf34ce909902d9f464494d865bd1a3e8b4ceed6f89847fde
+  headCommit: 8044299f1a9042cf39272ad99ab11d17453d85bc
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSFXA01W.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
+  - contracts/tasks/index.yaml
+  - src/core/evidence/build.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e98ecde29b078f841cb743272fbc84e44975ec64d1e00d492bbc9031daffb87d
+    durationMilliseconds: 14161
+    executedAt: "2026-08-05T10:15:36.940Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:638368099ac1544ce381ada8f02be0fbfbda126c5703f234dcd20a755699df47
+    durationMilliseconds: 8814
+    executedAt: "2026-08-05T10:15:45.758Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b4facb6e81c3ba864376d7343cfe5cd27f322da515e04e5164298e5122684b1c
+    durationMilliseconds: 3679
+    executedAt: "2026-08-05T10:15:49.441Z"
