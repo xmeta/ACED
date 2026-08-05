@@ -20,10 +20,13 @@ git:
   base: origin/main
   baseCommit: 1d5769e44ad1f768abefbef64b3fa51b008094bd
   changedFilesBasis: branch-diff
+  pullRequest: "441"
   subjectHeadCommit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
   diffHash: sha256:a4a2503f057202e4972bffdf4fce3051814065be7501816086112a56249e39a3
   headCommit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
 changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGDF4BD.patch
+  - contracts/evidence/SCWBS-DRAFT-MSGDF4BD.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MSGDF4BD.yaml
   - contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
@@ -70,4 +73,4 @@ testQuality:
   testsDisabled: false
   coverageDecreased: false
   notes:
-    - current branch PR detection, missing or conflicting Evidence metadata, Approval request ordering, and human-only recovery ownership are covered by integration tests
+    - PR後のEvidenceにPR番号を記録し、既存PRとEvidenceの不一致回復導線を検証
