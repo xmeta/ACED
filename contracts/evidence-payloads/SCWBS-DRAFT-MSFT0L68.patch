@@ -1,0 +1,110 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index bd82fc8..0ed4b53 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -115,6 +115,9 @@ rules:
+       - src/core/wbs-lock.ts
+       - src/core/wbs.ts
+       - src/core/yaml.ts
++      - src/core/evidence/build.ts
++      - src/core/evidence/ci-receipt.ts
++      - src/core/evidence/coverage-receipt.ts
+     requires:
+       - test:integration
+   - id: core-types-unit-only
+diff --git a/contracts/specs/SPEC-LITE-MSFT0L68.yaml b/contracts/specs/SPEC-LITE-MSFT0L68.yaml
+new file mode 100644
+index 0000000..6f4fb4d
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSFT0L68.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSFT0L68
++type: spec-contract
++featureId: F-MSFT0L68
++title: Issue #422 Evidence core modules coverage classification
++status: approved
++version: 0.1.0
++summary: "Issue #422で追加したEvidence core modulesを、既存のcore-workflow-safety-integration分類へ明示的に追加する。"
++sourcePaths:
++  - contracts/check-coverage.yaml
++acceptanceCriteria:
++  - "src/core/evidence/build.ts is classified as behavior-critical and requires test:integration"
++  - "src/core/evidence/ci-receipt.ts is classified as behavior-critical and requires test:integration"
++  - "src/core/evidence/coverage-receipt.ts is classified as behavior-critical and requires test:integration"
++  - "The policy keeps exact module paths and does not use a broad src/core/** rule or a check coverage waiver"
++approvedBy: user-requested-issue-422-governance
++approvedAt: "2026-08-05T08:00:00Z"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml b/contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
+new file mode 100644
+index 0000000..bebbefc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
+@@ -0,0 +1,54 @@
++id: SCWBS-DRAFT-MSFT0L68
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-422-governance
++approvedAt: "2026-08-05T08:00:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSFT0L68
++branchName: task/SCWBS-DRAFT-MSFT0L68-issue-422-evidence-core-modules-coverage-classif
++allowedPaths:
++  - contracts/check-coverage.yaml
++  - contracts/specs/SPEC-LITE-MSFT0L68.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/check-coverage.yaml
++stopIf:
++  - classification policy change requires human review
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - contracts/check-coverage.yaml classifies src/core/evidence/build.ts as behavior-critical with test:integration
++  - contracts/check-coverage.yaml classifies src/core/evidence/ci-receipt.ts as behavior-critical with test:integration
++  - contracts/check-coverage.yaml classifies src/core/evidence/coverage-receipt.ts as behavior-critical with test:integration
++  - The policy uses exact module paths and does not broaden implementationRoots or add a waiver
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
++  - contracts/specs/SPEC-LITE-MSFT0L68.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSFT0L68.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSFT0L68.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSFT0L68.patch
++  - contracts/approvals/SCWBS-DRAFT-MSFT0L68.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSFT0L68.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:134b2aabb5cd951dd1edf5a7191d2455def0207c60a74c2c22f7b5e9678c6f89
++  createdAt: "2026-08-05T08:09:01.054Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index baed78e..672c1c0 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1574,3 +1574,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T07:27:24.460Z"
++  - id: SCWBS-DRAFT-MSFT0L68
++    path: contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
++    branchName: task/SCWBS-DRAFT-MSFT0L68-issue-422-evidence-core-modules-coverage-classif
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
