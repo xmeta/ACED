@@ -1,0 +1,13 @@
+id: SPEC-LITE-MSFXA01W
+type: spec-contract
+featureId: F-MSFXA01W
+title: "Remove unused listEvidence import from Evidence build"
+status: approved
+approvedBy: user-requested-warning-fix
+approvedAt: "2026-08-05T09:00:00+09:00"
+version: 0.1.0
+summary: "src/core/evidence/build.tsの未使用listEvidence importだけを削除し、Evidence収集の挙動と公開exportを変更しない。"
+acceptanceCriteria:
+  - src/core/evidence/build.ts imports only the contracts helpers it uses
+  - The unused listEvidence warning is removed without changing runtime behavior
+  - Existing test, typecheck, and build checks remain green
