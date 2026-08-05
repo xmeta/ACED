@@ -1,0 +1,81 @@
+id: SCWBS-DRAFT-MSFS3CIK
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-422
+approvedAt: "2026-08-05T08:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSFS3CIK
+branchName: task/SCWBS-DRAFT-MSFS3CIK-issue-422-evidence-build
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - src/core/evidence/ci-receipt.ts
+  - src/core/evidence/coverage-receipt.ts
+  - src/core/evidence/build.ts
+  - tests/unit/evidence-build.test.ts
+  - contracts/specs/SPEC-LITE-MSFS3CIK.yaml
+  - contracts/discovery/PROBE-issue-422-evidence-build-split.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/schema/**
+  - src/core/human-gate.ts
+  - tests/integration/**
+  - docs/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/commands/evidence-collect.ts
+  - src/core/evidence/ci-receipt.ts
+  - src/core/evidence/coverage-receipt.ts
+  - src/core/evidence/build.ts
+stopIf:
+  - retainまたはpruneの変更が必要
+  - CLI options/outputやEvidence schema/field orderの変更が必要
+  - command pathの互換re-exportを保証できない
+  - private helperのexport設計で合意できない
+  - allowedPaths外の変更が必要
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - CI receipt verification is implemented in src/core/evidence/ci-receipt.ts without changing validation rules
+  - coverage receipt verification is implemented in src/core/evidence/coverage-receipt.ts without changing validation rules
+  - buildCollectedEvidence and its build-only helpers are implemented in src/core/evidence/build.ts
+  - src/commands/evidence-collect.ts keeps the existing buildCollectedEvidence, buildCollectedEvidenceYaml, and detectOpenPullRequest exports and retains runEvidenceCollect, runEvidenceRetain, and runEvidencePrune behavior
+  - existing Evidence schema, field ordering, CLI options, output summaries, and registry behavior remain unchanged
+  - unit regression coverage is added for the new module boundaries
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/specs/SPEC-LITE-MSFS3CIK.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFS3CIK.patch
+  - contracts/approvals/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:b578fa6c8dbf5fe73eaf8b779445c41b6f1cfa0c6c75b68cf7ff3d7d615f1d67
+  createdAt: "2026-08-05T07:42:33.445Z"

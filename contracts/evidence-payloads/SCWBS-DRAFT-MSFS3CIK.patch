@@ -1,0 +1,1250 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml b/contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml
+new file mode 100644
+index 0000000..b3b5159
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSFS3CIK
++type: block
++taskId: SCWBS-DRAFT-MSFS3CIK
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: 新規src/core/evidence配下の3実装ファイルがcontracts/check-coverage.yaml未分類で、lock済みTaskのallowedPaths外の分類変更が必要
++createdAt: "2026-08-05T07:58:42.975Z"
++history:
++  - status: blocked
++    at: "2026-08-05T07:58:42.975Z"
++    reason: 新規src/core/evidence配下の3実装ファイルがcontracts/check-coverage.yaml未分類で、lock済みTaskのallowedPaths外の分類変更が必要
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-05T08:33:50.394Z"
++    reason: Governance Task SCWBS-DRAFT-MSFT0L68でEvidence modulesのcoverage分類をmainへ反映した
++    by: human
++resolvedAt: "2026-08-05T08:33:50.394Z"
++resolvedBy: human
++resolution: Governance Task SCWBS-DRAFT-MSFT0L68でEvidence modulesのcoverage分類をmainへ反映した
+diff --git a/contracts/discovery/PROBE-issue-422-evidence-build-split.yaml b/contracts/discovery/PROBE-issue-422-evidence-build-split.yaml
+new file mode 100644
+index 0000000..ae803e0
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-422-evidence-build-split.yaml
+@@ -0,0 +1,52 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-422-evidence-build-split
++type: discovery-probe
++status: concluded
++question: "Issue #422のbuildCollectedEvidence系を専用core/evidenceモジュールへ分割し、evidence collect/retain/pruneの挙動とEvidenceスキーマを変えずに責務境界を明確化できるか"
++hypotheses:
++  - CI receipt検証をsrc/core/evidence/ci-receipt.tsへ移せる
++  - Coverage receipt検証をsrc/core/evidence/coverage-receipt.tsへ移せる
++  - buildCollectedEvidenceと関連helperをsrc/core/evidence/build.tsへ移してcommand export互換を維持できる
++  - retain/pruneは変更不要
++activities:
++  - 'GitHub Issue #422と関連Issue確認'
++  - evidence-collect.tsのexport/内部依存と既存integration tests確認
++  - CLI登録とschema/registry影響確認
++  - 許容パスとHuman Gate/requiredChecks境界の確定
++evidenceExpected:
++  - 'Issue #422本文'
++  - evidence-collect.tsの責務/依存関係
++  - 既存evidence integration tests
++  - CLI export compatibility
++  - Task Contract allowedPathsとHuman Gate分類
++unknowns:
++  - core/evidence module naming
++  - private helper export boundary
++  - field ordering compatibility
++  - testQuality requirements
++  - Human Approval availability
++timebox: 30m
++costLimit: unobserved
++exitConditions:
++  - buildCollectedEvidence系だけが新規core/evidence modulesへ移り、runEvidenceRetain/runEvidencePruneとCLI options/outputs/schema/registry behaviorが不変
++nextDecision: buildCollectedEvidence系を3つのcore/evidence modulesへ移し、command pathのre-exportを維持するbounded Taskを作成してHuman Gateを要求する
++createdAt: "2026-08-05T07:40:36.795Z"
++startedAt: "2026-08-05T07:40:49.277Z"
++concludedAt: "2026-08-05T07:41:06.393Z"
++exitConditionsMet: true
++factsLearned:
++  - buildCollectedEvidenceはCI/Coverage receipt検証、check実行/再利用、Git差分/patch artifact、Evidence構築を同一ファイルに持つ
++  - runEvidenceCollect/retain/pruneと既存テストはcommand module pathからexportを参照している
++  - verifyCiReceiptとverifyCoverageReceiptは独立した入力検証責務として分離できる
++  - buildCollectedEvidence系をcore/evidence/build.tsへ移しcommand側でcompatibility re-exportできる
++  - retain/pruneとCLI output/schema/registry behaviorは今回触らなくてよい
++hypothesesRejected:
++  - src/commands/evidence-collect.tsの全834行を一括分割
++  - retain/pruneの変更
++  - Evidence schema/field orderの変更
++  - CLI command/option/outputの変更
++remainingUnknowns:
++  - private helperをどこまでexportするか
++  - 新規core/evidence filesのHuman Gate分類
++  - テスト追加でrequiredChecksにtest:integrationが必要になる可能性
++  - Human Approval availability
+diff --git a/contracts/specs/SPEC-LITE-MSFS3CIK.yaml b/contracts/specs/SPEC-LITE-MSFS3CIK.yaml
+new file mode 100644
+index 0000000..df47736
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSFS3CIK.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSFS3CIK
++type: spec-contract
++featureId: F-MSFS3CIK
++title: "Issue #422 Evidence build責務分離"
++status: approved
++approvedBy: user-requested-issue-422
++approvedAt: "2026-08-05T08:00:00Z"
++version: 0.1.0
++summary: "Evidence収集のreceipt検証とbuild責務をcore/evidence配下へ分離し、command moduleの互換exportと既存挙動を維持する。"
++acceptanceCriteria:
++  - CI receipt validation is provided by src/core/evidence/ci-receipt.ts with the existing validation messages and accepted receipt shape
++  - coverage receipt validation is provided by src/core/evidence/coverage-receipt.ts with the existing validation messages and accepted receipt shape
++  - buildCollectedEvidence and buildCollectedEvidenceYaml are provided by src/core/evidence/build.ts and re-exported from src/commands/evidence-collect.ts
++  - detectOpenPullRequest remains available from src/commands/evidence-collect.ts
++  - runEvidenceCollect, runEvidenceRetain, and runEvidencePrune remain command-owned and behavior-compatible
++  - Evidence schema, field order, CLI options, output summaries, and registry behavior are unchanged
++  - unit regression tests cover the extracted module boundaries, and existing integration tests remain green
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml b/contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
+new file mode 100644
+index 0000000..b9797dc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
+@@ -0,0 +1,81 @@
++id: SCWBS-DRAFT-MSFS3CIK
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-422
++approvedAt: "2026-08-05T08:00:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSFS3CIK
++branchName: task/SCWBS-DRAFT-MSFS3CIK-issue-422-evidence-build
++allowedPaths:
++  - src/commands/evidence-collect.ts
++  - src/core/evidence/ci-receipt.ts
++  - src/core/evidence/coverage-receipt.ts
++  - src/core/evidence/build.ts
++  - tests/unit/evidence-build.test.ts
++  - contracts/specs/SPEC-LITE-MSFS3CIK.yaml
++  - contracts/discovery/PROBE-issue-422-evidence-build-split.yaml
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/commands/registry-rebuild.ts
++  - src/core/schema/**
++  - src/core/human-gate.ts
++  - tests/integration/**
++  - docs/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/commands/evidence-collect.ts
++  - src/core/evidence/ci-receipt.ts
++  - src/core/evidence/coverage-receipt.ts
++  - src/core/evidence/build.ts
++stopIf:
++  - retainまたはpruneの変更が必要
++  - CLI options/outputやEvidence schema/field orderの変更が必要
++  - command pathの互換re-exportを保証できない
++  - private helperのexport設計で合意できない
++  - allowedPaths外の変更が必要
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - CI receipt verification is implemented in src/core/evidence/ci-receipt.ts without changing validation rules
++  - coverage receipt verification is implemented in src/core/evidence/coverage-receipt.ts without changing validation rules
++  - buildCollectedEvidence and its build-only helpers are implemented in src/core/evidence/build.ts
++  - src/commands/evidence-collect.ts keeps the existing buildCollectedEvidence, buildCollectedEvidenceYaml, and detectOpenPullRequest exports and retains runEvidenceCollect, runEvidenceRetain, and runEvidencePrune behavior
++  - existing Evidence schema, field ordering, CLI options, output summaries, and registry behavior remain unchanged
++  - unit regression coverage is added for the new module boundaries
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
++  - contracts/specs/SPEC-LITE-MSFS3CIK.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSFS3CIK.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSFS3CIK.patch
++  - contracts/approvals/SCWBS-DRAFT-MSFS3CIK.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSFS3CIK.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:b578fa6c8dbf5fe73eaf8b779445c41b6f1cfa0c6c75b68cf7ff3d7d615f1d67
++  createdAt: "2026-08-05T07:42:33.445Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index e648d1c..5bf012d 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1574,6 +1574,12 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T07:27:24.460Z"
++  - id: SCWBS-DRAFT-MSFS3CIK
++    path: contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
++    branchName: task/SCWBS-DRAFT-MSFS3CIK-issue-422-evidence-build
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+   - id: SCWBS-DRAFT-MSFT0L68
+     path: contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
+     branchName: task/SCWBS-DRAFT-MSFT0L68-issue-422-evidence-core-modules-coverage-classif
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 76c93e3..f7a9b02 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -1,70 +1,21 @@
+ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
++import { spawnSync } from "node:child_process";
+ import { listEvidence, readEvidence, readTask } from "../core/contracts.js";
+-import { buildCheckCacheKey, buildCheckCacheSubject } from "../core/check-cache.js";
+-import { resolveCheckCommand } from "../core/check-catalog.js";
+-import { collectCheckReceiptProvenance, readCheckReceipt } from "../core/check-receipt.js";
+-import {
+-  branchChangedFiles,
+-  branchDiffHash,
+-  buildPatchArtifact,
+-  changedFilesBetween,
+-  changedFilesBetweenRefs,
+-  commitExists,
+-  currentBranch,
+-  diffBinary,
+-  hashDiffBinary,
+-  headCommit,
+-  isCommitAncestor,
+-  mergeBase,
+-  resolveCommit,
+-  workingTreeState
+-} from "../core/git.js";
++import { buildPatchArtifact, changedFilesBetweenRefs, commitExists, diffBinary, hashDiffBinary, isCommitAncestor, resolveCommit, workingTreeState } from "../core/git.js";
+ import { evidencePayloadPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus, TaskContract } from "../core/types.js";
+-import { summarizeCheckOutput } from "../core/check-output-summary.js";
+-import { collectSubmoduleProvenance } from "../core/submodule-provenance.js";
++import type { CiReceipt, CoverageReceipt, Evidence } from "../core/types.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { readTaskIndex } from "../core/task-index.js";
+ import { printIssues } from "../core/report.js";
+-import { resolveSpawnCommand } from "./checks-run.js";
+ import { evaluateWorkingTreeGuard } from "./check-diff.js";
+-import { taskAuthorityFingerprint } from "./ci-plan.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+-import {
+-  acquireRequiredCheckRun,
+-  formatRequiredCheckProgress,
+-  releaseRequiredCheckRun,
+-  requiredCheckChildEnv,
+-  startRequiredCheckHeartbeat,
+-  stopRequiredCheckHeartbeat,
+-  updateRequiredCheckRun,
+-  type RequiredCheckRunLease
+-} from "../core/required-check-run.js";
++import { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest } from "../core/evidence/build.js";
++import type { TestQualityOptions } from "../core/evidence/build.js";
+ 
+-export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
+-  if (!branchName) return undefined;
+-  try {
+-    const command = resolveSpawnCommand(["gh", "pr", "list", "--head", branchName, "--state", "open", "--json", "number"]);
+-    const result = spawnSync(command[0] ?? "gh", command.slice(1), {
+-      cwd: root,
+-      encoding: "utf8",
+-      shell: false
+-    });
+-    if (result.status !== 0 || !result.stdout) return undefined;
+-    const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
+-    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0]?.number === "number") {
+-      return String(parsed[0].number);
+-    }
+-  } catch {
+-    // gh CLI missing, invalid output, or failed
+-  }
+-  return undefined;
+-}
+-
+-type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
++export { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest };
++export type { EvidenceBuildOptions, TestQualityOptions } from "../core/evidence/build.js";
+ 
+ export type EvidenceCollectSummary = {
+   schemaVersion: "1.0.0";
+@@ -99,408 +50,6 @@ export type EvidenceCollectOptions = {
+   coverageReceipt?: string;
+ };
+ 
+-function postEvidenceMetadataFiles(taskId: string): string[] {
+-  return taskLifecycleMetadataPaths(taskId);
+-}
+-
+-const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+-const CI_JOB_NAMES = ["core", "integration", "wjs", "validate"];
+-
+-function normalizedGithubRepository(value: string): string | undefined {
+-  const trimmed = value.trim().replace(/\.git$/, "");
+-  const match = trimmed.match(/github\.com[/:]([^/]+\/[^/]+)$/i);
+-  return match?.[1];
+-}
+-
+-function originRepository(root: string): string {
+-  const result = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
+-  if (result.status !== 0 || !result.stdout.trim()) throw new Error("CI receipt rejected: origin repository cannot be verified");
+-  const repository = normalizedGithubRepository(result.stdout);
+-  if (!repository) throw new Error("CI receipt rejected: origin is not a GitHub repository");
+-  return repository;
+-}
+-
+-function isRecord(value: unknown): value is Record<string, unknown> {
+-  return typeof value === "object" && value !== null && !Array.isArray(value);
+-}
+-
+-function validRunUrl(value: unknown, runId: string): value is string {
+-  if (typeof value !== "string" || value.length === 0) return false;
+-  try {
+-    const url = new URL(value);
+-    return url.protocol === "https:" && url.pathname.includes(`/actions/runs/${runId}`);
+-  } catch {
+-    return false;
+-  }
+-}
+-
+-function verifyCiReceipt(
+-  root: string,
+-  task: TaskContract,
+-  taskId: string,
+-  receiptValue: unknown,
+-  expected: { pullRequest?: string; head: string; baseRef: string; baseCommit: string; diffHash: string }
+-): CiReceipt {
+-  const failures: string[] = [];
+-  if (!isRecord(receiptValue)) throw new Error("CI receipt rejected: JSON root must be an object");
+-  const receipt = receiptValue as Partial<CiReceipt>;
+-  const requiredStrings = [
+-    "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash",
+-    "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit", "retrievedAt"
+-  ] as const;
+-  for (const key of requiredStrings) {
+-    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
+-  }
+-  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
+-  if (receipt.verifiedBy !== "github-actions-provenance") failures.push("verifiedBy is not the GitHub provenance verifier");
+-  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
+-  if (receipt.pullRequest !== expected.pullRequest || !expected.pullRequest) failures.push("pullRequest does not match the current PR");
+-  if (receipt.headCommit !== expected.head) failures.push("headCommit is stale or does not match HEAD");
+-  if (receipt.baseRef !== expected.baseRef) failures.push("baseRef does not match the requested base");
+-  if (receipt.baseCommit !== expected.baseCommit) failures.push("baseCommit does not match the verified merge base");
+-  if (receipt.diffHash !== expected.diffHash) failures.push("diffHash does not match the current implementation diff");
+-  if (receipt.authorityFingerprint !== taskAuthorityFingerprint(task)) failures.push("authorityFingerprint does not match the current Task authority");
+-  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
+-  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
+-    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
+-  }
+-  if (typeof receipt.retrievedAt === "string" && Number.isNaN(Date.parse(receipt.retrievedAt))) failures.push("retrievedAt is not a valid timestamp");
+-  if (typeof receipt.repository === "string") {
+-    try {
+-      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
+-    } catch (error) {
+-      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
+-    }
+-  }
+-
+-  if (!Array.isArray(receipt.jobs)) {
+-    failures.push("jobs must be an array");
+-  } else {
+-    const names = receipt.jobs.map((job) => isRecord(job) ? job.name : undefined);
+-    if (receipt.jobs.length !== CI_JOB_NAMES.length || new Set(names).size !== CI_JOB_NAMES.length || !CI_JOB_NAMES.every((name) => names.includes(name))) {
+-      failures.push("jobs must contain exactly core, integration, wjs, and validate once each");
+-    }
+-    const jobIds = new Set<string>();
+-    const checkNames: string[] = [];
+-    for (const [index, jobValue] of receipt.jobs.entries()) {
+-      if (!isRecord(jobValue)) {
+-        failures.push(`jobs[${index}] must be an object`);
+-        continue;
+-      }
+-      const job = jobValue as Partial<CiReceipt["jobs"][number]>;
+-      if (typeof job.jobId !== "string" || job.jobId.length === 0 || jobIds.has(job.jobId)) failures.push(`jobs[${index}].jobId must be unique`);
+-      else jobIds.add(job.jobId);
+-      if (job.conclusion !== "success") failures.push(`jobs[${index}] did not conclude successfully`);
+-      if (job.workflowRunId !== receipt.workflowRunId) failures.push(`jobs[${index}] belongs to a different workflow run`);
+-      if (job.workflowPath !== CI_WORKFLOW_PATH) failures.push(`jobs[${index}] belongs to a different workflow`);
+-      if (typeof job.url !== "string" || typeof receipt.workflowRunId !== "string" || !validRunUrl(job.url, receipt.workflowRunId)) failures.push(`jobs[${index}].url is invalid`);
+-      if (!Array.isArray(job.checkNames) || job.checkNames.some((name) => typeof name !== "string") || new Set(job.checkNames).size !== (job.checkNames?.length ?? 0)) {
+-        failures.push(`jobs[${index}].checkNames must be unique strings`);
+-      } else {
+-        checkNames.push(...job.checkNames);
+-      }
+-    }
+-    const required = [...task.requiredChecks].sort();
+-    const mapped = [...checkNames].sort();
+-    if (required.length !== mapped.length || required.some((name, index) => mapped[index] !== name)) failures.push("required checks do not have an exact one-to-one job mapping");
+-  }
+-
+-  if (typeof receipt.trustedCommit === "string") {
+-    if (!resolveCommit(root, receipt.trustedCommit)) failures.push("trustedCommit is not available locally");
+-    else if (!isCommitAncestor(root, receipt.trustedCommit, expected.head)) failures.push("trustedCommit is not an ancestor of the current head");
+-    else {
+-      const unexpected = changedFilesBetween(root, receipt.trustedCommit, expected.head)
+-        .filter((file) => !postEvidenceMetadataFiles(taskId).includes(file));
+-      if (unexpected.length > 0) failures.push(`trustedCommit range contains non-metadata files: ${unexpected.join(", ")}`);
+-    }
+-  }
+-  if (failures.length > 0) throw new Error(`CI receipt rejected:\n- ${failures.join("\n- ")}`);
+-  return receipt as CiReceipt;
+-}
+-
+-function verifyCoverageReceipt(
+-  root: string,
+-  task: TaskContract,
+-  taskId: string,
+-  receiptValue: unknown,
+-  expected: { pullRequest?: string; subjectHead: string }
+-): CoverageReceipt {
+-  const failures: string[] = [];
+-  if (!isRecord(receiptValue)) throw new Error("Coverage receipt rejected: JSON root must be an object");
+-  const receipt = receiptValue as Partial<CoverageReceipt>;
+-  const requiredStrings = [
+-    "repository", "command", "scope", "subjectHeadCommit", "workflowRunId", "workflowRunUrl", "artifactName", "payloadDigest", "generatedAt"
+-  ] as const;
+-  for (const key of requiredStrings) {
+-    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
+-  }
+-  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
+-  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
+-  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
+-  const expectedPullRequest = expected.pullRequest?.replace(/^#/, "");
+-  if (!expectedPullRequest || receipt.pullRequest !== expectedPullRequest) failures.push("pullRequest does not match the current PR");
+-  if (receipt.subjectHeadCommit !== expected.subjectHead) failures.push("subjectHeadCommit is stale or does not match the Evidence subject");
+-  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
+-    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
+-  }
+-  if (typeof receipt.generatedAt === "string" && Number.isNaN(Date.parse(receipt.generatedAt))) failures.push("generatedAt is not a valid timestamp");
+-  if (typeof receipt.repository === "string") {
+-    try {
+-      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
+-    } catch (error) {
+-      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
+-    }
+-  }
+-  if (typeof receipt.payloadDigest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(receipt.payloadDigest)) {
+-    failures.push("payloadDigest is not a valid SHA-256 digest");
+-  }
+-  if (!receipt.testFiles || !receipt.tests || !receipt.metrics) {
+-    failures.push("test counts and coverage metrics are required");
+-  } else {
+-    if (receipt.tests.failed !== 0 || receipt.testFiles.failed !== 0) failures.push("coverage receipt contains failed tests");
+-    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
+-      const value = receipt.metrics[metric];
+-      if (!value || ![value.total, value.covered, value.skipped, value.percent].every((number) => typeof number === "number" && Number.isFinite(number))) {
+-        failures.push(`metrics.${metric} is incomplete`);
+-      }
+-    }
+-  }
+-  if (!Array.isArray(receipt.skippedTests) || receipt.skippedTests.some((entry) => !isRecord(entry) || typeof entry.name !== "string" || typeof entry.reason !== "string")) {
+-    failures.push("skippedTests must contain named reasons");
+-  }
+-  if (failures.length > 0) throw new Error(`Coverage receipt rejected:\n- ${failures.join("\n- ")}`);
+-  return receipt as CoverageReceipt;
+-}
+-
+-function stableSubjectHead(
+-  root: string,
+-  currentHead: string | undefined,
+-  diffHash: string,
+-  existingEvidence: Evidence | undefined,
+-  metadataFiles: string[]
+-): string | undefined {
+-  const previousHead = existingEvidence?.subjectHeadCommit
+-    ?? existingEvidence?.git?.subjectHeadCommit
+-    ?? existingEvidence?.git?.headCommit
+-    ?? existingEvidence?.commit;
+-  const previousDiffHash = existingEvidence?.diffHash ?? existingEvidence?.git?.diffHash;
+-  if (
+-    !currentHead
+-    || !previousHead
+-    || previousHead === currentHead
+-    || previousDiffHash !== diffHash
+-    || !isCommitAncestor(root, previousHead, currentHead)
+-  ) {
+-    return currentHead;
+-  }
+-  const allowedMetadata = new Set(metadataFiles);
+-  return changedFilesBetween(root, previousHead, currentHead).every((file) => allowedMetadata.has(file))
+-    ? previousHead
+-    : currentHead;
+-}
+-
+-function commandForCheck(check: string): string[] {
+-  return resolveCheckCommand(check);
+-}
+-
+-function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
+-  const command = commandForCheck(check);
+-  const spawnCommand = resolveSpawnCommand(command);
+-  updateRequiredCheckRun(lease, check, checkIndex);
+-  process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
+-  const heartbeat = startRequiredCheckHeartbeat(lease);
+-  const startedAt = performance.now();
+-  let result: SpawnSyncReturns<string>;
+-  try {
+-    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
+-      cwd: root,
+-      encoding: "utf8",
+-      env: requiredCheckChildEnv(lease),
+-      shell: false
+-    });
+-  } finally {
+-    stopRequiredCheckHeartbeat(heartbeat);
+-  }
+-  const status: EvidenceCheckStatus = result.status === 0 ? "passed" : "failed";
+-  process.stderr.write(`${formatRequiredCheckProgress(lease.state, status)}\n`);
+-  const record: Evidence["checks"][number] = {
+-    name: check,
+-    status,
+-    source: "local",
+-    command: command.join(" "),
+-    cacheKey,
+-    durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
+-    executedAt: new Date().toISOString()
+-  };
+-  if (status === "passed") return record;
+-  const stdoutSummary = summarizeCheckOutput(result.stdout);
+-  const stderrSummary = summarizeCheckOutput(result.stderr);
+-  return {
+-    ...record,
+-    ...(typeof result.status === "number" ? { exitStatus: result.status } : {}),
+-    ...(stdoutSummary ? { stdoutSummary } : {}),
+-    ...(stderrSummary ? { stderrSummary } : {})
+-  };
+-}
+-
+-export function buildCollectedEvidence(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): Evidence {
+-  const { task, issues } = readTask(root, taskId);
+-  if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+-  const baseRef = options.baseRef ?? "origin/main";
+-  const head = headCommit(root);
+-  const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
+-  const metadataFiles = postEvidenceMetadataFiles(taskId);
+-  const diffHash = branchDiffHash(root, baseRef, metadataFiles);
+-  const { evidence: existingEvidence } = readEvidence(root, taskId);
+-  const changedFiles = branchChangedFiles(root, baseRef);
+-  const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
+-  const branch = currentBranch(root);
+-  if (
+-    existingEvidence?.git?.changedFilesBasis === "branch-diff"
+-    && existingEvidence.changedFiles.length > 0
+-    && changedFiles.length === 0
+-    && branch !== task.branchName
+-  ) {
+-    throw new Error(
+-      `Refusing to replace ${taskId} implementation provenance with an empty diff on ${branch ?? "detached HEAD"}. `
+-      + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
+-    );
+-  }
+-  const pullRequest = options.pullRequest
+-    ?? existingEvidence?.git?.pullRequest
+-    ?? detectOpenPullRequest(root, branch ?? task.branchName);
+-  const testQuality = options.testQuality ?? existingEvidence?.testQuality;
+-  const ciReceipt = options.ciReceipt
+-    ? verifyCiReceipt(root, task, taskId, options.ciReceipt, {
+-      pullRequest,
+-      head: head ?? "",
+-      baseRef,
+-      baseCommit: baseCommit ?? "",
+-      diffHash
+-    })
+-    : undefined;
+-  const coverageReceipt = options.coverageReceipt
+-    ? verifyCoverageReceipt(root, task, taskId, options.coverageReceipt, {
+-      pullRequest,
+-      subjectHead: subjectHead ?? ""
+-    })
+-    : existingEvidence?.coverageReceipt
+-      && existingEvidence.coverageReceipt.subjectHeadCommit === subjectHead
+-      && (!pullRequest
+-        || !existingEvidence.coverageReceipt.pullRequest
+-        || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
+-      ? existingEvidence.coverageReceipt
+-      : undefined;
+-  const cacheSubject = task.requiredChecks.length > 0
+-    ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+-    : undefined;
+-  const receipt = head && cacheSubject
+-    ? readCheckReceipt(root, {
+-      taskId,
+-      headCommit: head,
+-      subjectFingerprint: cacheSubject.fingerprint,
+-      provenance: collectCheckReceiptProvenance(root)
+-    }).receipt
+-    : undefined;
+-  const lease = !ciReceipt && task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
+-  let checks: Evidence["checks"];
+-  try {
+-    checks = ciReceipt
+-      ? task.requiredChecks.map((check) => {
+-        const job = ciReceipt.jobs.find((candidate) => candidate.checkNames.includes(check));
+-        if (!job) throw new Error(`CI receipt rejected: no job mapping for ${check}`);
+-        return {
+-          name: check,
+-          status: "passed",
+-          source: "ci",
+-          runId: ciReceipt.workflowRunId,
+-          url: job.url,
+-          executedAt: ciReceipt.retrievedAt,
+-          verifiedBy: ciReceipt.verifiedBy
+-        };
+-      })
+-      : task.requiredChecks.map((check, index) => {
+-      const command = commandForCheck(check);
+-      const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
+-      const existing = existingEvidence?.checks.find((candidate) =>
+-        candidate.name === check
+-        && candidate.status === "passed"
+-        && candidate.command === command.join(" ")
+-        && candidate.cacheKey === cacheKey
+-      );
+-      const received = receipt?.checks.find((candidate) =>
+-        candidate.name === check
+-        && candidate.status === "passed"
+-        && candidate.command === command.join(" ")
+-        && candidate.cacheKey === cacheKey
+-      );
+-      const reusable = received?.durationMilliseconds !== undefined ? received : existing ?? received;
+-      if (!options.rerunChecks && cacheSubject?.reusable && reusable) {
+-        if (lease) {
+-          updateRequiredCheckRun(lease, check, index + 1);
+-          process.stderr.write(`${formatRequiredCheckProgress(lease.state, "cache-hit")}\n`);
+-        }
+-        return reusable;
+-      }
+-      if (!lease) throw new Error(`Required-check lease missing for ${check}`);
+-      return runCheck(root, check, cacheKey, lease, index + 1);
+-      });
+-  } finally {
+-    if (lease) releaseRequiredCheckRun(lease);
+-  }
+-  const submodules = collectSubmoduleProvenance(root, baseRef, task);
+-  const patchArtifact = subjectHead && baseCommit
+-    ? buildPatchArtifact(root, taskId, baseCommit, subjectHead)
+-    : undefined;
+-  return {
+-    id: `EVD-${taskId}`,
+-    type: "evidence",
+-    taskId,
+-    ...(subjectHead ? { commit: subjectHead } : {}),
+-    ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+-    diffHash,
+-    ...(subjectHead && patchArtifact ? {
+-      provenance: {
+-        schemaVersion: "1.0.0" as const,
+-        subject: {
+-          commit: subjectHead,
+-          treeHash: patchArtifact.treeHash,
+-          diffHash,
+-          canonicalization: "git-diff-binary-v1" as const
+-        },
+-        retention: patchArtifact ? {
+-          mode: "patch-artifact" as const,
+-          locator: patchArtifact.locator,
+-          manifestHash: patchArtifact.manifestHash
+-        } : {
+-          mode: "git-object" as const,
+-          locator: `git:${subjectHead}`
+-        }
+-      }
+-    } : {}),
+-    git: {
+-      ...(branch ? { branch } : {}),
+-      base: baseRef,
+-      ...(baseCommit ? { baseCommit } : {}),
+-      changedFilesBasis: "branch-diff",
+-      ...(pullRequest ? { pullRequest } : {}),
+-      ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
+-      diffHash,
+-      ...(subjectHead ? { headCommit: subjectHead } : {})
+-    },
+-    changedFiles,
+-    ...(submodules.length > 0 ? { submodules } : {}),
+-    ...(ciReceipt ? { ciReceipt } : {}),
+-    ...(coverageReceipt ? { coverageReceipt } : {}),
+-    checks,
+-    ...(testQuality ? { testQuality } : {})
+-  };
+-}
+-
+-export function buildCollectedEvidenceYaml(root: string, taskId: string, options: { baseRef?: string; pullRequest?: string; testQuality?: TestQualityOptions; rerunChecks?: boolean; ciReceipt?: CiReceipt; coverageReceipt?: CoverageReceipt } = {}): string {
+-  return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
+-}
+-
+ export function buildEvidenceCollectSummary(taskId: string, relativePath: string, evidence: Evidence): EvidenceCollectSummary {
+   const passed = evidence.checks.filter((check) => check.status === "passed").length;
+   const failed = evidence.checks.length - passed;
+diff --git a/src/core/evidence/build.ts b/src/core/evidence/build.ts
+new file mode 100644
+index 0000000..aeb6b31
+--- /dev/null
++++ b/src/core/evidence/build.ts
+@@ -0,0 +1,299 @@
++import { spawnSync, type SpawnSyncReturns } from "node:child_process";
++import { listEvidence, readEvidence, readTask } from "../contracts.js";
++import { buildCheckCacheKey, buildCheckCacheSubject } from "../check-cache.js";
++import { resolveCheckCommand } from "../check-catalog.js";
++import { collectCheckReceiptProvenance, readCheckReceipt } from "../check-receipt.js";
++import {
++  branchChangedFiles,
++  branchDiffHash,
++  buildPatchArtifact,
++  changedFilesBetween,
++  currentBranch,
++  headCommit,
++  isCommitAncestor,
++  mergeBase,
++  resolveCommit
++} from "../git.js";
++import { stringifySimpleYaml } from "../yaml.js";
++import type { CiReceipt, CoverageReceipt, Evidence, EvidenceCheckStatus } from "../types.js";
++import { summarizeCheckOutput } from "../check-output-summary.js";
++import { collectSubmoduleProvenance } from "../submodule-provenance.js";
++import { taskLifecycleMetadataPaths } from "../managed-contract-paths.js";
++import { resolveSpawnCommand } from "../../commands/checks-run.js";
++import {
++  acquireRequiredCheckRun,
++  formatRequiredCheckProgress,
++  releaseRequiredCheckRun,
++  requiredCheckChildEnv,
++  startRequiredCheckHeartbeat,
++  stopRequiredCheckHeartbeat,
++  updateRequiredCheckRun,
++  type RequiredCheckRunLease
++} from "../required-check-run.js";
++import { verifyCiReceipt } from "./ci-receipt.js";
++import { verifyCoverageReceipt } from "./coverage-receipt.js";
++
++export type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
++
++export type EvidenceBuildOptions = {
++  baseRef?: string;
++  pullRequest?: string;
++  testQuality?: TestQualityOptions;
++  rerunChecks?: boolean;
++  ciReceipt?: CiReceipt;
++  coverageReceipt?: CoverageReceipt;
++};
++
++function postEvidenceMetadataFiles(taskId: string): string[] {
++  return taskLifecycleMetadataPaths(taskId);
++}
++
++export function detectOpenPullRequest(root: string, branchName?: string): string | undefined {
++  if (!branchName) return undefined;
++  try {
++    const command = resolveSpawnCommand(["gh", "pr", "list", "--head", branchName, "--state", "open", "--json", "number"]);
++    const result = spawnSync(command[0] ?? "gh", command.slice(1), {
++      cwd: root,
++      encoding: "utf8",
++      shell: false
++    });
++    if (result.status !== 0 || !result.stdout) return undefined;
++    const parsed = JSON.parse(result.stdout.trim()) as Array<{ number?: number }>;
++    if (Array.isArray(parsed) && parsed.length === 1 && typeof parsed[0]?.number === "number") {
++      return String(parsed[0].number);
++    }
++  } catch {
++    // gh CLI missing, invalid output, or failed
++  }
++  return undefined;
++}
++
++function stableSubjectHead(
++  root: string,
++  currentHead: string | undefined,
++  diffHash: string,
++  existingEvidence: Evidence | undefined,
++  metadataFiles: string[]
++): string | undefined {
++  const previousHead = existingEvidence?.subjectHeadCommit
++    ?? existingEvidence?.git?.subjectHeadCommit
++    ?? existingEvidence?.git?.headCommit
++    ?? existingEvidence?.commit;
++  const previousDiffHash = existingEvidence?.diffHash ?? existingEvidence?.git?.diffHash;
++  if (
++    !currentHead
++    || !previousHead
++    || previousHead === currentHead
++    || previousDiffHash !== diffHash
++    || !isCommitAncestor(root, previousHead, currentHead)
++  ) {
++    return currentHead;
++  }
++  const allowedMetadata = new Set(metadataFiles);
++  return changedFilesBetween(root, previousHead, currentHead).every((file) => allowedMetadata.has(file))
++    ? previousHead
++    : currentHead;
++}
++
++function commandForCheck(check: string): string[] {
++  return resolveCheckCommand(check);
++}
++
++function runCheck(root: string, check: string, cacheKey: string, lease: RequiredCheckRunLease, checkIndex: number): Evidence["checks"][number] {
++  const command = commandForCheck(check);
++  const spawnCommand = resolveSpawnCommand(command);
++  updateRequiredCheckRun(lease, check, checkIndex);
++  process.stderr.write(`${formatRequiredCheckProgress(lease.state, "executed")}\n`);
++  const heartbeat = startRequiredCheckHeartbeat(lease);
++  const startedAt = performance.now();
++  let result: SpawnSyncReturns<string>;
++  try {
++    result = spawnSync(spawnCommand[0] ?? "npm", spawnCommand.slice(1), {
++      cwd: root,
++      encoding: "utf8",
++      env: requiredCheckChildEnv(lease),
++      shell: false
++    });
++  } finally {
++    stopRequiredCheckHeartbeat(heartbeat);
++  }
++  const status: EvidenceCheckStatus = result.status === 0 ? "passed" : "failed";
++  process.stderr.write(`${formatRequiredCheckProgress(lease.state, status)}\n`);
++  const record: Evidence["checks"][number] = {
++    name: check,
++    status,
++    source: "local",
++    command: command.join(" "),
++    cacheKey,
++    durationMilliseconds: Math.max(0, Math.round(performance.now() - startedAt)),
++    executedAt: new Date().toISOString()
++  };
++  if (status === "passed") return record;
++  const stdoutSummary = summarizeCheckOutput(result.stdout);
++  const stderrSummary = summarizeCheckOutput(result.stderr);
++  return {
++    ...record,
++    ...(typeof result.status === "number" ? { exitStatus: result.status } : {}),
++    ...(stdoutSummary ? { stdoutSummary } : {}),
++    ...(stderrSummary ? { stderrSummary } : {})
++  };
++}
++
++export function buildCollectedEvidence(root: string, taskId: string, options: EvidenceBuildOptions = {}): Evidence {
++  const { task, issues } = readTask(root, taskId);
++  if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
++  const baseRef = options.baseRef ?? "origin/main";
++  const head = headCommit(root);
++  const baseCommit = mergeBase(root, baseRef) ?? resolveCommit(root, baseRef);
++  const metadataFiles = postEvidenceMetadataFiles(taskId);
++  const diffHash = branchDiffHash(root, baseRef, metadataFiles);
++  const { evidence: existingEvidence } = readEvidence(root, taskId);
++  const changedFiles = branchChangedFiles(root, baseRef);
++  const subjectHead = stableSubjectHead(root, head, diffHash, existingEvidence, metadataFiles);
++  const branch = currentBranch(root);
++  if (
++    existingEvidence?.git?.changedFilesBasis === "branch-diff"
++    && existingEvidence.changedFiles.length > 0
++    && existingEvidence.changedFiles.length > 0
++    && changedFiles.length === 0
++    && branch !== task.branchName
++  ) {
++    throw new Error(
++      `Refusing to replace ${taskId} implementation provenance with an empty diff on ${branch ?? "detached HEAD"}. `
++      + `Use npm run scwbs -- evidence annotate --task ${taskId} for metadata-only updates.`
++    );
++  }
++  const pullRequest = options.pullRequest
++    ?? existingEvidence?.git?.pullRequest
++    ?? detectOpenPullRequest(root, branch ?? task.branchName);
++  const testQuality = options.testQuality ?? existingEvidence?.testQuality;
++  const ciReceipt = options.ciReceipt
++    ? verifyCiReceipt(root, task, taskId, options.ciReceipt, {
++      pullRequest,
++      head: head ?? "",
++      baseRef,
++      baseCommit: baseCommit ?? "",
++      diffHash
++    })
++    : undefined;
++  const coverageReceipt = options.coverageReceipt
++    ? verifyCoverageReceipt(root, task, taskId, options.coverageReceipt, {
++      pullRequest,
++      subjectHead: subjectHead ?? ""
++    })
++    : existingEvidence?.coverageReceipt
++      && existingEvidence.coverageReceipt.subjectHeadCommit === subjectHead
++      && (!pullRequest
++        || !existingEvidence.coverageReceipt.pullRequest
++        || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
++      ? existingEvidence.coverageReceipt
++      : undefined;
++  const cacheSubject = task.requiredChecks.length > 0
++    ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
++    : undefined;
++  const receipt = head && cacheSubject
++    ? readCheckReceipt(root, {
++      taskId,
++      headCommit: head,
++      subjectFingerprint: cacheSubject.fingerprint,
++      provenance: collectCheckReceiptProvenance(root)
++    }).receipt
++    : undefined;
++  const lease = !ciReceipt && task.requiredChecks.length > 0 ? acquireRequiredCheckRun(root, taskId, task.requiredChecks.length) : undefined;
++  let checks: Evidence["checks"];
++  try {
++    checks = ciReceipt
++      ? task.requiredChecks.map((check) => {
++        const job = ciReceipt.jobs.find((candidate) => candidate.checkNames.includes(check));
++        if (!job) throw new Error(`CI receipt rejected: no job mapping for ${check}`);
++        return {
++          name: check,
++          status: "passed",
++          source: "ci",
++          runId: ciReceipt.workflowRunId,
++          url: job.url,
++          executedAt: ciReceipt.retrievedAt,
++          verifiedBy: ciReceipt.verifiedBy
++        };
++      })
++      : task.requiredChecks.map((check, index) => {
++      const command = commandForCheck(check);
++      const cacheKey = buildCheckCacheKey(cacheSubject ?? { fingerprint: "", reusable: false }, check, command);
++      const existing = existingEvidence?.checks.find((candidate) =>
++        candidate.name === check
++        && candidate.status === "passed"
++        && candidate.command === command.join(" ")
++        && candidate.cacheKey === cacheKey
++      );
++      const received = receipt?.checks.find((candidate) =>
++        candidate.name === check
++        && candidate.status === "passed"
++        && candidate.command === command.join(" ")
++        && candidate.cacheKey === cacheKey
++      );
++      const reusable = received?.durationMilliseconds !== undefined ? received : existing ?? received;
++      if (!options.rerunChecks && cacheSubject?.reusable && reusable) {
++        if (lease) {
++          updateRequiredCheckRun(lease, check, index + 1);
++          process.stderr.write(`${formatRequiredCheckProgress(lease.state, "cache-hit")}\n`);
++        }
++        return reusable;
++      }
++      if (!lease) throw new Error(`Required-check lease missing for ${check}`);
++      return runCheck(root, check, cacheKey, lease, index + 1);
++      });
++  } finally {
++    if (lease) releaseRequiredCheckRun(lease);
++  }
++  const submodules = collectSubmoduleProvenance(root, baseRef, task);
++  const patchArtifact = subjectHead && baseCommit
++    ? buildPatchArtifact(root, taskId, baseCommit, subjectHead)
++    : undefined;
++  return {
++    id: `EVD-${taskId}`,
++    type: "evidence",
++    taskId,
++    ...(subjectHead ? { commit: subjectHead } : {}),
++    ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
++    diffHash,
++    ...(subjectHead && patchArtifact ? {
++      provenance: {
++        schemaVersion: "1.0.0" as const,
++        subject: {
++          commit: subjectHead,
++          treeHash: patchArtifact.treeHash,
++          diffHash,
++          canonicalization: "git-diff-binary-v1" as const
++        },
++        retention: patchArtifact ? {
++          mode: "patch-artifact" as const,
++          locator: patchArtifact.locator,
++          manifestHash: patchArtifact.manifestHash
++        } : {
++          mode: "git-object" as const,
++          locator: `git:${subjectHead}`
++        }
++      }
++    } : {}),
++    git: {
++      ...(branch ? { branch } : {}),
++      base: baseRef,
++      ...(baseCommit ? { baseCommit } : {}),
++      changedFilesBasis: "branch-diff",
++      ...(pullRequest ? { pullRequest } : {}),
++      ...(subjectHead ? { subjectHeadCommit: subjectHead } : {}),
++      diffHash,
++      ...(subjectHead ? { headCommit: subjectHead } : {})
++    },
++    changedFiles,
++    ...(submodules.length > 0 ? { submodules } : {}),
++    ...(ciReceipt ? { ciReceipt } : {}),
++    ...(coverageReceipt ? { coverageReceipt } : {}),
++    checks,
++    ...(testQuality ? { testQuality } : {})
++  };
++}
++
++export function buildCollectedEvidenceYaml(root: string, taskId: string, options: EvidenceBuildOptions = {}): string {
++  return stringifySimpleYaml(buildCollectedEvidence(root, taskId, options) as unknown as Record<string, unknown>);
++}
+diff --git a/src/core/evidence/ci-receipt.ts b/src/core/evidence/ci-receipt.ts
+new file mode 100644
+index 0000000..7e0c871
+--- /dev/null
++++ b/src/core/evidence/ci-receipt.ts
+@@ -0,0 +1,120 @@
++import { spawnSync } from "node:child_process";
++import { changedFilesBetween, isCommitAncestor, resolveCommit } from "../../core/git.js";
++import { taskAuthorityFingerprint } from "../../commands/ci-plan.js";
++import { taskLifecycleMetadataPaths } from "../../core/managed-contract-paths.js";
++import type { CiReceipt, TaskContract } from "../../core/types.js";
++
++export const CI_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
++export const CI_JOB_NAMES = ["core", "integration", "wjs", "validate"];
++
++export function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++export function validRunUrl(value: unknown, runId: string): value is string {
++  if (typeof value !== "string" || value.length === 0) return false;
++  try {
++    const url = new URL(value);
++    return url.protocol === "https:" && url.pathname.includes(`/actions/runs/${runId}`);
++  } catch {
++    return false;
++  }
++}
++
++function normalizedGithubRepository(value: string): string | undefined {
++  const trimmed = value.trim().replace(/\.git$/, "");
++  const match = trimmed.match(/github\.com[/:]([^/]+\/[^/]+)$/i);
++  return match?.[1];
++}
++
++export function originRepository(root: string): string {
++  const result = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
++  if (result.status !== 0 || !result.stdout.trim()) throw new Error("CI receipt rejected: origin repository cannot be verified");
++  const repository = normalizedGithubRepository(result.stdout);
++  if (!repository) throw new Error("CI receipt rejected: origin is not a GitHub repository");
++  return repository;
++}
++
++export function verifyCiReceipt(
++  root: string,
++  task: TaskContract,
++  taskId: string,
++  receiptValue: unknown,
++  expected: { pullRequest?: string; head: string; baseRef: string; baseCommit: string; diffHash: string }
++): CiReceipt {
++  const failures: string[] = [];
++  if (!isRecord(receiptValue)) throw new Error("CI receipt rejected: JSON root must be an object");
++  const receipt = receiptValue as Partial<CiReceipt>;
++  const requiredStrings = [
++    "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash",
++    "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "trustedCommit", "retrievedAt"
++  ] as const;
++  for (const key of requiredStrings) {
++    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
++  }
++  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
++  if (receipt.verifiedBy !== "github-actions-provenance") failures.push("verifiedBy is not the GitHub provenance verifier");
++  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
++  if (receipt.pullRequest !== expected.pullRequest || !expected.pullRequest) failures.push("pullRequest does not match the current PR");
++  if (receipt.headCommit !== expected.head) failures.push("headCommit is stale or does not match HEAD");
++  if (receipt.baseRef !== expected.baseRef) failures.push("baseRef does not match the requested base");
++  if (receipt.baseCommit !== expected.baseCommit) failures.push("baseCommit does not match the verified merge base");
++  if (receipt.diffHash !== expected.diffHash) failures.push("diffHash does not match the current implementation diff");
++  if (receipt.authorityFingerprint !== taskAuthorityFingerprint(task)) failures.push("authorityFingerprint does not match the current Task authority");
++  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
++  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
++    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
++  }
++  if (typeof receipt.retrievedAt === "string" && Number.isNaN(Date.parse(receipt.retrievedAt))) failures.push("retrievedAt is not a valid timestamp");
++  if (typeof receipt.repository === "string") {
++    try {
++      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
++    } catch (error) {
++      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
++    }
++  }
++
++  if (!Array.isArray(receipt.jobs)) {
++    failures.push("jobs must be an array");
++  } else {
++    const names = receipt.jobs.map((job) => isRecord(job) ? job.name : undefined);
++    if (receipt.jobs.length !== CI_JOB_NAMES.length || new Set(names).size !== CI_JOB_NAMES.length || !CI_JOB_NAMES.every((name) => names.includes(name))) {
++      failures.push("jobs must contain exactly core, integration, wjs, and validate once each");
++    }
++    const jobIds = new Set<string>();
++    const checkNames: string[] = [];
++    for (const [index, jobValue] of receipt.jobs.entries()) {
++      if (!isRecord(jobValue)) {
++        failures.push(`jobs[${index}] must be an object`);
++        continue;
++      }
++      const job = jobValue as Partial<CiReceipt["jobs"][number]>;
++      if (typeof job.jobId !== "string" || job.jobId.length === 0 || jobIds.has(job.jobId)) failures.push(`jobs[${index}].jobId must be unique`);
++      else jobIds.add(job.jobId);
++      if (job.conclusion !== "success") failures.push(`jobs[${index}] did not conclude successfully`);
++      if (job.workflowRunId !== receipt.workflowRunId) failures.push(`jobs[${index}] belongs to a different workflow run`);
++      if (job.workflowPath !== CI_WORKFLOW_PATH) failures.push(`jobs[${index}] belongs to a different workflow`);
++      if (typeof job.url !== "string" || typeof receipt.workflowRunId !== "string" || !validRunUrl(job.url, receipt.workflowRunId)) failures.push(`jobs[${index}].url is invalid`);
++      if (!Array.isArray(job.checkNames) || job.checkNames.some((name) => typeof name !== "string") || new Set(job.checkNames).size !== (job.checkNames?.length ?? 0)) {
++        failures.push(`jobs[${index}].checkNames must be unique strings`);
++      } else {
++        checkNames.push(...job.checkNames);
++      }
++    }
++    const required = [...task.requiredChecks].sort();
++    const mapped = [...checkNames].sort();
++    if (required.length !== mapped.length || required.some((name, index) => mapped[index] !== name)) failures.push("required checks do not have an exact one-to-one job mapping");
++  }
++
++  if (typeof receipt.trustedCommit === "string") {
++    if (!resolveCommit(root, receipt.trustedCommit)) failures.push("trustedCommit is not available locally");
++    else if (!isCommitAncestor(root, receipt.trustedCommit, expected.head)) failures.push("trustedCommit is not an ancestor of the current head");
++    else {
++      const unexpected = changedFilesBetween(root, receipt.trustedCommit, expected.head)
++        .filter((file) => !taskLifecycleMetadataPaths(taskId).includes(file));
++      if (unexpected.length > 0) failures.push(`trustedCommit range contains non-metadata files: ${unexpected.join(", ")}`);
++    }
++  }
++  if (failures.length > 0) throw new Error(`CI receipt rejected:\n- ${failures.join("\n- ")}`);
++  return receipt as CiReceipt;
++}
+diff --git a/src/core/evidence/coverage-receipt.ts b/src/core/evidence/coverage-receipt.ts
+new file mode 100644
+index 0000000..9b603e5
+--- /dev/null
++++ b/src/core/evidence/coverage-receipt.ts
+@@ -0,0 +1,56 @@
++import { CI_WORKFLOW_PATH, isRecord, originRepository, validRunUrl } from "./ci-receipt.js";
++import type { CoverageReceipt, TaskContract } from "../../core/types.js";
++
++export function verifyCoverageReceipt(
++  root: string,
++  task: TaskContract,
++  taskId: string,
++  receiptValue: unknown,
++  expected: { pullRequest?: string; subjectHead: string }
++): CoverageReceipt {
++  const failures: string[] = [];
++  if (!isRecord(receiptValue)) throw new Error("Coverage receipt rejected: JSON root must be an object");
++  const receipt = receiptValue as Partial<CoverageReceipt>;
++  const requiredStrings = [
++    "repository", "command", "scope", "subjectHeadCommit", "workflowRunId", "workflowRunUrl", "artifactName", "payloadDigest", "generatedAt"
++  ] as const;
++  for (const key of requiredStrings) {
++    if (typeof receipt[key] !== "string" || receipt[key].length === 0) failures.push(`${key} is missing`);
++  }
++  if (receipt.schemaVersion !== "1.0.0") failures.push("schemaVersion must be 1.0.0");
++  if (receipt.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
++  if (receipt.taskId !== taskId) failures.push("taskId does not match the current Task");
++  const expectedPullRequest = expected.pullRequest?.replace(/^#/, "");
++  if (!expectedPullRequest || receipt.pullRequest !== expectedPullRequest) failures.push("pullRequest does not match the current PR");
++  if (receipt.subjectHeadCommit !== expected.subjectHead) failures.push("subjectHeadCommit is stale or does not match the Evidence subject");
++  if (typeof receipt.workflowRunId === "string" && !validRunUrl(receipt.workflowRunUrl, receipt.workflowRunId)) {
++    failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
++  }
++  if (typeof receipt.generatedAt === "string" && Number.isNaN(Date.parse(receipt.generatedAt))) failures.push("generatedAt is not a valid timestamp");
++  if (typeof receipt.repository === "string") {
++    try {
++      if (receipt.repository !== originRepository(root)) failures.push("repository does not match origin");
++    } catch (error) {
++      failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
++    }
++  }
++  if (typeof receipt.payloadDigest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(receipt.payloadDigest)) {
++    failures.push("payloadDigest is not a valid SHA-256 digest");
++  }
++  if (!receipt.testFiles || !receipt.tests || !receipt.metrics) {
++    failures.push("test counts and coverage metrics are required");
++  } else {
++    if (receipt.tests.failed !== 0 || receipt.testFiles.failed !== 0) failures.push("coverage receipt contains failed tests");
++    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
++      const value = receipt.metrics[metric];
++      if (!value || ![value.total, value.covered, value.skipped, value.percent].every((number) => typeof number === "number" && Number.isFinite(number))) {
++        failures.push(`metrics.${metric} is incomplete`);
++      }
++    }
++  }
++  if (!Array.isArray(receipt.skippedTests) || receipt.skippedTests.some((entry) => !isRecord(entry) || typeof entry.name !== "string" || typeof entry.reason !== "string")) {
++    failures.push("skippedTests must contain named reasons");
++  }
++  if (failures.length > 0) throw new Error(`Coverage receipt rejected:\n- ${failures.join("\n- ")}`);
++  return receipt as CoverageReceipt;
++}
+diff --git a/tests/unit/evidence-build.test.ts b/tests/unit/evidence-build.test.ts
+new file mode 100644
+index 0000000..b7bbe94
+--- /dev/null
++++ b/tests/unit/evidence-build.test.ts
+@@ -0,0 +1,48 @@
++import { execFileSync } from "node:child_process";
++import { afterEach, describe, expect, it } from "vitest";
++import { existsSync, rmSync } from "node:fs";
++import {
++  buildCollectedEvidence,
++  buildCollectedEvidenceYaml,
++  detectOpenPullRequest
++} from "../../src/core/evidence/build.js";
++import * as commandEvidence from "../../src/commands/evidence-collect.js";
++import { makeTempRepo, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++
++describe("evidence build module boundary", () => {
++  const tempRoots: string[] = [];
++
++  afterEach(() => {
++    for (const root of tempRoots.splice(0)) {
++      if (existsSync(root)) rmSync(root, { recursive: true, force: true });
++    }
++  });
++
++  it("keeps command exports as compatibility re-exports", () => {
++    expect(commandEvidence.buildCollectedEvidence).toBe(buildCollectedEvidence);
++    expect(commandEvidence.buildCollectedEvidenceYaml).toBe(buildCollectedEvidenceYaml);
++    expect(commandEvidence.detectOpenPullRequest).toBe(detectOpenPullRequest);
++  });
++
++  it("builds the same Evidence shape from the core module", () => {
++    const root = makeTempRepo();
++    tempRoots.push(root);
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root });
++    execFileSync("git", ["commit", "-m", "initial"], { cwd: root, stdio: "ignore" });
++    const baseRef = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
++    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root });
++    execFileSync("git", ["commit", "-m", "implementation"], { cwd: root, stdio: "ignore" });
++
++    const evidence = buildCollectedEvidence(root, "WBS-001-004", { baseRef });
++
++    expect(evidence.type).toBe("evidence");
++    expect(evidence.taskId).toBe("WBS-001-004");
++    expect(evidence.checks).toEqual([]);
++    expect(evidence.changedFiles).toContain("src/features/api/index.ts");
++    expect(buildCollectedEvidenceYaml(root, "WBS-001-004", { baseRef })).toContain("type: evidence");
++  }, 15000);
++});

@@ -1,0 +1,76 @@
+id: EVD-SCWBS-DRAFT-MSFS3CIK
+type: evidence
+taskId: SCWBS-DRAFT-MSFS3CIK
+commit: 39b9fa1925dac6a934ab09d0b1b6a28994f23930
+subjectHeadCommit: 39b9fa1925dac6a934ab09d0b1b6a28994f23930
+diffHash: sha256:3e784d35a45036bc6f6d7752015d4d772dc2f71309724cd146b91dcf357c9908
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 39b9fa1925dac6a934ab09d0b1b6a28994f23930
+    treeHash: 0c7c292e0aef8224e01cacc78ab8c2f47966a2a5
+    diffHash: sha256:3e784d35a45036bc6f6d7752015d4d772dc2f71309724cd146b91dcf357c9908
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSFS3CIK.patch
+    manifestHash: sha256:3e784d35a45036bc6f6d7752015d4d772dc2f71309724cd146b91dcf357c9908
+git:
+  branch: task/SCWBS-DRAFT-MSFS3CIK-issue-422-evidence-build
+  base: origin/main
+  baseCommit: 38190c1c7f72c59fccd7277ea18edbd19e94a019
+  changedFilesBasis: branch-diff
+  pullRequest: "428"
+  subjectHeadCommit: 39b9fa1925dac6a934ab09d0b1b6a28994f23930
+  diffHash: sha256:3e784d35a45036bc6f6d7752015d4d772dc2f71309724cd146b91dcf357c9908
+  headCommit: 39b9fa1925dac6a934ab09d0b1b6a28994f23930
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/discovery/PROBE-issue-422-evidence-build-split.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFS3CIK.patch
+  - contracts/evidence/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSFS3CIK.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSFS3CIK.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/evidence-collect.ts
+  - src/core/evidence/build.ts
+  - src/core/evidence/ci-receipt.ts
+  - src/core/evidence/coverage-receipt.ts
+  - tests/unit/evidence-build.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:736c720100e8083b125c93c4c24c53a75b66a0945d59cd5f1ac6d1d66f4e5ec4
+    durationMilliseconds: 14239
+    executedAt: "2026-08-05T08:34:59.343Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:68f1ccb20eee2824eada8d09b697117d87121e7be03b757112d41fa033b68b3f
+    durationMilliseconds: 245059
+    executedAt: "2026-08-05T08:39:04.407Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:49af0d61a39b6fe8f431a9f157a94d70b4cc1d39cbafb96b37a8bb09633e267d
+    durationMilliseconds: 8848
+    executedAt: "2026-08-05T08:39:13.261Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a0237f7c09fa77d44d09ea70964e8ef78b4e69b7d31aeb42796dac24132f3b32
+    durationMilliseconds: 3647
+    executedAt: "2026-08-05T08:39:16.912Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added module-boundary regression coverage for the Evidence responsibility split
