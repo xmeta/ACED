@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MSFT0L68
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-422-governance
+approvedAt: "2026-08-05T08:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSFT0L68
+branchName: task/SCWBS-DRAFT-MSFT0L68-issue-422-evidence-core-modules-coverage-classif
+allowedPaths:
+  - contracts/check-coverage.yaml
+  - contracts/specs/SPEC-LITE-MSFT0L68.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/check-coverage.yaml
+stopIf:
+  - classification policy change requires human review
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - contracts/check-coverage.yaml classifies src/core/evidence/build.ts as behavior-critical with test:integration
+  - contracts/check-coverage.yaml classifies src/core/evidence/ci-receipt.ts as behavior-critical with test:integration
+  - contracts/check-coverage.yaml classifies src/core/evidence/coverage-receipt.ts as behavior-critical with test:integration
+  - The policy uses exact module paths and does not broaden implementationRoots or add a waiver
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSFT0L68.yaml
+  - contracts/specs/SPEC-LITE-MSFT0L68.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFT0L68.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSFT0L68.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFT0L68.patch
+  - contracts/approvals/SCWBS-DRAFT-MSFT0L68.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSFT0L68.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:134b2aabb5cd951dd1edf5a7191d2455def0207c60a74c2c22f7b5e9678c6f89
+  createdAt: "2026-08-05T08:09:01.054Z"
