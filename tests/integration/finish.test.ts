@@ -39,6 +39,23 @@ function readBounded(file: string): string {
   }
 }
 
+function withCurrentPullRequest(root: string, payload: unknown, action: () => void): void {
+  const gh = path.join(root, "bin/current-pr-gh");
+  writeText(root, "bin/current-pr-gh", `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
+  chmodSync(gh, 0o755);
+  const previousPath = process.env.PATH;
+  execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+  process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
+  const linkedGh = path.join(root, "bin/gh");
+  writeText(root, "bin/gh", `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
+  chmodSync(linkedGh, 0o755);
+  try {
+    action();
+  } finally {
+    process.env.PATH = previousPath;
+  }
+}
+
 async function waitForCommandStart(marker: string, lockPath: string, timeoutMs = 5_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -427,6 +444,27 @@ describe("finish", () => {
     });
     expect(result.json.nextAction).toContain("review request --task WBS-001-004 --pull-request 42 --force");
   });
+
+  test("finish points to Evidence collection when the current branch already has an unrecorded PR", () => {
+    const root = prepareFinishRepo();
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      git: { branch: "master", base: "base", changedFilesBasis: "branch-diff" }
+    }) as unknown as Record<string, unknown>);
+
+    const result = (() => {
+      let captured: ReturnType<typeof captureFinishJson> | undefined;
+      withCurrentPullRequest(root, { number: 73, state: "OPEN", isDraft: false }, () => {
+        captured = captureFinishJson(root, { taskId: "WBS-001-004", baseRef: "base" });
+      });
+      return captured!;
+    })();
+
+    expect(result.exitCode).toBe(1);
+    expect(result.json.readinessWarnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "finish.pullRequest.current.metadata.mismatch" })
+    ]));
+    expect(result.json.nextAction).toContain("evidence collect --task WBS-001-004 --pull-request 73 --force");
+  }, 30000);
 
   test("plain and JSON finish output return the same PR next action", () => {
     const jsonRoot = prepareFinishRepo(true);

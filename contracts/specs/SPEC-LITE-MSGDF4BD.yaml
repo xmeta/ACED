@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSGDF4BD
+type: spec-contract
+featureId: F-MSGDF4BD
+title: "Issue #434: PR後EvidenceとApprovalの再収束ガイド"
+status: approved
+version: 0.1.0
+summary: "現在ブランチの既存PRを読み取り、Evidence・Review・Approvalの不一致時に一意の回復コマンドを示す。承認意味論とHuman Gate所有権は変更しない。"
+approvedBy: user-requested-issue-434
+approvedAt: "2026-08-06T00:00:00+09:00"
+acceptanceCriteria:
+  - current branch open PR number is read-only discoverable through the existing GitHub CLI integration and unavailable or malformed responses fail safe without inventing metadata
+  - finish and check-diff report evidence collect with the detected PR number before any new PR creation when an existing PR is not recorded in Evidence or Review
+  - approval request does not create a requested record whose PR metadata conflicts with the current branch PR or Evidence; the message identifies the mismatch and the recovery order
+  - health exposes a distinct warning and fixCommand for a detected current branch PR missing from Evidence, while Human Approval remains human-only
+  - integration regression tests cover detected/missing/matching/conflicting/unavailable PR states and preserve existing PR-state and approval behavior

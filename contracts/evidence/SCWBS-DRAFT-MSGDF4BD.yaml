@@ -1,0 +1,76 @@
+id: EVD-SCWBS-DRAFT-MSGDF4BD
+type: evidence
+taskId: SCWBS-DRAFT-MSGDF4BD
+commit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
+subjectHeadCommit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
+diffHash: sha256:a4a2503f057202e4972bffdf4fce3051814065be7501816086112a56249e39a3
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
+    treeHash: 10603b52b95527d87c88d420f7fd7eb6ec95d72a
+    diffHash: sha256:a4a2503f057202e4972bffdf4fce3051814065be7501816086112a56249e39a3
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSGDF4BD.patch
+    manifestHash: sha256:a4a2503f057202e4972bffdf4fce3051814065be7501816086112a56249e39a3
+git:
+  branch: task/SCWBS-DRAFT-MSGDF4BD-issue-434-pr-evidence-approval
+  base: origin/main
+  baseCommit: 1d5769e44ad1f768abefbef64b3fa51b008094bd
+  changedFilesBasis: branch-diff
+  pullRequest: "441"
+  subjectHeadCommit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
+  diffHash: sha256:a4a2503f057202e4972bffdf4fce3051814065be7501816086112a56249e39a3
+  headCommit: 1013e26ebab6ffc90e8b8c2b526bcf2b96f6bd18
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGDF4BD.patch
+  - contracts/evidence/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSGDF4BD.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/health.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:5da92f7c3cdfb297c097a9888d64eed490d9103e3044c2ca13bd9db9668e7e08
+    durationMilliseconds: 14452
+    executedAt: "2026-08-05T18:38:54.294Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:0b7d03f1037f1b316b1cfe62c7c6f956d8fbd3bf8e8a016c8d0e27c3351799ea
+    durationMilliseconds: 231302
+    executedAt: "2026-08-05T18:42:45.601Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e7329c49221a27480389f3337fdb55f4b0abb99d7ea1ab1aee35c21baf906312
+    durationMilliseconds: 8188
+    executedAt: "2026-08-05T18:42:53.794Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:d36e5559e6b32c0149b77c9542a93b12e1f528039e2acb7f61537472344e9b22
+    durationMilliseconds: 3519
+    executedAt: "2026-08-05T18:42:57.318Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - PR後のEvidenceにPR番号を記録し、既存PRとEvidenceの不一致回復導線を検証

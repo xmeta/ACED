@@ -6,6 +6,7 @@ import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
 import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 
 export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
   return {
@@ -59,6 +60,19 @@ function evidenceSubject(root: string, taskId: string): { headCommit?: string; d
 
 export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
   try {
+    const current = detectCurrentPullRequest(root);
+    const evidencePullRequest = normalizePullRequestNumber(readEvidence(root, taskId).evidence?.git?.pullRequest);
+    const requestedPullRequest = normalizePullRequestNumber(options.pullRequest);
+    if (current && evidencePullRequest !== current.number) {
+      console.error(`${taskId} current branch already has PR #${current.number}, but Evidence records ${evidencePullRequest ? `PR #${evidencePullRequest}` : "no PR"}`);
+      console.error(`fixCommand: ${pullRequestEvidenceCommand(taskId, current.number)}`);
+      return 1;
+    }
+    if (current && requestedPullRequest !== undefined && requestedPullRequest !== current.number) {
+      console.error(`${taskId} approval request PR #${requestedPullRequest} does not match current branch PR #${current.number}`);
+      console.error(`fixCommand: ${pullRequestEvidenceCommand(taskId, current.number)}`);
+      return 1;
+    }
     const relativePath = approvalPath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     if (existsSync(fullPath) && !options.force) {
@@ -66,7 +80,10 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
       return 1;
     }
 
-    const yaml = buildApprovalRequestYaml(taskId, options);
+    const yaml = buildApprovalRequestYaml(taskId, {
+      ...options,
+      ...(current ? { pullRequest: `#${current.number}` } : {})
+    });
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
     syncRegistry(root);

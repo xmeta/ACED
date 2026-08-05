@@ -17,6 +17,9 @@ import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
+
+export { normalizePullRequestNumber } from "./health.js";
 
 export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
 export type FinishOutcome =
@@ -67,12 +70,6 @@ type PullRequestStatusCheck = { status?: string; conclusion?: string; state?: st
 type PullRequestView = { isDraft?: boolean; state?: string; statusCheckRollup?: PullRequestStatusCheck[] };
 const FAILED_CHECK_CONCLUSIONS = new Set(["ACTION_REQUIRED", "CANCELLED", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
 const SUCCESSFUL_CHECK_CONCLUSIONS = new Set(["NEUTRAL", "SKIPPED", "SUCCESS"]);
-
-export function normalizePullRequestNumber(value: string | undefined): number | undefined {
-  if (!value) return undefined;
-  const match = value.trim().match(/^(?:#|.*\/pull\/)?([1-9]\d*)\/?$/);
-  return match?.[1] ? Number(match[1]) : undefined;
-}
 
 export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
   try {
@@ -241,6 +238,19 @@ function collectPullRequestMetadata(root: string, taskId: string): PullRequestMe
         code: "finish.pullRequest.metadata.mismatch",
         message: `${taskId} Evidence pullRequest #${evidence} does not match Review pullRequest #${review}`,
         fixCommand: `npm run scwbs -- review request --task ${taskId} --pull-request ${evidence} --force`
+      }
+    };
+  }
+  const current = detectCurrentPullRequest(root);
+  if (current && (evidence !== current.number || (review !== undefined && review !== current.number))) {
+    return {
+      evidence,
+      review,
+      issue: {
+        severity: "error",
+        code: "finish.pullRequest.current.metadata.mismatch",
+        message: `${taskId} current branch already has PR #${current.number}, but Evidence/Review metadata is missing or points elsewhere`,
+        fixCommand: pullRequestEvidenceCommand(taskId, current.number)
       }
     };
   }
