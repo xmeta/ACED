@@ -1,0 +1,77 @@
+id: EVD-SCWBS-DRAFT-MSGIQZRD
+type: evidence
+taskId: SCWBS-DRAFT-MSGIQZRD
+commit: 34d951e32511915840b7f6ec1f566a00c735374f
+subjectHeadCommit: 34d951e32511915840b7f6ec1f566a00c735374f
+diffHash: sha256:e2aa04adb779dc2f09ee98b854d017ef497e2385142df5903a98c784eb9fbaf5
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 34d951e32511915840b7f6ec1f566a00c735374f
+    treeHash: f42d6434f1203ea61d423b2939e760af521ae258
+    diffHash: sha256:e2aa04adb779dc2f09ee98b854d017ef497e2385142df5903a98c784eb9fbaf5
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
+    manifestHash: sha256:e2aa04adb779dc2f09ee98b854d017ef497e2385142df5903a98c784eb9fbaf5
+git:
+  branch: task/SCWBS-DRAFT-MSGIQZRD-issue-144-human-approval-provenance
+  base: origin/main
+  baseCommit: c9ad517daa47bfd6c58788bb6696080c44a05081
+  changedFilesBasis: branch-diff
+  pullRequest: "443"
+  subjectHeadCommit: 34d951e32511915840b7f6ec1f566a00c735374f
+  diffHash: sha256:e2aa04adb779dc2f09ee98b854d017ef497e2385142df5903a98c784eb9fbaf5
+  headCommit: 34d951e32511915840b7f6ec1f566a00c735374f
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
+  - contracts/evidence/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/registry.yaml
+  - contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml
+  - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/approval-request.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:43ec801a0dfa14bd22b4c2dbbac1f728e52664cba11d75133c74431a5d3c7086
+    durationMilliseconds: 18230
+    executedAt: "2026-08-05T21:39:19.901Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e7874ebbd7f12d68ca3282642393e298cfe2970c57048cff4a5428887c812a2f
+    durationMilliseconds: 274671
+    executedAt: "2026-08-05T21:43:54.576Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:6613aee8245ab259913c99d390c276b15cce4eb57ffce1e0e6143956c54d1589
+    durationMilliseconds: 9256
+    executedAt: "2026-08-05T21:44:03.838Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:849de116aa3d5e2f76eeacb1b757b466c703a6c0de30d85907b7c3ff5a079573
+    durationMilliseconds: 3708
+    executedAt: "2026-08-05T21:44:07.550Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - 承認主体をStandard GitHub reviewからLean TTY provenanceへ変更し、Spec Change ProposalとTask scope更新を反映。TTY、OSユーザー、headCommit、diffHash拘束の回帰テストを検証。

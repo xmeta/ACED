@@ -123,6 +123,26 @@ export type HumanGateValidation = {
   issues: Issue[];
 };
 
+export function validateHumanApprovalProvenance(approval: ApprovalRecord, required: boolean): Issue[] {
+  if (!required || approval.approvalMode === "delegated") return [];
+  const provenanceKeys = ["actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel"] as const;
+  // Existing approved records predate Standard provenance. Preserve those immutable
+  // historical records; any newly written PR-bound Approval is verified at creation.
+  if (!provenanceKeys.some((key) => approval[key] !== undefined)) return [];
+  const issues: Issue[] = [];
+  const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
+  for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
+    if (!approval[key]) add("approval.provenance.missing", `Human Approval is missing verified ${key}`);
+  }
+  if (approval.actorSource !== "tty" || approval.verificationLevel !== "lean") {
+    add("approval.provenance.level", "Human Approval requires lean interactive TTY provenance");
+  }
+  if (approval.actorId && approval.approvedBy !== approval.actorId) {
+    add("approval.provenance.actor", "approvedBy must match the verified human actorId");
+  }
+  return issues;
+}
+
 function evidenceHead(evidence: Evidence): string | undefined {
   return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
 }
@@ -178,6 +198,7 @@ export function validateHumanGateApproval(
   }
 
   const issues: Issue[] = [];
+  issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
   if (approval.approvalMode === "delegated") {
     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
   }

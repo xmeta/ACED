@@ -1,5 +1,6 @@
 import { chmodSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
@@ -41,6 +42,21 @@ function withCurrentPullRequest(root: string, payload: unknown | undefined, acti
     return action();
   } finally {
     process.env.PATH = previousPath;
+  }
+}
+
+function withInteractiveTty(action: () => number): number {
+  const stdinDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+  const stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+  Object.defineProperty(process.stdin, "isTTY", { configurable: true, value: true });
+  Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
+  try {
+    return action();
+  } finally {
+    if (stdinDescriptor) Object.defineProperty(process.stdin, "isTTY", stdinDescriptor);
+    else delete (process.stdin as unknown as { isTTY?: boolean }).isTTY;
+    if (stdoutDescriptor) Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);
+    else delete (process.stdout as unknown as { isTTY?: boolean }).isTTY;
   }
 }
 
@@ -117,18 +133,49 @@ describe("approval", () => {
     writeScwbsProject(root);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
 
-    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false })).toBe(0);
+    const result = withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      pullRequest: "#42",
+      reason: "CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234",
+      actor: "human",
+      force: false
+    }));
+    const actorId = os.userInfo().username;
+    expect(result).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("status: approved");
-    expect(actual).toContain("approvedBy: human");
+    expect(actual).toContain(`approvedBy: ${actorId}`);
+    expect(actual).toContain(`actorId: ${actorId}`);
+    expect(actual).toContain("actorSource: tty");
+    expect(actual).toContain("verificationLevel: lean");
     expect(actual).toContain("approvedAt:");
     expect(actual).toContain("headCommit: abc1234");
     expect(actual).toContain("diffHash: diff1234");
     expect(actual).toContain('pullRequest: "#42"');
-    expect(actual).toContain("reason: Evidence and PR reviewed");
+    expect(actual).toContain("reason: CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234");
+  });
+
+  test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    const output = captureOutput(() => withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      pullRequest: "#42",
+      reason: "Reviewed",
+      actor: "human",
+      force: false
+    })));
+
+    expect(output.result).toBe(1);
+    expect(output.stderr).toContain("exact TTY confirmation");
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
   test("approval approve preserves request time while legacy approval remains unobserved", () => {

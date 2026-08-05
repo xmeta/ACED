@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSGIQZRD
+type: spec-contract
+featureId: F-MSGIQZRD
+title: "Issue #144: Human Approval provenanceを検証可能にする"
+status: approved
+version: 0.2.0
+summary: "別レビュアーを必須にせず、対話TTY上のOSユーザー確認とheadCommit・diffHash拘束でHuman Approval provenanceを検証可能にする。"
+approvedBy: human
+approvedAt: "2026-08-05T21:20:50.585Z"
+acceptanceCriteria:
+  - approved ApprovalはOSユーザー由来のactorId、actorSource=tty、verifiedAt、verificationLevel=leanを持ち、対象EvidenceのheadCommit・diffHashへ拘束される。actorUrlは要求しない
+  - 非対話TTYでの実行、TTY確認と実行ユーザーの不一致、またはheadCommit・diffHashに一致する明示確認文の欠落ではapproved recordを作成できず、Approvalはrequestedのままfail-closedになる
+  - Lean TTY provenanceに失敗したApproval、legacyなapprovedByだけのApproval、scopeまたはprovenanceが不一致のApprovalをcheck-diffとHuman Gate検証が拒否する
+  - 既存のdelegated approval policyの権限境界、AIによるHuman Approval禁止、package/CI/repository settingsは変更しない
+  - provenanceの欠落・不正・OSユーザー取得不能は成功扱いにせず、再実行可能なHuman Gate案内を出す

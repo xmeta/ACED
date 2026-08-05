@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
-import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
+import type { ApprovalDelegationScope, ApprovalRecord, Evidence } from "../core/types.js";
 import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 
 export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
@@ -24,7 +25,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
-export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; actorId?: string; actorSource?: string; actorUrl?: string; verifiedAt?: string; verificationLevel?: string; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
   return {
     id: `APR-${taskId}`,
     type: "approval",
@@ -38,11 +39,48 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
     ...(options.diffHash ? { diffHash: options.diffHash } : {}),
     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
     ...(options.reason ? { reason: options.reason } : {}),
+    ...(options.actorId ? { actorId: options.actorId } : {}),
+    ...(options.actorSource ? { actorSource: options.actorSource } : {}),
+    ...(options.actorUrl ? { actorUrl: options.actorUrl } : {}),
+    ...(options.verifiedAt ? { verifiedAt: options.verifiedAt } : {}),
+    ...(options.verificationLevel ? { verificationLevel: options.verificationLevel } : {}),
     ...(options.delegationSource ? { delegationSource: options.delegationSource } : {}),
     ...(options.delegatedBy ? { delegatedBy: options.delegatedBy } : {}),
     ...(options.executedBy ? { executedBy: options.executedBy } : {}),
     ...(options.delegationScope ? { delegationScope: options.delegationScope } : {}),
     ...(options.delegationProof ? { delegationProof: options.delegationProof } : {})
+  };
+}
+
+type TtyHumanProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "verifiedAt" | "verificationLevel">;
+
+function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: string): TtyHumanProvenance {
+  const headCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+  const diffHash = evidence.diffHash ?? evidence.git?.diffHash;
+  if (!headCommit || !diffHash) {
+    throw new Error("Lean human approval requires Evidence subjectHeadCommit and diffHash");
+  }
+  if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
+    throw new Error("Lean human approval requires an interactive TTY; approval remains unapproved");
+  }
+  let actorId: string;
+  try {
+    actorId = os.userInfo().username.trim();
+  } catch {
+    throw new Error("Unable to verify the current OS user for Lean human approval; approval remains unapproved");
+  }
+  if (!actorId) {
+    throw new Error("The current OS user is unavailable for Lean human approval; approval remains unapproved");
+  }
+  const confirmation = `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+  if (reason !== confirmation) {
+    throw new Error(`Lean human approval requires exact TTY confirmation in --reason: ${confirmation}`);
+  }
+  return {
+    actorId,
+    actorSource: "tty",
+    verifiedAt: new Date().toISOString(),
+    verificationLevel: "lean"
   };
 }
 
@@ -99,6 +137,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
   try {
     const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
     let delegatedSubject: { headCommit: string; diffHash: string } | undefined;
+    let humanProvenance: TtyHumanProvenance | undefined;
     let approvalExecution: Pick<ApprovalRecord, "approvedBy" | "approvedAt" | "approvalMode" | "delegationSource" | "delegatedBy" | "executedBy" | "delegationScope" | "delegationProof"> = {
       approvedBy: options.approvedBy,
       approvalMode: "human"
@@ -155,6 +194,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
     const relativePath = approvalPath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     const { approval, issues } = readApproval(root, taskId);
+    const { evidence } = readEvidence(root, taskId);
     const missingApprovalOnly = issues.length === 1 && issues[0]?.code === "approval.missing";
     if (!missingApprovalOnly && !approval) {
       throw new Error(issues.map((issue) => issue.message).join("\n"));
@@ -168,11 +208,23 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
       return 1;
     }
 
+    const evidencePullRequest = normalizePullRequestNumber(evidence?.git?.pullRequest);
+    const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+    const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+    if (resolvedActor === "human" && evidencePullRequest !== undefined && evidenceHead && evidenceDiffHash) {
+      if (!evidence) throw new Error("Lean human approval requires Evidence");
+      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason);
+      approvalExecution = {
+        ...approvalExecution,
+        approvedBy: humanProvenance.actorId
+      };
+    }
     const yaml = buildApprovalApproveYaml(taskId, {
       requestedAt: approval?.requestedAt,
       pullRequest: options.pullRequest ?? approval?.pullRequest,
       reason: options.reason,
       ...approvalExecution,
+      ...(humanProvenance ?? {}),
       ...(delegatedSubject ?? evidenceSubject(root, taskId))
     });
     mkdirSync(path.dirname(fullPath), { recursive: true });

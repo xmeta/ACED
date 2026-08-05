@@ -1,0 +1,67 @@
+id: SCWBS-DRAFT-MSGIQZRD
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSGIQZRD
+branchName: task/SCWBS-DRAFT-MSGIQZRD-issue-144-human-approval-provenance
+allowedPaths:
+  - contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check.test.ts
+  - tests/unit/human-gate.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+stopIf:
+  - 承認主体または認証・権限設計の追加判断
+  - TTYまたはOSユーザー由来provenanceの仕様未確定
+  - protected CI/repository settings変更
+  - allowedPaths外の変更
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #144: Human Approval provenanceを検証可能にする'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
+  - contracts/approvals/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSGIQZRD.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.2.0
+  specRevision: sha256:8eb0509ac5a984d39989a4805113fd0cde77956a58f389ae78b6f2439a3d3de6
+  createdAt: "2026-08-05T21:38:15.756Z"

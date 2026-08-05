@@ -260,6 +260,11 @@ const approvalRecordSchema = {
     pullRequest: { type: "string" },
     reason: { type: "string" },
     approvalMode: { type: "string", enum: ["human", "delegated"] },
+    actorId: { type: "string", minLength: 1 },
+    actorSource: { type: "string", minLength: 1 },
+    actorUrl: { type: "string", minLength: 1 },
+    verifiedAt: { type: "string", minLength: 1 },
+    verificationLevel: { type: "string", minLength: 1 },
     delegationSource: { type: "string" },
     delegatedBy: { type: "string" },
     executedBy: { const: "ai-agent" },
@@ -454,7 +459,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }
