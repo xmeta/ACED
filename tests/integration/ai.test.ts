@@ -205,11 +205,21 @@ describe("AI commands", () => {
     expect(buildNextAction(root)).toContain("Review blocked candidates");
   });
 
-  test("the legacy positional reason resolve remains a normal block reason", () => {
+  test("resolve without --reason fails closed without creating a Block", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    expect(main(["block", "resolve", "--task", "WBS-001-004"], root)).toBe(0);
-    expect(readBlock(root, "WBS-001-004").block).toMatchObject({ status: "blocked", reason: "resolve" });
+    expect(main(["block", "resolve", "--task", "WBS-001-004"], root)).toBe(2);
+    expect(readBlock(root, "WBS-001-004").block).toBeUndefined();
+    expect(readBlock(root, "WBS-001-004").issues.map((issue) => issue.code)).toContain("block.missing");
+  });
+
+  test("resolve rejects positional text and does not mutate an active Block", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(main(["block", "--task", "WBS-001-004", "Human Gate required"], root)).toBe(0);
+    const before = readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8");
+    expect(main(["block", "resolve", "Decision recorded", "--task", "WBS-001-004"], root)).toBe(2);
+    expect(readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8")).toBe(before);
   });
 
   test("ai next-task excludes a planned task that already has evidence", () => {

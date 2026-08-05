@@ -427,8 +427,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         exitCode = 2;
         return;
       }
-      const resolveRequested = reasonParts.length === 1 && reasonParts[0] === "resolve" && typeof opts.reason === "string";
-      const reason = (resolveRequested ? reasonParts.slice(1) : reasonParts).join(" ").trim() || (opts.reason as string) || "";
+      const resolveRequested = reasonParts[0] === "resolve";
+      const reason = resolveRequested
+        ? (typeof opts.reason === "string" ? opts.reason.trim() : "")
+        : reasonParts.join(" ").trim() || (opts.reason as string) || "";
       if (!reason) {
         console.error(resolveRequested ? "Missing resolution reason" : "Missing block reason");
         exitCode = 2;
