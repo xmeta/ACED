@@ -9,7 +9,7 @@ import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type Ta
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
-import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 
 export type HumanGateActionOwnership = {
   nextActionOwner: "human";

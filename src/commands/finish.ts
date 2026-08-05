@@ -17,9 +17,9 @@ import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
 import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
-import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 
-export { normalizePullRequestNumber } from "../core/github-pull-request.js";
+export { normalizePullRequestNumber } from "./health.js";
 
 export type FinishPhase = "preflight" | "required-checks" | "validation" | "checkpoint" | "readiness" | "complete";
 export type FinishOutcome =

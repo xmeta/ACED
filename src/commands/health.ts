@@ -1,3 +1,6 @@
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
@@ -14,7 +17,56 @@ import { buildGovernanceCostSummary } from "./metrics.js";
 import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
 import { verifyPatchArtifact } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
-import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
+
+export type CurrentPullRequest = {
+  number: number;
+  state?: string;
+  isDraft?: boolean;
+  headRefName?: string;
+  baseRefName?: string;
+};
+
+type GithubPullRequestView = {
+  number?: unknown;
+  state?: unknown;
+  isDraft?: unknown;
+  headRefName?: unknown;
+  baseRefName?: unknown;
+};
+
+export function normalizePullRequestNumber(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const match = value.trim().match(/^(?:#|.*\/pull\/)?([1-9]\d*)\/?$/);
+  return match?.[1] ? Number(match[1]) : undefined;
+}
+
+/** Read the current branch PR without mutating repository state; unavailable GitHub access fails safe. */
+export function detectCurrentPullRequest(root: string): CurrentPullRequest | undefined {
+  try {
+    const gitConfig = readFileSync(path.join(root, ".git", "config"), "utf8");
+    if (!/\[remote "origin"\]/.test(gitConfig)) return undefined;
+    const output = execFileSync(
+      "gh",
+      ["pr", "view", "--json", "number,state,isDraft,headRefName,baseRefName"],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    );
+    const view = JSON.parse(output) as GithubPullRequestView;
+    if (typeof view.number !== "number" || !Number.isInteger(view.number) || view.number < 1) return undefined;
+    return {
+      number: view.number,
+      ...(typeof view.state === "string" ? { state: view.state } : {}),
+      ...(typeof view.isDraft === "boolean" ? { isDraft: view.isDraft } : {}),
+      ...(typeof view.headRefName === "string" ? { headRefName: view.headRefName } : {}),
+      ...(typeof view.baseRefName === "string" ? { baseRefName: view.baseRefName } : {})
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+export function pullRequestEvidenceCommand(taskId: string, pullRequest: number): string {
+  return `npm run scwbs -- evidence collect --task ${taskId} --pull-request ${pullRequest} --force`;
+}
 
 type EvidenceLevel = "A" | "B" | "C";
 

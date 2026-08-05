@@ -6,7 +6,7 @@ import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
 import type { ApprovalDelegationScope, ApprovalRecord } from "../core/types.js";
-import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 
 export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
   return {
