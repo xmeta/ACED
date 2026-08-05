@@ -1,0 +1,150 @@
+diff --git a/contracts/specs/SPEC-LITE-MSG1TB9V.yaml b/contracts/specs/SPEC-LITE-MSG1TB9V.yaml
+new file mode 100644
+index 0000000..5132187
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSG1TB9V.yaml
+@@ -0,0 +1,15 @@
++id: SPEC-LITE-MSG1TB9V
++type: spec-contract
++featureId: F-MSG1TB9V
++title: "Issue #433: block resolve requires an explicit resolution reason"
++status: approved
++approvedBy: user-directed-task
++approvedAt: "2026-08-05T00:00:00Z"
++version: 0.1.0
++summary: "Make the human-only block resolve syntax fail closed when --reason is omitted, without mutating Block history."
++acceptanceCriteria:
++  - "block resolve --task <task-id> without --reason exits non-zero and leaves the Block file unchanged or absent"
++  - "block resolve with positional text is rejected instead of treating resolve as a normal block reason"
++  - "block resolve --task <task-id> --reason \"human decision\" continues to use the existing human-only resolution path"
++  - "AI execution mode cannot create a resolved Block record"
++  - "integration tests assert the failure, no mutation, and successful resolution paths"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml b/contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
+new file mode 100644
+index 0000000..f833428
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MSG1TB9V
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSG1TB9V
++branchName: task/SCWBS-DRAFT-MSG1TB9V-issue-433-block-resolve-requires-an-explicit-hum
++allowedPaths:
++  - src/cli.ts
++  - tests/integration/ai.test.ts
++  - contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/specs/SPEC-LITE-MSG1TB9V.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSG1TB9V.patch
++  - contracts/approvals/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - The fix requires changes outside allowedPaths
++  - Human Gate semantics or actor provenance must change
++  - The resolution command cannot remain human-only
++requiredChecks:
++  - test
++  - test:integration
++  - typecheck
++  - build
++doneCriteria:
++  - '`block resolve --task <task-id>` fails non-zero when --reason is absent'
++  - The missing-reason path does not create or modify a Block record
++  - Positional resolve text is not treated as a block reason or resolution reason
++  - '`block resolve --task <task-id> --reason "human decision"` preserves the existing human-only resolution path'
++  - AI execution mode remains unable to create a resolved Block record
++  - CLI regression tests cover missing --reason, no file mutation, and valid resolution
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/specs/SPEC-LITE-MSG1TB9V.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSG1TB9V.patch
++  - contracts/approvals/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSG1TB9V.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:3bf7b8422972c3708c4870884d51db552397100f706ee1435a453be4f99fe76a
++  createdAt: "2026-08-05T12:15:15.637Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 768224f..5c163b6 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1595,3 +1595,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T11:00:37.223Z"
++  - id: SCWBS-DRAFT-MSG1TB9V
++    path: contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
++    branchName: task/SCWBS-DRAFT-MSG1TB9V-issue-433-block-resolve-requires-an-explicit-hum
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/cli.ts b/src/cli.ts
+index 44ce181..91c0db9 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -427,8 +427,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+         exitCode = 2;
+         return;
+       }
+-      const resolveRequested = reasonParts.length === 1 && reasonParts[0] === "resolve" && typeof opts.reason === "string";
+-      const reason = (resolveRequested ? reasonParts.slice(1) : reasonParts).join(" ").trim() || (opts.reason as string) || "";
++      const resolveRequested = reasonParts[0] === "resolve";
++      const reason = resolveRequested
++        ? (typeof opts.reason === "string" ? opts.reason.trim() : "")
++        : reasonParts.join(" ").trim() || (opts.reason as string) || "";
+       if (!reason) {
+         console.error(resolveRequested ? "Missing resolution reason" : "Missing block reason");
+         exitCode = 2;
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 11b6257..6abdbc9 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -205,11 +205,21 @@ describe("AI commands", () => {
+     expect(buildNextAction(root)).toContain("Review blocked candidates");
+   });
+ 
+-  test("the legacy positional reason resolve remains a normal block reason", () => {
++  test("resolve without --reason fails closed without creating a Block", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+-    expect(main(["block", "resolve", "--task", "WBS-001-004"], root)).toBe(0);
+-    expect(readBlock(root, "WBS-001-004").block).toMatchObject({ status: "blocked", reason: "resolve" });
++    expect(main(["block", "resolve", "--task", "WBS-001-004"], root)).toBe(2);
++    expect(readBlock(root, "WBS-001-004").block).toBeUndefined();
++    expect(readBlock(root, "WBS-001-004").issues.map((issue) => issue.code)).toContain("block.missing");
++  });
++
++  test("resolve rejects positional text and does not mutate an active Block", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(main(["block", "--task", "WBS-001-004", "Human Gate required"], root)).toBe(0);
++    const before = readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8");
++    expect(main(["block", "resolve", "Decision recorded", "--task", "WBS-001-004"], root)).toBe(2);
++    expect(readFileSync(path.join(root, "contracts/blocks/WBS-001-004.yaml"), "utf8")).toBe(before);
+   });
+ 
+   test("ai next-task excludes a planned task that already has evidence", () => {
