@@ -1,0 +1,15 @@
+id: SPEC-LITE-MSG1TB9V
+type: spec-contract
+featureId: F-MSG1TB9V
+title: "Issue #433: block resolve requires an explicit resolution reason"
+status: approved
+approvedBy: user-directed-task
+approvedAt: "2026-08-05T00:00:00Z"
+version: 0.1.0
+summary: "Make the human-only block resolve syntax fail closed when --reason is omitted, without mutating Block history."
+acceptanceCriteria:
+  - "block resolve --task <task-id> without --reason exits non-zero and leaves the Block file unchanged or absent"
+  - "block resolve with positional text is rejected instead of treating resolve as a normal block reason"
+  - "block resolve --task <task-id> --reason \"human decision\" continues to use the existing human-only resolution path"
+  - "AI execution mode cannot create a resolved Block record"
+  - "integration tests assert the failure, no mutation, and successful resolution paths"

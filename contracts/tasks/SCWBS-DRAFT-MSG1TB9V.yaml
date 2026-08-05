@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MSG1TB9V
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSG1TB9V
+branchName: task/SCWBS-DRAFT-MSG1TB9V-issue-433-block-resolve-requires-an-explicit-hum
+allowedPaths:
+  - src/cli.ts
+  - tests/integration/ai.test.ts
+  - contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/specs/SPEC-LITE-MSG1TB9V.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG1TB9V.patch
+  - contracts/approvals/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/registry.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - The fix requires changes outside allowedPaths
+  - Human Gate semantics or actor provenance must change
+  - The resolution command cannot remain human-only
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - '`block resolve --task <task-id>` fails non-zero when --reason is absent'
+  - The missing-reason path does not create or modify a Block record
+  - Positional resolve text is not treated as a block reason or resolution reason
+  - '`block resolve --task <task-id> --reason "human decision"` preserves the existing human-only resolution path'
+  - AI execution mode remains unable to create a resolved Block record
+  - CLI regression tests cover missing --reason, no file mutation, and valid resolution
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/specs/SPEC-LITE-MSG1TB9V.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSG1TB9V.patch
+  - contracts/approvals/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSG1TB9V.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:3bf7b8422972c3708c4870884d51db552397100f706ee1435a453be4f99fe76a
+  createdAt: "2026-08-05T12:15:15.637Z"
