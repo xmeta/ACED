@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MSGIN3X9
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSGIN3X9
+branchName: task/SCWBS-DRAFT-MSGIN3X9-issue-144-human-approval-provenance
+allowedPaths:
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check.test.ts
+  - tests/unit/human-gate.test.ts
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+stopIf:
+  - 承認主体または認証・権限設計の追加判断
+  - 外部Identity連携の仕様未確定
+  - protected CI/repository settings変更
+  - allowedPaths外の変更
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - 'Complete Issue #144: Human Approval provenanceを検証可能にする'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSGIN3X9.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSGIN3X9.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSGIN3X9.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGIN3X9.patch
+  - contracts/approvals/SCWBS-DRAFT-MSGIN3X9.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSGIN3X9.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:471a6158770fc17dcbd3cb55f57659386b1c4a0f11dd6dcf4d961838e83cead3
+  createdAt: "2026-08-05T20:06:18.426Z"
