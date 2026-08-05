@@ -1,0 +1,68 @@
+id: SCWBS-DRAFT-MSGDF4BD
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSGDF4BD
+branchName: task/SCWBS-DRAFT-MSGDF4BD-issue-434-pr-evidence-approval
+allowedPaths:
+  - src/core/github-pull-request.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/commands/approval-request.ts
+  - src/commands/health.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/health.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - approval identity or authorization semantics change is required
+  - existing PR cannot be queried without changing protected CI or repository settings
+  - implementation or fixture requires paths outside the listed source and test files
+  - Human Gate output ownership is weakened or AI approval is enabled
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - current branch PR detection is read-only, degrades safely when GitHub CLI is unavailable, and never changes approval identity or authorization semantics
+  - finish and check-diff identify an existing current-branch PR when Evidence and Review omit PR metadata, and emit evidence collect as the first actionable recovery command
+  - approval request refuses to create a stale request when an existing current-branch PR conflicts with the requested or recorded Evidence PR metadata, while preserving human-only approval ownership
+  - health reports a distinct actionable warning for a current-branch PR that is absent from Evidence, and integration tests cover matching, missing, conflicting, unavailable, and human-only paths
+  - no package, CI, Vitest, WBS, approval-policy, or coverage-threshold files change
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/specs/SPEC-LITE-MSGDF4BD.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSGDF4BD.patch
+  - contracts/approvals/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSGDF4BD.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a56de29a8f269af3869997396f06b29c105b73488b30072f6f8df647c19cdda4
+  createdAt: "2026-08-05T17:39:17.262Z"
