@@ -1,0 +1,71 @@
+id: SCWBS-DRAFT-MSFGY0TB
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-421
+approvedAt: "2026-08-05T02:30:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSFGY0TB
+branchName: task/SCWBS-DRAFT-MSFGY0TB-issue-421-finish-ts-reporter
+allowedPaths:
+  - src/core/report.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/commands/registry-rebuild.ts
+  - tests/unit/report.test.ts
+  - contracts/specs/SPEC-LITE-MSFGY0TB.yaml
+  - contracts/discovery/PROBE-issue-421-finish-reporter.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - docs/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/report.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/commands/registry-rebuild.ts
+stopIf:
+  - Reporter設計または出力意味論の変更で合意できない
+  - allowedPaths外の変更が必要
+  - CLI JSONスキーマやCI/package設定の変更が必要
+  - 非同期出力の安全性を保証できない
+requiredChecks:
+  - test
+  - test:integration
+  - typecheck
+  - build
+doneCriteria:
+  - Reporterの注入先をcore/report.tsに定義し、buffered stdout実装がconsole.logまたはprocess.stdout.writeをグローバルに差し替えない
+  - finish.tsのJSON経路がcheck-diffとregistry-rebuildへReporterを渡し、既存のJSONスキーマ・終了コード・非JSON出力文言を維持する
+  - Reporterの基本動作とfinishのJSON出力境界を回帰テストで検証する
+  - package設定、CI、他コマンドの出力フォーマット、依存関係を変更しない
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSFGY0TB.yaml
+  - contracts/specs/SPEC-LITE-MSFGY0TB.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFGY0TB.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSFGY0TB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFGY0TB.patch
+  - contracts/approvals/SCWBS-DRAFT-MSFGY0TB.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSFGY0TB.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7c96e19ac95290403971efa880fef19080088b2a50d2d9ca271ffde8f4eb1deb
+  createdAt: "2026-08-05T03:12:34.489Z"
