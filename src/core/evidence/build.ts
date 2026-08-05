@@ -1,5 +1,5 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { listEvidence, readEvidence, readTask } from "../contracts.js";
+import { readEvidence, readTask } from "../contracts.js";
 import { buildCheckCacheKey, buildCheckCacheSubject } from "../check-cache.js";
 import { resolveCheckCommand } from "../check-catalog.js";
 import { collectCheckReceiptProvenance, readCheckReceipt } from "../check-receipt.js";
