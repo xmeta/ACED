@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSFS3CIK
+type: spec-contract
+featureId: F-MSFS3CIK
+title: "Issue #422 Evidence build責務分離"
+status: approved
+approvedBy: user-requested-issue-422
+approvedAt: "2026-08-05T08:00:00Z"
+version: 0.1.0
+summary: "Evidence収集のreceipt検証とbuild責務をcore/evidence配下へ分離し、command moduleの互換exportと既存挙動を維持する。"
+acceptanceCriteria:
+  - CI receipt validation is provided by src/core/evidence/ci-receipt.ts with the existing validation messages and accepted receipt shape
+  - coverage receipt validation is provided by src/core/evidence/coverage-receipt.ts with the existing validation messages and accepted receipt shape
+  - buildCollectedEvidence and buildCollectedEvidenceYaml are provided by src/core/evidence/build.ts and re-exported from src/commands/evidence-collect.ts
+  - detectOpenPullRequest remains available from src/commands/evidence-collect.ts
+  - runEvidenceCollect, runEvidenceRetain, and runEvidencePrune remain command-owned and behavior-compatible
+  - Evidence schema, field order, CLI options, output summaries, and registry behavior are unchanged
+  - unit regression tests cover the extracted module boundaries, and existing integration tests remain green
