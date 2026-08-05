@@ -1,11 +1,12 @@
-import { readFileSync } from "node:fs";
+import { chmodSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { main } from "../../src/cli.js";
 import { readApproval } from "../../src/core/contracts.js";
-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 
 const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
 const OTHER_STRONG_TOKEN = "fedcba9876543210fedcba9876543210";
@@ -28,6 +29,21 @@ function captureOutput(action: () => number): { result: number; stdout: string; 
   }
 }
 
+function withCurrentPullRequest(root: string, payload: unknown | undefined, action: () => number): number {
+  const gh = path.join(root, "bin/gh");
+  writeText(root, "bin/gh", payload === undefined
+    ? "#!/usr/bin/env node\nprocess.exit(1);\n"
+    : `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(JSON.stringify(payload))});\n`);
+  chmodSync(gh, 0o755);
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
+  try {
+    return action();
+  } finally {
+    process.env.PATH = previousPath;
+  }
+}
+
 describe("approval", () => {
   test("approval request writes a requested approval record", () => {
     const root = makeTempRepo();
@@ -38,6 +54,32 @@ describe("approval", () => {
     expect(actual).toContain("status: requested");
     expect(actual).toContain("requestedAt:");
     expect(actual).toContain('pullRequest: "#42"');
+  });
+
+  test("approval request records the detected current branch PR after Evidence matches", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ git: { pullRequest: "#42" } }) as unknown as Record<string, unknown>);
+
+    withCurrentPullRequest(root, { number: 42, state: "OPEN", isDraft: false }, () => {
+      const result = runApprovalRequest(root, "WBS-001-004", { note: "Awaiting human review", force: false });
+      expect(result).toBe(0);
+      return result;
+    });
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toContain('pullRequest: "#42"');
+  });
+
+  test("approval request stops and points to Evidence collection when an existing PR is unrecorded", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+    const output = captureOutput(() => withCurrentPullRequest(root, { number: 42 }, () =>
+      runApprovalRequest(root, "WBS-001-004", { note: "Awaiting human review", force: false })));
+
+    expect(output.result).toBe(1);
+    expect(output.stderr).toContain("current branch already has PR #42");
+    expect(output.stderr).toContain("evidence collect --task WBS-001-004 --pull-request 42 --force");
   });
 
   test("approval request refuses to overwrite an existing record without force", () => {

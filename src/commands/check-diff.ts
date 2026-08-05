@@ -9,6 +9,7 @@ import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type Ta
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
 import { collectWbsChangesetGateIssues } from "./check.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
 
 export type HumanGateActionOwnership = {
   nextActionOwner: "human";
@@ -261,6 +262,20 @@ export function collectEvidenceGateIssues(root: string, task: TaskContract, evid
   }));
 }
 
+export function collectCurrentPullRequestIssues(root: string, task: TaskContract, evidenceOverride?: Evidence): Issue[] {
+  const current = detectCurrentPullRequest(root);
+  if (!current) return [];
+  const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
+  const recorded = normalizePullRequestNumber(evidence?.git?.pullRequest);
+  if (recorded === current.number) return [];
+  return [{
+    severity: "error",
+    code: "diff.pullRequest.current.metadata",
+    message: `${task.id} current branch already has PR #${current.number}, but Evidence records ${recorded ? `PR #${recorded}` : "no PR"}`,
+    fixCommand: pullRequestEvidenceCommand(task.id, current.number)
+  }];
+}
+
 export function runCheckDiff(root: string, taskId: string, options: { baseRef?: string; json?: boolean; evidence?: Evidence; reporter?: Reporter } = {}): number {
   const reporter = options.reporter ?? createConsoleReporter();
   const { task, issues } = readTask(root, taskId);
@@ -296,6 +311,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   const diffIssues = withDefaultFixCommand([
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task, options.evidence),
+    ...collectCurrentPullRequestIssues(root, task, options.evidence),
     ...workingTreeIssues,
     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
     ...collectDiffIssues(root, task, files, options.evidence)

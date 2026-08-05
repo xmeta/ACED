@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -15,6 +15,28 @@ import { verifyPatchArtifact } from "../../src/core/git.js";
 import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, sampleWbs, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
 describe("health", () => {
+  test("health warns when the current branch PR is absent from Evidence", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+    const gh = path.join(root, "bin/gh");
+    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ number: 42 }));\n");
+    chmodSync(gh, 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
+    try {
+      const task = sampleTask({ requiredChecks: [], branchName: "master" });
+      const issues = collectEvidenceTrustIssues(root, sampleWbs("planned"), task, sampleEvidence());
+      expect(issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: "health.evidence.git.pullRequest.currentBranch",
+          fixCommand: expect.stringContaining("--pull-request 42 --force")
+        })
+      ]));
+    } finally {
+      process.env.PATH = previousPath;
+    }
+  });
   test("patch provenance fails closed for missing, tampered, unsafe, or inconsistent artifacts", () => {
     const root = makeTempRepo();
     const task = sampleTask({ requiredChecks: [] });

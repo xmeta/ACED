@@ -2,10 +2,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { collectBranchIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
+import { collectBranchIssues, collectCurrentPullRequestIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
 import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
 import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { chmodSync } from "node:fs";
 
 const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
 
@@ -37,6 +38,38 @@ function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
 }
 
 describe("check-diff", () => {
+  test("current branch PR metadata is required when a PR is discoverable, but unavailable GitHub access is non-blocking", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+    const gh = path.join(root, "bin/gh");
+    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ number: 42 }));\n");
+    chmodSync(gh, 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${path.dirname(gh)}:${previousPath ?? ""}`;
+    try {
+      const task = sampleTask();
+      expect(collectCurrentPullRequestIssues(root, task, sampleEvidence({ git: { pullRequest: "#41" } }))).toEqual([
+        expect.objectContaining({
+          code: "diff.pullRequest.current.metadata",
+          fixCommand: expect.stringContaining("--pull-request 42 --force")
+        })
+      ]);
+      expect(collectCurrentPullRequestIssues(root, task, sampleEvidence({ git: { pullRequest: "#42" } }))).toEqual([]);
+    } finally {
+      process.env.PATH = previousPath;
+    }
+
+    writeText(root, "bin/gh", "#!/usr/bin/env node\nprocess.exit(1);\n");
+    chmodSync(gh, 0o755);
+    const unavailablePath = process.env.PATH;
+    process.env.PATH = `${path.dirname(gh)}:${unavailablePath ?? ""}`;
+    try {
+      expect(collectCurrentPullRequestIssues(root, sampleTask(), sampleEvidence())).toEqual([]);
+    } finally {
+      process.env.PATH = unavailablePath;
+    }
+  });
   test("authority comparison detects every scope field but ignores contractLock refresh metadata", () => {
     const base = sampleTask({ managedContractPaths: ["contracts/evidence/WBS-001-004.yaml"] });
     const refreshed = sampleTask({

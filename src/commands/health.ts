@@ -14,6 +14,7 @@ import { buildGovernanceCostSummary } from "./metrics.js";
 import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
 import { verifyPatchArtifact } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "../core/github-pull-request.js";
 
 type EvidenceLevel = "A" | "B" | "C";
 
@@ -269,6 +270,18 @@ export function collectEvidenceTrustIssues(
       code: "health.evidence.git.pullRequest.missing",
       message: `${task.id} is awaiting review but evidence has no git.pullRequest`,
       fixCommand: `npm run scwbs -- evidence annotate --task ${task.id} --pull-request <pr-number>`
+    });
+  }
+  const currentPullRequest = currentBranchName && (currentBranchName === task.branchName || currentBranchName === evidence.git?.branch)
+    ? detectCurrentPullRequest(root)
+    : undefined;
+  const recordedPullRequest = normalizePullRequestNumber(evidence.git?.pullRequest);
+  if (currentPullRequest && recordedPullRequest !== currentPullRequest.number) {
+    issues.push({
+      severity: "warn",
+      code: "health.evidence.git.pullRequest.currentBranch",
+      message: `${task.id} current branch already has PR #${currentPullRequest.number}, but Evidence records ${recordedPullRequest ? `PR #${recordedPullRequest}` : "no PR"}`,
+      fixCommand: pullRequestEvidenceCommand(task.id, currentPullRequest.number)
     });
   }
 
