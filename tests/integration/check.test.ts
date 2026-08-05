@@ -1,11 +1,36 @@
 import { describe, expect, test } from "vitest";
 import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
+import { collectDiffIssues } from "../../src/commands/check-diff.js";
 import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 import { readTask } from "../../src/core/contracts.js";
 import { runApprovalApprove } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 
 describe("check", () => {
+  test("check-diff rejects PR-bound human approval without verified provenance", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvedBy: "human",
+      approvedAt: "2026-07-05T14:30:00.000Z",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
+      pullRequest: "#42",
+      actorId: "reviewer"
+    }) as unknown as Record<string, unknown>);
+    const task = sampleTask({ allowedPaths: [], humanGateRequiredPaths: ["tsconfig.json"] });
+
+    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
+    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("approval.provenance.missing"))).toBe(true);
+    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("approval.provenance.level"))).toBe(true);
+  });
+
   test("check --json outputs pass status with empty issues for a healthy repo", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");

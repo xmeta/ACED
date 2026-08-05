@@ -653,32 +653,6 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
   });
 
-  test("check-diff rejects PR-bound human approval without verified provenance", () => {
-    const root = makeTempRepo();
-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
-      subjectHeadCommit: "abc1234",
-      diffHash: "diff1234",
-      git: { pullRequest: "#42" }
-    }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved",
-      approvedBy: "human",
-      approvedAt: "2026-07-05T14:30:00.000Z",
-      headCommit: "abc1234",
-      diffHash: "diff1234",
-      pullRequest: "#42",
-      actorId: "reviewer"
-    }) as unknown as Record<string, unknown>);
-    const task = sampleTask({
-      allowedPaths: [],
-      humanGateRequiredPaths: ["tsconfig.json"]
-    });
-
-    const issues = collectDiffIssues(root, task, ["tsconfig.json"]);
-    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("approval.provenance.missing"))).toBe(true);
-    expect(issues.some((issue) => issue.code === "diff.humanGate" && issue.message.includes("approval.provenance.level"))).toBe(true);
-  });
-
   test("check-diff rejects human-gate approvals that do not match evidence diff scope", () => {
     const root = makeTempRepo();
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
