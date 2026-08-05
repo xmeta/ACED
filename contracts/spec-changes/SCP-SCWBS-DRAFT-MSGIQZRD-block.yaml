@@ -1,0 +1,30 @@
+id: SCP-SCWBS-DRAFT-MSGIQZRD-block
+type: spec-change-proposal
+status: proposed
+targetSpec: SPEC-LITE-MSGIQZRD
+currentVersion: 0.1.0
+proposedVersion: 0.2.0
+taskId: SCWBS-DRAFT-MSGIQZRD
+level: 2
+summary: Replace mandatory external GitHub review provenance with interactive TTY human confirmation
+rationale:
+  - 'Issue #144では別の人間レビュアーを用意できないため、Standard GitHub review provenanceを運用できない。'
+  - '承認実行者本人が対話TTYで明示確認し、OSユーザー由来のactorId、actorSource=tty、verifiedAt、verificationLevel=leanを記録する方式へ変更する。'
+  - '非対話実行、自己申告だけのactor、TTY確認と実行ユーザーの不一致はfail closedとする。'
+  - '変更承認後にSpec Contract、Task Contract、実装、テストを更新し、既存PRは新しいEvidenceとApprovalで再検証する。'
+affectedPaths:
+  - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
+  - src/commands/approval-request.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/unit/human-gate.test.ts
+approval:
+  required: true
+  status: requested
+risks:
+  - '外部レビューより証跡強度が低下するため、対話TTY、実行ユーザー、明示確認、headCommit、diffHashの拘束を必須にする。'
+  - '既存のStandard provenance実装とPR #443のEvidence/Approvalは仕様変更承認後に再生成が必要になる。'
+  - 'Implementation must remain stopped until this proposal is human-approved and the locked Task authority is refreshed.'
