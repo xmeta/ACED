@@ -7,6 +7,7 @@ import { collectCheckIssues } from "../../src/commands/check.js";
 import { buildDraftTaskYaml, runTaskGenerate } from "../../src/commands/task-generate.js";
 import { buildCoreTaskNew, nextDraftTaskId, runTaskNew } from "../../src/commands/task-new.js";
 import { buildLockedTask, runTaskLock } from "../../src/commands/task-lock.js";
+import { runStart } from "../../src/commands/start.js";
 import { buildAffectedTaskRefreshReport, buildTaskRefreshPreview, runTaskRefresh, taskRefreshReasons } from "../../src/commands/task-refresh.js";
 import { applyWbsChangesets, buildWbsCandidatesFromTaskIndex } from "../../src/commands/wbs.js";
 import { buildNextTask } from "../../src/commands/ai-queue.js";
@@ -443,6 +444,68 @@ describe("task management", () => {
     expect(index).toContain("path: contracts/tasks/SCWBS-DRAFT-");
     expect(index).toContain("status: planned");
     expect(index).toContain("dependsOn: []");
+  });
+
+  test("task new adds checkCoverage checks and evidence before writing the draft", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/commands"],
+      rules: [{
+        id: "command",
+        classification: "behavior-critical",
+        rationale: "Command workflows require integration coverage.",
+        paths: ["src/commands/task-new.ts"],
+        requires: ["test:integration"]
+      }]
+    });
+
+    expect(runTaskNew(root, "Coverage-aware draft", {
+      paths: "src/commands/task-new.ts",
+      checks: "typecheck",
+      noStopConditions: true
+    })).toBe(0);
+
+    const taskFile = readdirSync(path.join(root, "contracts/tasks")).find((file) => file.startsWith("SCWBS-DRAFT-"));
+    const yaml = readFileSync(path.join(root, "contracts/tasks", taskFile ?? ""), "utf8");
+    expect(yaml).toContain("  - test:integration");
+    expect(yaml).toContain("  - test-result");
+  });
+
+  test("task new fails closed when checkCoverage policy cannot be read", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      rules: "invalid"
+    });
+
+    expect(runTaskNew(root, "Invalid coverage draft", {
+      paths: "src/commands/task-new.ts",
+      noStopConditions: true
+    })).toBe(1);
+    expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => file.startsWith("SCWBS-DRAFT-"))).toEqual([]);
+  });
+
+  test("task lock and task start reject missing checkCoverage requirements", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/check-coverage.yaml", {
+      implementationRoots: ["src/core"],
+      rules: [{
+        id: "core",
+        classification: "behavior-critical",
+        rationale: "Core workflows require integration coverage.",
+        paths: ["src/core/git.ts"],
+        requires: ["test:integration"]
+      }]
+    });
+    const task = sampleTask({ allowedPaths: ["src/core/git.ts"], branchName: "master" });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
+    const before = readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8");
+
+    expect(runTaskLock(root, task.id)).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/tasks/WBS-001-004.yaml"), "utf8")).toBe(before);
+    expect(runStart(root, task.id)).toBe(1);
   });
 
   test("task new builds safe branch names and default checks", () => {
