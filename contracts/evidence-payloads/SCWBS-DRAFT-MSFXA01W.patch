@@ -1,3 +1,34 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSFXA01W.yaml b/contracts/blocks/SCWBS-DRAFT-MSFXA01W.yaml
+new file mode 100644
+index 0000000..6abceab
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSFXA01W.yaml
+@@ -0,0 +1,25 @@
++id: BLK-SCWBS-DRAFT-MSFXA01W
++type: block
++taskId: SCWBS-DRAFT-MSFXA01W
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: resolve
++createdAt: "2026-08-05T10:29:48.978Z"
++history:
++  - status: blocked
++    at: "2026-08-05T10:16:49.677Z"
++    reason: 契約ロック後にrequiredChecksへtest:integrationを追加する契約修正とsrc/core/evidence/build.tsのHuman Approvalが必要
++    by: ai-agent
++  - status: blocked
++    at: "2026-08-05T10:29:48.978Z"
++    reason: resolve
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-05T10:41:11.914Z"
++    reason: requiredChecksへtest:integrationを追加し、修正Evidenceを承認
++    by: human
++resolvedAt: "2026-08-05T10:41:11.914Z"
++resolvedBy: human
++resolution: requiredChecksへtest:integrationを追加し、修正Evidenceを承認
 diff --git a/contracts/specs/SPEC-LITE-MSFXA01W.yaml b/contracts/specs/SPEC-LITE-MSFXA01W.yaml
 new file mode 100644
 index 0000000..7175945
@@ -19,10 +50,10 @@ index 0000000..7175945
 +  - Existing test, typecheck, and build checks remain green
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml b/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
 new file mode 100644
-index 0000000..66b86e8
+index 0000000..851385c
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSFXA01W.yaml
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,54 @@
 +id: SCWBS-DRAFT-MSFXA01W
 +type: task-contract
 +status: approved
@@ -48,6 +79,7 @@ index 0000000..66b86e8
 +  - package or CI policy changes
 +requiredChecks:
 +  - test
++  - test:integration
 +  - typecheck
 +  - build
 +doneCriteria:
@@ -55,6 +87,7 @@ index 0000000..66b86e8
 +  - The change does not alter Evidence collection behavior or public exports
 +evidenceRequired:
 +  - test-result
++  - integration-test-result
 +  - typecheck-result
 +  - build-result
 +managedContractPaths:
@@ -74,7 +107,7 @@ index 0000000..66b86e8
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:1b0e7dfc0c9bbf1ab8069aa76c8ba2dd94de452de56f9d3debdb14516d80e7f4
-+  createdAt: "2026-08-05T10:07:39.506Z"
++  createdAt: "2026-08-05T10:40:31.913Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index dfbffd1..95261fc 100644
 --- a/contracts/tasks/index.yaml
