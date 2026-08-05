@@ -340,6 +340,11 @@ export type ApprovalRecord = {
   pullRequest?: string;
   reason?: string;
   approvalMode?: "human" | "delegated";
+  actorId?: string;
+  actorSource?: "github-review" | string;
+  actorUrl?: string;
+  verifiedAt?: string;
+  verificationLevel?: "standard" | string;
   delegationSource?: string;
   delegatedBy?: string;
   executedBy?: "ai-agent";

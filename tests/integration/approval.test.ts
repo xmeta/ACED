@@ -117,18 +117,54 @@ describe("approval", () => {
     writeScwbsProject(root);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
 
-    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false })).toBe(0);
+    const result = withCurrentPullRequest(root, {
+      number: 42,
+      url: "https://github.com/xmeta/ACED/pull/42",
+      headRefOid: "abc1234",
+      reviews: [{
+        state: "APPROVED",
+        commit_id: "abc1234",
+        submitted_at: "2026-08-06T00:01:00.000Z",
+        html_url: "https://github.com/xmeta/ACED/pull/42#pullrequestreview-1",
+        user: { login: "reviewer" }
+      }]
+    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false }));
+    expect(result).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("status: approved");
-    expect(actual).toContain("approvedBy: human");
+    expect(actual).toContain("approvedBy: reviewer");
+    expect(actual).toContain("actorId: reviewer");
+    expect(actual).toContain("actorSource: github-review");
+    expect(actual).toContain("verificationLevel: standard");
     expect(actual).toContain("approvedAt:");
     expect(actual).toContain("headCommit: abc1234");
     expect(actual).toContain("diffHash: diff1234");
     expect(actual).toContain('pullRequest: "#42"');
     expect(actual).toContain("reason: Evidence and PR reviewed");
+  });
+
+  test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    const output = captureOutput(() => withCurrentPullRequest(root, {
+      number: 42,
+      url: "https://github.com/xmeta/ACED/pull/42",
+      headRefOid: "abc1234",
+      reviews: []
+    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Reviewed", actor: "human", force: false })));
+
+    expect(output.result).toBe(1);
+    expect(output.stderr).toContain("no APPROVED review");
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
   test("approval approve preserves request time while legacy approval remains unobserved", () => {
