@@ -1,0 +1,52 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-422-evidence-build-split
+type: discovery-probe
+status: concluded
+question: "Issue #422のbuildCollectedEvidence系を専用core/evidenceモジュールへ分割し、evidence collect/retain/pruneの挙動とEvidenceスキーマを変えずに責務境界を明確化できるか"
+hypotheses:
+  - CI receipt検証をsrc/core/evidence/ci-receipt.tsへ移せる
+  - Coverage receipt検証をsrc/core/evidence/coverage-receipt.tsへ移せる
+  - buildCollectedEvidenceと関連helperをsrc/core/evidence/build.tsへ移してcommand export互換を維持できる
+  - retain/pruneは変更不要
+activities:
+  - 'GitHub Issue #422と関連Issue確認'
+  - evidence-collect.tsのexport/内部依存と既存integration tests確認
+  - CLI登録とschema/registry影響確認
+  - 許容パスとHuman Gate/requiredChecks境界の確定
+evidenceExpected:
+  - 'Issue #422本文'
+  - evidence-collect.tsの責務/依存関係
+  - 既存evidence integration tests
+  - CLI export compatibility
+  - Task Contract allowedPathsとHuman Gate分類
+unknowns:
+  - core/evidence module naming
+  - private helper export boundary
+  - field ordering compatibility
+  - testQuality requirements
+  - Human Approval availability
+timebox: 30m
+costLimit: unobserved
+exitConditions:
+  - buildCollectedEvidence系だけが新規core/evidence modulesへ移り、runEvidenceRetain/runEvidencePruneとCLI options/outputs/schema/registry behaviorが不変
+nextDecision: buildCollectedEvidence系を3つのcore/evidence modulesへ移し、command pathのre-exportを維持するbounded Taskを作成してHuman Gateを要求する
+createdAt: "2026-08-05T07:40:36.795Z"
+startedAt: "2026-08-05T07:40:49.277Z"
+concludedAt: "2026-08-05T07:41:06.393Z"
+exitConditionsMet: true
+factsLearned:
+  - buildCollectedEvidenceはCI/Coverage receipt検証、check実行/再利用、Git差分/patch artifact、Evidence構築を同一ファイルに持つ
+  - runEvidenceCollect/retain/pruneと既存テストはcommand module pathからexportを参照している
+  - verifyCiReceiptとverifyCoverageReceiptは独立した入力検証責務として分離できる
+  - buildCollectedEvidence系をcore/evidence/build.tsへ移しcommand側でcompatibility re-exportできる
+  - retain/pruneとCLI output/schema/registry behaviorは今回触らなくてよい
+hypothesesRejected:
+  - src/commands/evidence-collect.tsの全834行を一括分割
+  - retain/pruneの変更
+  - Evidence schema/field orderの変更
+  - CLI command/option/outputの変更
+remainingUnknowns:
+  - private helperをどこまでexportするか
+  - 新規core/evidence filesのHuman Gate分類
+  - テスト追加でrequiredChecksにtest:integrationが必要になる可能性
+  - Human Approval availability
