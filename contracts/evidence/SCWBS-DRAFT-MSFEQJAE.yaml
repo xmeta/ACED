@@ -1,0 +1,59 @@
+id: EVD-SCWBS-DRAFT-MSFEQJAE
+type: evidence
+taskId: SCWBS-DRAFT-MSFEQJAE
+commit: 11746bdd8a316e7f4a5bc08d4bb45e4b11ec32a2
+subjectHeadCommit: 11746bdd8a316e7f4a5bc08d4bb45e4b11ec32a2
+diffHash: sha256:ebb558bdffe68f648030e086020d1268af2a81e4c17401487ce610c309950129
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 11746bdd8a316e7f4a5bc08d4bb45e4b11ec32a2
+    treeHash: 85ccf9b4ca2cfc8795d05f03ab215b1af68c3cbd
+    diffHash: sha256:ebb558bdffe68f648030e086020d1268af2a81e4c17401487ce610c309950129
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSFEQJAE.patch
+    manifestHash: sha256:ebb558bdffe68f648030e086020d1268af2a81e4c17401487ce610c309950129
+git:
+  branch: task/SCWBS-DRAFT-MSFEQJAE-issue-417-coverage-gitignore
+  base: origin/main
+  baseCommit: a727d990eda7269637aee476b2f400149d1aa7a5
+  changedFilesBasis: branch-diff
+  pullRequest: "418"
+  subjectHeadCommit: 11746bdd8a316e7f4a5bc08d4bb45e4b11ec32a2
+  diffHash: sha256:ebb558bdffe68f648030e086020d1268af2a81e4c17401487ce610c309950129
+  headCommit: 11746bdd8a316e7f4a5bc08d4bb45e4b11ec32a2
+changedFiles:
+  - .gitignore
+  - contracts/approvals/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/discovery/PROBE-issue-417-coverage-ignore.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFEQJAE.patch
+  - contracts/evidence/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSFEQJAE.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/tasks/index.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:98a9d1c7ef0e987957ff2e6481ed05e55711106189be7e583cde73c3e2a37fe9
+    durationMilliseconds: 13271
+    executedAt: "2026-08-05T01:44:18.204Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:8b6864f94a58e8150128b38668947ff31c59a17abe82fd181ba59f405477be09
+    durationMilliseconds: 8674
+    executedAt: "2026-08-05T01:44:26.883Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:5bce4dd27c1dfe45b2ee0a6e21cabf445ce8a4d2e5bb3e61c9cb70b63e9207a2
+    durationMilliseconds: 3565
+    executedAt: "2026-08-05T01:44:30.453Z"

@@ -1,0 +1,60 @@
+id: SCWBS-DRAFT-MSFEQJAE
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-417
+approvedAt: "2026-08-05T01:28:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSFEQJAE
+branchName: task/SCWBS-DRAFT-MSFEQJAE-issue-417-coverage-gitignore
+allowedPaths:
+  - .gitignore
+  - contracts/specs/SPEC-LITE-MSFEQJAE.yaml
+  - contracts/discovery/PROBE-issue-417-coverage-ignore.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - src/**
+  - tests/**
+  - docs/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .gitignore
+stopIf:
+  - allowedPaths外またはHuman Gate対象の変更が必要
+requiredChecks:
+  - test
+  - typecheck
+  - build
+doneCriteria:
+  - .gitignore contains coverage/ so locally generated coverage artifacts are ignored
+  - npm run test:coverage output does not appear as untracked coverage/ in git status
+  - no CI, package, coverage retention, or history rewrite behavior changes
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/specs/SPEC-LITE-MSFEQJAE.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSFEQJAE.patch
+  - contracts/approvals/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSFEQJAE.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:c8e7f0d60645d81c744251d4ff0eb596f3c63cb31df5bbb0d7646f8affe6b076
+  createdAt: "2026-08-05T01:29:58.643Z"
