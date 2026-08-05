@@ -1,18 +1,18 @@
 diff --git a/contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml b/contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
 new file mode 100644
-index 0000000..dab3eac
+index 0000000..2568804
 --- /dev/null
 +++ b/contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,29 @@
 +id: BLK-SCWBS-DRAFT-MSGIQZRD
 +type: block
 +taskId: SCWBS-DRAFT-MSGIQZRD
 +status: resolved
-+category: auth
-+level: 2
-+requiredHumanDecision: Decide authentication or permission design before implementation continues.
-+reason: "Human Gate required: Issue #144のStandard GitHub review provenance実装は承認主体・認証provenanceの意味論を変更するため、委譲された方針選択だけではAIが実装・承認を完了できない"
-+createdAt: "2026-08-05T20:15:06.145Z"
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Issue #144の承認主体仕様を変更する。別の人間レビュアーを必須とするStandard GitHub review provenanceを廃止し、承認実行者本人が対話TTY上で明示確認し、OSユーザー由来のactorId・actorSource=tty・verifiedAt・verificationLevel=leanを記録する方式へ変更する。非対話実行、自己申告だけのactor、TTY確認と実行ユーザーの不一致はfail closedとする。承認後にSpec Contract、Task Contract、実装、テストを更新する。"
++createdAt: "2026-08-05T21:17:47.589Z"
 +history:
 +  - status: blocked
 +    at: "2026-08-05T20:15:06.145Z"
@@ -22,12 +22,58 @@ index 0000000..dab3eac
 +    at: "2026-08-05T20:22:04.904Z"
 +    reason: Standard GitHub review provenanceを採用する。actorId、actorSource、verifiedAt、verificationLevel、およびactorUrlまたはrunIdをPR・headCommit・diffHashへ拘束し、自己申告actorだけの承認は拒否する。
 +    by: human
-+resolvedAt: "2026-08-05T20:22:04.904Z"
++  - status: blocked
++    at: "2026-08-05T21:17:47.589Z"
++    reason: "Issue #144の承認主体仕様を変更する。別の人間レビュアーを必須とするStandard GitHub review provenanceを廃止し、承認実行者本人が対話TTY上で明示確認し、OSユーザー由来のactorId・actorSource=tty・verifiedAt・verificationLevel=leanを記録する方式へ変更する。非対話実行、自己申告だけのactor、TTY確認と実行ユーザーの不一致はfail closedとする。承認後にSpec Contract、Task Contract、実装、テストを更新する。"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-05T21:20:50.585Z"
++    reason: Spec Change Proposal SCP-SCWBS-DRAFT-MSGIQZRD-blockを承認する。別レビュアー不要の対話TTY・OSユーザー確認方式へ変更する
++    by: human
++resolvedAt: "2026-08-05T21:20:50.585Z"
 +resolvedBy: human
-+resolution: Standard GitHub review provenanceを採用する。actorId、actorSource、verifiedAt、verificationLevel、およびactorUrlまたはrunIdをPR・headCommit・diffHashへ拘束し、自己申告actorだけの承認は拒否する。
++resolution: Spec Change Proposal SCP-SCWBS-DRAFT-MSGIQZRD-blockを承認する。別レビュアー不要の対話TTY・OSユーザー確認方式へ変更する
+diff --git a/contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml b/contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml
+new file mode 100644
+index 0000000..60e4ead
+--- /dev/null
++++ b/contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml
+@@ -0,0 +1,32 @@
++id: SCP-SCWBS-DRAFT-MSGIQZRD-block
++type: spec-change-proposal
++status: approved
++targetSpec: SPEC-LITE-MSGIQZRD
++currentVersion: 0.1.0
++proposedVersion: 0.2.0
++taskId: SCWBS-DRAFT-MSGIQZRD
++level: 2
++summary: Replace mandatory external GitHub review provenance with interactive TTY human confirmation
++rationale:
++  - 'Issue #144では別の人間レビュアーを用意できないため、Standard GitHub review provenanceを運用できない。'
++  - '承認実行者本人が対話TTYで明示確認し、OSユーザー由来のactorId、actorSource=tty、verifiedAt、verificationLevel=leanを記録する方式へ変更する。'
++  - '非対話実行、自己申告だけのactor、TTY確認と実行ユーザーの不一致はfail closedとする。'
++  - '変更承認後にSpec Contract、Task Contract、実装、テストを更新し、既存PRは新しいEvidenceとApprovalで再検証する。'
++affectedPaths:
++  - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
++  - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
++  - src/commands/approval-request.ts
++  - src/core/human-gate.ts
++  - src/core/schema/records.ts
++  - src/core/types.ts
++  - tests/integration/approval.test.ts
++  - tests/unit/human-gate.test.ts
++approval:
++  required: true
++  status: approved
++approvedBy: human
++approvedAt: "2026-08-05T21:20:50.585Z"
++risks:
++  - '外部レビューより証跡強度が低下するため、対話TTY、実行ユーザー、明示確認、headCommit、diffHashの拘束を必須にする。'
++  - '既存のStandard provenance実装とPR #443のEvidence/Approvalは仕様変更承認後に再生成が必要になる。'
++  - 'Implementation must remain stopped until this proposal is human-approved and the locked Task authority is refreshed.'
 diff --git a/contracts/specs/SPEC-LITE-MSGIQZRD.yaml b/contracts/specs/SPEC-LITE-MSGIQZRD.yaml
 new file mode 100644
-index 0000000..28ef18d
+index 0000000..ad6628b
 --- /dev/null
 +++ b/contracts/specs/SPEC-LITE-MSGIQZRD.yaml
 @@ -0,0 +1,15 @@
@@ -36,19 +82,19 @@ index 0000000..28ef18d
 +featureId: F-MSGIQZRD
 +title: "Issue #144: Human Approval provenanceを検証可能にする"
 +status: approved
-+version: 0.1.0
-+summary: "Standard相当のGitHub review provenanceをApprovalへ拘束し、自己申告actorだけの承認をfail-closedにする。"
-+approvedBy: user-delegated-recommendation
-+approvedAt: "2026-08-06T00:00:00+09:00"
++version: 0.2.0
++summary: "別レビュアーを必須にせず、対話TTY上のOSユーザー確認とheadCommit・diffHash拘束でHuman Approval provenanceを検証可能にする。"
++approvedBy: human
++approvedAt: "2026-08-05T21:20:50.585Z"
 +acceptanceCriteria:
-+  - approved ApprovalはactorId、actorSource、verifiedAt、verificationLevel、およびactorUrlまたはrunIdを持ち、GitHub review provenanceが対象PR・headCommit・diffHashへ拘束される
-+  - 非対話実行または自己申告の--actor humanだけではapproved recordを作成できず、Approvalはrequestedのままfail-closedになる
-+  - Standard相当の検証に失敗したApproval、legacyなapprovedByだけのApproval、scopeまたはprovenanceが不一致のApprovalをcheck-diffとHuman Gate検証が拒否する
++  - approved ApprovalはOSユーザー由来のactorId、actorSource=tty、verifiedAt、verificationLevel=leanを持ち、対象EvidenceのheadCommit・diffHashへ拘束される。actorUrlは要求しない
++  - 非対話TTYでの実行、TTY確認と実行ユーザーの不一致、またはheadCommit・diffHashに一致する明示確認文の欠落ではapproved recordを作成できず、Approvalはrequestedのままfail-closedになる
++  - Lean TTY provenanceに失敗したApproval、legacyなapprovedByだけのApproval、scopeまたはprovenanceが不一致のApprovalをcheck-diffとHuman Gate検証が拒否する
 +  - 既存のdelegated approval policyの権限境界、AIによるHuman Approval禁止、package/CI/repository settingsは変更しない
-+  - provenanceの欠落・不正・外部Identity取得不能は成功扱いにせず、再実行可能なHuman Gate案内を出す
++  - provenanceの欠落・不正・OSユーザー取得不能は成功扱いにせず、再実行可能なHuman Gate案内を出す
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml b/contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
 new file mode 100644
-index 0000000..7912758
+index 0000000..c273bc1
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
 @@ -0,0 +1,66 @@
@@ -86,7 +132,7 @@ index 0000000..7912758
 +  - src/core/types.ts
 +stopIf:
 +  - 承認主体または認証・権限設計の追加判断
-+  - 外部Identity連携の仕様未確定
++  - TTYまたはOSユーザー由来provenanceの仕様未確定
 +  - protected CI/repository settings変更
 +  - allowedPaths外の変更
 +requiredChecks:
@@ -115,9 +161,9 @@ index 0000000..7912758
 +  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
 +  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
 +  wbsNodeId: node-governance-maintenance
-+  specVersion: 0.1.0
-+  specRevision: sha256:643a842fa4f996ab6da69ffe81a83e287d1a84013a2a83289ebdc2002c60f6e3
-+  createdAt: "2026-08-05T20:08:30.439Z"
++  specVersion: 0.2.0
++  specRevision: sha256:8eb0509ac5a984d39989a4805113fd0cde77956a58f389ae78b6f2439a3d3de6
++  createdAt: "2026-08-05T21:23:34.573Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index bb291de..50d8585 100644
 --- a/contracts/tasks/index.yaml
@@ -133,17 +179,15 @@ index bb291de..50d8585 100644
 +    status: planned
 +    dependsOn: []
 diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
-index d5e5b26..5e2ce6d 100644
+index d5e5b26..d6b0569 100644
 --- a/src/commands/approval-request.ts
 +++ b/src/commands/approval-request.ts
-@@ -1,11 +1,14 @@
+@@ -1,11 +1,12 @@
  import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-+import { execFileSync } from "node:child_process";
++import os from "node:os";
  import path from "node:path";
  import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-+import { changedFilesBetween, isCommitAncestor } from "../core/git.js";
  import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
-+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
  import { approvalPath, resolveFrom } from "../core/paths.js";
  import { stringifySimpleYaml } from "../core/yaml.js";
  import { syncRegistry } from "./registry-rebuild.js";
@@ -152,7 +196,7 @@ index d5e5b26..5e2ce6d 100644
  import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
  
  export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
-@@ -24,7 +27,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
+@@ -24,7 +25,7 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
    return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
  }
  
@@ -161,7 +205,7 @@ index d5e5b26..5e2ce6d 100644
    return {
      id: `APR-${taskId}`,
      type: "approval",
-@@ -38,6 +41,11 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
+@@ -38,6 +39,11 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
      ...(options.diffHash ? { diffHash: options.diffHash } : {}),
      ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
      ...(options.reason ? { reason: options.reason } : {}),
@@ -173,81 +217,54 @@ index d5e5b26..5e2ce6d 100644
      ...(options.delegationSource ? { delegationSource: options.delegationSource } : {}),
      ...(options.delegatedBy ? { delegatedBy: options.delegatedBy } : {}),
      ...(options.executedBy ? { executedBy: options.executedBy } : {}),
-@@ -46,6 +54,65 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
+@@ -46,6 +52,38 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
    };
  }
  
-+type GitHubReviewProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "actorUrl" | "verifiedAt" | "verificationLevel">;
++type TtyHumanProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "verifiedAt" | "verificationLevel">;
 +
-+function verifyGitHubReviewProvenance(root: string, taskId: string, pullRequest: string, evidence: Evidence): GitHubReviewProvenance {
-+  const number = normalizePullRequestNumber(pullRequest);
++function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: string): TtyHumanProvenance {
 +  const headCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
 +  const diffHash = evidence.diffHash ?? evidence.git?.diffHash;
-+  if (number === undefined || !headCommit || !diffHash) {
-+    throw new Error("Standard human approval requires Evidence pullRequest, subjectHeadCommit, and diffHash");
++  if (!headCommit || !diffHash) {
++    throw new Error("Lean human approval requires Evidence subjectHeadCommit and diffHash");
 +  }
-+  let payload: unknown;
++  if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
++    throw new Error("Lean human approval requires an interactive TTY; approval remains unapproved");
++  }
++  let actorId: string;
 +  try {
-+    payload = JSON.parse(execFileSync("gh", ["pr", "view", String(number), "--json", "number,url,headRefOid,reviews"], {
-+      cwd: root,
-+      encoding: "utf8",
-+      stdio: ["ignore", "pipe", "pipe"]
-+    }));
++    actorId = os.userInfo().username.trim();
 +  } catch {
-+    throw new Error(`Unable to verify GitHub review provenance for PR #${number}; approval remains unapproved`);
++    throw new Error("Unable to verify the current OS user for Lean human approval; approval remains unapproved");
 +  }
-+  if (!payload || typeof payload !== "object") throw new Error(`GitHub PR #${number} provenance response is invalid`);
-+  const record = payload as { number?: unknown; url?: unknown; headRefOid?: unknown; reviews?: unknown };
-+  let headMatchesEvidence = record.headRefOid === headCommit;
-+  if (!headMatchesEvidence && typeof record.headRefOid === "string" && isCommitAncestor(root, headCommit, record.headRefOid)) {
-+    try {
-+      headMatchesEvidence = changedFilesBetween(root, headCommit, record.headRefOid)
-+        .every((file) => taskLifecycleMetadataPaths(taskId).includes(file.replace(/\\/g, "/")));
-+    } catch {
-+      headMatchesEvidence = false;
-+    }
++  if (!actorId) {
++    throw new Error("The current OS user is unavailable for Lean human approval; approval remains unapproved");
 +  }
-+  if (record.number !== number || typeof record.url !== "string" || typeof record.headRefOid !== "string" || !headMatchesEvidence || !Array.isArray(record.reviews)) {
-+    throw new Error(`GitHub PR #${number} provenance does not match Evidence headCommit`);
-+  }
-+  const review = [...record.reviews].reverse().find((candidate) => {
-+    if (!candidate || typeof candidate !== "object") return false;
-+    const item = candidate as { state?: unknown; commit_id?: unknown; submitted_at?: unknown; html_url?: unknown; user?: { login?: unknown }; author?: { login?: unknown } };
-+    const actorId = item.user?.login ?? item.author?.login;
-+    return item.state === "APPROVED"
-+      && item.commit_id === record.headRefOid
-+      && typeof actorId === "string"
-+      && actorId.length > 0
-+      && typeof item.html_url === "string"
-+      && item.html_url.length > 0
-+      && typeof item.submitted_at === "string"
-+      && item.submitted_at.length > 0;
-+  }) as { html_url: string; submitted_at: string; user?: { login?: string }; author?: { login?: string } } | undefined;
-+  const actorId = review?.user?.login ?? review?.author?.login;
-+  if (!review || !actorId) {
-+    throw new Error(`GitHub PR #${number} has no APPROVED review for Evidence headCommit; approval remains unapproved`);
++  const confirmation = `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
++  if (reason !== confirmation) {
++    throw new Error(`Lean human approval requires exact TTY confirmation in --reason: ${confirmation}`);
 +  }
 +  return {
 +    actorId,
-+    actorSource: "github-review",
-+    actorUrl: review.html_url,
-+    verifiedAt: review.submitted_at,
-+    verificationLevel: "standard"
++    actorSource: "tty",
++    verifiedAt: new Date().toISOString(),
++    verificationLevel: "lean"
 +  };
 +}
 +
  export function buildApprovalApproveYaml(taskId: string, options: Parameters<typeof buildApprovalApprove>[1]): string {
    return stringifySimpleYaml(buildApprovalApprove(taskId, options) as unknown as Record<string, unknown>);
  }
-@@ -99,6 +166,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+@@ -99,6 +137,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
    try {
      const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
      let delegatedSubject: { headCommit: string; diffHash: string } | undefined;
-+    let humanProvenance: GitHubReviewProvenance | undefined;
++    let humanProvenance: TtyHumanProvenance | undefined;
      let approvalExecution: Pick<ApprovalRecord, "approvedBy" | "approvedAt" | "approvalMode" | "delegationSource" | "delegatedBy" | "executedBy" | "delegationScope" | "delegationProof"> = {
        approvedBy: options.approvedBy,
        approvalMode: "human"
-@@ -155,6 +223,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+@@ -155,6 +194,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
      const relativePath = approvalPath(taskId);
      const fullPath = resolveFrom(root, relativePath);
      const { approval, issues } = readApproval(root, taskId);
@@ -255,14 +272,16 @@ index d5e5b26..5e2ce6d 100644
      const missingApprovalOnly = issues.length === 1 && issues[0]?.code === "approval.missing";
      if (!missingApprovalOnly && !approval) {
        throw new Error(issues.map((issue) => issue.message).join("\n"));
-@@ -168,11 +237,21 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+@@ -168,11 +208,23 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
        return 1;
      }
  
 +    const evidencePullRequest = normalizePullRequestNumber(evidence?.git?.pullRequest);
-+    if (resolvedActor === "human" && evidencePullRequest !== undefined) {
-+      if (!evidence) throw new Error("Standard human approval requires Evidence");
-+      humanProvenance = verifyGitHubReviewProvenance(root, taskId, `#${evidencePullRequest}`, evidence);
++    const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
++    const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
++    if (resolvedActor === "human" && evidencePullRequest !== undefined && evidenceHead && evidenceDiffHash) {
++      if (!evidence) throw new Error("Lean human approval requires Evidence");
++      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason);
 +      approvalExecution = {
 +        ...approvalExecution,
 +        approvedBy: humanProvenance.actorId
@@ -278,7 +297,7 @@ index d5e5b26..5e2ce6d 100644
      });
      mkdirSync(path.dirname(fullPath), { recursive: true });
 diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
-index 413f45c..999aec7 100644
+index 413f45c..3ba5299 100644
 --- a/src/core/human-gate.ts
 +++ b/src/core/human-gate.ts
 @@ -123,6 +123,26 @@ export type HumanGateValidation = {
@@ -293,14 +312,14 @@ index 413f45c..999aec7 100644
 +  if (!provenanceKeys.some((key) => approval[key] !== undefined)) return [];
 +  const issues: Issue[] = [];
 +  const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
-+  for (const key of provenanceKeys) {
++  for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
 +    if (!approval[key]) add("approval.provenance.missing", `Human Approval is missing verified ${key}`);
 +  }
-+  if (approval.actorSource !== "github-review" || approval.verificationLevel !== "standard") {
-+    add("approval.provenance.level", "Human Approval requires standard GitHub review provenance");
++  if (approval.actorSource !== "tty" || approval.verificationLevel !== "lean") {
++    add("approval.provenance.level", "Human Approval requires lean interactive TTY provenance");
 +  }
 +  if (approval.actorId && approval.approvedBy !== approval.actorId) {
-+    add("approval.provenance.actor", "approvedBy must match the verified GitHub review actorId");
++    add("approval.provenance.actor", "approvedBy must match the verified human actorId");
 +  }
 +  return issues;
 +}
@@ -358,10 +377,39 @@ index b60b4bd..260dd75 100644
    delegatedBy?: string;
    executedBy?: "ai-agent";
 diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
-index 4914cbc..16f151c 100644
+index 4914cbc..f8337e4 100644
 --- a/tests/integration/approval.test.ts
 +++ b/tests/integration/approval.test.ts
-@@ -117,13 +117,29 @@ describe("approval", () => {
+@@ -1,5 +1,6 @@
+ import { chmodSync, readFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
++import os from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+@@ -44,6 +45,21 @@ function withCurrentPullRequest(root: string, payload: unknown | undefined, acti
+   }
+ }
+ 
++function withInteractiveTty(action: () => number): number {
++  const stdinDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
++  const stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
++  Object.defineProperty(process.stdin, "isTTY", { configurable: true, value: true });
++  Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
++  try {
++    return action();
++  } finally {
++    if (stdinDescriptor) Object.defineProperty(process.stdin, "isTTY", stdinDescriptor);
++    else delete (process.stdin as unknown as { isTTY?: boolean }).isTTY;
++    if (stdoutDescriptor) Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);
++    else delete (process.stdout as unknown as { isTTY?: boolean }).isTTY;
++  }
++}
++
+ describe("approval", () => {
+   test("approval request writes a requested approval record", () => {
+     const root = makeTempRepo();
+@@ -117,18 +133,49 @@ describe("approval", () => {
      writeScwbsProject(root);
      writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
        subjectHeadCommit: "abc1234",
@@ -371,33 +419,29 @@ index 4914cbc..16f151c 100644
      }) as unknown as Record<string, unknown>);
  
 -    expect(runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false })).toBe(0);
-+    const result = withCurrentPullRequest(root, {
-+      number: 42,
-+      url: "https://github.com/xmeta/ACED/pull/42",
-+      headRefOid: "abc1234",
-+      reviews: [{
-+        state: "APPROVED",
-+        commit_id: "abc1234",
-+        submitted_at: "2026-08-06T00:01:00.000Z",
-+        html_url: "https://github.com/xmeta/ACED/pull/42#pullrequestreview-1",
-+        user: { login: "reviewer" }
-+      }]
-+    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Evidence and PR reviewed", actor: "human", force: false }));
++    const result = withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      pullRequest: "#42",
++      reason: "CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234",
++      actor: "human",
++      force: false
++    }));
++    const actorId = os.userInfo().username;
 +    expect(result).toBe(0);
      const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
      expect(actual).toContain("status: approved");
 -    expect(actual).toContain("approvedBy: human");
-+    expect(actual).toContain("approvedBy: reviewer");
-+    expect(actual).toContain("actorId: reviewer");
-+    expect(actual).toContain("actorSource: github-review");
-+    expect(actual).toContain("verificationLevel: standard");
++    expect(actual).toContain(`approvedBy: ${actorId}`);
++    expect(actual).toContain(`actorId: ${actorId}`);
++    expect(actual).toContain("actorSource: tty");
++    expect(actual).toContain("verificationLevel: lean");
      expect(actual).toContain("approvedAt:");
      expect(actual).toContain("headCommit: abc1234");
      expect(actual).toContain("diffHash: diff1234");
-@@ -131,6 +147,26 @@ describe("approval", () => {
-     expect(actual).toContain("reason: Evidence and PR reviewed");
-   });
- 
+     expect(actual).toContain('pullRequest: "#42"');
+-    expect(actual).toContain("reason: Evidence and PR reviewed");
++    expect(actual).toContain("reason: CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234");
++  });
++
 +  test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
 +    const root = makeTempRepo();
 +    writeScwbsProject(root);
@@ -406,21 +450,19 @@ index 4914cbc..16f151c 100644
 +      diffHash: "diff1234",
 +      git: { pullRequest: "#42" }
 +    }) as unknown as Record<string, unknown>);
-+    const output = captureOutput(() => withCurrentPullRequest(root, {
-+      number: 42,
-+      url: "https://github.com/xmeta/ACED/pull/42",
-+      headRefOid: "abc1234",
-+      reviews: []
-+    }, () => runApprovalApprove(root, "WBS-001-004", { pullRequest: "#42", reason: "Reviewed", actor: "human", force: false })));
++    const output = captureOutput(() => withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      pullRequest: "#42",
++      reason: "Reviewed",
++      actor: "human",
++      force: false
++    })));
 +
 +    expect(output.result).toBe(1);
-+    expect(output.stderr).toContain("no APPROVED review");
++    expect(output.stderr).toContain("exact TTY confirmation");
 +    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
-+  });
-+
+   });
+ 
    test("approval approve preserves request time while legacy approval remains unobserved", () => {
-     const requestedAt = "2026-07-23T00:00:00.000Z";
-     expect(buildApprovalApproveYaml("WBS-001-004", {
 diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
 index 445d47f..0c23a58 100644
 --- a/tests/integration/check.test.ts

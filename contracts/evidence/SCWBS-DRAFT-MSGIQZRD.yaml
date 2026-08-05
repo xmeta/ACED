@@ -1,35 +1,36 @@
 id: EVD-SCWBS-DRAFT-MSGIQZRD
 type: evidence
 taskId: SCWBS-DRAFT-MSGIQZRD
-commit: 682e028892649596ee76f6cc04134887e53f3d54
-subjectHeadCommit: 682e028892649596ee76f6cc04134887e53f3d54
-diffHash: sha256:eb1e8cb6e67c2c25054a1c79d52aab6fe6ac396e5142bdd1a140a81d7e52aa85
+commit: d061a700abe7344dae58dbe4f447e542bda78d2d
+subjectHeadCommit: d061a700abe7344dae58dbe4f447e542bda78d2d
+diffHash: sha256:945c0b64ccf5f21179109bc22d4f1349e2fff416cca690551caa9f05bcb2e04a
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: 682e028892649596ee76f6cc04134887e53f3d54
-    treeHash: 5f940351326bc51e65f81d184cc458a5cc3741e2
-    diffHash: sha256:eb1e8cb6e67c2c25054a1c79d52aab6fe6ac396e5142bdd1a140a81d7e52aa85
+    commit: d061a700abe7344dae58dbe4f447e542bda78d2d
+    treeHash: 1e46a150f4f9cc6c4c705dbcdc4b9d0804a7e584
+    diffHash: sha256:945c0b64ccf5f21179109bc22d4f1349e2fff416cca690551caa9f05bcb2e04a
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
-    manifestHash: sha256:eb1e8cb6e67c2c25054a1c79d52aab6fe6ac396e5142bdd1a140a81d7e52aa85
+    manifestHash: sha256:945c0b64ccf5f21179109bc22d4f1349e2fff416cca690551caa9f05bcb2e04a
 git:
   branch: task/SCWBS-DRAFT-MSGIQZRD-issue-144-human-approval-provenance
   base: origin/main
   baseCommit: c9ad517daa47bfd6c58788bb6696080c44a05081
   changedFilesBasis: branch-diff
   pullRequest: "443"
-  subjectHeadCommit: 682e028892649596ee76f6cc04134887e53f3d54
-  diffHash: sha256:eb1e8cb6e67c2c25054a1c79d52aab6fe6ac396e5142bdd1a140a81d7e52aa85
-  headCommit: 682e028892649596ee76f6cc04134887e53f3d54
+  subjectHeadCommit: d061a700abe7344dae58dbe4f447e542bda78d2d
+  diffHash: sha256:945c0b64ccf5f21179109bc22d4f1349e2fff416cca690551caa9f05bcb2e04a
+  headCommit: d061a700abe7344dae58dbe4f447e542bda78d2d
 changedFiles:
   - contracts/approvals/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/blocks/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/evidence-payloads/SCWBS-DRAFT-MSGIQZRD.patch
   - contracts/evidence/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/registry.yaml
+  - contracts/spec-changes/SCP-SCWBS-DRAFT-MSGIQZRD-block.yaml
   - contracts/specs/SPEC-LITE-MSGIQZRD.yaml
   - contracts/tasks/SCWBS-DRAFT-MSGIQZRD.yaml
   - contracts/tasks/index.yaml
@@ -44,33 +45,33 @@ checks:
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:748a5cdfe0916cbc8003c12d27014c6917c3e8fcdcce41bc3e966811e537e96e
-    durationMilliseconds: 14607
-    executedAt: "2026-08-05T20:52:30.788Z"
+    cacheKey: sha256:e0a8a1b7973602f341ec762bbe6ba4c47acf89b23fcfd8360271bc6fb54be6d5
+    durationMilliseconds: 14416
+    executedAt: "2026-08-05T21:31:09.369Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:36e9efa79814b190a823d71cc6733a4541fb9b3af39d3bd31408c0a91778e4ca
-    durationMilliseconds: 243916
-    executedAt: "2026-08-05T20:56:34.708Z"
+    cacheKey: sha256:afc37ad7995adeac03f0abe9ac489d7ff8628c62f7842acd8542b9a27ffbdb98
+    durationMilliseconds: 233689
+    executedAt: "2026-08-05T21:35:03.062Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:75c413872ef3af4d30e14ad062f0e315113eb04d4deb0e0aa47bdad1c4ea332d
-    durationMilliseconds: 8550
-    executedAt: "2026-08-05T20:56:43.262Z"
+    cacheKey: sha256:faa9547f2b0013c1876215da330b8385451d0f5b916cdc8b0d677f50726ffc47
+    durationMilliseconds: 8351
+    executedAt: "2026-08-05T21:35:11.417Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:5c6f9e4f48f0f22c2231478499c26d303d1eb717e12572aa4262d7afdb5f1f5a
-    durationMilliseconds: 3653
-    executedAt: "2026-08-05T20:56:46.919Z"
+    cacheKey: sha256:7f099d0c25e06be28c4623b2b3f79f53b93a194a4c2c5bb2c0f75fe291d08ad1
+    durationMilliseconds: 3599
+    executedAt: "2026-08-05T21:35:15.020Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
   coverageDecreased: false
   notes:
-    - 'PR #443最新headで実装commitからmetadata descendantを許容し、GitHub review provenanceを再検証'
+    - 'Issue #144の承認provenance仕様変更に伴い、TTY・OSユーザー・headCommit・diffHash拘束の回帰テストを追加。外部GitHubレビュー依存と不正確認文を拒否する。'
