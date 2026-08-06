@@ -1,0 +1,81 @@
+id: EVD-SCWBS-DRAFT-MSHGHLD4
+type: evidence
+taskId: SCWBS-DRAFT-MSHGHLD4
+commit: 186db04978661f33ee4e1e04c6e3d39faf2d9c07
+subjectHeadCommit: 186db04978661f33ee4e1e04c6e3d39faf2d9c07
+diffHash: sha256:d5c3e408d44f82a3402e270ed78d70754329a4f6e347012d434dfafd6df6df0d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 186db04978661f33ee4e1e04c6e3d39faf2d9c07
+    treeHash: c1d2d5f7cb12ca6525f11343452419777c760d68
+    diffHash: sha256:d5c3e408d44f82a3402e270ed78d70754329a4f6e347012d434dfafd6df6df0d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSHGHLD4.patch
+    manifestHash: sha256:d5c3e408d44f82a3402e270ed78d70754329a4f6e347012d434dfafd6df6df0d
+git:
+  branch: task/SCWBS-DRAFT-MSHGHLD4-issue-453-generate-and-update-ai-tool-skills-saf
+  base: origin/main
+  baseCommit: 26835c97107e76755f867c2271bbcddc0e24ec32
+  changedFilesBasis: branch-diff
+  pullRequest: "461"
+  subjectHeadCommit: 186db04978661f33ee4e1e04c6e3d39faf2d9c07
+  diffHash: sha256:d5c3e408d44f82a3402e270ed78d70754329a4f6e347012d434dfafd6df6df0d
+  headCommit: 186db04978661f33ee4e1e04c6e3d39faf2d9c07
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHGHLD4.patch
+  - contracts/evidence/SCWBS-DRAFT-MSHGHLD4.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/init.ts
+  - src/core/types.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/unit/init.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b11015b0d3765a3fd3c6a371f0228fe94f8eeb7b030b2561d882f92ba9285fd4
+    durationMilliseconds: 16226
+    executedAt: "2026-08-06T12:06:03.245Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:aee4b6c9653545daddda1f5c72ca085a571e346177021d8758663e263f679644
+    durationMilliseconds: 9774
+    executedAt: "2026-08-06T12:06:13.024Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:39b530ccf64df07ec8cb95b2a55bfe9183d362a18c98bea5d6332dec25c8b65a
+    durationMilliseconds: 9684
+    executedAt: "2026-08-06T12:06:22.713Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1d5b217fcca283dd9efb2dee4ee8d0e20458d603a85bc7414a24f682861a9d30
+    durationMilliseconds: 260485
+    executedAt: "2026-08-06T12:10:43.203Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:77f1fb68393ae1570b38806a058b1fe7ea0b9c61cc57df6579b27af11b0a4bb9
+    durationMilliseconds: 4078
+    executedAt: "2026-08-06T12:10:47.288Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added init/update adapter generation and divergence-protection tests for Claude and Cursor; no tests were disabled and no coverage decrease was observed.

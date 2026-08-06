@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { runInit } from "../../src/commands/init.js";
+import { runAgentUpdate, runInit } from "../../src/commands/init.js";
 import { validateWbsDocument } from "../../src/core/wbs.js";
 import { type WbsDocument } from "../../src/core/types.js";
 import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
@@ -23,6 +23,22 @@ describe("init + WBS validation", () => {
       agent: "codex",
       lang: "ja"
     });
+  });
+
+  test("init creates the selected AI tool adapter and manifest", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent: "claude", lang: "en" })).toBe(0);
+    expect(readFileSync(path.join(root, ".claude/commands/scwbs.md"), "utf8")).toContain("Use English");
+    expect(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")).toContain("claude");
+  });
+
+  test("update preserves a divergent generated file", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent: "cursor" })).toBe(0);
+    const file = path.join(root, ".cursor/rules/scwbs.mdc");
+    writeJson(root, ".cursor/rules/scwbs.mdc", { custom: true });
+    expect(runAgentUpdate(root, { agent: "cursor" })).toBe(0);
+    expect(readFileSync(file, "utf8")).toContain("custom");
   });
 
   test("invalid WBS document reports validation errors", () => {

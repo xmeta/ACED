@@ -1,0 +1,363 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml b/contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml
+new file mode 100644
+index 0000000..dc16ad6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml
+@@ -0,0 +1,60 @@
++id: SCWBS-DRAFT-MSHGHLD4
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSHGHLD4
++branchName: task/SCWBS-DRAFT-MSHGHLD4-issue-453-generate-and-update-ai-tool-skills-saf
++allowedPaths:
++  - src/commands/init.ts
++  - src/core/types.ts
++  - src/cli.ts
++  - tests/unit/init.test.ts
++  - tests/integration/cli-registration.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - .github/workflows/**
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - dependency change required
++  - authentication or permission change required
++  - external agent execution or credential change required
++  - breaking API change required
++  - generated user-owned file overwrite required
++requiredChecks:
++  - test
++  - typecheck
++  - lint
++  - test:integration
++  - build
++doneCriteria:
++  - 'Complete Issue #453: generate and update AI tool skills safely'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSHGHLD4.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSHGHLD4.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSHGHLD4.patch
++  - contracts/approvals/SCWBS-DRAFT-MSHGHLD4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSHGHLD4.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-06T11:52:47.065Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index fb9a54a..11e97ab 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1651,3 +1651,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-06T11:49:33.409Z"
++  - id: SCWBS-DRAFT-MSHGHLD4
++    path: contracts/tasks/SCWBS-DRAFT-MSHGHLD4.yaml
++    branchName: task/SCWBS-DRAFT-MSHGHLD4-issue-453-generate-and-update-ai-tool-skills-saf
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index d86f4e9..8d86214 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -27,6 +27,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - AI blocked-task change-set generation
+ - Dependency-aware planned-task candidate listing for simple queue handoff
+ - Priority-aware planned-task candidate listing through `ai next-task`
++- Safe AI tool adapter generation and divergence-aware updates through `init` / `update`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+ - WBS conflict mitigation strategy and semantic merge roadmap
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index a0136e1..1c79df3 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -31,6 +31,7 @@ task/SCWBS-DRAFT-M3QJ2K-fix-parser
+ 
+ ```bash
+ npm run scwbs -- init --profile lean --agent codex --lang ja
++npm run scwbs -- update --agent claude
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
+@@ -46,6 +47,8 @@ npm run scwbs -- status --strict
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+ 
++`init --agent` creates the selected adapter's standard instruction file only when it does not exist. Supported adapters are `codex`, `claude`, `cursor`, and `copilot`. It records generated file hashes in `.scwbs/agent-files.json`. `update` refreshes only files whose current contents still match the recorded generated hash; divergent or user-owned files are reported and left unchanged.
++
+ ### `fixCommand` の意味
+ 
+ `fixCommand` は、issueを返す全コマンドに共通する必須fieldではない。現行実装で `withDefaultFixCommand` によりerror issueへfallbackを補うのは `check-diff` であり、`check`、`health`、`doctor` などには `fixCommand` を持たないissueもある。利用側はfieldの存在を確認してから使う。
+diff --git a/src/cli.ts b/src/cli.ts
+index 91c0db9..10515e3 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
+ import { runFinish } from "./commands/finish.js";
+ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+-import { runInit } from "./commands/init.js";
++import { runAgentUpdate, runInit } from "./commands/init.js";
+ import { runPromote } from "./commands/lite.js";
+ import { runMerge } from "./commands/merge.js";
+ import { runMetricsGovernance } from "./commands/metrics.js";
+@@ -222,6 +222,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--lang <lang>", "language ja|en")
+     .action((opts) => { exitCode = runInit(root, opts); });
+ 
++  program
++    .command("update")
++    .description("Update generated AI tool files without overwriting divergent files")
++    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
++    .action((opts) => { exitCode = runAgentUpdate(root, opts); });
++
+   program
+     .command("check")
+     .description("Check repository contracts")
+diff --git a/src/commands/init.ts b/src/commands/init.ts
+index ab5b95f..2b90811 100644
+--- a/src/commands/init.ts
++++ b/src/commands/init.ts
+@@ -1,4 +1,5 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import { createHash } from "node:crypto";
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import { dirname } from "node:path";
+ import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+@@ -18,6 +19,97 @@ export type InitOptions = {
+   lang?: string;
+ };
+ 
++export type AgentUpdateOptions = {
++  agent?: string;
++};
++
++type AgentFile = {
++  path: string;
++  content: string;
++};
++
++type AgentManifest = {
++  schemaVersion: "1";
++  agent: Agent;
++  files: Array<{ path: string; sha256: string }>;
++};
++
++const agentManifestPath = ".scwbs/agent-files.json";
++
++function agentFiles(agent: Agent, language: Language): AgentFile[] {
++  const languageLine = language === "ja" ? "Use Japanese for project-facing handoffs when practical." : "Use English for project-facing handoffs.";
++  const common = `<!-- Generated by scwbs. Keep local customizations in a separate file. -->\n\n# SC-WBS project workflow\n\nFollow the repository's AGENTS.md and SC-WBS Task Contract before changing files.\n${languageLine}\n\n- Read the active Task Contract and stay within allowed paths.\n- Run required checks and collect Evidence before reporting completion.\n- Stop for Human Gate, schema, dependency, authentication, or release decisions.\n`;
++  switch (agent) {
++    case "codex":
++      return [{ path: "AGENTS.md", content: `${common}\nUse scwbs packet --task <id> for the bounded work packet.\n` }];
++    case "claude":
++      return [{ path: ".claude/commands/scwbs.md", content: `${common}\nUse npm run scwbs -- packet --task <id> before implementation.\n` }];
++    case "cursor":
++      return [{ path: ".cursor/rules/scwbs.mdc", content: `${common}\nUse the Task Contract as the source of truth for every edit.\n` }];
++    case "copilot":
++      return [{ path: ".github/copilot-instructions.md", content: `${common}\nUse the repository's SC-WBS CLI commands through the npm script.\n` }];
++  }
++}
++
++function sha256(content: string): string {
++  return createHash("sha256").update(content, "utf8").digest("hex");
++}
++
++function readAgentManifest(root: string): AgentManifest | undefined {
++  const fullPath = resolveFrom(root, agentManifestPath);
++  if (!existsSync(fullPath)) return undefined;
++  try {
++    const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as AgentManifest;
++    if (parsed.schemaVersion !== "1" || !Array.isArray(parsed.files)) return undefined;
++    return parsed;
++  } catch {
++    return undefined;
++  }
++}
++
++function writeAgentManifest(root: string, agent: Agent, files: AgentFile[]): void {
++  const fullPath = resolveFrom(root, agentManifestPath);
++  mkdirSync(dirname(fullPath), { recursive: true });
++  const manifest: AgentManifest = {
++    schemaVersion: "1",
++    agent,
++    files: files.map((file) => ({ path: file.path, sha256: sha256(file.content) }))
++  };
++  writeFileSync(fullPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
++}
++
++function syncAgentFiles(root: string, agent: Agent, language: Language, update: boolean): string[] {
++  const files = agentFiles(agent, language);
++  const manifest = readAgentManifest(root);
++  const previous = new Map((manifest?.agent === agent ? manifest.files : []).map((file) => [file.path, file.sha256]));
++  const messages: string[] = [];
++  let changed = false;
++  for (const file of files) {
++    const fullPath = resolveFrom(root, file.path);
++    if (!existsSync(fullPath)) {
++      mkdirSync(dirname(fullPath), { recursive: true });
++      writeFileSync(fullPath, file.content, "utf8");
++      messages.push(`created ${file.path}`);
++      changed = true;
++      continue;
++    }
++    if (!update) {
++      messages.push(`skipped existing ${file.path}`);
++      continue;
++    }
++    const current = readFileSync(fullPath, "utf8");
++    if (previous.get(file.path) !== undefined && previous.get(file.path) === sha256(current)) {
++      writeFileSync(fullPath, file.content, "utf8");
++      messages.push(`updated ${file.path}`);
++      changed = true;
++    } else {
++      messages.push(`skipped divergent ${file.path}`);
++    }
++  }
++  if (changed || manifest?.agent === agent) writeAgentManifest(root, agent, files);
++  return messages;
++}
++
+ function normalizeProfile(value: string | undefined): Profile | undefined {
+   if (value === undefined) return "Standard";
+   const lowered = value.toLowerCase();
+@@ -29,7 +121,8 @@ function normalizeProfile(value: string | undefined): Profile | undefined {
+ 
+ function normalizeAgent(value: string | undefined): Agent | undefined {
+   if (value === undefined) return "codex";
+-  return value.toLowerCase() === "codex" ? "codex" : undefined;
++  const lowered = value.toLowerCase();
++  return ["codex", "claude", "cursor", "copilot"].includes(lowered) ? lowered as Agent : undefined;
+ }
+ 
+ function normalizeLanguage(value: string | undefined): Language | undefined {
+@@ -48,7 +141,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
+   }
+   const agent = normalizeAgent(options.agent);
+   if (!agent) {
+-    console.error("Agent must be codex");
++    console.error("Agent must be codex, claude, cursor, or copilot");
+     return 2;
+   }
+   const lang = normalizeLanguage(options.lang);
+@@ -112,6 +205,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
+   const created: string[] = [];
+   if (writeIfMissing(root, defaultWbsPath, `${JSON.stringify(wbs, null, 2)}\n`)) created.push(defaultWbsPath);
+   if (writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }))) created.push(defaultRegistryPath);
++  created.push(...syncAgentFiles(root, agent, lang, false));
+ 
+   if (created.length === 0) {
+     console.log("scwbs init: nothing to create");
+@@ -120,3 +214,26 @@ export function runInit(root: string, options: InitOptions = {}): number {
+   }
+   return 0;
+ }
++
++export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
++  const wbsPath = resolveFrom(root, defaultWbsPath);
++  let configuredAgent: string | undefined = options.agent;
++  let language: Language = "ja";
++  if (existsSync(wbsPath)) {
++    try {
++      const wbs = JSON.parse(readFileSync(wbsPath, "utf8")) as WbsDocument;
++      const settings = wbs.extensions?.scwbs as { agent?: string; lang?: string } | undefined;
++      configuredAgent ??= settings?.agent;
++      if (settings?.lang === "en") language = "en";
++    } catch {
++      // The normal check command reports malformed WBS content; update remains fail-closed here.
++    }
++  }
++  const agent = normalizeAgent(configuredAgent);
++  if (!agent) {
++    console.error("Agent must be codex, claude, cursor, or copilot");
++    return 2;
++  }
++  for (const message of syncAgentFiles(root, agent, language, true)) console.log(message);
++  return 0;
++}
+diff --git a/src/core/types.ts b/src/core/types.ts
+index e435cd1..d0131b4 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -400,7 +400,7 @@ export type ReviewRecord = {
+ 
+ export type Profile = "Lean" | "Standard" | "Strict";
+ 
+-export type Agent = "codex";
++export type Agent = "codex" | "claude" | "cursor" | "copilot";
+ 
+ export type Language = "ja" | "en";
+ 
+diff --git a/tests/integration/cli-registration.test.ts b/tests/integration/cli-registration.test.ts
+index acd44b6..3c63359 100644
+--- a/tests/integration/cli-registration.test.ts
++++ b/tests/integration/cli-registration.test.ts
+@@ -41,6 +41,7 @@ describe("domain CLI registration", () => {
+   test("preserves discovery and governance subcommands and options", () => {
+     const root = makeTempRepo();
+     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("new [options]");
++    expect(captureHelp(["update", "--help"], root).stdout).toContain("--agent <agent>");
+     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("conclude [options]");
+     expect(captureHelp(["approval", "approve", "--help"], root).stdout).toContain("--scope <scope>");
+     expect(captureHelp(["spec-change", "new", "--help"], root).stdout).toContain("--proposed-version <version>");
+diff --git a/tests/unit/init.test.ts b/tests/unit/init.test.ts
+index 3b6d251..0301511 100644
+--- a/tests/unit/init.test.ts
++++ b/tests/unit/init.test.ts
+@@ -1,7 +1,7 @@
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { runInit } from "../../src/commands/init.js";
++import { runAgentUpdate, runInit } from "../../src/commands/init.js";
+ import { validateWbsDocument } from "../../src/core/wbs.js";
+ import { type WbsDocument } from "../../src/core/types.js";
+ import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
+@@ -25,6 +25,22 @@ describe("init + WBS validation", () => {
+     });
+   });
+ 
++  test("init creates the selected AI tool adapter and manifest", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "claude", lang: "en" })).toBe(0);
++    expect(readFileSync(path.join(root, ".claude/commands/scwbs.md"), "utf8")).toContain("Use English");
++    expect(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")).toContain("claude");
++  });
++
++  test("update preserves a divergent generated file", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "cursor" })).toBe(0);
++    const file = path.join(root, ".cursor/rules/scwbs.mdc");
++    writeJson(root, ".cursor/rules/scwbs.mdc", { custom: true });
++    expect(runAgentUpdate(root, { agent: "cursor" })).toBe(0);
++    expect(readFileSync(file, "utf8")).toContain("custom");
++  });
++
+   test("invalid WBS document reports validation errors", () => {
+     const root = makeTempRepo();
+     writeJson(root, "contracts/wbs/project.wbs.json", { schemaVersion: "0.1.0", id: "bad" });

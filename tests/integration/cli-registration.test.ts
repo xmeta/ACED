@@ -41,6 +41,7 @@ describe("domain CLI registration", () => {
   test("preserves discovery and governance subcommands and options", () => {
     const root = makeTempRepo();
     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("new [options]");
+    expect(captureHelp(["update", "--help"], root).stdout).toContain("--agent <agent>");
     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("conclude [options]");
     expect(captureHelp(["approval", "approve", "--help"], root).stdout).toContain("--scope <scope>");
     expect(captureHelp(["spec-change", "new", "--help"], root).stdout).toContain("--proposed-version <version>");

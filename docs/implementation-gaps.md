@@ -27,6 +27,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Priority-aware planned-task candidate listing through `ai next-task`
+- Safe AI tool adapter generation and divergence-aware updates through `init` / `update`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
 - WBS conflict mitigation strategy and semantic merge roadmap
