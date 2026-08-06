@@ -9,6 +9,7 @@ import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
 import { runEvidenceCollect, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
 import { runProfileSet, runProfileShow } from "../commands/profile.js";
 import { runRegistryRebuild } from "../commands/registry-rebuild.js";
+import { runSpecChangeNew } from "../commands/spec-change-new.js";
 import {
   runReviewApprove,
   runReviewChangesRequested,
@@ -20,6 +21,23 @@ import { parseTestQuality, type CommandContext } from "./command-context.js";
 
 export function registerGovernanceCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
+  const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
+  specChange
+    .command("new")
+    .description("Create a proposed Spec Change Proposal without mutating the target Spec")
+    .requiredOption("--spec <id>", "target Spec id")
+    .requiredOption("--task <id>", "owning Task id")
+    .requiredOption("--summary <text>", "change summary")
+    .requiredOption("--rationale <text>", "reason for the proposed change")
+    .requiredOption("--proposed-version <version>", "proposed Spec version")
+    .option("--id <id>", "proposal id; generated when omitted")
+    .option("--level <n>", "change level 0, 1, or 2", "1")
+    .option("--affected-paths <paths>", "comma-separated affected paths")
+    .option("--risks <items>", "comma-separated risks")
+    .action((options) => {
+      setExitCode(runSpecChangeNew(root, options));
+    });
+
   const ai = program.command("ai");
   ai.command("packet")
     .description("Build AI work packet")

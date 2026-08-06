@@ -448,6 +448,23 @@ npm run scwbs -- completion apply \
 
 ## Lightweight Entry Points
 
+### `spec-change new`
+
+Create a proposed Spec Change Proposal without changing the target Spec or creating an approval record.
+
+```bash
+npm run scwbs -- spec-change new \
+  --spec SPEC-F001-API \
+  --task WBS-001-004 \
+  --summary "Add the documented response field" \
+  --rationale "The current Spec does not define the field" \
+  --proposed-version 1.1.0 \
+  --level 2 \
+  --affected-paths "contracts/specs/SPEC-F001-API.yaml,src/features/api/index.ts"
+```
+
+The command validates the Task and target Spec, derives `currentVersion`, creates a `proposed` artifact under `contracts/spec-changes/`, and refuses to overwrite an existing proposal. Level 2 proposals are marked `approval.required: true` with `approval.status: requested`; approval remains a human-only operation.
+
 ```bash
 npm run scwbs -- task start <task-id>
 npm run scwbs -- project bootstrap "goal"
