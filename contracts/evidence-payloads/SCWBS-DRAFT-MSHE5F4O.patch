@@ -1,0 +1,311 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml b/contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
+new file mode 100644
+index 0000000..dfd8bac
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MSHE5F4O
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSHE5F4O
++branchName: task/SCWBS-DRAFT-MSHE5F4O-issue-451-add-spec-change-proposal-creation-comm
++allowedPaths:
++  - src/commands/spec-change-new.ts
++  - src/cli/register-governance.ts
++  - tests/integration/spec-change.test.ts
++  - tests/integration/cli-registration.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - .github/**
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - Spec mutation or approval policy change required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++requiredChecks:
++  - test
++  - typecheck
++  - lint
++  - test:integration
++  - build
++doneCriteria:
++  - 'Complete Issue #451: add spec-change proposal creation command'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSHE5F4O.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSHE5F4O.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSHE5F4O.patch
++  - contracts/approvals/SCWBS-DRAFT-MSHE5F4O.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSHE5F4O.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-06T10:47:32.928Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index fa86c0d..3d56a24 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1637,3 +1637,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-06T10:43:31.575Z"
++  - id: SCWBS-DRAFT-MSHE5F4O
++    path: contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
++    branchName: task/SCWBS-DRAFT-MSHE5F4O-issue-451-add-spec-change-proposal-creation-comm
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index e04fa03..89167b0 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -448,6 +448,23 @@ npm run scwbs -- completion apply \
+ 
+ ## Lightweight Entry Points
+ 
++### `spec-change new`
++
++Create a proposed Spec Change Proposal without changing the target Spec or creating an approval record.
++
++```bash
++npm run scwbs -- spec-change new \
++  --spec SPEC-F001-API \
++  --task WBS-001-004 \
++  --summary "Add the documented response field" \
++  --rationale "The current Spec does not define the field" \
++  --proposed-version 1.1.0 \
++  --level 2 \
++  --affected-paths "contracts/specs/SPEC-F001-API.yaml,src/features/api/index.ts"
++```
++
++The command validates the Task and target Spec, derives `currentVersion`, creates a `proposed` artifact under `contracts/spec-changes/`, and refuses to overwrite an existing proposal. Level 2 proposals are marked `approval.required: true` with `approval.status: requested`; approval remains a human-only operation.
++
+ ```bash
+ npm run scwbs -- task start <task-id>
+ npm run scwbs -- project bootstrap "goal"
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 6fcd70d..058bfa6 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -9,6 +9,7 @@ import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
+ import { runEvidenceCollect, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
+ import { runProfileSet, runProfileShow } from "../commands/profile.js";
+ import { runRegistryRebuild } from "../commands/registry-rebuild.js";
++import { runSpecChangeNew } from "../commands/spec-change-new.js";
+ import {
+   runReviewApprove,
+   runReviewChangesRequested,
+@@ -20,6 +21,23 @@ import { parseTestQuality, type CommandContext } from "./command-context.js";
+ 
+ export function registerGovernanceCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
++  const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
++  specChange
++    .command("new")
++    .description("Create a proposed Spec Change Proposal without mutating the target Spec")
++    .requiredOption("--spec <id>", "target Spec id")
++    .requiredOption("--task <id>", "owning Task id")
++    .requiredOption("--summary <text>", "change summary")
++    .requiredOption("--rationale <text>", "reason for the proposed change")
++    .requiredOption("--proposed-version <version>", "proposed Spec version")
++    .option("--id <id>", "proposal id; generated when omitted")
++    .option("--level <n>", "change level 0, 1, or 2", "1")
++    .option("--affected-paths <paths>", "comma-separated affected paths")
++    .option("--risks <items>", "comma-separated risks")
++    .action((options) => {
++      setExitCode(runSpecChangeNew(root, options));
++    });
++
+   const ai = program.command("ai");
+   ai.command("packet")
+     .description("Build AI work packet")
+diff --git a/src/commands/spec-change-new.ts b/src/commands/spec-change-new.ts
+new file mode 100644
+index 0000000..b4ce0a6
+--- /dev/null
++++ b/src/commands/spec-change-new.ts
+@@ -0,0 +1,71 @@
++import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { readSpec, readTask } from "../core/contracts.js";
++import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
++import { stringifySimpleYaml } from "../core/yaml.js";
++import type { SpecChangeProposal } from "../core/types.js";
++
++export type SpecChangeNewOptions = {
++  id?: string;
++  spec: string;
++  task: string;
++  summary: string;
++  rationale: string;
++  proposedVersion: string;
++  level?: string | number;
++  affectedPaths?: string;
++  risks?: string;
++};
++
++function splitItems(value: string | undefined): string[] {
++  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
++}
++
++function proposalId(taskId: string, id: string | undefined): string {
++  return id ?? `SCP-${taskId}-${Date.now().toString(36).toUpperCase()}`;
++}
++
++export function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
++  try {
++    const taskResult = readTask(root, options.task);
++    if (!taskResult.task) throw new Error(taskResult.issues.map((issue) => issue.message).join("\n"));
++
++    const specRelativePath = specPath(options.spec);
++    const specResult = readSpec(root, specRelativePath);
++    if (!specResult.spec) throw new Error(specResult.issues.map((issue) => issue.message).join("\n"));
++
++    const level = Number(options.level ?? 1);
++    if (![0, 1, 2].includes(level)) throw new Error("Invalid --level; expected 0, 1, or 2");
++
++    const id = proposalId(taskResult.task.id, options.id);
++    const relativePath = specChangePath(id);
++    const fullPath = resolveFrom(root, relativePath);
++    if (existsSync(fullPath)) throw new Error(`${relativePath} already exists`);
++
++    const proposal: SpecChangeProposal = {
++      id,
++      type: "spec-change-proposal",
++      status: "proposed",
++      targetSpec: specResult.spec.id,
++      currentVersion: specResult.spec.version,
++      proposedVersion: options.proposedVersion,
++      taskId: taskResult.task.id,
++      level: level as SpecChangeProposal["level"],
++      summary: options.summary,
++      rationale: [options.rationale],
++      affectedPaths: splitItems(options.affectedPaths).length > 0 ? splitItems(options.affectedPaths) : [specRelativePath],
++      approval: { required: level === 2, status: "requested" },
++      ...(splitItems(options.risks).length > 0 ? { risks: splitItems(options.risks) } : {})
++    };
++
++    mkdirSync(path.dirname(fullPath), { recursive: true });
++    writeFileSync(fullPath, stringifySimpleYaml(proposal as unknown as Record<string, unknown>), "utf8");
++    process.stdout.write(`Created Spec Change Proposal: ${relativePath}\n`);
++    process.stdout.write(`Level: ${proposal.level}\n`);
++    process.stdout.write(`Approval: ${proposal.approval?.status}\n`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/tests/integration/cli-registration.test.ts b/tests/integration/cli-registration.test.ts
+index 172f4e8..acd44b6 100644
+--- a/tests/integration/cli-registration.test.ts
++++ b/tests/integration/cli-registration.test.ts
+@@ -26,6 +26,7 @@ describe("domain CLI registration", () => {
+       "approval",
+       "completion",
+       "evidence",
++      "spec-change",
+       "registry",
+       "profile",
+       "review",
+@@ -42,6 +43,7 @@ describe("domain CLI registration", () => {
+     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("new [options]");
+     expect(captureHelp(["discovery", "--help"], root).stdout).toContain("conclude [options]");
+     expect(captureHelp(["approval", "approve", "--help"], root).stdout).toContain("--scope <scope>");
++    expect(captureHelp(["spec-change", "new", "--help"], root).stdout).toContain("--proposed-version <version>");
+     expect(captureHelp(["evidence", "collect", "--help"], root).stdout).toContain("--output <target>");
+     expect(captureHelp(["review", "request", "--help"], root).stdout).toContain("--json");
+   });
+diff --git a/tests/integration/spec-change.test.ts b/tests/integration/spec-change.test.ts
+new file mode 100644
+index 0000000..26fbb22
+--- /dev/null
++++ b/tests/integration/spec-change.test.ts
+@@ -0,0 +1,67 @@
++import { existsSync, readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { readSpecChange } from "../../src/core/contracts.js";
++import { makeTempRepo, writeScwbsProject } from "../helpers.js";
++
++describe("spec-change new", () => {
++  test("creates a validated proposal and requests Level 2 approval", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(main([
++      "spec-change", "new",
++      "--spec", "SPEC-F001-API",
++      "--task", "WBS-001-004",
++      "--id", "SCP-F001-API-002",
++      "--summary", "Add a documented API response field",
++      "--rationale", "The current contract does not define the response field",
++      "--proposed-version", "1.1.0",
++      "--level", "2",
++      "--affected-paths", "contracts/specs/SPEC-F001-API.yaml,src/features/api/index.ts",
++      "--risks", "Existing Tasks may need a lock refresh"
++    ], root)).toBe(0);
++
++    const proposalPath = path.join(root, "contracts/spec-changes/SCP-F001-API-002.yaml");
++    expect(existsSync(proposalPath)).toBe(true);
++    const result = readSpecChange(root, "contracts/spec-changes/SCP-F001-API-002.yaml");
++    expect(result.issues).toEqual([]);
++    expect(result.specChange).toMatchObject({
++      targetSpec: "SPEC-F001-API",
++      currentVersion: "1.0.0",
++      proposedVersion: "1.1.0",
++      taskId: "WBS-001-004",
++      level: 2,
++      approval: { required: true, status: "requested" }
++    });
++  });
++
++  test("refuses to overwrite an existing proposal", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(main([
++      "spec-change", "new",
++      "--spec", "SPEC-F001-API",
++      "--task", "WBS-001-004",
++      "--id", "SCP-F001-API-002",
++      "--summary", "First proposal",
++      "--rationale", "First rationale",
++      "--proposed-version", "1.1.0"
++    ], root)).toBe(0);
++    const proposalPath = path.join(root, "contracts/spec-changes/SCP-F001-API-002.yaml");
++    const original = readFileSync(proposalPath, "utf8");
++
++    expect(main([
++      "spec-change", "new",
++      "--spec", "SPEC-F001-API",
++      "--task", "WBS-001-004",
++      "--id", "SCP-F001-API-002",
++      "--summary", "Replacement proposal",
++      "--rationale", "Replacement rationale",
++      "--proposed-version", "1.2.0"
++    ], root)).toBe(1);
++    expect(readFileSync(proposalPath, "utf8")).toBe(original);
++  });
++});
