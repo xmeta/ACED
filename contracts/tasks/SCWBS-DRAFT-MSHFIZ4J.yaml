@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MSHFIZ4J
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSHFIZ4J
+branchName: task/SCWBS-DRAFT-MSHFIZ4J-issue-449-make-ai-next-task-priority-aware
+allowedPaths:
+  - src/core/types.ts
+  - src/commands/ai-queue.ts
+  - tests/integration/ai.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - src/auth/**
+  - src/database/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - .github/**
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema change required
+  - WBS canonical mutation required
+  - dependency semantics change required
+  - authentication or permission change required
+  - breaking API change required
+  - external service or release decision required
+requiredChecks:
+  - test
+  - typecheck
+  - lint
+  - test:integration
+  - build
+doneCriteria:
+  - 'Complete Issue #449: make ai next-task priority-aware'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHFIZ4J.patch
+  - contracts/approvals/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-06T11:27:30.031Z"
