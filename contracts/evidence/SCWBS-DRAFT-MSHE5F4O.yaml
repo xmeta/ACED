@@ -1,0 +1,78 @@
+id: EVD-SCWBS-DRAFT-MSHE5F4O
+type: evidence
+taskId: SCWBS-DRAFT-MSHE5F4O
+commit: f6e2cd8221e749871ddda5858c303418203253a9
+subjectHeadCommit: f6e2cd8221e749871ddda5858c303418203253a9
+diffHash: sha256:7e54656426d68a01c191a6ce69204d0c8c87807e2258ce022c2b4cab278027da
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: f6e2cd8221e749871ddda5858c303418203253a9
+    treeHash: 99a838676967420998f478834d33cd3905d7a3f7
+    diffHash: sha256:7e54656426d68a01c191a6ce69204d0c8c87807e2258ce022c2b4cab278027da
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSHE5F4O.patch
+    manifestHash: sha256:7e54656426d68a01c191a6ce69204d0c8c87807e2258ce022c2b4cab278027da
+git:
+  branch: task/SCWBS-DRAFT-MSHE5F4O-issue-451-add-spec-change-proposal-creation-comm
+  base: origin/main
+  baseCommit: c1352604917c16ccee16122e2e0412708988abe4
+  changedFilesBasis: branch-diff
+  pullRequest: "459"
+  subjectHeadCommit: f6e2cd8221e749871ddda5858c303418203253a9
+  diffHash: sha256:7e54656426d68a01c191a6ce69204d0c8c87807e2258ce022c2b4cab278027da
+  headCommit: f6e2cd8221e749871ddda5858c303418203253a9
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHE5F4O.patch
+  - contracts/evidence/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli/register-governance.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/integration/spec-change.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2cf6dfbad9615decf756fa3dd3972964fff0e8bbda4b53c3b22b1443ca2d7ad8
+    durationMilliseconds: 16123
+    executedAt: "2026-08-06T11:07:45.254Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:40c15e4900fbe7644d13eca56b94fa7992ef8f8833902949c8498a61d6095e4f
+    durationMilliseconds: 9646
+    executedAt: "2026-08-06T11:07:54.905Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:3d8add5e7d283bb47d904b35d85b6516904d70c09677b93d00f853052e03e67e
+    durationMilliseconds: 8527
+    executedAt: "2026-08-06T11:08:03.436Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:089bb47dcf9bf77718cf50d81389df2778cec35c4cff6a988d0c81a598389bbb
+    durationMilliseconds: 267137
+    executedAt: "2026-08-06T11:12:30.578Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:c79c4dc185d459a60bc0d2b4cdcf594f6304935f869b722c51a6b2a6221c52df
+    durationMilliseconds: 4116
+    executedAt: "2026-08-06T11:12:34.699Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added CLI registration and integration coverage for proposal creation, Level 2 approval request metadata, and overwrite refusal

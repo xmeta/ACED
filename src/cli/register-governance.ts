@@ -1,4 +1,10 @@
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { type Command } from "commander";
+import { readSpec, readTask } from "../core/contracts.js";
+import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
+import { stringifySimpleYaml } from "../core/yaml.js";
+import type { SpecChangeProposal } from "../core/types.js";
 import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
 import { runAiPacket } from "../commands/ai-packet.js";
 import { runAiRun } from "../commands/ai-run.js";
@@ -18,8 +24,88 @@ import {
 } from "../commands/review-request.js";
 import { parseTestQuality, type CommandContext } from "./command-context.js";
 
+type SpecChangeNewOptions = {
+  id?: string;
+  spec: string;
+  task: string;
+  summary: string;
+  rationale: string;
+  proposedVersion: string;
+  level?: string | number;
+  affectedPaths?: string;
+  risks?: string;
+};
+
+function splitSpecChangeItems(value: string | undefined): string[] {
+  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+}
+
+function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
+  try {
+    const taskResult = readTask(root, options.task);
+    if (!taskResult.task) throw new Error(taskResult.issues.map((issue) => issue.message).join("\n"));
+
+    const specRelativePath = specPath(options.spec);
+    const specResult = readSpec(root, specRelativePath);
+    if (!specResult.spec) throw new Error(specResult.issues.map((issue) => issue.message).join("\n"));
+
+    const level = Number(options.level ?? 1);
+    if (![0, 1, 2].includes(level)) throw new Error("Invalid --level; expected 0, 1, or 2");
+
+    const id = options.id ?? `SCP-${taskResult.task.id}-${Date.now().toString(36).toUpperCase()}`;
+    const relativePath = specChangePath(id);
+    const fullPath = resolveFrom(root, relativePath);
+    if (existsSync(fullPath)) throw new Error(`${relativePath} already exists`);
+
+    const affectedPaths = splitSpecChangeItems(options.affectedPaths);
+    const risks = splitSpecChangeItems(options.risks);
+    const proposal: SpecChangeProposal = {
+      id,
+      type: "spec-change-proposal",
+      status: "proposed",
+      targetSpec: specResult.spec.id,
+      currentVersion: specResult.spec.version,
+      proposedVersion: options.proposedVersion,
+      taskId: taskResult.task.id,
+      level: level as SpecChangeProposal["level"],
+      summary: options.summary,
+      rationale: [options.rationale],
+      affectedPaths: affectedPaths.length > 0 ? affectedPaths : [specRelativePath],
+      approval: { required: level === 2, status: "requested" },
+      ...(risks.length > 0 ? { risks } : {})
+    };
+
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, stringifySimpleYaml(proposal as unknown as Record<string, unknown>), "utf8");
+    process.stdout.write(`Created Spec Change Proposal: ${relativePath}\n`);
+    process.stdout.write(`Level: ${proposal.level}\n`);
+    process.stdout.write(`Approval: ${proposal.approval?.status}\n`);
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
 export function registerGovernanceCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
+  const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
+  specChange
+    .command("new")
+    .description("Create a proposed Spec Change Proposal without mutating the target Spec")
+    .requiredOption("--spec <id>", "target Spec id")
+    .requiredOption("--task <id>", "owning Task id")
+    .requiredOption("--summary <text>", "change summary")
+    .requiredOption("--rationale <text>", "reason for the proposed change")
+    .requiredOption("--proposed-version <version>", "proposed Spec version")
+    .option("--id <id>", "proposal id; generated when omitted")
+    .option("--level <n>", "change level 0, 1, or 2", "1")
+    .option("--affected-paths <paths>", "comma-separated affected paths")
+    .option("--risks <items>", "comma-separated risks")
+    .action((options) => {
+      setExitCode(runSpecChangeNew(root, options));
+    });
+
   const ai = program.command("ai");
   ai.command("packet")
     .description("Build AI work packet")
