@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
 import { buildHealthJsonOutput, buildHealthText, collectEvidenceTrustIssues, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
 import type { Issue } from "../../src/core/types.js";
 import { main } from "../../src/cli.js";
-import { headCommit } from "../../src/core/git.js";
+import { headCommit, latestCommitTimestampsForFiles } from "../../src/core/git.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
 import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
@@ -439,6 +439,27 @@ describe("health", () => {
     const issues = collectHealthIssues(root);
     expect(issues.some((issue) => issue.code === "health.evidence.subjectHeadCommit.stale")).toBe(true);
   }, 15000);
+
+  test("health warns when source history is newer than the Task Contract", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "planned");
+    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "contract-and-source"], { cwd: root, stdio: "ignore" });
+    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
+    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "implementation-change"], {
+      cwd: root,
+      stdio: "ignore",
+      env: { ...process.env, GIT_AUTHOR_DATE: "2030-01-02T00:00:00Z", GIT_COMMITTER_DATE: "2030-01-02T00:00:00Z" }
+    });
+
+    const timestamps = latestCommitTimestampsForFiles(root, ["src/features/api/index.ts", "contracts/tasks/WBS-001-004.yaml"]);
+    expect(timestamps.has("src/features/api/index.ts")).toBe(true);
+    expect(timestamps.has("contracts/tasks/WBS-001-004.yaml")).toBe(true);
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.task.timestampDrift")).toBe(true);
+  });
 
   test("health ignores historical stale evidence on other branches", () => {
     const root = makeTempRepo();

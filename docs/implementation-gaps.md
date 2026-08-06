@@ -28,6 +28,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Priority-aware planned-task candidate listing through `ai next-task`
 - Safe AI tool adapter generation and divergence-aware updates through `init` / `update`
+- Warning-only code-versus-contract timestamp drift detection through `scwbs health`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
 - WBS conflict mitigation strategy and semantic merge roadmap
@@ -45,7 +46,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
 | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
 | Test quality | Diff-aware assertion and coverage inspection | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope |
-| Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
 | Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
 | CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
 | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |

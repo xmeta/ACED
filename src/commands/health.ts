@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
+import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, latestCommitTimestampsForFiles, trackedTextFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
@@ -11,6 +11,7 @@ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } fro
 import { isDoneNode, readWbs } from "../core/wbs.js";
 import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { taskRefreshReasons } from "./task-refresh.js";
+import { taskPath } from "../core/paths.js";
 import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
 import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
 import { buildGovernanceCostSummary } from "./metrics.js";
@@ -666,9 +667,27 @@ export function collectHealthIssues(root: string): Issue[] {
     }
   }
 
-  for (const entry of listActiveTasks(root)) {
+  const activeTasks = listActiveTasks(root);
+  const trackedForTimestamp = trackedTextFiles(root);
+  const timestampFiles = new Set<string>();
+  for (const entry of activeTasks) {
+    if (!entry.task) continue;
+    trackedForTimestamp
+      .filter((file) => (!file.startsWith("contracts/") && matchesAny(file, entry.task!.allowedPaths)) || file === taskPath(entry.task!.id) || matchesManagedContractPath(entry.task!, file))
+      .forEach((file) => timestampFiles.add(file));
+  }
+  let timestamps = new Map<string, number>();
+  try {
+    timestamps = latestCommitTimestampsForFiles(root, [...timestampFiles]);
+  } catch {
+    // Individual Task diagnostics below report notEvaluated when history cannot be read.
+  }
+
+  for (const entry of activeTasks) {
     issues.push(...entry.issues);
     if (!wbs || !entry.task) continue;
+
+    issues.push(...collectTimestampDriftIssues(entry.task, trackedForTimestamp, timestamps));
 
     if (!entry.task.contractLock) {
       issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${entry.task.id} has no contractLock` });
@@ -691,6 +710,22 @@ function issuePriority(issue: Issue): number {
   if (/humanGate|approval/i.test(issue.code)) return 1;
   if (issue.fixCommand) return 2;
   return 3;
+}
+
+function collectTimestampDriftIssues(task: TaskContract, tracked: string[], timestamps: Map<string, number>): Issue[] {
+  const sourceFiles = tracked.filter((file) => !file.startsWith("contracts/") && matchesAny(file, task.allowedPaths));
+  const contractFiles = tracked.filter((file) => file === taskPath(task.id) || matchesManagedContractPath(task, file));
+  const sourceTimestamp = Math.max(...sourceFiles.map((file) => timestamps.get(file) ?? 0));
+  const contractTimestamp = Math.max(...contractFiles.map((file) => timestamps.get(file) ?? 0));
+  if (sourceTimestamp <= 0 || contractTimestamp <= 0) {
+    return [{ severity: "warn", code: "health.task.timestampDrift.notEvaluated", message: `${task.id} timestamp drift was not evaluated because source or contract history is unavailable` }];
+  }
+  if (sourceTimestamp <= contractTimestamp) return [];
+  return [{
+    severity: "warn",
+    code: "health.task.timestampDrift",
+    message: `${task.id} source history is newer than its Task Contract history (${new Date(sourceTimestamp * 1000).toISOString()} > ${new Date(contractTimestamp * 1000).toISOString()})`
+  }];
 }
 
 export function sortHealthIssues(issues: Issue[]): Issue[] {

@@ -1,0 +1,79 @@
+id: EVD-SCWBS-DRAFT-MSHHK4BF
+type: evidence
+taskId: SCWBS-DRAFT-MSHHK4BF
+commit: 0ccd9741daed185a774c9ee8bce3f3baaa15eba8
+subjectHeadCommit: 0ccd9741daed185a774c9ee8bce3f3baaa15eba8
+diffHash: sha256:1c2bcf1acb0205fd2d872e16b02830117083ea1365141f01e81dfbb5be034f92
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 0ccd9741daed185a774c9ee8bce3f3baaa15eba8
+    treeHash: e4701c53b92b9fc409abdc519ccc7f31d4acf1dc
+    diffHash: sha256:1c2bcf1acb0205fd2d872e16b02830117083ea1365141f01e81dfbb5be034f92
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSHHK4BF.patch
+    manifestHash: sha256:1c2bcf1acb0205fd2d872e16b02830117083ea1365141f01e81dfbb5be034f92
+git:
+  branch: task/SCWBS-DRAFT-MSHHK4BF-issue-450-add-warning-only-code-contract-timesta
+  base: origin/main
+  baseCommit: f41be8d4a946406faeb3b8ff5629e77279c0a092
+  changedFilesBasis: branch-diff
+  pullRequest: "462"
+  subjectHeadCommit: 0ccd9741daed185a774c9ee8bce3f3baaa15eba8
+  diffHash: sha256:1c2bcf1acb0205fd2d872e16b02830117083ea1365141f01e81dfbb5be034f92
+  headCommit: 0ccd9741daed185a774c9ee8bce3f3baaa15eba8
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHHK4BF.patch
+  - contracts/evidence/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/commands/health.ts
+  - src/core/git.ts
+  - tests/integration/health.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b5995f9f8dc571f859da05c3bbc6d68e093cbcc240b1306c46d2987eca6b191a
+    durationMilliseconds: 16329
+    executedAt: "2026-08-06T12:56:31.580Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3562d965e393feca9b0cab2154ef38cef7b880fb3c70022b90ae394bcc22ba66
+    durationMilliseconds: 10360
+    executedAt: "2026-08-06T12:56:41.944Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:657c1150f72f052507c0bc9ef94bfd3b5ddcfd0f654b64dd3fee33fc05e8912c
+    durationMilliseconds: 9278
+    executedAt: "2026-08-06T12:56:51.228Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:45c28d7a762145bbd93631157bd363338f9ed5f60ed6d58ade0b1dd4bb446305
+    durationMilliseconds: 264005
+    executedAt: "2026-08-06T13:01:15.238Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:c12ecdf0ac931c2d6e258bbd2be953ca0e5d097015e1006012af3d140a6d12b4
+    durationMilliseconds: 4261
+    executedAt: "2026-08-06T13:01:19.504Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added warning-only code-versus-contract timestamp drift coverage with deterministic git history; no tests were disabled and no coverage decrease was observed.

@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MSHHK4BF
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSHHK4BF
+branchName: task/SCWBS-DRAFT-MSHHK4BF-issue-450-add-warning-only-code-contract-timesta
+allowedPaths:
+  - src/commands/health.ts
+  - src/core/git.ts
+  - tests/integration/health.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - src/auth/**
+  - src/database/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - .github/**
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema change required
+  - dependency change required
+  - authentication or permission change required
+  - breaking API change required
+  - external service or release decision required
+  - semantic freshness ambiguity beyond warning-only definition
+requiredChecks:
+  - test
+  - typecheck
+  - lint
+  - test:integration
+  - build
+doneCriteria:
+  - 'Complete Issue #450: add warning-only code-contract timestamp drift health check'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHHK4BF.patch
+  - contracts/approvals/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSHHK4BF.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-06T12:22:38.454Z"
