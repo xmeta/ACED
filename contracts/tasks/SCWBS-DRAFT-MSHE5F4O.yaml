@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MSHE5F4O
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSHE5F4O
+branchName: task/SCWBS-DRAFT-MSHE5F4O-issue-451-add-spec-change-proposal-creation-comm
+allowedPaths:
+  - src/commands/spec-change-new.ts
+  - src/cli/register-governance.ts
+  - tests/integration/spec-change.test.ts
+  - tests/integration/cli-registration.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - src/auth/**
+  - src/database/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - .github/**
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema change required
+  - Spec mutation or approval policy change required
+  - authentication or permission change required
+  - breaking API change required
+  - external service or release decision required
+requiredChecks:
+  - test
+  - typecheck
+  - lint
+  - test:integration
+  - build
+doneCriteria:
+  - 'Complete Issue #451: add spec-change proposal creation command'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHE5F4O.patch
+  - contracts/approvals/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSHE5F4O.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-06T10:47:32.928Z"
