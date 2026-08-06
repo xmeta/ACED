@@ -167,6 +167,43 @@ describe("AI commands", () => {
     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
   });
 
+  test("ai next-task orders eligible tasks by priority before task id", () => {
+    const root = makeTempRepo();
+    const wbs = sampleWbs("planned");
+    wbs.nodes[0].status = "completed";
+    wbs.nodes.push({
+      id: "node-api-low",
+      parentId: "node-root",
+      code: "1.2",
+      name: "Lower Priority API",
+      type: "workPackage",
+      status: "planned"
+    });
+    wbs.relations = [];
+    writeScwbsProject(root);
+    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ humanGateRequiredPaths: [], priority: "low" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
+      id: "WBS-001-005",
+      wbsNodeId: "node-api-low",
+      branchName: "task/WBS-001-005-api-priority",
+      humanGateRequiredPaths: [],
+      priority: "high"
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      branchName: "task/WBS-001-006-api-unprioritized",
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+
+    expect(buildNextTask(root)).toBe(
+      "Planned task candidates:\n" +
+      "- WBS-001-005 | Lower Priority API | 1.2\n" +
+      "- WBS-001-004 | API Implementation | 1.1\n" +
+      "- WBS-001-006 | API Implementation | 1.1\n"
+    );
+  });
+
   test("ai next-task excludes active Blocks and includes resolved Blocks", () => {
     const root = makeTempRepo();
     const wbs = sampleWbs("planned");

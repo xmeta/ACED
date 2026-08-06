@@ -6,7 +6,7 @@ import { stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
 import { isWbsLessTask } from "../core/node-utils.js";
 import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
-import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
+import type { BlockRecord, SpecChangeProposal, TaskContract, TaskPriority } from "../core/types.js";
 import { buildReviewQueue } from "./review-queue.js";
 
 type BlockChangeSet = {
@@ -23,6 +23,27 @@ type BlockChangeSet = {
     status: "blocked";
   }>;
 };
+
+const taskPriorityRank: Record<TaskPriority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2
+};
+
+type NextTaskCandidate = {
+  taskId: string;
+  nodeName: string;
+  nodeCode: string;
+  priority?: TaskPriority;
+};
+
+function priorityRank(priority: TaskContract["priority"]): number {
+  return priority === undefined ? 3 : taskPriorityRank[priority] ?? 3;
+}
+
+function compareNextTaskCandidates(a: NextTaskCandidate, b: NextTaskCandidate): number {
+  return priorityRank(a.priority) - priorityRank(b.priority) || a.taskId.localeCompare(b.taskId);
+}
 
 function loadTaskAndNode(root: string, taskId: string) {
   const { task, issues } = readTask(root, taskId);
@@ -209,8 +230,8 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
 export function buildNextTask(root: string): string {
   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
     const candidates = listActiveTasks(root)
-      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
-      .sort((a, b) => a.taskId.localeCompare(b.taskId));
+      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less", priority: task.priority }] : [])
+      .sort(compareNextTaskCandidates);
     if (candidates.length === 0) return "No available planned tasks.\n";
     const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
     return `${lines.join("\n")}\n`;
@@ -230,9 +251,9 @@ export function buildNextTask(root: string): string {
       if (status !== "planned") return [];
       const dependencies = (wbs.relations ?? []).filter((relation) => relation.type === "dependsOn" && relation.source === node.id);
       if (dependencies.some((relation) => nodesById.get(relation.target)?.status !== "completed")) return [];
-      return [{ taskId: task.id, nodeName: node.name, nodeCode: node.code }];
+      return [{ taskId: task.id, nodeName: node.name, nodeCode: node.code, priority: task.priority }];
     })
-    .sort((a, b) => a.taskId.localeCompare(b.taskId));
+    .sort(compareNextTaskCandidates);
 
   if (candidates.length === 0) {
     const hasMissingEvidence = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && !evidenceExists(root, entry.task.id));

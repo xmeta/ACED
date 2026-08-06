@@ -28,6 +28,8 @@ export type Registry = {
 
 export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
 
+export type TaskPriority = "high" | "medium" | "low";
+
 export type TaskIndexEntry = {
   id: string;
   path: string;
@@ -118,6 +120,7 @@ export type SpecChangeProposal = {
 export type TaskContract = {
   id: string;
   type: "task-contract";
+  priority?: TaskPriority;
   mode?: "lite";
   completionScope?: "node";
   completionTaskIds?: string[];

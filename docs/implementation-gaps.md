@@ -26,6 +26,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Read-only Evidence retention inventory and prune planning through `evidence prune` (current baseline: 148 tracked payloads / 5,933,400 bytes); deletion, external archive durability, audit trust changes, and Git history rewriting remain Human Decision work
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
+- Priority-aware planned-task candidate listing through `ai next-task`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
 - WBS conflict mitigation strategy and semantic merge roadmap
@@ -48,14 +49,12 @@ This document tracks the pieces that are intentionally still missing from the cu
 | CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
 | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
 | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
-| Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
 | WBS collaboration | Semantic merge implementation or distributed WBS support | The mitigation strategy is documented, but merge assistance is not implemented yet |
 
 ## Near-Term Follow-Ups
 
 - Add a command to create lightweight spec-change proposal artifacts.
 - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
-- Make `ai next-task` priority-aware.
 - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
 - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
 - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
