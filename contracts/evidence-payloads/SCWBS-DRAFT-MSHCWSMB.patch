@@ -1,0 +1,138 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml b/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
+new file mode 100644
+index 0000000..dbec845
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
+@@ -0,0 +1,54 @@
++id: SCWBS-DRAFT-MSHCWSMB
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSHCWSMB
++branchName: task/SCWBS-DRAFT-MSHCWSMB-issue-445-validate-spec-and-spec-change-path-ide
++allowedPaths:
++  - src/core/paths.ts
++  - tests/unit/contracts.test.ts
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - .github/**
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - migration required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++requiredChecks:
++  - test
++  - typecheck
++  - lint
++  - test:integration
++  - build
++doneCriteria:
++  - 'Complete Issue #445: validate spec and spec-change path identifiers'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSHCWSMB.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSHCWSMB.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSHCWSMB.patch
++  - contracts/approvals/SCWBS-DRAFT-MSHCWSMB.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSHCWSMB.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-06T10:13:11.884Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index da78170..631f43d 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1630,3 +1630,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-05T21:53:21.766Z"
++  - id: SCWBS-DRAFT-MSHCWSMB
++    path: contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
++    branchName: task/SCWBS-DRAFT-MSHCWSMB-issue-445-validate-spec-and-spec-change-path-ide
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index 40cc60f..c58c48c 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -71,11 +71,11 @@ export function taskPath(taskId: string): string {
+ }
+ 
+ export function specPath(specId: string): string {
+-  return `${defaultSpecsDir}/${specId}.yaml`;
++  return taskContractPath(defaultSpecsDir, specId);
+ }
+ 
+ export function specChangePath(specChangeId: string): string {
+-  return `${defaultSpecChangesDir}/${specChangeId}.yaml`;
++  return taskContractPath(defaultSpecChangesDir, specChangeId);
+ }
+ 
+ export function evidencePath(taskId: string): string {
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index 12c2948..4b17074 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -3,7 +3,7 @@ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectCheckIssues } from "../../src/commands/check.js";
+ import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+-import { approvalPath, blockPath, evidencePath, reviewPath, taskPath } from "../../src/core/paths.js";
++import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
+ import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
+ 
+ describe("contracts / schema", () => {
+@@ -37,6 +37,32 @@ describe("contracts / schema", () => {
+     }
+   });
+ 
++  test.each([
++    "SPEC-F001-API",
++    "SCP-F001-API-001",
++    "spec.with_dots-and-hyphens"
++  ])("spec paths accept compatible identifiers %s", (id) => {
++    expect(specPath(id)).toBe(`contracts/specs/${id}.yaml`);
++    expect(specChangePath(id)).toBe(`contracts/spec-changes/${id}.yaml`);
++  });
++
++  test.each([
++    "",
++    ".",
++    "..",
++    "../../outside",
++    "/tmp/outside",
++    String.raw`..\..\outside`,
++    "nested/spec",
++    "nested\\spec",
++    "spec id",
++    "仕様"
++  ])("spec paths reject unsafe identifiers without exposing them: %s", (id) => {
++    for (const buildPath of [specPath, specChangePath]) {
++      expect(() => buildPath(id)).toThrow("Invalid task id");
++    }
++  });
++
+   test("invalid task reads fail before inspecting an outside fixture", () => {
+     const root = makeTempRepo();
+     const outsideId = `outside-${path.basename(root)}`;

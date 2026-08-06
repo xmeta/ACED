@@ -1,0 +1,54 @@
+id: SCWBS-DRAFT-MSHCWSMB
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSHCWSMB
+branchName: task/SCWBS-DRAFT-MSHCWSMB-issue-445-validate-spec-and-spec-change-path-ide
+allowedPaths:
+  - src/core/paths.ts
+  - tests/unit/contracts.test.ts
+forbiddenPaths:
+  - src/auth/**
+  - src/database/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - .github/**
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema change required
+  - migration required
+  - authentication or permission change required
+  - breaking API change required
+  - external service or release decision required
+requiredChecks:
+  - test
+  - typecheck
+  - lint
+  - test:integration
+  - build
+doneCriteria:
+  - 'Complete Issue #445: validate spec and spec-change path identifiers'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSHCWSMB.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSHCWSMB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHCWSMB.patch
+  - contracts/approvals/SCWBS-DRAFT-MSHCWSMB.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSHCWSMB.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-06T10:13:11.884Z"

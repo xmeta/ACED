@@ -71,11 +71,11 @@ export function taskPath(taskId: string): string {
 }
 
 export function specPath(specId: string): string {
-  return `${defaultSpecsDir}/${specId}.yaml`;
+  return taskContractPath(defaultSpecsDir, specId);
 }
 
 export function specChangePath(specChangeId: string): string {
-  return `${defaultSpecChangesDir}/${specChangeId}.yaml`;
+  return taskContractPath(defaultSpecChangesDir, specChangeId);
 }
 
 export function evidencePath(taskId: string): string {
