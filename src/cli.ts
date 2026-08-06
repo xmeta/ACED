@@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runFinish } from "./commands/finish.js";
 import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
-import { runInit } from "./commands/init.js";
+import { runAgentUpdate, runInit } from "./commands/init.js";
 import { runPromote } from "./commands/lite.js";
 import { runMerge } from "./commands/merge.js";
 import { runMetricsGovernance } from "./commands/metrics.js";
@@ -221,6 +221,12 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--agent <agent>", "agent type")
     .option("--lang <lang>", "language ja|en")
     .action((opts) => { exitCode = runInit(root, opts); });
+
+  program
+    .command("update")
+    .description("Update generated AI tool files without overwriting divergent files")
+    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
+    .action((opts) => { exitCode = runAgentUpdate(root, opts); });
 
   program
     .command("check")

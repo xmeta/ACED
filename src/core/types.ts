@@ -400,7 +400,7 @@ export type ReviewRecord = {
 
 export type Profile = "Lean" | "Standard" | "Strict";
 
-export type Agent = "codex";
+export type Agent = "codex" | "claude" | "cursor" | "copilot";
 
 export type Language = "ja" | "en";
 

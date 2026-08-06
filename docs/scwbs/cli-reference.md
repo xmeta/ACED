@@ -31,6 +31,7 @@ task/SCWBS-DRAFT-M3QJ2K-fix-parser
 
 ```bash
 npm run scwbs -- init --profile lean --agent codex --lang ja
+npm run scwbs -- update --agent claude
 npm run scwbs -- check
 npm run scwbs -- fix
 npm run scwbs -- doctor
@@ -45,6 +46,8 @@ npm run scwbs -- status --strict
 ```
 
 `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+
+`init --agent` creates the selected adapter's standard instruction file only when it does not exist. Supported adapters are `codex`, `claude`, `cursor`, and `copilot`. It records generated file hashes in `.scwbs/agent-files.json`. `update` refreshes only files whose current contents still match the recorded generated hash; divergent or user-owned files are reported and left unchanged.
 
 ### `fixCommand` の意味
 
