@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectCheckIssues } from "../../src/commands/check.js";
 import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
-import { approvalPath, blockPath, evidencePath, reviewPath, taskPath } from "../../src/core/paths.js";
+import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
 import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
 
 describe("contracts / schema", () => {
@@ -34,6 +34,32 @@ describe("contracts / schema", () => {
   ])("task lifecycle paths reject unsafe task id without exposing it: %s", (taskId) => {
     for (const buildPath of [taskPath, evidencePath, approvalPath, reviewPath, blockPath]) {
       expect(() => buildPath(taskId)).toThrow("Invalid task id");
+    }
+  });
+
+  test.each([
+    "SPEC-F001-API",
+    "SCP-F001-API-001",
+    "spec.with_dots-and-hyphens"
+  ])("spec paths accept compatible identifiers %s", (id) => {
+    expect(specPath(id)).toBe(`contracts/specs/${id}.yaml`);
+    expect(specChangePath(id)).toBe(`contracts/spec-changes/${id}.yaml`);
+  });
+
+  test.each([
+    "",
+    ".",
+    "..",
+    "../../outside",
+    "/tmp/outside",
+    String.raw`..\..\outside`,
+    "nested/spec",
+    "nested\\spec",
+    "spec id",
+    "仕様"
+  ])("spec paths reject unsafe identifiers without exposing them: %s", (id) => {
+    for (const buildPath of [specPath, specChangePath]) {
+      expect(() => buildPath(id)).toThrow("Invalid task id");
     }
   });
 
