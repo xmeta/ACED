@@ -1,30 +1,31 @@
 id: EVD-SCWBS-DRAFT-MSHCWSMB
 type: evidence
 taskId: SCWBS-DRAFT-MSHCWSMB
-commit: 8b9e4d18f51756829b54a19880e3b38a7cfa4199
-subjectHeadCommit: 8b9e4d18f51756829b54a19880e3b38a7cfa4199
-diffHash: sha256:1b5c2f348cb91e7687e584827d6c93f946941004be2ed2aef51c0510ddd84dfb
+commit: 90406247f157f151970469fc66b7a1eed611aabe
+subjectHeadCommit: 90406247f157f151970469fc66b7a1eed611aabe
+diffHash: sha256:edb13d210db1d3233b67b3b2f0c445c0cf9275f459b423df62d7d7dc66b42711
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: 8b9e4d18f51756829b54a19880e3b38a7cfa4199
-    treeHash: b176aa17f8ffd34c065947ca9204715f51443a02
-    diffHash: sha256:1b5c2f348cb91e7687e584827d6c93f946941004be2ed2aef51c0510ddd84dfb
+    commit: 90406247f157f151970469fc66b7a1eed611aabe
+    treeHash: c34f7e76c29df0d6c080c6553c18c4071ea7bf53
+    diffHash: sha256:edb13d210db1d3233b67b3b2f0c445c0cf9275f459b423df62d7d7dc66b42711
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSHCWSMB.patch
-    manifestHash: sha256:1b5c2f348cb91e7687e584827d6c93f946941004be2ed2aef51c0510ddd84dfb
+    manifestHash: sha256:edb13d210db1d3233b67b3b2f0c445c0cf9275f459b423df62d7d7dc66b42711
 git:
   branch: task/SCWBS-DRAFT-MSHCWSMB-issue-445-validate-spec-and-spec-change-path-ide
   base: origin/main
   baseCommit: 129816e4953fa02a326e0a81a2ed18444b8c73a7
   changedFilesBasis: branch-diff
-  subjectHeadCommit: 8b9e4d18f51756829b54a19880e3b38a7cfa4199
-  diffHash: sha256:1b5c2f348cb91e7687e584827d6c93f946941004be2ed2aef51c0510ddd84dfb
-  headCommit: 8b9e4d18f51756829b54a19880e3b38a7cfa4199
+  subjectHeadCommit: 90406247f157f151970469fc66b7a1eed611aabe
+  diffHash: sha256:edb13d210db1d3233b67b3b2f0c445c0cf9275f459b423df62d7d7dc66b42711
+  headCommit: 90406247f157f151970469fc66b7a1eed611aabe
 changedFiles:
-  - contracts/discovery/PROBE-bootstrap-issue-445-specpath-specchangepath-id-MSHCV4H3.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSHCWSMB.patch
+  - contracts/evidence/SCWBS-DRAFT-MSHCWSMB.yaml
   - contracts/registry.yaml
   - contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
   - contracts/tasks/index.yaml
@@ -35,30 +36,37 @@ checks:
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:7b47cc3f766f09ea09a1d274e474310edc608e473cd7b50fd2eb19c81bd29f2c
-    durationMilliseconds: 19502
-    executedAt: "2026-08-06T10:21:52.367Z"
+    cacheKey: sha256:211e4ccd715ba75ec06a2ee7ced60cfd4b606ae6acc993f496ccd3eac835a822
+    durationMilliseconds: 16109
+    executedAt: "2026-08-06T10:30:40.560Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:683e219ff35f17941674b9c66fec6ce061e5bc83c8b212996939921756d6ef78
-    durationMilliseconds: 10559
-    executedAt: "2026-08-06T10:22:02.930Z"
+    cacheKey: sha256:7d531632efed82264e0c882c3a6f54a95801fafc26268afabd2bfbbfabe0dcb7
+    durationMilliseconds: 8969
+    executedAt: "2026-08-06T10:30:49.534Z"
   - name: lint
     status: passed
     source: local
     command: npm run lint
-    cacheKey: sha256:de63dbca7c6c5d0ca361e7df5738399a1a5fc04ce01aec01d863eac5d1dc072d
-    durationMilliseconds: 9513
-    executedAt: "2026-08-06T10:22:12.447Z"
+    cacheKey: sha256:e3432f994dcfd551304baf4596ebd6549d5c576c422b196c26563f22d1712af1
+    durationMilliseconds: 8149
+    executedAt: "2026-08-06T10:30:57.687Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:5c8809061518157803cf8711cd11befe3d1ee2a1a2042dc0c969ab33e892eeb5
-    durationMilliseconds: 293076
-    executedAt: "2026-08-06T10:27:05.529Z"
+    cacheKey: sha256:e851580ae44d49ea008e7a47a98e30c0d1b08d4a6c0595b4ebdf79a5e2c8816b
+    durationMilliseconds: 253863
+    executedAt: "2026-08-06T10:35:11.555Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:3a6ea186778f9090e502bb8d96adb6ad89093a948b84787caebdc44fcd5ffbf2
+    durationMilliseconds: 3779
+    executedAt: "2026-08-06T10:35:15.338Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false

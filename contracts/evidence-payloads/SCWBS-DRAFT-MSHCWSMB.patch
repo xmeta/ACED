@@ -1,42 +1,9 @@
-diff --git a/contracts/discovery/PROBE-bootstrap-issue-445-specpath-specchangepath-id-MSHCV4H3.yaml b/contracts/discovery/PROBE-bootstrap-issue-445-specpath-specchangepath-id-MSHCV4H3.yaml
-new file mode 100644
-index 0000000..77e8af1
---- /dev/null
-+++ b/contracts/discovery/PROBE-bootstrap-issue-445-specpath-specchangepath-id-MSHCV4H3.yaml
-@@ -0,0 +1,27 @@
-+schemaVersion: 1.0.0
-+id: PROBE-bootstrap-issue-445-specpath-specchangepath-id-MSHCV4H3
-+type: discovery-probe
-+status: concluded
-+question: "Issue #445: specPath と specChangePath の ID 検証を統一し、パストラバーサルを拒否する"
-+hypotheses:
-+  - Existing repository capabilities can support the goal
-+activities:
-+  - Inspect current contracts and record bounded evidence
-+evidenceExpected:
-+  - Current-state inventory
-+unknowns:
-+  - Delivery scope and acceptance criteria
-+timebox: 1h
-+costLimit: one engineer-hour
-+exitConditions:
-+  - Decision-driving evidence recorded
-+nextDecision: Approve a delivery Spec before creating a Task Contract
-+createdAt: "2026-08-06T10:10:48.040Z"
-+startedAt: "2026-08-06T10:11:13.298Z"
-+concludedAt: "2026-08-06T10:11:45.731Z"
-+exitConditionsMet: true
-+factsLearned:
-+  - paths.ts shows specPath and specChangePath interpolate unvalidated IDs; sibling task lifecycle helpers enforce the shared ID pattern and directory boundary; specChangePath is used by ai-queue after upstream task validation but the helper itself is unsafe; existing unit tests cover task lifecycle path rejection but not spec paths
-+hypothesesRejected:
-+  - No broad path-model redesign or caller-only validation is required
-+remainingUnknowns: []
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml b/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
 new file mode 100644
-index 0000000..d54986b
+index 0000000..dbec845
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSHCWSMB.yaml
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,54 @@
 +id: SCWBS-DRAFT-MSHCWSMB
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -51,6 +18,7 @@ index 0000000..d54986b
 +  - contracts/wbs/project.wbs.json
 +  - package.json
 +  - .github/**
++  - wjs/**
 +humanGateRequiredPaths:
 +  - package.json
 +  - package-lock.json
@@ -68,6 +36,7 @@ index 0000000..d54986b
 +  - typecheck
 +  - lint
 +  - test:integration
++  - build
 +doneCriteria:
 +  - 'Complete Issue #445: validate spec and spec-change path identifiers'
 +evidenceRequired:
