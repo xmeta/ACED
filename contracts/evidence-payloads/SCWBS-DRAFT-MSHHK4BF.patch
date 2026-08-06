@@ -1,0 +1,259 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml b/contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
+new file mode 100644
+index 0000000..21e6b80
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MSHHK4BF
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSHHK4BF
++branchName: task/SCWBS-DRAFT-MSHHK4BF-issue-450-add-warning-only-code-contract-timesta
++allowedPaths:
++  - src/commands/health.ts
++  - src/core/git.ts
++  - tests/integration/health.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - .github/**
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - dependency change required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++  - semantic freshness ambiguity beyond warning-only definition
++requiredChecks:
++  - test
++  - typecheck
++  - lint
++  - test:integration
++  - build
++doneCriteria:
++  - 'Complete Issue #450: add warning-only code-contract timestamp drift health check'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSHHK4BF.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSHHK4BF.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSHHK4BF.patch
++  - contracts/approvals/SCWBS-DRAFT-MSHHK4BF.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSHHK4BF.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-06T12:22:38.454Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 0101dfd..8a201bd 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1658,3 +1658,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-06T12:19:38.907Z"
++  - id: SCWBS-DRAFT-MSHHK4BF
++    path: contracts/tasks/SCWBS-DRAFT-MSHHK4BF.yaml
++    branchName: task/SCWBS-DRAFT-MSHHK4BF-issue-450-add-warning-only-code-contract-timesta
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 8d86214..cf957fb 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -28,6 +28,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Dependency-aware planned-task candidate listing for simple queue handoff
+ - Priority-aware planned-task candidate listing through `ai next-task`
+ - Safe AI tool adapter generation and divergence-aware updates through `init` / `update`
++- Warning-only code-versus-contract timestamp drift detection through `scwbs health`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+ - WBS conflict mitigation strategy and semantic merge roadmap
+@@ -45,7 +46,6 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
+ | Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
+ | Test quality | Diff-aware assertion and coverage inspection | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope |
+-| Health checks | Timestamp-based drift detection for code vs contracts | `scwbs health` does not yet prove freshness from history |
+ | Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
+ | CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
+ | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 1c79df3..26a4ab7 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -64,6 +64,8 @@ fieldがある場合も、値には2種類ある。
+ 
+ `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
+ 
++Active Taskについて、`health.task.timestampDrift` は Task の `allowedPaths` に一致するtracked sourceとTask Contractのgit commit timestampだけを比較するwarning-only診断である。source側が新しい場合に警告し、file mtimeや意味的なfreshnessは推測しない。履歴が不足する場合は `health.task.timestampDrift.notEvaluated` として明示し、exit codeやApprovalを変更しない。
++
+ `health` はTaskの読み取り自体はrepository-content上read-onlyだが、以下は例外である（詳細は「Mutation / Read-only 一覧」を参照）。
+ 
+ - active Task別のwarning summaryをgit common dirへ保存する（tracked artifactではないがlocal metadataとして書き込みが発生する）。
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 396a02f..41f4e2a 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { listActiveTasks, readApproval, readEvidence, readRegistry, readReview, readTask } from "../core/contracts.js";
+-import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, trackedTextFiles } from "../core/git.js";
++import { baseBranchStatus, branchChangedFiles, branchDiffHash, changedFilesBetween, changedFilesSince, commitExists, commitTreeHash, currentBranch, dirtySubmodulePaths, filesAddedOnBothSides, filesWithCrlf, headCommit, isCommitAncestor, isShallowRepository, latestCommitTimestampsForFiles, trackedTextFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { matchesManagedContractPath } from "../core/managed-contract-paths.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+@@ -11,6 +11,7 @@ import type { Evidence, Issue, RegistryContract, TaskContract, WbsDocument } fro
+ import { isDoneNode, readWbs } from "../core/wbs.js";
+ import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { taskRefreshReasons } from "./task-refresh.js";
++import { taskPath } from "../core/paths.js";
+ import { buildCodeContextManifest, reverseImporterCounts, type ParsedImports } from "../core/code-context.js";
+ import { buildHealthLifecycleEvent, recordHealthLifecycleEvent } from "../core/health-lifecycle.js";
+ import { buildGovernanceCostSummary } from "./metrics.js";
+@@ -666,10 +667,28 @@ export function collectHealthIssues(root: string): Issue[] {
+     }
+   }
+ 
+-  for (const entry of listActiveTasks(root)) {
++  const activeTasks = listActiveTasks(root);
++  const trackedForTimestamp = trackedTextFiles(root);
++  const timestampFiles = new Set<string>();
++  for (const entry of activeTasks) {
++    if (!entry.task) continue;
++    trackedForTimestamp
++      .filter((file) => (!file.startsWith("contracts/") && matchesAny(file, entry.task!.allowedPaths)) || file === taskPath(entry.task!.id) || matchesManagedContractPath(entry.task!, file))
++      .forEach((file) => timestampFiles.add(file));
++  }
++  let timestamps = new Map<string, number>();
++  try {
++    timestamps = latestCommitTimestampsForFiles(root, [...timestampFiles]);
++  } catch {
++    // Individual Task diagnostics below report notEvaluated when history cannot be read.
++  }
++
++  for (const entry of activeTasks) {
+     issues.push(...entry.issues);
+     if (!wbs || !entry.task) continue;
+ 
++    issues.push(...collectTimestampDriftIssues(entry.task, trackedForTimestamp, timestamps));
++
+     if (!entry.task.contractLock) {
+       issues.push({ severity: "warn", code: "health.task.contractLock.missing", message: `${entry.task.id} has no contractLock` });
+     }
+@@ -693,6 +712,22 @@ function issuePriority(issue: Issue): number {
+   return 3;
+ }
+ 
++function collectTimestampDriftIssues(task: TaskContract, tracked: string[], timestamps: Map<string, number>): Issue[] {
++  const sourceFiles = tracked.filter((file) => !file.startsWith("contracts/") && matchesAny(file, task.allowedPaths));
++  const contractFiles = tracked.filter((file) => file === taskPath(task.id) || matchesManagedContractPath(task, file));
++  const sourceTimestamp = Math.max(...sourceFiles.map((file) => timestamps.get(file) ?? 0));
++  const contractTimestamp = Math.max(...contractFiles.map((file) => timestamps.get(file) ?? 0));
++  if (sourceTimestamp <= 0 || contractTimestamp <= 0) {
++    return [{ severity: "warn", code: "health.task.timestampDrift.notEvaluated", message: `${task.id} timestamp drift was not evaluated because source or contract history is unavailable` }];
++  }
++  if (sourceTimestamp <= contractTimestamp) return [];
++  return [{
++    severity: "warn",
++    code: "health.task.timestampDrift",
++    message: `${task.id} source history is newer than its Task Contract history (${new Date(sourceTimestamp * 1000).toISOString()} > ${new Date(contractTimestamp * 1000).toISOString()})`
++  }];
++}
++
+ export function sortHealthIssues(issues: Issue[]): Issue[] {
+   return [...issues].sort((left, right) =>
+     issuePriority(left) - issuePriority(right)
+diff --git a/src/core/git.ts b/src/core/git.ts
+index f4d7069..1d30fe0 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -139,6 +139,28 @@ export function changedFilesSince(root: string, ref: string): string[] {
+   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
+ }
+ 
++/** Return latest committer timestamps for many tracked paths with one bounded git log. */
++export function latestCommitTimestampsForFiles(root: string, files: string[]): Map<string, number> {
++  const resultMap = new Map<string, number>();
++  if (files.length === 0) return resultMap;
++  const wanted = new Set(files);
++  const result = spawnSync("git", ["log", "--all", "--format=commit:%ct", "--name-only", "--", ...files], {
++    cwd: root,
++    encoding: "utf8"
++  });
++  if (result.status !== 0) throw new Error(result.stderr || "git log failed");
++  let commitTimestamp: number | undefined;
++  for (const line of result.stdout.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) {
++    const commit = line.match(/^commit:(\d+)$/);
++    if (commit) {
++      commitTimestamp = Number(commit[1]);
++      continue;
++    }
++    if (commitTimestamp !== undefined && wanted.has(line) && !resultMap.has(line)) resultMap.set(line, commitTimestamp);
++  }
++  return resultMap;
++}
++
+ export function changedFilesBetween(root: string, fromRef: string, toRef: string): string[] {
+   return Array.from(new Set(gitLines(root, ["log", "--format=", "--name-only", `${fromRef}..${toRef}`], "git log failed")));
+ }
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 8bfd9fd..2db1e69 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
+ import { buildHealthJsonOutput, buildHealthText, collectEvidenceTrustIssues, collectHealthIssues, collectTaskHealthIssues, runHealth } from "../../src/commands/health.js";
+ import type { Issue } from "../../src/core/types.js";
+ import { main } from "../../src/cli.js";
+-import { headCommit } from "../../src/core/git.js";
++import { headCommit, latestCommitTimestampsForFiles } from "../../src/core/git.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import { buildCollectedEvidence } from "../../src/commands/evidence-collect.js";
+ import { runEvidenceCollect } from "../../src/commands/evidence-collect.js";
+@@ -440,6 +440,27 @@ describe("health", () => {
+     expect(issues.some((issue) => issue.code === "health.evidence.subjectHeadCommit.stale")).toBe(true);
+   }, 15000);
+ 
++  test("health warns when source history is newer than the Task Contract", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
++    execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "contract-and-source"], { cwd: root, stdio: "ignore" });
++    writeText(root, "src/features/api/index.ts", "export const value = 2;\n");
++    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root, stdio: "ignore" });
++    execFileSync("git", ["commit", "-m", "implementation-change"], {
++      cwd: root,
++      stdio: "ignore",
++      env: { ...process.env, GIT_AUTHOR_DATE: "2030-01-02T00:00:00Z", GIT_COMMITTER_DATE: "2030-01-02T00:00:00Z" }
++    });
++
++    const timestamps = latestCommitTimestampsForFiles(root, ["src/features/api/index.ts", "contracts/tasks/WBS-001-004.yaml"]);
++    expect(timestamps.has("src/features/api/index.ts")).toBe(true);
++    expect(timestamps.has("contracts/tasks/WBS-001-004.yaml")).toBe(true);
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.task.timestampDrift")).toBe(true);
++  });
++
+   test("health ignores historical stale evidence on other branches", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
