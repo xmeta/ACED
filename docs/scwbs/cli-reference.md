@@ -64,6 +64,8 @@ fieldがある場合も、値には2種類ある。
 
 `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。
 
+Active Taskについて、`health.task.timestampDrift` は Task の `allowedPaths` に一致するtracked sourceとTask Contractのgit commit timestampだけを比較するwarning-only診断である。source側が新しい場合に警告し、file mtimeや意味的なfreshnessは推測しない。履歴が不足する場合は `health.task.timestampDrift.notEvaluated` として明示し、exit codeやApprovalを変更しない。
+
 `health` はTaskの読み取り自体はrepository-content上read-onlyだが、以下は例外である（詳細は「Mutation / Read-only 一覧」を参照）。
 
 - active Task別のwarning summaryをgit common dirへ保存する（tracked artifactではないがlocal metadataとして書き込みが発生する）。

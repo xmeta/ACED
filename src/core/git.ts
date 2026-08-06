@@ -139,6 +139,28 @@ export function changedFilesSince(root: string, ref: string): string[] {
   return gitLines(root, ["diff", "--name-only", `${ref}..HEAD`], "git diff failed");
 }
 
+/** Return latest committer timestamps for many tracked paths with one bounded git log. */
+export function latestCommitTimestampsForFiles(root: string, files: string[]): Map<string, number> {
+  const resultMap = new Map<string, number>();
+  if (files.length === 0) return resultMap;
+  const wanted = new Set(files);
+  const result = spawnSync("git", ["log", "--all", "--format=commit:%ct", "--name-only", "--", ...files], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) throw new Error(result.stderr || "git log failed");
+  let commitTimestamp: number | undefined;
+  for (const line of result.stdout.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)) {
+    const commit = line.match(/^commit:(\d+)$/);
+    if (commit) {
+      commitTimestamp = Number(commit[1]);
+      continue;
+    }
+    if (commitTimestamp !== undefined && wanted.has(line) && !resultMap.has(line)) resultMap.set(line, commitTimestamp);
+  }
+  return resultMap;
+}
+
 export function changedFilesBetween(root: string, fromRef: string, toRef: string): string[] {
   return Array.from(new Set(gitLines(root, ["log", "--format=", "--name-only", `${fromRef}..${toRef}`], "git log failed")));
 }
