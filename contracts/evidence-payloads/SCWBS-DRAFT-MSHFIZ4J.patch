@@ -1,0 +1,251 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml b/contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
+new file mode 100644
+index 0000000..17acb27
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MSHFIZ4J
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSHFIZ4J
++branchName: task/SCWBS-DRAFT-MSHFIZ4J-issue-449-make-ai-next-task-priority-aware
++allowedPaths:
++  - src/core/types.ts
++  - src/commands/ai-queue.ts
++  - tests/integration/ai.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - .github/**
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - WBS canonical mutation required
++  - dependency semantics change required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++requiredChecks:
++  - test
++  - typecheck
++  - lint
++  - test:integration
++  - build
++doneCriteria:
++  - 'Complete Issue #449: make ai next-task priority-aware'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSHFIZ4J.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSHFIZ4J.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSHFIZ4J.patch
++  - contracts/approvals/SCWBS-DRAFT-MSHFIZ4J.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSHFIZ4J.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-06T11:27:30.031Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 2e0f488..f3d3f55 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1644,3 +1644,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-06T11:19:57.729Z"
++  - id: SCWBS-DRAFT-MSHFIZ4J
++    path: contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
++    branchName: task/SCWBS-DRAFT-MSHFIZ4J-issue-449-make-ai-next-task-priority-aware
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index e6ae4e9..d86f4e9 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -26,6 +26,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Read-only Evidence retention inventory and prune planning through `evidence prune` (current baseline: 148 tracked payloads / 5,933,400 bytes); deletion, external archive durability, audit trust changes, and Git history rewriting remain Human Decision work
+ - AI blocked-task change-set generation
+ - Dependency-aware planned-task candidate listing for simple queue handoff
++- Priority-aware planned-task candidate listing through `ai next-task`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+ - WBS conflict mitigation strategy and semantic merge roadmap
+@@ -48,14 +49,12 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
+ | Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
+ | Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
+-| Task queue | Priority-aware next-task selection | `ai next-task` excludes Human Gate paths and unfinished dependencies, but does not yet model priority |
+ | WBS collaboration | Semantic merge implementation or distributed WBS support | The mitigation strategy is documented, but merge assistance is not implemented yet |
+ 
+ ## Near-Term Follow-Ups
+ 
+ - Add a command to create lightweight spec-change proposal artifacts.
+ - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
+-- Make `ai next-task` priority-aware.
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+ - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+ - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 89167b0..a0136e1 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -147,7 +147,7 @@ npm run scwbs -- next
+ 
+ `ai run` is initially a dry-run orchestrator. It prints the pre-flight checks, implementation stop conditions, and post-flight checks rather than launching an external agent.
+ 
+-`ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
++`ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. Eligible candidates are ordered by optional Task Contract `priority` (`high`, `medium`, `low`), then by Task ID; tasks without a priority remain after prioritized tasks and retain the existing Task ID fallback. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
+ 
+ `scwbs next` is the local follow-up command. It prioritizes stale task locks, missing Evidence, and review queue work before falling back to planned-task candidates.
+ 
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index add333f..a6a606c 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -6,7 +6,7 @@ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+ import { isWbsLessTask } from "../core/node-utils.js";
+ import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+-import type { BlockRecord, SpecChangeProposal } from "../core/types.js";
++import type { BlockRecord, SpecChangeProposal, TaskContract, TaskPriority } from "../core/types.js";
+ import { buildReviewQueue } from "./review-queue.js";
+ 
+ type BlockChangeSet = {
+@@ -24,6 +24,27 @@ type BlockChangeSet = {
+   }>;
+ };
+ 
++const taskPriorityRank: Record<TaskPriority, number> = {
++  high: 0,
++  medium: 1,
++  low: 2
++};
++
++type NextTaskCandidate = {
++  taskId: string;
++  nodeName: string;
++  nodeCode: string;
++  priority?: TaskPriority;
++};
++
++function priorityRank(priority: TaskContract["priority"]): number {
++  return priority === undefined ? 3 : taskPriorityRank[priority] ?? 3;
++}
++
++function compareNextTaskCandidates(a: NextTaskCandidate, b: NextTaskCandidate): number {
++  return priorityRank(a.priority) - priorityRank(b.priority) || a.taskId.localeCompare(b.taskId);
++}
++
+ function loadTaskAndNode(root: string, taskId: string) {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) {
+@@ -209,8 +230,8 @@ export function runAiBlock(root: string, taskId: string, reason: string, options
+ export function buildNextTask(root: string): string {
+   if (!existsSync(resolveFrom(root, defaultWbsPath))) {
+     const candidates = listActiveTasks(root)
+-      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less" }] : [])
+-      .sort((a, b) => a.taskId.localeCompare(b.taskId));
++      .flatMap(({ task }) => task && !evidenceExists(root, task.id) && readBlock(root, task.id).block?.status !== "blocked" ? [{ taskId: task.id, nodeName: task.wbsNodeId, nodeCode: "WBS-less", priority: task.priority }] : [])
++      .sort(compareNextTaskCandidates);
+     if (candidates.length === 0) return "No available planned tasks.\n";
+     const lines = ["Planned task candidates:", ...candidates.map((candidate) => `- ${candidate.taskId} | ${candidate.nodeName} | ${candidate.nodeCode}`)];
+     return `${lines.join("\n")}\n`;
+@@ -230,9 +251,9 @@ export function buildNextTask(root: string): string {
+       if (status !== "planned") return [];
+       const dependencies = (wbs.relations ?? []).filter((relation) => relation.type === "dependsOn" && relation.source === node.id);
+       if (dependencies.some((relation) => nodesById.get(relation.target)?.status !== "completed")) return [];
+-      return [{ taskId: task.id, nodeName: node.name, nodeCode: node.code }];
++      return [{ taskId: task.id, nodeName: node.name, nodeCode: node.code, priority: task.priority }];
+     })
+-    .sort((a, b) => a.taskId.localeCompare(b.taskId));
++    .sort(compareNextTaskCandidates);
+ 
+   if (candidates.length === 0) {
+     const hasMissingEvidence = tasks.some((entry) => entry.task && readBlock(root, entry.task.id).block?.status !== "blocked" && !evidenceExists(root, entry.task.id));
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 260dd75..e435cd1 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -28,6 +28,8 @@ export type Registry = {
+ 
+ export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
+ 
++export type TaskPriority = "high" | "medium" | "low";
++
+ export type TaskIndexEntry = {
+   id: string;
+   path: string;
+@@ -118,6 +120,7 @@ export type SpecChangeProposal = {
+ export type TaskContract = {
+   id: string;
+   type: "task-contract";
++  priority?: TaskPriority;
+   mode?: "lite";
+   completionScope?: "node";
+   completionTaskIds?: string[];
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 6abdbc9..713494e 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -167,6 +167,43 @@ describe("AI commands", () => {
+     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
+   });
+ 
++  test("ai next-task orders eligible tasks by priority before task id", () => {
++    const root = makeTempRepo();
++    const wbs = sampleWbs("planned");
++    wbs.nodes[0].status = "completed";
++    wbs.nodes.push({
++      id: "node-api-low",
++      parentId: "node-root",
++      code: "1.2",
++      name: "Lower Priority API",
++      type: "workPackage",
++      status: "planned"
++    });
++    wbs.relations = [];
++    writeScwbsProject(root);
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ humanGateRequiredPaths: [], priority: "low" }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      wbsNodeId: "node-api-low",
++      branchName: "task/WBS-001-005-api-priority",
++      humanGateRequiredPaths: [],
++      priority: "high"
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      branchName: "task/WBS-001-006-api-unprioritized",
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++
++    expect(buildNextTask(root)).toBe(
++      "Planned task candidates:\n" +
++      "- WBS-001-005 | Lower Priority API | 1.2\n" +
++      "- WBS-001-004 | API Implementation | 1.1\n" +
++      "- WBS-001-006 | API Implementation | 1.1\n"
++    );
++  });
++
+   test("ai next-task excludes active Blocks and includes resolved Blocks", () => {
+     const root = makeTempRepo();
+     const wbs = sampleWbs("planned");

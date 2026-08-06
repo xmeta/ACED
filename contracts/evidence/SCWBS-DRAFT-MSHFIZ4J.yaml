@@ -1,0 +1,76 @@
+id: EVD-SCWBS-DRAFT-MSHFIZ4J
+type: evidence
+taskId: SCWBS-DRAFT-MSHFIZ4J
+commit: dee0f9ba075fd4431f44a1c43b0def88ddd09e69
+subjectHeadCommit: dee0f9ba075fd4431f44a1c43b0def88ddd09e69
+diffHash: sha256:f522dc8f3320fc5fd85470cd0321608892f90c96af4c8de2b6e6a1a3f8b9f51d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: dee0f9ba075fd4431f44a1c43b0def88ddd09e69
+    treeHash: 423d97903d14233e03341c88d7a98bd744de7b26
+    diffHash: sha256:f522dc8f3320fc5fd85470cd0321608892f90c96af4c8de2b6e6a1a3f8b9f51d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSHFIZ4J.patch
+    manifestHash: sha256:f522dc8f3320fc5fd85470cd0321608892f90c96af4c8de2b6e6a1a3f8b9f51d
+git:
+  branch: task/SCWBS-DRAFT-MSHFIZ4J-issue-449-make-ai-next-task-priority-aware
+  base: origin/main
+  baseCommit: 73bc50e3b92c65810edec8ef0d65f360a3f0dd91
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: dee0f9ba075fd4431f44a1c43b0def88ddd09e69
+  diffHash: sha256:f522dc8f3320fc5fd85470cd0321608892f90c96af4c8de2b6e6a1a3f8b9f51d
+  headCommit: dee0f9ba075fd4431f44a1c43b0def88ddd09e69
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSHFIZ4J.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/commands/ai-queue.ts
+  - src/core/types.ts
+  - tests/integration/ai.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:6e0e4bf5ea08a62ebe5bb1f8c1f46d7121e4ce9c7c5480124f5d5bae5b538f88
+    durationMilliseconds: 16145
+    executedAt: "2026-08-06T11:36:43.737Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c29766194931000b7d0bd4d497ecbc4c48c53e1b1c64a25fd36ae278d21d0254
+    durationMilliseconds: 9375
+    executedAt: "2026-08-06T11:36:53.116Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:59d87171ca2c8f451ee1263dcdf3021fdd4da0b57b895ca9816c19a3acb17c28
+    durationMilliseconds: 8222
+    executedAt: "2026-08-06T11:37:01.341Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1d99b921f79fde4fefc6804b933fe4599a97e568ce6b7c75fbdd60bf0e7b7086
+    durationMilliseconds: 254966
+    executedAt: "2026-08-06T11:41:16.311Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:1b8799db0b6729ac32f6409c11d19ba88469eaff1d201678958f7ee296cc719c
+    durationMilliseconds: 3984
+    executedAt: "2026-08-06T11:41:20.300Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added an integration regression test covering high, low, and unspecified priority ordering; no tests were disabled and no coverage decrease was observed.
