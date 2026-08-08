@@ -17,6 +17,8 @@ on:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env:
+      SCWBS_APPROVAL_DELEGATION_TOKEN: ${{ secrets.SCWBS_APPROVAL_DELEGATION_TOKEN }}
     outputs:
       mode: ${{ steps.final.outputs.mode }}
       task_id: ${{ steps.final.outputs.task_id }}
