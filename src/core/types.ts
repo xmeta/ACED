@@ -63,6 +63,16 @@ export type ApprovalPolicy =
 export type SpecContractStatus = "draft" | "approved" | "superseded";
 export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
 
+export type RequirementVerificationMode = "automated" | "manual" | "hybrid";
+
+export type SpecRequirement = {
+  id: string;
+  statement: string;
+  acceptanceScenarios: string[];
+  verificationMode: RequirementVerificationMode;
+  source: string;
+};
+
 export type PlanningWorkItem = {
   id: string;
   title: string;
@@ -93,6 +103,8 @@ export type SpecContract = {
   acceptanceCriteria: string[];
   approvedBy?: string;
   approvedAt?: string;
+  requirementsVersion?: "1.0.0";
+  requirements?: SpecRequirement[];
   planning?: SpecPlanning;
 };
 
@@ -127,6 +139,7 @@ export type TaskContract = {
   wbsNodeId: string;
   featureId: string;
   branchName?: string;
+  requirementIds?: string[];
   contractLock?: {
     lockVersion?: "2";
     wbsRevision?: string;
@@ -186,6 +199,17 @@ export type CheckCoveragePolicy = {
 
 export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
 export type EvidenceCheckSource = "ci" | "local" | "manual";
+
+export type RequirementEvidenceStatus = "covered" | "manual-required" | "not-covered";
+
+export type RequirementEvidence = {
+  requirementId: string;
+  status: RequirementEvidenceStatus;
+  references: string[];
+  checkNames?: string[];
+  subjectHeadCommit?: string;
+  diffHash?: string;
+};
 
 export type CiReceiptJob = {
   name: string;
@@ -321,6 +345,7 @@ export type Evidence = {
     durationMilliseconds?: number;
     verifiedBy?: string;
   }>;
+  requirementEvidence?: RequirementEvidence[];
   testQuality?: {
     assertionsAdded?: boolean;
     testsDisabled?: boolean;

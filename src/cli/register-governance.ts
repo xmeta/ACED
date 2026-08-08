@@ -22,6 +22,7 @@ import {
   runReviewRequest,
   runReviewRoute
 } from "../commands/review-request.js";
+import { runValidateFeature } from "../commands/validate-feature.js";
 import { parseTestQuality, type CommandContext } from "./command-context.js";
 
 type SpecChangeNewOptions = {
@@ -89,6 +90,17 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
 
 export function registerGovernanceCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
+  const validate = program.command("validate").description("Validate cross-Task feature completion");
+  validate
+    .command("feature")
+    .description("Validate Requirement to Task to Evidence traceability")
+    .requiredOption("--spec <id>", "Spec id")
+    .option("--base <ref>", "merge base reference", "origin/main")
+    .option("--json", "print a versioned JSON report")
+    .action((options) => {
+      setExitCode(runValidateFeature(root, options.spec, { baseRef: options.base, json: options.json ?? false }));
+    });
+
   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
   specChange
     .command("new")

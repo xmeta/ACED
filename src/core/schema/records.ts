@@ -27,6 +27,20 @@ const coverageCountsSchema = {
   }
 };
 
+const requirementEvidenceSchema = {
+  type: "object",
+  required: ["requirementId", "status", "references"],
+  additionalProperties: false,
+  properties: {
+    requirementId: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" },
+    status: { type: "string", enum: ["covered", "manual-required", "not-covered"] },
+    references: { type: "array", items: { type: "string", minLength: 1 } },
+    checkNames: { type: "array", items: { type: "string", minLength: 1 } },
+    subjectHeadCommit: { type: "string", minLength: 1 },
+    diffHash: { type: "string", minLength: 1 }
+  }
+};
+
 const evidenceSchema = {
   type: "object",
   required: ["id", "type", "taskId", "changedFiles", "checks"],
@@ -161,6 +175,7 @@ const evidenceSchema = {
       }
     },
     changedFiles: stringArraySchema,
+    requirementEvidence: { type: "array", uniqueItems: true, items: requirementEvidenceSchema },
     submodules: {
       type: "array",
       items: {
@@ -385,6 +400,32 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
   }
   if (!isStringArray(value.changedFiles)) {
     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+  }
+  if (value.requirementEvidence !== undefined) {
+    if (!Array.isArray(value.requirementEvidence)) {
+      issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence must be an array when present`));
+    } else {
+      const ids = new Set<string>();
+      value.requirementEvidence.forEach((entry, index) => {
+        if (!isObject(entry)) {
+          issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence[${index}] must be an object`));
+          return;
+        }
+        if (typeof entry.requirementId !== "string" || entry.requirementId.length === 0) {
+          issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence[${index}].requirementId must be a non-empty string`));
+        } else if (ids.has(entry.requirementId)) {
+          issues.push(issue("evidence.requirementEvidence.duplicate", `${filePath}.requirementEvidence contains duplicate id ${entry.requirementId}`));
+        } else {
+          ids.add(entry.requirementId);
+        }
+        if (!["covered", "manual-required", "not-covered"].includes(String(entry.status))) {
+          issues.push(issue("evidence.requirementEvidence.status", `${filePath}.requirementEvidence[${index}].status is invalid`));
+        }
+        if (!isStringArray(entry.references)) {
+          issues.push(issue("evidence.requirementEvidence.references", `${filePath}.requirementEvidence[${index}].references must be a string array`));
+        }
+      });
+    }
   }
   if (value.submodules !== undefined && !Array.isArray(value.submodules)) {
     issues.push(issue("evidence.submodules", `${filePath}.submodules must be an array when present`));
