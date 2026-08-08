@@ -1,0 +1,67 @@
+id: EVD-SCWBS-DRAFT-MSK51U0Y
+type: evidence
+taskId: SCWBS-DRAFT-MSK51U0Y
+commit: ec6272654117bd19cd9c3b010bd895a7286fea1a
+subjectHeadCommit: ec6272654117bd19cd9c3b010bd895a7286fea1a
+diffHash: sha256:591a5bbea3483bbd445df67ef492f0650a7de7dab0d5d6a41391e1dd62f7127b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: ec6272654117bd19cd9c3b010bd895a7286fea1a
+    treeHash: c7790719a508ef516940f24a154368053b6b027a
+    diffHash: sha256:591a5bbea3483bbd445df67ef492f0650a7de7dab0d5d6a41391e1dd62f7127b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSK51U0Y.patch
+    manifestHash: sha256:591a5bbea3483bbd445df67ef492f0650a7de7dab0d5d6a41391e1dd62f7127b
+git:
+  branch: task/SCWBS-DRAFT-MSK51U0Y-issue-447-pin-corepack-version-for-ci-reproducibility
+  base: origin/main
+  baseCommit: 6f660f0b8d620f25a69d15ed4c52c1353d8a4435
+  changedFilesBasis: branch-diff
+  pullRequest: "463"
+  subjectHeadCommit: ec6272654117bd19cd9c3b010bd895a7286fea1a
+  diffHash: sha256:591a5bbea3483bbd445df67ef492f0650a7de7dab0d5d6a41391e1dd62f7127b
+  headCommit: ec6272654117bd19cd9c3b010bd895a7286fea1a
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml
+  - contracts/tasks/index.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c02be70ae7abcacf7815a77a11f5e394996d07a0e048a2ef2e0cf205bf102983
+    durationMilliseconds: 15974
+    executedAt: "2026-08-08T09:49:59.979Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c5fc4f0246ed42f10f76801c781d3d4d15f7ed95da0b9e96349bbd83936f8b48
+    durationMilliseconds: 9452
+    executedAt: "2026-08-08T09:50:09.436Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:14fc2d805a4419e80f6db05f124df54d2c50975b2c80644216fe0d2241c73a7a
+    durationMilliseconds: 4185
+    executedAt: "2026-08-08T09:50:13.626Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:82a085eded5bbc3665eacd3d36c7384c590c4c6c4da590dd66d428b8e897426d
+    durationMilliseconds: 9401
+    executedAt: "2026-08-08T09:50:23.033Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:c8c1689f60f612b46a1fcf4116b7dece1efa2a8d3124ce1f4e83e66eb671fa1a
+    durationMilliseconds: 264183
+    executedAt: "2026-08-08T09:54:47.221Z"

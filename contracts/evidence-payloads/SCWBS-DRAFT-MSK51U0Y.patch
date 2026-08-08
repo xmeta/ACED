@@ -1,0 +1,131 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 15a2c8c..f0760e4 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -41,7 +41,7 @@ jobs:
+           cache: npm
+       - name: Enable Corepack and report toolchain
+         run: |
+-          npm install --global corepack@latest
++          npm install --global corepack@0.35.0
+           corepack enable
+           node --version
+           corepack npm --version
+@@ -267,7 +267,7 @@ jobs:
+           cache: npm
+       - name: Enable Corepack and report toolchain
+         run: |
+-          npm install --global corepack@latest
++          npm install --global corepack@0.35.0
+           corepack enable
+           node --version
+           corepack npm --version
+@@ -295,7 +295,7 @@ jobs:
+           cache: npm
+       - name: Enable Corepack and report toolchain
+         run: |
+-          npm install --global corepack@latest
++          npm install --global corepack@0.35.0
+           corepack enable
+           node --version
+           corepack npm --version
+@@ -371,7 +371,7 @@ jobs:
+           cache: npm
+       - name: Enable Corepack and report toolchain
+         run: |
+-          npm install --global corepack@latest
++          npm install --global corepack@0.35.0
+           corepack enable
+           node --version
+           corepack npm --version
+@@ -396,7 +396,7 @@ jobs:
+           cache: npm
+       - name: Enable Corepack and report toolchain
+         run: |
+-          npm install --global corepack@latest
++          npm install --global corepack@0.35.0
+           corepack enable
+           node --version
+           corepack npm --version
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml b/contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml
+new file mode 100644
+index 0000000..fea4ac0
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MSK51U0Y
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSK51U0Y
++branchName: task/SCWBS-DRAFT-MSK51U0Y-issue-447-pin-corepack-version-for-ci-reproducibility
++allowedPaths:
++  - .github/workflows/scwbs.yml
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - dependency change required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #447: pin Corepack version for CI reproducibility'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++approvalPolicy:
++  mode: delegated
++  delegatedBy: xmeta
++  delegatedTo: ai-agent
++  scopes:
++    - human-gate
++    - post-finish
++  source: https://github.com/xmeta/ACED/issues/447
++  reason: "xmeta delegates bounded human-gate and post-finish approval for Issue #447"
++  expiresAt: "2026-12-31T00:00:00.000Z"
++  tokenSha256: sha256:e3d7c44606a58c4624550061137669f4dc7d1f00e941f50b5f09e0459275f9c5
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSK51U0Y.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSK51U0Y.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSK51U0Y.patch
++  - contracts/approvals/SCWBS-DRAFT-MSK51U0Y.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSK51U0Y.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T09:48:24.179Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index c46a6a1..13f4450 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1665,3 +1665,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-06T13:11:08.955Z"
++  - id: SCWBS-DRAFT-MSK51U0Y
++    path: contracts/tasks/SCWBS-DRAFT-MSK51U0Y.yaml
++    branchName: task/SCWBS-DRAFT-MSK51U0Y-issue-447-pin-corepack-version-for-ci-reproducib
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
