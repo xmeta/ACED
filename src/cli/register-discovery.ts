@@ -1,10 +1,36 @@
 import type { Command } from "commander";
 import { runDiscoveryConclude, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
+import { runDiscoveryRoute } from "../core/discovery.js";
 import { parseBool, type CommandContext } from "./command-context.js";
 
 export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
   const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
+  discovery
+    .command("route")
+    .description("Produce a read-only, versioned route proposal")
+    .argument("<goal...>", "routing goal")
+    .option("--parts <items>", "comma-separated decomposition slices")
+    .option("--paths <items>", "comma-separated candidate boundary paths")
+    .option("--issues <items>", "comma-separated Issue references such as #456:open")
+    .option("--dependencies <items>", "comma-separated slice dependency edges such as slice-2:slice-1")
+    .option("--json", "output versioned JSON")
+    .action((goalParts: string[], options) => {
+      const goal = goalParts.join(" ").trim();
+      if (!goal) {
+        console.error("Provide a routing goal");
+        setExitCode(2);
+        return;
+      }
+      const split = (value: string | undefined): string[] => value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      setExitCode(runDiscoveryRoute(root, goal, {
+        parts: split(options.parts),
+        candidatePaths: split(options.paths),
+        issueReferences: split(options.issues),
+        dependencies: split(options.dependencies),
+        json: options.json ?? false
+      }));
+    });
   discovery
     .command("new")
     .requiredOption("--probe <id>", "PROBE-prefixed id")

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/schemas/discovery-routing-v1.json",
+  "title": "SC-WBS Discovery Routing Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "status", "goal", "outcome", "confidence", "inventory", "selectionReasons", "blockingUnknowns", "brief", "roadmap", "review", "provenance", "nextAction"],
+  "properties": {
+    "version": { "const": "scwbs.discovery-routing.v1" },
+    "status": { "const": "proposal" },
+    "goal": { "type": "string" },
+    "outcome": { "enum": ["extend-existing", "direct-candidate", "single-spec", "multi-spec", "mixed", "unknown"] },
+    "confidence": { "enum": ["low", "medium", "high"] },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specs", "activeTasks", "wbsNodes", "issueReferences"],
+      "properties": {
+        "specs": { "type": "array", "items": { "$ref": "#/$defs/spec" } },
+        "activeTasks": { "type": "array", "items": { "$ref": "#/$defs/task" } },
+        "wbsNodes": { "type": "array", "items": { "$ref": "#/$defs/wbsNode" } },
+        "issueReferences": { "type": "array", "items": { "$ref": "#/$defs/issueReference" } }
+      }
+    },
+    "selectionReasons": { "type": "array", "items": { "type": "string" } },
+    "blockingUnknowns": { "type": "array", "items": { "type": "string" } },
+    "brief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["goal", "inScope", "outOfScope", "unknowns", "boundaryCandidates", "existingReferences", "recommendedOutcome"],
+      "properties": {
+        "goal": { "type": "string" },
+        "inScope": { "type": "array", "items": { "type": "string" } },
+        "outOfScope": { "type": "array", "items": { "type": "string" } },
+        "unknowns": { "type": "array", "items": { "type": "string" } },
+        "boundaryCandidates": { "type": "array", "items": { "type": "string" } },
+        "existingReferences": { "type": "array", "items": { "type": "string" } },
+        "recommendedOutcome": { "$ref": "#/properties/outcome" }
+      }
+    },
+    "roadmap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slices", "sharedAcceptance", "revalidationTriggers"],
+      "properties": {
+        "slices": { "type": "array", "items": { "$ref": "#/$defs/slice" } },
+        "sharedAcceptance": { "type": "array", "items": { "type": "string" } },
+        "revalidationTriggers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contradictions", "duplicateResponsibilities", "cyclicDependencies", "interfaceMismatches", "unownedAcceptanceCriteria"],
+      "properties": {
+        "contradictions": { "type": "array", "items": { "type": "string" } },
+        "duplicateResponsibilities": { "type": "array", "items": { "type": "string" } },
+        "cyclicDependencies": { "type": "array", "items": { "type": "string" } },
+        "interfaceMismatches": { "type": "array", "items": { "type": "string" } },
+        "unownedAcceptanceCriteria": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceHeadCommit", "inventoryHash", "inputHash", "sourcePaths"],
+      "properties": {
+        "sourceHeadCommit": { "type": ["string", "null"] },
+        "inventoryHash": { "type": "string", "pattern": "^sha256:" },
+        "inputHash": { "type": "string", "pattern": "^sha256:" },
+        "sourcePaths": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "nextAction": { "type": "string" }
+  },
+  "$defs": {
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "status", "sourcePaths"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "sourcePaths": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "wbsNodeId", "branchName", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "wbsNodeId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "wbsNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "issueReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "enum": ["open", "closed", "unknown"] }
+      }
+    },
+    "slice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "kind", "ownership", "interfaces", "dependencies", "sharedAcceptance", "revalidationTrigger"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "kind": { "enum": ["extend-existing", "direct-candidate", "single-spec"] },
+        "ownership": { "type": "string" },
+        "specId": { "type": "string" },
+        "interfaces": { "type": "array", "items": { "type": "string" } },
+        "dependencies": { "type": "array", "items": { "type": "string" } },
+        "sharedAcceptance": { "type": "array", "items": { "type": "string" } },
+        "revalidationTrigger": { "type": "string" }
+      }
+    }
+  }
+}

@@ -215,6 +215,53 @@ describe("misc", () => {
     expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
   });
 
+  test("discovery route returns a versioned extend-existing proposal without mutation", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const beforeTasks = readdirSync(path.join(root, "contracts/tasks")).sort();
+    const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
+    const output = captureOutput(() => main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root));
+    expect(output.result).toBe(0);
+    const report = JSON.parse(output.stdout) as Record<string, unknown>;
+    expect(report).toMatchObject({
+      version: "scwbs.discovery-routing.v1",
+      status: "proposal",
+      outcome: "extend-existing",
+      inventory: { issueReferences: [{ id: "#457", status: "closed" }] },
+      brief: { recommendedOutcome: "extend-existing" }
+    });
+    const validate = new Ajv2020({ strict: false }).compile(JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8")));
+    expect(validate(report)).toBe(true);
+    expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(beforeTasks);
+    expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
+  });
+
+  test("discovery route reports mixed decomposition and dependency cycles fail closed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const output = captureOutput(() => main([
+      "discovery", "route", "API", "and", "web",
+      "--parts", "API,web",
+      "--dependencies", "slice-1:slice-2,slice-2:slice-1",
+      "--json"
+    ], root));
+    expect(output.result).toBe(2);
+    const report = JSON.parse(output.stdout) as Record<string, unknown>;
+    expect(report).toMatchObject({ outcome: "unknown", review: { cyclicDependencies: ["slice-1"] } });
+    expect(report.blockingUnknowns).toEqual(expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")]));
+  });
+
+  test("direct candidates stay bounded and vague goals recommend a Probe", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const direct = captureOutput(() => main(["discovery", "route", "fix", "docs", "typo", "--json"], root));
+    expect(direct.result).toBe(0);
+    expect(JSON.parse(direct.stdout)).toMatchObject({ outcome: "direct-candidate", nextAction: expect.stringContaining("normal Task Contract") });
+    const unknown = captureOutput(() => main(["discovery", "route", "unclear", "--json"], root));
+    expect(unknown.result).toBe(2);
+    expect(JSON.parse(unknown.stdout)).toMatchObject({ outcome: "unknown", confidence: "low", nextAction: expect.stringContaining("Discovery Probe") });
+  });
+
   test("help flags do not run mutating commands", () => {
     const root = makeTempRepo();
 
