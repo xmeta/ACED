@@ -1,0 +1,64 @@
+id: EVD-SCWBS-DRAFT-MSKB4TGI
+type: evidence
+taskId: SCWBS-DRAFT-MSKB4TGI
+commit: e02d19275e769cf39a74044f3a7687a9a05d83e9
+subjectHeadCommit: e02d19275e769cf39a74044f3a7687a9a05d83e9
+diffHash: sha256:ec41d5c48b476cddd97d4e58f8bac0ca09a4f4481fef6d7fe835233deb46d827
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: e02d19275e769cf39a74044f3a7687a9a05d83e9
+    treeHash: 2d3ce10bcd3ce9e89a04e74cf7dcc48d6e2d245b
+    diffHash: sha256:ec41d5c48b476cddd97d4e58f8bac0ca09a4f4481fef6d7fe835233deb46d827
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSKB4TGI.patch
+    manifestHash: sha256:ec41d5c48b476cddd97d4e58f8bac0ca09a4f4481fef6d7fe835233deb46d827
+git:
+  branch: task/SCWBS-DRAFT-MSKB4TGI-issue-457-requirement-to-task-test-evidence-trac
+  base: origin/main
+  baseCommit: af01c69a2ed2f018608c6b21fd0dd98619592da3
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: e02d19275e769cf39a74044f3a7687a9a05d83e9
+  diffHash: sha256:ec41d5c48b476cddd97d4e58f8bac0ca09a4f4481fef6d7fe835233deb46d827
+  headCommit: e02d19275e769cf39a74044f3a7687a9a05d83e9
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/tasks/index.yaml
+  - src/cli/register-governance.ts
+  - src/core/contracts.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/validate-feature.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:6f1652b5a7c5139774510982af582371c144b89c5b6f32c2c012a9aff647776a
+    durationMilliseconds: 15937
+    executedAt: "2026-08-08T12:01:24.880Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:f04ae6f4d3f7f2076409888343bd0496e920840db942d4760825c07c63d474f3
+    durationMilliseconds: 9480
+    executedAt: "2026-08-08T12:01:34.364Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:007e1ffcf645a322fcc1cce6aba7893d19413e416424a3855b7b08062f107baf
+    durationMilliseconds: 3985
+    executedAt: "2026-08-08T12:01:38.354Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:37903dbc75ac12adee25251c961254d0c9697d166a199756d13c528ced29306e
+    durationMilliseconds: 265422
+    executedAt: "2026-08-08T12:06:03.779Z"
