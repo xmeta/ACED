@@ -43,15 +43,16 @@ index 0000000..b52d6fd
 +      shell: bash
 +      run: corepack npm ci --no-audit --no-fund
 diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
-index f0760e4..95b305c 100644
+index f0760e4..8719ae1 100644
 --- a/.github/workflows/scwbs.yml
 +++ b/.github/workflows/scwbs.yml
-@@ -22,31 +22,18 @@ jobs:
+@@ -22,31 +22,20 @@ jobs:
        task_id: ${{ steps.final.outputs.task_id }}
        subject: ${{ steps.final.outputs.subject }}
      steps:
 -      - name: Checkout exact head with full history
--        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 +      - name: Set up repository and Node.js toolchain
 +        uses: ./.github/actions/setup-toolchain
          with:
@@ -83,12 +84,13 @@ index f0760e4..95b305c 100644
        - name: Build structural CI plan
          id: candidate
          env:
-@@ -256,24 +243,12 @@ jobs:
+@@ -256,24 +245,14 @@ jobs:
        matrix:
          node-version: ["22.12.0"]
      steps:
 -      - name: Checkout repository
--        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 -        with:
 -          submodules: recursive
 -      - name: Set up minimum supported Node.js
@@ -111,12 +113,13 @@ index f0760e4..95b305c 100644
            npm run lint
            npm test
            npm run typecheck
-@@ -284,23 +259,10 @@ jobs:
+@@ -284,23 +263,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
 -      - name: Checkout repository
--        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 -        with:
 -          submodules: recursive
 -      - name: Set up Node.js
@@ -137,12 +140,13 @@ index f0760e4..95b305c 100644
        - name: Verify npm workspaces
          run: npm ls --workspaces --depth=0
        - name: Lint
-@@ -360,23 +322,10 @@ jobs:
+@@ -360,23 +328,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
 -      - name: Checkout repository
--        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 -        with:
 -          submodules: recursive
 -      - name: Set up Node.js
@@ -163,12 +167,13 @@ index f0760e4..95b305c 100644
        - name: Integration tests
          run: npm run test:integration
  
-@@ -385,23 +334,10 @@ jobs:
+@@ -385,23 +342,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
 -      - name: Checkout repository
--        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 -        with:
 -          submodules: recursive
 -      - name: Set up Node.js
