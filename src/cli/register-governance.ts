@@ -6,6 +6,8 @@ import {
   readTask,
   runArtifactWorkflowInstructions,
   runArtifactWorkflowStatus,
+  runPlanningStoreList,
+  runPlanningStoreShow,
   runValidateFeature
 } from "../core/contracts.js";
 import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
@@ -129,6 +131,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .action((artifactId, options) =>
       setExitCode(runArtifactWorkflowInstructions(root, options.workflow, artifactId, { json: options.json ?? false }))
     );
+
+  const store = program.command("store").description("Inspect read-only cross-repository planning stores");
+  store
+    .command("list")
+    .description("List registered planning stores without mutating them")
+    .option("--registry <path>", "planning-store registry path", "planning-store.yaml")
+    .option("--json", "print a versioned JSON report")
+    .action((options) => {
+      setExitCode(runPlanningStoreList(root, options.registry, { json: options.json ?? false }));
+    });
+  store
+    .command("show")
+    .description("Show pinned shared Specs and trust provenance for a planning store")
+    .requiredOption("--store <id>", "planning store id")
+    .option("--registry <path>", "planning-store registry path", "planning-store.yaml")
+    .option("--json", "print a versioned JSON report")
+    .action((options) => {
+      setExitCode(runPlanningStoreShow(root, options.registry, options.store, { json: options.json ?? false }));
+    });
 
   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
   specChange

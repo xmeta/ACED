@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -11,13 +12,26 @@ import { runFinish } from "../../src/commands/finish.js";
 import { runTaskLock } from "../../src/commands/task-lock.js";
 import { runFix } from "../../src/commands/fix.js";
 import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
-import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
+import {
+  buildRegistryRebuildSummary,
+  buildRegistryYaml,
+  runRegistryRebuild
+} from "../../src/commands/registry-rebuild.js";
 import { runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
-import { readBlock, readSpecChange } from "../../src/core/contracts.js";
+import { readBlock, readSpecChange, runPlanningStoreShow } from "../../src/core/contracts.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
 import { resolveCheckCommand, isKnownCheck } from "../../src/core/check-catalog.js";
 import { main } from "../../src/cli.js";
-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import {
+  makeTempRepo,
+  sampleTask,
+  sampleWbs,
+  sampleEvidence,
+  writeScwbsProject,
+  writeJson,
+  writeText,
+  writeYaml
+} from "../helpers.js";
 
 function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
   const stdout: string[] = [];
@@ -49,24 +63,26 @@ describe("misc", () => {
 
     const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true }));
     expect(output.result).toBe(0);
-    expect(output.stdout).toBe([
-      "PASS registry rebuilt",
-      "added: 1",
-      "updated: 0",
-      "removed: 0",
-      "path: contracts/registry.yaml"
-    ].join("\n"));
+    expect(output.stdout).toBe(
+      ["PASS registry rebuilt", "added: 1", "updated: 0", "removed: 0", "path: contracts/registry.yaml"].join("\n")
+    );
     expect(output.stdout).not.toContain("contracts:");
 
     const identitySummary = buildRegistryRebuildSummary(
-      stringifySimpleYaml({ projectId: "test", contracts: [
-        { id: "TASK-A", type: "task", path: "contracts/tasks/old.yaml" },
-        { id: "TASK-B", type: "task", path: "contracts/tasks/shared.yaml" }
-      ] }),
-      stringifySimpleYaml({ projectId: "test", contracts: [
-        { id: "TASK-A", type: "task", path: "contracts/tasks/new.yaml" },
-        { id: "TASK-C", type: "task", path: "contracts/tasks/shared.yaml" }
-      ] }),
+      stringifySimpleYaml({
+        projectId: "test",
+        contracts: [
+          { id: "TASK-A", type: "task", path: "contracts/tasks/old.yaml" },
+          { id: "TASK-B", type: "task", path: "contracts/tasks/shared.yaml" }
+        ]
+      }),
+      stringifySimpleYaml({
+        projectId: "test",
+        contracts: [
+          { id: "TASK-A", type: "task", path: "contracts/tasks/new.yaml" },
+          { id: "TASK-C", type: "task", path: "contracts/tasks/shared.yaml" }
+        ]
+      }),
       "rebuilt"
     );
     expect(identitySummary).toMatchObject({ added: 1, updated: 1, removed: 1 });
@@ -89,7 +105,9 @@ describe("misc", () => {
       removed: 0,
       path: "contracts/registry.yaml"
     });
-    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/registry-rebuild-summary.schema.json"), "utf8"));
+    const schema = JSON.parse(
+      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/registry-rebuild-summary.schema.json"), "utf8")
+    );
     expect(new Ajv2020({ strict: false }).compile(schema)(jsonSummary)).toBe(true);
 
     const verbose = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, verbose: true }));
@@ -108,7 +126,9 @@ describe("misc", () => {
     expect(help.stdout).toContain("--verbose");
     expect(help.stdout).toContain("--output <target>");
 
-    const conflict = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, quiet: true, json: true }));
+    const conflict = captureOutput(() =>
+      runRegistryRebuild(root, { check: false, force: true, quiet: true, json: true })
+    );
     expect(conflict).toMatchObject({ result: 2, stderr: "Choose one of --quiet, --json, --verbose, or --output -" });
   });
 
@@ -182,9 +202,11 @@ describe("misc", () => {
   });
 
   test("yaml parser preserves quoted strings with colons", () => {
-    const parsed = parseSimpleYaml(stringifySimpleYaml({
-      doneCriteria: ["Plan and implement: Replace YAML parser"]
-    }));
+    const parsed = parseSimpleYaml(
+      stringifySimpleYaml({
+        doneCriteria: ["Plan and implement: Replace YAML parser"]
+      })
+    );
 
     expect(parsed.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
   });
@@ -207,7 +229,9 @@ describe("misc", () => {
     writeScwbsProject(root);
     expect(main(["project", "bootstrap", "Replace YAML parser"], root)).toBe(0);
 
-    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-bootstrap-"));
+    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) =>
+      file.startsWith("PROBE-bootstrap-")
+    );
     expect(probeFileName).toBeTruthy();
     const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFileName!), "utf8"));
     expect(probe).toMatchObject({ type: "discovery-probe", status: "proposed" });
@@ -220,7 +244,9 @@ describe("misc", () => {
     writeScwbsProject(root);
     const beforeTasks = readdirSync(path.join(root, "contracts/tasks")).sort();
     const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
-    const output = captureOutput(() => main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root));
+    const output = captureOutput(() =>
+      main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root)
+    );
     expect(output.result).toBe(0);
     const report = JSON.parse(output.stdout) as Record<string, unknown>;
     expect(report).toMatchObject({
@@ -230,7 +256,9 @@ describe("misc", () => {
       inventory: { issueReferences: [{ id: "#457", status: "closed" }] },
       brief: { recommendedOutcome: "extend-existing" }
     });
-    const validate = new Ajv2020({ strict: false }).compile(JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8")));
+    const validate = new Ajv2020({ strict: false }).compile(
+      JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8"))
+    );
     expect(validate(report)).toBe(true);
     expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(beforeTasks);
     expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
@@ -239,16 +267,29 @@ describe("misc", () => {
   test("discovery route reports mixed decomposition and dependency cycles fail closed", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    const output = captureOutput(() => main([
-      "discovery", "route", "API", "and", "web",
-      "--parts", "API,web",
-      "--dependencies", "slice-1:slice-2,slice-2:slice-1",
-      "--json"
-    ], root));
+    const output = captureOutput(() =>
+      main(
+        [
+          "discovery",
+          "route",
+          "API",
+          "and",
+          "web",
+          "--parts",
+          "API,web",
+          "--dependencies",
+          "slice-1:slice-2,slice-2:slice-1",
+          "--json"
+        ],
+        root
+      )
+    );
     expect(output.result).toBe(2);
     const report = JSON.parse(output.stdout) as Record<string, unknown>;
     expect(report).toMatchObject({ outcome: "unknown", review: { cyclicDependencies: ["slice-1"] } });
-    expect(report.blockingUnknowns).toEqual(expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")]));
+    expect(report.blockingUnknowns).toEqual(
+      expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")])
+    );
   });
 
   test("direct candidates stay bounded and vague goals recommend a Probe", () => {
@@ -256,10 +297,17 @@ describe("misc", () => {
     writeScwbsProject(root);
     const direct = captureOutput(() => main(["discovery", "route", "fix", "docs", "typo", "--json"], root));
     expect(direct.result).toBe(0);
-    expect(JSON.parse(direct.stdout)).toMatchObject({ outcome: "direct-candidate", nextAction: expect.stringContaining("normal Task Contract") });
+    expect(JSON.parse(direct.stdout)).toMatchObject({
+      outcome: "direct-candidate",
+      nextAction: expect.stringContaining("normal Task Contract")
+    });
     const unknown = captureOutput(() => main(["discovery", "route", "unclear", "--json"], root));
     expect(unknown.result).toBe(2);
-    expect(JSON.parse(unknown.stdout)).toMatchObject({ outcome: "unknown", confidence: "low", nextAction: expect.stringContaining("Discovery Probe") });
+    expect(JSON.parse(unknown.stdout)).toMatchObject({
+      outcome: "unknown",
+      confidence: "low",
+      nextAction: expect.stringContaining("Discovery Probe")
+    });
   });
 
   test("help flags do not run mutating commands", () => {
@@ -317,7 +365,9 @@ describe("misc", () => {
 
     expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
     const createdAt = readBlock(root, "WBS-001-004").block?.createdAt;
-    expect(runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })).toBe(0);
+    expect(
+      runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })
+    ).toBe(0);
     const resolved = readBlock(root, "WBS-001-004").block;
     expect(resolved).toMatchObject({
       status: "resolved",
@@ -405,15 +455,19 @@ describe("misc", () => {
     writeScwbsProject(root);
     writeJson(root, "package.json", {
       scripts: {
-        test: "node -e \"process.exit(9)\""
+        test: 'node -e "process.exit(9)"'
       }
     });
-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
-      branchName: "master",
-      allowedPaths: ["src/**", "contracts/**"],
-      humanGateRequiredPaths: [],
-      requiredChecks: ["test"]
-    }) as unknown as Record<string, unknown>);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        branchName: "master",
+        allowedPaths: ["src/**", "contracts/**"],
+        humanGateRequiredPaths: [],
+        requiredChecks: ["test"]
+      }) as unknown as Record<string, unknown>
+    );
     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
@@ -434,12 +488,16 @@ describe("misc", () => {
   test("doctor reports suggested fixes for stale contracts", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
-      contractLock: {
-        wbsRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-        wbsNodeId: "node-api"
-      }
-    }) as unknown as Record<string, unknown>);
+    writeYaml(
+      root,
+      "contracts/tasks/WBS-001-004.yaml",
+      sampleTask({
+        contractLock: {
+          wbsRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          wbsNodeId: "node-api"
+        }
+      }) as unknown as Record<string, unknown>
+    );
     const report = buildDoctorReport(root);
     expect(report).toContain("task.contractLock.wbsRevision");
     expect(report).toContain("scwbs task refresh --task <task-id>");
@@ -477,10 +535,12 @@ describe("misc", () => {
     writeScwbsProject(root);
     writeJson(root, "package.json", { engines: { node: ">=22.12.0" } });
 
-    const supported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.12.0", npmVersion: "10.9.0" })
-      .find((diagnostic) => diagnostic.id === "node");
-    const unsupported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.11.0", npmVersion: "10.9.0" })
-      .find((diagnostic) => diagnostic.id === "node");
+    const supported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.12.0", npmVersion: "10.9.0" }).find(
+      (diagnostic) => diagnostic.id === "node"
+    );
+    const unsupported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.11.0", npmVersion: "10.9.0" }).find(
+      (diagnostic) => diagnostic.id === "node"
+    );
 
     expect(supported).toMatchObject({ status: "pass", label: "Node.js >=22.12.0 (package.json engines.node)" });
     expect(unsupported).toMatchObject({ status: "fail" });
@@ -540,10 +600,9 @@ describe("misc", () => {
       expect(applyRoot).toBe(root);
       expect(options).toEqual({ force: true, output: "contracts/wbs/project.wbs.json" });
       const changeSet = JSON.parse(readFileSync(path.join(root, changeSetPath), "utf8"));
-      const operationSchema = JSON.parse(readFileSync(
-        path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"),
-        "utf8"
-      ));
+      const operationSchema = JSON.parse(
+        readFileSync(path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"), "utf8")
+      );
       const ajv = new Ajv2020({ strict: false });
       expect(ajv.compile(operationSchema)(changeSet)).toBe(true);
       const operation = changeSet.operations[0];
@@ -555,20 +614,19 @@ describe("misc", () => {
       return 0;
     };
 
-    expect(runProfileSet(root, "lean", {
-      now: "2026-07-27T01:00:00.000Z",
-      apply
-    })).toBe(0);
+    expect(
+      runProfileSet(root, "lean", {
+        now: "2026-07-27T01:00:00.000Z",
+        apply
+      })
+    ).toBe(0);
     expect(appliedPath).toBe("contracts/changesets/profile-set-lean-20260727010000000.json");
     expect(readProfile(root)).toBe("Lean");
     expect(JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).extensions).toEqual({
       vendor: { retained: true },
       scwbs: { profile: "Lean", retained: true }
     });
-    expect(collectWbsChangesetGateIssues([
-      "contracts/wbs/project.wbs.json",
-      appliedPath
-    ])).toEqual([]);
+    expect(collectWbsChangesetGateIssues(["contracts/wbs/project.wbs.json", appliedPath])).toEqual([]);
   });
 
   test("profile set does not directly edit WBS when changeset apply fails", () => {
@@ -578,15 +636,14 @@ describe("misc", () => {
     writeJson(root, "contracts/wbs/project.wbs.json", wbs);
     const before = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
 
-    expect(runProfileSet(root, "strict", {
-      now: "2026-07-27T01:00:00.000Z",
-      apply: () => 1
-    })).toBe(1);
+    expect(
+      runProfileSet(root, "strict", {
+        now: "2026-07-27T01:00:00.000Z",
+        apply: () => 1
+      })
+    ).toBe(1);
     expect(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).toBe(before);
-    expect(existsSync(path.join(
-      root,
-      "contracts/changesets/profile-set-strict-20260727010000000.json"
-    ))).toBe(true);
+    expect(existsSync(path.join(root, "contracts/changesets/profile-set-strict-20260727010000000.json"))).toBe(true);
   });
 
   test("status summarizes WBS node status", () => {
@@ -628,9 +685,7 @@ describe("misc", () => {
       schemaVersion: "0.1.0",
       targetWbsId: "test-wbs",
       changeSetId: "changeset-block",
-      operations: [
-        { operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }
-      ]
+      operations: [{ operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }]
     });
     writeJson(root, "empty-change-set.json", {
       schemaVersion: "0.1.0",
@@ -654,7 +709,11 @@ describe("misc", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
-    writeText(root, "contracts/tasks/index.yaml", "tasks:\n  - id: SCWBS-DRAFT-ABC\n    path: contracts/tasks/SCWBS-DRAFT-ABC.yaml\n    branchName: task/SCWBS-DRAFT-ABC-example\n    wbsNodeId: node-governance-maintenance\n");
+    writeText(
+      root,
+      "contracts/tasks/index.yaml",
+      "tasks:\n  - id: SCWBS-DRAFT-ABC\n    path: contracts/tasks/SCWBS-DRAFT-ABC.yaml\n    branchName: task/SCWBS-DRAFT-ABC-example\n    wbsNodeId: node-governance-maintenance\n"
+    );
     expect(runCheck(root)).toBe(0);
   });
 
@@ -670,9 +729,172 @@ describe("misc", () => {
   test("scwbs fix regenerates registry.yaml and nothing else (M2-023)", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
-    writeYaml(root, "contracts/registry.yaml", { projectId: "stale", contracts: [] } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/registry.yaml", { projectId: "stale", contracts: [] } as unknown as Record<
+      string,
+      unknown
+    >);
     expect(runFix(root)).toBe(0);
     const registry = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
     expect(registry).not.toContain("projectId: stale");
+  });
+
+  test("planning store list/show is read-only and fail-closed on stale, dirty, escape, and cycle state", () => {
+    const root = makeTempRepo();
+    const storeRepo = makeTempRepo();
+    const specPath = "contracts/specs/SPEC-SHARED.yaml";
+    const specContent = "id: SPEC-SHARED\nversion: 1.0.0\n";
+    writeText(storeRepo, specPath, specContent);
+    execFileSync("git", ["add", "."], { cwd: storeRepo });
+    execFileSync("git", ["commit", "-m", "shared spec"], { cwd: storeRepo, stdio: "ignore" });
+    const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: storeRepo, encoding: "utf8" }).trim();
+    const contentHash = `sha256:${createHash("sha256").update(specContent).digest("hex")}`;
+    const registry = {
+      version: "1.0.0",
+      stores: [
+        {
+          id: "planning-main",
+          root: storeRepo,
+          repositories: [{ id: "repo-a", root: "." }],
+          worksets: [
+            {
+              id: "workset-a",
+              repositories: ["repo-a"],
+              sharedSpecs: [{ repositoryId: "repo-a", path: specPath, commit, contentHash, dependsOn: [] }]
+            }
+          ]
+        }
+      ]
+    };
+    writeYaml(root, "planning-store.yaml", registry);
+
+    const listed = captureOutput(() => main(["store", "list", "--registry", "planning-store.yaml", "--json"], root));
+    expect(listed.result).toBe(0);
+    expect(JSON.parse(listed.stdout)).toMatchObject({
+      version: "scwbs.planning-store-list.v1",
+      stores: [{ id: "planning-main", root: storeRepo, repositoryIds: ["repo-a"], worksetIds: ["workset-a"] }],
+      authority: "read-only-advisory"
+    });
+
+    const ready = captureOutput(() =>
+      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
+    );
+    expect(ready.result).toBe(0);
+    const readyReport = JSON.parse(ready.stdout);
+    expect(readyReport).toMatchObject({
+      version: "scwbs.planning-store-show.v1",
+      status: "ready",
+      repositories: [{ id: "repo-a", trust: "trusted", headCommit: commit }],
+      sharedSpecs: [
+        {
+          repositoryId: "repo-a",
+          path: specPath,
+          status: "ready",
+          pinnedCommit: commit,
+          expectedContentHash: contentHash
+        }
+      ],
+      authority: expect.stringContaining("repository Task Contract")
+    });
+    expect(readyReport.provenance).toMatchObject({
+      storeId: "planning-main",
+      referencedCommits: [commit],
+      contentHashes: [contentHash]
+    });
+
+    writeText(storeRepo, specPath, `${specContent}dirty: true\n`);
+    const dirty = captureOutput(() =>
+      runPlanningStoreShow(root, "planning-store.yaml", "planning-main", { json: true })
+    );
+    expect(dirty.result).toBe(1);
+    expect(JSON.parse(dirty.stdout).status).toBe("blocked");
+    execFileSync("git", ["restore", "--", specPath], { cwd: storeRepo });
+
+    writeYaml(root, "planning-store.yaml", {
+      ...registry,
+      stores: [
+        {
+          ...registry.stores[0],
+          worksets: [
+            {
+              ...registry.stores[0].worksets[0],
+              sharedSpecs: [
+                { ...registry.stores[0].worksets[0].sharedSpecs[0], contentHash: "sha256:" + "0".repeat(64) }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const stale = captureOutput(() =>
+      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
+    );
+    expect(stale.result).toBe(1);
+    expect(JSON.parse(stale.stdout)).toMatchObject({ status: "stale", sharedSpecs: [{ status: "stale" }] });
+
+    writeYaml(root, "planning-store.yaml", {
+      ...registry,
+      stores: [
+        {
+          ...registry.stores[0],
+          worksets: [
+            {
+              ...registry.stores[0].worksets[0],
+              sharedSpecs: [{ ...registry.stores[0].worksets[0].sharedSpecs[0], path: "../outside.yaml" }]
+            }
+          ]
+        }
+      ]
+    });
+    const escaped = captureOutput(() =>
+      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
+    );
+    expect(escaped.result).toBe(1);
+    expect(escaped.stderr).toContain("planningStore.pathEscape");
+
+    writeText(storeRepo, "contracts/specs/SPEC-SECOND.yaml", "id: SPEC-SECOND\nversion: 1.0.0\n");
+    execFileSync("git", ["add", "."], { cwd: storeRepo });
+    execFileSync("git", ["commit", "-m", "second shared spec"], { cwd: storeRepo, stdio: "ignore" });
+    const cycleCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: storeRepo, encoding: "utf8" }).trim();
+    const secondContent = "id: SPEC-SECOND\nversion: 1.0.0\n";
+    const secondHash = `sha256:${createHash("sha256").update(secondContent).digest("hex")}`;
+    writeYaml(root, "planning-store.yaml", {
+      ...registry,
+      stores: [
+        {
+          ...registry.stores[0],
+          worksets: [
+            {
+              ...registry.stores[0].worksets[0],
+              sharedSpecs: [
+                {
+                  ...registry.stores[0].worksets[0].sharedSpecs[0],
+                  dependsOn: ["repo-a:contracts/specs/SPEC-SECOND.yaml"]
+                },
+                {
+                  repositoryId: "repo-a",
+                  path: "contracts/specs/SPEC-SECOND.yaml",
+                  commit: cycleCommit,
+                  contentHash: secondHash,
+                  dependsOn: ["repo-a:contracts/specs/SPEC-SHARED.yaml"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const cycle = captureOutput(() =>
+      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
+    );
+    expect(cycle.result).toBe(1);
+    expect(JSON.parse(cycle.stdout)).toMatchObject({
+      status: "blocked",
+      review: { cycles: expect.arrayContaining(["repo-a:contracts/specs/SPEC-SHARED.yaml"]) }
+    });
+
+    writeYaml(root, "planning-store.yaml", { ...registry, stores: [{ ...registry.stores[0], authority: "expand" }] });
+    const authority = captureOutput(() => main(["store", "list", "--registry", "planning-store.yaml", "--json"], root));
+    expect(authority.result).toBe(1);
+    expect(authority.stderr).toContain("planningStore.unknownField");
   });
 });

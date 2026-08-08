@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { readYamlFile } from "./yaml.js";
 import { commitExists, isCommitAncestor, trackedTextFiles } from "./git.js";
 import { matchesGlob } from "./glob.js";
@@ -884,4 +887,429 @@ export function runArtifactWorkflowInstructions(
   if (options.json) process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\n`);
   else process.stdout.write(`${artifact.id}\n${artifact.instruction ?? "No instruction declared."}\n`);
   return 0;
+}
+
+type PlanningStoreSharedSpec = {
+  repositoryId: string;
+  path: string;
+  commit: string;
+  contentHash: string;
+  dependsOn: string[];
+};
+
+type PlanningStoreRepository = { id: string; root: string };
+type PlanningStoreWorkset = { id: string; repositories: string[]; sharedSpecs: PlanningStoreSharedSpec[] };
+type PlanningStore = {
+  id: string;
+  root: string;
+  repositories: PlanningStoreRepository[];
+  worksets: PlanningStoreWorkset[];
+};
+type PlanningStoreRegistry = { version: "1.0.0"; stores: PlanningStore[] };
+
+const planningStoreRootKeys = new Set(["version", "stores"]);
+const planningStoreKeys = new Set(["id", "root", "repositories", "worksets"]);
+const planningStoreRepositoryKeys = new Set(["id", "root"]);
+const planningStoreWorksetKeys = new Set(["id", "repositories", "sharedSpecs"]);
+const planningStoreSharedSpecKeys = new Set(["repositoryId", "path", "commit", "contentHash", "dependsOn"]);
+
+export type PlanningStoreListReport = {
+  version: "scwbs.planning-store-list.v1";
+  registryPath: string;
+  stores: Array<{ id: string; root: string; repositoryIds: string[]; worksetIds: string[] }>;
+  authority: "read-only-advisory";
+};
+
+export type PlanningStoreShowReport = {
+  version: "scwbs.planning-store-show.v1";
+  status: "ready" | "stale" | "blocked";
+  store: { id: string; root: string; registryPath: string };
+  repositories: Array<{
+    id: string;
+    root: string;
+    trust: "trusted" | "dirty" | "missing" | "untrusted";
+    headCommit: string | null;
+    taskIndex: "available" | "missing";
+    evidence: "available" | "missing";
+    ci: "repository-local-only";
+  }>;
+  worksets: Array<{
+    id: string;
+    repositories: string[];
+    status: "ready" | "blocked" | "stale";
+    taskEvidenceCi: string;
+  }>;
+  sharedSpecs: Array<{
+    repositoryId: string;
+    path: string;
+    pinnedCommit: string;
+    expectedContentHash: string;
+    currentHeadCommit: string | null;
+    currentContentHash: string | null;
+    status: "ready" | "stale" | "blocked";
+  }>;
+  review: { cycles: string[]; pathEscapes: string[]; authorityDowngrades: string[] };
+  provenance: { storeId: string; storeRoot: string; referencedCommits: string[]; contentHashes: string[] };
+  authority: "read-only-advisory; repository Task Contract, Evidence, Approval, Human Gate, and required checks remain authoritative";
+  nextAction: string;
+};
+
+function planningStoreError(code: string, message: string): Issue {
+  return { severity: "error", code, message };
+}
+
+function unknownKeys(value: Record<string, unknown>, allowed: Set<string>, label: string): Issue[] {
+  return Object.keys(value)
+    .filter((key) => !allowed.has(key))
+    .map((key) => planningStoreError("planningStore.unknownField", `${label}.${key} is not supported`));
+}
+
+function safeStoreRelativePath(value: string): boolean {
+  const normalized = value.replace(/\\/g, "/");
+  return (
+    normalized.length > 0 &&
+    !normalized.startsWith("/") &&
+    !normalized.split("/").includes("..") &&
+    !normalized.includes("\0")
+  );
+}
+
+function planningStoreValue(root: string, relativePath: string): unknown {
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) throw new Error(`${relativePath} does not exist`);
+  return readYamlFile<unknown>(fullPath);
+}
+
+export function readPlanningStoreRegistry(
+  root: string,
+  relativePath: string
+): { registry?: PlanningStoreRegistry; issues: Issue[] } {
+  let value: unknown;
+  try {
+    value = planningStoreValue(root, relativePath);
+  } catch (error) {
+    return {
+      issues: [planningStoreError("planningStore.read", error instanceof Error ? error.message : String(error))]
+    };
+  }
+  const issues: Issue[] = [];
+  if (!isObjectRecord(value))
+    return { issues: [planningStoreError("planningStore.object", `${relativePath} must contain an object`)] };
+  issues.push(...unknownKeys(value, planningStoreRootKeys, relativePath));
+  if (value.version !== "1.0.0")
+    issues.push(planningStoreError("planningStore.version", `${relativePath}.version must be 1.0.0`));
+  if (!Array.isArray(value.stores) || value.stores.length === 0)
+    issues.push(planningStoreError("planningStore.stores", `${relativePath}.stores must be a non-empty array`));
+  const stores: PlanningStore[] = [];
+  const storeIds = new Set<string>();
+  if (Array.isArray(value.stores))
+    value.stores.forEach((rawStore, storeIndex) => {
+      const storeLabel = `${relativePath}.stores[${storeIndex}]`;
+      if (!isObjectRecord(rawStore)) {
+        issues.push(planningStoreError("planningStore.store", `${storeLabel} must be an object`));
+        return;
+      }
+      issues.push(...unknownKeys(rawStore, planningStoreKeys, storeLabel));
+      const id = typeof rawStore.id === "string" ? rawStore.id : "";
+      const storeRoot = typeof rawStore.root === "string" ? rawStore.root : "";
+      if (!id) issues.push(planningStoreError("planningStore.id", `${storeLabel}.id must be a non-empty string`));
+      if (storeIds.has(id)) issues.push(planningStoreError("planningStore.duplicateId", `Duplicate store id ${id}`));
+      storeIds.add(id);
+      if (!storeRoot)
+        issues.push(planningStoreError("planningStore.root", `${storeLabel}.root must be a non-empty string`));
+      const repositories: PlanningStoreRepository[] = [];
+      const repositoryIds = new Set<string>();
+      if (!Array.isArray(rawStore.repositories) || rawStore.repositories.length === 0)
+        issues.push(
+          planningStoreError("planningStore.repositories", `${storeLabel}.repositories must be a non-empty array`)
+        );
+      if (Array.isArray(rawStore.repositories))
+        rawStore.repositories.forEach((rawRepository, repositoryIndex) => {
+          const label = `${storeLabel}.repositories[${repositoryIndex}]`;
+          if (!isObjectRecord(rawRepository)) {
+            issues.push(planningStoreError("planningStore.repository", `${label} must be an object`));
+            return;
+          }
+          issues.push(...unknownKeys(rawRepository, planningStoreRepositoryKeys, label));
+          const repositoryId = typeof rawRepository.id === "string" ? rawRepository.id : "";
+          const repositoryRoot = typeof rawRepository.root === "string" ? rawRepository.root : "";
+          if (!repositoryId || repositoryIds.has(repositoryId))
+            issues.push(planningStoreError("planningStore.repositoryId", `${label}.id must be unique and non-empty`));
+          if (!repositoryRoot)
+            issues.push(planningStoreError("planningStore.repositoryRoot", `${label}.root must be non-empty`));
+          repositoryIds.add(repositoryId);
+          if (repositoryId && repositoryRoot) repositories.push({ id: repositoryId, root: repositoryRoot });
+        });
+      const worksets: PlanningStoreWorkset[] = [];
+      const worksetIds = new Set<string>();
+      if (!Array.isArray(rawStore.worksets))
+        issues.push(planningStoreError("planningStore.worksets", `${storeLabel}.worksets must be an array`));
+      if (Array.isArray(rawStore.worksets))
+        rawStore.worksets.forEach((rawWorkset, worksetIndex) => {
+          const label = `${storeLabel}.worksets[${worksetIndex}]`;
+          if (!isObjectRecord(rawWorkset)) {
+            issues.push(planningStoreError("planningStore.workset", `${label} must be an object`));
+            return;
+          }
+          issues.push(...unknownKeys(rawWorkset, planningStoreWorksetKeys, label));
+          const worksetId = typeof rawWorkset.id === "string" ? rawWorkset.id : "";
+          const worksetRepositories =
+            Array.isArray(rawWorkset.repositories) && rawWorkset.repositories.every((item) => typeof item === "string")
+              ? (rawWorkset.repositories as string[])
+              : [];
+          if (!worksetId || worksetIds.has(worksetId))
+            issues.push(planningStoreError("planningStore.worksetId", `${label}.id must be unique and non-empty`));
+          if (
+            !Array.isArray(rawWorkset.repositories) ||
+            !rawWorkset.repositories.every((item) => typeof item === "string")
+          )
+            issues.push(
+              planningStoreError("planningStore.worksetRepositories", `${label}.repositories must be a string array`)
+            );
+          worksetRepositories
+            .filter((repositoryId) => !repositoryIds.has(repositoryId))
+            .forEach((repositoryId) =>
+              issues.push(
+                planningStoreError(
+                  "planningStore.missingRepository",
+                  `${label} references missing repository ${repositoryId}`
+                )
+              )
+            );
+          const sharedSpecs: PlanningStoreSharedSpec[] = [];
+          if (!Array.isArray(rawWorkset.sharedSpecs))
+            issues.push(planningStoreError("planningStore.sharedSpecs", `${label}.sharedSpecs must be an array`));
+          if (Array.isArray(rawWorkset.sharedSpecs))
+            rawWorkset.sharedSpecs.forEach((rawSpec, specIndex) => {
+              const specLabel = `${label}.sharedSpecs[${specIndex}]`;
+              if (!isObjectRecord(rawSpec)) {
+                issues.push(planningStoreError("planningStore.sharedSpec", `${specLabel} must be an object`));
+                return;
+              }
+              issues.push(...unknownKeys(rawSpec, planningStoreSharedSpecKeys, specLabel));
+              const repositoryId = typeof rawSpec.repositoryId === "string" ? rawSpec.repositoryId : "";
+              const specPath = typeof rawSpec.path === "string" ? rawSpec.path : "";
+              const commit = typeof rawSpec.commit === "string" ? rawSpec.commit : "";
+              const contentHash = typeof rawSpec.contentHash === "string" ? rawSpec.contentHash : "";
+              const dependsOn =
+                Array.isArray(rawSpec.dependsOn) && rawSpec.dependsOn.every((item) => typeof item === "string")
+                  ? (rawSpec.dependsOn as string[])
+                  : [];
+              if (!repositoryIds.has(repositoryId))
+                issues.push(
+                  planningStoreError(
+                    "planningStore.sharedSpecRepository",
+                    `${specLabel}.repositoryId is not registered`
+                  )
+                );
+              if (!safeStoreRelativePath(specPath))
+                issues.push(
+                  planningStoreError(
+                    "planningStore.pathEscape",
+                    `${specLabel}.path must remain inside its repository root`
+                  )
+                );
+              if (!commit || !contentHash.startsWith("sha256:"))
+                issues.push(
+                  planningStoreError("planningStore.pin", `${specLabel} must pin commit and sha256 contentHash`)
+                );
+              if (Array.isArray(rawSpec.dependsOn) && !rawSpec.dependsOn.every((item) => typeof item === "string"))
+                issues.push(
+                  planningStoreError("planningStore.dependsOn", `${specLabel}.dependsOn must be a string array`)
+                );
+              if (repositoryId && specPath && commit && contentHash)
+                sharedSpecs.push({ repositoryId, path: specPath, commit, contentHash, dependsOn });
+            });
+          worksetIds.add(worksetId);
+          if (worksetId) worksets.push({ id: worksetId, repositories: worksetRepositories, sharedSpecs });
+        });
+      if (id && storeRoot) stores.push({ id, root: storeRoot, repositories, worksets });
+    });
+  return issues.length > 0 ? { issues } : { registry: { version: "1.0.0", stores }, issues: [] };
+}
+
+function storeGit(root: string): { trust: "trusted" | "dirty" | "missing" | "untrusted"; headCommit: string | null } {
+  if (!existsSync(root)) return { trust: "missing", headCommit: null };
+  const head = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" });
+  if (head.status !== 0) return { trust: "untrusted", headCommit: null };
+  const dirty = spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" });
+  return {
+    trust: dirty.status !== 0 ? "untrusted" : dirty.stdout.trim().length > 0 ? "dirty" : "trusted",
+    headCommit: head.stdout.trim() || null
+  };
+}
+
+function sha256(bytes: string | Buffer): string {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function planningStoreCycleKeys(workset: PlanningStoreWorkset): string[] {
+  const keys = workset.sharedSpecs.map((spec) => `${spec.repositoryId}:${spec.path}`);
+  const graph = new Map(keys.map((key) => [key, [] as string[]]));
+  workset.sharedSpecs.forEach((spec) => graph.set(`${spec.repositoryId}:${spec.path}`, spec.dependsOn));
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const cycles = new Set<string>();
+  const visit = (key: string): void => {
+    if (visiting.has(key)) {
+      cycles.add(key);
+      return;
+    }
+    if (visited.has(key)) return;
+    visiting.add(key);
+    graph
+      .get(key)
+      ?.filter((dependency) => graph.has(dependency))
+      .forEach(visit);
+    visiting.delete(key);
+    visited.add(key);
+  };
+  graph.forEach((_dependencies, key) => visit(key));
+  return Array.from(cycles).sort();
+}
+
+export function runPlanningStoreList(root: string, registryPath: string, options: { json?: boolean } = {}): number {
+  const result = readPlanningStoreRegistry(root, registryPath);
+  if (!result.registry) {
+    result.issues.forEach((issue) => console.error(`ERROR ${issue.code}: ${issue.message}`));
+    return 1;
+  }
+  const registryAbsolute = resolveFrom(root, registryPath);
+  const report: PlanningStoreListReport = {
+    version: "scwbs.planning-store-list.v1",
+    registryPath: registryAbsolute,
+    stores: result.registry.stores.map((store) => ({
+      id: store.id,
+      root: path.resolve(path.dirname(registryAbsolute), store.root),
+      repositoryIds: store.repositories.map((repository) => repository.id).sort(),
+      worksetIds: store.worksets.map((workset) => workset.id).sort()
+    })),
+    authority: "read-only-advisory"
+  };
+  if (options.json) console.log(JSON.stringify(report, null, 2));
+  else report.stores.forEach((store) => console.log(`${store.id}: ${store.root}`));
+  return 0;
+}
+
+export function runPlanningStoreShow(
+  root: string,
+  registryPath: string,
+  storeId: string,
+  options: { json?: boolean } = {}
+): number {
+  const result = readPlanningStoreRegistry(root, registryPath);
+  const store = result.registry?.stores.find((candidate) => candidate.id === storeId);
+  if (!result.registry || !store) {
+    [
+      ...result.issues,
+      ...(result.registry ? [planningStoreError("planningStore.missing", `Store ${storeId} does not exist`)] : [])
+    ].forEach((issue) => console.error(`ERROR ${issue.code}: ${issue.message}`));
+    return 1;
+  }
+  const registryAbsolute = resolveFrom(root, registryPath);
+  const storeRoot = path.resolve(path.dirname(registryAbsolute), store.root);
+  const repositories = store.repositories.map((repository) => {
+    const repositoryRoot = path.resolve(storeRoot, repository.root);
+    const git = storeGit(repositoryRoot);
+    return {
+      id: repository.id,
+      root: repositoryRoot,
+      trust: git.trust,
+      headCommit: git.headCommit,
+      taskIndex: existsSync(path.join(repositoryRoot, "contracts/tasks/index.yaml"))
+        ? ("available" as const)
+        : ("missing" as const),
+      evidence: existsSync(path.join(repositoryRoot, "contracts/evidence"))
+        ? ("available" as const)
+        : ("missing" as const),
+      ci: "repository-local-only" as const
+    };
+  });
+  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
+  const sharedSpecs = store.worksets.flatMap((workset) =>
+    workset.sharedSpecs.map((spec) => {
+      const repository = repositoryById.get(spec.repositoryId);
+      const repositoryRoot = repository?.root ?? path.resolve(storeRoot, "missing-repository");
+      const pathEscapes =
+        !safeStoreRelativePath(spec.path) ||
+        path.relative(repositoryRoot, path.resolve(repositoryRoot, spec.path)).startsWith("..");
+      if (pathEscapes || !repository)
+        return {
+          repositoryId: spec.repositoryId,
+          path: spec.path,
+          pinnedCommit: spec.commit,
+          expectedContentHash: spec.contentHash,
+          currentHeadCommit: repository?.headCommit ?? null,
+          currentContentHash: null,
+          status: "blocked" as const
+        };
+      const current = spawnSync("git", ["-C", repositoryRoot, "show", `${spec.commit}:${spec.path}`], {
+        encoding: "buffer"
+      });
+      const currentHash = current.status === 0 ? sha256(current.stdout) : null;
+      const stale = repository.headCommit !== spec.commit || currentHash !== spec.contentHash;
+      return {
+        repositoryId: spec.repositoryId,
+        path: spec.path,
+        pinnedCommit: spec.commit,
+        expectedContentHash: spec.contentHash,
+        currentHeadCommit: repository.headCommit,
+        currentContentHash: currentHash,
+        status: current.status !== 0 ? ("blocked" as const) : stale ? ("stale" as const) : ("ready" as const)
+      };
+    })
+  );
+  const cycles = Array.from(new Set(store.worksets.flatMap(planningStoreCycleKeys))).sort();
+  const pathEscapes = sharedSpecs
+    .filter((spec) => spec.status === "blocked")
+    .filter((spec) => !safeStoreRelativePath(spec.path))
+    .map((spec) => `${spec.repositoryId}:${spec.path}`);
+  const authorityDowngrades: string[] = [];
+  const blocked =
+    repositories.some((repository) => repository.trust !== "trusted") ||
+    sharedSpecs.some((spec) => spec.status === "blocked") ||
+    cycles.length > 0;
+  const stale = sharedSpecs.some((spec) => spec.status === "stale");
+  const status: PlanningStoreShowReport["status"] = blocked ? "blocked" : stale ? "stale" : "ready";
+  const worksets = store.worksets.map((workset) => ({
+    id: workset.id,
+    repositories: workset.repositories.slice().sort(),
+    status:
+      cycles.length > 0
+        ? ("blocked" as const)
+        : sharedSpecs
+              .filter((spec) =>
+                workset.sharedSpecs.some(
+                  (candidate) => candidate.repositoryId === spec.repositoryId && candidate.path === spec.path
+                )
+              )
+              .some((spec) => spec.status === "stale")
+          ? ("stale" as const)
+          : ("ready" as const),
+    taskEvidenceCi: "Task/Evidence/CI remain repository-local; this workset is correlation-only"
+  }));
+  const report: PlanningStoreShowReport = {
+    version: "scwbs.planning-store-show.v1",
+    status,
+    store: { id: store.id, root: storeRoot, registryPath: registryAbsolute },
+    repositories,
+    worksets,
+    sharedSpecs,
+    review: { cycles, pathEscapes, authorityDowngrades },
+    provenance: {
+      storeId: store.id,
+      storeRoot,
+      referencedCommits: Array.from(new Set(sharedSpecs.map((spec) => spec.pinnedCommit))).sort(),
+      contentHashes: Array.from(new Set(sharedSpecs.map((spec) => spec.expectedContentHash))).sort()
+    },
+    authority:
+      "read-only-advisory; repository Task Contract, Evidence, Approval, Human Gate, and required checks remain authoritative",
+    nextAction:
+      status === "ready"
+        ? "Use the shared Spec as advisory input only; create repository-local Task Contracts after normal review"
+        : "Stop and refresh the store reference or repository trust state before relying on this proposal"
+  };
+  if (options.json) console.log(JSON.stringify(report, null, 2));
+  else console.log(`${report.status} store ${report.store.id}\nroot: ${report.store.root}\nnext: ${report.nextAction}`);
+  return status === "ready" ? 0 : 1;
 }

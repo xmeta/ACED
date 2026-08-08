@@ -1,0 +1,67 @@
+id: SCWBS-DRAFT-MSKEB9S9
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSKEB9S9
+branchName: task/SCWBS-DRAFT-MSKEB9S9-issue-454-cross-repository-planning-store-read-o
+status: approved
+approvedBy: xmeta
+sourceIssue: 454
+allowedPaths:
+  - src/core/contracts.ts
+  - src/cli/register-governance.ts
+  - docs/scwbs/schemas/planning-store.schema.json
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+  - tests/integration/misc.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - schema migration or authority ambiguity
+  - external remote or credential automation
+  - Human Gate path
+  - authority outside allowed paths
+  - remote clone pull push or merge
+  - store reference loosening code-repo authority
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Versioned planning-store schema defines store identity, local registry, code-repository reference, workset, and shared Spec reference
+  - Read-only `store list/show` commands display resolved store ID and absolute roots and never clone, pull, push, merge, or manage credentials
+  - Shared Spec references pin store repository, commit SHA, path, and content hash; missing store, dirty/untrusted root, path escape, commit/hash mismatch, and reference cycles fail closed
+  - Store authority remains advisory and cannot expand code-repository Task Contract allowedPaths, forbiddenPaths, Human Gates, required checks, Approval, or Evidence authority
+  - Workset status aggregates per-repository Task/Evidence/CI identity without replacing repository-local Ground Truth
+  - Store/workset provenance is represented in versioned JSON and becomes stale when the referenced commit or content hash changes
+  - CLI shape for setup/register/list/show and `--store <id>` is documented, with setup/register left to normal Git review rather than automatic remote mutation
+  - Temporary two-repository and one-store fixtures cover valid reference, stale commit/hash, missing store, path escape, dirty root, cycle, and authority downgrade
+  - 'Issue #454 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - planning-store-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSKEB9S9.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSKEB9S9.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSKEB9S9.patch
+  - contracts/approvals/SCWBS-DRAFT-MSKEB9S9.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSKEB9S9.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-08T13:15:19.698Z"

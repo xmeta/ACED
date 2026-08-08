@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/scwbs/planning-store.schema.json",
+  "title": "SC-WBS planning store registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "stores"],
+  "properties": {
+    "version": { "const": "1.0.0" },
+    "stores": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/store" }
+    }
+  },
+  "$defs": {
+    "store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "root", "repositories", "worksets"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "root": { "type": "string", "minLength": 1 },
+        "repositories": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/repository" }
+        },
+        "worksets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workset" }
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "root"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "root": { "type": "string", "minLength": 1 }
+      }
+    },
+    "workset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "repositories", "sharedSpecs"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "repositories": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sharedSpecs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sharedSpec" }
+        }
+      }
+    },
+    "sharedSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryId", "path", "commit", "contentHash", "dependsOn"],
+      "properties": {
+        "repositoryId": { "type": "string", "minLength": 1 },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+"
+        },
+        "commit": { "type": "string", "minLength": 1 },
+        "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

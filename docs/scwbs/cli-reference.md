@@ -9,6 +9,7 @@ npm run scwbs -- --help
 ```
 
 > **表記規約（Conventions）**
+>
 > - 説明文は日本語、コマンド名・オプション名・フィールド名・コード例は英語のまま記載する。
 > - Task IDの例は本ドキュメント全体で `SCWBS-*` 形式に統一する（理由は「Task IDとブランチ命名」を参照）。従来この文書には `WBS-001-004` のような例が混在していたが、これは実装が生成する正規のID形式ではない。
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
@@ -76,6 +77,7 @@ Active Taskについて、`health.task.timestampDrift` は Task の `allowedPath
 #### `status --strict` の terminal Task 定義
 
 > **注意（用語の重複）**：「terminal」という語は、このCLIの中で**2つの異なる意味**で使われている。混同しないこと。
+>
 > 1. **index scanningの意味**（`task archive` のdescription、`task-contract.md` の Active/archive lifecycle）：`completed` / `cancelled` / `archived` の3つがterminal（＝inactive）で、`next`、`ai next-task`、`review-queue`、`health` の既定走査から除外される対象を指す。
 > 2. **completion trust / `status --strict` の意味**（このCLI Referenceの本節）：`completed` / `archived` の2つだけがterminalで、`cancelled` は含まれない。この節の「terminal Task」は常にこちらの意味である。
 >
@@ -83,15 +85,15 @@ Active Taskについて、`health.task.timestampDrift` は Task の `allowedPath
 
 completion trustの対象と `--strict` の失敗対象は**同一の母集団**である。曖昧さを避けるため明示する。
 
-| Task index の `status` | terminal / completion trust対象 | `--strict` 失敗し得るか |
-|---|---:|---:|
-| `planned` | いいえ | いいえ |
-| `active` | いいえ | いいえ |
-| `blocked` | いいえ | いいえ |
-| `reviewed` | いいえ | いいえ |
-| `cancelled` | いいえ（母集団から除外） | いいえ |
-| `completed` | はい | はい |
-| `archived` | はい | **はい**（一度も `completed` を経ずに archive された Task も含む） |
+| Task index の `status` | terminal / completion trust対象 |                                            `--strict` 失敗し得るか |
+| ---------------------- | ------------------------------: | -----------------------------------------------------------------: |
+| `planned`              |                          いいえ |                                                             いいえ |
+| `active`               |                          いいえ |                                                             いいえ |
+| `blocked`              |                          いいえ |                                                             いいえ |
+| `reviewed`             |                          いいえ |                                                             いいえ |
+| `cancelled`            |        いいえ（母集団から除外） |                                                             いいえ |
+| `completed`            |                            はい |                                                               はい |
+| `archived`             |                            はい | **はい**（一度も `completed` を経ずに archive された Task も含む） |
 
 `archived` は「一度完了して保管された」ことを意味しない。実装上、`task archive` で `status: archived` になったTaskは、完了経緯にかかわらずcompletion trust判定の対象になる。したがって、実装が未完了のままarchiveしたTaskがある場合、`status --strict` はそのTaskのEvidence/Approval欠落を理由に非0を返し得る。未完了のまま追跡対象から外したいだけであれば、archiveする前にそのTaskの扱い（完了扱いにするか、`cancelled` にするか）を先に決めること。
 
@@ -160,10 +162,10 @@ npm run scwbs -- next
 
 この2つは**エイリアスではなく、独立したコマンド**である。
 
-| Command | 親 | 用途 | 主なoption |
-|---|---|---|---|
-| `scwbs packet --task <id>` | top-level (Core) | Tiny/Standard/Full packetまたは `--context-json` のcode contextを構築する | `--tiny` `--standard` `--full` `--deep` `--normal` `--context-json` `--context-max-files` `--context-max-bytes` `--context-include-noncurrent-docs` `--relation-depth` |
-| `scwbs ai packet --task <id>` | `ai` | AI agent向けのwork packetを、agent別format（`default`/`compact`/`codex`/`claude`/`cursor`）で構築する | `--relation-depth` `--format` |
+| Command                       | 親               | 用途                                                                                                  | 主なoption                                                                                                                                                             |
+| ----------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scwbs packet --task <id>`    | top-level (Core) | Tiny/Standard/Full packetまたは `--context-json` のcode contextを構築する                             | `--tiny` `--standard` `--full` `--deep` `--normal` `--context-json` `--context-max-files` `--context-max-bytes` `--context-include-noncurrent-docs` `--relation-depth` |
+| `scwbs ai packet --task <id>` | `ai`             | AI agent向けのwork packetを、agent別format（`default`/`compact`/`codex`/`claude`/`cursor`）で構築する | `--relation-depth` `--format`                                                                                                                                          |
 
 両方とも `--task` を取り、内部で似た情報源を参照するが、出力shapeとformat optionは異なる。通常の作業開始では軽量なtop-level `packet` を優先し、agent別formatや追加関係情報が必要な場合だけ `ai packet` を使う。
 
@@ -224,11 +226,11 @@ is an explicit bulk migration and must not be used as an implicit repair.
 
 `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
 
-| Option | 対応するTask Contract field |
-|---|---|
-| `--forbid <paths>` | `forbiddenPaths` |
-| `--gate <paths>` | `humanGateRequiredPaths` |
-| `--checks <checks>` | `requiredChecks` |
+| Option              | 対応するTask Contract field |
+| ------------------- | --------------------------- |
+| `--forbid <paths>`  | `forbiddenPaths`            |
+| `--gate <paths>`    | `humanGateRequiredPaths`    |
+| `--checks <checks>` | `requiredChecks`            |
 
 ```bash
 npm run scwbs -- task new "Add permission check" \
@@ -279,12 +281,12 @@ Generated contract commands must refuse to overwrite existing files unless an ex
 
 `--force` はこの文書の複数のコマンドに登場するが、**何を上書きし、何を上書きしないか**はコマンドごとに異なる。「forceなら何でも通る」わけではない。
 
-| Command | `--force` が行うこと | `--force` でも迂回**されない**もの |
-|---|---|---|
-| `evidence collect --force` | 既存Evidenceファイルの置換を許可する | required checks、provenance検証、path検証、Human Gate |
-| `registry rebuild --force` | registry.yamlの再生成・書き込みを許可する | Task Contract / Evidence / Approvalの内容 |
-| `task index rebuild --force` | index全体のcanonical path・branch・WBS node・並び順の再構築を許可する | 既存のlifecycle status、`dependsOn`、`archivedAt` |
-| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする | changeset自体のバリデーション。Task/Approvalは参照しない |
+| Command                          | `--force` が行うこと                                                  | `--force` でも迂回**されない**もの                       |
+| -------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
+| `evidence collect --force`       | 既存Evidenceファイルの置換を許可する                                  | required checks、provenance検証、path検証、Human Gate    |
+| `registry rebuild --force`       | registry.yamlの再生成・書き込みを許可する                             | Task Contract / Evidence / Approvalの内容                |
+| `task index rebuild --force`     | index全体のcanonical path・branch・WBS node・並び順の再構築を許可する | 既存のlifecycle status、`dependsOn`、`archivedAt`        |
+| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする             | changeset自体のバリデーション。Task/Approvalは参照しない |
 
 `evidence collect --force` と `task generate --force` は、それぞれの表に記載したfail-closed境界を無効化しない。一方、`wbs apply` はTask IDを受け取らずApproval recordも検証しないため、`--force`実行前のHuman GateはTask Contractと運用手順で別途保証する必要がある。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
 
@@ -353,11 +355,11 @@ notes:
 
 重要な点として、`--scope human-gate` を満たしたApproval記録は `approvalMode: delegated`（`approvedBy: human` ではない）のまま保存される。`--scope human-gate` という名前は「この委譲承認が、ワークフロー上Human Gateが要求される地点を満たす」という意味であり、「人間が今この瞬間にレビューした」ことを意味しない。監査・レビューを行う人は、次の2つのフィールドを必ず区別して確認すること。
 
-| フィールド | `approvedBy: human` の場合 | `approvalMode: delegated` の場合 |
-|---|---|---|
-| 承認の実体 | 人間がその場でレビューし承認した | 事前にcreation commitで固定されたpolicyに基づき、AI agentが条件を満たして承認記録を作成した |
-| `delegator`/`source`の検証 | 該当なし | *declared* provenanceであり、実在本人性やtoken注入者を独立に検証するものではない（下記「`approval delegation prepare`」参照） |
-| 監査上の扱い | 直接的な人間の意思決定の記録 | 「委譲policyの条件が満たされた」ことの記録。policy自体を人間が事前承認した根拠と併せて確認する必要がある |
+| フィールド                 | `approvedBy: human` の場合       | `approvalMode: delegated` の場合                                                                                              |
+| -------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 承認の実体                 | 人間がその場でレビューし承認した | 事前にcreation commitで固定されたpolicyに基づき、AI agentが条件を満たして承認記録を作成した                                   |
+| `delegator`/`source`の検証 | 該当なし                         | _declared_ provenanceであり、実在本人性やtoken注入者を独立に検証するものではない（下記「`approval delegation prepare`」参照） |
+| 監査上の扱い               | 直接的な人間の意思決定の記録     | 「委譲policyの条件が満たされた」ことの記録。policy自体を人間が事前承認した根拠と併せて確認する必要がある                      |
 
 `human-gate` という scope 名を「人間限定」の意味だと誤読しないよう、この違いを社内ドキュメントやレビュー手順に明記することを推奨する。
 
@@ -435,10 +437,10 @@ tracked artifactを変更せずに開始条件だけを確認する場合は `np
 
 この2つのoptionは名前が非常に紛らわしいため、明示的に説明する。
 
-| Option | 意味 | 例 |
-|---|---|---|
-| `--tasks <ids>` | 完了として承認・適用する**既存の実装Task**のID（カンマ区切りで複数可） | `--tasks SCWBS-001,SCWBS-002` |
-| `--task <id>` | この completion 操作自体を所有する **completion Task**（changesetをコミットするTask）のID | `--task SCWBS-999` |
+| Option          | 意味                                                                                      | 例                            |
+| --------------- | ----------------------------------------------------------------------------------------- | ----------------------------- |
+| `--tasks <ids>` | 完了として承認・適用する**既存の実装Task**のID（カンマ区切りで複数可）                    | `--tasks SCWBS-001,SCWBS-002` |
+| `--task <id>`   | この completion 操作自体を所有する **completion Task**（changesetをコミットするTask）のID | `--task SCWBS-999`            |
 
 ```bash
 npm run scwbs -- completion apply \
@@ -452,6 +454,26 @@ npm run scwbs -- completion apply \
 > **将来的な改善案**：`--tasks`/`--task` という命名は初見では区別しづらい。CLIの後方互換性を保つ必要がなければ、`--completed-tasks <ids>` と `--completion-task <id>` のような自己説明的な名前への変更を検討する価値がある（現行実装のoption名は変更していない）。
 
 ## Lightweight Entry Points
+
+### `store list` / `store show`
+
+Planning Store registry is a versioned, read-only cross-repository reference. The
+registry itself is not a Task Contract and cannot expand a repository Task's
+`allowedPaths`, required checks, Evidence, Approval, or Human Gate authority.
+
+```bash
+corepack npm run scwbs -- store list --registry planning-store.yaml --json
+corepack npm run scwbs -- store show --registry planning-store.yaml --store <store-id> --json
+```
+
+`store list` resolves each store root to an absolute path. `store show` checks
+repository trust, dirty state, pinned commit, shared Spec content hash, path
+escape, and dependency cycles. A missing or dirty/untrusted repository, a stale
+pin, a path escape, or a cycle fails closed; no clone, pull, push, credential
+loading, or remote mutation is performed. Task, Evidence, Approval, Human Gate,
+CI, and workset ownership remain repository-local; worksets provide correlation
+only. The JSON output versions are `scwbs.planning-store-list.v1` and
+`scwbs.planning-store-show.v1`.
 
 ### `spec-change new`
 
@@ -553,47 +575,47 @@ When task changes include tests, record test quality metadata with `--test-asser
 - **tracked-artifact mutation**：contracts配下やregistryなど、コミット対象のfileを変更する。
 - **external state read/write**：GitHub API等を読み取る、またはrepository外の状態を変更する。
 
-| Command | 分類 | 備考 |
-|---|---|---|
-| `check` / `docs check` / `check-diff` / `status` | repository-content read-only | `status`もlocal receiptを書かない |
-| `next` / `review-queue` / `trace` / `ui` | repository-content read-only | `ui`はtext dashboardをstdoutへ表示する |
-| `packet` / `ai packet` / `ai run` | repository-content read-only | `ai run`はdry-run planを表示し、外部AIを起動しない |
-| `ci plan` / `profile show` | repository-content read-only | |
-| `wbs validate` / `wbs candidates` / `wbs verify-changesets` | repository-content read-only | candidates/verifyもWBSを書かない |
-| `registry rebuild --check` / `task index rebuild --check` | repository-content read-only | |
-| `task refresh` / `completion apply`（`--apply`なし） | repository-content read-only | previewのみ |
-| `health`（`--governance-cost`の有無を問わない） | local-metadata write | active Task別health warning summaryをgit common dirへ保存する |
-| `metrics governance` | repository-content read-only + external state read | GitHub履歴をbounded取得するが永続artifactを作らない |
-| `checks run` | local-metadata write | 全check成功時だけcheck receiptをgit common dirへ保存する |
-| `finish --preflight` | local-metadata write | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する |
-| `finish` | tracked-artifact mutation + local-metadata write | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
-| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
-| `evidence retain` | tracked-artifact mutation + optional external state read | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
-| `evidence annotate` | tracked-artifact mutation | 既存Evidenceの一部フィールドのみ更新 |
-| `init` / `fix` / `doctor --fix` | tracked-artifact mutation | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する |
-| `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
-| `block` / `block resolve` / `ai block` | tracked-artifact mutation | Block、必要に応じSpec Change/changesetを更新する |
-| `start <goal>` / `plan` / `lite task` / `promote` | tracked-artifact mutation | 既存Task IDを指定した`start`だけはpreflight表示で書かない |
-| `registry rebuild --force` / `profile set` | tracked-artifact mutation | `profile set`はchangesetを書き、WJS経由でWBSを更新する |
-| `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation | |
-| `approval request` / `approval approve` / aliases | tracked-artifact mutation | |
-| `approval delegation prepare` | repository-content read-only | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない |
-| `review request` / `review route` / `review approve` / `review changes-requested` / `review close` | tracked-artifact mutation | registryも同一操作内で同期する |
-| `completion apply --apply` | tracked-artifact mutation | changeset書き込み、WBS適用、registry再構築 |
-| `wbs apply` | tracked-artifact mutation | `--output`で指定したWBSをWJS経由で更新する |
-| `merge --preflight-only` | external state read | GitHub PR metadata/checksを読む |
-| `merge` | external state read + external state write | 検証後にGitHub PRをsquash mergeしhead branchを削除する |
-| `serve` | 何もしない（stub） | |
+| Command                                                                                                             | 分類                                                                            | 備考                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `check` / `docs check` / `check-diff` / `status`                                                                    | repository-content read-only                                                    | `status`もlocal receiptを書かない                                                                  |
+| `next` / `review-queue` / `trace` / `ui`                                                                            | repository-content read-only                                                    | `ui`はtext dashboardをstdoutへ表示する                                                             |
+| `packet` / `ai packet` / `ai run`                                                                                   | repository-content read-only                                                    | `ai run`はdry-run planを表示し、外部AIを起動しない                                                 |
+| `ci plan` / `profile show`                                                                                          | repository-content read-only                                                    |                                                                                                    |
+| `wbs validate` / `wbs candidates` / `wbs verify-changesets`                                                         | repository-content read-only                                                    | candidates/verifyもWBSを書かない                                                                   |
+| `registry rebuild --check` / `task index rebuild --check`                                                           | repository-content read-only                                                    |                                                                                                    |
+| `task refresh` / `completion apply`（`--apply`なし）                                                                | repository-content read-only                                                    | previewのみ                                                                                        |
+| `health`（`--governance-cost`の有無を問わない）                                                                     | local-metadata write                                                            | active Task別health warning summaryをgit common dirへ保存する                                      |
+| `metrics governance`                                                                                                | repository-content read-only + external state read                              | GitHub履歴をbounded取得するが永続artifactを作らない                                                |
+| `checks run`                                                                                                        | local-metadata write                                                            | 全check成功時だけcheck receiptをgit common dirへ保存する                                           |
+| `finish --preflight`                                                                                                | local-metadata write                                                            | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する              |
+| `finish`                                                                                                            | tracked-artifact mutation + local-metadata write                                | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録                   |
+| `evidence collect`                                                                                                  | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある         |
+| `evidence retain`                                                                                                   | tracked-artifact mutation + optional external state read                        | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
+| `evidence annotate`                                                                                                 | tracked-artifact mutation                                                       | 既存Evidenceの一部フィールドのみ更新                                                               |
+| `init` / `fix` / `doctor --fix`                                                                                     | tracked-artifact mutation                                                       | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する                              |
+| `discovery new` / `discovery start` / `discovery conclude`                                                          | tracked-artifact mutation                                                       | Discovery Probe recordを作成・更新する                                                             |
+| `block` / `block resolve` / `ai block`                                                                              | tracked-artifact mutation                                                       | Block、必要に応じSpec Change/changesetを更新する                                                   |
+| `start <goal>` / `plan` / `lite task` / `promote`                                                                   | tracked-artifact mutation                                                       | 既存Task IDを指定した`start`だけはpreflight表示で書かない                                          |
+| `registry rebuild --force` / `profile set`                                                                          | tracked-artifact mutation                                                       | `profile set`はchangesetを書き、WJS経由でWBSを更新する                                             |
+| `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation                                                       |                                                                                                    |
+| `approval request` / `approval approve` / aliases                                                                   | tracked-artifact mutation                                                       |                                                                                                    |
+| `approval delegation prepare`                                                                                       | repository-content read-only                                                    | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない                           |
+| `review request` / `review route` / `review approve` / `review changes-requested` / `review close`                  | tracked-artifact mutation                                                       | registryも同一操作内で同期する                                                                     |
+| `completion apply --apply`                                                                                          | tracked-artifact mutation                                                       | changeset書き込み、WBS適用、registry再構築                                                         |
+| `wbs apply`                                                                                                         | tracked-artifact mutation                                                       | `--output`で指定したWBSをWJS経由で更新する                                                         |
+| `merge --preflight-only`                                                                                            | external state read                                                             | GitHub PR metadata/checksを読む                                                                    |
+| `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
+| `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
 
 ## 終了コード
 
 CLI自身の主要経路は次の終了コードを使う。Commanderが構文解析時に返す値と、各actionが明示的に返すvalidation結果は同一ではない。また `wbs apply` のように子processのstatusを伝播するcommandでは、子process固有の値を返し得るため、0/1/2だけと仮定してはならない。
 
-| Exit code | 意味 |
-|---:|---|
-| 0 | 成功。要求された処理が完了した、またはcheckが全てpassした。 |
-| 1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち、`status --strict`不整合に加え、Commanderが検出するunknown command/optionや必須argument欠落も通常この値を返す。 |
-| 2 | action内でSC-WBSが明示検証する引数エラー。例: 必須 `--task` option欠落、無効なTask ID、無効な列挙値。 |
+| Exit code | 意味                                                                                                                                                                  |
+| --------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|         0 | 成功。要求された処理が完了した、またはcheckが全てpassした。                                                                                                           |
+|         1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち、`status --strict`不整合に加え、Commanderが検出するunknown command/optionや必須argument欠落も通常この値を返す。 |
+|         2 | action内でSC-WBSが明示検証する引数エラー。例: 必須 `--task` option欠落、無効なTask ID、無効な列挙値。                                                                 |
 
 **Human Gate待ちも通常のcheck失敗も同じexit code 1になる**ことに注意すること。CI等でHuman Gate待ちだけを別扱いしたい場合は、exit codeではなく `--json` の `outcome`（例: `awaiting-human-approval`）フィールドで判定すること。
 
