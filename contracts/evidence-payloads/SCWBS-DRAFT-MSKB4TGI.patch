@@ -1,0 +1,668 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml b/contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
+new file mode 100644
+index 0000000..b279c75
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
+@@ -0,0 +1,68 @@
++id: SCWBS-DRAFT-MSKB4TGI
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSKB4TGI
++branchName: task/SCWBS-DRAFT-MSKB4TGI-issue-457-requirement-to-task-test-evidence-trac
++status: approved
++approvedBy: xmeta
++sourceIssue: 457
++allowedPaths:
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/core/types.ts
++  - src/core/contracts.ts
++  - src/core/evidence/build.ts
++  - src/commands/validate-feature.ts
++  - src/cli/register-governance.ts
++  - tests/unit/contracts.test.ts
++  - tests/unit/evidence-build.test.ts
++  - tests/integration/validate-feature.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - schema migration ambiguity
++  - cross-task semantic verification uncertainty
++  - Human Gate required
++  - authority outside allowed paths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Requirement records have stable IDs, statements, verification modes, and source metadata without removing legacy acceptanceCriteria strings
++  - Task contracts can declare requirement IDs and validation rejects unknown IDs, duplicate ownership, and unassigned requirements
++  - Evidence can map requirement IDs to checks or manual references and preserves current subject HEAD and diff provenance
++  - A read-only `validate feature --spec <id> --json` command returns a requirement-to-Task-to-Evidence matrix and GO, NO-GO, or MANUAL_VERIFY_REQUIRED
++  - Stale, missing, blocked, failed, unmerged, or semantically manual requirements cannot produce GO
++  - Existing Task `finish` behavior remains unchanged and migration warnings are machine-readable
++  - Tests cover legacy migration, unknown IDs, stale Evidence, manual requirements, cross-Task failures, and fully verified requirements
++  - 'Issue #457 acceptance criteria are documented in the implementation Evidence and the GitHub Issue is closed only after protected merge'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - feature-validation-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSKB4TGI.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSKB4TGI.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSKB4TGI.patch
++  - contracts/approvals/SCWBS-DRAFT-MSKB4TGI.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSKB4TGI.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T11:47:30.913Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index fd75783..35f60cb 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1693,3 +1693,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-08T11:43:16.231Z"
++  - id: SCWBS-DRAFT-MSKB4TGI
++    path: contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
++    branchName: task/SCWBS-DRAFT-MSKB4TGI-issue-457-requirement-to-task-test-evidence-trac
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 2316880..d9f02e8 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -1,7 +1,7 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { type Command } from "commander";
+-import { readSpec, readTask } from "../core/contracts.js";
++import { readSpec, readTask, runValidateFeature } from "../core/contracts.js";
+ import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { SpecChangeProposal } from "../core/types.js";
+@@ -89,6 +89,17 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
+ 
+ export function registerGovernanceCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
++  const validate = program.command("validate").description("Validate cross-Task feature completion");
++  validate
++    .command("feature")
++    .description("Validate Requirement to Task to Evidence traceability")
++    .requiredOption("--spec <id>", "Spec id")
++    .option("--base <ref>", "merge base reference", "origin/main")
++    .option("--json", "print a versioned JSON report")
++    .action((options) => {
++      setExitCode(runValidateFeature(root, options.spec, { baseRef: options.base, json: options.json ?? false }));
++    });
++
+   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
+   specChange
+     .command("new")
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index be8e2f6..a1f721e 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,9 +1,10 @@
+ import { existsSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
++import { commitExists, isCommitAncestor } from "./git.js";
+ import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+ import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+-import { activeTaskEntries } from "./task-index.js";
+-import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
++import { activeTaskEntries, readTaskIndex } from "./task-index.js";
++import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, RequirementEvidence, RequirementVerificationMode, ReviewRecord, SpecChangeProposal, SpecContract, SpecRequirement, TaskContract } from "./types.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+@@ -238,3 +239,148 @@ export function approvalExists(root: string, taskId: string): boolean {
+ export function reviewExists(root: string, taskId: string): boolean {
+   return existsSync(resolveFrom(root, reviewPath(taskId)));
+ }
++
++export type FeatureValidationStatus = "GO" | "NO-GO" | "MANUAL_VERIFY_REQUIRED";
++
++export type FeatureValidationOptions = { baseRef?: string; json?: boolean };
++
++type FeatureRequirementResult = {
++  requirementId: string;
++  statement: string;
++  verificationMode: RequirementVerificationMode;
++  taskIds: string[];
++  evidenceStatus: "covered" | "not-covered" | "missing" | "stale" | "manual-required";
++  issues: string[];
++};
++
++type FeatureValidationReport = {
++  version: "scwbs.feature-validation.v1";
++  status: FeatureValidationStatus;
++  spec: { id: string; version: string; requirementsVersion?: string };
++  requirements: FeatureRequirementResult[];
++  unknownRequirementDeclarations: Array<{ taskId: string; requirementIds: string[] }>;
++  warnings: string[];
++  summary: { total: number; covered: number; notCovered: number; manualVerifyRequired: number };
++};
++
++function normalizedRequirements(spec: SpecContract): { requirements: SpecRequirement[]; warnings: string[] } {
++  if (spec.requirements && spec.requirements.length > 0) return { requirements: spec.requirements, warnings: [] };
++  return {
++    requirements: spec.acceptanceCriteria.map((statement, index) => ({
++      id: `LEGACY-${String(index + 1).padStart(3, "0")}`,
++      statement,
++      acceptanceScenarios: [statement],
++      verificationMode: "manual",
++      source: "legacy:acceptanceCriteria"
++    })),
++    warnings: [`${spec.id} uses legacy acceptanceCriteria; add requirementsVersion: 1.0.0 and stable requirement IDs before feature validation can produce GO`]
++  };
++}
++
++function featureTaskStatuses(root: string): Map<string, string> {
++  const result = readTaskIndex(root);
++  return new Map(result.index?.tasks.map((entry) => [entry.id, entry.status]) ?? []);
++}
++
++function featureEvidenceStatus(
++  root: string,
++  evidence: Evidence | undefined,
++  coverage: RequirementEvidence | undefined,
++  verificationMode: RequirementVerificationMode,
++  baseRef: string
++): { status: FeatureRequirementResult["evidenceStatus"]; issues: string[] } {
++  if (!evidence || !coverage) return { status: "missing", issues: ["Requirement Evidence is missing"] };
++  if (coverage.subjectHeadCommit !== evidence.subjectHeadCommit || coverage.diffHash !== evidence.diffHash || !coverage.subjectHeadCommit || !coverage.diffHash) {
++    return { status: "stale", issues: ["Requirement Evidence provenance does not match Evidence subjectHeadCommit/diffHash"] };
++  }
++  if (!commitExists(root, coverage.subjectHeadCommit)) return { status: "stale", issues: ["Requirement Evidence subject HEAD does not exist"] };
++  if (!isCommitAncestor(root, coverage.subjectHeadCommit, baseRef)) {
++    return { status: "stale", issues: [`Requirement Evidence subject HEAD is not merged into ${baseRef}`] };
++  }
++  if (coverage.status === "not-covered") return { status: "not-covered", issues: ["Evidence explicitly marks the requirement as not-covered"] };
++  const humanReference = coverage.references.some((reference) => /^(human|manual):/i.test(reference));
++  if (verificationMode === "manual" || verificationMode === "hybrid") {
++    return coverage.status === "covered" && humanReference
++      ? { status: "covered", issues: [] }
++      : { status: "manual-required", issues: ["Manual or hybrid Requirement requires explicit human evidence"] };
++  }
++  const passedChecks = new Set(evidence.checks.filter((check) => check.status === "passed").map((check) => check.name));
++  const checkNames = coverage.checkNames ?? [];
++  return coverage.status === "covered" && checkNames.length > 0 && checkNames.every((check) => passedChecks.has(check))
++    ? { status: "covered", issues: [] }
++    : { status: "not-covered", issues: ["Automated Requirement needs covered status and current passed check references"] };
++}
++
++function printFeatureValidation(report: FeatureValidationReport, json: boolean): void {
++  if (json) {
++    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
++    return;
++  }
++  process.stdout.write(`Feature validation: ${report.status}\n`);
++  report.requirements.forEach((requirement) => process.stdout.write(`- ${requirement.requirementId}: ${requirement.evidenceStatus}${requirement.issues.length > 0 ? ` (${requirement.issues.join("; ")})` : ""}\n`));
++  report.warnings.forEach((warning) => process.stdout.write(`WARN ${warning}\n`));
++}
++
++export function runValidateFeature(root: string, specId: string, options: FeatureValidationOptions = {}): number {
++  const specEntry = listSpecs(root).find((entry) => entry.spec?.id === specId);
++  if (!specEntry?.spec) {
++    const report: FeatureValidationReport = {
++      version: "scwbs.feature-validation.v1",
++      status: "NO-GO",
++      spec: { id: specId, version: "unknown" },
++      requirements: [],
++      unknownRequirementDeclarations: [],
++      warnings: [`Spec ${specId} was not found`],
++      summary: { total: 0, covered: 0, notCovered: 0, manualVerifyRequired: 0 }
++    };
++    printFeatureValidation(report, options.json ?? false);
++    return 1;
++  }
++  const spec = specEntry.spec;
++  const normalized = normalizedRequirements(spec);
++  const tasks = listTasks(root).flatMap((entry) => entry.task ? [entry.task] : []);
++  const statuses = featureTaskStatuses(root);
++  const baseRef = options.baseRef ?? "origin/main";
++  const knownIds = new Set(normalized.requirements.map((requirement) => requirement.id));
++  const unknownRequirementDeclarations = tasks.flatMap((task) => {
++    const requirementIds = (task.requirementIds ?? []).filter((id) => !knownIds.has(id));
++    return requirementIds.length > 0 ? [{ taskId: task.id, requirementIds }] : [];
++  });
++  const requirements = normalized.requirements.map((requirement): FeatureRequirementResult => {
++    const owners = tasks.filter((task) => task.requirementIds?.includes(requirement.id));
++    const taskIds = owners.map((task) => task.id);
++    const issues: string[] = [];
++    if (owners.length === 0) issues.push("No Task declares ownership of this Requirement");
++    if (owners.length > 1) issues.push(`Duplicate ownership by ${taskIds.join(", ")}`);
++    if (owners.length !== 1) return { requirementId: requirement.id, statement: requirement.statement, verificationMode: requirement.verificationMode, taskIds, evidenceStatus: "not-covered", issues };
++    const task = owners[0] as TaskContract;
++    const taskStatus = statuses.get(task.id) ?? "planned";
++    if (!["completed", "archived"].includes(taskStatus)) issues.push(`Task ${task.id} is ${taskStatus}, not completed or archived`);
++    const { evidence } = readEvidence(root, task.id);
++    const coverage = evidence?.requirementEvidence?.find((entry) => entry.requirementId === requirement.id);
++    const evidenceResult = featureEvidenceStatus(root, evidence, coverage, requirement.verificationMode, baseRef);
++    issues.push(...evidenceResult.issues);
++    return {
++      requirementId: requirement.id,
++      statement: requirement.statement,
++      verificationMode: requirement.verificationMode,
++      taskIds,
++      evidenceStatus: issues.length > 0 ? evidenceResult.status : "covered",
++      issues
++    };
++  });
++  const manualVerifyRequired = requirements.filter((requirement) => requirement.evidenceStatus === "manual-required").length;
++  const notCovered = requirements.filter((requirement) => !["covered", "manual-required"].includes(requirement.evidenceStatus)).length;
++  const report: FeatureValidationReport = {
++    version: "scwbs.feature-validation.v1",
++    status: notCovered > 0 ? "NO-GO" : manualVerifyRequired > 0 ? "MANUAL_VERIFY_REQUIRED" : "GO",
++    spec: { id: spec.id, version: spec.version, ...(spec.requirementsVersion ? { requirementsVersion: spec.requirementsVersion } : {}) },
++    requirements,
++    unknownRequirementDeclarations,
++    warnings: [...normalized.warnings, ...unknownRequirementDeclarations.map((entry) => `Task ${entry.taskId} declares unknown Requirement IDs: ${entry.requirementIds.join(", ")}`)],
++    summary: { total: requirements.length, covered: requirements.length - notCovered - manualVerifyRequired, notCovered, manualVerifyRequired }
++  };
++  if (unknownRequirementDeclarations.length > 0 && report.status === "GO") report.status = "NO-GO";
++  printFeatureValidation(report, options.json ?? false);
++  return report.status === "GO" ? 0 : report.status === "MANUAL_VERIFY_REQUIRED" ? 2 : 1;
++}
+diff --git a/src/core/schema/contracts.ts b/src/core/schema/contracts.ts
+index a678cd4..abff88c 100644
+--- a/src/core/schema/contracts.ts
++++ b/src/core/schema/contracts.ts
+@@ -5,6 +5,19 @@ import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../t
+ import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+ 
++const requirementSchema = {
++  type: "object",
++  required: ["id", "statement", "acceptanceScenarios", "verificationMode", "source"],
++  additionalProperties: false,
++  properties: {
++    id: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" },
++    statement: { type: "string", minLength: 1 },
++    acceptanceScenarios: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
++    verificationMode: { type: "string", enum: ["automated", "manual", "hybrid"] },
++    source: { type: "string", minLength: 1 }
++  }
++};
++
+ const specContractSchema = {
+   type: "object",
+   required: ["id", "type", "featureId", "title", "status", "version", "acceptanceCriteria"],
+@@ -19,6 +32,8 @@ const specContractSchema = {
+     summary: { type: "string" },
+     sourcePaths: stringArraySchema,
+     acceptanceCriteria: stringArraySchema,
++    requirementsVersion: { const: "1.0.0" },
++    requirements: { type: "array", minItems: 1, uniqueItems: true, items: requirementSchema },
+     approvedBy: { type: "string" },
+     approvedAt: { type: "string" },
+     planning: {
+@@ -100,6 +115,7 @@ const taskContractSchema = {
+     wbsNodeId: { type: "string", minLength: 1 },
+     featureId: { type: "string", minLength: 1 },
+     branchName: { type: "string", minLength: 1 },
++    requirementIds: { type: "array", uniqueItems: true, items: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" } },
+     completionScope: { type: "string", enum: ["node"] },
+     completionTaskIds: stringArraySchema,
+     managedContractPaths: {
+@@ -269,6 +285,43 @@ export function validateSpecContract(value: unknown, filePath = "spec"): Issue[]
+   if (!isStringArray(value.acceptanceCriteria)) {
+     issues.push(issue("spec.array", `${filePath}.acceptanceCriteria must be a string array`));
+   }
++  if (value.requirementsVersion !== undefined && value.requirementsVersion !== "1.0.0") {
++    issues.push(issue("spec.requirements.version", `${filePath}.requirementsVersion must be 1.0.0 when present`));
++  }
++  if (value.requirements !== undefined) {
++    if (!Array.isArray(value.requirements) || value.requirements.length === 0) {
++      issues.push(issue("spec.requirements", `${filePath}.requirements must be a non-empty array when present`));
++    } else {
++      const ids = new Set<string>();
++      value.requirements.forEach((requirement, index) => {
++        if (!isObject(requirement)) {
++          issues.push(issue("spec.requirements", `${filePath}.requirements[${index}] must be an object`));
++          return;
++        }
++        if (typeof requirement.id !== "string" || requirement.id.length === 0) {
++          issues.push(issue("spec.requirements.id", `${filePath}.requirements[${index}].id must be a non-empty string`));
++        } else if (ids.has(requirement.id)) {
++          issues.push(issue("spec.requirements.duplicate", `${filePath}.requirements contains duplicate id ${requirement.id}`));
++        } else {
++          ids.add(requirement.id);
++        }
++        if (typeof requirement.statement !== "string" || requirement.statement.length === 0) {
++          issues.push(issue("spec.requirements.statement", `${filePath}.requirements[${index}].statement must be a non-empty string`));
++        }
++        if (!isStringArray(requirement.acceptanceScenarios) || requirement.acceptanceScenarios.length === 0) {
++          issues.push(issue("spec.requirements.scenarios", `${filePath}.requirements[${index}].acceptanceScenarios must be a non-empty string array`));
++        }
++        if (!["automated", "manual", "hybrid"].includes(String(requirement.verificationMode))) {
++          issues.push(issue("spec.requirements.verificationMode", `${filePath}.requirements[${index}].verificationMode must be automated, manual, or hybrid`));
++        }
++        if (typeof requirement.source !== "string" || requirement.source.length === 0) {
++          issues.push(issue("spec.requirements.source", `${filePath}.requirements[${index}].source must be a non-empty string`));
++        }
++      });
++    }
++  } else if (value.requirementsVersion !== undefined) {
++    issues.push(issue("spec.requirements", `${filePath}.requirements is required when requirementsVersion is present`));
++  }
+   if (value.sourcePaths !== undefined && !isStringArray(value.sourcePaths)) {
+     issues.push(issue("spec.array", `${filePath}.sourcePaths must be a string array when present`));
+   }
+@@ -379,6 +432,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
+   if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
+     issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));
+   }
++  if (value.requirementIds !== undefined && !isStringArray(value.requirementIds)) {
++    issues.push(issue("task.requirementIds", `${filePath}.requirementIds must be a string array when present`));
++  }
+   if (value.mode !== undefined && value.mode !== "lite") {
+     issues.push(issue("task.mode", `${filePath}.mode must be lite when present`));
+   }
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index d1f29d3..564d9b6 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -27,6 +27,20 @@ const coverageCountsSchema = {
+   }
+ };
+ 
++const requirementEvidenceSchema = {
++  type: "object",
++  required: ["requirementId", "status", "references"],
++  additionalProperties: false,
++  properties: {
++    requirementId: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" },
++    status: { type: "string", enum: ["covered", "manual-required", "not-covered"] },
++    references: { type: "array", items: { type: "string", minLength: 1 } },
++    checkNames: { type: "array", items: { type: "string", minLength: 1 } },
++    subjectHeadCommit: { type: "string", minLength: 1 },
++    diffHash: { type: "string", minLength: 1 }
++  }
++};
++
+ const evidenceSchema = {
+   type: "object",
+   required: ["id", "type", "taskId", "changedFiles", "checks"],
+@@ -161,6 +175,7 @@ const evidenceSchema = {
+       }
+     },
+     changedFiles: stringArraySchema,
++    requirementEvidence: { type: "array", uniqueItems: true, items: requirementEvidenceSchema },
+     submodules: {
+       type: "array",
+       items: {
+@@ -386,6 +401,32 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+   if (!isStringArray(value.changedFiles)) {
+     issues.push(issue("evidence.changedFiles", `${filePath}.changedFiles must be a string array`));
+   }
++  if (value.requirementEvidence !== undefined) {
++    if (!Array.isArray(value.requirementEvidence)) {
++      issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence must be an array when present`));
++    } else {
++      const ids = new Set<string>();
++      value.requirementEvidence.forEach((entry, index) => {
++        if (!isObject(entry)) {
++          issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence[${index}] must be an object`));
++          return;
++        }
++        if (typeof entry.requirementId !== "string" || entry.requirementId.length === 0) {
++          issues.push(issue("evidence.requirementEvidence", `${filePath}.requirementEvidence[${index}].requirementId must be a non-empty string`));
++        } else if (ids.has(entry.requirementId)) {
++          issues.push(issue("evidence.requirementEvidence.duplicate", `${filePath}.requirementEvidence contains duplicate id ${entry.requirementId}`));
++        } else {
++          ids.add(entry.requirementId);
++        }
++        if (!["covered", "manual-required", "not-covered"].includes(String(entry.status))) {
++          issues.push(issue("evidence.requirementEvidence.status", `${filePath}.requirementEvidence[${index}].status is invalid`));
++        }
++        if (!isStringArray(entry.references)) {
++          issues.push(issue("evidence.requirementEvidence.references", `${filePath}.requirementEvidence[${index}].references must be a string array`));
++        }
++      });
++    }
++  }
+   if (value.submodules !== undefined && !Array.isArray(value.submodules)) {
+     issues.push(issue("evidence.submodules", `${filePath}.submodules must be an array when present`));
+   }
+diff --git a/src/core/types.ts b/src/core/types.ts
+index d0131b4..8885954 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -63,6 +63,16 @@ export type ApprovalPolicy =
+ export type SpecContractStatus = "draft" | "approved" | "superseded";
+ export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
+ 
++export type RequirementVerificationMode = "automated" | "manual" | "hybrid";
++
++export type SpecRequirement = {
++  id: string;
++  statement: string;
++  acceptanceScenarios: string[];
++  verificationMode: RequirementVerificationMode;
++  source: string;
++};
++
+ export type PlanningWorkItem = {
+   id: string;
+   title: string;
+@@ -93,6 +103,8 @@ export type SpecContract = {
+   acceptanceCriteria: string[];
+   approvedBy?: string;
+   approvedAt?: string;
++  requirementsVersion?: "1.0.0";
++  requirements?: SpecRequirement[];
+   planning?: SpecPlanning;
+ };
+ 
+@@ -127,6 +139,7 @@ export type TaskContract = {
+   wbsNodeId: string;
+   featureId: string;
+   branchName?: string;
++  requirementIds?: string[];
+   contractLock?: {
+     lockVersion?: "2";
+     wbsRevision?: string;
+@@ -187,6 +200,17 @@ export type CheckCoveragePolicy = {
+ export type EvidenceCheckStatus = "passed" | "failed" | "skipped";
+ export type EvidenceCheckSource = "ci" | "local" | "manual";
+ 
++export type RequirementEvidenceStatus = "covered" | "manual-required" | "not-covered";
++
++export type RequirementEvidence = {
++  requirementId: string;
++  status: RequirementEvidenceStatus;
++  references: string[];
++  checkNames?: string[];
++  subjectHeadCommit?: string;
++  diffHash?: string;
++};
++
+ export type CiReceiptJob = {
+   name: string;
+   checkNames: string[];
+@@ -321,6 +345,7 @@ export type Evidence = {
+     durationMilliseconds?: number;
+     verifiedBy?: string;
+   }>;
++  requirementEvidence?: RequirementEvidence[];
+   testQuality?: {
+     assertionsAdded?: boolean;
+     testsDisabled?: boolean;
+diff --git a/tests/integration/validate-feature.test.ts b/tests/integration/validate-feature.test.ts
+new file mode 100644
+index 0000000..eb0019a
+--- /dev/null
++++ b/tests/integration/validate-feature.test.ts
+@@ -0,0 +1,152 @@
++import { execFileSync } from "node:child_process";
++import { describe, expect, test } from "vitest";
++import { runValidateFeature } from "../../src/core/contracts.js";
++import { makeTempRepo, sampleEvidence, sampleSpec, sampleTask, writeYaml } from "../helpers.js";
++
++function capture(root: string, specId: string, baseRef = "HEAD"): { exitCode: number; report: Record<string, unknown> } {
++  const output: string[] = [];
++  const originalWrite = process.stdout.write;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  try {
++    const exitCode = runValidateFeature(root, specId, { baseRef, json: true });
++    return { exitCode, report: JSON.parse(output.join("")) as Record<string, unknown> };
++  } finally {
++    process.stdout.write = originalWrite;
++  }
++}
++
++function commitRepo(root: string): string {
++  execFileSync("git", ["add", "."], { cwd: root });
++  execFileSync("git", ["commit", "-m", "test fixture"], { cwd: root, stdio: "ignore" });
++  return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++}
++
++function writeStructuredFixture(root: string, options: { mode?: "automated" | "manual" | "hybrid"; coverage?: Record<string, unknown> } = {}): string {
++  const spec = sampleSpec({
++    requirementsVersion: "1.0.0",
++    requirements: [{
++      id: "REQ-API-001",
++      statement: "The API is traceable.",
++      acceptanceScenarios: ["A passing feature check covers the requirement."],
++      verificationMode: options.mode ?? "automated",
++      source: "issue:457"
++    }]
++  });
++  const task = sampleTask({ requirementIds: ["REQ-API-001"] });
++  writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
++  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
++  writeYaml(root, "contracts/tasks/index.yaml", {
++    tasks: [{ id: task.id, path: "contracts/tasks/WBS-001-004.yaml", branchName: task.branchName, wbsNodeId: task.wbsNodeId, status: "completed", dependsOn: [] }]
++  });
++  if (options.coverage) {
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
++      ...sampleEvidence({ taskId: task.id }),
++      subjectHeadCommit: "pending",
++      diffHash: "sha256:fixture",
++      requirementEvidence: [options.coverage]
++    } as unknown as Record<string, unknown>);
++  }
++  return commitRepo(root);
++}
++
++describe("validate feature", () => {
++  test("reports machine-readable legacy migration warning and NO-GO", () => {
++    const root = makeTempRepo();
++    const spec = sampleSpec();
++    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
++    commitRepo(root);
++
++    const result = capture(root, spec.id);
++    expect(result.exitCode).toBe(1);
++    expect(result.report).toMatchObject({ version: "scwbs.feature-validation.v1", status: "NO-GO" });
++    expect(result.report.warnings).toEqual(expect.arrayContaining([expect.stringContaining("legacy acceptanceCriteria")]));
++  });
++
++  test("rejects duplicate ownership and unassigned requirements", () => {
++    const root = makeTempRepo();
++    const spec = sampleSpec({
++      requirementsVersion: "1.0.0",
++      requirements: [
++        { id: "REQ-API-001", statement: "One", acceptanceScenarios: ["One"], verificationMode: "automated", source: "issue:457" },
++        { id: "REQ-API-002", statement: "Two", acceptanceScenarios: ["Two"], verificationMode: "automated", source: "issue:457" }
++      ]
++    });
++    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({ id: "WBS-001-006", requirementIds: ["REQ-API-999"] }) as unknown as Record<string, unknown>);
++    commitRepo(root);
++
++    const result = capture(root, spec.id);
++    expect(result.exitCode).toBe(1);
++    const requirements = result.report.requirements as Array<{ requirementId: string; issues: string[] }>;
++    expect(requirements[0]?.issues.join(" ")).toContain("Duplicate ownership");
++    expect(requirements[1]?.issues.join(" ")).toContain("No Task declares ownership");
++    expect(result.report.unknownRequirementDeclarations).toEqual([
++      { taskId: "WBS-001-006", requirementIds: ["REQ-API-999"] }
++    ]);
++  });
++
++  test("does not treat stale Evidence as covered", () => {
++    const root = makeTempRepo();
++    const head = writeStructuredFixture(root, {
++      coverage: {
++        requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "deadbeef", diffHash: "sha256:fixture"
++      }
++    });
++    const evidence = sampleEvidence({
++      subjectHeadCommit: "deadbeef",
++      diffHash: "sha256:fixture",
++      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "deadbeef", diffHash: "sha256:fixture" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
++    const current = commitRepo(root);
++    expect(current).not.toBe(head);
++    const result = capture(root, "SPEC-F001-API");
++    expect(result.exitCode).toBe(1);
++    expect((result.report.requirements as Array<{ evidenceStatus: string }>)[0]?.evidenceStatus).toBe("stale");
++  });
++
++  test("returns MANUAL_VERIFY_REQUIRED without human evidence", () => {
++    const root = makeTempRepo();
++    const subject = writeStructuredFixture(root, {
++      mode: "manual",
++      coverage: {
++        requirementId: "REQ-API-001", status: "covered", references: ["check:test"], subjectHeadCommit: "pending", diffHash: "sha256:fixture"
++      }
++    });
++    const evidence = sampleEvidence({
++      subjectHeadCommit: subject,
++      diffHash: "sha256:fixture",
++      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["check:test"], subjectHeadCommit: subject, diffHash: "sha256:fixture" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
++    const current = commitRepo(root);
++    const result = capture(root, "SPEC-F001-API", current);
++    expect(result.exitCode).toBe(2);
++    expect(result.report.status).toBe("MANUAL_VERIFY_REQUIRED");
++  });
++
++  test("returns GO only for current automated Evidence", () => {
++    const root = makeTempRepo();
++    const subject = writeStructuredFixture(root, {
++      coverage: {
++        requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "pending", diffHash: "sha256:fixture"
++      }
++    });
++    const evidence = sampleEvidence({
++      subjectHeadCommit: subject,
++      diffHash: "sha256:fixture",
++      checks: [{ name: "test", status: "passed" }],
++      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: subject, diffHash: "sha256:fixture" }]
++    });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
++    const current = commitRepo(root);
++    const result = capture(root, "SPEC-F001-API", current);
++    expect(result.exitCode).toBe(0);
++    expect(result.report).toMatchObject({ status: "GO", summary: { covered: 1, notCovered: 0, manualVerifyRequired: 0 } });
++  });
++});

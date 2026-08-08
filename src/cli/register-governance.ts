@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { type Command } from "commander";
-import { readSpec, readTask } from "../core/contracts.js";
+import { readSpec, readTask, runValidateFeature } from "../core/contracts.js";
 import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { SpecChangeProposal } from "../core/types.js";
@@ -89,6 +89,17 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
 
 export function registerGovernanceCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
+  const validate = program.command("validate").description("Validate cross-Task feature completion");
+  validate
+    .command("feature")
+    .description("Validate Requirement to Task to Evidence traceability")
+    .requiredOption("--spec <id>", "Spec id")
+    .option("--base <ref>", "merge base reference", "origin/main")
+    .option("--json", "print a versioned JSON report")
+    .action((options) => {
+      setExitCode(runValidateFeature(root, options.spec, { baseRef: options.base, json: options.json ?? false }));
+    });
+
   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
   specChange
     .command("new")

@@ -1,0 +1,68 @@
+id: SCWBS-DRAFT-MSKB4TGI
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSKB4TGI
+branchName: task/SCWBS-DRAFT-MSKB4TGI-issue-457-requirement-to-task-test-evidence-trac
+status: approved
+approvedBy: xmeta
+sourceIssue: 457
+allowedPaths:
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - src/core/contracts.ts
+  - src/core/evidence/build.ts
+  - src/commands/validate-feature.ts
+  - src/cli/register-governance.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/evidence-build.test.ts
+  - tests/integration/validate-feature.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - schema migration ambiguity
+  - cross-task semantic verification uncertainty
+  - Human Gate required
+  - authority outside allowed paths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Requirement records have stable IDs, statements, verification modes, and source metadata without removing legacy acceptanceCriteria strings
+  - Task contracts can declare requirement IDs and validation rejects unknown IDs, duplicate ownership, and unassigned requirements
+  - Evidence can map requirement IDs to checks or manual references and preserves current subject HEAD and diff provenance
+  - A read-only `validate feature --spec <id> --json` command returns a requirement-to-Task-to-Evidence matrix and GO, NO-GO, or MANUAL_VERIFY_REQUIRED
+  - Stale, missing, blocked, failed, unmerged, or semantically manual requirements cannot produce GO
+  - Existing Task `finish` behavior remains unchanged and migration warnings are machine-readable
+  - Tests cover legacy migration, unknown IDs, stale Evidence, manual requirements, cross-Task failures, and fully verified requirements
+  - 'Issue #457 acceptance criteria are documented in the implementation Evidence and the GitHub Issue is closed only after protected merge'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - feature-validation-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSKB4TGI.patch
+  - contracts/approvals/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSKB4TGI.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-08T11:47:30.913Z"

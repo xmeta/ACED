@@ -5,6 +5,19 @@ import type { Issue, SpecChangeProposal, SpecContract, TaskContract } from "../t
 import { isKnownManagedContractPath, isManagedContractPathForTask } from "../managed-contract-paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
+const requirementSchema = {
+  type: "object",
+  required: ["id", "statement", "acceptanceScenarios", "verificationMode", "source"],
+  additionalProperties: false,
+  properties: {
+    id: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" },
+    statement: { type: "string", minLength: 1 },
+    acceptanceScenarios: { type: "array", minItems: 1, items: { type: "string", minLength: 1 } },
+    verificationMode: { type: "string", enum: ["automated", "manual", "hybrid"] },
+    source: { type: "string", minLength: 1 }
+  }
+};
+
 const specContractSchema = {
   type: "object",
   required: ["id", "type", "featureId", "title", "status", "version", "acceptanceCriteria"],
@@ -19,6 +32,8 @@ const specContractSchema = {
     summary: { type: "string" },
     sourcePaths: stringArraySchema,
     acceptanceCriteria: stringArraySchema,
+    requirementsVersion: { const: "1.0.0" },
+    requirements: { type: "array", minItems: 1, uniqueItems: true, items: requirementSchema },
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
     planning: {
@@ -100,6 +115,7 @@ const taskContractSchema = {
     wbsNodeId: { type: "string", minLength: 1 },
     featureId: { type: "string", minLength: 1 },
     branchName: { type: "string", minLength: 1 },
+    requirementIds: { type: "array", uniqueItems: true, items: { type: "string", pattern: "^[A-Z][A-Z0-9._-]*$" } },
     completionScope: { type: "string", enum: ["node"] },
     completionTaskIds: stringArraySchema,
     managedContractPaths: {
@@ -269,6 +285,43 @@ export function validateSpecContract(value: unknown, filePath = "spec"): Issue[]
   if (!isStringArray(value.acceptanceCriteria)) {
     issues.push(issue("spec.array", `${filePath}.acceptanceCriteria must be a string array`));
   }
+  if (value.requirementsVersion !== undefined && value.requirementsVersion !== "1.0.0") {
+    issues.push(issue("spec.requirements.version", `${filePath}.requirementsVersion must be 1.0.0 when present`));
+  }
+  if (value.requirements !== undefined) {
+    if (!Array.isArray(value.requirements) || value.requirements.length === 0) {
+      issues.push(issue("spec.requirements", `${filePath}.requirements must be a non-empty array when present`));
+    } else {
+      const ids = new Set<string>();
+      value.requirements.forEach((requirement, index) => {
+        if (!isObject(requirement)) {
+          issues.push(issue("spec.requirements", `${filePath}.requirements[${index}] must be an object`));
+          return;
+        }
+        if (typeof requirement.id !== "string" || requirement.id.length === 0) {
+          issues.push(issue("spec.requirements.id", `${filePath}.requirements[${index}].id must be a non-empty string`));
+        } else if (ids.has(requirement.id)) {
+          issues.push(issue("spec.requirements.duplicate", `${filePath}.requirements contains duplicate id ${requirement.id}`));
+        } else {
+          ids.add(requirement.id);
+        }
+        if (typeof requirement.statement !== "string" || requirement.statement.length === 0) {
+          issues.push(issue("spec.requirements.statement", `${filePath}.requirements[${index}].statement must be a non-empty string`));
+        }
+        if (!isStringArray(requirement.acceptanceScenarios) || requirement.acceptanceScenarios.length === 0) {
+          issues.push(issue("spec.requirements.scenarios", `${filePath}.requirements[${index}].acceptanceScenarios must be a non-empty string array`));
+        }
+        if (!["automated", "manual", "hybrid"].includes(String(requirement.verificationMode))) {
+          issues.push(issue("spec.requirements.verificationMode", `${filePath}.requirements[${index}].verificationMode must be automated, manual, or hybrid`));
+        }
+        if (typeof requirement.source !== "string" || requirement.source.length === 0) {
+          issues.push(issue("spec.requirements.source", `${filePath}.requirements[${index}].source must be a non-empty string`));
+        }
+      });
+    }
+  } else if (value.requirementsVersion !== undefined) {
+    issues.push(issue("spec.requirements", `${filePath}.requirements is required when requirementsVersion is present`));
+  }
   if (value.sourcePaths !== undefined && !isStringArray(value.sourcePaths)) {
     issues.push(issue("spec.array", `${filePath}.sourcePaths must be a string array when present`));
   }
@@ -378,6 +431,9 @@ export function validateTaskContract(value: unknown, filePath = "task"): Issue[]
   }
   if (value.branchName !== undefined && (typeof value.branchName !== "string" || value.branchName.length === 0)) {
     issues.push(issue("task.field", `${filePath}.branchName must be a non-empty string when present`));
+  }
+  if (value.requirementIds !== undefined && !isStringArray(value.requirementIds)) {
+    issues.push(issue("task.requirementIds", `${filePath}.requirementIds must be a string array when present`));
   }
   if (value.mode !== undefined && value.mode !== "lite") {
     issues.push(issue("task.mode", `${filePath}.mode must be lite when present`));
