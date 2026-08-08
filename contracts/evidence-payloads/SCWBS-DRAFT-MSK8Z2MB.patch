@@ -43,10 +43,17 @@ index 0000000..b52d6fd
 +      shell: bash
 +      run: corepack npm ci --no-audit --no-fund
 diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
-index f0760e4..8719ae1 100644
+index f0760e4..b0e9a9c 100644
 --- a/.github/workflows/scwbs.yml
 +++ b/.github/workflows/scwbs.yml
-@@ -22,31 +22,20 @@ jobs:
+@@ -17,36 +17,27 @@ on:
+ jobs:
+   plan:
+     runs-on: ubuntu-latest
++    env:
++      SCWBS_APPROVAL_DELEGATION_TOKEN: ${{ secrets.SCWBS_APPROVAL_DELEGATION_TOKEN }}
+     outputs:
+       mode: ${{ steps.final.outputs.mode }}
        task_id: ${{ steps.final.outputs.task_id }}
        subject: ${{ steps.final.outputs.subject }}
      steps:
@@ -84,7 +91,7 @@ index f0760e4..8719ae1 100644
        - name: Build structural CI plan
          id: candidate
          env:
-@@ -256,24 +245,14 @@ jobs:
+@@ -256,24 +247,14 @@ jobs:
        matrix:
          node-version: ["22.12.0"]
      steps:
@@ -113,7 +120,7 @@ index f0760e4..8719ae1 100644
            npm run lint
            npm test
            npm run typecheck
-@@ -284,23 +263,12 @@ jobs:
+@@ -284,23 +265,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
@@ -140,7 +147,7 @@ index f0760e4..8719ae1 100644
        - name: Verify npm workspaces
          run: npm ls --workspaces --depth=0
        - name: Lint
-@@ -360,23 +328,12 @@ jobs:
+@@ -360,23 +330,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
@@ -167,7 +174,7 @@ index f0760e4..8719ae1 100644
        - name: Integration tests
          run: npm run test:integration
  
-@@ -385,23 +342,12 @@ jobs:
+@@ -385,23 +344,12 @@ jobs:
      if: always() && needs.plan.outputs.mode == 'full'
      runs-on: ubuntu-latest
      steps:
