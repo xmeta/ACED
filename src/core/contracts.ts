@@ -1,15 +1,75 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { readYamlFile } from "./yaml.js";
-import { commitExists, isCommitAncestor } from "./git.js";
-import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
-import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+import { commitExists, isCommitAncestor, trackedTextFiles } from "./git.js";
+import { matchesGlob } from "./glob.js";
+import {
+  approvalPath,
+  blockPath,
+  defaultApprovalsDir,
+  defaultBlocksDir,
+  defaultEvidenceDir,
+  defaultRegistryPath,
+  defaultReviewsDir,
+  defaultSpecChangesDir,
+  defaultSpecsDir,
+  defaultTasksDir,
+  isValidTaskId,
+  resolveFrom,
+  reviewPath,
+  taskPath,
+  evidencePath
+} from "./paths.js";
+import {
+  asApprovalRecord,
+  asBlockRecord,
+  asEvidence,
+  asRegistry,
+  asReviewRecord,
+  asSpecChangeProposal,
+  asSpecContract,
+  asTaskContract,
+  validateApprovalRecord,
+  validateApprovalRecordSchema,
+  validateBlockRecord,
+  validateBlockRecordSchema,
+  validateEvidence,
+  validateEvidenceSchema,
+  validateRegistry,
+  validateRegistrySchema,
+  validateReviewRecord,
+  validateReviewRecordSchema,
+  validateSpecChangeProposal,
+  validateSpecChangeProposalSchema,
+  validateSpecContract,
+  validateSpecContractSchema,
+  validateTaskContract,
+  validateTaskContractSchema
+} from "./schema.js";
 import { activeTaskEntries, readTaskIndex } from "./task-index.js";
-import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, RequirementEvidence, RequirementVerificationMode, ReviewRecord, SpecChangeProposal, SpecContract, SpecRequirement, TaskContract } from "./types.js";
+import type {
+  ArtifactDefinition,
+  ArtifactWorkflow,
+  ApprovalRecord,
+  BlockRecord,
+  Evidence,
+  Issue,
+  Registry,
+  RegistryContract,
+  RequirementEvidence,
+  RequirementVerificationMode,
+  ReviewRecord,
+  SpecChangeProposal,
+  SpecContract,
+  SpecRequirement,
+  TaskContract
+} from "./types.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
   if (!existsSync(fullPath)) {
-    return { issues: [{ severity: "error", code: "registry.missing", message: `${defaultRegistryPath} does not exist` }] };
+    return {
+      issues: [{ severity: "error", code: "registry.missing", message: `${defaultRegistryPath} does not exist` }]
+    };
   }
   const value = readYamlFile<unknown>(fullPath);
   const issues = [...validateRegistrySchema(value, defaultRegistryPath), ...validateRegistry(value)];
@@ -40,13 +100,19 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
 }
 
-export function readSpecChange(root: string, relativePath: string): { specChange?: SpecChangeProposal; issues: Issue[] } {
+export function readSpecChange(
+  root: string,
+  relativePath: string
+): { specChange?: SpecChangeProposal; issues: Issue[] } {
   const fullPath = resolveFrom(root, relativePath);
   if (!existsSync(fullPath)) {
     return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateSpecChangeProposalSchema(value, relativePath), ...validateSpecChangeProposal(value, relativePath)];
+  const issues = [
+    ...validateSpecChangeProposalSchema(value, relativePath),
+    ...validateSpecChangeProposal(value, relativePath)
+  ];
   return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
 }
 
@@ -136,7 +202,9 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
     });
 }
 
-export function listSpecChanges(root: string): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
+export function listSpecChanges(
+  root: string
+): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
   const dir = resolveFrom(root, defaultSpecChangesDir);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -208,20 +276,33 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
   });
 }
 
-export function matchingRegistrySpecByPath(registry: Registry | undefined, specPath: string): RegistryContract | undefined {
+export function matchingRegistrySpecByPath(
+  registry: Registry | undefined,
+  specPath: string
+): RegistryContract | undefined {
   return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
 }
 
-export function matchingRegistrySpecChangeByPath(registry: Registry | undefined, specChangePath: string): RegistryContract | undefined {
+export function matchingRegistrySpecChangeByPath(
+  registry: Registry | undefined,
+  specChangePath: string
+): RegistryContract | undefined {
   return registry?.contracts.find((contract) => contract.type === "spec-change" && contract.path === specChangePath);
 }
 
-export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {
+export function readSpecFromRegistryContract(
+  root: string,
+  contract: RegistryContract
+): { spec?: SpecContract; path: string; issues: Issue[] } {
   const { spec, issues } = readSpec(root, contract.path);
   return { spec, path: contract.path, issues };
 }
 
-export function resolveSpecForTask(root: string, registry: Registry | undefined, task: TaskContract): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
+export function resolveSpecForTask(
+  root: string,
+  registry: Registry | undefined,
+  task: TaskContract
+): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
   const contract = matchingSpecContract(registry, task);
   if (!contract) return { issues: [] };
   const { spec, path, issues } = readSpecFromRegistryContract(root, contract);
@@ -273,7 +354,9 @@ function normalizedRequirements(spec: SpecContract): { requirements: SpecRequire
       verificationMode: "manual",
       source: "legacy:acceptanceCriteria"
     })),
-    warnings: [`${spec.id} uses legacy acceptanceCriteria; add requirementsVersion: 1.0.0 and stable requirement IDs before feature validation can produce GO`]
+    warnings: [
+      `${spec.id} uses legacy acceptanceCriteria; add requirementsVersion: 1.0.0 and stable requirement IDs before feature validation can produce GO`
+    ]
   };
 }
 
@@ -290,14 +373,24 @@ function featureEvidenceStatus(
   baseRef: string
 ): { status: FeatureRequirementResult["evidenceStatus"]; issues: string[] } {
   if (!evidence || !coverage) return { status: "missing", issues: ["Requirement Evidence is missing"] };
-  if (coverage.subjectHeadCommit !== evidence.subjectHeadCommit || coverage.diffHash !== evidence.diffHash || !coverage.subjectHeadCommit || !coverage.diffHash) {
-    return { status: "stale", issues: ["Requirement Evidence provenance does not match Evidence subjectHeadCommit/diffHash"] };
+  if (
+    coverage.subjectHeadCommit !== evidence.subjectHeadCommit ||
+    coverage.diffHash !== evidence.diffHash ||
+    !coverage.subjectHeadCommit ||
+    !coverage.diffHash
+  ) {
+    return {
+      status: "stale",
+      issues: ["Requirement Evidence provenance does not match Evidence subjectHeadCommit/diffHash"]
+    };
   }
-  if (!commitExists(root, coverage.subjectHeadCommit)) return { status: "stale", issues: ["Requirement Evidence subject HEAD does not exist"] };
+  if (!commitExists(root, coverage.subjectHeadCommit))
+    return { status: "stale", issues: ["Requirement Evidence subject HEAD does not exist"] };
   if (!isCommitAncestor(root, coverage.subjectHeadCommit, baseRef)) {
     return { status: "stale", issues: [`Requirement Evidence subject HEAD is not merged into ${baseRef}`] };
   }
-  if (coverage.status === "not-covered") return { status: "not-covered", issues: ["Evidence explicitly marks the requirement as not-covered"] };
+  if (coverage.status === "not-covered")
+    return { status: "not-covered", issues: ["Evidence explicitly marks the requirement as not-covered"] };
   const humanReference = coverage.references.some((reference) => /^(human|manual):/i.test(reference));
   if (verificationMode === "manual" || verificationMode === "hybrid") {
     return coverage.status === "covered" && humanReference
@@ -308,7 +401,10 @@ function featureEvidenceStatus(
   const checkNames = coverage.checkNames ?? [];
   return coverage.status === "covered" && checkNames.length > 0 && checkNames.every((check) => passedChecks.has(check))
     ? { status: "covered", issues: [] }
-    : { status: "not-covered", issues: ["Automated Requirement needs covered status and current passed check references"] };
+    : {
+        status: "not-covered",
+        issues: ["Automated Requirement needs covered status and current passed check references"]
+      };
 }
 
 function printFeatureValidation(report: FeatureValidationReport, json: boolean): void {
@@ -317,7 +413,11 @@ function printFeatureValidation(report: FeatureValidationReport, json: boolean):
     return;
   }
   process.stdout.write(`Feature validation: ${report.status}\n`);
-  report.requirements.forEach((requirement) => process.stdout.write(`- ${requirement.requirementId}: ${requirement.evidenceStatus}${requirement.issues.length > 0 ? ` (${requirement.issues.join("; ")})` : ""}\n`));
+  report.requirements.forEach((requirement) =>
+    process.stdout.write(
+      `- ${requirement.requirementId}: ${requirement.evidenceStatus}${requirement.issues.length > 0 ? ` (${requirement.issues.join("; ")})` : ""}\n`
+    )
+  );
   report.warnings.forEach((warning) => process.stdout.write(`WARN ${warning}\n`));
 }
 
@@ -338,7 +438,7 @@ export function runValidateFeature(root: string, specId: string, options: Featur
   }
   const spec = specEntry.spec;
   const normalized = normalizedRequirements(spec);
-  const tasks = listTasks(root).flatMap((entry) => entry.task ? [entry.task] : []);
+  const tasks = listTasks(root).flatMap((entry) => (entry.task ? [entry.task] : []));
   const statuses = featureTaskStatuses(root);
   const baseRef = options.baseRef ?? "origin/main";
   const knownIds = new Set(normalized.requirements.map((requirement) => requirement.id));
@@ -352,10 +452,19 @@ export function runValidateFeature(root: string, specId: string, options: Featur
     const issues: string[] = [];
     if (owners.length === 0) issues.push("No Task declares ownership of this Requirement");
     if (owners.length > 1) issues.push(`Duplicate ownership by ${taskIds.join(", ")}`);
-    if (owners.length !== 1) return { requirementId: requirement.id, statement: requirement.statement, verificationMode: requirement.verificationMode, taskIds, evidenceStatus: "not-covered", issues };
+    if (owners.length !== 1)
+      return {
+        requirementId: requirement.id,
+        statement: requirement.statement,
+        verificationMode: requirement.verificationMode,
+        taskIds,
+        evidenceStatus: "not-covered",
+        issues
+      };
     const task = owners[0] as TaskContract;
     const taskStatus = statuses.get(task.id) ?? "planned";
-    if (!["completed", "archived"].includes(taskStatus)) issues.push(`Task ${task.id} is ${taskStatus}, not completed or archived`);
+    if (!["completed", "archived"].includes(taskStatus))
+      issues.push(`Task ${task.id} is ${taskStatus}, not completed or archived`);
     const { evidence } = readEvidence(root, task.id);
     const coverage = evidence?.requirementEvidence?.find((entry) => entry.requirementId === requirement.id);
     const evidenceResult = featureEvidenceStatus(root, evidence, coverage, requirement.verificationMode, baseRef);
@@ -369,18 +478,410 @@ export function runValidateFeature(root: string, specId: string, options: Featur
       issues
     };
   });
-  const manualVerifyRequired = requirements.filter((requirement) => requirement.evidenceStatus === "manual-required").length;
-  const notCovered = requirements.filter((requirement) => !["covered", "manual-required"].includes(requirement.evidenceStatus)).length;
+  const manualVerifyRequired = requirements.filter(
+    (requirement) => requirement.evidenceStatus === "manual-required"
+  ).length;
+  const notCovered = requirements.filter(
+    (requirement) => !["covered", "manual-required"].includes(requirement.evidenceStatus)
+  ).length;
   const report: FeatureValidationReport = {
     version: "scwbs.feature-validation.v1",
     status: notCovered > 0 ? "NO-GO" : manualVerifyRequired > 0 ? "MANUAL_VERIFY_REQUIRED" : "GO",
-    spec: { id: spec.id, version: spec.version, ...(spec.requirementsVersion ? { requirementsVersion: spec.requirementsVersion } : {}) },
+    spec: {
+      id: spec.id,
+      version: spec.version,
+      ...(spec.requirementsVersion ? { requirementsVersion: spec.requirementsVersion } : {})
+    },
     requirements,
     unknownRequirementDeclarations,
-    warnings: [...normalized.warnings, ...unknownRequirementDeclarations.map((entry) => `Task ${entry.taskId} declares unknown Requirement IDs: ${entry.requirementIds.join(", ")}`)],
-    summary: { total: requirements.length, covered: requirements.length - notCovered - manualVerifyRequired, notCovered, manualVerifyRequired }
+    warnings: [
+      ...normalized.warnings,
+      ...unknownRequirementDeclarations.map(
+        (entry) => `Task ${entry.taskId} declares unknown Requirement IDs: ${entry.requirementIds.join(", ")}`
+      )
+    ],
+    summary: {
+      total: requirements.length,
+      covered: requirements.length - notCovered - manualVerifyRequired,
+      notCovered,
+      manualVerifyRequired
+    }
   };
   if (unknownRequirementDeclarations.length > 0 && report.status === "GO") report.status = "NO-GO";
   printFeatureValidation(report, options.json ?? false);
   return report.status === "GO" ? 0 : report.status === "MANUAL_VERIFY_REQUIRED" ? 2 : 1;
+}
+
+const artifactWorkflowRootKeys = new Set(["version", "id", "artifacts", "profiles"]);
+const artifactDefinitionKeys = new Set([
+  "id",
+  "path",
+  "description",
+  "dependencies",
+  "template",
+  "instruction",
+  "context",
+  "rules",
+  "validation",
+  "completion"
+]);
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function safeArtifactPath(value: string): boolean {
+  const normalized = value.replace(/\\/g, "/");
+  return !normalized.startsWith("/") && !normalized.split("/").includes("..") && !normalized.includes("\0");
+}
+
+function artifactWorkflowValue(root: string, relativePath: string): unknown {
+  const fullPath = resolveFrom(root, relativePath);
+  if (!existsSync(fullPath)) throw new Error(`${relativePath} does not exist`);
+  const source = readFileSync(fullPath, "utf8");
+  return relativePath.endsWith(".json") ? (JSON.parse(source) as unknown) : readYamlFile<unknown>(fullPath);
+}
+
+export function readArtifactWorkflow(
+  root: string,
+  relativePath: string
+): { workflow?: ArtifactWorkflow; issues: Issue[] } {
+  let value: unknown;
+  try {
+    value = artifactWorkflowValue(root, relativePath);
+  } catch (error) {
+    return {
+      issues: [
+        { severity: "error", code: "workflow.read", message: error instanceof Error ? error.message : String(error) }
+      ]
+    };
+  }
+  const issues: Issue[] = [];
+  if (!isObjectRecord(value))
+    return {
+      issues: [{ severity: "error", code: "workflow.object", message: `${relativePath} must contain an object` }]
+    };
+  for (const key of Object.keys(value))
+    if (!artifactWorkflowRootKeys.has(key))
+      issues.push({
+        severity: "error",
+        code: "workflow.unknownField",
+        message: `${relativePath}.${key} is not supported`
+      });
+  if (value.version !== "1.0.0")
+    issues.push({ severity: "error", code: "workflow.version", message: `${relativePath}.version must be 1.0.0` });
+  if (typeof value.id !== "string" || value.id.length === 0)
+    issues.push({ severity: "error", code: "workflow.id", message: `${relativePath}.id must be a non-empty string` });
+  if (!Array.isArray(value.artifacts) || value.artifacts.length === 0)
+    issues.push({
+      severity: "error",
+      code: "workflow.artifacts",
+      message: `${relativePath}.artifacts must be a non-empty array`
+    });
+  const artifacts: ArtifactDefinition[] = [];
+  const ids = new Set<string>();
+  if (Array.isArray(value.artifacts))
+    value.artifacts.forEach((raw, index) => {
+      const label = `${relativePath}.artifacts[${index}]`;
+      if (!isObjectRecord(raw)) {
+        issues.push({ severity: "error", code: "workflow.artifact", message: `${label} must be an object` });
+        return;
+      }
+      for (const key of Object.keys(raw))
+        if (!artifactDefinitionKeys.has(key))
+          issues.push({
+            severity: "error",
+            code: "workflow.unknownField",
+            message: `${label}.${key} is not supported`
+          });
+      const id = typeof raw.id === "string" ? raw.id : "";
+      const artifactPath = typeof raw.path === "string" ? raw.path : "";
+      const description = typeof raw.description === "string" ? raw.description : "";
+      const dependencies =
+        Array.isArray(raw.dependencies) && raw.dependencies.every((item) => typeof item === "string")
+          ? (raw.dependencies as string[])
+          : [];
+      if (!id)
+        issues.push({
+          severity: "error",
+          code: "workflow.artifact.id",
+          message: `${label}.id must be a non-empty string`
+        });
+      if (ids.has(id))
+        issues.push({
+          severity: "error",
+          code: "workflow.duplicateId",
+          message: `${relativePath} contains duplicate artifact id ${id}`
+        });
+      ids.add(id);
+      if (!artifactPath || !safeArtifactPath(artifactPath))
+        issues.push({
+          severity: "error",
+          code: "workflow.pathEscape",
+          message: `${label}.path must remain inside the repository`
+        });
+      if (!description)
+        issues.push({
+          severity: "error",
+          code: "workflow.artifact.description",
+          message: `${label}.description must be a non-empty string`
+        });
+      if (!Array.isArray(raw.dependencies) || !raw.dependencies.every((item) => typeof item === "string"))
+        issues.push({
+          severity: "error",
+          code: "workflow.dependencies",
+          message: `${label}.dependencies must be a string array`
+        });
+      if (raw.template !== undefined && (typeof raw.template !== "string" || raw.template.length === 0))
+        issues.push({
+          severity: "error",
+          code: "workflow.template",
+          message: `${label}.template must be a non-empty string`
+        });
+      if (raw.instruction !== undefined && (typeof raw.instruction !== "string" || raw.instruction.length === 0))
+        issues.push({
+          severity: "error",
+          code: "workflow.instruction",
+          message: `${label}.instruction must be a non-empty string`
+        });
+      if (
+        raw.context !== undefined &&
+        (!Array.isArray(raw.context) || !raw.context.every((item) => typeof item === "string" && item.length > 0))
+      )
+        issues.push({
+          severity: "error",
+          code: "workflow.context",
+          message: `${label}.context must be a non-empty string array`
+        });
+      if (
+        raw.rules !== undefined &&
+        (!Array.isArray(raw.rules) || !raw.rules.every((item) => typeof item === "string" && item.length > 0))
+      )
+        issues.push({
+          severity: "error",
+          code: "workflow.rules",
+          message: `${label}.rules must be a non-empty string array`
+        });
+      if (raw.validation !== undefined && (typeof raw.validation !== "string" || raw.validation.length === 0))
+        issues.push({
+          severity: "error",
+          code: "workflow.validation",
+          message: `${label}.validation must be a non-empty string`
+        });
+      const completionValue = isObjectRecord(raw.completion) ? raw.completion : undefined;
+      if (completionValue)
+        for (const key of Object.keys(completionValue))
+          if (!["mode", "path"].includes(key))
+            issues.push({
+              severity: "error",
+              code: "workflow.unknownField",
+              message: `${label}.completion.${key} is not supported`
+            });
+      if (
+        completionValue?.path !== undefined &&
+        (typeof completionValue.path !== "string" || completionValue.path.length === 0)
+      )
+        issues.push({
+          severity: "error",
+          code: "workflow.completion.path",
+          message: `${label}.completion.path must be a non-empty string`
+        });
+      const completion =
+        completionValue?.mode === "path-exists"
+          ? {
+              mode: "path-exists" as const,
+              ...(typeof completionValue.path === "string" ? { path: completionValue.path } : {})
+            }
+          : undefined;
+      if (!completion)
+        issues.push({
+          severity: "error",
+          code: "workflow.completion",
+          message: `${label}.completion.mode must be path-exists`
+        });
+      if (completion && completion.path !== undefined && !safeArtifactPath(completion.path))
+        issues.push({
+          severity: "error",
+          code: "workflow.pathEscape",
+          message: `${label}.completion.path must remain inside the repository`
+        });
+      if (id && artifactPath && description && completion)
+        artifacts.push({
+          id,
+          path: artifactPath,
+          description,
+          dependencies,
+          ...(typeof raw.template === "string" ? { template: raw.template } : {}),
+          ...(typeof raw.instruction === "string" ? { instruction: raw.instruction } : {}),
+          ...(Array.isArray(raw.context) && raw.context.every((item) => typeof item === "string")
+            ? { context: raw.context as string[] }
+            : {}),
+          ...(Array.isArray(raw.rules) && raw.rules.every((item) => typeof item === "string")
+            ? { rules: raw.rules as string[] }
+            : {}),
+          ...(typeof raw.validation === "string" ? { validation: raw.validation } : {}),
+          completion
+        });
+    });
+  const artifactIds = new Set(artifacts.map((artifact) => artifact.id));
+  artifacts.forEach((artifact) =>
+    artifact.dependencies.forEach((dependency) => {
+      if (!artifactIds.has(dependency))
+        issues.push({
+          severity: "error",
+          code: "workflow.missingDependency",
+          message: `${relativePath}.${artifact.id} depends on unknown artifact ${dependency}`
+        });
+      if (dependency === artifact.id)
+        issues.push({
+          severity: "error",
+          code: "workflow.cycle",
+          message: `${relativePath}.${artifact.id} cannot depend on itself`
+        });
+    })
+  );
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const byId = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+  const visit = (id: string): void => {
+    if (visiting.has(id)) {
+      issues.push({
+        severity: "error",
+        code: "workflow.cycle",
+        message: `${relativePath} contains a dependency cycle at ${id}`
+      });
+      return;
+    }
+    if (visited.has(id)) return;
+    visiting.add(id);
+    byId
+      .get(id)
+      ?.dependencies.filter((dependency) => byId.has(dependency))
+      .forEach(visit);
+    visiting.delete(id);
+    visited.add(id);
+  };
+  artifacts.forEach((artifact) => visit(artifact.id));
+  if (value.profiles !== undefined) {
+    if (!isObjectRecord(value.profiles))
+      issues.push({
+        severity: "error",
+        code: "workflow.profiles",
+        message: `${relativePath}.profiles must be an object`
+      });
+    else
+      Object.entries(value.profiles).forEach(([profile, members]) => {
+        if (
+          !Array.isArray(members) ||
+          !members.every((member) => typeof member === "string" && artifactIds.has(member))
+        )
+          issues.push({
+            severity: "error",
+            code: "workflow.profiles",
+            message: `${relativePath}.profiles.${profile} must reference known artifact IDs`
+          });
+      });
+  }
+  return issues.length > 0
+    ? { issues }
+    : {
+        workflow: {
+          version: "1.0.0",
+          id: value.id as string,
+          artifacts,
+          ...(isObjectRecord(value.profiles) ? { profiles: value.profiles as Record<string, string[]> } : {})
+        },
+        issues: []
+      };
+}
+
+export type ArtifactWorkflowStatus = {
+  version: "scwbs.artifact-workflow-status.v1";
+  workflowId: string;
+  artifacts: Array<{
+    id: string;
+    state: "blocked" | "ready" | "done";
+    path: string;
+    missingDependencies: string[];
+    unlocks: string[];
+  }>;
+};
+
+export function buildArtifactWorkflowStatus(root: string, workflow: ArtifactWorkflow): ArtifactWorkflowStatus {
+  const files = trackedTextFiles(root);
+  const done = new Set(
+    workflow.artifacts
+      .filter((artifact) =>
+        files.some(
+          (file) =>
+            matchesGlob(file, artifact.path) ||
+            (artifact.completion.path !== undefined && matchesGlob(file, artifact.completion.path))
+        )
+      )
+      .map((artifact) => artifact.id)
+  );
+  return {
+    version: "scwbs.artifact-workflow-status.v1",
+    workflowId: workflow.id,
+    artifacts: workflow.artifacts.map((artifact) => {
+      const missingDependencies = artifact.dependencies.filter((dependency) => !done.has(dependency));
+      const unlocks = workflow.artifacts
+        .filter((candidate) => candidate.dependencies.includes(artifact.id))
+        .map((candidate) => candidate.id)
+        .sort();
+      return {
+        id: artifact.id,
+        state: done.has(artifact.id) ? "done" : missingDependencies.length > 0 ? "blocked" : "ready",
+        path: artifact.path,
+        missingDependencies,
+        unlocks
+      };
+    })
+  };
+}
+
+export function runArtifactWorkflowStatus(
+  root: string,
+  relativePath: string,
+  options: { json?: boolean } = {}
+): number {
+  const result = readArtifactWorkflow(root, relativePath);
+  if (!result.workflow) {
+    result.issues.forEach((item) => console.error(`ERROR ${item.code}: ${item.message}`));
+    return 1;
+  }
+  const report = buildArtifactWorkflowStatus(root, result.workflow);
+  if (options.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  else report.artifacts.forEach((artifact) => process.stdout.write(`${artifact.id}: ${artifact.state}\n`));
+  return 0;
+}
+
+export function runArtifactWorkflowInstructions(
+  root: string,
+  relativePath: string,
+  artifactId: string,
+  options: { json?: boolean } = {}
+): number {
+  const result = readArtifactWorkflow(root, relativePath);
+  const artifact = result.workflow?.artifacts.find((candidate) => candidate.id === artifactId);
+  if (!result.workflow || !artifact) {
+    [
+      ...result.issues,
+      ...(result.workflow
+        ? [{ severity: "error" as const, code: "workflow.artifact.missing", message: `Unknown artifact ${artifactId}` }]
+        : [])
+    ].forEach((item) => console.error(`ERROR ${item.code}: ${item.message}`));
+    return 1;
+  }
+  const status = buildArtifactWorkflowStatus(root, result.workflow);
+  const snapshot = {
+    version: "scwbs.artifact-workflow-instructions.v1",
+    workflowId: result.workflow.id,
+    artifact,
+    dependencySnapshot: status.artifacts.filter((candidate) => artifact.dependencies.includes(candidate.id)),
+    authority: "advisory-only; Task Contract, Approval, Human Gate, and Evidence provenance remain authoritative"
+  };
+  if (options.json) process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\n`);
+  else process.stdout.write(`${artifact.id}\n${artifact.instruction ?? "No instruction declared."}\n`);
+  return 0;
 }
