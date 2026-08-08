@@ -1,0 +1,95 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSK8BCJL.yaml b/contracts/tasks/SCWBS-DRAFT-MSK8BCJL.yaml
+new file mode 100644
+index 0000000..0a6749d
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSK8BCJL.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MSK8BCJL
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSK8BCJL
++branchName: task/SCWBS-DRAFT-MSK8BCJL-issue-444-make-lint-warnings-fail-closed
++allowedPaths:
++  - package.json
++forbiddenPaths:
++  - src/auth/**
++  - src/database/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema change required
++  - dependency change required
++  - authentication or permission change required
++  - breaking API change required
++  - external service or release decision required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #444: make lint warnings fail closed'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++approvalPolicy:
++  mode: delegated
++  delegatedBy: xmeta
++  delegatedTo: ai-agent
++  scopes:
++    - human-gate
++    - post-finish
++  source: https://github.com/xmeta/ACED/issues/444
++  reason: "xmeta delegates bounded human-gate and post-finish approval for Issue #444"
++  expiresAt: "2026-12-31T00:00:00.000Z"
++  tokenSha256: sha256:e3d7c44606a58c4624550061137669f4dc7d1f00e941f50b5f09e0459275f9c5
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSK8BCJL.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSK8BCJL.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSK8BCJL.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSK8BCJL.patch
++  - contracts/approvals/SCWBS-DRAFT-MSK8BCJL.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSK8BCJL.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T10:27:06.111Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 2cdba6c..733f647 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1679,3 +1679,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-08T10:25:01.132Z"
++  - id: SCWBS-DRAFT-MSK8BCJL
++    path: contracts/tasks/SCWBS-DRAFT-MSK8BCJL.yaml
++    branchName: task/SCWBS-DRAFT-MSK8BCJL-issue-444-make-lint-warnings-fail-closed
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/package.json b/package.json
+index c99d653..eb27946 100644
+--- a/package.json
++++ b/package.json
+@@ -22,7 +22,7 @@
+   "scripts": {
+     "build": "tsc -p tsconfig.json",
+     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.{js,mjs,ts}\" \"*.{js,json,md,ts,yaml,yml}\" \".github/**/*.yml\" \"docs/**/*.{json,md,yaml,yml}\"",
+-    "lint": "eslint src tests scripts --max-warnings=37",
++    "lint": "eslint src tests scripts --max-warnings=0",
+     "prepack": "npm run build",
+     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
+     "test": "vitest run tests/unit",
