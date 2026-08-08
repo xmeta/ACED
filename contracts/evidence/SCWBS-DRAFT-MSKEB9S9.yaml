@@ -24,6 +24,8 @@ git:
   diffHash: sha256:f4fc74d6b194001fa1b9c5de0589d7cf5e790a69a3a5e1c4d88e2d8fe0317e3f
   headCommit: 727df079d7b5025a2dd3a469b28304d4f0a6fded
 changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSKEB9S9.patch
+  - contracts/evidence/SCWBS-DRAFT-MSKEB9S9.yaml
   - contracts/registry.yaml
   - contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
   - contracts/tasks/index.yaml
@@ -62,3 +64,9 @@ checks:
     cacheKey: sha256:e89aef8534788eaa46c122d62963c9136c584b2bb68270b28db08852601c259e
     durationMilliseconds: 266292
     executedAt: "2026-08-08T13:40:10.824Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - planning storeの正常参照、stale、missing、path escape、dirty/cycle、authority境界を追加した回帰テスト
