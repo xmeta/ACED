@@ -1,0 +1,38 @@
+name: Set up Node.js toolchain
+description: Check out the repository, configure Node.js and Corepack, and install dependencies
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: true
+  checkout-ref:
+    description: Optional ref to check out
+    required: false
+    default: ""
+  fetch-depth:
+    description: Git fetch depth
+    required: false
+    default: "1"
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ inputs.checkout-ref }}
+        fetch-depth: ${{ inputs.fetch-depth }}
+        submodules: recursive
+    - name: Set up Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+    - name: Enable Corepack and report toolchain
+      shell: bash
+      run: |
+        npm install --global corepack@0.35.0
+        corepack enable
+        node --version
+        corepack npm --version
+    - name: Install dependencies
+      shell: bash
+      run: corepack npm ci --no-audit --no-fund
