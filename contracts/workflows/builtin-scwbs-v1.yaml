@@ -1,0 +1,71 @@
+version: "1.0.0"
+id: builtin-scwbs-v1
+artifacts:
+  - id: task-contract
+    path: contracts/tasks/*.yaml
+    description: Task Contract defining scope and authority
+    dependencies: []
+    instruction: Read the Task Contract before implementation.
+    context:
+      - contracts/tasks/index.yaml
+    rules:
+      - Task Contract remains authoritative for allowed paths and stop conditions.
+    validation: npm run scwbs -- check
+    completion:
+      mode: path-exists
+  - id: evidence
+    path: contracts/evidence/*.yaml
+    description: Evidence record for required checks and provenance
+    dependencies:
+      - task-contract
+    instruction: Collect Evidence after implementation and required checks.
+    rules:
+      - Evidence does not replace Task Contract or Approval provenance.
+    validation: npm run scwbs -- finish --task <task-id>
+    completion:
+      mode: path-exists
+  - id: approval
+    path: contracts/approvals/*.yaml
+    description: Approval record for Human Gate decisions
+    dependencies:
+      - evidence
+    instruction: Stop for human approval unless a bounded delegated policy is valid.
+    rules:
+      - AI must not create human-only approved records.
+    validation: npm run scwbs -- check-diff --task <task-id>
+    completion:
+      mode: path-exists
+  - id: registry
+    path: contracts/registry.yaml
+    description: Registry index synchronized with contract records
+    dependencies:
+      - evidence
+    instruction: Rebuild the Registry after Evidence or Approval changes.
+    validation: npm run scwbs -- registry rebuild --check
+    completion:
+      mode: path-exists
+  - id: review
+    path: contracts/reviews/*.yaml
+    description: Review record for diff and boundary review
+    dependencies:
+      - evidence
+    instruction: Review the Task Contract, Spec, diff, Evidence, and mechanical checks.
+    completion:
+      mode: path-exists
+profiles:
+  Lean:
+    - task-contract
+    - evidence
+    - registry
+  Standard:
+    - task-contract
+    - evidence
+    - approval
+    - registry
+    - review
+  Strict:
+    - task-contract
+    - evidence
+    - approval
+    - registry
+    - review

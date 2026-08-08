@@ -7,7 +7,8 @@ export type Issue = {
   fixCommand?: string;
 };
 
-export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
+export type RegistryContractType =
+  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
 
 export type RegistryContract = {
   id: string;
@@ -26,7 +27,8 @@ export type Registry = {
   contracts: RegistryContract[];
 };
 
-export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
+export type TaskLifecycleStatus =
+  "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
 
 export type TaskPriority = "high" | "medium" | "low";
 
@@ -71,6 +73,28 @@ export type SpecRequirement = {
   acceptanceScenarios: string[];
   verificationMode: RequirementVerificationMode;
   source: string;
+};
+
+export type ArtifactCompletionRule = { mode: "path-exists"; path?: string };
+
+export type ArtifactDefinition = {
+  id: string;
+  path: string;
+  description: string;
+  dependencies: string[];
+  template?: string;
+  instruction?: string;
+  context?: string[];
+  rules?: string[];
+  validation?: string;
+  completion: ArtifactCompletionRule;
+};
+
+export type ArtifactWorkflow = {
+  version: "1.0.0";
+  id: string;
+  artifacts: ArtifactDefinition[];
+  profiles?: Record<string, string[]>;
 };
 
 export type PlanningWorkItem = {
@@ -387,7 +411,16 @@ export type BlockRecord = {
   taskId: string;
   status: "blocked" | "resolved";
   level: 1 | 2;
-  category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
+  category:
+    | "db"
+    | "auth"
+    | "permission"
+    | "security"
+    | "breaking-api"
+    | "business-rule"
+    | "human-gate"
+    | "external-service"
+    | "unknown";
   reason: string;
   requiredHumanDecision: string;
   createdAt: string;
@@ -466,7 +499,15 @@ export type WbsDiscoveryState = {
 
 export type WbsRelation = {
   id: string;
-  type: "dependsOn" | "blocks" | "produces" | "consumes" | "implementsRequirement" | "refinesBpmnTask" | "linkedToIssue" | "relatedTo";
+  type:
+    | "dependsOn"
+    | "blocks"
+    | "produces"
+    | "consumes"
+    | "implementsRequirement"
+    | "refinesBpmnTask"
+    | "linkedToIssue"
+    | "relatedTo";
   source: string;
   target: string;
   description?: string;

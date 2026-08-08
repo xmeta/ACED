@@ -1,7 +1,13 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { type Command } from "commander";
-import { readSpec, readTask, runValidateFeature } from "../core/contracts.js";
+import {
+  readSpec,
+  readTask,
+  runArtifactWorkflowInstructions,
+  runArtifactWorkflowStatus,
+  runValidateFeature
+} from "../core/contracts.js";
 import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { SpecChangeProposal } from "../core/types.js";
@@ -37,7 +43,12 @@ type SpecChangeNewOptions = {
 };
 
 function splitSpecChangeItems(value: string | undefined): string[] {
-  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+  return (
+    value
+      ?.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean) ?? []
+  );
 }
 
 function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
@@ -99,6 +110,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .action((options) => {
       setExitCode(runValidateFeature(root, options.spec, { baseRef: options.base, json: options.json ?? false }));
     });
+
+  const artifact = program.command("artifact").description("Inspect declarative artifact workflows");
+  artifact
+    .command("status")
+    .description("Show read-only artifact workflow status")
+    .option("--workflow <path>", "workflow path", "contracts/workflows/builtin-scwbs-v1.yaml")
+    .option("--json", "print a versioned JSON report")
+    .action((options) =>
+      setExitCode(runArtifactWorkflowStatus(root, options.workflow, { json: options.json ?? false }))
+    );
+  artifact
+    .command("instructions")
+    .description("Show read-only artifact guidance")
+    .argument("<artifact>", "artifact id")
+    .option("--workflow <path>", "workflow path", "contracts/workflows/builtin-scwbs-v1.yaml")
+    .option("--json", "print a versioned JSON report")
+    .action((artifactId, options) =>
+      setExitCode(runArtifactWorkflowInstructions(root, options.workflow, artifactId, { json: options.json ?? false }))
+    );
 
   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
   specChange
