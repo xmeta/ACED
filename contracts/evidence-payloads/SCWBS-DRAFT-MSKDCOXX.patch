@@ -1,0 +1,646 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml b/contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
+new file mode 100644
+index 0000000..0588e43
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
+@@ -0,0 +1,67 @@
++id: SCWBS-DRAFT-MSKDCOXX
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSKDCOXX
++branchName: task/SCWBS-DRAFT-MSKDCOXX-issue-456-discovery-routing-and-multi-spec-bound
++status: approved
++approvedBy: xmeta
++sourceIssue: 456
++allowedPaths:
++  - src/core/discovery.ts
++  - src/core/schema/discovery.ts
++  - src/commands/discovery.ts
++  - src/cli/register-discovery.ts
++  - docs/scwbs/schemas/discovery-routing.schema.json
++  - docs/implementation-gaps.md
++  - tests/integration/misc.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - schema migration or authority ambiguity
++  - external service or credential design
++  - Human Gate path
++  - authority outside allowed paths
++  - automatic Spec/Task/WBS mutation from route output
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Versioned Discovery routing schema defines extend-existing, direct-candidate, single-spec, multi-spec, mixed, and unknown outcomes
++  - Read-only route inventory deterministically reports existing Specs, active Tasks, WBS nodes, and explicit Issue references with selection reasons and source hash
++  - Brief and multi-spec/mixed roadmap preserve scope boundaries, ownership, interfaces, dependencies, shared acceptance, and revalidation triggers
++  - Cross-spec review reports contradiction, duplicate responsibility, cyclic dependency, interface mismatch, and unowned acceptance criteria
++  - Blocking unknowns and low confidence produce a bounded Probe recommendation and never create or mutate Spec, Task, WBS, Approval, or Human Gate records
++  - Direct-candidate is limited to small low-risk work and cannot classify Human Gate, schema, dependency, auth, breaking API, external service, or release work as direct
++  - Route output is versioned, provenance-bearing, read-only, and deterministic for the same goal and repository state
++  - Unit and integration tests cover all route outcomes, duplicate/unknown references, interface conflicts, and mutation boundary
++  - 'Issue #456 is closed only after protected merge and Task archive'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - discovery-routing-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSKDCOXX.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSKDCOXX.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSKDCOXX.patch
++  - contracts/approvals/SCWBS-DRAFT-MSKDCOXX.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSKDCOXX.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T12:48:37.461Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index f91a1be..9d92dde 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1707,3 +1707,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-08T12:44:31.561Z"
++  - id: SCWBS-DRAFT-MSKDCOXX
++    path: contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
++    branchName: task/SCWBS-DRAFT-MSKDCOXX-issue-456-discovery-routing-and-multi-spec-bound
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 84f5735..a46a021 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -37,6 +37,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - WJS semantic apply wrapper
+ - Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
+ - Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
++- Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
+ 
+ ## Still Missing
+ 
+diff --git a/docs/scwbs/schemas/discovery-routing.schema.json b/docs/scwbs/schemas/discovery-routing.schema.json
+new file mode 100644
+index 0000000..165d3fc
+--- /dev/null
++++ b/docs/scwbs/schemas/discovery-routing.schema.json
+@@ -0,0 +1,136 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/schemas/discovery-routing-v1.json",
++  "title": "SC-WBS Discovery Routing Proposal",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "goal", "outcome", "confidence", "inventory", "selectionReasons", "blockingUnknowns", "brief", "roadmap", "review", "provenance", "nextAction"],
++  "properties": {
++    "version": { "const": "scwbs.discovery-routing.v1" },
++    "status": { "const": "proposal" },
++    "goal": { "type": "string" },
++    "outcome": { "enum": ["extend-existing", "direct-candidate", "single-spec", "multi-spec", "mixed", "unknown"] },
++    "confidence": { "enum": ["low", "medium", "high"] },
++    "inventory": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["specs", "activeTasks", "wbsNodes", "issueReferences"],
++      "properties": {
++        "specs": { "type": "array", "items": { "$ref": "#/$defs/spec" } },
++        "activeTasks": { "type": "array", "items": { "$ref": "#/$defs/task" } },
++        "wbsNodes": { "type": "array", "items": { "$ref": "#/$defs/wbsNode" } },
++        "issueReferences": { "type": "array", "items": { "$ref": "#/$defs/issueReference" } }
++      }
++    },
++    "selectionReasons": { "type": "array", "items": { "type": "string" } },
++    "blockingUnknowns": { "type": "array", "items": { "type": "string" } },
++    "brief": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["goal", "inScope", "outOfScope", "unknowns", "boundaryCandidates", "existingReferences", "recommendedOutcome"],
++      "properties": {
++        "goal": { "type": "string" },
++        "inScope": { "type": "array", "items": { "type": "string" } },
++        "outOfScope": { "type": "array", "items": { "type": "string" } },
++        "unknowns": { "type": "array", "items": { "type": "string" } },
++        "boundaryCandidates": { "type": "array", "items": { "type": "string" } },
++        "existingReferences": { "type": "array", "items": { "type": "string" } },
++        "recommendedOutcome": { "$ref": "#/properties/outcome" }
++      }
++    },
++    "roadmap": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["slices", "sharedAcceptance", "revalidationTriggers"],
++      "properties": {
++        "slices": { "type": "array", "items": { "$ref": "#/$defs/slice" } },
++        "sharedAcceptance": { "type": "array", "items": { "type": "string" } },
++        "revalidationTriggers": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "review": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["contradictions", "duplicateResponsibilities", "cyclicDependencies", "interfaceMismatches", "unownedAcceptanceCriteria"],
++      "properties": {
++        "contradictions": { "type": "array", "items": { "type": "string" } },
++        "duplicateResponsibilities": { "type": "array", "items": { "type": "string" } },
++        "cyclicDependencies": { "type": "array", "items": { "type": "string" } },
++        "interfaceMismatches": { "type": "array", "items": { "type": "string" } },
++        "unownedAcceptanceCriteria": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "provenance": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["sourceHeadCommit", "inventoryHash", "inputHash", "sourcePaths"],
++      "properties": {
++        "sourceHeadCommit": { "type": ["string", "null"] },
++        "inventoryHash": { "type": "string", "pattern": "^sha256:" },
++        "inputHash": { "type": "string", "pattern": "^sha256:" },
++        "sourcePaths": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "nextAction": { "type": "string" }
++  },
++  "$defs": {
++    "spec": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "title", "status", "sourcePaths"],
++      "properties": {
++        "id": { "type": "string" },
++        "title": { "type": "string" },
++        "status": { "type": "string" },
++        "sourcePaths": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "task": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "wbsNodeId", "branchName", "status"],
++      "properties": {
++        "id": { "type": "string" },
++        "wbsNodeId": { "type": "string" },
++        "branchName": { "type": "string" },
++        "status": { "type": "string" }
++      }
++    },
++    "wbsNode": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "name", "status"],
++      "properties": {
++        "id": { "type": "string" },
++        "code": { "type": "string" },
++        "name": { "type": "string" },
++        "status": { "type": "string" }
++      }
++    },
++    "issueReference": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "status"],
++      "properties": {
++        "id": { "type": "string" },
++        "status": { "enum": ["open", "closed", "unknown"] }
++      }
++    },
++    "slice": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "title", "kind", "ownership", "interfaces", "dependencies", "sharedAcceptance", "revalidationTrigger"],
++      "properties": {
++        "id": { "type": "string" },
++        "title": { "type": "string" },
++        "kind": { "enum": ["extend-existing", "direct-candidate", "single-spec"] },
++        "ownership": { "type": "string" },
++        "specId": { "type": "string" },
++        "interfaces": { "type": "array", "items": { "type": "string" } },
++        "dependencies": { "type": "array", "items": { "type": "string" } },
++        "sharedAcceptance": { "type": "array", "items": { "type": "string" } },
++        "revalidationTrigger": { "type": "string" }
++      }
++    }
++  }
++}
+diff --git a/src/cli/register-discovery.ts b/src/cli/register-discovery.ts
+index d41e1fc..8640c34 100644
+--- a/src/cli/register-discovery.ts
++++ b/src/cli/register-discovery.ts
+@@ -1,10 +1,36 @@
+ import type { Command } from "commander";
+ import { runDiscoveryConclude, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
++import { runDiscoveryRoute } from "../core/discovery.js";
+ import { parseBool, type CommandContext } from "./command-context.js";
+ 
+ export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
+   const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
++  discovery
++    .command("route")
++    .description("Produce a read-only, versioned route proposal")
++    .argument("<goal...>", "routing goal")
++    .option("--parts <items>", "comma-separated decomposition slices")
++    .option("--paths <items>", "comma-separated candidate boundary paths")
++    .option("--issues <items>", "comma-separated Issue references such as #456:open")
++    .option("--dependencies <items>", "comma-separated slice dependency edges such as slice-2:slice-1")
++    .option("--json", "output versioned JSON")
++    .action((goalParts: string[], options) => {
++      const goal = goalParts.join(" ").trim();
++      if (!goal) {
++        console.error("Provide a routing goal");
++        setExitCode(2);
++        return;
++      }
++      const split = (value: string | undefined): string[] => value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
++      setExitCode(runDiscoveryRoute(root, goal, {
++        parts: split(options.parts),
++        candidatePaths: split(options.paths),
++        issueReferences: split(options.issues),
++        dependencies: split(options.dependencies),
++        json: options.json ?? false
++      }));
++    });
+   discovery
+     .command("new")
+     .requiredOption("--probe <id>", "PROBE-prefixed id")
+diff --git a/src/core/discovery.ts b/src/core/discovery.ts
+index 32d623c..978d26b 100644
+--- a/src/core/discovery.ts
++++ b/src/core/discovery.ts
+@@ -1,7 +1,11 @@
++import { createHash } from "node:crypto";
+ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { resolveFrom } from "./paths.js";
+-import type { DecisionReadiness, DownstreamInputQuality, Issue, WbsDiscoveryState } from "./types.js";
++import { headCommit } from "./git.js";
++import { listActiveTasks, listSpecs } from "./contracts.js";
++import { defaultWbsPath, resolveFrom } from "./paths.js";
++import { readJsonFile } from "./json.js";
++import type { DecisionReadiness, DownstreamInputQuality, Issue, SpecContract, WbsDiscoveryState, WbsDocument } from "./types.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "./yaml.js";
+ import { validateDiscoveryProbe } from "./schema/discovery.js";
+ 
+@@ -127,3 +131,287 @@ export function writeDiscoveryProbe(root: string, probe: DiscoveryProbe, overwri
+   renameSync(temporary, fullPath);
+   return relativePath;
+ }
++
++export type DiscoveryRouteOutcome = "extend-existing" | "direct-candidate" | "single-spec" | "multi-spec" | "mixed" | "unknown";
++export type DiscoveryRouteConfidence = "low" | "medium" | "high";
++export type DiscoveryIssueReference = { id: string; status: "open" | "closed" | "unknown" };
++
++export type DiscoveryRouteOptions = {
++  parts?: string[];
++  candidatePaths?: string[];
++  issueReferences?: string[];
++  dependencies?: string[];
++};
++
++type DiscoveryRouteSlice = {
++  id: string;
++  title: string;
++  kind: Exclude<DiscoveryRouteOutcome, "unknown" | "multi-spec" | "mixed">;
++  ownership: string;
++  specId?: string;
++  interfaces: string[];
++  dependencies: string[];
++  sharedAcceptance: string[];
++  revalidationTrigger: string;
++};
++
++export type DiscoveryRoutingReport = {
++  version: "scwbs.discovery-routing.v1";
++  status: "proposal";
++  goal: string;
++  outcome: DiscoveryRouteOutcome;
++  confidence: DiscoveryRouteConfidence;
++  inventory: {
++    specs: Array<{ id: string; title: string; status: string; sourcePaths: string[] }>;
++    activeTasks: Array<{ id: string; wbsNodeId: string; branchName: string; status: string }>;
++    wbsNodes: Array<{ id: string; code?: string; name: string; status: string }>;
++    issueReferences: DiscoveryIssueReference[];
++  };
++  selectionReasons: string[];
++  blockingUnknowns: string[];
++  brief: {
++    goal: string;
++    inScope: string[];
++    outOfScope: string[];
++    unknowns: string[];
++    boundaryCandidates: string[];
++    existingReferences: string[];
++    recommendedOutcome: DiscoveryRouteOutcome;
++  };
++  roadmap: {
++    slices: DiscoveryRouteSlice[];
++    sharedAcceptance: string[];
++    revalidationTriggers: string[];
++  };
++  review: {
++    contradictions: string[];
++    duplicateResponsibilities: string[];
++    cyclicDependencies: string[];
++    interfaceMismatches: string[];
++    unownedAcceptanceCriteria: string[];
++  };
++  provenance: {
++    sourceHeadCommit: string | null;
++    inventoryHash: string;
++    inputHash: string;
++    sourcePaths: string[];
++  };
++  nextAction: string;
++};
++
++const routeStopWords = new Set(["a", "an", "and", "for", "from", "into", "of", "or", "the", "to", "with"]);
++const directCandidatePattern = /\b(cleanup|docs?|documentation|format|lint|rename|read[- ]?only|small|typo|warning)\b/i;
++const riskyRoutePattern = /\b(auth|authentication|authorization|credential|database|external|human\s+gate|migration|release|breaking\s+api|payment|schema)\b/i;
++
++function routeTokens(value: string): string[] {
++  return Array.from(new Set(value.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2 && !routeStopWords.has(token))));
++}
++
++function hashValue(value: unknown): string {
++  return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
++}
++
++function issueReferences(values: string[] = []): DiscoveryIssueReference[] {
++  return values.map((value): DiscoveryIssueReference => {
++    const match = value.trim().match(/^#?(\d+)(?::(open|closed))?$/i);
++    const status: DiscoveryIssueReference["status"] = match?.[2]?.toLowerCase() === "open"
++      ? "open"
++      : match?.[2]?.toLowerCase() === "closed"
++        ? "closed"
++        : "unknown";
++    return match ? { id: `#${match[1]}`, status } : { id: value.trim(), status: "unknown" };
++  }).filter((reference) => reference.id.length > 0).sort((a, b) => a.id.localeCompare(b.id));
++}
++
++function specText(spec: SpecContract): string {
++  return [spec.id, spec.title, spec.summary ?? "", spec.featureId, ...(spec.sourcePaths ?? [])].join(" ").toLowerCase();
++}
++
++function matchingSpecs(specs: SpecContract[], text: string): SpecContract[] {
++  const tokens = routeTokens(text);
++  return specs.filter((spec) => {
++    const searchable = specText(spec);
++    const matches = tokens.filter((token) => searchable.includes(token));
++    return matches.length >= Math.max(1, Math.ceil(tokens.length / 4));
++  }).sort((a, b) => a.id.localeCompare(b.id));
++}
++
++function readWbsInventory(root: string): { nodes: Array<{ id: string; code?: string; name: string; status: string }>; issues: string[] } {
++  const fullPath = resolveFrom(root, defaultWbsPath);
++  if (!existsSync(fullPath)) return { nodes: [], issues: [`${defaultWbsPath} is missing`] };
++  try {
++    const wbs = readJsonFile<WbsDocument>(fullPath);
++    return {
++      nodes: wbs.nodes.map((node) => ({ id: node.id, ...(node.code ? { code: node.code } : {}), name: node.name, status: node.status ?? "unknown" })).sort((a, b) => a.id.localeCompare(b.id)),
++      issues: []
++    };
++  } catch (error) {
++    return { nodes: [], issues: [`${defaultWbsPath} could not be read: ${error instanceof Error ? error.message : String(error)}`] };
++  }
++}
++
++function dependencyGraph(edges: string[] = [], sliceIds: string[]): { graph: Map<string, string[]>; unknowns: string[] } {
++  const known = new Set(sliceIds);
++  const graph = new Map(sliceIds.map((id) => [id, [] as string[]]));
++  const unknowns: string[] = [];
++  edges.forEach((edge) => {
++    const [from, to] = edge.split(":").map((item) => item.trim());
++    if (!from || !to || !known.has(from) || !known.has(to)) {
++      unknowns.push(`Unknown roadmap dependency edge: ${edge}`);
++      return;
++    }
++    graph.get(from)?.push(to);
++  });
++  return { graph, unknowns };
++}
++
++function cycleNodes(graph: Map<string, string[]>): string[] {
++  const visiting = new Set<string>();
++  const visited = new Set<string>();
++  const cycles = new Set<string>();
++  const visit = (id: string): void => {
++    if (visiting.has(id)) {
++      cycles.add(id);
++      return;
++    }
++    if (visited.has(id)) return;
++    visiting.add(id);
++    graph.get(id)?.forEach(visit);
++    visiting.delete(id);
++    visited.add(id);
++  };
++  graph.forEach((_dependencies, id) => visit(id));
++  return Array.from(cycles).sort();
++}
++
++function acceptanceOverlap(left: string, right: string): number {
++  const leftTokens = new Set(routeTokens(left));
++  return routeTokens(right).filter((token) => leftTokens.has(token)).length;
++}
++
++export function buildDiscoveryRoutingReport(root: string, goal: string, options: DiscoveryRouteOptions = {}): DiscoveryRoutingReport {
++  const normalizedGoal = goal.trim();
++  const specEntries = listSpecs(root);
++  const taskEntries = listActiveTasks(root);
++  const wbs = readWbsInventory(root);
++  const specs = specEntries.flatMap((entry) => entry.spec ? [entry.spec] : []).sort((a, b) => a.id.localeCompare(b.id));
++  const activeTasks = taskEntries.flatMap((entry) => entry.task ? [{ id: entry.task.id, wbsNodeId: entry.task.wbsNodeId, branchName: entry.task.branchName ?? "", status: "active" }] : []).sort((a, b) => a.id.localeCompare(b.id));
++  const references = issueReferences(options.issueReferences);
++  const providedParts = (options.parts ?? []).map((part) => part.trim()).filter(Boolean);
++  const parts = providedParts.length > 0 ? providedParts : normalizedGoal ? [normalizedGoal] : [];
++  const blockingUnknowns = [...wbs.issues];
++  if (normalizedGoal.length < 8) blockingUnknowns.push("Goal is too short to determine a bounded route");
++  if (/\b(unknown|unclear|tbd|not sure)\b/i.test(normalizedGoal)) blockingUnknowns.push("Goal contains an unresolved routing unknown");
++  const slices: DiscoveryRouteSlice[] = parts.map((part, index) => {
++    const matches = matchingSpecs(specs, part);
++    const kind: DiscoveryRouteSlice["kind"] = matches.length > 0 ? "extend-existing" : directCandidatePattern.test(part) && !riskyRoutePattern.test(part) ? "direct-candidate" : "single-spec";
++    return {
++      id: `slice-${index + 1}`,
++      title: part,
++      kind,
++      ownership: kind === "extend-existing" ? matches.map((spec) => spec.id).join(", ") : kind === "direct-candidate" ? "delivery Task after human route review" : "new Spec proposal after human route review",
++      ...(matches[0] ? { specId: matches[0].id } : {}),
++      interfaces: Array.from(new Set(matches.flatMap((spec) => spec.sourcePaths ?? []).concat(options.candidatePaths ?? []))).sort(),
++      dependencies: [],
++      sharedAcceptance: matches.flatMap((spec) => spec.acceptanceCriteria).sort(),
++      revalidationTrigger: "Re-run inventory and route hash after Spec, Task, WBS, or repository HEAD changes"
++    };
++  });
++  const kinds = new Set(slices.map((slice) => slice.kind));
++  let outcome: DiscoveryRouteOutcome = parts.length === 0 || blockingUnknowns.length > 0 ? "unknown" : slices.length > 1 ? kinds.size > 1 ? "mixed" : "multi-spec" : slices[0]?.kind ?? "unknown";
++  const { graph, unknowns: dependencyUnknowns } = dependencyGraph(options.dependencies, slices.map((slice) => slice.id));
++  const cycles = cycleNodes(graph);
++  blockingUnknowns.push(...dependencyUnknowns);
++  if (cycles.length > 0) {
++    outcome = "unknown";
++    blockingUnknowns.push(`Roadmap dependency cycle: ${cycles.join(", ")}`);
++  }
++  const matchedSpecs = Array.from(new Set(slices.flatMap((slice) => slice.specId ? [slice.specId] : []))).map((id) => specs.find((spec) => spec.id === id)).filter((spec): spec is SpecContract => Boolean(spec));
++  const duplicateResponsibilities = matchedSpecs.flatMap((left, index) => matchedSpecs.slice(index + 1).flatMap((right) => {
++    const sharedPaths = (left.sourcePaths ?? []).filter((sourcePath) => (right.sourcePaths ?? []).includes(sourcePath));
++    return sharedPaths.length > 0 ? [`${left.id} and ${right.id} both own ${sharedPaths.join(", ")}`] : [];
++  })).sort();
++  const contradictions = matchedSpecs.flatMap((left, index) => matchedSpecs.slice(index + 1).flatMap((right) => left.acceptanceCriteria.flatMap((leftCriterion) => right.acceptanceCriteria.filter((rightCriterion) => {
++    const leftNegative = /\b(must not|shall not|cannot|never)\b/i.test(leftCriterion);
++    const rightNegative = /\b(must not|shall not|cannot|never)\b/i.test(rightCriterion);
++    return leftNegative !== rightNegative && acceptanceOverlap(leftCriterion, rightCriterion) >= 2;
++  }).map((rightCriterion) => `${left.id} and ${right.id} have conflicting acceptance: ${leftCriterion} / ${rightCriterion}`)))).sort();
++  const interfaceMismatches = options.candidatePaths && new Set(options.candidatePaths).size !== options.candidatePaths.length
++    ? ["Candidate interface paths contain duplicates"]
++    : [];
++  const ownedAcceptance = new Set(slices.flatMap((slice) => slice.sharedAcceptance));
++  const unownedAcceptanceCriteria = matchedSpecs.flatMap((spec) => spec.acceptanceCriteria.filter((criterion) => !ownedAcceptance.has(criterion)).map((criterion) => `${spec.id}: ${criterion}`)).sort();
++  const selectionReasons = outcome === "unknown"
++    ? ["Routing is advisory only; resolve blocking unknowns with a bounded Probe before delivery"]
++    : slices.map((slice) => slice.kind === "extend-existing" ? `${slice.title} matches existing Spec ${slice.specId}` : `${slice.title} classified as ${slice.kind} by bounded lexical routing signals`);
++  const boundaryCandidates = Array.from(new Set([...slices.flatMap((slice) => slice.interfaces), ...(options.candidatePaths ?? [])])).sort();
++  const existingReferences = matchedSpecs.map((spec) => spec.id).sort();
++  const inventory = {
++    specs: specs.map((spec) => ({ id: spec.id, title: spec.title, status: spec.status, sourcePaths: (spec.sourcePaths ?? []).slice().sort() })),
++    activeTasks,
++    wbsNodes: wbs.nodes,
++    issueReferences: references
++  };
++  const input = { goal: normalizedGoal, parts, candidatePaths: (options.candidatePaths ?? []).slice().sort(), issueReferences: references, dependencies: (options.dependencies ?? []).slice().sort() };
++  const roadmapSlices = slices.map((slice) => ({ ...slice, dependencies: graph.get(slice.id) ?? [] }));
++  const brief = {
++    goal: normalizedGoal,
++    inScope: parts,
++    outOfScope: ["Automatic Spec, Task, WBS, Approval, or Human Gate mutation", "External service, credential, and remote Git operations"],
++    unknowns: blockingUnknowns,
++    boundaryCandidates,
++    existingReferences,
++    recommendedOutcome: outcome
++  };
++  return {
++    version: "scwbs.discovery-routing.v1",
++    status: "proposal",
++    goal: normalizedGoal,
++    outcome,
++    confidence: outcome === "unknown" ? "low" : blockingUnknowns.length > 0 ? "medium" : slices.length > 1 ? "high" : "medium",
++    inventory,
++    selectionReasons,
++    blockingUnknowns,
++    brief,
++    roadmap: {
++      slices: roadmapSlices,
++      sharedAcceptance: Array.from(new Set(roadmapSlices.flatMap((slice) => slice.sharedAcceptance))).sort(),
++      revalidationTriggers: ["Repository HEAD changes", "Referenced Spec, Task, WBS, or Issue state changes"]
++    },
++    review: {
++      contradictions,
++      duplicateResponsibilities,
++      cyclicDependencies: cycles,
++      interfaceMismatches,
++      unownedAcceptanceCriteria
++    },
++    provenance: {
++      sourceHeadCommit: headCommit(root) ?? null,
++      inventoryHash: hashValue(inventory),
++      inputHash: hashValue(input),
++      sourcePaths: [defaultWbsPath, "contracts/specs", "contracts/tasks", "contracts/tasks/index.yaml"]
++    },
++    nextAction: outcome === "unknown"
++      ? "Create or continue a bounded Discovery Probe; do not create a delivery Spec or Task"
++      : outcome === "direct-candidate"
++        ? "Human-review this low-risk route, then create a normal Task Contract before implementation"
++        : "Human-review the route and boundaries, then create or update Spec proposals before delivery Tasks"
++  };
++}
++
++export function runDiscoveryRoute(root: string, goal: string, options: DiscoveryRouteOptions & { json?: boolean } = {}): number {
++  const report = buildDiscoveryRoutingReport(root, goal, options);
++  if (options.json) {
++    console.log(JSON.stringify(report, null, 2));
++  } else {
++    console.log([
++      `Discovery route: ${report.outcome} (${report.confidence})`,
++      `Goal: ${report.goal}`,
++      `Existing Specs: ${report.inventory.specs.map((spec) => spec.id).join(", ") || "none"}`,
++      `Blocking unknowns: ${report.blockingUnknowns.length}`,
++      `Next: ${report.nextAction}`,
++      "No Spec, Task, WBS, Approval, or Human Gate files were changed."
++    ].join("\n"));
++  }
++  return report.outcome === "unknown" ? 2 : 0;
++}
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 141e1a3..470c151 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -215,6 +215,53 @@ describe("misc", () => {
+     expect(readdirSync(path.join(root, "contracts/tasks")).filter((file) => /^SCWBS-DRAFT-/.test(file))).toEqual([]);
+   });
+ 
++  test("discovery route returns a versioned extend-existing proposal without mutation", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const beforeTasks = readdirSync(path.join(root, "contracts/tasks")).sort();
++    const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
++    const output = captureOutput(() => main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root));
++    expect(output.result).toBe(0);
++    const report = JSON.parse(output.stdout) as Record<string, unknown>;
++    expect(report).toMatchObject({
++      version: "scwbs.discovery-routing.v1",
++      status: "proposal",
++      outcome: "extend-existing",
++      inventory: { issueReferences: [{ id: "#457", status: "closed" }] },
++      brief: { recommendedOutcome: "extend-existing" }
++    });
++    const validate = new Ajv2020({ strict: false }).compile(JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8")));
++    expect(validate(report)).toBe(true);
++    expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(beforeTasks);
++    expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
++  });
++
++  test("discovery route reports mixed decomposition and dependency cycles fail closed", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const output = captureOutput(() => main([
++      "discovery", "route", "API", "and", "web",
++      "--parts", "API,web",
++      "--dependencies", "slice-1:slice-2,slice-2:slice-1",
++      "--json"
++    ], root));
++    expect(output.result).toBe(2);
++    const report = JSON.parse(output.stdout) as Record<string, unknown>;
++    expect(report).toMatchObject({ outcome: "unknown", review: { cyclicDependencies: ["slice-1"] } });
++    expect(report.blockingUnknowns).toEqual(expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")]));
++  });
++
++  test("direct candidates stay bounded and vague goals recommend a Probe", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const direct = captureOutput(() => main(["discovery", "route", "fix", "docs", "typo", "--json"], root));
++    expect(direct.result).toBe(0);
++    expect(JSON.parse(direct.stdout)).toMatchObject({ outcome: "direct-candidate", nextAction: expect.stringContaining("normal Task Contract") });
++    const unknown = captureOutput(() => main(["discovery", "route", "unclear", "--json"], root));
++    expect(unknown.result).toBe(2);
++    expect(JSON.parse(unknown.stdout)).toMatchObject({ outcome: "unknown", confidence: "low", nextAction: expect.stringContaining("Discovery Probe") });
++  });
++
+   test("help flags do not run mutating commands", () => {
+     const root = makeTempRepo();
+ 

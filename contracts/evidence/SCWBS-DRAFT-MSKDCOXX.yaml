@@ -1,0 +1,63 @@
+id: EVD-SCWBS-DRAFT-MSKDCOXX
+type: evidence
+taskId: SCWBS-DRAFT-MSKDCOXX
+commit: 1d7dc2fbeaf964fea22a4c9b29a9139a97542ebc
+subjectHeadCommit: 1d7dc2fbeaf964fea22a4c9b29a9139a97542ebc
+diffHash: sha256:e20f283727702c15ffad6ef2ea4cd4515045921506afba5c39560b62b7347f72
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 1d7dc2fbeaf964fea22a4c9b29a9139a97542ebc
+    treeHash: e80b942d7197c5087a669c12343827f6ebae28ff
+    diffHash: sha256:e20f283727702c15ffad6ef2ea4cd4515045921506afba5c39560b62b7347f72
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSKDCOXX.patch
+    manifestHash: sha256:e20f283727702c15ffad6ef2ea4cd4515045921506afba5c39560b62b7347f72
+git:
+  branch: task/SCWBS-DRAFT-MSKDCOXX-issue-456-discovery-routing-and-multi-spec-bound
+  base: origin/main
+  baseCommit: 5bba6158fc09cfeeb599454cf5937f8d65830f05
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 1d7dc2fbeaf964fea22a4c9b29a9139a97542ebc
+  diffHash: sha256:e20f283727702c15ffad6ef2ea4cd4515045921506afba5c39560b62b7347f72
+  headCommit: 1d7dc2fbeaf964fea22a4c9b29a9139a97542ebc
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/schemas/discovery-routing.schema.json
+  - src/cli/register-discovery.ts
+  - src/core/discovery.ts
+  - tests/integration/misc.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:3b34bfb6c245ba79b68f22a4c8bf35868bda4e2ef96200e5380e60dc2d941753
+    durationMilliseconds: 15936
+    executedAt: "2026-08-08T13:00:03.732Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2a71acd60b4b9898abaa07cac48d72b8f3ad55bdd883dd08586c264cf41b181f
+    durationMilliseconds: 9973
+    executedAt: "2026-08-08T13:00:13.709Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a4e9d9d559a6fc291c90e287f19780d9a175f2bf5c7da7bf63ce3facf5562542
+    durationMilliseconds: 4311
+    executedAt: "2026-08-08T13:00:18.023Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b965b3bc5b46df90a20ea7ccdd4fff2a1b1246a8aad1c8f5b50874a13e81b4be
+    durationMilliseconds: 268899
+    executedAt: "2026-08-08T13:04:46.925Z"
