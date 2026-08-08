@@ -1,0 +1,68 @@
+id: SCWBS-DRAFT-MSKC6MZG
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSKC6MZG
+branchName: task/SCWBS-DRAFT-MSKC6MZG-issue-452-configurable-artifact-workflow-schema-
+status: approved
+approvedBy: xmeta
+sourceIssue: 452
+allowedPaths:
+  - src/core/contracts.ts
+  - src/core/types.ts
+  - src/core/schema/contracts.ts
+  - src/cli/register-governance.ts
+  - contracts/workflows/**
+  - contracts/schemas/SCWBS-workflow-v1.json
+  - docs/implementation-gaps.md
+  - tests/unit/contracts.test.ts
+  - tests/integration/validate-feature.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - schema migration ambiguity
+  - authority downgrade
+  - external service or code execution
+  - Human Gate required
+  - authority outside allowed paths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Versioned workflow schema and JSON Schema define artifact identity, path patterns, dependencies, templates, instructions, validation references, and completion rules
+  - Built-in and custom artifact workflows are parsed read-only with duplicate IDs, missing dependencies, cycles, path escapes, and unknown fields rejected
+  - status returns blocked, ready, and done artifacts with missing dependencies and unlocks in versioned JSON
+  - instructions <artifact> returns dependency snapshot, template, context, rules, and non-authoritative guidance
+  - Custom workflow declarations cannot weaken Task authority, Human Gate, forbidden paths, or required checks
+  - Schema drift is reported with provenance and does not silently alter existing projects or contract locks
+  - Unit and integration tests cover built-in, custom DAG, cycle, path escape, authority downgrade, and schema drift
+  - 'Issue #452 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - artifact-graph-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSKC6MZG.patch
+  - contracts/approvals/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-08T12:16:18.129Z"
