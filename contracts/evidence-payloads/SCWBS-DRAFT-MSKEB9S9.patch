@@ -1,0 +1,1454 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml b/contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
+new file mode 100644
+index 0000000..73e6488
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
+@@ -0,0 +1,67 @@
++id: SCWBS-DRAFT-MSKEB9S9
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSKEB9S9
++branchName: task/SCWBS-DRAFT-MSKEB9S9-issue-454-cross-repository-planning-store-read-o
++status: approved
++approvedBy: xmeta
++sourceIssue: 454
++allowedPaths:
++  - src/core/contracts.ts
++  - src/cli/register-governance.ts
++  - docs/scwbs/schemas/planning-store.schema.json
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++  - tests/integration/misc.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - schema migration or authority ambiguity
++  - external remote or credential automation
++  - Human Gate path
++  - authority outside allowed paths
++  - remote clone pull push or merge
++  - store reference loosening code-repo authority
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Versioned planning-store schema defines store identity, local registry, code-repository reference, workset, and shared Spec reference
++  - Read-only `store list/show` commands display resolved store ID and absolute roots and never clone, pull, push, merge, or manage credentials
++  - Shared Spec references pin store repository, commit SHA, path, and content hash; missing store, dirty/untrusted root, path escape, commit/hash mismatch, and reference cycles fail closed
++  - Store authority remains advisory and cannot expand code-repository Task Contract allowedPaths, forbiddenPaths, Human Gates, required checks, Approval, or Evidence authority
++  - Workset status aggregates per-repository Task/Evidence/CI identity without replacing repository-local Ground Truth
++  - Store/workset provenance is represented in versioned JSON and becomes stale when the referenced commit or content hash changes
++  - CLI shape for setup/register/list/show and `--store <id>` is documented, with setup/register left to normal Git review rather than automatic remote mutation
++  - Temporary two-repository and one-store fixtures cover valid reference, stale commit/hash, missing store, path escape, dirty root, cycle, and authority downgrade
++  - 'Issue #454 is closed only after protected merge and Task archive'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - planning-store-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSKEB9S9.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSKEB9S9.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSKEB9S9.patch
++  - contracts/approvals/SCWBS-DRAFT-MSKEB9S9.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSKEB9S9.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T13:15:19.698Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index d128309..97ebab2 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1714,3 +1714,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-08T13:12:04.567Z"
++  - id: SCWBS-DRAFT-MSKEB9S9
++    path: contracts/tasks/SCWBS-DRAFT-MSKEB9S9.yaml
++    branchName: task/SCWBS-DRAFT-MSKEB9S9-issue-454-cross-repository-planning-store-read-o
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index a46a021..33ea426 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -38,6 +38,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
+ - Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
+ - Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
++- Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
+ 
+ ## Still Missing
+ 
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 26a4ab7..58d1132 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -9,6 +9,7 @@ npm run scwbs -- --help
+ ```
+ 
+ > **表記規約（Conventions）**
++>
+ > - 説明文は日本語、コマンド名・オプション名・フィールド名・コード例は英語のまま記載する。
+ > - Task IDの例は本ドキュメント全体で `SCWBS-*` 形式に統一する（理由は「Task IDとブランチ命名」を参照）。従来この文書には `WBS-001-004` のような例が混在していたが、これは実装が生成する正規のID形式ではない。
+ > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
+@@ -76,6 +77,7 @@ Active Taskについて、`health.task.timestampDrift` は Task の `allowedPath
+ #### `status --strict` の terminal Task 定義
+ 
+ > **注意（用語の重複）**：「terminal」という語は、このCLIの中で**2つの異なる意味**で使われている。混同しないこと。
++>
+ > 1. **index scanningの意味**（`task archive` のdescription、`task-contract.md` の Active/archive lifecycle）：`completed` / `cancelled` / `archived` の3つがterminal（＝inactive）で、`next`、`ai next-task`、`review-queue`、`health` の既定走査から除外される対象を指す。
+ > 2. **completion trust / `status --strict` の意味**（このCLI Referenceの本節）：`completed` / `archived` の2つだけがterminalで、`cancelled` は含まれない。この節の「terminal Task」は常にこちらの意味である。
+ >
+@@ -83,15 +85,15 @@ Active Taskについて、`health.task.timestampDrift` は Task の `allowedPath
+ 
+ completion trustの対象と `--strict` の失敗対象は**同一の母集団**である。曖昧さを避けるため明示する。
+ 
+-| Task index の `status` | terminal / completion trust対象 | `--strict` 失敗し得るか |
+-|---|---:|---:|
+-| `planned` | いいえ | いいえ |
+-| `active` | いいえ | いいえ |
+-| `blocked` | いいえ | いいえ |
+-| `reviewed` | いいえ | いいえ |
+-| `cancelled` | いいえ（母集団から除外） | いいえ |
+-| `completed` | はい | はい |
+-| `archived` | はい | **はい**（一度も `completed` を経ずに archive された Task も含む） |
++| Task index の `status` | terminal / completion trust対象 |                                            `--strict` 失敗し得るか |
++| ---------------------- | ------------------------------: | -----------------------------------------------------------------: |
++| `planned`              |                          いいえ |                                                             いいえ |
++| `active`               |                          いいえ |                                                             いいえ |
++| `blocked`              |                          いいえ |                                                             いいえ |
++| `reviewed`             |                          いいえ |                                                             いいえ |
++| `cancelled`            |        いいえ（母集団から除外） |                                                             いいえ |
++| `completed`            |                            はい |                                                               はい |
++| `archived`             |                            はい | **はい**（一度も `completed` を経ずに archive された Task も含む） |
+ 
+ `archived` は「一度完了して保管された」ことを意味しない。実装上、`task archive` で `status: archived` になったTaskは、完了経緯にかかわらずcompletion trust判定の対象になる。したがって、実装が未完了のままarchiveしたTaskがある場合、`status --strict` はそのTaskのEvidence/Approval欠落を理由に非0を返し得る。未完了のまま追跡対象から外したいだけであれば、archiveする前にそのTaskの扱い（完了扱いにするか、`cancelled` にするか）を先に決めること。
+ 
+@@ -160,10 +162,10 @@ npm run scwbs -- next
+ 
+ この2つは**エイリアスではなく、独立したコマンド**である。
+ 
+-| Command | 親 | 用途 | 主なoption |
+-|---|---|---|---|
+-| `scwbs packet --task <id>` | top-level (Core) | Tiny/Standard/Full packetまたは `--context-json` のcode contextを構築する | `--tiny` `--standard` `--full` `--deep` `--normal` `--context-json` `--context-max-files` `--context-max-bytes` `--context-include-noncurrent-docs` `--relation-depth` |
+-| `scwbs ai packet --task <id>` | `ai` | AI agent向けのwork packetを、agent別format（`default`/`compact`/`codex`/`claude`/`cursor`）で構築する | `--relation-depth` `--format` |
++| Command                       | 親               | 用途                                                                                                  | 主なoption                                                                                                                                                             |
++| ----------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| `scwbs packet --task <id>`    | top-level (Core) | Tiny/Standard/Full packetまたは `--context-json` のcode contextを構築する                             | `--tiny` `--standard` `--full` `--deep` `--normal` `--context-json` `--context-max-files` `--context-max-bytes` `--context-include-noncurrent-docs` `--relation-depth` |
++| `scwbs ai packet --task <id>` | `ai`             | AI agent向けのwork packetを、agent別format（`default`/`compact`/`codex`/`claude`/`cursor`）で構築する | `--relation-depth` `--format`                                                                                                                                          |
+ 
+ 両方とも `--task` を取り、内部で似た情報源を参照するが、出力shapeとformat optionは異なる。通常の作業開始では軽量なtop-level `packet` を優先し、agent別formatや追加関係情報が必要な場合だけ `ai packet` を使う。
+ 
+@@ -224,11 +226,11 @@ is an explicit bulk migration and must not be used as an implicit repair.
+ 
+ `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
+ 
+-| Option | 対応するTask Contract field |
+-|---|---|
+-| `--forbid <paths>` | `forbiddenPaths` |
+-| `--gate <paths>` | `humanGateRequiredPaths` |
+-| `--checks <checks>` | `requiredChecks` |
++| Option              | 対応するTask Contract field |
++| ------------------- | --------------------------- |
++| `--forbid <paths>`  | `forbiddenPaths`            |
++| `--gate <paths>`    | `humanGateRequiredPaths`    |
++| `--checks <checks>` | `requiredChecks`            |
+ 
+ ```bash
+ npm run scwbs -- task new "Add permission check" \
+@@ -279,12 +281,12 @@ Generated contract commands must refuse to overwrite existing files unless an ex
+ 
+ `--force` はこの文書の複数のコマンドに登場するが、**何を上書きし、何を上書きしないか**はコマンドごとに異なる。「forceなら何でも通る」わけではない。
+ 
+-| Command | `--force` が行うこと | `--force` でも迂回**されない**もの |
+-|---|---|---|
+-| `evidence collect --force` | 既存Evidenceファイルの置換を許可する | required checks、provenance検証、path検証、Human Gate |
+-| `registry rebuild --force` | registry.yamlの再生成・書き込みを許可する | Task Contract / Evidence / Approvalの内容 |
+-| `task index rebuild --force` | index全体のcanonical path・branch・WBS node・並び順の再構築を許可する | 既存のlifecycle status、`dependsOn`、`archivedAt` |
+-| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする | changeset自体のバリデーション。Task/Approvalは参照しない |
++| Command                          | `--force` が行うこと                                                  | `--force` でも迂回**されない**もの                       |
++| -------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
++| `evidence collect --force`       | 既存Evidenceファイルの置換を許可する                                  | required checks、provenance検証、path検証、Human Gate    |
++| `registry rebuild --force`       | registry.yamlの再生成・書き込みを許可する                             | Task Contract / Evidence / Approvalの内容                |
++| `task index rebuild --force`     | index全体のcanonical path・branch・WBS node・並び順の再構築を許可する | 既存のlifecycle status、`dependsOn`、`archivedAt`        |
++| `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする             | changeset自体のバリデーション。Task/Approvalは参照しない |
+ 
+ `evidence collect --force` と `task generate --force` は、それぞれの表に記載したfail-closed境界を無効化しない。一方、`wbs apply` はTask IDを受け取らずApproval recordも検証しないため、`--force`実行前のHuman GateはTask Contractと運用手順で別途保証する必要がある。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
+ 
+@@ -353,11 +355,11 @@ notes:
+ 
+ 重要な点として、`--scope human-gate` を満たしたApproval記録は `approvalMode: delegated`（`approvedBy: human` ではない）のまま保存される。`--scope human-gate` という名前は「この委譲承認が、ワークフロー上Human Gateが要求される地点を満たす」という意味であり、「人間が今この瞬間にレビューした」ことを意味しない。監査・レビューを行う人は、次の2つのフィールドを必ず区別して確認すること。
+ 
+-| フィールド | `approvedBy: human` の場合 | `approvalMode: delegated` の場合 |
+-|---|---|---|
+-| 承認の実体 | 人間がその場でレビューし承認した | 事前にcreation commitで固定されたpolicyに基づき、AI agentが条件を満たして承認記録を作成した |
+-| `delegator`/`source`の検証 | 該当なし | *declared* provenanceであり、実在本人性やtoken注入者を独立に検証するものではない（下記「`approval delegation prepare`」参照） |
+-| 監査上の扱い | 直接的な人間の意思決定の記録 | 「委譲policyの条件が満たされた」ことの記録。policy自体を人間が事前承認した根拠と併せて確認する必要がある |
++| フィールド                 | `approvedBy: human` の場合       | `approvalMode: delegated` の場合                                                                                              |
++| -------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
++| 承認の実体                 | 人間がその場でレビューし承認した | 事前にcreation commitで固定されたpolicyに基づき、AI agentが条件を満たして承認記録を作成した                                   |
++| `delegator`/`source`の検証 | 該当なし                         | _declared_ provenanceであり、実在本人性やtoken注入者を独立に検証するものではない（下記「`approval delegation prepare`」参照） |
++| 監査上の扱い               | 直接的な人間の意思決定の記録     | 「委譲policyの条件が満たされた」ことの記録。policy自体を人間が事前承認した根拠と併せて確認する必要がある                      |
+ 
+ `human-gate` という scope 名を「人間限定」の意味だと誤読しないよう、この違いを社内ドキュメントやレビュー手順に明記することを推奨する。
+ 
+@@ -435,10 +437,10 @@ tracked artifactを変更せずに開始条件だけを確認する場合は `np
+ 
+ この2つのoptionは名前が非常に紛らわしいため、明示的に説明する。
+ 
+-| Option | 意味 | 例 |
+-|---|---|---|
+-| `--tasks <ids>` | 完了として承認・適用する**既存の実装Task**のID（カンマ区切りで複数可） | `--tasks SCWBS-001,SCWBS-002` |
+-| `--task <id>` | この completion 操作自体を所有する **completion Task**（changesetをコミットするTask）のID | `--task SCWBS-999` |
++| Option          | 意味                                                                                      | 例                            |
++| --------------- | ----------------------------------------------------------------------------------------- | ----------------------------- |
++| `--tasks <ids>` | 完了として承認・適用する**既存の実装Task**のID（カンマ区切りで複数可）                    | `--tasks SCWBS-001,SCWBS-002` |
++| `--task <id>`   | この completion 操作自体を所有する **completion Task**（changesetをコミットするTask）のID | `--task SCWBS-999`            |
+ 
+ ```bash
+ npm run scwbs -- completion apply \
+@@ -453,6 +455,26 @@ npm run scwbs -- completion apply \
+ 
+ ## Lightweight Entry Points
+ 
++### `store list` / `store show`
++
++Planning Store registry is a versioned, read-only cross-repository reference. The
++registry itself is not a Task Contract and cannot expand a repository Task's
++`allowedPaths`, required checks, Evidence, Approval, or Human Gate authority.
++
++```bash
++corepack npm run scwbs -- store list --registry planning-store.yaml --json
++corepack npm run scwbs -- store show --registry planning-store.yaml --store <store-id> --json
++```
++
++`store list` resolves each store root to an absolute path. `store show` checks
++repository trust, dirty state, pinned commit, shared Spec content hash, path
++escape, and dependency cycles. A missing or dirty/untrusted repository, a stale
++pin, a path escape, or a cycle fails closed; no clone, pull, push, credential
++loading, or remote mutation is performed. Task, Evidence, Approval, Human Gate,
++CI, and workset ownership remain repository-local; worksets provide correlation
++only. The JSON output versions are `scwbs.planning-store-list.v1` and
++`scwbs.planning-store-show.v1`.
++
+ ### `spec-change new`
+ 
+ Create a proposed Spec Change Proposal without changing the target Spec or creating an approval record.
+@@ -553,47 +575,47 @@ When task changes include tests, record test quality metadata with `--test-asser
+ - **tracked-artifact mutation**：contracts配下やregistryなど、コミット対象のfileを変更する。
+ - **external state read/write**：GitHub API等を読み取る、またはrepository外の状態を変更する。
+ 
+-| Command | 分類 | 備考 |
+-|---|---|---|
+-| `check` / `docs check` / `check-diff` / `status` | repository-content read-only | `status`もlocal receiptを書かない |
+-| `next` / `review-queue` / `trace` / `ui` | repository-content read-only | `ui`はtext dashboardをstdoutへ表示する |
+-| `packet` / `ai packet` / `ai run` | repository-content read-only | `ai run`はdry-run planを表示し、外部AIを起動しない |
+-| `ci plan` / `profile show` | repository-content read-only | |
+-| `wbs validate` / `wbs candidates` / `wbs verify-changesets` | repository-content read-only | candidates/verifyもWBSを書かない |
+-| `registry rebuild --check` / `task index rebuild --check` | repository-content read-only | |
+-| `task refresh` / `completion apply`（`--apply`なし） | repository-content read-only | previewのみ |
+-| `health`（`--governance-cost`の有無を問わない） | local-metadata write | active Task別health warning summaryをgit common dirへ保存する |
+-| `metrics governance` | repository-content read-only + external state read | GitHub履歴をbounded取得するが永続artifactを作らない |
+-| `checks run` | local-metadata write | 全check成功時だけcheck receiptをgit common dirへ保存する |
+-| `finish --preflight` | local-metadata write | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する |
+-| `finish` | tracked-artifact mutation + local-metadata write | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録 |
+-| `evidence collect` | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある |
+-| `evidence retain` | tracked-artifact mutation + optional external state read | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
+-| `evidence annotate` | tracked-artifact mutation | 既存Evidenceの一部フィールドのみ更新 |
+-| `init` / `fix` / `doctor --fix` | tracked-artifact mutation | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する |
+-| `discovery new` / `discovery start` / `discovery conclude` | tracked-artifact mutation | Discovery Probe recordを作成・更新する |
+-| `block` / `block resolve` / `ai block` | tracked-artifact mutation | Block、必要に応じSpec Change/changesetを更新する |
+-| `start <goal>` / `plan` / `lite task` / `promote` | tracked-artifact mutation | 既存Task IDを指定した`start`だけはpreflight表示で書かない |
+-| `registry rebuild --force` / `profile set` | tracked-artifact mutation | `profile set`はchangesetを書き、WJS経由でWBSを更新する |
+-| `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation | |
+-| `approval request` / `approval approve` / aliases | tracked-artifact mutation | |
+-| `approval delegation prepare` | repository-content read-only | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない |
+-| `review request` / `review route` / `review approve` / `review changes-requested` / `review close` | tracked-artifact mutation | registryも同一操作内で同期する |
+-| `completion apply --apply` | tracked-artifact mutation | changeset書き込み、WBS適用、registry再構築 |
+-| `wbs apply` | tracked-artifact mutation | `--output`で指定したWBSをWJS経由で更新する |
+-| `merge --preflight-only` | external state read | GitHub PR metadata/checksを読む |
+-| `merge` | external state read + external state write | 検証後にGitHub PRをsquash mergeしhead branchを削除する |
+-| `serve` | 何もしない（stub） | |
++| Command                                                                                                             | 分類                                                                            | 備考                                                                                               |
++| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
++| `check` / `docs check` / `check-diff` / `status`                                                                    | repository-content read-only                                                    | `status`もlocal receiptを書かない                                                                  |
++| `next` / `review-queue` / `trace` / `ui`                                                                            | repository-content read-only                                                    | `ui`はtext dashboardをstdoutへ表示する                                                             |
++| `packet` / `ai packet` / `ai run`                                                                                   | repository-content read-only                                                    | `ai run`はdry-run planを表示し、外部AIを起動しない                                                 |
++| `ci plan` / `profile show`                                                                                          | repository-content read-only                                                    |                                                                                                    |
++| `wbs validate` / `wbs candidates` / `wbs verify-changesets`                                                         | repository-content read-only                                                    | candidates/verifyもWBSを書かない                                                                   |
++| `registry rebuild --check` / `task index rebuild --check`                                                           | repository-content read-only                                                    |                                                                                                    |
++| `task refresh` / `completion apply`（`--apply`なし）                                                                | repository-content read-only                                                    | previewのみ                                                                                        |
++| `health`（`--governance-cost`の有無を問わない）                                                                     | local-metadata write                                                            | active Task別health warning summaryをgit common dirへ保存する                                      |
++| `metrics governance`                                                                                                | repository-content read-only + external state read                              | GitHub履歴をbounded取得するが永続artifactを作らない                                                |
++| `checks run`                                                                                                        | local-metadata write                                                            | 全check成功時だけcheck receiptをgit common dirへ保存する                                           |
++| `finish --preflight`                                                                                                | local-metadata write                                                            | required checksとtracked artifact更新は行わないが、finish lifecycle receiptを記録する              |
++| `finish`                                                                                                            | tracked-artifact mutation + local-metadata write                                | Evidence payload/Evidence/Registryの置換、`scwbs-finish-lifecycle` receiptの記録                   |
++| `evidence collect`                                                                                                  | tracked-artifact mutation + local-metadata write + optional external state read | Evidence payload、Evidence YAML、check receipt。PR未指定時はGitHubから候補を読む場合がある         |
++| `evidence retain`                                                                                                   | tracked-artifact mutation + optional external state read                        | 既存Evidenceの検証済みpatch retentionを追加。`--fetch-pr-head`時だけrecorded PR head refを取得する |
++| `evidence annotate`                                                                                                 | tracked-artifact mutation                                                       | 既存Evidenceの一部フィールドのみ更新                                                               |
++| `init` / `fix` / `doctor --fix`                                                                                     | tracked-artifact mutation                                                       | `doctor`は`--fix`なしなら診断のみ。`--fix`は依存修復commandも実行する                              |
++| `discovery new` / `discovery start` / `discovery conclude`                                                          | tracked-artifact mutation                                                       | Discovery Probe recordを作成・更新する                                                             |
++| `block` / `block resolve` / `ai block`                                                                              | tracked-artifact mutation                                                       | Block、必要に応じSpec Change/changesetを更新する                                                   |
++| `start <goal>` / `plan` / `lite task` / `promote`                                                                   | tracked-artifact mutation                                                       | 既存Task IDを指定した`start`だけはpreflight表示で書かない                                          |
++| `registry rebuild --force` / `profile set`                                                                          | tracked-artifact mutation                                                       | `profile set`はchangesetを書き、WJS経由でWBSを更新する                                             |
++| `task generate` / `task new` / `task lock` / `task archive` / `task refresh --apply` / `task index rebuild --force` | tracked-artifact mutation                                                       |                                                                                                    |
++| `approval request` / `approval approve` / aliases                                                                   | tracked-artifact mutation                                                       |                                                                                                    |
++| `approval delegation prepare`                                                                                       | repository-content read-only                                                    | policy patchとhandoffをstdoutへ出すだけで、Task Contractへ自動適用しない                           |
++| `review request` / `review route` / `review approve` / `review changes-requested` / `review close`                  | tracked-artifact mutation                                                       | registryも同一操作内で同期する                                                                     |
++| `completion apply --apply`                                                                                          | tracked-artifact mutation                                                       | changeset書き込み、WBS適用、registry再構築                                                         |
++| `wbs apply`                                                                                                         | tracked-artifact mutation                                                       | `--output`で指定したWBSをWJS経由で更新する                                                         |
++| `merge --preflight-only`                                                                                            | external state read                                                             | GitHub PR metadata/checksを読む                                                                    |
++| `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
++| `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
+ 
+ ## 終了コード
+ 
+ CLI自身の主要経路は次の終了コードを使う。Commanderが構文解析時に返す値と、各actionが明示的に返すvalidation結果は同一ではない。また `wbs apply` のように子processのstatusを伝播するcommandでは、子process固有の値を返し得るため、0/1/2だけと仮定してはならない。
+ 
+-| Exit code | 意味 |
+-|---:|---|
+-| 0 | 成功。要求された処理が完了した、またはcheckが全てpassした。 |
+-| 1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち、`status --strict`不整合に加え、Commanderが検出するunknown command/optionや必須argument欠落も通常この値を返す。 |
+-| 2 | action内でSC-WBSが明示検証する引数エラー。例: 必須 `--task` option欠落、無効なTask ID、無効な列挙値。 |
++| Exit code | 意味                                                                                                                                                                  |
++| --------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++|         0 | 成功。要求された処理が完了した、またはcheckが全てpassした。                                                                                                           |
++|         1 | 失敗・ブロック。check失敗、検証エラー、Human Gate待ち、`status --strict`不整合に加え、Commanderが検出するunknown command/optionや必須argument欠落も通常この値を返す。 |
++|         2 | action内でSC-WBSが明示検証する引数エラー。例: 必須 `--task` option欠落、無効なTask ID、無効な列挙値。                                                                 |
+ 
+ **Human Gate待ちも通常のcheck失敗も同じexit code 1になる**ことに注意すること。CI等でHuman Gate待ちだけを別扱いしたい場合は、exit codeではなく `--json` の `outcome`（例: `awaiting-human-approval`）フィールドで判定すること。
+ 
+diff --git a/docs/scwbs/schemas/planning-store.schema.json b/docs/scwbs/schemas/planning-store.schema.json
+new file mode 100644
+index 0000000..702c7c6
+--- /dev/null
++++ b/docs/scwbs/schemas/planning-store.schema.json
+@@ -0,0 +1,80 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs/planning-store.schema.json",
++  "title": "SC-WBS planning store registry",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "stores"],
++  "properties": {
++    "version": { "const": "1.0.0" },
++    "stores": {
++      "type": "array",
++      "minItems": 1,
++      "items": { "$ref": "#/$defs/store" }
++    }
++  },
++  "$defs": {
++    "store": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "root", "repositories", "worksets"],
++      "properties": {
++        "id": { "type": "string", "minLength": 1 },
++        "root": { "type": "string", "minLength": 1 },
++        "repositories": {
++          "type": "array",
++          "minItems": 1,
++          "items": { "$ref": "#/$defs/repository" }
++        },
++        "worksets": {
++          "type": "array",
++          "items": { "$ref": "#/$defs/workset" }
++        }
++      }
++    },
++    "repository": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "root"],
++      "properties": {
++        "id": { "type": "string", "minLength": 1 },
++        "root": { "type": "string", "minLength": 1 }
++      }
++    },
++    "workset": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "repositories", "sharedSpecs"],
++      "properties": {
++        "id": { "type": "string", "minLength": 1 },
++        "repositories": {
++          "type": "array",
++          "items": { "type": "string", "minLength": 1 }
++        },
++        "sharedSpecs": {
++          "type": "array",
++          "items": { "$ref": "#/$defs/sharedSpec" }
++        }
++      }
++    },
++    "sharedSpec": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["repositoryId", "path", "commit", "contentHash", "dependsOn"],
++      "properties": {
++        "repositoryId": { "type": "string", "minLength": 1 },
++        "path": {
++          "type": "string",
++          "minLength": 1,
++          "pattern": "^(?!/)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+"
++        },
++        "commit": { "type": "string", "minLength": 1 },
++        "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++        "dependsOn": {
++          "type": "array",
++          "items": { "type": "string", "minLength": 1 }
++        }
++      }
++    }
++  }
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index d150850..fcd415d 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -6,6 +6,8 @@ import {
+   readTask,
+   runArtifactWorkflowInstructions,
+   runArtifactWorkflowStatus,
++  runPlanningStoreList,
++  runPlanningStoreShow,
+   runValidateFeature
+ } from "../core/contracts.js";
+ import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
+@@ -130,6 +132,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runArtifactWorkflowInstructions(root, options.workflow, artifactId, { json: options.json ?? false }))
+     );
+ 
++  const store = program.command("store").description("Inspect read-only cross-repository planning stores");
++  store
++    .command("list")
++    .description("List registered planning stores without mutating them")
++    .option("--registry <path>", "planning-store registry path", "planning-store.yaml")
++    .option("--json", "print a versioned JSON report")
++    .action((options) => {
++      setExitCode(runPlanningStoreList(root, options.registry, { json: options.json ?? false }));
++    });
++  store
++    .command("show")
++    .description("Show pinned shared Specs and trust provenance for a planning store")
++    .requiredOption("--store <id>", "planning store id")
++    .option("--registry <path>", "planning-store registry path", "planning-store.yaml")
++    .option("--json", "print a versioned JSON report")
++    .action((options) => {
++      setExitCode(runPlanningStoreShow(root, options.registry, options.store, { json: options.json ?? false }));
++    });
++
+   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
+   specChange
+     .command("new")
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index bb3c633..e95dfd6 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,4 +1,7 @@
++import { createHash } from "node:crypto";
+ import { existsSync, readFileSync, readdirSync } from "node:fs";
++import path from "node:path";
++import { spawnSync } from "node:child_process";
+ import { readYamlFile } from "./yaml.js";
+ import { commitExists, isCommitAncestor, trackedTextFiles } from "./git.js";
+ import { matchesGlob } from "./glob.js";
+@@ -885,3 +888,428 @@ export function runArtifactWorkflowInstructions(
+   else process.stdout.write(`${artifact.id}\n${artifact.instruction ?? "No instruction declared."}\n`);
+   return 0;
+ }
++
++type PlanningStoreSharedSpec = {
++  repositoryId: string;
++  path: string;
++  commit: string;
++  contentHash: string;
++  dependsOn: string[];
++};
++
++type PlanningStoreRepository = { id: string; root: string };
++type PlanningStoreWorkset = { id: string; repositories: string[]; sharedSpecs: PlanningStoreSharedSpec[] };
++type PlanningStore = {
++  id: string;
++  root: string;
++  repositories: PlanningStoreRepository[];
++  worksets: PlanningStoreWorkset[];
++};
++type PlanningStoreRegistry = { version: "1.0.0"; stores: PlanningStore[] };
++
++const planningStoreRootKeys = new Set(["version", "stores"]);
++const planningStoreKeys = new Set(["id", "root", "repositories", "worksets"]);
++const planningStoreRepositoryKeys = new Set(["id", "root"]);
++const planningStoreWorksetKeys = new Set(["id", "repositories", "sharedSpecs"]);
++const planningStoreSharedSpecKeys = new Set(["repositoryId", "path", "commit", "contentHash", "dependsOn"]);
++
++export type PlanningStoreListReport = {
++  version: "scwbs.planning-store-list.v1";
++  registryPath: string;
++  stores: Array<{ id: string; root: string; repositoryIds: string[]; worksetIds: string[] }>;
++  authority: "read-only-advisory";
++};
++
++export type PlanningStoreShowReport = {
++  version: "scwbs.planning-store-show.v1";
++  status: "ready" | "stale" | "blocked";
++  store: { id: string; root: string; registryPath: string };
++  repositories: Array<{
++    id: string;
++    root: string;
++    trust: "trusted" | "dirty" | "missing" | "untrusted";
++    headCommit: string | null;
++    taskIndex: "available" | "missing";
++    evidence: "available" | "missing";
++    ci: "repository-local-only";
++  }>;
++  worksets: Array<{
++    id: string;
++    repositories: string[];
++    status: "ready" | "blocked" | "stale";
++    taskEvidenceCi: string;
++  }>;
++  sharedSpecs: Array<{
++    repositoryId: string;
++    path: string;
++    pinnedCommit: string;
++    expectedContentHash: string;
++    currentHeadCommit: string | null;
++    currentContentHash: string | null;
++    status: "ready" | "stale" | "blocked";
++  }>;
++  review: { cycles: string[]; pathEscapes: string[]; authorityDowngrades: string[] };
++  provenance: { storeId: string; storeRoot: string; referencedCommits: string[]; contentHashes: string[] };
++  authority: "read-only-advisory; repository Task Contract, Evidence, Approval, Human Gate, and required checks remain authoritative";
++  nextAction: string;
++};
++
++function planningStoreError(code: string, message: string): Issue {
++  return { severity: "error", code, message };
++}
++
++function unknownKeys(value: Record<string, unknown>, allowed: Set<string>, label: string): Issue[] {
++  return Object.keys(value)
++    .filter((key) => !allowed.has(key))
++    .map((key) => planningStoreError("planningStore.unknownField", `${label}.${key} is not supported`));
++}
++
++function safeStoreRelativePath(value: string): boolean {
++  const normalized = value.replace(/\\/g, "/");
++  return (
++    normalized.length > 0 &&
++    !normalized.startsWith("/") &&
++    !normalized.split("/").includes("..") &&
++    !normalized.includes("\0")
++  );
++}
++
++function planningStoreValue(root: string, relativePath: string): unknown {
++  const fullPath = resolveFrom(root, relativePath);
++  if (!existsSync(fullPath)) throw new Error(`${relativePath} does not exist`);
++  return readYamlFile<unknown>(fullPath);
++}
++
++export function readPlanningStoreRegistry(
++  root: string,
++  relativePath: string
++): { registry?: PlanningStoreRegistry; issues: Issue[] } {
++  let value: unknown;
++  try {
++    value = planningStoreValue(root, relativePath);
++  } catch (error) {
++    return {
++      issues: [planningStoreError("planningStore.read", error instanceof Error ? error.message : String(error))]
++    };
++  }
++  const issues: Issue[] = [];
++  if (!isObjectRecord(value))
++    return { issues: [planningStoreError("planningStore.object", `${relativePath} must contain an object`)] };
++  issues.push(...unknownKeys(value, planningStoreRootKeys, relativePath));
++  if (value.version !== "1.0.0")
++    issues.push(planningStoreError("planningStore.version", `${relativePath}.version must be 1.0.0`));
++  if (!Array.isArray(value.stores) || value.stores.length === 0)
++    issues.push(planningStoreError("planningStore.stores", `${relativePath}.stores must be a non-empty array`));
++  const stores: PlanningStore[] = [];
++  const storeIds = new Set<string>();
++  if (Array.isArray(value.stores))
++    value.stores.forEach((rawStore, storeIndex) => {
++      const storeLabel = `${relativePath}.stores[${storeIndex}]`;
++      if (!isObjectRecord(rawStore)) {
++        issues.push(planningStoreError("planningStore.store", `${storeLabel} must be an object`));
++        return;
++      }
++      issues.push(...unknownKeys(rawStore, planningStoreKeys, storeLabel));
++      const id = typeof rawStore.id === "string" ? rawStore.id : "";
++      const storeRoot = typeof rawStore.root === "string" ? rawStore.root : "";
++      if (!id) issues.push(planningStoreError("planningStore.id", `${storeLabel}.id must be a non-empty string`));
++      if (storeIds.has(id)) issues.push(planningStoreError("planningStore.duplicateId", `Duplicate store id ${id}`));
++      storeIds.add(id);
++      if (!storeRoot)
++        issues.push(planningStoreError("planningStore.root", `${storeLabel}.root must be a non-empty string`));
++      const repositories: PlanningStoreRepository[] = [];
++      const repositoryIds = new Set<string>();
++      if (!Array.isArray(rawStore.repositories) || rawStore.repositories.length === 0)
++        issues.push(
++          planningStoreError("planningStore.repositories", `${storeLabel}.repositories must be a non-empty array`)
++        );
++      if (Array.isArray(rawStore.repositories))
++        rawStore.repositories.forEach((rawRepository, repositoryIndex) => {
++          const label = `${storeLabel}.repositories[${repositoryIndex}]`;
++          if (!isObjectRecord(rawRepository)) {
++            issues.push(planningStoreError("planningStore.repository", `${label} must be an object`));
++            return;
++          }
++          issues.push(...unknownKeys(rawRepository, planningStoreRepositoryKeys, label));
++          const repositoryId = typeof rawRepository.id === "string" ? rawRepository.id : "";
++          const repositoryRoot = typeof rawRepository.root === "string" ? rawRepository.root : "";
++          if (!repositoryId || repositoryIds.has(repositoryId))
++            issues.push(planningStoreError("planningStore.repositoryId", `${label}.id must be unique and non-empty`));
++          if (!repositoryRoot)
++            issues.push(planningStoreError("planningStore.repositoryRoot", `${label}.root must be non-empty`));
++          repositoryIds.add(repositoryId);
++          if (repositoryId && repositoryRoot) repositories.push({ id: repositoryId, root: repositoryRoot });
++        });
++      const worksets: PlanningStoreWorkset[] = [];
++      const worksetIds = new Set<string>();
++      if (!Array.isArray(rawStore.worksets))
++        issues.push(planningStoreError("planningStore.worksets", `${storeLabel}.worksets must be an array`));
++      if (Array.isArray(rawStore.worksets))
++        rawStore.worksets.forEach((rawWorkset, worksetIndex) => {
++          const label = `${storeLabel}.worksets[${worksetIndex}]`;
++          if (!isObjectRecord(rawWorkset)) {
++            issues.push(planningStoreError("planningStore.workset", `${label} must be an object`));
++            return;
++          }
++          issues.push(...unknownKeys(rawWorkset, planningStoreWorksetKeys, label));
++          const worksetId = typeof rawWorkset.id === "string" ? rawWorkset.id : "";
++          const worksetRepositories =
++            Array.isArray(rawWorkset.repositories) && rawWorkset.repositories.every((item) => typeof item === "string")
++              ? (rawWorkset.repositories as string[])
++              : [];
++          if (!worksetId || worksetIds.has(worksetId))
++            issues.push(planningStoreError("planningStore.worksetId", `${label}.id must be unique and non-empty`));
++          if (
++            !Array.isArray(rawWorkset.repositories) ||
++            !rawWorkset.repositories.every((item) => typeof item === "string")
++          )
++            issues.push(
++              planningStoreError("planningStore.worksetRepositories", `${label}.repositories must be a string array`)
++            );
++          worksetRepositories
++            .filter((repositoryId) => !repositoryIds.has(repositoryId))
++            .forEach((repositoryId) =>
++              issues.push(
++                planningStoreError(
++                  "planningStore.missingRepository",
++                  `${label} references missing repository ${repositoryId}`
++                )
++              )
++            );
++          const sharedSpecs: PlanningStoreSharedSpec[] = [];
++          if (!Array.isArray(rawWorkset.sharedSpecs))
++            issues.push(planningStoreError("planningStore.sharedSpecs", `${label}.sharedSpecs must be an array`));
++          if (Array.isArray(rawWorkset.sharedSpecs))
++            rawWorkset.sharedSpecs.forEach((rawSpec, specIndex) => {
++              const specLabel = `${label}.sharedSpecs[${specIndex}]`;
++              if (!isObjectRecord(rawSpec)) {
++                issues.push(planningStoreError("planningStore.sharedSpec", `${specLabel} must be an object`));
++                return;
++              }
++              issues.push(...unknownKeys(rawSpec, planningStoreSharedSpecKeys, specLabel));
++              const repositoryId = typeof rawSpec.repositoryId === "string" ? rawSpec.repositoryId : "";
++              const specPath = typeof rawSpec.path === "string" ? rawSpec.path : "";
++              const commit = typeof rawSpec.commit === "string" ? rawSpec.commit : "";
++              const contentHash = typeof rawSpec.contentHash === "string" ? rawSpec.contentHash : "";
++              const dependsOn =
++                Array.isArray(rawSpec.dependsOn) && rawSpec.dependsOn.every((item) => typeof item === "string")
++                  ? (rawSpec.dependsOn as string[])
++                  : [];
++              if (!repositoryIds.has(repositoryId))
++                issues.push(
++                  planningStoreError(
++                    "planningStore.sharedSpecRepository",
++                    `${specLabel}.repositoryId is not registered`
++                  )
++                );
++              if (!safeStoreRelativePath(specPath))
++                issues.push(
++                  planningStoreError(
++                    "planningStore.pathEscape",
++                    `${specLabel}.path must remain inside its repository root`
++                  )
++                );
++              if (!commit || !contentHash.startsWith("sha256:"))
++                issues.push(
++                  planningStoreError("planningStore.pin", `${specLabel} must pin commit and sha256 contentHash`)
++                );
++              if (Array.isArray(rawSpec.dependsOn) && !rawSpec.dependsOn.every((item) => typeof item === "string"))
++                issues.push(
++                  planningStoreError("planningStore.dependsOn", `${specLabel}.dependsOn must be a string array`)
++                );
++              if (repositoryId && specPath && commit && contentHash)
++                sharedSpecs.push({ repositoryId, path: specPath, commit, contentHash, dependsOn });
++            });
++          worksetIds.add(worksetId);
++          if (worksetId) worksets.push({ id: worksetId, repositories: worksetRepositories, sharedSpecs });
++        });
++      if (id && storeRoot) stores.push({ id, root: storeRoot, repositories, worksets });
++    });
++  return issues.length > 0 ? { issues } : { registry: { version: "1.0.0", stores }, issues: [] };
++}
++
++function storeGit(root: string): { trust: "trusted" | "dirty" | "missing" | "untrusted"; headCommit: string | null } {
++  if (!existsSync(root)) return { trust: "missing", headCommit: null };
++  const head = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" });
++  if (head.status !== 0) return { trust: "untrusted", headCommit: null };
++  const dirty = spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" });
++  return {
++    trust: dirty.status !== 0 ? "untrusted" : dirty.stdout.trim().length > 0 ? "dirty" : "trusted",
++    headCommit: head.stdout.trim() || null
++  };
++}
++
++function sha256(bytes: string | Buffer): string {
++  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
++}
++
++function planningStoreCycleKeys(workset: PlanningStoreWorkset): string[] {
++  const keys = workset.sharedSpecs.map((spec) => `${spec.repositoryId}:${spec.path}`);
++  const graph = new Map(keys.map((key) => [key, [] as string[]]));
++  workset.sharedSpecs.forEach((spec) => graph.set(`${spec.repositoryId}:${spec.path}`, spec.dependsOn));
++  const visiting = new Set<string>();
++  const visited = new Set<string>();
++  const cycles = new Set<string>();
++  const visit = (key: string): void => {
++    if (visiting.has(key)) {
++      cycles.add(key);
++      return;
++    }
++    if (visited.has(key)) return;
++    visiting.add(key);
++    graph
++      .get(key)
++      ?.filter((dependency) => graph.has(dependency))
++      .forEach(visit);
++    visiting.delete(key);
++    visited.add(key);
++  };
++  graph.forEach((_dependencies, key) => visit(key));
++  return Array.from(cycles).sort();
++}
++
++export function runPlanningStoreList(root: string, registryPath: string, options: { json?: boolean } = {}): number {
++  const result = readPlanningStoreRegistry(root, registryPath);
++  if (!result.registry) {
++    result.issues.forEach((issue) => console.error(`ERROR ${issue.code}: ${issue.message}`));
++    return 1;
++  }
++  const registryAbsolute = resolveFrom(root, registryPath);
++  const report: PlanningStoreListReport = {
++    version: "scwbs.planning-store-list.v1",
++    registryPath: registryAbsolute,
++    stores: result.registry.stores.map((store) => ({
++      id: store.id,
++      root: path.resolve(path.dirname(registryAbsolute), store.root),
++      repositoryIds: store.repositories.map((repository) => repository.id).sort(),
++      worksetIds: store.worksets.map((workset) => workset.id).sort()
++    })),
++    authority: "read-only-advisory"
++  };
++  if (options.json) console.log(JSON.stringify(report, null, 2));
++  else report.stores.forEach((store) => console.log(`${store.id}: ${store.root}`));
++  return 0;
++}
++
++export function runPlanningStoreShow(
++  root: string,
++  registryPath: string,
++  storeId: string,
++  options: { json?: boolean } = {}
++): number {
++  const result = readPlanningStoreRegistry(root, registryPath);
++  const store = result.registry?.stores.find((candidate) => candidate.id === storeId);
++  if (!result.registry || !store) {
++    [
++      ...result.issues,
++      ...(result.registry ? [planningStoreError("planningStore.missing", `Store ${storeId} does not exist`)] : [])
++    ].forEach((issue) => console.error(`ERROR ${issue.code}: ${issue.message}`));
++    return 1;
++  }
++  const registryAbsolute = resolveFrom(root, registryPath);
++  const storeRoot = path.resolve(path.dirname(registryAbsolute), store.root);
++  const repositories = store.repositories.map((repository) => {
++    const repositoryRoot = path.resolve(storeRoot, repository.root);
++    const git = storeGit(repositoryRoot);
++    return {
++      id: repository.id,
++      root: repositoryRoot,
++      trust: git.trust,
++      headCommit: git.headCommit,
++      taskIndex: existsSync(path.join(repositoryRoot, "contracts/tasks/index.yaml"))
++        ? ("available" as const)
++        : ("missing" as const),
++      evidence: existsSync(path.join(repositoryRoot, "contracts/evidence"))
++        ? ("available" as const)
++        : ("missing" as const),
++      ci: "repository-local-only" as const
++    };
++  });
++  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
++  const sharedSpecs = store.worksets.flatMap((workset) =>
++    workset.sharedSpecs.map((spec) => {
++      const repository = repositoryById.get(spec.repositoryId);
++      const repositoryRoot = repository?.root ?? path.resolve(storeRoot, "missing-repository");
++      const pathEscapes =
++        !safeStoreRelativePath(spec.path) ||
++        path.relative(repositoryRoot, path.resolve(repositoryRoot, spec.path)).startsWith("..");
++      if (pathEscapes || !repository)
++        return {
++          repositoryId: spec.repositoryId,
++          path: spec.path,
++          pinnedCommit: spec.commit,
++          expectedContentHash: spec.contentHash,
++          currentHeadCommit: repository?.headCommit ?? null,
++          currentContentHash: null,
++          status: "blocked" as const
++        };
++      const current = spawnSync("git", ["-C", repositoryRoot, "show", `${spec.commit}:${spec.path}`], {
++        encoding: "buffer"
++      });
++      const currentHash = current.status === 0 ? sha256(current.stdout) : null;
++      const stale = repository.headCommit !== spec.commit || currentHash !== spec.contentHash;
++      return {
++        repositoryId: spec.repositoryId,
++        path: spec.path,
++        pinnedCommit: spec.commit,
++        expectedContentHash: spec.contentHash,
++        currentHeadCommit: repository.headCommit,
++        currentContentHash: currentHash,
++        status: current.status !== 0 ? ("blocked" as const) : stale ? ("stale" as const) : ("ready" as const)
++      };
++    })
++  );
++  const cycles = Array.from(new Set(store.worksets.flatMap(planningStoreCycleKeys))).sort();
++  const pathEscapes = sharedSpecs
++    .filter((spec) => spec.status === "blocked")
++    .filter((spec) => !safeStoreRelativePath(spec.path))
++    .map((spec) => `${spec.repositoryId}:${spec.path}`);
++  const authorityDowngrades: string[] = [];
++  const blocked =
++    repositories.some((repository) => repository.trust !== "trusted") ||
++    sharedSpecs.some((spec) => spec.status === "blocked") ||
++    cycles.length > 0;
++  const stale = sharedSpecs.some((spec) => spec.status === "stale");
++  const status: PlanningStoreShowReport["status"] = blocked ? "blocked" : stale ? "stale" : "ready";
++  const worksets = store.worksets.map((workset) => ({
++    id: workset.id,
++    repositories: workset.repositories.slice().sort(),
++    status:
++      cycles.length > 0
++        ? ("blocked" as const)
++        : sharedSpecs
++              .filter((spec) =>
++                workset.sharedSpecs.some(
++                  (candidate) => candidate.repositoryId === spec.repositoryId && candidate.path === spec.path
++                )
++              )
++              .some((spec) => spec.status === "stale")
++          ? ("stale" as const)
++          : ("ready" as const),
++    taskEvidenceCi: "Task/Evidence/CI remain repository-local; this workset is correlation-only"
++  }));
++  const report: PlanningStoreShowReport = {
++    version: "scwbs.planning-store-show.v1",
++    status,
++    store: { id: store.id, root: storeRoot, registryPath: registryAbsolute },
++    repositories,
++    worksets,
++    sharedSpecs,
++    review: { cycles, pathEscapes, authorityDowngrades },
++    provenance: {
++      storeId: store.id,
++      storeRoot,
++      referencedCommits: Array.from(new Set(sharedSpecs.map((spec) => spec.pinnedCommit))).sort(),
++      contentHashes: Array.from(new Set(sharedSpecs.map((spec) => spec.expectedContentHash))).sort()
++    },
++    authority:
++      "read-only-advisory; repository Task Contract, Evidence, Approval, Human Gate, and required checks remain authoritative",
++    nextAction:
++      status === "ready"
++        ? "Use the shared Spec as advisory input only; create repository-local Task Contracts after normal review"
++        : "Stop and refresh the store reference or repository trust state before relying on this proposal"
++  };
++  if (options.json) console.log(JSON.stringify(report, null, 2));
++  else console.log(`${report.status} store ${report.store.id}\nroot: ${report.store.root}\nnext: ${report.nextAction}`);
++  return status === "ready" ? 0 : 1;
++}
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 470c151..2cabf7d 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -1,4 +1,5 @@
+ import { execFileSync } from "node:child_process";
++import { createHash } from "node:crypto";
+ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+@@ -11,13 +12,26 @@ import { runFinish } from "../../src/commands/finish.js";
+ import { runTaskLock } from "../../src/commands/task-lock.js";
+ import { runFix } from "../../src/commands/fix.js";
+ import { runAiBlock, runHumanBlockResolve } from "../../src/commands/ai-queue.js";
+-import { buildRegistryRebuildSummary, buildRegistryYaml, runRegistryRebuild } from "../../src/commands/registry-rebuild.js";
++import {
++  buildRegistryRebuildSummary,
++  buildRegistryYaml,
++  runRegistryRebuild
++} from "../../src/commands/registry-rebuild.js";
+ import { runWbsApply, verifyWbsChangesets } from "../../src/commands/wbs.js";
+-import { readBlock, readSpecChange } from "../../src/core/contracts.js";
++import { readBlock, readSpecChange, runPlanningStoreShow } from "../../src/core/contracts.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../../src/core/yaml.js";
+ import { resolveCheckCommand, isKnownCheck } from "../../src/core/check-catalog.js";
+ import { main } from "../../src/cli.js";
+-import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
++import {
++  makeTempRepo,
++  sampleTask,
++  sampleWbs,
++  sampleEvidence,
++  writeScwbsProject,
++  writeJson,
++  writeText,
++  writeYaml
++} from "../helpers.js";
+ 
+ function captureOutput(action: () => number): { result: number; stdout: string; stderr: string } {
+   const stdout: string[] = [];
+@@ -49,24 +63,26 @@ describe("misc", () => {
+ 
+     const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true }));
+     expect(output.result).toBe(0);
+-    expect(output.stdout).toBe([
+-      "PASS registry rebuilt",
+-      "added: 1",
+-      "updated: 0",
+-      "removed: 0",
+-      "path: contracts/registry.yaml"
+-    ].join("\n"));
++    expect(output.stdout).toBe(
++      ["PASS registry rebuilt", "added: 1", "updated: 0", "removed: 0", "path: contracts/registry.yaml"].join("\n")
++    );
+     expect(output.stdout).not.toContain("contracts:");
+ 
+     const identitySummary = buildRegistryRebuildSummary(
+-      stringifySimpleYaml({ projectId: "test", contracts: [
+-        { id: "TASK-A", type: "task", path: "contracts/tasks/old.yaml" },
+-        { id: "TASK-B", type: "task", path: "contracts/tasks/shared.yaml" }
+-      ] }),
+-      stringifySimpleYaml({ projectId: "test", contracts: [
+-        { id: "TASK-A", type: "task", path: "contracts/tasks/new.yaml" },
+-        { id: "TASK-C", type: "task", path: "contracts/tasks/shared.yaml" }
+-      ] }),
++      stringifySimpleYaml({
++        projectId: "test",
++        contracts: [
++          { id: "TASK-A", type: "task", path: "contracts/tasks/old.yaml" },
++          { id: "TASK-B", type: "task", path: "contracts/tasks/shared.yaml" }
++        ]
++      }),
++      stringifySimpleYaml({
++        projectId: "test",
++        contracts: [
++          { id: "TASK-A", type: "task", path: "contracts/tasks/new.yaml" },
++          { id: "TASK-C", type: "task", path: "contracts/tasks/shared.yaml" }
++        ]
++      }),
+       "rebuilt"
+     );
+     expect(identitySummary).toMatchObject({ added: 1, updated: 1, removed: 1 });
+@@ -89,7 +105,9 @@ describe("misc", () => {
+       removed: 0,
+       path: "contracts/registry.yaml"
+     });
+-    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/registry-rebuild-summary.schema.json"), "utf8"));
++    const schema = JSON.parse(
++      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/registry-rebuild-summary.schema.json"), "utf8")
++    );
+     expect(new Ajv2020({ strict: false }).compile(schema)(jsonSummary)).toBe(true);
+ 
+     const verbose = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, verbose: true }));
+@@ -108,7 +126,9 @@ describe("misc", () => {
+     expect(help.stdout).toContain("--verbose");
+     expect(help.stdout).toContain("--output <target>");
+ 
+-    const conflict = captureOutput(() => runRegistryRebuild(root, { check: false, force: true, quiet: true, json: true }));
++    const conflict = captureOutput(() =>
++      runRegistryRebuild(root, { check: false, force: true, quiet: true, json: true })
++    );
+     expect(conflict).toMatchObject({ result: 2, stderr: "Choose one of --quiet, --json, --verbose, or --output -" });
+   });
+ 
+@@ -182,9 +202,11 @@ describe("misc", () => {
+   });
+ 
+   test("yaml parser preserves quoted strings with colons", () => {
+-    const parsed = parseSimpleYaml(stringifySimpleYaml({
+-      doneCriteria: ["Plan and implement: Replace YAML parser"]
+-    }));
++    const parsed = parseSimpleYaml(
++      stringifySimpleYaml({
++        doneCriteria: ["Plan and implement: Replace YAML parser"]
++      })
++    );
+ 
+     expect(parsed.doneCriteria).toEqual(["Plan and implement: Replace YAML parser"]);
+   });
+@@ -207,7 +229,9 @@ describe("misc", () => {
+     writeScwbsProject(root);
+     expect(main(["project", "bootstrap", "Replace YAML parser"], root)).toBe(0);
+ 
+-    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) => file.startsWith("PROBE-bootstrap-"));
++    const probeFileName = readdirSync(path.join(root, "contracts/discovery")).find((file) =>
++      file.startsWith("PROBE-bootstrap-")
++    );
+     expect(probeFileName).toBeTruthy();
+     const probe = parseSimpleYaml(readFileSync(path.join(root, "contracts/discovery", probeFileName!), "utf8"));
+     expect(probe).toMatchObject({ type: "discovery-probe", status: "proposed" });
+@@ -220,7 +244,9 @@ describe("misc", () => {
+     writeScwbsProject(root);
+     const beforeTasks = readdirSync(path.join(root, "contracts/tasks")).sort();
+     const beforeSpecs = readdirSync(path.join(root, "contracts/specs")).sort();
+-    const output = captureOutput(() => main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root));
++    const output = captureOutput(() =>
++      main(["discovery", "route", "API", "extension", "--issues", "#457:closed", "--json"], root)
++    );
+     expect(output.result).toBe(0);
+     const report = JSON.parse(output.stdout) as Record<string, unknown>;
+     expect(report).toMatchObject({
+@@ -230,7 +256,9 @@ describe("misc", () => {
+       inventory: { issueReferences: [{ id: "#457", status: "closed" }] },
+       brief: { recommendedOutcome: "extend-existing" }
+     });
+-    const validate = new Ajv2020({ strict: false }).compile(JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8")));
++    const validate = new Ajv2020({ strict: false }).compile(
++      JSON.parse(readFileSync("docs/scwbs/schemas/discovery-routing.schema.json", "utf8"))
++    );
+     expect(validate(report)).toBe(true);
+     expect(readdirSync(path.join(root, "contracts/tasks")).sort()).toEqual(beforeTasks);
+     expect(readdirSync(path.join(root, "contracts/specs")).sort()).toEqual(beforeSpecs);
+@@ -239,16 +267,29 @@ describe("misc", () => {
+   test("discovery route reports mixed decomposition and dependency cycles fail closed", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+-    const output = captureOutput(() => main([
+-      "discovery", "route", "API", "and", "web",
+-      "--parts", "API,web",
+-      "--dependencies", "slice-1:slice-2,slice-2:slice-1",
+-      "--json"
+-    ], root));
++    const output = captureOutput(() =>
++      main(
++        [
++          "discovery",
++          "route",
++          "API",
++          "and",
++          "web",
++          "--parts",
++          "API,web",
++          "--dependencies",
++          "slice-1:slice-2,slice-2:slice-1",
++          "--json"
++        ],
++        root
++      )
++    );
+     expect(output.result).toBe(2);
+     const report = JSON.parse(output.stdout) as Record<string, unknown>;
+     expect(report).toMatchObject({ outcome: "unknown", review: { cyclicDependencies: ["slice-1"] } });
+-    expect(report.blockingUnknowns).toEqual(expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")]));
++    expect(report.blockingUnknowns).toEqual(
++      expect.arrayContaining([expect.stringContaining("Roadmap dependency cycle")])
++    );
+   });
+ 
+   test("direct candidates stay bounded and vague goals recommend a Probe", () => {
+@@ -256,10 +297,17 @@ describe("misc", () => {
+     writeScwbsProject(root);
+     const direct = captureOutput(() => main(["discovery", "route", "fix", "docs", "typo", "--json"], root));
+     expect(direct.result).toBe(0);
+-    expect(JSON.parse(direct.stdout)).toMatchObject({ outcome: "direct-candidate", nextAction: expect.stringContaining("normal Task Contract") });
++    expect(JSON.parse(direct.stdout)).toMatchObject({
++      outcome: "direct-candidate",
++      nextAction: expect.stringContaining("normal Task Contract")
++    });
+     const unknown = captureOutput(() => main(["discovery", "route", "unclear", "--json"], root));
+     expect(unknown.result).toBe(2);
+-    expect(JSON.parse(unknown.stdout)).toMatchObject({ outcome: "unknown", confidence: "low", nextAction: expect.stringContaining("Discovery Probe") });
++    expect(JSON.parse(unknown.stdout)).toMatchObject({
++      outcome: "unknown",
++      confidence: "low",
++      nextAction: expect.stringContaining("Discovery Probe")
++    });
+   });
+ 
+   test("help flags do not run mutating commands", () => {
+@@ -317,7 +365,9 @@ describe("misc", () => {
+ 
+     expect(runAiBlock(root, "WBS-001-004", "Human Gate required")).toBe(0);
+     const createdAt = readBlock(root, "WBS-001-004").block?.createdAt;
+-    expect(runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })).toBe(0);
++    expect(
++      runHumanBlockResolve(root, "WBS-001-004", "Human decision recorded", { now: "2026-07-13T01:00:00.000Z" })
++    ).toBe(0);
+     const resolved = readBlock(root, "WBS-001-004").block;
+     expect(resolved).toMatchObject({
+       status: "resolved",
+@@ -405,15 +455,19 @@ describe("misc", () => {
+     writeScwbsProject(root);
+     writeJson(root, "package.json", {
+       scripts: {
+-        test: "node -e \"process.exit(9)\""
++        test: 'node -e "process.exit(9)"'
+       }
+     });
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      branchName: "master",
+-      allowedPaths: ["src/**", "contracts/**"],
+-      humanGateRequiredPaths: [],
+-      requiredChecks: ["test"]
+-    }) as unknown as Record<string, unknown>);
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({
++        branchName: "master",
++        allowedPaths: ["src/**", "contracts/**"],
++        humanGateRequiredPaths: [],
++        requiredChecks: ["test"]
++      }) as unknown as Record<string, unknown>
++    );
+     expect(runTaskLock(root, "WBS-001-004")).toBe(0);
+     execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+     execFileSync("git", ["commit", "-m", "base"], { cwd: root, stdio: "ignore" });
+@@ -434,12 +488,16 @@ describe("misc", () => {
+   test("doctor reports suggested fixes for stale contracts", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+-      contractLock: {
+-        wbsRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+-        wbsNodeId: "node-api"
+-      }
+-    }) as unknown as Record<string, unknown>);
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({
++        contractLock: {
++          wbsRevision: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
++          wbsNodeId: "node-api"
++        }
++      }) as unknown as Record<string, unknown>
++    );
+     const report = buildDoctorReport(root);
+     expect(report).toContain("task.contractLock.wbsRevision");
+     expect(report).toContain("scwbs task refresh --task <task-id>");
+@@ -477,10 +535,12 @@ describe("misc", () => {
+     writeScwbsProject(root);
+     writeJson(root, "package.json", { engines: { node: ">=22.12.0" } });
+ 
+-    const supported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.12.0", npmVersion: "10.9.0" })
+-      .find((diagnostic) => diagnostic.id === "node");
+-    const unsupported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.11.0", npmVersion: "10.9.0" })
+-      .find((diagnostic) => diagnostic.id === "node");
++    const supported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.12.0", npmVersion: "10.9.0" }).find(
++      (diagnostic) => diagnostic.id === "node"
++    );
++    const unsupported = collectEnvironmentDiagnostics(root, { nodeVersion: "22.11.0", npmVersion: "10.9.0" }).find(
++      (diagnostic) => diagnostic.id === "node"
++    );
+ 
+     expect(supported).toMatchObject({ status: "pass", label: "Node.js >=22.12.0 (package.json engines.node)" });
+     expect(unsupported).toMatchObject({ status: "fail" });
+@@ -540,10 +600,9 @@ describe("misc", () => {
+       expect(applyRoot).toBe(root);
+       expect(options).toEqual({ force: true, output: "contracts/wbs/project.wbs.json" });
+       const changeSet = JSON.parse(readFileSync(path.join(root, changeSetPath), "utf8"));
+-      const operationSchema = JSON.parse(readFileSync(
+-        path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"),
+-        "utf8"
+-      ));
++      const operationSchema = JSON.parse(
++        readFileSync(path.join(process.cwd(), "wjs/schema/wbs-operations.schema.json"), "utf8")
++      );
+       const ajv = new Ajv2020({ strict: false });
+       expect(ajv.compile(operationSchema)(changeSet)).toBe(true);
+       const operation = changeSet.operations[0];
+@@ -555,20 +614,19 @@ describe("misc", () => {
+       return 0;
+     };
+ 
+-    expect(runProfileSet(root, "lean", {
+-      now: "2026-07-27T01:00:00.000Z",
+-      apply
+-    })).toBe(0);
++    expect(
++      runProfileSet(root, "lean", {
++        now: "2026-07-27T01:00:00.000Z",
++        apply
++      })
++    ).toBe(0);
+     expect(appliedPath).toBe("contracts/changesets/profile-set-lean-20260727010000000.json");
+     expect(readProfile(root)).toBe("Lean");
+     expect(JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).extensions).toEqual({
+       vendor: { retained: true },
+       scwbs: { profile: "Lean", retained: true }
+     });
+-    expect(collectWbsChangesetGateIssues([
+-      "contracts/wbs/project.wbs.json",
+-      appliedPath
+-    ])).toEqual([]);
++    expect(collectWbsChangesetGateIssues(["contracts/wbs/project.wbs.json", appliedPath])).toEqual([]);
+   });
+ 
+   test("profile set does not directly edit WBS when changeset apply fails", () => {
+@@ -578,15 +636,14 @@ describe("misc", () => {
+     writeJson(root, "contracts/wbs/project.wbs.json", wbs);
+     const before = readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8");
+ 
+-    expect(runProfileSet(root, "strict", {
+-      now: "2026-07-27T01:00:00.000Z",
+-      apply: () => 1
+-    })).toBe(1);
++    expect(
++      runProfileSet(root, "strict", {
++        now: "2026-07-27T01:00:00.000Z",
++        apply: () => 1
++      })
++    ).toBe(1);
+     expect(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")).toBe(before);
+-    expect(existsSync(path.join(
+-      root,
+-      "contracts/changesets/profile-set-strict-20260727010000000.json"
+-    ))).toBe(true);
++    expect(existsSync(path.join(root, "contracts/changesets/profile-set-strict-20260727010000000.json"))).toBe(true);
+   });
+ 
+   test("status summarizes WBS node status", () => {
+@@ -628,9 +685,7 @@ describe("misc", () => {
+       schemaVersion: "0.1.0",
+       targetWbsId: "test-wbs",
+       changeSetId: "changeset-block",
+-      operations: [
+-        { operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }
+-      ]
++      operations: [{ operation: "changeNodeStatus", nodeId: "node-api", status: "blocked" }]
+     });
+     writeJson(root, "empty-change-set.json", {
+       schemaVersion: "0.1.0",
+@@ -654,7 +709,11 @@ describe("misc", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+-    writeText(root, "contracts/tasks/index.yaml", "tasks:\n  - id: SCWBS-DRAFT-ABC\n    path: contracts/tasks/SCWBS-DRAFT-ABC.yaml\n    branchName: task/SCWBS-DRAFT-ABC-example\n    wbsNodeId: node-governance-maintenance\n");
++    writeText(
++      root,
++      "contracts/tasks/index.yaml",
++      "tasks:\n  - id: SCWBS-DRAFT-ABC\n    path: contracts/tasks/SCWBS-DRAFT-ABC.yaml\n    branchName: task/SCWBS-DRAFT-ABC-example\n    wbsNodeId: node-governance-maintenance\n"
++    );
+     expect(runCheck(root)).toBe(0);
+   });
+ 
+@@ -670,9 +729,172 @@ describe("misc", () => {
+   test("scwbs fix regenerates registry.yaml and nothing else (M2-023)", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+-    writeYaml(root, "contracts/registry.yaml", { projectId: "stale", contracts: [] } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", { projectId: "stale", contracts: [] } as unknown as Record<
++      string,
++      unknown
++    >);
+     expect(runFix(root)).toBe(0);
+     const registry = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
+     expect(registry).not.toContain("projectId: stale");
+   });
++
++  test("planning store list/show is read-only and fail-closed on stale, dirty, escape, and cycle state", () => {
++    const root = makeTempRepo();
++    const storeRepo = makeTempRepo();
++    const specPath = "contracts/specs/SPEC-SHARED.yaml";
++    const specContent = "id: SPEC-SHARED\nversion: 1.0.0\n";
++    writeText(storeRepo, specPath, specContent);
++    execFileSync("git", ["add", "."], { cwd: storeRepo });
++    execFileSync("git", ["commit", "-m", "shared spec"], { cwd: storeRepo, stdio: "ignore" });
++    const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: storeRepo, encoding: "utf8" }).trim();
++    const contentHash = `sha256:${createHash("sha256").update(specContent).digest("hex")}`;
++    const registry = {
++      version: "1.0.0",
++      stores: [
++        {
++          id: "planning-main",
++          root: storeRepo,
++          repositories: [{ id: "repo-a", root: "." }],
++          worksets: [
++            {
++              id: "workset-a",
++              repositories: ["repo-a"],
++              sharedSpecs: [{ repositoryId: "repo-a", path: specPath, commit, contentHash, dependsOn: [] }]
++            }
++          ]
++        }
++      ]
++    };
++    writeYaml(root, "planning-store.yaml", registry);
++
++    const listed = captureOutput(() => main(["store", "list", "--registry", "planning-store.yaml", "--json"], root));
++    expect(listed.result).toBe(0);
++    expect(JSON.parse(listed.stdout)).toMatchObject({
++      version: "scwbs.planning-store-list.v1",
++      stores: [{ id: "planning-main", root: storeRepo, repositoryIds: ["repo-a"], worksetIds: ["workset-a"] }],
++      authority: "read-only-advisory"
++    });
++
++    const ready = captureOutput(() =>
++      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
++    );
++    expect(ready.result).toBe(0);
++    const readyReport = JSON.parse(ready.stdout);
++    expect(readyReport).toMatchObject({
++      version: "scwbs.planning-store-show.v1",
++      status: "ready",
++      repositories: [{ id: "repo-a", trust: "trusted", headCommit: commit }],
++      sharedSpecs: [
++        {
++          repositoryId: "repo-a",
++          path: specPath,
++          status: "ready",
++          pinnedCommit: commit,
++          expectedContentHash: contentHash
++        }
++      ],
++      authority: expect.stringContaining("repository Task Contract")
++    });
++    expect(readyReport.provenance).toMatchObject({
++      storeId: "planning-main",
++      referencedCommits: [commit],
++      contentHashes: [contentHash]
++    });
++
++    writeText(storeRepo, specPath, `${specContent}dirty: true\n`);
++    const dirty = captureOutput(() =>
++      runPlanningStoreShow(root, "planning-store.yaml", "planning-main", { json: true })
++    );
++    expect(dirty.result).toBe(1);
++    expect(JSON.parse(dirty.stdout).status).toBe("blocked");
++    execFileSync("git", ["restore", "--", specPath], { cwd: storeRepo });
++
++    writeYaml(root, "planning-store.yaml", {
++      ...registry,
++      stores: [
++        {
++          ...registry.stores[0],
++          worksets: [
++            {
++              ...registry.stores[0].worksets[0],
++              sharedSpecs: [
++                { ...registry.stores[0].worksets[0].sharedSpecs[0], contentHash: "sha256:" + "0".repeat(64) }
++              ]
++            }
++          ]
++        }
++      ]
++    });
++    const stale = captureOutput(() =>
++      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
++    );
++    expect(stale.result).toBe(1);
++    expect(JSON.parse(stale.stdout)).toMatchObject({ status: "stale", sharedSpecs: [{ status: "stale" }] });
++
++    writeYaml(root, "planning-store.yaml", {
++      ...registry,
++      stores: [
++        {
++          ...registry.stores[0],
++          worksets: [
++            {
++              ...registry.stores[0].worksets[0],
++              sharedSpecs: [{ ...registry.stores[0].worksets[0].sharedSpecs[0], path: "../outside.yaml" }]
++            }
++          ]
++        }
++      ]
++    });
++    const escaped = captureOutput(() =>
++      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
++    );
++    expect(escaped.result).toBe(1);
++    expect(escaped.stderr).toContain("planningStore.pathEscape");
++
++    writeText(storeRepo, "contracts/specs/SPEC-SECOND.yaml", "id: SPEC-SECOND\nversion: 1.0.0\n");
++    execFileSync("git", ["add", "."], { cwd: storeRepo });
++    execFileSync("git", ["commit", "-m", "second shared spec"], { cwd: storeRepo, stdio: "ignore" });
++    const cycleCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: storeRepo, encoding: "utf8" }).trim();
++    const secondContent = "id: SPEC-SECOND\nversion: 1.0.0\n";
++    const secondHash = `sha256:${createHash("sha256").update(secondContent).digest("hex")}`;
++    writeYaml(root, "planning-store.yaml", {
++      ...registry,
++      stores: [
++        {
++          ...registry.stores[0],
++          worksets: [
++            {
++              ...registry.stores[0].worksets[0],
++              sharedSpecs: [
++                {
++                  ...registry.stores[0].worksets[0].sharedSpecs[0],
++                  dependsOn: ["repo-a:contracts/specs/SPEC-SECOND.yaml"]
++                },
++                {
++                  repositoryId: "repo-a",
++                  path: "contracts/specs/SPEC-SECOND.yaml",
++                  commit: cycleCommit,
++                  contentHash: secondHash,
++                  dependsOn: ["repo-a:contracts/specs/SPEC-SHARED.yaml"]
++                }
++              ]
++            }
++          ]
++        }
++      ]
++    });
++    const cycle = captureOutput(() =>
++      main(["store", "show", "--registry", "planning-store.yaml", "--store", "planning-main", "--json"], root)
++    );
++    expect(cycle.result).toBe(1);
++    expect(JSON.parse(cycle.stdout)).toMatchObject({
++      status: "blocked",
++      review: { cycles: expect.arrayContaining(["repo-a:contracts/specs/SPEC-SHARED.yaml"]) }
++    });
++
++    writeYaml(root, "planning-store.yaml", { ...registry, stores: [{ ...registry.stores[0], authority: "expand" }] });
++    const authority = captureOutput(() => main(["store", "list", "--registry", "planning-store.yaml", "--json"], root));
++    expect(authority.result).toBe(1);
++    expect(authority.stderr).toContain("planningStore.unknownField");
++  });
+ });
