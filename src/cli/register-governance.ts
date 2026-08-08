@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { type Command } from "commander";
-import { readSpec, readTask } from "../core/contracts.js";
+import { readSpec, readTask, runValidateFeature } from "../core/contracts.js";
 import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { SpecChangeProposal } from "../core/types.js";
@@ -22,7 +22,6 @@ import {
   runReviewRequest,
   runReviewRoute
 } from "../commands/review-request.js";
-import { runValidateFeature } from "../commands/validate-feature.js";
 import { parseTestQuality, type CommandContext } from "./command-context.js";
 
 type SpecChangeNewOptions = {

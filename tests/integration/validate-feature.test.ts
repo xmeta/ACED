@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
-import { runValidateFeature } from "../../src/commands/validate-feature.js";
+import { runValidateFeature } from "../../src/core/contracts.js";
 import { makeTempRepo, sampleEvidence, sampleSpec, sampleTask, writeYaml } from "../helpers.js";
 
 function capture(root: string, specId: string, baseRef = "HEAD"): { exitCode: number; report: Record<string, unknown> } {
