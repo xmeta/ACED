@@ -1,0 +1,65 @@
+id: EVD-SCWBS-DRAFT-MSKC6MZG
+type: evidence
+taskId: SCWBS-DRAFT-MSKC6MZG
+commit: 116c7c4312068ddddeef8c136bb79fb2c10f7a83
+subjectHeadCommit: 116c7c4312068ddddeef8c136bb79fb2c10f7a83
+diffHash: sha256:d9c127a4e392e9ba99c8ca6b3fbbb08d168167f0251fbb1b126778ef07a95322
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 116c7c4312068ddddeef8c136bb79fb2c10f7a83
+    treeHash: 13bd1323cb528a9ec406e77af02560508755aa9d
+    diffHash: sha256:d9c127a4e392e9ba99c8ca6b3fbbb08d168167f0251fbb1b126778ef07a95322
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSKC6MZG.patch
+    manifestHash: sha256:d9c127a4e392e9ba99c8ca6b3fbbb08d168167f0251fbb1b126778ef07a95322
+git:
+  branch: task/SCWBS-DRAFT-MSKC6MZG-issue-452-configurable-artifact-workflow-schema-
+  base: origin/main
+  baseCommit: 1392164e5c340fc8b09cab055302378277efb670
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 116c7c4312068ddddeef8c136bb79fb2c10f7a83
+  diffHash: sha256:d9c127a4e392e9ba99c8ca6b3fbbb08d168167f0251fbb1b126778ef07a95322
+  headCommit: 116c7c4312068ddddeef8c136bb79fb2c10f7a83
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/schemas/SCWBS-workflow-v1.json
+  - contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
+  - contracts/tasks/index.yaml
+  - contracts/workflows/builtin-scwbs-v1.yaml
+  - docs/implementation-gaps.md
+  - src/cli/register-governance.ts
+  - src/core/contracts.ts
+  - src/core/types.ts
+  - tests/integration/validate-feature.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:14cafce2eb84e84ec921f88a88588a72dd7d0e4c65c62d2506776e80bf63a957
+    durationMilliseconds: 15843
+    executedAt: "2026-08-08T12:32:17.100Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9c6fd8e1853fee1728b9b283ac8195c03e1ea0ff6c87a0bb1e304e2122f9d672
+    durationMilliseconds: 9604
+    executedAt: "2026-08-08T12:32:26.708Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:4d1b1f6ba745203c1a8d6628df5cec54a71155718b1e446cfce10e52c7f1697c
+    durationMilliseconds: 4197
+    executedAt: "2026-08-08T12:32:30.909Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6e5be9aa13cbb9ed4d8d0e7d9b0a8c2eebd7846a74c7762d4ebb06a68e692882
+    durationMilliseconds: 273581
+    executedAt: "2026-08-08T12:37:04.493Z"

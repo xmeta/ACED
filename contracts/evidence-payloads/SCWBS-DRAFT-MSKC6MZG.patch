@@ -1,0 +1,1468 @@
+diff --git a/contracts/schemas/SCWBS-workflow-v1.json b/contracts/schemas/SCWBS-workflow-v1.json
+new file mode 100644
+index 0000000..990a989
+--- /dev/null
++++ b/contracts/schemas/SCWBS-workflow-v1.json
+@@ -0,0 +1,51 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/schemas/scwbs-workflow-v1.json",
++  "title": "SC-WBS Artifact Workflow",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "id", "artifacts"],
++  "properties": {
++    "version": { "const": "1.0.0" },
++    "id": { "type": "string", "minLength": 1 },
++    "artifacts": {
++      "type": "array",
++      "minItems": 1,
++      "items": { "$ref": "#/$defs/artifact" }
++    },
++    "profiles": {
++      "type": "object",
++      "additionalProperties": {
++        "type": "array",
++        "items": { "type": "string", "minLength": 1 }
++      }
++    }
++  },
++  "$defs": {
++    "artifact": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "path", "description", "dependencies", "completion"],
++      "properties": {
++        "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]*$" },
++        "path": { "type": "string", "minLength": 1 },
++        "description": { "type": "string", "minLength": 1 },
++        "dependencies": { "type": "array", "items": { "type": "string", "minLength": 1 } },
++        "template": { "type": "string", "minLength": 1 },
++        "instruction": { "type": "string", "minLength": 1 },
++        "context": { "type": "array", "items": { "type": "string", "minLength": 1 } },
++        "rules": { "type": "array", "items": { "type": "string", "minLength": 1 } },
++        "validation": { "type": "string", "minLength": 1 },
++        "completion": {
++          "type": "object",
++          "additionalProperties": false,
++          "required": ["mode"],
++          "properties": {
++            "mode": { "const": "path-exists" },
++            "path": { "type": "string", "minLength": 1 }
++          }
++        }
++      }
++    }
++  }
++}
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml b/contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
+new file mode 100644
+index 0000000..4c0a2f5
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
+@@ -0,0 +1,68 @@
++id: SCWBS-DRAFT-MSKC6MZG
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSKC6MZG
++branchName: task/SCWBS-DRAFT-MSKC6MZG-issue-452-configurable-artifact-workflow-schema-
++status: approved
++approvedBy: xmeta
++sourceIssue: 452
++allowedPaths:
++  - src/core/contracts.ts
++  - src/core/types.ts
++  - src/core/schema/contracts.ts
++  - src/cli/register-governance.ts
++  - contracts/workflows/**
++  - contracts/schemas/SCWBS-workflow-v1.json
++  - docs/implementation-gaps.md
++  - tests/unit/contracts.test.ts
++  - tests/integration/validate-feature.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - schema migration ambiguity
++  - authority downgrade
++  - external service or code execution
++  - Human Gate required
++  - authority outside allowed paths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Versioned workflow schema and JSON Schema define artifact identity, path patterns, dependencies, templates, instructions, validation references, and completion rules
++  - Built-in and custom artifact workflows are parsed read-only with duplicate IDs, missing dependencies, cycles, path escapes, and unknown fields rejected
++  - status returns blocked, ready, and done artifacts with missing dependencies and unlocks in versioned JSON
++  - instructions <artifact> returns dependency snapshot, template, context, rules, and non-authoritative guidance
++  - Custom workflow declarations cannot weaken Task authority, Human Gate, forbidden paths, or required checks
++  - Schema drift is reported with provenance and does not silently alter existing projects or contract locks
++  - Unit and integration tests cover built-in, custom DAG, cycle, path escape, authority downgrade, and schema drift
++  - 'Issue #452 is closed only after protected merge and Task archive'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - artifact-graph-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSKC6MZG.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSKC6MZG.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSKC6MZG.patch
++  - contracts/approvals/SCWBS-DRAFT-MSKC6MZG.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSKC6MZG.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-08T12:16:18.129Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index af45e9c..5363a6a 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1700,3 +1700,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-08T12:13:10.505Z"
++  - id: SCWBS-DRAFT-MSKC6MZG
++    path: contracts/tasks/SCWBS-DRAFT-MSKC6MZG.yaml
++    branchName: task/SCWBS-DRAFT-MSKC6MZG-issue-452-configurable-artifact-workflow-schema-
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/contracts/workflows/builtin-scwbs-v1.yaml b/contracts/workflows/builtin-scwbs-v1.yaml
+new file mode 100644
+index 0000000..0b42d8f
+--- /dev/null
++++ b/contracts/workflows/builtin-scwbs-v1.yaml
+@@ -0,0 +1,71 @@
++version: "1.0.0"
++id: builtin-scwbs-v1
++artifacts:
++  - id: task-contract
++    path: contracts/tasks/*.yaml
++    description: Task Contract defining scope and authority
++    dependencies: []
++    instruction: Read the Task Contract before implementation.
++    context:
++      - contracts/tasks/index.yaml
++    rules:
++      - Task Contract remains authoritative for allowed paths and stop conditions.
++    validation: npm run scwbs -- check
++    completion:
++      mode: path-exists
++  - id: evidence
++    path: contracts/evidence/*.yaml
++    description: Evidence record for required checks and provenance
++    dependencies:
++      - task-contract
++    instruction: Collect Evidence after implementation and required checks.
++    rules:
++      - Evidence does not replace Task Contract or Approval provenance.
++    validation: npm run scwbs -- finish --task <task-id>
++    completion:
++      mode: path-exists
++  - id: approval
++    path: contracts/approvals/*.yaml
++    description: Approval record for Human Gate decisions
++    dependencies:
++      - evidence
++    instruction: Stop for human approval unless a bounded delegated policy is valid.
++    rules:
++      - AI must not create human-only approved records.
++    validation: npm run scwbs -- check-diff --task <task-id>
++    completion:
++      mode: path-exists
++  - id: registry
++    path: contracts/registry.yaml
++    description: Registry index synchronized with contract records
++    dependencies:
++      - evidence
++    instruction: Rebuild the Registry after Evidence or Approval changes.
++    validation: npm run scwbs -- registry rebuild --check
++    completion:
++      mode: path-exists
++  - id: review
++    path: contracts/reviews/*.yaml
++    description: Review record for diff and boundary review
++    dependencies:
++      - evidence
++    instruction: Review the Task Contract, Spec, diff, Evidence, and mechanical checks.
++    completion:
++      mode: path-exists
++profiles:
++  Lean:
++    - task-contract
++    - evidence
++    - registry
++  Standard:
++    - task-contract
++    - evidence
++    - approval
++    - registry
++    - review
++  Strict:
++    - task-contract
++    - evidence
++    - approval
++    - registry
++    - review
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index cf957fb..84f5735 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -36,21 +36,22 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - WBS status summary
+ - WJS semantic apply wrapper
+ - Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
++- Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
+ 
+ ## Still Missing
+ 
+-| Area | Missing Piece | Why It Matters |
+-|---|---|---|
+-| Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
+-| Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
+-| Evidence trust | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope |
+-| Evidence diff basis | CI correlation and publish-time PR metadata gating | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
+-| Test quality | Diff-aware assertion and coverage inspection | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope |
+-| Review independence | Separate independent review mode | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation |
+-| CI integration | PR feedback and CI evidence correlation | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow |
+-| Documentation automation | Markdown generation from contracts | Human-maintained docs still need manual upkeep |
+-| Indexing | SQLite or other local index | We do not yet have a searchable cache for contracts and findings |
+-| WBS collaboration | Semantic merge implementation or distributed WBS support | The mitigation strategy is documented, but merge assistance is not implemented yet |
++| Area                     | Missing Piece                                               | Why It Matters                                                                                                                                                                                                                  |
++| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| Change control           | Spec Change Proposal command and workflow enforcement       | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated                                                                                                                                         |
++| Risk management          | Risk Register format and command                            | Strict workflows still need a formal risk log                                                                                                                                                                                   |
++| Evidence trust           | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope                                                                                                                       |
++| Evidence diff basis      | CI correlation and publish-time PR metadata gating          | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
++| Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
++| Review independence      | Separate independent review mode                            | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation                                                                                                                       |
++| CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
++| Documentation automation | Markdown generation from contracts                          | Human-maintained docs still need manual upkeep                                                                                                                                                                                  |
++| Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
++| WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
+ 
+ ## Near-Term Follow-Ups
+ 
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index d9f02e8..d150850 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -1,7 +1,13 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { type Command } from "commander";
+-import { readSpec, readTask, runValidateFeature } from "../core/contracts.js";
++import {
++  readSpec,
++  readTask,
++  runArtifactWorkflowInstructions,
++  runArtifactWorkflowStatus,
++  runValidateFeature
++} from "../core/contracts.js";
+ import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { SpecChangeProposal } from "../core/types.js";
+@@ -37,7 +43,12 @@ type SpecChangeNewOptions = {
+ };
+ 
+ function splitSpecChangeItems(value: string | undefined): string[] {
+-  return value?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
++  return (
++    value
++      ?.split(",")
++      .map((item) => item.trim())
++      .filter(Boolean) ?? []
++  );
+ }
+ 
+ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
+@@ -100,6 +111,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runValidateFeature(root, options.spec, { baseRef: options.base, json: options.json ?? false }));
+     });
+ 
++  const artifact = program.command("artifact").description("Inspect declarative artifact workflows");
++  artifact
++    .command("status")
++    .description("Show read-only artifact workflow status")
++    .option("--workflow <path>", "workflow path", "contracts/workflows/builtin-scwbs-v1.yaml")
++    .option("--json", "print a versioned JSON report")
++    .action((options) =>
++      setExitCode(runArtifactWorkflowStatus(root, options.workflow, { json: options.json ?? false }))
++    );
++  artifact
++    .command("instructions")
++    .description("Show read-only artifact guidance")
++    .argument("<artifact>", "artifact id")
++    .option("--workflow <path>", "workflow path", "contracts/workflows/builtin-scwbs-v1.yaml")
++    .option("--json", "print a versioned JSON report")
++    .action((artifactId, options) =>
++      setExitCode(runArtifactWorkflowInstructions(root, options.workflow, artifactId, { json: options.json ?? false }))
++    );
++
+   const specChange = program.command("spec-change").description("Manage Spec Change Proposals");
+   specChange
+     .command("new")
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index a1f721e..bb3c633 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,15 +1,75 @@
+-import { existsSync, readdirSync } from "node:fs";
++import { existsSync, readFileSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
+-import { commitExists, isCommitAncestor } from "./git.js";
+-import { approvalPath, blockPath, defaultApprovalsDir, defaultBlocksDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, isValidTaskId, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+-import { asApprovalRecord, asBlockRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateBlockRecord, validateBlockRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
++import { commitExists, isCommitAncestor, trackedTextFiles } from "./git.js";
++import { matchesGlob } from "./glob.js";
++import {
++  approvalPath,
++  blockPath,
++  defaultApprovalsDir,
++  defaultBlocksDir,
++  defaultEvidenceDir,
++  defaultRegistryPath,
++  defaultReviewsDir,
++  defaultSpecChangesDir,
++  defaultSpecsDir,
++  defaultTasksDir,
++  isValidTaskId,
++  resolveFrom,
++  reviewPath,
++  taskPath,
++  evidencePath
++} from "./paths.js";
++import {
++  asApprovalRecord,
++  asBlockRecord,
++  asEvidence,
++  asRegistry,
++  asReviewRecord,
++  asSpecChangeProposal,
++  asSpecContract,
++  asTaskContract,
++  validateApprovalRecord,
++  validateApprovalRecordSchema,
++  validateBlockRecord,
++  validateBlockRecordSchema,
++  validateEvidence,
++  validateEvidenceSchema,
++  validateRegistry,
++  validateRegistrySchema,
++  validateReviewRecord,
++  validateReviewRecordSchema,
++  validateSpecChangeProposal,
++  validateSpecChangeProposalSchema,
++  validateSpecContract,
++  validateSpecContractSchema,
++  validateTaskContract,
++  validateTaskContractSchema
++} from "./schema.js";
+ import { activeTaskEntries, readTaskIndex } from "./task-index.js";
+-import type { ApprovalRecord, BlockRecord, Evidence, Issue, Registry, RegistryContract, RequirementEvidence, RequirementVerificationMode, ReviewRecord, SpecChangeProposal, SpecContract, SpecRequirement, TaskContract } from "./types.js";
++import type {
++  ArtifactDefinition,
++  ArtifactWorkflow,
++  ApprovalRecord,
++  BlockRecord,
++  Evidence,
++  Issue,
++  Registry,
++  RegistryContract,
++  RequirementEvidence,
++  RequirementVerificationMode,
++  ReviewRecord,
++  SpecChangeProposal,
++  SpecContract,
++  SpecRequirement,
++  TaskContract
++} from "./types.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+   if (!existsSync(fullPath)) {
+-    return { issues: [{ severity: "error", code: "registry.missing", message: `${defaultRegistryPath} does not exist` }] };
++    return {
++      issues: [{ severity: "error", code: "registry.missing", message: `${defaultRegistryPath} does not exist` }]
++    };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+   const issues = [...validateRegistrySchema(value, defaultRegistryPath), ...validateRegistry(value)];
+@@ -40,13 +100,19 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
+   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
+ }
+ 
+-export function readSpecChange(root: string, relativePath: string): { specChange?: SpecChangeProposal; issues: Issue[] } {
++export function readSpecChange(
++  root: string,
++  relativePath: string
++): { specChange?: SpecChangeProposal; issues: Issue[] } {
+   const fullPath = resolveFrom(root, relativePath);
+   if (!existsSync(fullPath)) {
+     return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateSpecChangeProposalSchema(value, relativePath), ...validateSpecChangeProposal(value, relativePath)];
++  const issues = [
++    ...validateSpecChangeProposalSchema(value, relativePath),
++    ...validateSpecChangeProposal(value, relativePath)
++  ];
+   return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
+ }
+ 
+@@ -136,7 +202,9 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
+     });
+ }
+ 
+-export function listSpecChanges(root: string): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
++export function listSpecChanges(
++  root: string
++): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
+   const dir = resolveFrom(root, defaultSpecChangesDir);
+   if (!existsSync(dir)) return [];
+   return readdirSync(dir)
+@@ -208,20 +276,33 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
+   });
+ }
+ 
+-export function matchingRegistrySpecByPath(registry: Registry | undefined, specPath: string): RegistryContract | undefined {
++export function matchingRegistrySpecByPath(
++  registry: Registry | undefined,
++  specPath: string
++): RegistryContract | undefined {
+   return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
+ }
+ 
+-export function matchingRegistrySpecChangeByPath(registry: Registry | undefined, specChangePath: string): RegistryContract | undefined {
++export function matchingRegistrySpecChangeByPath(
++  registry: Registry | undefined,
++  specChangePath: string
++): RegistryContract | undefined {
+   return registry?.contracts.find((contract) => contract.type === "spec-change" && contract.path === specChangePath);
+ }
+ 
+-export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {
++export function readSpecFromRegistryContract(
++  root: string,
++  contract: RegistryContract
++): { spec?: SpecContract; path: string; issues: Issue[] } {
+   const { spec, issues } = readSpec(root, contract.path);
+   return { spec, path: contract.path, issues };
+ }
+ 
+-export function resolveSpecForTask(root: string, registry: Registry | undefined, task: TaskContract): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
++export function resolveSpecForTask(
++  root: string,
++  registry: Registry | undefined,
++  task: TaskContract
++): { contract?: RegistryContract; spec?: SpecContract; path?: string; issues: Issue[] } {
+   const contract = matchingSpecContract(registry, task);
+   if (!contract) return { issues: [] };
+   const { spec, path, issues } = readSpecFromRegistryContract(root, contract);
+@@ -273,7 +354,9 @@ function normalizedRequirements(spec: SpecContract): { requirements: SpecRequire
+       verificationMode: "manual",
+       source: "legacy:acceptanceCriteria"
+     })),
+-    warnings: [`${spec.id} uses legacy acceptanceCriteria; add requirementsVersion: 1.0.0 and stable requirement IDs before feature validation can produce GO`]
++    warnings: [
++      `${spec.id} uses legacy acceptanceCriteria; add requirementsVersion: 1.0.0 and stable requirement IDs before feature validation can produce GO`
++    ]
+   };
+ }
+ 
+@@ -290,14 +373,24 @@ function featureEvidenceStatus(
+   baseRef: string
+ ): { status: FeatureRequirementResult["evidenceStatus"]; issues: string[] } {
+   if (!evidence || !coverage) return { status: "missing", issues: ["Requirement Evidence is missing"] };
+-  if (coverage.subjectHeadCommit !== evidence.subjectHeadCommit || coverage.diffHash !== evidence.diffHash || !coverage.subjectHeadCommit || !coverage.diffHash) {
+-    return { status: "stale", issues: ["Requirement Evidence provenance does not match Evidence subjectHeadCommit/diffHash"] };
++  if (
++    coverage.subjectHeadCommit !== evidence.subjectHeadCommit ||
++    coverage.diffHash !== evidence.diffHash ||
++    !coverage.subjectHeadCommit ||
++    !coverage.diffHash
++  ) {
++    return {
++      status: "stale",
++      issues: ["Requirement Evidence provenance does not match Evidence subjectHeadCommit/diffHash"]
++    };
+   }
+-  if (!commitExists(root, coverage.subjectHeadCommit)) return { status: "stale", issues: ["Requirement Evidence subject HEAD does not exist"] };
++  if (!commitExists(root, coverage.subjectHeadCommit))
++    return { status: "stale", issues: ["Requirement Evidence subject HEAD does not exist"] };
+   if (!isCommitAncestor(root, coverage.subjectHeadCommit, baseRef)) {
+     return { status: "stale", issues: [`Requirement Evidence subject HEAD is not merged into ${baseRef}`] };
+   }
+-  if (coverage.status === "not-covered") return { status: "not-covered", issues: ["Evidence explicitly marks the requirement as not-covered"] };
++  if (coverage.status === "not-covered")
++    return { status: "not-covered", issues: ["Evidence explicitly marks the requirement as not-covered"] };
+   const humanReference = coverage.references.some((reference) => /^(human|manual):/i.test(reference));
+   if (verificationMode === "manual" || verificationMode === "hybrid") {
+     return coverage.status === "covered" && humanReference
+@@ -308,7 +401,10 @@ function featureEvidenceStatus(
+   const checkNames = coverage.checkNames ?? [];
+   return coverage.status === "covered" && checkNames.length > 0 && checkNames.every((check) => passedChecks.has(check))
+     ? { status: "covered", issues: [] }
+-    : { status: "not-covered", issues: ["Automated Requirement needs covered status and current passed check references"] };
++    : {
++        status: "not-covered",
++        issues: ["Automated Requirement needs covered status and current passed check references"]
++      };
+ }
+ 
+ function printFeatureValidation(report: FeatureValidationReport, json: boolean): void {
+@@ -317,7 +413,11 @@ function printFeatureValidation(report: FeatureValidationReport, json: boolean):
+     return;
+   }
+   process.stdout.write(`Feature validation: ${report.status}\n`);
+-  report.requirements.forEach((requirement) => process.stdout.write(`- ${requirement.requirementId}: ${requirement.evidenceStatus}${requirement.issues.length > 0 ? ` (${requirement.issues.join("; ")})` : ""}\n`));
++  report.requirements.forEach((requirement) =>
++    process.stdout.write(
++      `- ${requirement.requirementId}: ${requirement.evidenceStatus}${requirement.issues.length > 0 ? ` (${requirement.issues.join("; ")})` : ""}\n`
++    )
++  );
+   report.warnings.forEach((warning) => process.stdout.write(`WARN ${warning}\n`));
+ }
+ 
+@@ -338,7 +438,7 @@ export function runValidateFeature(root: string, specId: string, options: Featur
+   }
+   const spec = specEntry.spec;
+   const normalized = normalizedRequirements(spec);
+-  const tasks = listTasks(root).flatMap((entry) => entry.task ? [entry.task] : []);
++  const tasks = listTasks(root).flatMap((entry) => (entry.task ? [entry.task] : []));
+   const statuses = featureTaskStatuses(root);
+   const baseRef = options.baseRef ?? "origin/main";
+   const knownIds = new Set(normalized.requirements.map((requirement) => requirement.id));
+@@ -352,10 +452,19 @@ export function runValidateFeature(root: string, specId: string, options: Featur
+     const issues: string[] = [];
+     if (owners.length === 0) issues.push("No Task declares ownership of this Requirement");
+     if (owners.length > 1) issues.push(`Duplicate ownership by ${taskIds.join(", ")}`);
+-    if (owners.length !== 1) return { requirementId: requirement.id, statement: requirement.statement, verificationMode: requirement.verificationMode, taskIds, evidenceStatus: "not-covered", issues };
++    if (owners.length !== 1)
++      return {
++        requirementId: requirement.id,
++        statement: requirement.statement,
++        verificationMode: requirement.verificationMode,
++        taskIds,
++        evidenceStatus: "not-covered",
++        issues
++      };
+     const task = owners[0] as TaskContract;
+     const taskStatus = statuses.get(task.id) ?? "planned";
+-    if (!["completed", "archived"].includes(taskStatus)) issues.push(`Task ${task.id} is ${taskStatus}, not completed or archived`);
++    if (!["completed", "archived"].includes(taskStatus))
++      issues.push(`Task ${task.id} is ${taskStatus}, not completed or archived`);
+     const { evidence } = readEvidence(root, task.id);
+     const coverage = evidence?.requirementEvidence?.find((entry) => entry.requirementId === requirement.id);
+     const evidenceResult = featureEvidenceStatus(root, evidence, coverage, requirement.verificationMode, baseRef);
+@@ -369,18 +478,410 @@ export function runValidateFeature(root: string, specId: string, options: Featur
+       issues
+     };
+   });
+-  const manualVerifyRequired = requirements.filter((requirement) => requirement.evidenceStatus === "manual-required").length;
+-  const notCovered = requirements.filter((requirement) => !["covered", "manual-required"].includes(requirement.evidenceStatus)).length;
++  const manualVerifyRequired = requirements.filter(
++    (requirement) => requirement.evidenceStatus === "manual-required"
++  ).length;
++  const notCovered = requirements.filter(
++    (requirement) => !["covered", "manual-required"].includes(requirement.evidenceStatus)
++  ).length;
+   const report: FeatureValidationReport = {
+     version: "scwbs.feature-validation.v1",
+     status: notCovered > 0 ? "NO-GO" : manualVerifyRequired > 0 ? "MANUAL_VERIFY_REQUIRED" : "GO",
+-    spec: { id: spec.id, version: spec.version, ...(spec.requirementsVersion ? { requirementsVersion: spec.requirementsVersion } : {}) },
++    spec: {
++      id: spec.id,
++      version: spec.version,
++      ...(spec.requirementsVersion ? { requirementsVersion: spec.requirementsVersion } : {})
++    },
+     requirements,
+     unknownRequirementDeclarations,
+-    warnings: [...normalized.warnings, ...unknownRequirementDeclarations.map((entry) => `Task ${entry.taskId} declares unknown Requirement IDs: ${entry.requirementIds.join(", ")}`)],
+-    summary: { total: requirements.length, covered: requirements.length - notCovered - manualVerifyRequired, notCovered, manualVerifyRequired }
++    warnings: [
++      ...normalized.warnings,
++      ...unknownRequirementDeclarations.map(
++        (entry) => `Task ${entry.taskId} declares unknown Requirement IDs: ${entry.requirementIds.join(", ")}`
++      )
++    ],
++    summary: {
++      total: requirements.length,
++      covered: requirements.length - notCovered - manualVerifyRequired,
++      notCovered,
++      manualVerifyRequired
++    }
+   };
+   if (unknownRequirementDeclarations.length > 0 && report.status === "GO") report.status = "NO-GO";
+   printFeatureValidation(report, options.json ?? false);
+   return report.status === "GO" ? 0 : report.status === "MANUAL_VERIFY_REQUIRED" ? 2 : 1;
+ }
++
++const artifactWorkflowRootKeys = new Set(["version", "id", "artifacts", "profiles"]);
++const artifactDefinitionKeys = new Set([
++  "id",
++  "path",
++  "description",
++  "dependencies",
++  "template",
++  "instruction",
++  "context",
++  "rules",
++  "validation",
++  "completion"
++]);
++
++function isObjectRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function safeArtifactPath(value: string): boolean {
++  const normalized = value.replace(/\\/g, "/");
++  return !normalized.startsWith("/") && !normalized.split("/").includes("..") && !normalized.includes("\0");
++}
++
++function artifactWorkflowValue(root: string, relativePath: string): unknown {
++  const fullPath = resolveFrom(root, relativePath);
++  if (!existsSync(fullPath)) throw new Error(`${relativePath} does not exist`);
++  const source = readFileSync(fullPath, "utf8");
++  return relativePath.endsWith(".json") ? (JSON.parse(source) as unknown) : readYamlFile<unknown>(fullPath);
++}
++
++export function readArtifactWorkflow(
++  root: string,
++  relativePath: string
++): { workflow?: ArtifactWorkflow; issues: Issue[] } {
++  let value: unknown;
++  try {
++    value = artifactWorkflowValue(root, relativePath);
++  } catch (error) {
++    return {
++      issues: [
++        { severity: "error", code: "workflow.read", message: error instanceof Error ? error.message : String(error) }
++      ]
++    };
++  }
++  const issues: Issue[] = [];
++  if (!isObjectRecord(value))
++    return {
++      issues: [{ severity: "error", code: "workflow.object", message: `${relativePath} must contain an object` }]
++    };
++  for (const key of Object.keys(value))
++    if (!artifactWorkflowRootKeys.has(key))
++      issues.push({
++        severity: "error",
++        code: "workflow.unknownField",
++        message: `${relativePath}.${key} is not supported`
++      });
++  if (value.version !== "1.0.0")
++    issues.push({ severity: "error", code: "workflow.version", message: `${relativePath}.version must be 1.0.0` });
++  if (typeof value.id !== "string" || value.id.length === 0)
++    issues.push({ severity: "error", code: "workflow.id", message: `${relativePath}.id must be a non-empty string` });
++  if (!Array.isArray(value.artifacts) || value.artifacts.length === 0)
++    issues.push({
++      severity: "error",
++      code: "workflow.artifacts",
++      message: `${relativePath}.artifacts must be a non-empty array`
++    });
++  const artifacts: ArtifactDefinition[] = [];
++  const ids = new Set<string>();
++  if (Array.isArray(value.artifacts))
++    value.artifacts.forEach((raw, index) => {
++      const label = `${relativePath}.artifacts[${index}]`;
++      if (!isObjectRecord(raw)) {
++        issues.push({ severity: "error", code: "workflow.artifact", message: `${label} must be an object` });
++        return;
++      }
++      for (const key of Object.keys(raw))
++        if (!artifactDefinitionKeys.has(key))
++          issues.push({
++            severity: "error",
++            code: "workflow.unknownField",
++            message: `${label}.${key} is not supported`
++          });
++      const id = typeof raw.id === "string" ? raw.id : "";
++      const artifactPath = typeof raw.path === "string" ? raw.path : "";
++      const description = typeof raw.description === "string" ? raw.description : "";
++      const dependencies =
++        Array.isArray(raw.dependencies) && raw.dependencies.every((item) => typeof item === "string")
++          ? (raw.dependencies as string[])
++          : [];
++      if (!id)
++        issues.push({
++          severity: "error",
++          code: "workflow.artifact.id",
++          message: `${label}.id must be a non-empty string`
++        });
++      if (ids.has(id))
++        issues.push({
++          severity: "error",
++          code: "workflow.duplicateId",
++          message: `${relativePath} contains duplicate artifact id ${id}`
++        });
++      ids.add(id);
++      if (!artifactPath || !safeArtifactPath(artifactPath))
++        issues.push({
++          severity: "error",
++          code: "workflow.pathEscape",
++          message: `${label}.path must remain inside the repository`
++        });
++      if (!description)
++        issues.push({
++          severity: "error",
++          code: "workflow.artifact.description",
++          message: `${label}.description must be a non-empty string`
++        });
++      if (!Array.isArray(raw.dependencies) || !raw.dependencies.every((item) => typeof item === "string"))
++        issues.push({
++          severity: "error",
++          code: "workflow.dependencies",
++          message: `${label}.dependencies must be a string array`
++        });
++      if (raw.template !== undefined && (typeof raw.template !== "string" || raw.template.length === 0))
++        issues.push({
++          severity: "error",
++          code: "workflow.template",
++          message: `${label}.template must be a non-empty string`
++        });
++      if (raw.instruction !== undefined && (typeof raw.instruction !== "string" || raw.instruction.length === 0))
++        issues.push({
++          severity: "error",
++          code: "workflow.instruction",
++          message: `${label}.instruction must be a non-empty string`
++        });
++      if (
++        raw.context !== undefined &&
++        (!Array.isArray(raw.context) || !raw.context.every((item) => typeof item === "string" && item.length > 0))
++      )
++        issues.push({
++          severity: "error",
++          code: "workflow.context",
++          message: `${label}.context must be a non-empty string array`
++        });
++      if (
++        raw.rules !== undefined &&
++        (!Array.isArray(raw.rules) || !raw.rules.every((item) => typeof item === "string" && item.length > 0))
++      )
++        issues.push({
++          severity: "error",
++          code: "workflow.rules",
++          message: `${label}.rules must be a non-empty string array`
++        });
++      if (raw.validation !== undefined && (typeof raw.validation !== "string" || raw.validation.length === 0))
++        issues.push({
++          severity: "error",
++          code: "workflow.validation",
++          message: `${label}.validation must be a non-empty string`
++        });
++      const completionValue = isObjectRecord(raw.completion) ? raw.completion : undefined;
++      if (completionValue)
++        for (const key of Object.keys(completionValue))
++          if (!["mode", "path"].includes(key))
++            issues.push({
++              severity: "error",
++              code: "workflow.unknownField",
++              message: `${label}.completion.${key} is not supported`
++            });
++      if (
++        completionValue?.path !== undefined &&
++        (typeof completionValue.path !== "string" || completionValue.path.length === 0)
++      )
++        issues.push({
++          severity: "error",
++          code: "workflow.completion.path",
++          message: `${label}.completion.path must be a non-empty string`
++        });
++      const completion =
++        completionValue?.mode === "path-exists"
++          ? {
++              mode: "path-exists" as const,
++              ...(typeof completionValue.path === "string" ? { path: completionValue.path } : {})
++            }
++          : undefined;
++      if (!completion)
++        issues.push({
++          severity: "error",
++          code: "workflow.completion",
++          message: `${label}.completion.mode must be path-exists`
++        });
++      if (completion && completion.path !== undefined && !safeArtifactPath(completion.path))
++        issues.push({
++          severity: "error",
++          code: "workflow.pathEscape",
++          message: `${label}.completion.path must remain inside the repository`
++        });
++      if (id && artifactPath && description && completion)
++        artifacts.push({
++          id,
++          path: artifactPath,
++          description,
++          dependencies,
++          ...(typeof raw.template === "string" ? { template: raw.template } : {}),
++          ...(typeof raw.instruction === "string" ? { instruction: raw.instruction } : {}),
++          ...(Array.isArray(raw.context) && raw.context.every((item) => typeof item === "string")
++            ? { context: raw.context as string[] }
++            : {}),
++          ...(Array.isArray(raw.rules) && raw.rules.every((item) => typeof item === "string")
++            ? { rules: raw.rules as string[] }
++            : {}),
++          ...(typeof raw.validation === "string" ? { validation: raw.validation } : {}),
++          completion
++        });
++    });
++  const artifactIds = new Set(artifacts.map((artifact) => artifact.id));
++  artifacts.forEach((artifact) =>
++    artifact.dependencies.forEach((dependency) => {
++      if (!artifactIds.has(dependency))
++        issues.push({
++          severity: "error",
++          code: "workflow.missingDependency",
++          message: `${relativePath}.${artifact.id} depends on unknown artifact ${dependency}`
++        });
++      if (dependency === artifact.id)
++        issues.push({
++          severity: "error",
++          code: "workflow.cycle",
++          message: `${relativePath}.${artifact.id} cannot depend on itself`
++        });
++    })
++  );
++  const visiting = new Set<string>();
++  const visited = new Set<string>();
++  const byId = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
++  const visit = (id: string): void => {
++    if (visiting.has(id)) {
++      issues.push({
++        severity: "error",
++        code: "workflow.cycle",
++        message: `${relativePath} contains a dependency cycle at ${id}`
++      });
++      return;
++    }
++    if (visited.has(id)) return;
++    visiting.add(id);
++    byId
++      .get(id)
++      ?.dependencies.filter((dependency) => byId.has(dependency))
++      .forEach(visit);
++    visiting.delete(id);
++    visited.add(id);
++  };
++  artifacts.forEach((artifact) => visit(artifact.id));
++  if (value.profiles !== undefined) {
++    if (!isObjectRecord(value.profiles))
++      issues.push({
++        severity: "error",
++        code: "workflow.profiles",
++        message: `${relativePath}.profiles must be an object`
++      });
++    else
++      Object.entries(value.profiles).forEach(([profile, members]) => {
++        if (
++          !Array.isArray(members) ||
++          !members.every((member) => typeof member === "string" && artifactIds.has(member))
++        )
++          issues.push({
++            severity: "error",
++            code: "workflow.profiles",
++            message: `${relativePath}.profiles.${profile} must reference known artifact IDs`
++          });
++      });
++  }
++  return issues.length > 0
++    ? { issues }
++    : {
++        workflow: {
++          version: "1.0.0",
++          id: value.id as string,
++          artifacts,
++          ...(isObjectRecord(value.profiles) ? { profiles: value.profiles as Record<string, string[]> } : {})
++        },
++        issues: []
++      };
++}
++
++export type ArtifactWorkflowStatus = {
++  version: "scwbs.artifact-workflow-status.v1";
++  workflowId: string;
++  artifacts: Array<{
++    id: string;
++    state: "blocked" | "ready" | "done";
++    path: string;
++    missingDependencies: string[];
++    unlocks: string[];
++  }>;
++};
++
++export function buildArtifactWorkflowStatus(root: string, workflow: ArtifactWorkflow): ArtifactWorkflowStatus {
++  const files = trackedTextFiles(root);
++  const done = new Set(
++    workflow.artifacts
++      .filter((artifact) =>
++        files.some(
++          (file) =>
++            matchesGlob(file, artifact.path) ||
++            (artifact.completion.path !== undefined && matchesGlob(file, artifact.completion.path))
++        )
++      )
++      .map((artifact) => artifact.id)
++  );
++  return {
++    version: "scwbs.artifact-workflow-status.v1",
++    workflowId: workflow.id,
++    artifacts: workflow.artifacts.map((artifact) => {
++      const missingDependencies = artifact.dependencies.filter((dependency) => !done.has(dependency));
++      const unlocks = workflow.artifacts
++        .filter((candidate) => candidate.dependencies.includes(artifact.id))
++        .map((candidate) => candidate.id)
++        .sort();
++      return {
++        id: artifact.id,
++        state: done.has(artifact.id) ? "done" : missingDependencies.length > 0 ? "blocked" : "ready",
++        path: artifact.path,
++        missingDependencies,
++        unlocks
++      };
++    })
++  };
++}
++
++export function runArtifactWorkflowStatus(
++  root: string,
++  relativePath: string,
++  options: { json?: boolean } = {}
++): number {
++  const result = readArtifactWorkflow(root, relativePath);
++  if (!result.workflow) {
++    result.issues.forEach((item) => console.error(`ERROR ${item.code}: ${item.message}`));
++    return 1;
++  }
++  const report = buildArtifactWorkflowStatus(root, result.workflow);
++  if (options.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
++  else report.artifacts.forEach((artifact) => process.stdout.write(`${artifact.id}: ${artifact.state}\n`));
++  return 0;
++}
++
++export function runArtifactWorkflowInstructions(
++  root: string,
++  relativePath: string,
++  artifactId: string,
++  options: { json?: boolean } = {}
++): number {
++  const result = readArtifactWorkflow(root, relativePath);
++  const artifact = result.workflow?.artifacts.find((candidate) => candidate.id === artifactId);
++  if (!result.workflow || !artifact) {
++    [
++      ...result.issues,
++      ...(result.workflow
++        ? [{ severity: "error" as const, code: "workflow.artifact.missing", message: `Unknown artifact ${artifactId}` }]
++        : [])
++    ].forEach((item) => console.error(`ERROR ${item.code}: ${item.message}`));
++    return 1;
++  }
++  const status = buildArtifactWorkflowStatus(root, result.workflow);
++  const snapshot = {
++    version: "scwbs.artifact-workflow-instructions.v1",
++    workflowId: result.workflow.id,
++    artifact,
++    dependencySnapshot: status.artifacts.filter((candidate) => artifact.dependencies.includes(candidate.id)),
++    authority: "advisory-only; Task Contract, Approval, Human Gate, and Evidence provenance remain authoritative"
++  };
++  if (options.json) process.stdout.write(`${JSON.stringify(snapshot, null, 2)}\n`);
++  else process.stdout.write(`${artifact.id}\n${artifact.instruction ?? "No instruction declared."}\n`);
++  return 0;
++}
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 8885954..4473599 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -7,7 +7,8 @@ export type Issue = {
+   fixCommand?: string;
+ };
+ 
+-export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
++export type RegistryContractType =
++  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
+ 
+ export type RegistryContract = {
+   id: string;
+@@ -26,7 +27,8 @@ export type Registry = {
+   contracts: RegistryContract[];
+ };
+ 
+-export type TaskLifecycleStatus = "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
++export type TaskLifecycleStatus =
++  "planned" | "active" | "blocked" | "reviewed" | "completed" | "cancelled" | "archived";
+ 
+ export type TaskPriority = "high" | "medium" | "low";
+ 
+@@ -73,6 +75,28 @@ export type SpecRequirement = {
+   source: string;
+ };
+ 
++export type ArtifactCompletionRule = { mode: "path-exists"; path?: string };
++
++export type ArtifactDefinition = {
++  id: string;
++  path: string;
++  description: string;
++  dependencies: string[];
++  template?: string;
++  instruction?: string;
++  context?: string[];
++  rules?: string[];
++  validation?: string;
++  completion: ArtifactCompletionRule;
++};
++
++export type ArtifactWorkflow = {
++  version: "1.0.0";
++  id: string;
++  artifacts: ArtifactDefinition[];
++  profiles?: Record<string, string[]>;
++};
++
+ export type PlanningWorkItem = {
+   id: string;
+   title: string;
+@@ -387,7 +411,16 @@ export type BlockRecord = {
+   taskId: string;
+   status: "blocked" | "resolved";
+   level: 1 | 2;
+-  category: "db" | "auth" | "permission" | "security" | "breaking-api" | "business-rule" | "human-gate" | "external-service" | "unknown";
++  category:
++    | "db"
++    | "auth"
++    | "permission"
++    | "security"
++    | "breaking-api"
++    | "business-rule"
++    | "human-gate"
++    | "external-service"
++    | "unknown";
+   reason: string;
+   requiredHumanDecision: string;
+   createdAt: string;
+@@ -466,7 +499,15 @@ export type WbsDiscoveryState = {
+ 
+ export type WbsRelation = {
+   id: string;
+-  type: "dependsOn" | "blocks" | "produces" | "consumes" | "implementsRequirement" | "refinesBpmnTask" | "linkedToIssue" | "relatedTo";
++  type:
++    | "dependsOn"
++    | "blocks"
++    | "produces"
++    | "consumes"
++    | "implementsRequirement"
++    | "refinesBpmnTask"
++    | "linkedToIssue"
++    | "relatedTo";
+   source: string;
+   target: string;
+   description?: string;
+diff --git a/tests/integration/validate-feature.test.ts b/tests/integration/validate-feature.test.ts
+index eb0019a..6096575 100644
+--- a/tests/integration/validate-feature.test.ts
++++ b/tests/integration/validate-feature.test.ts
+@@ -1,9 +1,19 @@
+ import { execFileSync } from "node:child_process";
+ import { describe, expect, test } from "vitest";
+-import { runValidateFeature } from "../../src/core/contracts.js";
+-import { makeTempRepo, sampleEvidence, sampleSpec, sampleTask, writeYaml } from "../helpers.js";
++import {
++  buildArtifactWorkflowStatus,
++  readArtifactWorkflow,
++  runArtifactWorkflowInstructions,
++  runArtifactWorkflowStatus,
++  runValidateFeature
++} from "../../src/core/contracts.js";
++import { makeTempRepo, sampleEvidence, sampleSpec, sampleTask, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+-function capture(root: string, specId: string, baseRef = "HEAD"): { exitCode: number; report: Record<string, unknown> } {
++function capture(
++  root: string,
++  specId: string,
++  baseRef = "HEAD"
++): { exitCode: number; report: Record<string, unknown> } {
+   const output: string[] = [];
+   const originalWrite = process.stdout.write;
+   process.stdout.write = ((chunk: string | Uint8Array) => {
+@@ -24,22 +34,36 @@ function commitRepo(root: string): string {
+   return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+ }
+ 
+-function writeStructuredFixture(root: string, options: { mode?: "automated" | "manual" | "hybrid"; coverage?: Record<string, unknown> } = {}): string {
++function writeStructuredFixture(
++  root: string,
++  options: { mode?: "automated" | "manual" | "hybrid"; coverage?: Record<string, unknown> } = {}
++): string {
+   const spec = sampleSpec({
+     requirementsVersion: "1.0.0",
+-    requirements: [{
+-      id: "REQ-API-001",
+-      statement: "The API is traceable.",
+-      acceptanceScenarios: ["A passing feature check covers the requirement."],
+-      verificationMode: options.mode ?? "automated",
+-      source: "issue:457"
+-    }]
++    requirements: [
++      {
++        id: "REQ-API-001",
++        statement: "The API is traceable.",
++        acceptanceScenarios: ["A passing feature check covers the requirement."],
++        verificationMode: options.mode ?? "automated",
++        source: "issue:457"
++      }
++    ]
+   });
+   const task = sampleTask({ requirementIds: ["REQ-API-001"] });
+   writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
+   writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
+   writeYaml(root, "contracts/tasks/index.yaml", {
+-    tasks: [{ id: task.id, path: "contracts/tasks/WBS-001-004.yaml", branchName: task.branchName, wbsNodeId: task.wbsNodeId, status: "completed", dependsOn: [] }]
++    tasks: [
++      {
++        id: task.id,
++        path: "contracts/tasks/WBS-001-004.yaml",
++        branchName: task.branchName,
++        wbsNodeId: task.wbsNodeId,
++        status: "completed",
++        dependsOn: []
++      }
++    ]
+   });
+   if (options.coverage) {
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
+@@ -62,7 +86,9 @@ describe("validate feature", () => {
+     const result = capture(root, spec.id);
+     expect(result.exitCode).toBe(1);
+     expect(result.report).toMatchObject({ version: "scwbs.feature-validation.v1", status: "NO-GO" });
+-    expect(result.report.warnings).toEqual(expect.arrayContaining([expect.stringContaining("legacy acceptanceCriteria")]));
++    expect(result.report.warnings).toEqual(
++      expect.arrayContaining([expect.stringContaining("legacy acceptanceCriteria")])
++    );
+   });
+ 
+   test("rejects duplicate ownership and unassigned requirements", () => {
+@@ -70,14 +96,38 @@ describe("validate feature", () => {
+     const spec = sampleSpec({
+       requirementsVersion: "1.0.0",
+       requirements: [
+-        { id: "REQ-API-001", statement: "One", acceptanceScenarios: ["One"], verificationMode: "automated", source: "issue:457" },
+-        { id: "REQ-API-002", statement: "Two", acceptanceScenarios: ["Two"], verificationMode: "automated", source: "issue:457" }
++        {
++          id: "REQ-API-001",
++          statement: "One",
++          acceptanceScenarios: ["One"],
++          verificationMode: "automated",
++          source: "issue:457"
++        },
++        {
++          id: "REQ-API-002",
++          statement: "Two",
++          acceptanceScenarios: ["Two"],
++          verificationMode: "automated",
++          source: "issue:457"
++        }
+       ]
+     });
+     writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", spec as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({ id: "WBS-001-006", requirementIds: ["REQ-API-999"] }) as unknown as Record<string, unknown>);
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({ requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>
++    );
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-005.yaml",
++      sampleTask({ id: "WBS-001-005", requirementIds: ["REQ-API-001"] }) as unknown as Record<string, unknown>
++    );
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-006.yaml",
++      sampleTask({ id: "WBS-001-006", requirementIds: ["REQ-API-999"] }) as unknown as Record<string, unknown>
++    );
+     commitRepo(root);
+ 
+     const result = capture(root, spec.id);
+@@ -94,13 +144,27 @@ describe("validate feature", () => {
+     const root = makeTempRepo();
+     const head = writeStructuredFixture(root, {
+       coverage: {
+-        requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "deadbeef", diffHash: "sha256:fixture"
++        requirementId: "REQ-API-001",
++        status: "covered",
++        references: ["test:feature"],
++        checkNames: ["test"],
++        subjectHeadCommit: "deadbeef",
++        diffHash: "sha256:fixture"
+       }
+     });
+     const evidence = sampleEvidence({
+       subjectHeadCommit: "deadbeef",
+       diffHash: "sha256:fixture",
+-      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "deadbeef", diffHash: "sha256:fixture" }]
++      requirementEvidence: [
++        {
++          requirementId: "REQ-API-001",
++          status: "covered",
++          references: ["test:feature"],
++          checkNames: ["test"],
++          subjectHeadCommit: "deadbeef",
++          diffHash: "sha256:fixture"
++        }
++      ]
+     });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
+     const current = commitRepo(root);
+@@ -115,13 +179,25 @@ describe("validate feature", () => {
+     const subject = writeStructuredFixture(root, {
+       mode: "manual",
+       coverage: {
+-        requirementId: "REQ-API-001", status: "covered", references: ["check:test"], subjectHeadCommit: "pending", diffHash: "sha256:fixture"
++        requirementId: "REQ-API-001",
++        status: "covered",
++        references: ["check:test"],
++        subjectHeadCommit: "pending",
++        diffHash: "sha256:fixture"
+       }
+     });
+     const evidence = sampleEvidence({
+       subjectHeadCommit: subject,
+       diffHash: "sha256:fixture",
+-      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["check:test"], subjectHeadCommit: subject, diffHash: "sha256:fixture" }]
++      requirementEvidence: [
++        {
++          requirementId: "REQ-API-001",
++          status: "covered",
++          references: ["check:test"],
++          subjectHeadCommit: subject,
++          diffHash: "sha256:fixture"
++        }
++      ]
+     });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
+     const current = commitRepo(root);
+@@ -134,19 +210,201 @@ describe("validate feature", () => {
+     const root = makeTempRepo();
+     const subject = writeStructuredFixture(root, {
+       coverage: {
+-        requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: "pending", diffHash: "sha256:fixture"
++        requirementId: "REQ-API-001",
++        status: "covered",
++        references: ["test:feature"],
++        checkNames: ["test"],
++        subjectHeadCommit: "pending",
++        diffHash: "sha256:fixture"
+       }
+     });
+     const evidence = sampleEvidence({
+       subjectHeadCommit: subject,
+       diffHash: "sha256:fixture",
+       checks: [{ name: "test", status: "passed" }],
+-      requirementEvidence: [{ requirementId: "REQ-API-001", status: "covered", references: ["test:feature"], checkNames: ["test"], subjectHeadCommit: subject, diffHash: "sha256:fixture" }]
++      requirementEvidence: [
++        {
++          requirementId: "REQ-API-001",
++          status: "covered",
++          references: ["test:feature"],
++          checkNames: ["test"],
++          subjectHeadCommit: subject,
++          diffHash: "sha256:fixture"
++        }
++      ]
+     });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", evidence as unknown as Record<string, unknown>);
+     const current = commitRepo(root);
+     const result = capture(root, "SPEC-F001-API", current);
+     expect(result.exitCode).toBe(0);
+-    expect(result.report).toMatchObject({ status: "GO", summary: { covered: 1, notCovered: 0, manualVerifyRequired: 0 } });
++    expect(result.report).toMatchObject({
++      status: "GO",
++      summary: { covered: 1, notCovered: 0, manualVerifyRequired: 0 }
++    });
++  });
++});
++
++describe("artifact workflow", () => {
++  const workflow = {
++    version: "1.0.0",
++    id: "fixture-workflow",
++    artifacts: [
++      {
++        id: "source",
++        path: "src/*.ts",
++        description: "Source implementation",
++        dependencies: [],
++        instruction: "Implement the source.",
++        completion: { mode: "path-exists" }
++      },
++      {
++        id: "test",
++        path: "tests/source.test.ts",
++        description: "Source test",
++        dependencies: ["source"],
++        completion: { mode: "path-exists" }
++      },
++      {
++        id: "report",
++        path: "docs/report.md",
++        description: "Validation report",
++        dependencies: ["test"],
++        completion: { mode: "path-exists" }
++      },
++      {
++        id: "ready",
++        path: "docs/ready.md",
++        description: "Independent ready artifact",
++        dependencies: [],
++        completion: { mode: "path-exists" }
++      }
++    ],
++    profiles: { Standard: ["source", "test", "report"] }
++  };
++
++  test("returns versioned status with blocked, ready, done, missing dependencies, and unlocks", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/workflow.json", workflow);
++    writeText(root, "src/source.ts", "export const source = true;\n");
++    commitRepo(root);
++
++    const result = readArtifactWorkflow(root, "contracts/workflow.json");
++    expect(result.issues).toEqual([]);
++    expect(result.workflow).toBeDefined();
++    const status = buildArtifactWorkflowStatus(root, result.workflow!);
++    expect(status).toMatchObject({
++      version: "scwbs.artifact-workflow-status.v1",
++      workflowId: "fixture-workflow",
++      artifacts: [
++        { id: "source", state: "done", missingDependencies: [], unlocks: ["test"] },
++        { id: "test", state: "ready", missingDependencies: [], unlocks: ["report"] },
++        { id: "report", state: "blocked", missingDependencies: ["test"], unlocks: [] },
++        { id: "ready", state: "ready", missingDependencies: [], unlocks: [] }
++      ]
++    });
++  });
++
++  test("prints read-only instructions with dependency snapshot and advisory authority", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/workflow.json", workflow);
++    commitRepo(root);
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(runArtifactWorkflowInstructions(root, "contracts/workflow.json", "test", { json: true })).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(JSON.parse(output.join(""))).toMatchObject({
++      version: "scwbs.artifact-workflow-instructions.v1",
++      workflowId: "fixture-workflow",
++      artifact: { id: "test" },
++      dependencySnapshot: [{ id: "source" }],
++      authority: expect.stringContaining("advisory-only")
++    });
++  });
++
++  test("rejects duplicate IDs, missing dependencies, cycles, path escapes, and unknown fields", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/workflow.json", {
++      version: "1.0.0",
++      id: "invalid-workflow",
++      artifacts: [
++        {
++          id: "same",
++          path: "src/a.ts",
++          description: "A",
++          dependencies: ["missing"],
++          completion: { mode: "path-exists", extra: true }
++        },
++        {
++          id: "same",
++          path: "../outside.ts",
++          description: "B",
++          dependencies: ["same"],
++          authority: "allow",
++          completion: { mode: "path-exists" }
++        }
++      ]
++    });
++    const result = readArtifactWorkflow(root, "contracts/workflow.json");
++    expect(result.workflow).toBeUndefined();
++    expect(result.issues.map((issue) => issue.code)).toEqual(
++      expect.arrayContaining([
++        "workflow.duplicateId",
++        "workflow.missingDependency",
++        "workflow.pathEscape",
++        "workflow.unknownField",
++        "workflow.cycle"
++      ])
++    );
++  });
++
++  test("rejects schema drift and malformed optional fields without migration", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/workflow.yaml", {
++      version: "2.0.0",
++      id: "drifted-workflow",
++      artifacts: [
++        {
++          id: "source",
++          path: "src/source.ts",
++          description: "Source",
++          dependencies: [],
++          context: [42],
++          completion: { mode: "path-exists" }
++        }
++      ]
++    });
++    const result = readArtifactWorkflow(root, "contracts/workflow.yaml");
++    expect(result.workflow).toBeUndefined();
++    expect(result.issues.map((issue) => issue.code)).toEqual(
++      expect.arrayContaining(["workflow.version", "workflow.context"])
++    );
++  });
++
++  test("status command emits a versioned JSON report", () => {
++    const root = makeTempRepo();
++    writeJson(root, "contracts/workflow.json", workflow);
++    commitRepo(root);
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(runArtifactWorkflowStatus(root, "contracts/workflow.json", { json: true })).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++    expect(JSON.parse(output.join(""))).toMatchObject({
++      version: "scwbs.artifact-workflow-status.v1",
++      workflowId: "fixture-workflow"
++    });
+   });
+ });
