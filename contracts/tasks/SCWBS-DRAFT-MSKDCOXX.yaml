@@ -1,0 +1,67 @@
+id: SCWBS-DRAFT-MSKDCOXX
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSKDCOXX
+branchName: task/SCWBS-DRAFT-MSKDCOXX-issue-456-discovery-routing-and-multi-spec-bound
+status: approved
+approvedBy: xmeta
+sourceIssue: 456
+allowedPaths:
+  - src/core/discovery.ts
+  - src/core/schema/discovery.ts
+  - src/commands/discovery.ts
+  - src/cli/register-discovery.ts
+  - docs/scwbs/schemas/discovery-routing.schema.json
+  - docs/implementation-gaps.md
+  - tests/integration/misc.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - schema migration or authority ambiguity
+  - external service or credential design
+  - Human Gate path
+  - authority outside allowed paths
+  - automatic Spec/Task/WBS mutation from route output
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Versioned Discovery routing schema defines extend-existing, direct-candidate, single-spec, multi-spec, mixed, and unknown outcomes
+  - Read-only route inventory deterministically reports existing Specs, active Tasks, WBS nodes, and explicit Issue references with selection reasons and source hash
+  - Brief and multi-spec/mixed roadmap preserve scope boundaries, ownership, interfaces, dependencies, shared acceptance, and revalidation triggers
+  - Cross-spec review reports contradiction, duplicate responsibility, cyclic dependency, interface mismatch, and unowned acceptance criteria
+  - Blocking unknowns and low confidence produce a bounded Probe recommendation and never create or mutate Spec, Task, WBS, Approval, or Human Gate records
+  - Direct-candidate is limited to small low-risk work and cannot classify Human Gate, schema, dependency, auth, breaking API, external service, or release work as direct
+  - Route output is versioned, provenance-bearing, read-only, and deterministic for the same goal and repository state
+  - Unit and integration tests cover all route outcomes, duplicate/unknown references, interface conflicts, and mutation boundary
+  - 'Issue #456 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - discovery-routing-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSKDCOXX.patch
+  - contracts/approvals/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSKDCOXX.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-08T12:48:37.461Z"

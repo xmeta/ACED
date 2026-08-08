@@ -37,6 +37,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - WJS semantic apply wrapper
 - Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
 - Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
+- Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
 
 ## Still Missing
 
