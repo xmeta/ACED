@@ -1,0 +1,67 @@
+id: EVD-SCWBS-DRAFT-MSLCDELO
+type: evidence
+taskId: SCWBS-DRAFT-MSLCDELO
+commit: 0b3fb8aadb2e964a34aabfc075d23edf396aaa60
+subjectHeadCommit: 0b3fb8aadb2e964a34aabfc075d23edf396aaa60
+diffHash: sha256:ad6beb78934c30d9e9951c00e7d216533ba3929d547eb0e7804be4a33cefca40
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 0b3fb8aadb2e964a34aabfc075d23edf396aaa60
+    treeHash: 64a4bf386f332bdace1b7e26ccd57a58f331f73d
+    diffHash: sha256:ad6beb78934c30d9e9951c00e7d216533ba3929d547eb0e7804be4a33cefca40
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLCDELO.patch
+    manifestHash: sha256:ad6beb78934c30d9e9951c00e7d216533ba3929d547eb0e7804be4a33cefca40
+git:
+  branch: task/SCWBS-DRAFT-MSLCDELO-issue-475-split-runfinishinternal-into-testable-
+  base: origin/main
+  baseCommit: 87dd4a84f1405bebd14d33081ec0f0e375c8fe8f
+  changedFilesBasis: branch-diff
+  pullRequest: "480"
+  subjectHeadCommit: 0b3fb8aadb2e964a34aabfc075d23edf396aaa60
+  diffHash: sha256:ad6beb78934c30d9e9951c00e7d216533ba3929d547eb0e7804be4a33cefca40
+  headCommit: 0b3fb8aadb2e964a34aabfc075d23edf396aaa60
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLCDELO.patch
+  - contracts/evidence/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/registry.yaml
+  - src/commands/finish.ts
+  - tests/unit/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:7ffa50fb22e40fef5297bd36fd7cb440d894a0476155b5ad3d6d8646eb733442
+    durationMilliseconds: 15805
+    executedAt: "2026-08-09T05:20:55.141Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:796ab6eac5c8b25335a7589e7b90e3076b5a3a1311a2213f105a004436b742ef
+    durationMilliseconds: 9416
+    executedAt: "2026-08-09T05:21:04.561Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:ac12e46cc606972707ad706a7da888049b06e804583ef1b97e1990377892b353
+    durationMilliseconds: 3924
+    executedAt: "2026-08-09T05:21:08.490Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5d34b5b5f34fbe76e62e1130e7ebc381f0c0c6892e7f2f6639eb07925c41b840
+    durationMilliseconds: 262421
+    executedAt: "2026-08-09T05:25:30.915Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added unit coverage for finish lifecycle order, PR next-action mapping, and human approval command ownership

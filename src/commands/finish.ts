@@ -257,7 +257,7 @@ function collectPullRequestMetadata(root: string, taskId: string): PullRequestMe
   return { evidence, review, selected: evidence ?? review };
 }
 
-function pullRequestNextAction(taskId: string, pullRequest: number | undefined, state?: PullRequestState): { label: string; command: string } {
+export function pullRequestNextAction(taskId: string, pullRequest: number | undefined, state?: PullRequestState): { label: string; command: string } {
   if (pullRequest === undefined) {
     return {
       label: "Open a pull request:",
@@ -350,6 +350,19 @@ function finishOutput(input: Omit<FinishJsonOutput, "schemaVersion">): FinishJso
   return { schemaVersion: "1.0.0", ...input };
 }
 
+export const FINISH_LIFECYCLE_STEPS = [
+  "preflight",
+  "required-checks",
+  "validation",
+  "checkpoint",
+  "readiness",
+  "complete"
+] as const satisfies readonly FinishPhase[];
+
+export function finishLifecycleStepOrder(): readonly FinishPhase[] {
+  return FINISH_LIFECYCLE_STEPS;
+}
+
 let finishLifecycleObserver: ((output: FinishJsonOutput) => void) | undefined;
 
 function emitJson(output: FinishJsonOutput, enabled: boolean): void {
@@ -419,7 +432,7 @@ function printHumanGate(approvalCommand: string, files: string[], diffHash: stri
   console.log("Do not approve this task yourself.");
 }
 
-function runFinishInternal(root: string, options: FinishOptions = {}): number {
+function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
   const json = options.json ?? false;
   const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
   if (!taskId) {
@@ -718,6 +731,11 @@ function runFinishInternal(root: string, options: FinishOptions = {}): number {
     mutatedFiles, readinessWarnings: [], fixCommands: []
   }), json);
   return 0;
+}
+
+function runFinishInternal(root: string, options: FinishOptions = {}): number {
+  const taskId = options.taskId ?? inferTaskIdFromBranch(currentBranch(root));
+  return runFinishWorkflow(root, taskId ? { ...options, taskId } : options);
 }
 
 export function runFinish(root: string, options: FinishOptions = {}): number {
