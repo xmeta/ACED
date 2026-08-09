@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MSLAQZZO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLAQZZO
+branchName: task/SCWBS-DRAFT-MSLAQZZO-issue-477-add-security-policy-and-changelog-entr
+status: approved
+approvedBy: xmeta
+sourceIssue: 477
+allowedPaths:
+  - SECURITY.md
+  - CHANGELOG.md
+  - README.md
+forbiddenPaths:
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - security configuration change
+  - external service integration
+  - credential or release decision
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - SECURITY.md documents supported versions, private vulnerability reporting through GitHub Security Advisories, and a bounded response-time expectation without adding credentials or changing repository security settings
+  - CHANGELOG.md follows a Keep a Changelog-compatible structure with an Unreleased section for future release notes
+  - README.md Start Here or equivalent project-navigation section links to SECURITY.md and CHANGELOG.md
+  - CODE_OF_CONDUCT.md remains explicitly out of scope for this bounded Task unless a later Task contracts it
+  - No .github, dependency, CI, credential, release, or external-service configuration is changed
+  - 'Issue #477 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - documentation-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLAQZZO.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T04:23:34.565Z"
