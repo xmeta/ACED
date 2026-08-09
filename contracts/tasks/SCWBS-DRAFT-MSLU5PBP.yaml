@@ -1,0 +1,75 @@
+id: SCWBS-DRAFT-MSLU5PBP
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLU5PBP
+branchName: task/SCWBS-DRAFT-MSLU5PBP-issue-482-wjs-validator-unavailable-fail-closed
+status: approved
+approvedBy: xmeta
+sourceIssue: 482
+allowedPaths:
+  - src/core/wbs.ts
+  - src/commands/doctor.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/doctor.test.ts
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+stopIf:
+  - Human Gate
+  - WJS schema semantics change
+  - WJS source change
+  - package or CI change
+  - external service or credential change
+  - authority outside allowedPaths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - runWjsValidate never downgrades missing or unusable canonical WJS validation to a permissive local fallback
+  - unavailable validator errors are fail-closed, identify the validation kind and target, and include the WJS initialization repair command
+  - canonical WJS validation behavior remains unchanged when the validator is available
+  - operations validation rejects malformed changesets through the canonical validator path and check-diff surfaces the fail-closed issue
+  - doctor reports canonical validator availability using the same availability boundary and remediation guidance
+  - integration tests cover WJS-available validation, missing validator, unavailable runtime, malformed operations, and doctor diagnostics
+  - "Issue #482 remains bounded to ACED-side validation and does not change WJS schema semantics or WJS source"
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - wjs-fail-closed-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml
+  - contracts/specs/SPEC-LITE-MSLU5PBP.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLU5PBP.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLU5PBP.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLU5PBP.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLU5PBP.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLU5PBP.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:3d25c8f333a85d2cd3536b549101ba9215bb9d0a7c2538b564641ede05d15b71
+  createdAt: "2026-08-09T13:27:11.988Z"

@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSLU5PBP
+type: spec-contract
+featureId: F-MSLU5PBP
+title: "Issue #482: WJS canonical validator unavailable時にpermissive fallbackを廃止しfail-closedにする"
+status: approved
+version: 0.1.0
+summary: "WJS validatorを実行できない環境ではoperations/WBS validationを弱いfallbackへ切り替えず、原因と修復方法を示すenvironment errorとして拒否する"
+approvedBy: xmeta
+approvedAt: "2026-08-09T00:00:00+09:00"
+acceptanceCriteria:
+  - validator moduleが存在しない場合にrunWjsValidateがsuccessや簡易schema passを返さず、kind・target・修復コマンドを含むfail-closed issueを返す
+  - canonical validatorのruntime実行に失敗した場合も同じfail-closed boundaryを適用し、ERR_NO_TYPESCRIPT等をpermissive fallbackへ変換しない
+  - validatorが利用可能な場合のvalid/invalid判定は従来のcanonical WJS validatorに委譲し、schema semanticsをACED側で複製しない
+  - check-diffのchangeset validationがvalidator unavailable時に明示的なwjs validator issueとしてfailする
+  - doctorがvalidator availabilityと既存WJS schema/dependency診断を同じ修復方針で報告する
+  - WJS available/unavailable、malformed operations、doctor diagnosticsのintegration regression testsを追加する
+  - wjs/**、package.json、CI、WBS正本、schema semanticsを変更しない
+nonGoals:
+  - WJS schema semanticsの変更
+  - WJSとACEDの二重canonical schemaの作成
+  - setup failureのwarning化
