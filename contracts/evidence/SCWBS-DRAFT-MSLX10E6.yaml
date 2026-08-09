@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSLX10E6
+type: evidence
+taskId: SCWBS-DRAFT-MSLX10E6
+commit: 6742eae56474a5397392a970867b92b33b334f14
+subjectHeadCommit: 6742eae56474a5397392a970867b92b33b334f14
+diffHash: sha256:ea4c395acd384f9fd87bce2eab350fe0bb537545d2319b3297d31c692f14fc49
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 6742eae56474a5397392a970867b92b33b334f14
+    treeHash: c9e4e585be4318ea358ba66658cd98b4363dd4cc
+    diffHash: sha256:ea4c395acd384f9fd87bce2eab350fe0bb537545d2319b3297d31c692f14fc49
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLX10E6.patch
+    manifestHash: sha256:ea4c395acd384f9fd87bce2eab350fe0bb537545d2319b3297d31c692f14fc49
+git:
+  branch: task/SCWBS-DRAFT-MSLX10E6-issue-488-unify-finish-and-merge-readiness-evalu
+  base: origin/main
+  baseCommit: 71665ae0e16bc6b60b4bba189693ffa4ff0050a8
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 6742eae56474a5397392a970867b92b33b334f14
+  diffHash: sha256:ea4c395acd384f9fd87bce2eab350fe0bb537545d2319b3297d31c692f14fc49
+  headCommit: 6742eae56474a5397392a970867b92b33b334f14
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSLX10E6.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - src/commands/finish.ts
+  - src/core/merge-preflight.ts
+  - tests/integration/finish.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:8dfa6f314fe453d18c979ecc31c5932a93caf288df71b99d6cdfa6a2aa665a80
+    durationMilliseconds: 18370
+    executedAt: "2026-08-09T15:14:38.899Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:1f7e64c923356603a24b8a48cb3b7b1b6dfee42f1c1592b5cbf48e5dd50b8109
+    durationMilliseconds: 12321
+    executedAt: "2026-08-09T15:14:51.225Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:f0afdc08edef4289a4059e990689131fe889901a603d89fe617503a2ee53988a
+    durationMilliseconds: 4674
+    executedAt: "2026-08-09T15:14:55.904Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:4f895eb45d6c5e00d3be54938a1baec18e74ec01ca4513397aaef76c1c76a03e
+    durationMilliseconds: 302761
+    executedAt: "2026-08-09T15:19:58.669Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added shared merge readiness evaluator parity and finish JSON reason-code coverage
