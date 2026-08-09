@@ -788,6 +788,15 @@ describe("check-diff", () => {
     expect(validatorIssue?.message).toContain("validator runtime or dependencies could not be executed");
   });
 
+  test("check-diff rejects unsupported authority glob syntax", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ allowedPaths: ["src/{api,web}/**"] });
+    const issues = collectDiffIssues(root, task, []);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.glob.unsupported", severity: "error" })
+    ]));
+  });
+
   test("git changed file helpers split working-tree and branch diff basis", () => {
     const root = makeTempRepo();
     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
