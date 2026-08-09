@@ -1,0 +1,691 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml b/contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
+new file mode 100644
+index 0000000..e5cba4c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
+@@ -0,0 +1,58 @@
++id: SCWBS-DRAFT-MSM9LEWE
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSM9LEWE
++branchName: task/SCWBS-DRAFT-MSM9LEWE-issue-489-next-ui-trace-versioned-json-contract
++allowedPaths:
++  - src/cli.ts
++  - src/commands/next.ts
++  - src/commands/ui.ts
++  - src/commands/trace.ts
++  - tests/integration/navigation-json.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/next.schema.json
++  - docs/scwbs/schemas/ui.schema.json
++  - docs/scwbs/schemas/trace.schema.json
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - DB schema or migration
++  - authentication or authorization design change
++  - breaking API change
++  - personal data or security setting impact
++  - external service billing or release decision
++  - allowedPaths外の変更
++  - humanGateRequiredPathsへの変更
++  - 仕様変更レベルの判断に迷う
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #489: next ui traceのversioned JSON contract'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSM9LEWE.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSM9LEWE.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSM9LEWE.patch
++  - contracts/approvals/SCWBS-DRAFT-MSM9LEWE.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSM9LEWE.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-09T20:38:19.202Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 9913bcf..11ee531 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1819,3 +1819,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T20:35:10.346Z"
++  - id: SCWBS-DRAFT-MSM9LEWE
++    path: contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
++    branchName: task/SCWBS-DRAFT-MSM9LEWE-issue-489-next-ui-trace-versioned-json-contract
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index f332479..3630b23 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -65,12 +65,27 @@ npm run scwbs -- check-diff --task SCWBS-001
+ npm run scwbs -- status
+ npm run scwbs -- status --json
+ npm run scwbs -- status --strict
++npm run scwbs -- next --json
++npm run scwbs -- ui --json
++npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+ ```
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+ 
+ `init --agent` creates the selected adapter's standard instruction file only when it does not exist. Supported adapters are `codex`, `claude`, `cursor`, and `copilot`. It records generated file hashes in `.scwbs/agent-files.json`. `update` refreshes only files whose current contents still match the recorded generated hash; divergent or user-owned files are reported and left unchanged.
+ 
++### Navigation JSON contracts
++
++`next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
++
++| Command | Version | Schema |
++|---|---|---|
++| `next --json` | `scwbs.next.v1` | `docs/scwbs/schemas/next.schema.json` |
++| `ui --json` | `scwbs.ui.v1` | `docs/scwbs/schemas/ui.schema.json` |
++| `trace --json` | `scwbs.trace.v1` | `docs/scwbs/schemas/trace.schema.json` |
++
++`next --json` の `action.owner` が `human` の場合、`aiStop: true` とともにAIは停止し、`command`を自動実行してはならない。`version`は互換性の固定点であり、既存フィールドの意味を変更する場合は同じversionを再利用せず、新しいversionとschemaを追加する。後方互換な任意フィールド追加は、consumerが未知フィールドを無視できることを前提に行う。
++
+ ### `fixCommand` の意味
+ 
+ `fixCommand` は、issueを返す全コマンドに共通する必須fieldではない。現行実装で `withDefaultFixCommand` によりerror issueへfallbackを補うのは `check-diff` であり、`check`、`health`、`doctor` などには `fixCommand` を持たないissueもある。利用側はfieldの存在を確認してから使う。
+diff --git a/docs/scwbs/schemas/next.schema.json b/docs/scwbs/schemas/next.schema.json
+new file mode 100644
+index 0000000..67af29e
+--- /dev/null
++++ b/docs/scwbs/schemas/next.schema.json
+@@ -0,0 +1,41 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs.next.v1.schema.json",
++  "title": "SC-WBS next JSON output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "action", "reasons"],
++  "properties": {
++    "version": { "const": "scwbs.next.v1" },
++    "status": { "enum": ["actionable", "waiting", "idle"] },
++    "action": {
++      "anyOf": [
++        { "type": "null" },
++        {
++          "type": "object",
++          "additionalProperties": false,
++          "required": ["kind", "owner"],
++          "properties": {
++            "kind": { "type": "string", "minLength": 1 },
++            "owner": { "enum": ["ai", "human"] },
++            "taskId": { "type": "string", "minLength": 1 },
++            "command": { "type": "string", "minLength": 1 },
++            "aiStop": { "type": "boolean" }
++          }
++        }
++      ]
++    },
++    "reasons": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string", "minLength": 1 },
++          "message": { "type": "string" }
++        }
++      }
++    }
++  }
++}
+diff --git a/docs/scwbs/schemas/trace.schema.json b/docs/scwbs/schemas/trace.schema.json
+new file mode 100644
+index 0000000..8bd0bdb
+--- /dev/null
++++ b/docs/scwbs/schemas/trace.schema.json
+@@ -0,0 +1,40 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs.trace.v1.schema.json",
++  "title": "SC-WBS trace JSON output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "taskId", "nodes", "edges"],
++  "properties": {
++    "version": { "const": "scwbs.trace.v1" },
++    "taskId": { "type": "string", "minLength": 1 },
++    "nodes": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["id", "kind", "status"],
++        "properties": {
++          "id": { "type": "string", "minLength": 1 },
++          "kind": { "enum": ["spec", "wbs", "task", "evidence", "review", "approval"] },
++          "status": { "type": "string", "minLength": 1 },
++          "label": { "type": "string" },
++          "code": { "type": "string" }
++        }
++      }
++    },
++    "edges": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["from", "to", "kind"],
++        "properties": {
++          "from": { "type": "string", "minLength": 1 },
++          "to": { "type": "string", "minLength": 1 },
++          "kind": { "type": "string", "minLength": 1 }
++        }
++      }
++    }
++  }
++}
+diff --git a/docs/scwbs/schemas/ui.schema.json b/docs/scwbs/schemas/ui.schema.json
+new file mode 100644
+index 0000000..e43396b
+--- /dev/null
++++ b/docs/scwbs/schemas/ui.schema.json
+@@ -0,0 +1,16 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs.ui.v1.schema.json",
++  "title": "SC-WBS ui JSON output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "statusReport", "next", "review", "doctor"],
++  "properties": {
++    "version": { "const": "scwbs.ui.v1" },
++    "status": { "enum": ["pass", "fail"] },
++    "statusReport": { "type": "object" },
++    "next": { "$ref": "https://xmeta.github.io/ACED/scwbs.next.v1.schema.json" },
++    "review": { "type": "object" },
++    "doctor": { "type": "object" }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 86464eb..e397130 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -347,12 +347,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   program
+     .command("next")
+     .description("Show next suggested action")
+-    .action(() => { exitCode = runNext(root); });
++    .option("--json", "output a versioned JSON action contract")
++    .action((opts) => { exitCode = runNext(root, { json: opts.json ?? false }); });
+ 
+   program
+     .command("ui")
+     .description("Show the text dashboard")
+-    .action(() => { exitCode = runUi(root); });
++    .option("--json", "output a versioned JSON dashboard")
++    .action((opts) => { exitCode = runUi(root, { json: opts.json ?? false }); });
+ 
+   program
+     .command("serve")
+@@ -566,13 +568,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .command("trace")
+     .description("Trace task dependencies")
+     .option("--task <id>", "task id")
++    .option("--json", "output a versioned JSON graph")
+     .action((opts) => {
+       if (!opts.task) {
+         console.error("Missing --task <task-id>");
+         exitCode = 2;
+         return;
+       }
+-      exitCode = runTrace(root, opts.task);
++      exitCode = runTrace(root, opts.task, { json: opts.json ?? false });
+     });
+ 
+   program
+@@ -594,6 +597,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   registerTaskCommands(program, commandContext);
+   registerWbsCommands(program, commandContext);
+ 
++  // Keep the top-level help readable for consumers that index the command
++  // labels while still showing per-command options in Commander output.
++  program.addHelpText("after", "\nNavigation command labels: next Show next suggested action; ui Show the text dashboard; trace Trace task dependencies.\n");
++
+   if (argv.length === 0) {
+     program.outputHelp();
+     return 0;
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index 88be244..92f0c38 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -28,6 +28,131 @@ function discoveryGuidance(root: string): string {
+   return items.length === 0 ? "" : `Discovery readiness:\n${items.join("\n")}\n\n`;
+ }
+ 
++export type NextJsonOutput = {
++  version: "scwbs.next.v1";
++  status: "actionable" | "waiting" | "idle";
++  action: {
++    kind: string;
++    owner: "ai" | "human";
++    taskId?: string;
++    command?: string;
++    aiStop?: boolean;
++  } | null;
++  reasons: Array<{ code: string; message: string }>;
++};
++
++function nextJsonAction(
++  status: NextJsonOutput["status"],
++  action: NextJsonOutput["action"],
++  reasons: NextJsonOutput["reasons"]
++): NextJsonOutput {
++  return { version: "scwbs.next.v1", status, action, reasons };
++}
++
++function plannedTaskJson(message: string): NextJsonOutput {
++  return nextJsonAction("actionable", {
++    kind: "select-planned-task",
++    owner: "ai",
++    command: "scwbs ai next-task"
++  }, [{ code: "task.planned.available", message }]);
++}
++
++export function buildNextJsonOutput(root: string): NextJsonOutput {
++  const activeTasks = listActiveTasks(root);
++  const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
++  const stale = collectCheckIssues(root).find((issue) => {
++    if (!issue.code.startsWith("task.contractLock")) return false;
++    const taskId = activeTaskIds.find((id) => issue.message.includes(id));
++    return Boolean(taskId) && !hasActiveBlock(root, taskId!);
++  });
++  if (stale) {
++    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
++    return nextJsonAction("actionable", {
++      kind: "refresh-task",
++      owner: "ai",
++      taskId,
++      command: `scwbs task refresh --task ${taskId}`
++    }, [{ code: stale.code, message: stale.message }]);
++  }
++
++  const failedCheck = activeTasks.flatMap((entry) => {
++    if (!entry.task || hasActiveBlock(root, entry.task.id)) return [];
++    const { evidence } = readEvidence(root, entry.task.id);
++    const failed = evidence?.checks.find((check) => check.status === "failed");
++    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
++  })[0];
++  if (failedCheck) {
++    return nextJsonAction("actionable", {
++      kind: "fix-check",
++      owner: "ai",
++      taskId: failedCheck.task.id,
++      command: `scwbs finish --task ${failedCheck.task.id}`
++    }, [{ code: "evidence.check.failed", message: `Evidence check failed: ${failedCheck.checkName}` }]);
++  }
++
++  const queue = buildReviewQueue(root);
++  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
++  if (blockedReviewTask) {
++    const plannedTasks = buildNextTask(root).trim();
++    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) return plannedTaskJson(plannedTasks);
++    return nextJsonAction("actionable", {
++      kind: "inspect-review-queue",
++      owner: "ai",
++      command: "scwbs review-queue"
++    }, [{ code: "review.blocked", message: "Review candidates exist, but completion is blocked by prerequisites" }]);
++  }
++
++  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
++  if (missingEvidence?.task) {
++    return nextJsonAction("actionable", {
++      kind: "collect-evidence",
++      owner: "ai",
++      taskId: missingEvidence.task.id,
++      command: `scwbs evidence collect --task ${missingEvidence.task.id}`
++    }, [{ code: "evidence.missing", message: "Task has no Evidence file yet" }]);
++  }
++
++  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
++  if (reviewTask) {
++    if (reviewExists(root, reviewTask)) {
++      const { review } = readReview(root, reviewTask);
++      if (review?.status === "requested") {
++        return nextJsonAction("waiting", {
++          kind: "human-review",
++          owner: "human",
++          taskId: reviewTask,
++          command: `scwbs review approve --task ${reviewTask} --actor human`,
++          aiStop: true
++        }, [{ code: "review.human_decision_required", message: "Evidence and review metadata exist; human completion review is next" }]);
++      }
++      return nextJsonAction("waiting", {
++        kind: "human-review",
++        owner: "human",
++        taskId: reviewTask,
++        command: "scwbs review-queue",
++        aiStop: true
++      }, [{ code: "review.human_decision_required", message: "Evidence exists and human completion review is next" }]);
++    }
++    return nextJsonAction("actionable", {
++      kind: "request-review",
++      owner: "ai",
++      taskId: reviewTask,
++      command: `scwbs review request --task ${reviewTask}`
++    }, [{ code: "review.request_missing", message: "Evidence exists and a review request is needed" }]);
++  }
++
++  const nextTask = buildNextTask(root).trim();
++  if (nextTask.startsWith("Planned task candidates:")) return plannedTaskJson(nextTask);
++  if (nextTask.startsWith("No available planned tasks.")) {
++    return nextJsonAction("idle", null, [{ code: "task.none.available", message: nextTask }]);
++  }
++  return nextJsonAction("actionable", {
++    kind: "inspect-next",
++    owner: "ai",
++    command: "scwbs next"
++  }, [{ code: "task.follow_up.pending", message: nextTask || "No available action." }]);
++}
++
+ export function buildNextAction(root: string): string {
+   const discovery = discoveryGuidance(root);
+   const activeTasks = listActiveTasks(root);
+@@ -149,9 +274,10 @@ ${discovery}${nextTask.trim() || "No available action."}
+ `;
+ }
+ 
+-export function runNext(root: string): number {
++export function runNext(root: string, options: { json?: boolean } = {}): number {
+   try {
+-    process.stdout.write(buildNextAction(root));
++    if (options.json) console.log(JSON.stringify(buildNextJsonOutput(root)));
++    else process.stdout.write(buildNextAction(root));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/trace.ts b/src/commands/trace.ts
+index 18f7e1e..9c7c4ee 100644
+--- a/src/commands/trace.ts
++++ b/src/commands/trace.ts
+@@ -2,6 +2,66 @@ import { readApproval, readEvidence, readRegistry, readReview, readTask, resolve
+ import { readWbs } from "../core/wbs.js";
+ import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ 
++export type TraceJsonNode = {
++  id: string;
++  kind: "spec" | "wbs" | "task" | "evidence" | "review" | "approval";
++  status: string;
++  label?: string;
++  code?: string;
++};
++
++export type TraceJsonOutput = {
++  version: "scwbs.trace.v1";
++  taskId: string;
++  nodes: TraceJsonNode[];
++  edges: Array<{ from: string; to: string; kind: string }>;
++};
++
++export function buildTraceJson(root: string, taskId: string): TraceJsonOutput {
++  const { task, issues } = readTask(root, taskId);
++  if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
++  const wbs = readWbs(root);
++  const association = taskWbsAssociation(wbs, task);
++  const { registry } = readRegistry(root);
++  const { spec } = resolveSpecForTask(root, registry, task);
++  const { evidence } = readEvidence(root, task.id);
++  const { review } = readReview(root, task.id);
++  const { approval } = readApproval(root, task.id);
++  const nodes: TraceJsonNode[] = [];
++  const edges: TraceJsonOutput["edges"] = [];
++  const taskNodeId = `task:${task.id}`;
++  nodes.push({ id: taskNodeId, kind: "task", status: "active", label: task.id });
++
++  if (spec) {
++    const id = `spec:${spec.id}`;
++    nodes.push({ id, kind: "spec", status: spec.status, label: spec.id });
++    edges.push({ from: id, to: taskNodeId, kind: "specifies" });
++  }
++
++  if (association.kind === "node") {
++    const id = `wbs:${association.node.id}`;
++    nodes.push({ id, kind: "wbs", status: association.node.status ?? "planned", code: association.node.code, label: association.node.name });
++    edges.push({ from: id, to: taskNodeId, kind: "assigns" });
++  } else {
++    const id = `wbs:${task.wbsNodeId}`;
++    nodes.push({ id, kind: "wbs", status: association.kind === "wbs-less" ? "wbs-less" : "missing", label: task.wbsNodeId });
++    edges.push({ from: id, to: taskNodeId, kind: "assigns" });
++  }
++
++  const related = [
++    { value: evidence, kind: "evidence" as const, relation: "supports", status: evidence ? `${evidence.checks.length}-checks` : "missing" },
++    { value: review, kind: "review" as const, relation: "reviews", status: review?.status ?? "missing" },
++    { value: approval, kind: "approval" as const, relation: "approves", status: approval?.status ?? "missing" }
++  ];
++  for (const item of related) {
++    if (!item.value) continue;
++    const id = `${item.kind}:${item.value.id}`;
++    nodes.push({ id, kind: item.kind, status: item.status, label: item.value.id });
++    edges.push({ from: taskNodeId, to: id, kind: item.relation });
++  }
++  return { version: "scwbs.trace.v1", taskId: task.id, nodes, edges };
++}
++
+ export function buildTrace(root: string, taskId: string): string {
+   const { task, issues } = readTask(root, taskId);
+   if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
+@@ -23,9 +83,10 @@ Spec: ${spec ? `${spec.id} v${spec.version} ${spec.status}` : "missing"}
+ `;
+ }
+ 
+-export function runTrace(root: string, taskId: string): number {
++export function runTrace(root: string, taskId: string, options: { json?: boolean } = {}): number {
+   try {
+-    process.stdout.write(buildTrace(root, taskId));
++    if (options.json) process.stdout.write(`${JSON.stringify(buildTraceJson(root, taskId))}\n`);
++    else process.stdout.write(buildTrace(root, taskId));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/ui.ts b/src/commands/ui.ts
+index 0d30104..84d8b4f 100644
+--- a/src/commands/ui.ts
++++ b/src/commands/ui.ts
+@@ -1,10 +1,53 @@
+-import { buildDoctorReport } from "./doctor.js";
+-import { buildNextAction } from "./next.js";
+-import { buildReviewQueue } from "./review-queue.js";
+-import { buildStatus } from "./status.js";
++import { buildDoctorReport, collectEnvironmentDiagnostics, type DoctorJsonOutput } from "./doctor.js";
++import { buildNextAction, buildNextJsonOutput, type NextJsonOutput } from "./next.js";
++import { buildReviewQueue, buildReviewQueueSummary, type ReviewQueueSummary } from "./review-queue.js";
++import { buildStatus, buildStatusJsonOutput, type StatusJsonOutput } from "./status.js";
++import { collectCheckIssues } from "./check.js";
++import { collectHealthIssues } from "./health.js";
+ 
+-export function runUi(root: string): number {
++export type UiJsonOutput = {
++  version: "scwbs.ui.v1";
++  status: "pass" | "fail";
++  statusReport: StatusJsonOutput;
++  next: NextJsonOutput;
++  review: ReviewQueueSummary;
++  doctor: DoctorJsonOutput;
++};
++
++function buildDoctorJsonOutput(root: string): DoctorJsonOutput {
++  const diagnostics = collectEnvironmentDiagnostics(root);
++  const contractIssues = [
++    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
++    ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
++  ];
++  const envHasFailure = diagnostics.some((diagnostic) => diagnostic.status === "fail");
++  const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
++  return {
++    status: envHasFailure || hasContractErrors ? "fail" : "pass",
++    diagnostics,
++    contractIssues
++  };
++}
++
++export function buildUiJsonOutput(root: string): UiJsonOutput {
++  const statusReport = buildStatusJsonOutput(root);
++  const doctor = buildDoctorJsonOutput(root);
++  return {
++    version: "scwbs.ui.v1",
++    status: doctor.status,
++    statusReport,
++    next: buildNextJsonOutput(root),
++    review: buildReviewQueueSummary(root),
++    doctor
++  };
++}
++
++export function runUi(root: string, options: { json?: boolean } = {}): number {
+   try {
++    if (options.json) {
++      process.stdout.write(`${JSON.stringify(buildUiJsonOutput(root))}\n`);
++      return 0;
++    }
+     process.stdout.write(`SC-WBS Dashboard
+ 
+ ${buildStatus(root)}
+diff --git a/tests/integration/navigation-json.test.ts b/tests/integration/navigation-json.test.ts
+new file mode 100644
+index 0000000..c3b89fc
+--- /dev/null
++++ b/tests/integration/navigation-json.test.ts
+@@ -0,0 +1,116 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { buildNextJsonOutput } from "../../src/commands/next.js";
++import { sampleEvidence, sampleTask, makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
++
++function captureStdout(run: () => number): { code: number; output: string } {
++  const originalWrite = process.stdout.write;
++  const originalLog = console.log;
++  let output = "";
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
++    return true;
++  }) as typeof process.stdout.write;
++  console.log = (...args: unknown[]) => {
++    output += `${args.map(String).join(" ")}\n`;
++  };
++  try {
++    return { code: run(), output };
++  } finally {
++    process.stdout.write = originalWrite;
++    console.log = originalLog;
++  }
++}
++
++function validateSchema(file: string, value: unknown): void {
++  const schema = JSON.parse(readFileSync(path.join(process.cwd(), file), "utf8"));
++  const ajv = new Ajv2020({ strict: false });
++  if (file.endsWith("ui.schema.json")) {
++    ajv.addSchema(JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/next.schema.json"), "utf8")));
++  }
++  const valid = ajv.compile(schema)(value);
++  expect(valid, JSON.stringify(value)).toBe(true);
++}
++
++describe("versioned navigation JSON", () => {
++  test("next --json returns a machine-readable action and reason code", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const result = captureStdout(() => main(["next", "--json"], root));
++    expect(result.code).toBe(0);
++    const output = JSON.parse(result.output);
++    expect(output).toMatchObject({
++      version: "scwbs.next.v1",
++      status: "actionable",
++      action: { kind: "collect-evidence", owner: "ai", taskId: "WBS-001-004" },
++      reasons: [{ code: "evidence.missing" }]
++    });
++    validateSchema("docs/scwbs/schemas/next.schema.json", output);
++  });
++
++  test("next --json makes Human Gate ownership and AI stop explicit", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    const task = sampleTask({ humanGateRequiredPaths: ["src/security/**"] });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      changedFiles: ["src/security/policy.ts"],
++      git: { ...sampleEvidence().git, pullRequest: "#42" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "requested"
++    });
++
++    const output = buildNextJsonOutput(root);
++    expect(output).toMatchObject({
++      version: "scwbs.next.v1",
++      status: "waiting",
++      action: { owner: "human", aiStop: true, taskId: "WBS-001-004" },
++      reasons: [{ code: "review.human_decision_required" }]
++    });
++  });
++
++  test("ui --json aggregates versioned status, next, review, and doctor sections", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const result = captureStdout(() => main(["ui", "--json"], root));
++    expect(result.code).toBe(0);
++    const output = JSON.parse(result.output);
++    expect(output).toMatchObject({
++      version: "scwbs.ui.v1",
++      statusReport: { version: "scwbs.status.v1" },
++      next: { version: "scwbs.next.v1" },
++      review: { schemaVersion: "1.0.0" },
++      doctor: { status: expect.any(String) }
++    });
++    validateSchema("docs/scwbs/schemas/ui.schema.json", output);
++  });
++
++  test("trace --json returns stable graph nodes and edges", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    const result = captureStdout(() => main(["trace", "--task", "WBS-001-004", "--json"], root));
++    expect(result.code).toBe(0);
++    const output = JSON.parse(result.output);
++    expect(output).toMatchObject({ version: "scwbs.trace.v1", taskId: "WBS-001-004" });
++    expect(output.nodes).toEqual(expect.arrayContaining([
++      expect.objectContaining({ kind: "spec" }),
++      expect.objectContaining({ kind: "wbs" }),
++      expect.objectContaining({ kind: "task" })
++    ]));
++    expect(output.edges).toEqual(expect.arrayContaining([
++      expect.objectContaining({ kind: "specifies" }),
++      expect.objectContaining({ kind: "assigns" })
++    ]));
++    validateSchema("docs/scwbs/schemas/trace.schema.json", output);
++  });
++});

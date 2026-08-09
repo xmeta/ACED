@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MSM9LEWE
+type: evidence
+taskId: SCWBS-DRAFT-MSM9LEWE
+commit: 91fbe2ec2a1a95738b0c92bb92a52fd8d58548e9
+subjectHeadCommit: 91fbe2ec2a1a95738b0c92bb92a52fd8d58548e9
+diffHash: sha256:658dd8a11c05ac184bc7d4a75a822fa4a6d3ddf88599e0fc73a293a9e749414d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 91fbe2ec2a1a95738b0c92bb92a52fd8d58548e9
+    treeHash: f47f7964f1e5e97405f3c52074cd945d17260ecc
+    diffHash: sha256:658dd8a11c05ac184bc7d4a75a822fa4a6d3ddf88599e0fc73a293a9e749414d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSM9LEWE.patch
+    manifestHash: sha256:658dd8a11c05ac184bc7d4a75a822fa4a6d3ddf88599e0fc73a293a9e749414d
+git:
+  branch: task/SCWBS-DRAFT-MSM9LEWE-issue-489-next-ui-trace-versioned-json-contract
+  base: origin/main
+  baseCommit: 9ae2ca51e45cb1731e04e483c260ac5ef22ef418
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 91fbe2ec2a1a95738b0c92bb92a52fd8d58548e9
+  diffHash: sha256:658dd8a11c05ac184bc7d4a75a822fa4a6d3ddf88599e0fc73a293a9e749414d
+  headCommit: 91fbe2ec2a1a95738b0c92bb92a52fd8d58548e9
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/next.schema.json
+  - docs/scwbs/schemas/trace.schema.json
+  - docs/scwbs/schemas/ui.schema.json
+  - src/cli.ts
+  - src/commands/next.ts
+  - src/commands/trace.ts
+  - src/commands/ui.ts
+  - tests/integration/navigation-json.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:a8cbde4abb8a22c6ddc7cd6550c0713a53941af094c6019af02dc8f2e8845c31
+    durationMilliseconds: 16620
+    executedAt: "2026-08-09T20:59:59.119Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7fc56f6a601c73dd055e88f02b307f8d83f2064cd0d095aefa7f6650da87c70d
+    durationMilliseconds: 11003
+    executedAt: "2026-08-09T21:00:10.127Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6cee9ebaa9001b228edccebd67b93edeea1aa3a6f99f560e857e3fab322f8990
+    durationMilliseconds: 4485
+    executedAt: "2026-08-09T21:00:14.617Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:eb8fa854cc38c5ee19f88f8f366cecce359f21fc1c8eeefe293673ac6d73407f
+    durationMilliseconds: 295912
+    executedAt: "2026-08-09T21:05:10.533Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added versioned next, ui, and trace JSON contract tests including Human Gate stop semantics and graph schema validation.
