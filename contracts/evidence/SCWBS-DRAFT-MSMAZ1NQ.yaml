@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MSMAZ1NQ
+type: evidence
+taskId: SCWBS-DRAFT-MSMAZ1NQ
+commit: 5c08d3dde98a8730c4b93ce1c58ebee5ad2e9e6f
+subjectHeadCommit: 5c08d3dde98a8730c4b93ce1c58ebee5ad2e9e6f
+diffHash: sha256:8c5f86f604a2c0c10e76e447f1f0f6eb5e6d840bddd7dabfe1f4930ac8f5d71b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 5c08d3dde98a8730c4b93ce1c58ebee5ad2e9e6f
+    treeHash: a4e63b1b71493d1a8e98bddf8285d7ab3b9b4fd1
+    diffHash: sha256:8c5f86f604a2c0c10e76e447f1f0f6eb5e6d840bddd7dabfe1f4930ac8f5d71b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSMAZ1NQ.patch
+    manifestHash: sha256:8c5f86f604a2c0c10e76e447f1f0f6eb5e6d840bddd7dabfe1f4930ac8f5d71b
+git:
+  branch: task/SCWBS-DRAFT-MSMAZ1NQ-issue-455-residual-provider-capabilities-learned
+  base: origin/main
+  baseCommit: d545d93e4a9559c8f1268cb1c355ad833be6dd51
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 5c08d3dde98a8730c4b93ce1c58ebee5ad2e9e6f
+  diffHash: sha256:8c5f86f604a2c0c10e76e447f1f0f6eb5e6d840bddd7dabfe1f4930ac8f5d71b
+  headCommit: 5c08d3dde98a8730c4b93ce1c58ebee5ad2e9e6f
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSMAZ1NQ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/ai-execution.schema.json
+  - docs/scwbs/schemas/governance-cost.schema.json
+  - src/cli/register-governance.ts
+  - src/commands/ai-run.ts
+  - src/commands/metrics.ts
+  - tests/integration/ai-residual.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:28d3f0a5ba569b9819968236dfb957d9c667b6dd8629d456c17fb23af63d626c
+    durationMilliseconds: 14183
+    executedAt: "2026-08-09T21:45:26.939Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c00fc72636f8bd96128f27bda3545c9c48c22860bece98052fcde54f3a87cb70
+    durationMilliseconds: 8819
+    executedAt: "2026-08-09T21:45:35.763Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:bde3d47ae4c614f3185ff3018380383fd918ff59b967ba0ca6f16f6c7f636edf
+    durationMilliseconds: 3750
+    executedAt: "2026-08-09T21:45:39.516Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a7e017083ce6dcc7a90b287325e5b770bae4e4ca9acfad766988faa93f88e917
+    durationMilliseconds: 302470
+    executedAt: "2026-08-09T21:50:41.990Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Provider capability, learned-note provenance, execution-cost, and metrics regression coverage added.
