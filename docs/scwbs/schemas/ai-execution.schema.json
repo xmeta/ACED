@@ -14,6 +14,12 @@
     },
     {
       "$ref": "#/$defs/receipt"
+    },
+    {
+      "$ref": "#/$defs/planV2"
+    },
+    {
+      "$ref": "#/$defs/receiptV2"
     }
   ],
   "$defs": {
@@ -86,18 +92,60 @@
         "freshContext": { "const": true }
       }
     },
+    "planV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "executionId", "taskId", "iteration", "phase", "branch", "expectedBranch", "subjectHeadCommit", "authorityFingerprint", "allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "implementer", "reviewer", "automaticPullRequest", "automaticMerge", "debugger", "maxRemediationRounds"],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-execution-plan.v2" },
+        "executionId": { "type": "string", "minLength": 1 },
+        "taskId": { "type": "string", "minLength": 1 },
+        "iteration": { "type": "integer", "minimum": 1 },
+        "phase": { "const": "phase-2" },
+        "branch": { "type": "string", "minLength": 1 },
+        "expectedBranch": { "type": "string", "minLength": 1 },
+        "subjectHeadCommit": { "type": "string", "minLength": 1 },
+        "authorityFingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "allowedPaths": { "$ref": "#/$defs/pathList" },
+        "forbiddenPaths": { "$ref": "#/$defs/pathList" },
+        "humanGateRequiredPaths": { "$ref": "#/$defs/pathList" },
+        "requiredChecks": { "$ref": "#/$defs/pathList" },
+        "implementer": { "$ref": "#/$defs/adapter" },
+        "reviewer": { "$ref": "#/$defs/adapter" },
+        "automaticPullRequest": { "const": false },
+        "automaticMerge": { "const": false },
+        "debugger": { "$ref": "#/$defs/adapter" },
+        "maxRemediationRounds": { "const": 2 },
+        "resumeFrom": { "type": "string", "minLength": 1 }
+      }
+    },
     "input": {
       "type": "object",
       "additionalProperties": true,
       "required": ["schemaVersion", "role", "contextId", "taskId", "iteration"],
       "properties": {
         "schemaVersion": { "const": "scwbs.ai-execution-input.v1" },
-        "role": { "enum": ["implementer", "reviewer"] },
+        "role": { "enum": ["implementer", "reviewer", "debugger"] },
         "contextId": { "type": "string", "minLength": 1 },
         "freshContext": { "const": true },
         "taskId": { "type": "string", "minLength": 1 },
-        "iteration": { "const": 1 }
+        "iteration": { "type": "integer", "minimum": 1 }
       }
+    },
+    "debuggerResult": {
+      "allOf": [
+        { "$ref": "#/$defs/result" },
+        {
+          "properties": {
+            "role": { "const": "debugger" },
+            "rootCause": { "type": "string", "minLength": 1 },
+            "category": { "type": "string", "minLength": 1 },
+            "fixPlan": { "type": "string", "minLength": 1 },
+            "nextAction": { "type": "string", "minLength": 1 }
+          },
+          "required": ["rootCause", "category", "fixPlan", "nextAction"]
+        }
+      ]
     },
     "result": {
       "type": "object",
@@ -105,12 +153,16 @@
       "required": ["schemaVersion", "role", "contextId", "status", "summary"],
       "properties": {
         "schemaVersion": { "const": "scwbs.ai-execution-result.v1" },
-        "role": { "enum": ["implementer", "reviewer"] },
+        "role": { "enum": ["implementer", "reviewer", "debugger"] },
         "contextId": { "type": "string", "minLength": 1 },
         "status": { "enum": ["completed", "blocked", "manual-review-required", "approved", "changes-requested"] },
         "summary": { "type": "string", "minLength": 1 },
         "findings": { "$ref": "#/$defs/pathList" },
-        "changedFiles": { "$ref": "#/$defs/pathList" }
+        "changedFiles": { "$ref": "#/$defs/pathList" },
+        "rootCause": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "fixPlan": { "type": "string", "minLength": 1 },
+        "nextAction": { "type": "string", "minLength": 1 }
       }
     },
     "receipt": {
@@ -138,6 +190,41 @@
             "message": { "type": "string", "minLength": 1 }
           }
         },
+        "receiptPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    "receiptV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "executionId", "taskId", "iteration", "status", "plan"],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-run-receipt.v2" },
+        "executionId": { "type": "string", "minLength": 1 },
+        "taskId": { "type": "string", "minLength": 1 },
+        "iteration": { "type": "integer", "minimum": 1 },
+        "status": { "enum": ["completed", "blocked"] },
+        "plan": { "$ref": "#/$defs/planV2" },
+        "implementer": { "$ref": "#/$defs/result" },
+        "checks": { "type": "object" },
+        "reviewer": { "$ref": "#/$defs/result" },
+        "changedFiles": { "$ref": "#/$defs/pathList" },
+        "remediation": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["round", "debugger", "implementer"],
+            "properties": {
+              "round": { "type": "integer", "minimum": 1, "maximum": 2 },
+              "debugger": { "$ref": "#/$defs/debuggerResult" },
+              "implementer": { "$ref": "#/$defs/result" },
+              "checks": { "type": "object" },
+              "reviewer": { "$ref": "#/$defs/result" }
+            }
+          }
+        },
+        "failure": { "$ref": "#/$defs/receipt/properties/failure" },
         "receiptPath": { "type": "string", "minLength": 1 }
       }
     }
