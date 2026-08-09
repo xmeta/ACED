@@ -49,6 +49,20 @@ export type MergePreflightReport = {
   };
 };
 
+export type MergeReadinessSummary = {
+  status: "ready" | "blocked";
+  reasonCodes: string[];
+  validate: MergePreflightReport["validate"];
+};
+
+export function summarizeMergeReadiness(report: MergePreflightReport): MergeReadinessSummary {
+  return {
+    status: report.status === "pass" ? "ready" : "blocked",
+    reasonCodes: report.violations.map((violation) => violation.code),
+    validate: report.validate
+  };
+}
+
 const SHA = /^[a-f0-9]{40}$/;
 
 export function unavailableMergeReport(

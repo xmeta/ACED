@@ -1,0 +1,77 @@
+id: SCWBS-DRAFT-MSLX10E6
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLX10E6
+branchName: task/SCWBS-DRAFT-MSLX10E6-issue-488-unify-finish-and-merge-readiness-evalu
+status: approved
+approvedBy: xmeta
+sourceIssue: 488
+allowedPaths:
+  - src/commands/finish.ts
+  - src/core/merge-preflight.ts
+  - tests/unit/finish.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/merge.test.ts
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+stopIf:
+  - Human Gate
+  - merge strictness weakening
+  - automatic merge behavior
+  - package or CI change
+  - WBS or WJS source change
+  - external service or credential change
+  - authority outside allowedPaths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - finish and merge use the same merge preflight evaluator for PR state and aggregate validate trust
+  - finish never reports merge-ready for validate SKIPPED, NEUTRAL, wrong workflow, missing, duplicate, or non-success validate checks
+  - finish JSON exposes machine-readable mergeReadiness status, reasonCodes, and validate status without weakening merge preflight
+  - draft, closed, non-main, non-clean, invalid-head, pending, failure, and successful PR states produce consistent next actions with merge preflight
+  - automatic merge remains out of scope and the protected scwbs merge command remains the only merge path
+  - unit and integration tests cover evaluator parity and finish JSON readiness details
+  - 'Issue #488 remains bounded to readiness reporting and does not change merge safety strictness'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - merge-readiness-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/specs/SPEC-LITE-MSLX10E6.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLX10E6.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLX10E6.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:6d5803bc0551be78ebdd2f2355d79b2c625ff474d3d66872be6630a6b70d42e0
+  createdAt: "2026-08-09T14:47:09.001Z"

@@ -14,6 +14,7 @@ import { runTaskLock } from "../../src/commands/task-lock.js";
 import { readEvidence } from "../../src/core/contracts.js";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+import { evaluateMergePreflight, type MergePullRequestView } from "../../src/core/merge-preflight.js";
 
 function gitStatus(root: string): string {
   return execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
@@ -199,7 +200,7 @@ describe("finish", () => {
       "  draft: { isDraft: true, state: 'OPEN', statusCheckRollup: [] },",
       "  pending: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }] },",
       "  failure: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'FAILURE' }] },",
-      "  success: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }, { state: 'SUCCESS' }] },",
+      "  success: { number: 42, isDraft: false, state: 'OPEN', baseRefName: 'main', headRefOid: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', mergeStateStatus: 'CLEAN', statusCheckRollup: [{ name: 'validate', status: 'COMPLETED', conclusion: 'SUCCESS', workflowName: 'scwbs', detailsUrl: 'https://github.com/xmeta/ACED/actions/runs/1' }] },",
       "  'closed-success': { isDraft: false, state: 'CLOSED', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }] },",
       "  'closed-empty': { isDraft: false, state: 'CLOSED', statusCheckRollup: [] },",
       "  merged: { isDraft: false, state: 'MERGED', statusCheckRollup: [] }",
@@ -388,6 +389,51 @@ describe("finish", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.json).toMatchObject({ nextAction: expected, resumeCommand: expected });
+  }, 30000);
+
+  test("finish JSON exposes the shared merge readiness and rejects skipped validate", () => {
+    const baseView: MergePullRequestView = {
+      number: 42,
+      state: "OPEN",
+      isDraft: false,
+      baseRefName: "main",
+      headRefOid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      mergeStateStatus: "CLEAN",
+      statusCheckRollup: [{
+        name: "validate",
+        status: "COMPLETED",
+        conclusion: "SKIPPED",
+        workflowName: "scwbs",
+        detailsUrl: "https://github.com/xmeta/ACED/actions/runs/1"
+      }]
+    };
+    const blocked = captureFinishJson(prepareFinishRepo(true), {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      pullRequestReadinessResolver: () => evaluateMergePreflight(42, baseView, "xmeta/ACED")
+    });
+    expect(blocked.json).toMatchObject({
+      nextAction: "gh pr checks 42",
+      mergeReadiness: {
+        status: "blocked",
+        reasonCodes: ["merge.validate.conclusion"],
+        validate: { status: "failure", conclusion: "SKIPPED" }
+      }
+    });
+
+    const readyView: MergePullRequestView = {
+      ...baseView,
+      statusCheckRollup: [{ ...baseView.statusCheckRollup![0]!, conclusion: "SUCCESS" }]
+    };
+    const ready = captureFinishJson(prepareFinishRepo(true), {
+      taskId: "WBS-001-004",
+      baseRef: "base",
+      pullRequestReadinessResolver: () => evaluateMergePreflight(42, readyView, "xmeta/ACED")
+    });
+    expect(ready.json).toMatchObject({
+      nextAction: "npm run scwbs -- merge --pr 42",
+      mergeReadiness: { status: "ready", reasonCodes: [], validate: { status: "success" } }
+    });
   }, 30000);
 
   test("finish uses Review PR metadata when Evidence PR metadata is absent", () => {

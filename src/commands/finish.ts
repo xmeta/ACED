@@ -18,6 +18,14 @@ import { taskRefreshReasons } from "./task-refresh.js";
 import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
 import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
+import {
+  evaluateMergePreflight,
+  summarizeMergeReadiness,
+  unavailableMergeReport,
+  type MergePreflightReport,
+  type MergePullRequestView,
+  type MergeReadinessSummary
+} from "../core/merge-preflight.js";
 
 export { normalizePullRequestNumber } from "./health.js";
 
@@ -50,6 +58,7 @@ export type FinishJsonOutput = {
   diffHash?: string;
   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
   fixCommands: string[];
+  mergeReadiness?: MergeReadinessSummary;
   workingTree?: WorkingTreeState;
 } & Partial<HumanGateActionOwnership>;
 
@@ -67,31 +76,71 @@ export type PullRequestState =
 export type PullRequestStateResolver = (root: string, pullRequest: number) => PullRequestState;
 
 type PullRequestStatusCheck = { status?: string; conclusion?: string; state?: string };
-type PullRequestView = { isDraft?: boolean; state?: string; statusCheckRollup?: PullRequestStatusCheck[] };
+type PullRequestView = Omit<MergePullRequestView, "statusCheckRollup"> & { statusCheckRollup?: PullRequestStatusCheck[] };
 const FAILED_CHECK_CONCLUSIONS = new Set(["ACTION_REQUIRED", "CANCELLED", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
-const SUCCESSFUL_CHECK_CONCLUSIONS = new Set(["NEUTRAL", "SKIPPED", "SUCCESS"]);
+const VIEW_FIELDS = "number,state,isDraft,baseRefName,headRefOid,mergeStateStatus,statusCheckRollup";
 
-export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
+function githubRepository(root: string): string | undefined {
   try {
+    const result = execFileSync("git", ["remote", "get-url", "origin"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    return result.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/)?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+type PullRequestReadinessResult = { view?: PullRequestView; report: MergePreflightReport };
+
+function readPullRequestReadiness(root: string, pullRequest: number): PullRequestReadinessResult {
+  let repository: string | undefined;
+  try {
+    repository = githubRepository(root);
+    const args = ["pr", "view", String(pullRequest)];
+    if (repository) args.push("--repo", repository);
+    args.push("--json", VIEW_FIELDS);
     const output = execFileSync(
       "gh",
-      ["pr", "view", String(pullRequest), "--json", "isDraft,state,statusCheckRollup"],
-      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+      args,
+      { cwd: root, encoding: "utf8" }
     );
     const view = JSON.parse(output) as PullRequestView;
-    if (view.state === "MERGED") return "merged";
-    if (view.state === "CLOSED") return "closed";
-    if (view.isDraft) return "draft";
-    const checks = Array.isArray(view.statusCheckRollup) ? view.statusCheckRollup : [];
-    if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
-    if (checks.length > 0 && checks.every((check) => SUCCESSFUL_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) {
-      return "checks-success";
-    }
-    return "checks-pending";
-  } catch {
-    return "unavailable";
+    return { view, report: evaluateMergePreflight(pullRequest, view, repository ?? null) };
+  } catch (error) {
+    return {
+      report: unavailableMergeReport(
+        pullRequest,
+        error instanceof Error ? error.message : String(error),
+        repository ?? null
+      )
+    };
   }
+}
+
+function stateFromReadiness(result: PullRequestReadinessResult): PullRequestState {
+  if (result.view?.state === "MERGED") return "merged";
+  if (result.view?.state === "CLOSED") return "closed";
+  if (result.view?.isDraft) return "draft";
+  const checks = result.view?.statusCheckRollup ?? [];
+  if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
+  if (result.report.validate.status === "failure") return "checks-failure";
+  if (result.report.status === "pass") return "checks-success";
+  return "checks-pending";
+}
+
+export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
+  const result = readPullRequestReadiness(root, pullRequest);
+  return result.report.violations.some((violation) => violation.code === "merge.github.unavailable")
+    ? "unavailable"
+    : stateFromReadiness(result);
 };
+
+export function resolvePullRequestReadiness(root: string, pullRequest: number): MergePreflightReport {
+  return readPullRequestReadiness(root, pullRequest).report;
+}
 
 export type AtomicFileWrite = { path: string; content: string | Buffer };
 type AtomicWriteJournal = {
@@ -194,6 +243,7 @@ export type FinishOptions = {
   testQuality?: TestQuality;
   checkpointWriter?: CheckpointWriter;
   pullRequestStateResolver?: PullRequestStateResolver;
+  pullRequestReadinessResolver?: (root: string, pullRequest: number) => MergePreflightReport;
 };
 
 type PullRequestMetadata = {
@@ -713,8 +763,22 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
 
   const profile: Profile = readProfile(root);
   const pullRequest = finalPullRequestMetadata.selected;
-  const resolver = options.pullRequestStateResolver ?? resolvePullRequestState;
-  const pullRequestState = pullRequest === undefined ? undefined : resolver(root, pullRequest);
+  let readinessReport: MergePreflightReport | undefined;
+  let pullRequestState: PullRequestState | undefined;
+  if (pullRequest !== undefined) {
+    if (options.pullRequestReadinessResolver) {
+      readinessReport = options.pullRequestReadinessResolver(root, pullRequest);
+      pullRequestState = stateFromReadiness({ report: readinessReport });
+    } else if (options.pullRequestStateResolver) {
+      pullRequestState = options.pullRequestStateResolver(root, pullRequest);
+    } else {
+      const readiness = readPullRequestReadiness(root, pullRequest);
+      readinessReport = readiness.report;
+      pullRequestState = readiness.report.violations.some((violation) => violation.code === "merge.github.unavailable")
+        ? "unavailable"
+        : stateFromReadiness(readiness);
+    }
+  }
   const next = pullRequestNextAction(taskId, pullRequest, pullRequestState);
   if (!json) {
     console.log(`Profile: ${profile}`);
@@ -728,7 +792,8 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
     requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
     requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
     approvalStatus: approval?.status ?? "", nextAction: next.command, resumeCommand: next.command,
-    mutatedFiles, readinessWarnings: [], fixCommands: []
+    mutatedFiles, readinessWarnings: [], fixCommands: [],
+    ...(readinessReport ? { mergeReadiness: summarizeMergeReadiness(readinessReport) } : {})
   }), json);
   return 0;
 }

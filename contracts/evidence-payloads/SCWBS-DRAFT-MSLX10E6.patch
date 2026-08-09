@@ -1,0 +1,392 @@
+diff --git a/contracts/specs/SPEC-LITE-MSLX10E6.yaml b/contracts/specs/SPEC-LITE-MSLX10E6.yaml
+new file mode 100644
+index 0000000..bdf7a0f
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSLX10E6.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MSLX10E6
++type: spec-contract
++featureId: F-MSLX10E6
++title: "Issue #488: finishのPR readinessをmerge preflightと同一evaluatorへ統一する"
++status: approved
++version: 0.1.0
++summary: "finishが曖昧なchecks-successをmerge-readyと案内せず、merge preflightのvalidate trust criteriaと同じmachine-readable readinessを返す"
++approvedBy: xmeta
++approvedAt: "2026-08-09T00:00:00+09:00"
++acceptanceCriteria:
++  - finishとmergeが同じpure evaluatorのvalidate count、workflow、repository URL、COMPLETED、SUCCESS判定を共有する
++  - validateがSKIPPED、NEUTRAL、wrong workflow、missing、duplicate、pending、failureの場合、finishはmerge-readyを返さない
++  - finish --jsonがmergeReadiness.status、reasonCodes、validate.statusを返し、原因に応じたnextActionを維持する
++  - draft、closed、base mismatch、merge state mismatch、invalid headのPRをmerge-readyと誤案内しない
++  - merge preflightのstrictness、自動merge禁止、protected command経路を変更しない
++  - finish/merge evaluator parityのunit/integration regression testsを追加する
++  - package、CI、WBS/WJS source、Human Gate behaviorは変更しない
++nonGoals:
++  - finishから自動mergeすること
++  - pending checksを成功扱いすること
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml b/contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
+new file mode 100644
+index 0000000..4b1a7b1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
+@@ -0,0 +1,77 @@
++id: SCWBS-DRAFT-MSLX10E6
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLX10E6
++branchName: task/SCWBS-DRAFT-MSLX10E6-issue-488-unify-finish-and-merge-readiness-evalu
++status: approved
++approvedBy: xmeta
++sourceIssue: 488
++allowedPaths:
++  - src/commands/finish.ts
++  - src/core/merge-preflight.ts
++  - tests/unit/finish.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/merge.test.ts
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++stopIf:
++  - Human Gate
++  - merge strictness weakening
++  - automatic merge behavior
++  - package or CI change
++  - WBS or WJS source change
++  - external service or credential change
++  - authority outside allowedPaths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - finish and merge use the same merge preflight evaluator for PR state and aggregate validate trust
++  - finish never reports merge-ready for validate SKIPPED, NEUTRAL, wrong workflow, missing, duplicate, or non-success validate checks
++  - finish JSON exposes machine-readable mergeReadiness status, reasonCodes, and validate status without weakening merge preflight
++  - draft, closed, non-main, non-clean, invalid-head, pending, failure, and successful PR states produce consistent next actions with merge preflight
++  - automatic merge remains out of scope and the protected scwbs merge command remains the only merge path
++  - unit and integration tests cover evaluator parity and finish JSON readiness details
++  - 'Issue #488 remains bounded to readiness reporting and does not change merge safety strictness'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - merge-readiness-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
++  - contracts/specs/SPEC-LITE-MSLX10E6.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLX10E6.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLX10E6.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLX10E6.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLX10E6.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLX10E6.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:6d5803bc0551be78ebdd2f2355d79b2c625ff474d3d66872be6630a6b70d42e0
++  createdAt: "2026-08-09T14:47:09.001Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 2a4d022..e02f43b 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1770,3 +1770,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T14:43:52.600Z"
++  - id: SCWBS-DRAFT-MSLX10E6
++    path: contracts/tasks/SCWBS-DRAFT-MSLX10E6.yaml
++    branchName: task/SCWBS-DRAFT-MSLX10E6-issue-488-unify-finish-and-merge-readiness-evalu
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index d2306c4..67b9948 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -42,6 +42,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Bounded Phase 1 AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, versioned plan/result/receipt artifacts, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; debugger, retry, resume, PR, and merge automation remain excluded
+ - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
+ - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
++- Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+ 
+ ## Still Missing
+ 
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index c0ad3a0..67b98b0 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -18,6 +18,14 @@ import { taskRefreshReasons } from "./task-refresh.js";
+ import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
+ import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
+ import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
++import {
++  evaluateMergePreflight,
++  summarizeMergeReadiness,
++  unavailableMergeReport,
++  type MergePreflightReport,
++  type MergePullRequestView,
++  type MergeReadinessSummary
++} from "../core/merge-preflight.js";
+ 
+ export { normalizePullRequestNumber } from "./health.js";
+ 
+@@ -50,6 +58,7 @@ export type FinishJsonOutput = {
+   diffHash?: string;
+   readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+   fixCommands: string[];
++  mergeReadiness?: MergeReadinessSummary;
+   workingTree?: WorkingTreeState;
+ } & Partial<HumanGateActionOwnership>;
+ 
+@@ -67,32 +76,72 @@ export type PullRequestState =
+ export type PullRequestStateResolver = (root: string, pullRequest: number) => PullRequestState;
+ 
+ type PullRequestStatusCheck = { status?: string; conclusion?: string; state?: string };
+-type PullRequestView = { isDraft?: boolean; state?: string; statusCheckRollup?: PullRequestStatusCheck[] };
++type PullRequestView = Omit<MergePullRequestView, "statusCheckRollup"> & { statusCheckRollup?: PullRequestStatusCheck[] };
+ const FAILED_CHECK_CONCLUSIONS = new Set(["ACTION_REQUIRED", "CANCELLED", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"]);
+-const SUCCESSFUL_CHECK_CONCLUSIONS = new Set(["NEUTRAL", "SKIPPED", "SUCCESS"]);
++const VIEW_FIELDS = "number,state,isDraft,baseRefName,headRefOid,mergeStateStatus,statusCheckRollup";
+ 
+-export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
++function githubRepository(root: string): string | undefined {
++  try {
++    const result = execFileSync("git", ["remote", "get-url", "origin"], {
++      cwd: root,
++      encoding: "utf8",
++      stdio: ["ignore", "pipe", "ignore"]
++    });
++    return result.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/)?.[1];
++  } catch {
++    return undefined;
++  }
++}
++
++type PullRequestReadinessResult = { view?: PullRequestView; report: MergePreflightReport };
++
++function readPullRequestReadiness(root: string, pullRequest: number): PullRequestReadinessResult {
++  let repository: string | undefined;
+   try {
++    repository = githubRepository(root);
++    const args = ["pr", "view", String(pullRequest)];
++    if (repository) args.push("--repo", repository);
++    args.push("--json", VIEW_FIELDS);
+     const output = execFileSync(
+       "gh",
+-      ["pr", "view", String(pullRequest), "--json", "isDraft,state,statusCheckRollup"],
+-      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
++      args,
++      { cwd: root, encoding: "utf8" }
+     );
+     const view = JSON.parse(output) as PullRequestView;
+-    if (view.state === "MERGED") return "merged";
+-    if (view.state === "CLOSED") return "closed";
+-    if (view.isDraft) return "draft";
+-    const checks = Array.isArray(view.statusCheckRollup) ? view.statusCheckRollup : [];
+-    if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
+-    if (checks.length > 0 && checks.every((check) => SUCCESSFUL_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) {
+-      return "checks-success";
+-    }
+-    return "checks-pending";
+-  } catch {
+-    return "unavailable";
++    return { view, report: evaluateMergePreflight(pullRequest, view, repository ?? null) };
++  } catch (error) {
++    return {
++      report: unavailableMergeReport(
++        pullRequest,
++        error instanceof Error ? error.message : String(error),
++        repository ?? null
++      )
++    };
+   }
++}
++
++function stateFromReadiness(result: PullRequestReadinessResult): PullRequestState {
++  if (result.view?.state === "MERGED") return "merged";
++  if (result.view?.state === "CLOSED") return "closed";
++  if (result.view?.isDraft) return "draft";
++  const checks = result.view?.statusCheckRollup ?? [];
++  if (checks.some((check) => FAILED_CHECK_CONCLUSIONS.has(check.conclusion ?? check.state ?? ""))) return "checks-failure";
++  if (result.report.validate.status === "failure") return "checks-failure";
++  if (result.report.status === "pass") return "checks-success";
++  return "checks-pending";
++}
++
++export const resolvePullRequestState: PullRequestStateResolver = (root, pullRequest) => {
++  const result = readPullRequestReadiness(root, pullRequest);
++  return result.report.violations.some((violation) => violation.code === "merge.github.unavailable")
++    ? "unavailable"
++    : stateFromReadiness(result);
+ };
+ 
++export function resolvePullRequestReadiness(root: string, pullRequest: number): MergePreflightReport {
++  return readPullRequestReadiness(root, pullRequest).report;
++}
++
+ export type AtomicFileWrite = { path: string; content: string | Buffer };
+ type AtomicWriteJournal = {
+   schemaVersion: "1.0.0";
+@@ -194,6 +243,7 @@ export type FinishOptions = {
+   testQuality?: TestQuality;
+   checkpointWriter?: CheckpointWriter;
+   pullRequestStateResolver?: PullRequestStateResolver;
++  pullRequestReadinessResolver?: (root: string, pullRequest: number) => MergePreflightReport;
+ };
+ 
+ type PullRequestMetadata = {
+@@ -713,8 +763,22 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+ 
+   const profile: Profile = readProfile(root);
+   const pullRequest = finalPullRequestMetadata.selected;
+-  const resolver = options.pullRequestStateResolver ?? resolvePullRequestState;
+-  const pullRequestState = pullRequest === undefined ? undefined : resolver(root, pullRequest);
++  let readinessReport: MergePreflightReport | undefined;
++  let pullRequestState: PullRequestState | undefined;
++  if (pullRequest !== undefined) {
++    if (options.pullRequestReadinessResolver) {
++      readinessReport = options.pullRequestReadinessResolver(root, pullRequest);
++      pullRequestState = stateFromReadiness({ report: readinessReport });
++    } else if (options.pullRequestStateResolver) {
++      pullRequestState = options.pullRequestStateResolver(root, pullRequest);
++    } else {
++      const readiness = readPullRequestReadiness(root, pullRequest);
++      readinessReport = readiness.report;
++      pullRequestState = readiness.report.violations.some((violation) => violation.code === "merge.github.unavailable")
++        ? "unavailable"
++        : stateFromReadiness(readiness);
++    }
++  }
+   const next = pullRequestNextAction(taskId, pullRequest, pullRequestState);
+   if (!json) {
+     console.log(`Profile: ${profile}`);
+@@ -728,7 +792,8 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+     requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
+     requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+     approvalStatus: approval?.status ?? "", nextAction: next.command, resumeCommand: next.command,
+-    mutatedFiles, readinessWarnings: [], fixCommands: []
++    mutatedFiles, readinessWarnings: [], fixCommands: [],
++    ...(readinessReport ? { mergeReadiness: summarizeMergeReadiness(readinessReport) } : {})
+   }), json);
+   return 0;
+ }
+diff --git a/src/core/merge-preflight.ts b/src/core/merge-preflight.ts
+index 45ab9a7..756d022 100644
+--- a/src/core/merge-preflight.ts
++++ b/src/core/merge-preflight.ts
+@@ -49,6 +49,20 @@ export type MergePreflightReport = {
+   };
+ };
+ 
++export type MergeReadinessSummary = {
++  status: "ready" | "blocked";
++  reasonCodes: string[];
++  validate: MergePreflightReport["validate"];
++};
++
++export function summarizeMergeReadiness(report: MergePreflightReport): MergeReadinessSummary {
++  return {
++    status: report.status === "pass" ? "ready" : "blocked",
++    reasonCodes: report.violations.map((violation) => violation.code),
++    validate: report.validate
++  };
++}
++
+ const SHA = /^[a-f0-9]{40}$/;
+ 
+ export function unavailableMergeReport(
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 9af37e4..7db3024 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -14,6 +14,7 @@ import { runTaskLock } from "../../src/commands/task-lock.js";
+ import { readEvidence } from "../../src/core/contracts.js";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
++import { evaluateMergePreflight, type MergePullRequestView } from "../../src/core/merge-preflight.js";
+ 
+ function gitStatus(root: string): string {
+   return execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
+@@ -199,7 +200,7 @@ describe("finish", () => {
+       "  draft: { isDraft: true, state: 'OPEN', statusCheckRollup: [] },",
+       "  pending: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'IN_PROGRESS', conclusion: '' }] },",
+       "  failure: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'FAILURE' }] },",
+-      "  success: { isDraft: false, state: 'OPEN', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }, { state: 'SUCCESS' }] },",
++      "  success: { number: 42, isDraft: false, state: 'OPEN', baseRefName: 'main', headRefOid: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', mergeStateStatus: 'CLEAN', statusCheckRollup: [{ name: 'validate', status: 'COMPLETED', conclusion: 'SUCCESS', workflowName: 'scwbs', detailsUrl: 'https://github.com/xmeta/ACED/actions/runs/1' }] },",
+       "  'closed-success': { isDraft: false, state: 'CLOSED', statusCheckRollup: [{ status: 'COMPLETED', conclusion: 'SUCCESS' }] },",
+       "  'closed-empty': { isDraft: false, state: 'CLOSED', statusCheckRollup: [] },",
+       "  merged: { isDraft: false, state: 'MERGED', statusCheckRollup: [] }",
+@@ -390,6 +391,51 @@ describe("finish", () => {
+     expect(result.json).toMatchObject({ nextAction: expected, resumeCommand: expected });
+   }, 30000);
+ 
++  test("finish JSON exposes the shared merge readiness and rejects skipped validate", () => {
++    const baseView: MergePullRequestView = {
++      number: 42,
++      state: "OPEN",
++      isDraft: false,
++      baseRefName: "main",
++      headRefOid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++      mergeStateStatus: "CLEAN",
++      statusCheckRollup: [{
++        name: "validate",
++        status: "COMPLETED",
++        conclusion: "SKIPPED",
++        workflowName: "scwbs",
++        detailsUrl: "https://github.com/xmeta/ACED/actions/runs/1"
++      }]
++    };
++    const blocked = captureFinishJson(prepareFinishRepo(true), {
++      taskId: "WBS-001-004",
++      baseRef: "base",
++      pullRequestReadinessResolver: () => evaluateMergePreflight(42, baseView, "xmeta/ACED")
++    });
++    expect(blocked.json).toMatchObject({
++      nextAction: "gh pr checks 42",
++      mergeReadiness: {
++        status: "blocked",
++        reasonCodes: ["merge.validate.conclusion"],
++        validate: { status: "failure", conclusion: "SKIPPED" }
++      }
++    });
++
++    const readyView: MergePullRequestView = {
++      ...baseView,
++      statusCheckRollup: [{ ...baseView.statusCheckRollup![0]!, conclusion: "SUCCESS" }]
++    };
++    const ready = captureFinishJson(prepareFinishRepo(true), {
++      taskId: "WBS-001-004",
++      baseRef: "base",
++      pullRequestReadinessResolver: () => evaluateMergePreflight(42, readyView, "xmeta/ACED")
++    });
++    expect(ready.json).toMatchObject({
++      nextAction: "npm run scwbs -- merge --pr 42",
++      mergeReadiness: { status: "ready", reasonCodes: [], validate: { status: "success" } }
++    });
++  }, 30000);
++
+   test("finish uses Review PR metadata when Evidence PR metadata is absent", () => {
+     const root = prepareFinishRepo(true);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
