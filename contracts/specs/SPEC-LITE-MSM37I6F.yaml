@@ -1,0 +1,19 @@
+id: SPEC-LITE-MSM37I6F
+type: spec-contract
+featureId: F-MSM37I6F
+title: "Issue #483 Phase 1: standalone packed CLI and version source"
+status: approved
+version: 0.1.0
+summary: "Make the locally packed scwbs CLI installable without an ACED checkout and derive its version from package.json, while leaving WJS and release automation for a separately gated phase"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - scwbs --version reads package.json version in source and packed CLI execution
+  - npm pack artifact installs into an empty consumer without an ACED clone or WJS submodule
+  - packaging integration smoke test verifies the installed bin and version
+  - README and CONTRIBUTING separate consumer installation from contributor checkout setup
+  - WJS runtime asset bundling, release workflow, publish configuration, dependency changes, and repository settings are not changed
+nonGoals:
+  - npmjs.com publication or changing private repository/package release policy
+  - bundling or redesigning WJS validators and apply tools
+  - release workflow, auto-update, or external service integration

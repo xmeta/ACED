@@ -46,6 +46,15 @@ export type DocsGenerateOptions = {
   check?: boolean;
 };
 
+function packageVersion(): string {
+  const packagePath = fileURLToPath(new URL("../package.json", import.meta.url));
+  const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: unknown };
+  if (typeof packageJson.version !== "string" || packageJson.version.length === 0) {
+    throw new Error("package.json version is missing or invalid");
+  }
+  return packageJson.version;
+}
+
 function markdownCell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
@@ -201,7 +210,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .name("scwbs")
     .description("SC-WBS CLI")
-    .version("0.1.0")
+    .version(packageVersion())
     .exitOverride()
     .showHelpAfterError(true)
     .showSuggestionAfterError(true)

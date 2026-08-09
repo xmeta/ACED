@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MSM37I6F
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSM37I6F
+branchName: task/SCWBS-DRAFT-MSM37I6F-p1-distribution-issue-483-phase-1-standalone-pac
+status: approved
+approvedBy: xmeta
+sourceIssue: 483
+allowedPaths:
+  - package.json
+  - src/cli.ts
+  - tests/integration/packaging.test.ts
+  - README.md
+  - CONTRIBUTING.md
+forbiddenPaths:
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - WJS runtime asset bundling or validator redesign
+  - release workflow or publish configuration
+  - repository visibility or external release decision
+  - dependency or lockfile changes
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - package version is the single source for scwbs --version in source and packed CLI execution
+  - npm pack artifact installs into an empty consumer without an ACED clone or WJS submodule
+  - packed CLI smoke test covers --version and documents the Phase 1 boundary
+  - README and CONTRIBUTING distinguish consumer installation from repository contributor setup
+  - WJS runtime redesign, release workflow, publish configuration, and dependency changes remain out of scope and blocked
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/specs/SPEC-LITE-MSM37I6F.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM37I6F.patch
+  - contracts/approvals/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:f72dc56ed5709b61be1960b356d4988279836968482fad3f6af86cd19f4bb880
+  createdAt: "2026-08-09T17:41:00.208Z"

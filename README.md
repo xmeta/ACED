@@ -38,7 +38,26 @@ small context first, deeper docs only when needed.
 explicit Task Contract, checks the changed files against that contract, records
 Evidence, and sends risky work back to Human Gate.
 
-## 2. Minimal Setup
+## 2. Consumer Installation
+
+For a local, clone-free smoke test, build and pack the CLI, then install the
+tarball into an empty consumer project:
+
+```bash
+corepack npm run build
+npm pack
+mkdir /tmp/scwbs-consumer
+cd /tmp/scwbs-consumer
+npm init -y
+npm install --save-dev /path/to/scwbs-0.1.0.tgz
+npx scwbs --version
+```
+
+This Phase 1 path validates the packed CLI boundary only. WJS validator
+bundling, release automation, and publication policy remain separate decisions;
+the repository checkout workflow below is still required for development.
+
+## 3. Minimal Setup
 
 This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
 `10.9.0` through `packageManager`; enable Corepack before installing so the
@@ -67,7 +86,7 @@ npm run scwbs -- check
 npm run scwbs -- docs check
 ```
 
-## 3. Doctor And Check
+## 4. Doctor And Check
 
 Use `doctor` for setup diagnostics and `check` for contract/registry health:
 
@@ -101,7 +120,7 @@ or archived Task is only `verified` when its required checks, Evidence subject,
 and any Human Approval scope remain verifiable; `--strict` returns a non-zero
 status when terminal Task trust is degraded, unverifiable, or not evaluated.
 
-## 4. AI Minimum Flow
+## 5. AI Minimum Flow
 
 AI agents should start from the active Task Contract and avoid broad docs
 scans. Use the tiny packet by default (`--tiny` is the default):

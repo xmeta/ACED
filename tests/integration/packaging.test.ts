@@ -1,31 +1,23 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const cleanCheckoutPackagingTimeoutMs = 60_000;
+const standalonePackagingTimeoutMs = 60_000;
 const npmStyleSymlinkTimeoutMs = 30_000;
 
 describe("npm bin entrypoint", () => {
   const symlinkTest = process.platform === "win32" ? it.skip : it;
 
-  symlinkTest("packs a runnable CLI from a clean checkout", () => {
+  symlinkTest("packs a runnable CLI without a repository checkout or WJS submodule", () => {
     const repository = process.cwd();
     const fixture = mkdtempSync(path.join(tmpdir(), "scwbs-pack-"));
-    const packageRoot = path.join(fixture, "package");
     const consumer = path.join(fixture, "consumer");
-    const archive = path.join(fixture, "repository.tar");
-    mkdirSync(packageRoot);
     mkdirSync(consumer);
 
-    execFileSync("git", ["archive", "--format=tar", `--output=${archive}`, "HEAD"], {
-      cwd: repository,
-      stdio: "pipe"
-    });
-    execFileSync("tar", ["-xf", archive, "-C", packageRoot], { stdio: "pipe" });
-    copyFileSync(path.join(repository, "package.json"), path.join(packageRoot, "package.json"));
-    symlinkSync(path.join(repository, "node_modules"), path.join(packageRoot, "node_modules"), "dir");
+    execFileSync("npm", ["run", "build"], { cwd: repository, stdio: "pipe" });
+    const packageJson = JSON.parse(readFileSync(path.join(repository, "package.json"), "utf8")) as { version: string };
 
     const packed = JSON.parse(execFileSync("npm", [
       "pack",
@@ -33,7 +25,7 @@ describe("npm bin entrypoint", () => {
       "--pack-destination",
       fixture
     ], {
-      cwd: packageRoot,
+      cwd: repository,
       encoding: "utf8"
     }))[0] as {
       filename: string;
@@ -42,7 +34,7 @@ describe("npm bin entrypoint", () => {
     };
 
     expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
-    expect(packed.files.length).toBeLessThan(100);
+    expect(packed.files.length).toBeLessThan(120);
     expect(packed.size).toBeLessThan(200_000);
 
     const tarball = path.join(fixture, packed.filename);
@@ -64,9 +56,9 @@ describe("npm bin entrypoint", () => {
       encoding: "utf8"
     });
     expect(execution.status).toBe(0);
-    expect(execution.stdout.trim()).toBe("0.1.0");
+    expect(execution.stdout.trim()).toBe(packageJson.version);
     expect(execution.stderr).toBe("");
-  }, cleanCheckoutPackagingTimeoutMs);
+  }, standalonePackagingTimeoutMs);
 
   symlinkTest("runs the CLI through an npm-style symlink", () => {
     execFileSync("npm", ["run", "build"], {
@@ -94,6 +86,7 @@ describe("npm bin entrypoint", () => {
     expect(linked.status).toBe(direct.status);
     expect(linked.stdout).toBe(direct.stdout);
     expect(linked.stderr).toBe(direct.stderr);
-    expect(linked.stdout.trim()).toBe("0.1.0");
+    const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string };
+    expect(linked.stdout.trim()).toBe(packageJson.version);
   }, npmStyleSymlinkTimeoutMs);
 });

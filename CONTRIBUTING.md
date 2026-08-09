@@ -26,7 +26,25 @@ Issueを登録する前に、タイトルや本文のキーワードでopen Issu
 - `allowedPaths`の外側や`forbiddenPaths`にあるファイルを、作業中の判断だけで変更しないでください。WBS正本（`contracts/wbs/project.wbs.json`）は直接編集せず、承認されたchangeset経由で扱います。
 - AIエージェントに作業を依頼する場合は、Task ContractをGround Truthとして渡してください。AIはHuman Approvalを代行できません。
 
-## ローカルセットアップ
+## 利用者向け packed artifact の確認
+
+配布境界を確認する場合は、リポジトリを consumer の実行時依存にせず、
+次のように tarball を作成して空の一時プロジェクトへ install します。
+
+```bash
+corepack npm run build
+npm pack
+mkdir /tmp/scwbs-consumer
+cd /tmp/scwbs-consumer
+npm init -y
+npm install --save-dev /path/to/scwbs-0.1.0.tgz
+npx scwbs --version
+```
+
+WJS validator の bundled runtime、release workflow、npm 公開方針は別の
+Human Decision が必要なため、この確認には含めません。
+
+## ローカルセットアップ（contributor）
 
 Node.js `>=22.12.0` と npm `>=10` を使用します。通常のclone後は、依存関係をインストールする前にWJS submoduleを初期化してください。
 
