@@ -1,0 +1,901 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+new file mode 100644
+index 0000000..ef4d981
+--- /dev/null
++++ b/.github/workflows/release.yml
+@@ -0,0 +1,58 @@
++name: scwbs release artifact
++
++on:
++  workflow_dispatch:
++    inputs:
++      tag:
++        description: "Existing or new release tag, for example v0.1.0"
++        required: true
++        type: string
++
++permissions:
++  contents: write
++
++jobs:
++  release:
++    if: github.ref == 'refs/heads/main'
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout main
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          fetch-depth: 0
++
++      - name: Set up repository and Node.js toolchain
++        uses: ./.github/actions/setup-toolchain
++        with:
++          node-version: 24
++
++      - name: Build and pack self-contained artifact
++        id: pack
++        env:
++          RELEASE_TAG: ${{ inputs.tag }}
++        run: |
++          set -euo pipefail
++          mkdir -p "$RUNNER_TEMP/scwbs-release"
++          npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/manifest.json"
++          node - <<'NODE'
++          const fs = require("fs");
++          const path = require("path");
++          const manifest = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "scwbs-release", "manifest.json"), "utf8"))[0];
++          const required = [
++            "dist/cli.js",
++            "dist/wjs-runtime/tools/validate.mjs",
++            "dist/wjs-runtime/tools/apply.mjs",
++            "dist/wjs-runtime/schema/wbs-json.schema.json",
++            "dist/wjs-runtime/schema/wbs-operations.schema.json"
++          ];
++          const files = new Set(manifest.files.map((file) => file.path));
++          for (const file of required) if (!files.has(file)) throw new Error(`release artifact is missing ${file}`);
++          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${path.join(process.env.RUNNER_TEMP, "scwbs-release", manifest.filename)}\n`);
++          NODE
++
++      - name: Create GitHub Release with artifact
++        env:
++          GH_TOKEN: ${{ github.token }}
++          RELEASE_TAG: ${{ inputs.tag }}
++          TARBALL: ${{ steps.pack.outputs.tarball }}
++        run: gh release create "$RELEASE_TAG" "$TARBALL" --repo "$GITHUB_REPOSITORY" --title "scwbs $RELEASE_TAG" --generate-notes
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 8719ae1..00eb229 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -54,7 +54,7 @@ jobs:
+           script: |
+             const fs = require("fs");
+             const candidate = JSON.parse(fs.readFileSync(process.env.CANDIDATE_FILE, "utf8"));
+-            const required = ["core", "integration", "wjs", "validate"];
++            const required = ["core", "integration", "wjs", "distribution", "validate"];
+             const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+             const runIdFrom = (url) => Number(/\/actions\/runs\/(\d+)/.exec(url ?? "")?.[1] ?? 0) || null;
+             const commits = Array.from(new Set([
+@@ -351,6 +351,20 @@ jobs:
+       - name: WJS tests
+         run: npm run test:wjs
+ 
++  distribution:
++    needs: plan
++    if: always() && needs.plan.outputs.mode == 'full'
++    runs-on: ubuntu-latest
++    steps:
++      - name: Bootstrap local action checkout
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++      - name: Set up repository and Node.js toolchain
++        uses: ./.github/actions/setup-toolchain
++        with:
++          node-version: ${{ env.NODE_VERSION }}
++      - name: Packed artifact standalone smoke test
++        run: node scripts/distribution-smoke.mjs
++
+   validate:
+     if: ${{ always() }}
+     needs:
+@@ -358,6 +372,7 @@ jobs:
+       - core
+       - integration
+       - wjs
++      - distribution
+       - minimum-node
+     runs-on: ubuntu-latest
+     steps:
+@@ -368,6 +383,7 @@ jobs:
+           CORE_RESULT: ${{ needs.core.result }}
+           INTEGRATION_RESULT: ${{ needs.integration.result }}
+           WJS_RESULT: ${{ needs.wjs.result }}
++          DISTRIBUTION_RESULT: ${{ needs.distribution.result }}
+           MINIMUM_NODE_RESULT: ${{ needs.minimum-node.result }}
+         run: |
+           test "$PLAN_RESULT" = "success"
+@@ -375,11 +391,13 @@ jobs:
+             test "$CORE_RESULT" = "skipped"
+             test "$INTEGRATION_RESULT" = "skipped"
+             test "$WJS_RESULT" = "skipped"
++            test "$DISTRIBUTION_RESULT" = "skipped"
+             test "$MINIMUM_NODE_RESULT" = "skipped"
+           else
+             test "$MODE" = "full"
+             test "$CORE_RESULT" = "success"
+             test "$INTEGRATION_RESULT" = "success"
+             test "$WJS_RESULT" = "success"
++            test "$DISTRIBUTION_RESULT" = "success"
+             test "$MINIMUM_NODE_RESULT" = "success"
+           fi
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e071784..5de1999 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -10,6 +10,9 @@ and this project uses [Semantic Versioning](https://semver.org/).
+ ### Added
+ 
+ - Project security-reporting and release-history entry points.
++- Standalone distribution artifacts now include the WJS runtime and are
++  validated in a fresh consumer fixture; GitHub Release is the supported
++  distribution path.
+ 
+ Future user-visible changes should be added under `Unreleased` and moved to a
+ versioned section when a release is published. Historical implementation work
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 27bf920..47be9f9 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -41,8 +41,12 @@ npm install --save-dev /path/to/scwbs-0.1.0.tgz
+ npx scwbs --version
+ ```
+ 
+-WJS validator の bundled runtime、release workflow、npm 公開方針は別の
+-Human Decision が必要なため、この確認には含めません。
++packed artifact には WJS validator、apply runtime、schema が含まれます。
++GitHub Release の self-contained tarball を作る場合は、リポジトリ root で
++`npm pack` を実行し、`node scripts/distribution-smoke.mjs` と同じ smoke
++条件を満たすことを確認します。npmjs.com への公開はこのリポジトリの
++配布方針に含めません。通常の contributor checkout では従来通り下記の
++submodule setup を使用します。
+ 
+ ## ローカルセットアップ（contributor）
+ 
+diff --git a/README.md b/README.md
+index da18c5a..134b90e 100644
+--- a/README.md
++++ b/README.md
+@@ -53,9 +53,10 @@ npm install --save-dev /path/to/scwbs-0.1.0.tgz
+ npx scwbs --version
+ ```
+ 
+-This Phase 1 path validates the packed CLI boundary only. WJS validator
+-bundling, release automation, and publication policy remain separate decisions;
+-the repository checkout workflow below is still required for development.
++The packed artifact includes the WJS validator, apply runtime, and schemas, so
++the consumer does not need an ACED checkout or the `wjs` submodule. The
++supported release path is a self-contained tarball attached to a GitHub
++Release; this repository does not publish to npm.
+ 
+ ## 3. Minimal Setup
+ 
+@@ -99,10 +100,11 @@ npm run scwbs -- status --strict
+ npm run scwbs -- registry rebuild --check
+ ```
+ 
+-`doctor` reads the Node.js requirement from `package.json` and reports PASS /
++`doctor` reads the Node.js requirement from the consumer package when declared,
++or from the installed scwbs package for standalone consumers, and reports PASS /
+ FAIL for that range, npm, the root `node_modules`,
+-`wjs/node_modules`, `git`, `contracts/registry.yaml`,
+-`contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
++`wjs/node_modules` (or the bundled runtime), `git`, `contracts/registry.yaml`,
++`contracts/wbs/project.wbs.json`, and the WJS schema,
+ plus any check / health issues. Each FAIL prints a suggested fix command.
+ 
+ `doctor --fix` only runs safe repairs (for example `npm install`). It refuses destructive operations; for anything risky, follow the printed suggested fix command instead.
+@@ -350,7 +352,7 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
+ │   ├── scwbs/               # current user and tool docs
+ │   ├── sc-wbs-core/         # lightweight Core documentation pack
+ │   └── sc-wbs-core-revision/ # draft revision notes, not current rules
+-├── wjs/                     # WBS-JSON submodule
++├── wjs/                     # WBS-JSON submodule (contributor checkout)
+ ├── package.json
+ └── tsconfig.json
+ ```
+@@ -382,7 +384,7 @@ Implemented in v0.1:
+ - AI work packets, review queues, approval requests, and lightweight
+   orchestration helpers.
+ - WJS-backed WBS validation, semantic operation application, and changeset
+-  checks.
++  checks, with a packaged runtime for standalone consumers.
+ - WBS-less task index operation, WBS candidate generation, and WBS changeset
+   reproduction checks.
+ - Branch-per-task safeguards and Evidence git metadata.
+diff --git a/contracts/specs/SPEC-LITE-MSMD8D3O.yaml b/contracts/specs/SPEC-LITE-MSMD8D3O.yaml
+new file mode 100644
+index 0000000..8d90308
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSMD8D3O.yaml
+@@ -0,0 +1,22 @@
++id: SPEC-LITE-MSMD8D3O
++type: spec-contract
++featureId: F-MSMD8D3O
++title: "Issue #483 Phase 2: bundled WJS runtime and GitHub Release artifact"
++status: approved
++version: 0.1.0
++summary: "Make the scwbs packed artifact self-contained for WJS validation and apply, verify it in CI, and publish only through a GitHub Release artifact while preserving contributor submodule development."
++approvedBy: xmeta
++approvedAt: "2026-08-10T00:00:00+09:00"
++sourceIssue: 483
++acceptanceCriteria:
++  - WJS validator and apply runtime resolve from the packed scwbs artifact without an ACED checkout or wjs submodule
++  - the packed artifact includes all required WJS runtime tools and schemas and scwbs --version remains sourced from package.json
++  - standalone smoke coverage exercises init, doctor, check, validation, and apply in a fresh fixture project
++  - CI installs and exercises the packed artifact in a fresh fixture project
++  - GitHub Release workflow produces a self-contained artifact and does not publish to npm
++  - README, CONTRIBUTING, CHANGELOG, and distribution documentation state consumer installation, contributor setup, Node compatibility, and release policy
++  - WJS ownership remains with the submodule and no repository visibility, registry credential, or npm publication setting changes
++nonGoals:
++  - npmjs.com publication or repository visibility changes
++  - changing files or ownership inside wjs/**
++  - auto-update functionality or external service integration
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml b/contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
+new file mode 100644
+index 0000000..6537f5a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
+@@ -0,0 +1,79 @@
++id: SCWBS-DRAFT-MSMD8D3O
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSMD8D3O
++branchName: task/SCWBS-DRAFT-MSMD8D3O-issue-483-phase-2
++status: approved
++approvedBy: xmeta
++sourceIssue: 483
++allowedPaths:
++  - package.json
++  - src/core/wbs.ts
++  - src/commands/wbs.ts
++  - src/commands/doctor.ts
++  - src/core/wjs-runtime.ts
++  - scripts/build-wjs-runtime.mjs
++  - scripts/distribution-smoke.mjs
++  - tests/integration/distribution-standalone.test.ts
++  - .github/workflows/scwbs.yml
++  - .github/workflows/release.yml
++  - README.md
++  - CONTRIBUTING.md
++  - CHANGELOG.md
++  - docs/scwbs/distribution.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++  - npm publish
++  - repository visibility
++  - registry credentials
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - .github/workflows/release.yml
++stopIf:
++  - WJS ownership change required
++  - npm registry publication or credential change required
++  - repository visibility or external release policy change required
++  - destructive or schema change required
++  - allowed path expansion required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++  - test:wjs
++doneCriteria:
++  - standalone packed artifact resolves WJS validator and apply runtime without an ACED checkout or wjs submodule
++  - package build bundles the required WJS tools and schemas while leaving wjs ownership unchanged
++  - scwbs init, doctor, check, WBS validation, and WBS apply smoke coverage works from a packed standalone artifact
++  - CI installs and exercises the packed artifact in a fresh fixture project
++  - GitHub Release workflow produces a self-contained artifact without npm publication
++  - README, CONTRIBUTING, CHANGELOG, and distribution documentation describe consumer, contributor, compatibility, and release policy
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
++  - contracts/specs/SPEC-LITE-MSMD8D3O.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSMD8D3O.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSMD8D3O.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSMD8D3O.patch
++  - contracts/approvals/SCWBS-DRAFT-MSMD8D3O.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSMD8D3O.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:ae22883260cdc48dcbd306e3da034b77d4aeca35026eb25457b088096aa2217a
++  createdAt: "2026-08-09T22:22:07.015Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 80c6cf8..7a7b6b1 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1833,3 +1833,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T21:56:03.216Z"
++  - id: SCWBS-DRAFT-MSMD8D3O
++    path: contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
++    branchName: task/SCWBS-DRAFT-MSMD8D3O-issue-483-phase-2
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+new file mode 100644
+index 0000000..451552a
+--- /dev/null
++++ b/docs/scwbs/distribution.md
+@@ -0,0 +1,36 @@
++# scwbs 配布と互換性
++
++## 利用者向け artifact
++
++`scwbs` は GitHub Release に self-contained npm tarball を添付します。
++利用者は ACED repository を clone したり `wjs` submodule を取得したりせず、
++Release asset を一時 consumer project に install できます。
++
++```bash
++npm init -y
++npm install ./scwbs-<version>.tgz
++npx scwbs init
++npx scwbs doctor
++npx scwbs check
++```
++
++Release artifact の `dist/wjs-runtime/` には WJS の validator、apply tool、
++schema が build 時に同梱されます。WJS の ownership は submodule 側に残り、
++ACED はその実行資産を配布用に変換して保持します。
++
++## 互換性
++
++- Node.js: `>=22.12.0`
++- npm: `>=10`（repository build と contributor setup）
++- standalone consumer はインストール済み scwbs package の Node engine を検査する
++- contributor は `git submodule update --init --recursive wjs` 後に repository の workspace を install する
++
++packed artifact の境界は CI の `distribution` job と
++`scripts/distribution-smoke.mjs` で検証します。検証対象は `--version`、
++`init`、`doctor`、`check`、WJS validation/apply、必要 asset、submodule 不在です。
++
++## Release policy
++
++Release は main から手動 dispatch する `.github/workflows/release.yml` が
++`npm pack` した tarball を GitHub Release に添付します。npm registry への
++publish、repository visibility の変更、credential の追加は行いません。
+diff --git a/package.json b/package.json
+index eb27946..fa8d47d 100644
+--- a/package.json
++++ b/package.json
+@@ -23,7 +23,7 @@
+     "build": "tsc -p tsconfig.json",
+     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.{js,mjs,ts}\" \"*.{js,json,md,ts,yaml,yml}\" \".github/**/*.yml\" \"docs/**/*.{json,md,yaml,yml}\"",
+     "lint": "eslint src tests scripts --max-warnings=0",
+-    "prepack": "npm run build",
++    "prepack": "npm run build && node scripts/build-wjs-runtime.mjs",
+     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
+     "test": "vitest run tests/unit",
+     "test:coverage": "vitest run tests/unit --coverage",
+diff --git a/scripts/build-wjs-runtime.mjs b/scripts/build-wjs-runtime.mjs
+new file mode 100644
+index 0000000..40fcf2c
+--- /dev/null
++++ b/scripts/build-wjs-runtime.mjs
+@@ -0,0 +1,103 @@
++#!/usr/bin/env node
++import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { spawnSync } from "node:child_process";
++import path from "node:path";
++import { createRequire } from "node:module";
++import { fileURLToPath } from "node:url";
++
++const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++const wjsRoot = path.join(root, "wjs");
++const outputRoot = path.join(root, "dist", "wjs-runtime");
++const require = createRequire(import.meta.url);
++
++function rebuildCleanDist() {
++  rmSync(path.join(root, "dist"), { recursive: true, force: true });
++  const tsc = process.platform === "win32"
++    ? path.join(root, "node_modules", ".bin", "tsc.cmd")
++    : path.join(root, "node_modules", ".bin", "tsc");
++  const result = spawnSync(tsc, ["-p", "tsconfig.json"], {
++    cwd: root,
++    stdio: "inherit",
++    shell: process.platform === "win32"
++  });
++  if (result.status !== 0) throw new Error(`clean package build failed with status ${result.status ?? 1}`);
++  for (const generatedOnlyModule of ["dist/core/schema/index.js", "dist/core/types.js"]) {
++    rmSync(path.join(root, generatedOnlyModule), { force: true });
++  }
++}
++
++function resolveEsbuild() {
++  return require(require.resolve("esbuild", { paths: [wjsRoot, root] }));
++}
++
++function compactSchema(value) {
++  if (Array.isArray(value)) return value.map(compactSchema);
++  if (!value || typeof value !== "object") return value;
++  const omitted = new Set(["$schema", "title", "description", "default"]);
++  return Object.fromEntries(Object.entries(value)
++    .filter(([key]) => !omitted.has(key))
++    .map(([key, item]) => [key, compactSchema(item)]));
++}
++
++async function buildRuntime() {
++  rebuildCleanDist();
++  const esbuild = resolveEsbuild();
++  const toolsRoot = path.join(wjsRoot, "tools");
++  const schemaRoot = path.join(wjsRoot, "schema");
++  const outputToolsRoot = path.join(outputRoot, "tools");
++
++  rmSync(outputRoot, { recursive: true, force: true });
++  mkdirSync(outputToolsRoot, { recursive: true });
++  const validateEntry = path.join(toolsRoot, "validate.ts");
++  const applyEntry = path.join(toolsRoot, "apply.ts");
++  await esbuild.build({
++    entryPoints: [validateEntry],
++    outfile: path.join(outputToolsRoot, "validate.mjs"),
++    bundle: true,
++    platform: "node",
++    format: "esm",
++    target: "node20",
++    external: ["ajv", "ajv-formats"],
++    minify: true,
++    logLevel: "silent"
++  });
++  await esbuild.build({
++    entryPoints: [applyEntry],
++    outfile: path.join(outputToolsRoot, "apply.mjs"),
++    bundle: true,
++    platform: "node",
++    format: "esm",
++    target: "node20",
++    external: ["ajv", "ajv-formats"],
++    minify: true,
++    plugins: [{
++      name: "strip-validator-cli-entrypoint",
++      setup(build) {
++        build.onLoad({ filter: /[\\/]validate\.ts$/ }, (args) => ({
++          contents: readFileSync(args.path, "utf8").replace(
++            /\nif \(import\.meta\.url === pathToFileURL\(process\.argv\[1\]\)\.href\) \{\n\x20{2}main\(\);\n\}\s*$/s,
++            "\n"
++          ),
++          loader: "ts"
++        }));
++      }
++    }],
++    logLevel: "silent"
++  });
++
++  const outputSchemaRoot = path.join(outputRoot, "schema");
++  mkdirSync(outputSchemaRoot, { recursive: true });
++  for (const filename of ["wbs-json.schema.json", "wbs-operations.schema.json"]) {
++    const sourcePath = path.join(schemaRoot, filename);
++    const outputPath = path.join(outputSchemaRoot, filename);
++    writeFileSync(outputPath, `${JSON.stringify(compactSchema(JSON.parse(readFileSync(sourcePath, "utf8"))))}\n`, "utf8");
++  }
++}
++
++try {
++  await buildRuntime();
++  console.log(`bundled WJS runtime into ${path.relative(root, outputRoot)}`);
++} catch (error) {
++  console.error(error instanceof Error ? error.message : String(error));
++  process.exitCode = 1;
++}
+diff --git a/scripts/distribution-smoke.mjs b/scripts/distribution-smoke.mjs
+new file mode 100644
+index 0000000..5e067fc
+--- /dev/null
++++ b/scripts/distribution-smoke.mjs
+@@ -0,0 +1,71 @@
++#!/usr/bin/env node
++import assert from "node:assert/strict";
++import { execFileSync } from "node:child_process";
++import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import os from "node:os";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++function run(command, args, cwd) {
++  return execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
++}
++
++function runScwbs(bin, args, cwd) {
++  return run(bin, args, cwd).trim();
++}
++
++export function runDistributionSmoke(repository = process.cwd()) {
++  const fixture = mkdtempSync(path.join(os.tmpdir(), "scwbs-distribution-"));
++  const consumer = path.join(fixture, "consumer");
++  mkdirSync(consumer);
++
++  const packageJson = JSON.parse(readFileSync(path.join(repository, "package.json"), "utf8"));
++  const packed = JSON.parse(run("npm", ["pack", "--json", "--pack-destination", fixture], repository))[0];
++  const packedPaths = new Set(packed.files.map((file) => file.path));
++  for (const required of [
++    "dist/cli.js",
++    "dist/wjs-runtime/tools/validate.mjs",
++    "dist/wjs-runtime/tools/apply.mjs",
++    "dist/wjs-runtime/schema/wbs-json.schema.json",
++    "dist/wjs-runtime/schema/wbs-operations.schema.json"
++  ]) {
++    assert(packedPaths.has(required), `packed artifact is missing ${required}`);
++  }
++
++  const tarball = path.join(fixture, packed.filename);
++  run("npm", ["init", "-y"], consumer);
++  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], consumer);
++  const bin = path.join(consumer, "node_modules", ".bin", "scwbs");
++  assert(existsSync(bin), "installed scwbs bin is missing");
++  assert.equal(runScwbs(bin, ["--version"], consumer), packageJson.version);
++
++  runScwbs(bin, ["init", "--profile", "lean", "--agent", "codex", "--lang", "en"], consumer);
++  const doctor = JSON.parse(runScwbs(bin, ["doctor", "--json"], consumer));
++  assert.equal(doctor.status, "pass", `standalone doctor failed: ${JSON.stringify(doctor)}`);
++  runScwbs(bin, ["check"], consumer);
++  runScwbs(bin, ["wbs", "validate"], consumer);
++
++  const changeSetPath = path.join(consumer, "change-set.json");
++  const appliedPath = path.join(consumer, "contracts", "wbs", "applied.json");
++  writeFileSync(changeSetPath, `${JSON.stringify({
++    schemaVersion: "0.1.0",
++    targetWbsId: "scwbs-project",
++    changeSetId: "distribution-smoke",
++    author: "scwbs-distribution-smoke",
++    reason: "Verify the bundled WJS apply runtime",
++    operations: [{
++      operationId: "distribution-smoke-status",
++      operation: "changeNodeStatus",
++      nodeId: "node-project",
++      status: "ready"
++    }]
++  }, null, 2)}\n`, "utf8");
++  runScwbs(bin, ["wbs", "apply", "change-set.json", "--force", "--output", "contracts/wbs/applied.json"], consumer);
++  assert(existsSync(appliedPath), "standalone WJS apply did not write its output");
++  assert.equal(JSON.parse(readFileSync(appliedPath, "utf8")).nodes[0].status, "ready");
++  assert(!existsSync(path.join(consumer, "wjs")), "standalone consumer unexpectedly contains the wjs submodule");
++
++  console.log(`PASS standalone distribution smoke (${packed.filename})`);
++}
++
++if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) runDistributionSmoke();
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index 8c3e882..79dbdae 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -8,6 +8,7 @@ import { GOVERNANCE_PATH_POLICY, GOVERNANCE_PATH_POLICY_VERSION } from "../core/
+ import { collectCheckIssues } from "./check.js";
+ import { collectHealthIssues } from "./health.js";
+ import { resolveFrom } from "../core/paths.js";
++import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
+ import type { Issue } from "../core/types.js";
+ 
+ export type EnvironmentRuntime = {
+@@ -95,6 +96,14 @@ function runShellVersion(command: string, args: string[]): string {
+   return result.stdout || result.stderr;
+ }
+ 
++function isGitRepository(root: string): boolean {
++  return runCommand("git", ["rev-parse", "--git-dir"], root).status === 0;
++}
++
++function collectDoctorHealthIssues(root: string): Issue[] {
++  return isGitRepository(root) ? collectHealthIssues(root) : [];
++}
++
+ type Version = [number, number, number];
+ 
+ function parseVersion(version: string): Version | undefined {
+@@ -178,9 +187,6 @@ function readNodeEngine(root: string): NodeEngineInfo {
+   if (repo.range) {
+     return { range: repo.range, source: "package.json" };
+   }
+-  if (repo.missingEngine) {
+-    return { range: undefined, source: undefined };
+-  }
+   const cliRange = readCliNodeEngine();
+   if (cliRange) {
+     return { range: cliRange, source: "scwbs CLI package.json" };
+@@ -498,34 +504,36 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     fix: `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
++  const wjsRuntime = resolveWjsRuntime(root);
++  const bundledRuntime = wjsRuntime?.kind === "bundled";
+   const wjsNm = resolveFrom(root, "wjs/node_modules");
+   const rootEsbuild = resolveFrom(root, "node_modules/@esbuild");
+-  const wjsDepsOk = existsSync(wjsNm) || existsSync(rootEsbuild);
++  const wjsDepsOk = bundledRuntime || existsSync(wjsNm) || existsSync(rootEsbuild);
+   diagnostics.push({
+     id: "wjs.node_modules",
+     label: "wjs dependencies installed",
+     status: wjsDepsOk ? "pass" : "fail",
+-    message: wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
+-    fix: `Run: ${packageManagerInstallCommand(root)}`
++    message: bundledRuntime ? "bundled WJS runtime present" : wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
++    fix: bundledRuntime ? "No action required" : `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
+   const esbuildPkg = resolveFrom(root, "wjs/node_modules/@esbuild");
+-  const esbuildOk = existsSync(esbuildPkg) || existsSync(rootEsbuild);
++  const esbuildOk = bundledRuntime || existsSync(esbuildPkg) || existsSync(rootEsbuild);
+   diagnostics.push({
+     id: "wjs.esbuild",
+     label: "wjs esbuild resolved",
+     status: esbuildOk ? "pass" : "fail",
+-    message: esbuildOk ? "esbuild present" : "esbuild missing",
+-    fix: `Run: ${packageManagerInstallCommand(root)}`
++    message: bundledRuntime ? "bundled WJS runtime does not require consumer esbuild" : esbuildOk ? "esbuild present" : "esbuild missing",
++    fix: bundledRuntime ? "No action required" : `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
+-  const validatorPath = resolveFrom(root, "wjs/tools/validate.ts");
++  const validatorPath = wjsRuntime?.validator ?? resolveFrom(root, "wjs/tools/validate.ts");
+   diagnostics.push({
+     id: "wjs.validator",
+     label: "wjs canonical validator available",
+     status: existsSync(validatorPath) ? "pass" : "fail",
+-    message: existsSync(validatorPath) ? "canonical validator present" : "canonical validator is missing",
+-    fix: "Run: git submodule update --init --recursive wjs"
++    message: existsSync(validatorPath) ? bundledRuntime ? "bundled canonical validator present" : "canonical validator present" : "canonical validator is missing",
++    fix: wjsRepairCommand(wjsRuntime)
+   });
+ 
+   const registryPath = resolveFrom(root, "contracts/registry.yaml");
+@@ -546,13 +554,13 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     fix: "Run: npm run scwbs -- wbs candidates"
+   });
+ 
+-  const schemaPath = resolveFrom(root, "wjs/schema/wbs-json.schema.json");
++  const schemaPath = wjsRuntime?.wbsSchema ?? resolveFrom(root, "wjs/schema/wbs-json.schema.json");
+   diagnostics.push({
+     id: "wjs.schema",
+     label: "wjs/schema/wbs-json.schema.json exists",
+     status: existsSync(schemaPath) ? "pass" : "fail",
+     message: existsSync(schemaPath) ? "schema present" : "schema missing",
+-    fix: "Re-initialize the wjs submodule: git submodule update --init --recursive wjs"
++    fix: wjsRepairCommand(wjsRuntime)
+   });
+ 
+   diagnostics.push(dependencyGraphDiagnostic(root, runtime));
+@@ -641,7 +649,7 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
+ 
+   const contractIssues = [
+     ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
+-    ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
++    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+   ];
+ 
+   const lines: string[] = ["SC-WBS Doctor", ""];
+@@ -699,7 +707,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
+       const diagnostics = collectEnvironmentDiagnostics(root);
+       const contractIssues = [
+         ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
+-        ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
++        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+       ];
+       const envHasFailure = diagnostics.some((d) => d.status === "fail");
+       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
+diff --git a/src/commands/wbs.ts b/src/commands/wbs.ts
+index 27cf4eb..3dc2c50 100644
+--- a/src/commands/wbs.ts
++++ b/src/commands/wbs.ts
+@@ -1,10 +1,9 @@
+ import { existsSync, readFileSync } from "node:fs";
+ import { spawnSync } from "node:child_process";
+-import path from "node:path";
+ import { listActiveTasks } from "../core/contracts.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+-import { readWbs, runWjsValidate } from "../core/wbs.js";
++import { readWbs, resolveWjsRuntime, runWjsValidate } from "../core/wbs.js";
+ import type { WbsDocument, WbsNode } from "../core/types.js";
+ 
+ export function runWbsValidate(root: string): number {
+@@ -18,10 +17,9 @@ export function runWbsValidate(root: string): number {
+ }
+ 
+ export function runWbsApply(root: string, changeSetPath: string, options: { force: boolean; output?: string }): number {
+-  const wjsRoot = path.resolve(root, "wjs");
+-  const applyTool = path.resolve(root, "wjs/tools/apply.ts");
+-  if (!existsSync(applyTool)) {
+-    console.error("wjs/tools/apply.ts does not exist");
++  const runtime = resolveWjsRuntime(root, "apply");
++  if (!runtime) {
++    console.error("WJS runtime is unavailable: install the scwbs package or initialize the wjs submodule");
+     return 1;
+   }
+ 
+@@ -29,6 +27,15 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
+   if (options.output) toolArgs.push("-o", resolveFrom(root, options.output));
+   if (options.force) toolArgs.push("--force");
+ 
++  const result = runtime.kind === "bundled"
++    ? spawnSync(process.execPath, ["--experimental-strip-types", runtime.apply, ...toolArgs], { cwd: runtime.root, encoding: "utf8" })
++    : runSubmoduleApply(runtime.root, runtime.apply, toolArgs);
++  if (result.stdout) process.stdout.write(result.stdout);
++  if (result.stderr) process.stderr.write(result.stderr);
++  return result.status ?? 1;
++}
++
++function runSubmoduleApply(wjsRoot: string, applyTool: string, toolArgs: string[]) {
+   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "apply", "--", ...toolArgs], {
+     cwd: wjsRoot,
+     encoding: "utf8"
+@@ -39,9 +46,7 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
+       encoding: "utf8"
+     });
+   }
+-  if (result.stdout) process.stdout.write(result.stdout);
+-  if (result.stderr) process.stderr.write(result.stderr);
+-  return result.status ?? 1;
++  return result;
+ }
+ 
+ function normalizeJson(value: unknown): string {
+diff --git a/src/core/wbs.ts b/src/core/wbs.ts
+index 6088647..33529c5 100644
+--- a/src/core/wbs.ts
++++ b/src/core/wbs.ts
+@@ -1,12 +1,50 @@
+ import { existsSync } from "node:fs";
+ import { spawnSync } from "node:child_process";
+ import path from "node:path";
++import { fileURLToPath } from "node:url";
+ import { readJsonFile } from "./json.js";
+ import { defaultWbsPath, resolveFrom } from "./paths.js";
+ import { asWbsDocument, validateWbsShape } from "./schema.js";
+ import { classifyDecisionReadiness } from "./discovery.js";
+ import type { Issue, WbsDocument, WbsNode } from "./types.js";
+ 
++export type WjsRuntime = {
++  kind: "bundled" | "submodule";
++  root: string;
++  validator: string;
++  apply: string;
++  wbsSchema: string;
++  operationsSchema: string;
++};
++
++type WjsRuntimePurpose = "validate" | "apply";
++
++function runtimeFromRoot(kind: WjsRuntime["kind"], root: string, purpose: WjsRuntimePurpose): WjsRuntime | undefined {
++  const extension = kind === "bundled" ? ".mjs" : ".ts";
++  const validator = path.join(root, `tools/validate${extension}`);
++  const apply = path.join(root, `tools/apply${extension}`);
++  const schemaRoot = path.join(root, "schema");
++  const wbsSchema = path.join(schemaRoot, "wbs-json.schema.json");
++  const operationsSchema = path.join(schemaRoot, "wbs-operations.schema.json");
++  const required = [purpose === "validate" ? validator : apply];
++  if (kind === "bundled") required.push(wbsSchema, operationsSchema);
++  if (!required.every(existsSync)) return undefined;
++  return { kind, root, validator, apply, wbsSchema, operationsSchema };
++}
++
++export function resolveWjsRuntime(projectRoot: string, purpose: WjsRuntimePurpose = "validate"): WjsRuntime | undefined {
++  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
++  const bundled = runtimeFromRoot("bundled", path.resolve(moduleDirectory, "../wjs-runtime"), purpose);
++  if (bundled) return bundled;
++  return runtimeFromRoot("submodule", path.resolve(projectRoot, "wjs"), purpose);
++}
++
++export function wjsRepairCommand(runtime?: WjsRuntime): string {
++  return runtime?.kind === "bundled"
++    ? "Reinstall the scwbs package so its bundled WJS runtime is restored"
++    : "Run: git submodule update --init --recursive wjs";
++}
++
+ export function readWbs(root: string, relativePath = defaultWbsPath): WbsDocument {
+   return readJsonFile<WbsDocument>(resolveFrom(root, relativePath));
+ }
+@@ -121,14 +159,14 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
+   return issues;
+ }
+ 
+-const WJS_REPAIR_COMMAND = "git submodule update --init --recursive wjs";
+-
+-function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string): Issue {
++function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string, runtime?: WjsRuntime): Issue {
+   return {
+     severity: "error",
+     code: "wjs.validator.unavailable",
+     message: `canonical WJS ${kind} validator is unavailable for ${target}: ${reason}`,
+-    fixCommand: WJS_REPAIR_COMMAND
++    fixCommand: runtime?.kind === "bundled"
++      ? "Reinstall the scwbs package so its bundled WJS runtime is restored"
++      : "git submodule update --init --recursive wjs"
+   };
+ }
+ 
+@@ -138,28 +176,20 @@ function isWjsRuntimeUnavailable(result: { error?: Error; stderr?: string; stdou
+ }
+ 
+ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
+-  const wjsRoot = path.resolve(root, "wjs");
+-  const validator = path.resolve(wjsRoot, "tools/validate.ts");
++  const runtime = resolveWjsRuntime(root);
+   const target = resolveFrom(root, relativePath);
+-  if (!existsSync(validator)) {
++  if (!runtime) {
+     return kind === "operations"
+-      ? [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")]
++      ? [wjsValidatorUnavailable(kind, relativePath, "bundled runtime and wjs submodule are missing")]
+       : validateWbsDocument(root, relativePath);
+   }
+ 
+-  let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
+-    cwd: wjsRoot,
+-    encoding: "utf8"
+-  });
+-  if (result.status !== 0 && /missing script: validate/i.test(result.stderr ?? "")) {
+-    result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
+-      cwd: wjsRoot,
+-      encoding: "utf8"
+-    });
+-  }
++  const result = runtime.kind === "bundled"
++    ? spawnSync(process.execPath, ["--experimental-strip-types", runtime.validator, `--${kind}`, target], { cwd: runtime.root, encoding: "utf8" })
++    : runSubmoduleValidator(runtime, kind, target);
+   if (result.status !== 0 && isWjsRuntimeUnavailable(result)) {
+     return kind === "operations"
+-      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")]
++      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed", runtime)]
+       : validateWbsDocument(root, relativePath);
+   }
+ 
+@@ -170,3 +200,17 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
+   }
+   return lines.map((line) => ({ severity: "error", code: "wjs.validate", message: line }));
+ }
++
++function runSubmoduleValidator(runtime: WjsRuntime, kind: "wbs" | "operations", target: string) {
++  let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
++    cwd: runtime.root,
++    encoding: "utf8"
++  });
++  if (result.status !== 0 && /missing script: validate/i.test(result.stderr ?? "")) {
++    result = spawnSync(process.execPath, ["--experimental-strip-types", runtime.validator, `--${kind}`, target], {
++      cwd: runtime.root,
++      encoding: "utf8"
++    });
++  }
++  return result;
++}
+diff --git a/tests/integration/distribution-standalone.test.ts b/tests/integration/distribution-standalone.test.ts
+new file mode 100644
+index 0000000..78d75a4
+--- /dev/null
++++ b/tests/integration/distribution-standalone.test.ts
+@@ -0,0 +1,13 @@
++import { execFileSync } from "node:child_process";
++import { describe, expect, it } from "vitest";
++
++describe("standalone distribution artifact", () => {
++  it("installs and exercises the packed CLI without an ACED checkout or WJS submodule", () => {
++    const output = execFileSync(process.execPath, ["scripts/distribution-smoke.mjs"], {
++      cwd: process.cwd(),
++      encoding: "utf8",
++      stdio: ["ignore", "pipe", "pipe"]
++    });
++    expect(output).toContain("PASS standalone distribution smoke");
++  }, 180_000);
++});

@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MSMD8D3O
+type: evidence
+taskId: SCWBS-DRAFT-MSMD8D3O
+commit: 7f2073d4300c208c7473aaa7f668b6ab7e2eee35
+subjectHeadCommit: 7f2073d4300c208c7473aaa7f668b6ab7e2eee35
+diffHash: sha256:1b2c0fa53de758e4ccfdba78396c1e8dad333df77d862a76025463fafcd6d5eb
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 7f2073d4300c208c7473aaa7f668b6ab7e2eee35
+    treeHash: be429c1295f5119c99ffc92ecb676f336dabca5c
+    diffHash: sha256:1b2c0fa53de758e4ccfdba78396c1e8dad333df77d862a76025463fafcd6d5eb
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSMD8D3O.patch
+    manifestHash: sha256:1b2c0fa53de758e4ccfdba78396c1e8dad333df77d862a76025463fafcd6d5eb
+git:
+  branch: task/SCWBS-DRAFT-MSMD8D3O-issue-483-phase-2
+  base: origin/main
+  baseCommit: a8d9206157df57e977bcdd19c257bc8475695e91
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 7f2073d4300c208c7473aaa7f668b6ab7e2eee35
+  diffHash: sha256:1b2c0fa53de758e4ccfdba78396c1e8dad333df77d862a76025463fafcd6d5eb
+  headCommit: 7f2073d4300c208c7473aaa7f668b6ab7e2eee35
+changedFiles:
+  - .github/workflows/release.yml
+  - .github/workflows/scwbs.yml
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - README.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSMD8D3O.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/distribution.md
+  - package.json
+  - scripts/build-wjs-runtime.mjs
+  - scripts/distribution-smoke.mjs
+  - src/commands/doctor.ts
+  - src/commands/wbs.ts
+  - src/core/wbs.ts
+  - tests/integration/distribution-standalone.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c7222c0bf57f8060b17cad52be6195c4c79c453946ab9883c69c4b580acb88af
+    durationMilliseconds: 14637
+    executedAt: "2026-08-09T23:17:19.266Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:b9eb2d01a4a972985a5c05748b37dd70288badd93bf62d3de2ea78d43d5d7e6d
+    durationMilliseconds: 9030
+    executedAt: "2026-08-09T23:17:28.300Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:808595808a8b5fb322888d610ea70c4faff063aa8f89786b7e600845e84aa2d2
+    durationMilliseconds: 3769
+    executedAt: "2026-08-09T23:17:32.073Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:93c19a3acfbaa050f207450361938a37162ce36075d4894bcc38aa1419a05f9e
+    durationMilliseconds: 7657
+    executedAt: "2026-08-09T23:17:39.734Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2df44d3e219c400df70e860d1542e6e98cb1eda23f7c2ce95f1f923f9bf47c79
+    durationMilliseconds: 283385
+    executedAt: "2026-08-09T23:22:23.124Z"
+  - name: test:wjs
+    status: passed
+    source: local
+    command: npm run test:wjs
+    cacheKey: sha256:0fce655d7697ed9c5d4de2b74987191a9973969e27bc1ad7cf6c62fe9447ba7d
+    durationMilliseconds: 3746
+    executedAt: "2026-08-09T23:22:26.875Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added standalone packed-artifact coverage for version, init, doctor, check, WJS validation, WJS apply, and required runtime assets.
