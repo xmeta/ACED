@@ -96,7 +96,7 @@ async function buildRuntime() {
 
 try {
   await buildRuntime();
-  console.log(`bundled WJS runtime into ${path.relative(root, outputRoot)}`);
+  console.error(`bundled WJS runtime into ${path.relative(root, outputRoot)}`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
