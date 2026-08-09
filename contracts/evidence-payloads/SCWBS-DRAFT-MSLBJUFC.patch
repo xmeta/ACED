@@ -1,0 +1,198 @@
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 58d1132..65f4d65 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -30,6 +30,27 @@ task/SCWBS-DRAFT-M3QJ2K-fix-parser
+ 
+ ## Core Checks
+ 
++### Top-level command groups
++
++The top-level help lists each command group with a short purpose. Use the
++group-specific help for its subcommands and options:
++
++| Group | Purpose |
++|---|---|
++| `ci` | Plan and classify CI execution |
++| `checks` | Run and inspect required checks |
++| `metrics` | Measure governance cost and repository metrics |
++| `ai` | Build AI packets and dry-run task plans |
++| `approval` | Manage task approval requests and delegated policy preparation |
++| `completion` | Apply completion changes through SC-WBS |
++| `evidence` | Collect and maintain Task Evidence |
++| `registry` | Validate and rebuild the contract registry |
++| `profile` | Show or change the SC-WBS profile |
++| `review` | Request and route Task reviews |
++| `lite` | Create lightweight task proposals |
++| `task` | Manage Task Contracts and lifecycle |
++| `wbs` | Validate and apply WBS changes |
++
+ ```bash
+ npm run scwbs -- init --profile lean --agent codex --lang ja
+ npm run scwbs -- update --agent claude
+diff --git a/src/cli.ts b/src/cli.ts
+index 10515e3..626765d 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -249,7 +249,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+   registerDiscoveryCommands(program, commandContext);
+   registerProjectCommands(program, commandContext);
+ 
+-  const ci = program.command("ci");
++  const ci = program.command("ci").description("Plan and classify CI execution");
+   ci
+     .command("plan")
+     .description("Plan full or provenance-verified metadata CI and report a read-only task execution classification")
+@@ -266,7 +266,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
+-  const checks = program.command("checks");
++  const checks = program.command("checks").description("Run and inspect required checks");
+   checks
+     .command("run")
+     .description("Run required checks and write a provenance-bound receipt")
+@@ -307,7 +307,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--governance-cost", "include warning-only governance cost budget status")
+     .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false, governanceCost: opts.governanceCost ?? false }); });
+ 
+-  const metrics = program.command("metrics");
++  const metrics = program.command("metrics").description("Measure governance cost and repository metrics");
+   metrics
+     .command("governance")
+     .description("Measure governance cost without writing artifacts")
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index fcd415d..5d7dd89 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -168,7 +168,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runSpecChangeNew(root, options));
+     });
+ 
+-  const ai = program.command("ai");
++  const ai = program.command("ai").description("Build AI packets and dry-run task plans");
+   ai.command("packet")
+     .description("Build AI work packet")
+     .option("--task <id>", "task id")
+@@ -234,7 +234,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runAiNextTask(root));
+     });
+ 
+-  const approval = program.command("approval");
++  const approval = program.command("approval").description("Manage task approval requests and delegated policy preparation");
+   approval
+     .command("request")
+     .description("Request task approval")
+@@ -304,7 +304,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runApprovalDelegationPrepare(root, options.task, options));
+     });
+ 
+-  const completion = program.command("completion");
++  const completion = program.command("completion").description("Apply completion changes through SC-WBS");
+   completion
+     .command("apply")
+     .description("Apply completion")
+@@ -323,7 +323,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       );
+     });
+ 
+-  const evidence = program.command("evidence");
++  const evidence = program.command("evidence").description("Collect and maintain Task Evidence");
+   evidence
+     .command("collect")
+     .description("Collect evidence for a task")
+@@ -409,7 +409,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runEvidencePrune(root, { json: options.json ?? false, apply: options.apply ?? false }));
+     });
+ 
+-  const registry = program.command("registry");
++  const registry = program.command("registry").description("Validate and rebuild the contract registry");
+   registry
+     .command("rebuild")
+     .description("Rebuild registry")
+@@ -432,7 +432,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       );
+     });
+ 
+-  const profile = program.command("profile");
++  const profile = program.command("profile").description("Show or change the SC-WBS profile");
+   profile
+     .command("show")
+     .description("Show profile")
+@@ -453,7 +453,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runProfileSet(root, profileName));
+     });
+ 
+-  const review = program.command("review");
++  const review = program.command("review").description("Request and route Task reviews");
+   review
+     .command("request")
+     .description("Request a review")
+diff --git a/src/cli/register-task.ts b/src/cli/register-task.ts
+index 2c49907..2cf29b6 100644
+--- a/src/cli/register-task.ts
++++ b/src/cli/register-task.ts
+@@ -10,7 +10,7 @@ import type { CommandContext } from "./command-context.js";
+ 
+ export function registerTaskCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
+-  const lite = program.command("lite");
++  const lite = program.command("lite").description("Create lightweight task proposals");
+   lite
+     .command("task")
+     .description("Create a lite task")
+@@ -25,7 +25,7 @@ export function registerTaskCommands(program: Command, context: CommandContext):
+       setExitCode(runLiteTask(root, title));
+     });
+ 
+-  const task = program.command("task");
++  const task = program.command("task").description("Manage Task Contracts and lifecycle");
+   task
+     .command("start")
+     .description("Run pre-flight for an existing Task Contract")
+diff --git a/src/cli/register-wbs.ts b/src/cli/register-wbs.ts
+index 0b3a6ac..80e85df 100644
+--- a/src/cli/register-wbs.ts
++++ b/src/cli/register-wbs.ts
+@@ -4,7 +4,7 @@ import type { CommandContext } from "./command-context.js";
+ 
+ export function registerWbsCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
+-  const wbs = program.command("wbs");
++  const wbs = program.command("wbs").description("Validate and apply WBS changes");
+   wbs
+     .command("validate")
+     .description("Validate WBS")
+diff --git a/tests/integration/cli-help.test.ts b/tests/integration/cli-help.test.ts
+index 43eaf80..bb6b8d9 100644
+--- a/tests/integration/cli-help.test.ts
++++ b/tests/integration/cli-help.test.ts
+@@ -77,6 +77,28 @@ describe("CLI help lifecycle semantics", () => {
+     expect(aiRun.stdout.replace(/\s+/g, " ")).toContain("Print a dry-run AI task plan");
+   });
+ 
++  test("describes every top-level command group", () => {
++    const root = makeTempRepo();
++    const topLevel = captureHelp(["--help"], root);
++    const topLevelText = topLevel.stdout.replace(/\s+/g, " ");
++    const descriptions = [
++      "ci Plan and classify CI execution",
++      "checks Run and inspect required checks",
++      "metrics Measure governance cost and repository metrics",
++      "ai Build AI packets and dry-run task plans",
++      "approval Manage task approval requests and delegated policy preparation",
++      "completion Apply completion changes through SC-WBS",
++      "evidence Collect and maintain Task Evidence",
++      "registry Validate and rebuild the contract registry",
++      "profile Show or change the SC-WBS profile",
++      "review Request and route Task reviews",
++      "lite Create lightweight task proposals",
++      "task Manage Task Contracts and lifecycle",
++      "wbs Validate and apply WBS changes"
++    ];
++    descriptions.forEach((description) => expect(topLevelText).toContain(description));
++  });
++
+   test("distinguishes Commander usage errors from action validation errors", () => {
+     const root = makeTempRepo();
+ 
