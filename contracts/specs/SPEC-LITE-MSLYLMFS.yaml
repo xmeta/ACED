@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSLYLMFS
+type: spec-contract
+featureId: F-MSLYLMFS
+title: "Issue #487: governance-critical path policy single source of truth"
+status: approved
+version: 0.1.0
+summary: "Task creation, authority bootstrap, check-diff, and diagnostics share one versioned governance path policy without weakening Human Gates or forbidden paths"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - task-new, task-authority, and check-diff import the same policy module instead of maintaining copied critical-path constants
+  - policy classifications cover toolchain, build, quality-gate, CI, agent-policy, and governance-schema impact with machine-readable reasons
+  - broad allowedPaths cannot bypass critical configuration protection, and policy changes remain Human-Gated
+  - doctor JSON and check-diff JSON expose policy reason codes for critical paths
+  - existing Task Contract impact is available through a read-only diagnostic or migration report before enforcement changes
+  - unit and integration tests prove all consumers receive newly added policy paths
+  - package, CI, WBS/WJS source, and Human Approval semantics remain unchanged
+nonGoals:
+  - making every configuration or documentation file Human-Gated
+  - allowing Human Approval to override forbiddenPaths
+  - changing package, CI, WBS, WJS, or external service configuration

@@ -1,0 +1,75 @@
+id: SCWBS-DRAFT-MSLYLMFS
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLYLMFS
+branchName: task/SCWBS-DRAFT-MSLYLMFS-issue-487-governance-critical-path-policy-single
+status: approved
+approvedBy: xmeta
+sourceIssue: 487
+allowedPaths:
+  - src/core/governance-path-policy.ts
+  - src/commands/task-new.ts
+  - src/core/task-authority.ts
+  - src/commands/check-diff.ts
+  - src/core/check-coverage.ts
+  - src/commands/doctor.ts
+  - tests/unit/governance-path-policy.test.ts
+  - tests/integration/tasks.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/doctor.test.ts
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/governance-path-policy.ts
+stopIf:
+  - Human Gate
+  - governance policy classification
+  - authority outside allowedPaths
+  - package or CI change
+  - WBS or WJS source change
+  - external service or credential change
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - STANDARD_HUMAN_GATE_PATHS, REQUIRED_NEW_TASK_HUMAN_GATES, and SENSITIVE_META_PATHS are replaced by one versioned policy source
+  - task creation, task authority bootstrap, and check-diff consume the same policy classifications
+  - governance-impact paths include toolchain, build, quality-gate, CI, agent-policy, and governance-schema classifications with reasons
+  - broad allowedPaths cannot bypass critical configuration protection and doctor/check-diff JSON expose machine-readable policy reasons
+  - existing Task Contract impact is reported read-only before enforcement changes, with regression tests for policy consumers
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/specs/SPEC-LITE-MSLYLMFS.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYLMFS.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:78243624a66ff26b40bcd949e58771f8ddfcc162a46ee818fb6a37f246f7d643
+  createdAt: "2026-08-09T15:31:56.590Z"
