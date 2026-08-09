@@ -210,12 +210,14 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     });
 
   ai.command("execute")
-    .description("Run one bounded implementer-checks-fresh-reviewer iteration")
+    .description("Run one bounded implementer-checks-fresh-reviewer iteration, with optional debugger remediation")
     .requiredOption("--task <id>", "task id")
     .requiredOption("--implementer-command <json>", "JSON command array for the implementer adapter")
     .requiredOption("--reviewer-command <json>", "JSON command array for the fresh reviewer adapter")
     .option("--base <ref>", "base ref for required-check receipts", "origin/main")
     .option("--receipt <path>", "optional local run receipt path")
+    .option("--debugger-command <json>", "JSON command array for the fresh debugger adapter; enables Phase 2")
+    .option("--resume-receipt <path>", "resume a blocked Phase 2 reviewer rejection after receipt validation")
     .option("--json", "print the versioned run receipt as JSON")
     .action((options) => {
       setExitCode(runAiExecute(root, {
@@ -224,6 +226,8 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         reviewerCommand: options.reviewerCommand,
         baseRef: options.base,
         receiptPath: options.receipt,
+        debuggerCommand: options.debuggerCommand,
+        resumeReceipt: options.resumeReceipt,
         json: options.json ?? false
       }));
     });

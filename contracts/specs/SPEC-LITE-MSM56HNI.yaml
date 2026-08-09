@@ -1,0 +1,20 @@
+id: SPEC-LITE-MSM56HNI
+type: spec-contract
+featureId: F-MSM56HNI
+title: "Issue #455 Phase 2: bounded debugger remediation and resume receipt"
+status: approved
+version: 0.1.0
+summary: "Extend the Phase 1 AI runner with a finite debugger/remediation loop and fail-closed resume validation without mutating governance authority"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - debugger adapter input/output is versioned and includes ROOT_CAUSE, CATEGORY, FIX_PLAN, and NEXT_ACTION
+  - reviewer rejection triggers no more than two fresh debugger/remediation rounds
+  - stale HEAD, authority, scope, unsupported capability, and Human Gate conditions fail closed
+  - resume validates the local receipt against current repository state and avoids duplicate mutation/check/review records
+  - run receipts preserve bounded attempts and are not Task/Evidence/Approval authority
+  - no external credentials, billing, release, PR, merge, or Human Approval transition is automated
+nonGoals:
+  - provider-specific agent dispatch or credential management
+  - unlimited retry, concurrent Task execution, automatic PR/merge, or release
+  - changing Task authority, WBS, package, CI, WJS, or repository settings

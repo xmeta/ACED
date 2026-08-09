@@ -33,7 +33,7 @@ function prepareAiExecutionRepo(): string {
   return root;
 }
 
-function adapterScript(role: "implementer" | "reviewer", behavior: string, status = role === "implementer" ? "completed" : "approved"): string {
+function adapterScript(role: "implementer" | "reviewer" | "debugger", behavior: string, status = role === "implementer" || role === "debugger" ? "completed" : "approved"): string {
   const directory = mkdtempSync(path.join(tmpdir(), "scwbs-ai-adapter-"));
   const file = path.join(directory, `${role}-adapter.mjs`);
   writeFileSync(file, `import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -46,6 +46,28 @@ writeFileSync(process.argv[3], JSON.stringify({
   status: ${JSON.stringify(status)},
   summary: input.role === ${JSON.stringify(role)} ? "adapter accepted bounded input" : "role mismatch",
   findings: [],
+  changedFiles: [],
+  ...(input.role === "debugger" ? { rootCause: "reviewer rejection", category: "test", fixPlan: "apply bounded remediation", nextAction: "rerun implementer" } : {})
+}));
+`);
+  return file;
+}
+
+function statefulReviewerScript(approvedAfter: number): string {
+  const directory = mkdtempSync(path.join(tmpdir(), "scwbs-ai-reviewer-"));
+  const file = path.join(directory, "reviewer.mjs");
+  writeFileSync(file, `import { existsSync, readFileSync, writeFileSync } from "node:fs";
+const input = JSON.parse(readFileSync(process.argv[2], "utf8"));
+const statePath = ${JSON.stringify(path.join(directory, "state"))};
+const count = existsSync(statePath) ? Number(readFileSync(statePath, "utf8")) : 0;
+writeFileSync(statePath, String(count + 1));
+writeFileSync(process.argv[3], JSON.stringify({
+  schemaVersion: "scwbs.ai-execution-result.v1",
+  role: "reviewer",
+  contextId: input.contextId,
+  status: count >= ${approvedAfter} ? "approved" : "changes-requested",
+  summary: count >= ${approvedAfter} ? "remediation approved" : "bounded remediation requested",
+  findings: count >= ${approvedAfter} ? [] : ["ROOT_CAUSE: test rejection"],
   changedFiles: []
 }));
 `);
@@ -128,6 +150,71 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
     expect(receipt.failure?.stage).toBe("reviewer");
     expect(receipt.failure?.code).toBe("review.not-approved");
     expect(existsSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"))).toBe(false);
+  });
+
+  test("ai execute runs a fresh debugger and one bounded remediation round", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `mkdirSync("src/features/api", { recursive: true }); writeFileSync("src/features/api/index.ts", "export const api = true;\\n");`);
+    const debuggerAdapter = adapterScript("debugger", `if (input.role !== "debugger" || input.freshContext !== true) process.exit(5);`);
+    const reviewer = statefulReviewerScript(1);
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer]),
+      debuggerCommand: JSON.stringify([process.execPath, debuggerAdapter]),
+      receiptPath: path.join(mkdtempSync(path.join(tmpdir(), "scwbs-ai-receipt-")), "receipt.json")
+    }, { now: () => "2026-08-09T13:10:00.000Z", runChecks: passingChecks });
+
+    expect(receipt.status).toBe("completed");
+    expect(receipt.schemaVersion).toBe("scwbs.ai-run-receipt.v2");
+    expect(receipt.plan.phase).toBe("phase-2");
+    expect(receipt.plan.maxRemediationRounds).toBe(2);
+    expect(receipt.remediation).toHaveLength(1);
+    expect(receipt.remediation?.[0]?.debugger.rootCause).toBeDefined();
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ai-execution.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(receipt)).toBe(true);
+  });
+
+  test("ai execute stops after two remediation rounds", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `mkdirSync("src/features/api", { recursive: true }); writeFileSync("src/features/api/index.ts", "export const api = true;\\n");`);
+    const debuggerAdapter = adapterScript("debugger", "");
+    const reviewer = statefulReviewerScript(99);
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer]),
+      debuggerCommand: JSON.stringify([process.execPath, debuggerAdapter])
+    }, { now: () => "2026-08-09T13:11:00.000Z", runChecks: passingChecks });
+
+    expect(receipt.status).toBe("blocked");
+    expect(receipt.failure?.code).toBe("review.remediation-limit");
+    expect(receipt.remediation).toHaveLength(2);
+  });
+
+  test("ai execute rejects a stale Phase 2 resume receipt", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `mkdirSync("src/features/api", { recursive: true }); writeFileSync("src/features/api/index.ts", "export const api = true;\\n");`);
+    const debuggerAdapter = adapterScript("debugger", "");
+    const reviewer = statefulReviewerScript(99);
+    const receiptPath = path.join(mkdtempSync(path.join(tmpdir(), "scwbs-ai-resume-")), "receipt.json");
+    buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer]),
+      debuggerCommand: JSON.stringify([process.execPath, debuggerAdapter]),
+      receiptPath
+    }, { now: () => "2026-08-09T13:12:00.000Z", runChecks: passingChecks });
+    execFileSync("git", ["add", "src/features/api/index.ts"], { cwd: root });
+    execFileSync("git", ["commit", "-m", "stale resume head"], { cwd: root, stdio: "ignore" });
+
+    expect(() => buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer]),
+      debuggerCommand: JSON.stringify([process.execPath, debuggerAdapter]),
+      resumeReceipt: receiptPath
+    })).toThrow("resume receipt subject HEAD is stale");
   });
 
   test("ai execute rejects multiple active Tasks before adapter dispatch", () => {
