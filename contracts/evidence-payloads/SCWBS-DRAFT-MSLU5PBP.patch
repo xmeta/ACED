@@ -1,0 +1,291 @@
+diff --git a/contracts/specs/SPEC-LITE-MSLU5PBP.yaml b/contracts/specs/SPEC-LITE-MSLU5PBP.yaml
+new file mode 100644
+index 0000000..e15881e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSLU5PBP.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MSLU5PBP
++type: spec-contract
++featureId: F-MSLU5PBP
++title: "Issue #482: WJS canonical validator unavailable時にpermissive fallbackを廃止しfail-closedにする"
++status: approved
++version: 0.1.0
++summary: "WJS validatorを実行できない環境ではoperations/WBS validationを弱いfallbackへ切り替えず、原因と修復方法を示すenvironment errorとして拒否する"
++approvedBy: xmeta
++approvedAt: "2026-08-09T00:00:00+09:00"
++acceptanceCriteria:
++  - operations validator moduleが存在しない場合にrunWjsValidateがsuccessや簡易schema passを返さず、target・修復コマンドを含むfail-closed issueを返す
++  - operations canonical validatorのruntime実行に失敗した場合も同じfail-closed boundaryを適用し、ERR_NO_TYPESCRIPT等をpermissive fallbackへ変換しない
++  - validatorが利用可能な場合のoperations valid/invalid判定は従来のcanonical WJS validatorに委譲し、schema semanticsをACED側で複製しない
++  - check-diffのchangeset validationがvalidator unavailable時に明示的なwjs validator issueとしてfailする
++  - doctorがvalidator availabilityと既存WJS schema/dependency診断を同じ修復方針で報告する
++  - WJS available/unavailable、malformed operations、doctor diagnosticsのintegration regression testsを追加する
++  - wjs/**、package.json、CI、WBS正本、schema semanticsを変更しない
++nonGoals:
++  - WJS schema semanticsの変更
++  - WJSとACEDの二重canonical schemaの作成
++  - setup failureのwarning化
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml b/contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml
+new file mode 100644
+index 0000000..8a7b8fc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml
+@@ -0,0 +1,75 @@
++id: SCWBS-DRAFT-MSLU5PBP
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLU5PBP
++branchName: task/SCWBS-DRAFT-MSLU5PBP-issue-482-wjs-validator-unavailable-fail-closed
++status: approved
++approvedBy: xmeta
++sourceIssue: 482
++allowedPaths:
++  - src/core/wbs.ts
++  - src/commands/doctor.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/doctor.test.ts
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++stopIf:
++  - Human Gate
++  - WJS schema semantics change
++  - WJS source change
++  - package or CI change
++  - external service or credential change
++  - authority outside allowedPaths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - operations validation never downgrades missing or unusable canonical WJS validation to a permissive local fallback
++  - unavailable operations validator errors are fail-closed, identify the target, and include the WJS initialization repair command
++  - canonical WJS validation behavior remains unchanged when the validator is available
++  - operations validation rejects malformed changesets through the canonical validator path and check-diff surfaces the fail-closed issue
++  - doctor reports canonical validator availability using the same availability boundary and remediation guidance
++  - integration tests cover WJS-available validation, missing validator, unavailable runtime, malformed operations, and doctor diagnostics
++  - "Issue #482 remains bounded to ACED-side validation and does not change WJS schema semantics or WJS source"
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - wjs-fail-closed-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml
++  - contracts/specs/SPEC-LITE-MSLU5PBP.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLU5PBP.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLU5PBP.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLU5PBP.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLU5PBP.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLU5PBP.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:23d26e724e5f7a416ae75fe7d829d02667b25b1880c4b62205fb7dd7d168210d
++  createdAt: "2026-08-09T13:54:57.117Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index c0d727e..3178036 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1756,3 +1756,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T13:22:55.055Z"
++  - id: SCWBS-DRAFT-MSLU5PBP
++    path: contracts/tasks/SCWBS-DRAFT-MSLU5PBP.yaml
++    branchName: task/SCWBS-DRAFT-MSLU5PBP-issue-482-wjs-validator-unavailable-fail-closed
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 020c4b1..639e701 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -40,6 +40,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
+ - Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
+ - Bounded Phase 1 AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, versioned plan/result/receipt artifacts, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; debugger, retry, resume, PR, and merge automation remain excluded
++- WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
+ 
+ ## Still Missing
+ 
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index 898e750..98f8af0 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -226,6 +226,15 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     fix: "Run: npm install"
+   });
+ 
++  const validatorPath = resolveFrom(root, "wjs/tools/validate.ts");
++  diagnostics.push({
++    id: "wjs.validator",
++    label: "wjs canonical validator available",
++    status: existsSync(validatorPath) ? "pass" : "fail",
++    message: existsSync(validatorPath) ? "canonical validator present" : "canonical validator is missing",
++    fix: "Run: git submodule update --init --recursive wjs"
++  });
++
+   const registryPath = resolveFrom(root, "contracts/registry.yaml");
+   diagnostics.push({
+     id: "contracts.registry",
+diff --git a/src/core/wbs.ts b/src/core/wbs.ts
+index b432890..6088647 100644
+--- a/src/core/wbs.ts
++++ b/src/core/wbs.ts
+@@ -121,31 +121,31 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
+   return issues;
+ }
+ 
+-function validateOperationsFallback(target: string): Issue[] {
+-  try {
+-    const document = readJsonFile<unknown>(target);
+-    if (typeof document !== "object" || document === null || Array.isArray(document)) {
+-      return [{ severity: "error", code: "wjs.validate", message: "operation change set must be an object" }];
+-    }
+-    const value = document as Record<string, unknown>;
+-    const issues: Issue[] = [];
+-    for (const key of ["schemaVersion", "targetWbsId", "changeSetId", "operations"]) {
+-      if (value[key] === undefined) issues.push({ severity: "error", code: "wjs.validate", message: `operation change set missing ${key}` });
+-    }
+-    if (!Array.isArray(value.operations)) {
+-      issues.push({ severity: "error", code: "wjs.validate", message: "operation change set operations must be an array" });
+-    }
+-    return issues;
+-  } catch (error) {
+-    return [{ severity: "error", code: "wjs.validate", message: error instanceof Error ? error.message : String(error) }];
+-  }
++const WJS_REPAIR_COMMAND = "git submodule update --init --recursive wjs";
++
++function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string): Issue {
++  return {
++    severity: "error",
++    code: "wjs.validator.unavailable",
++    message: `canonical WJS ${kind} validator is unavailable for ${target}: ${reason}`,
++    fixCommand: WJS_REPAIR_COMMAND
++  };
++}
++
++function isWjsRuntimeUnavailable(result: { error?: Error; stderr?: string; stdout?: string }): boolean {
++  const output = `${result.error?.message ?? ""}\n${result.stderr ?? ""}\n${result.stdout ?? ""}`;
++  return /ENOENT|ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION|MODULE_NOT_FOUND|Cannot find (?:module|package)/i.test(output);
+ }
+ 
+ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
+   const wjsRoot = path.resolve(root, "wjs");
+   const validator = path.resolve(wjsRoot, "tools/validate.ts");
+   const target = resolveFrom(root, relativePath);
+-  if (!existsSync(validator)) return validateWbsDocument(root, relativePath);
++  if (!existsSync(validator)) {
++    return kind === "operations"
++      ? [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")]
++      : validateWbsDocument(root, relativePath);
++  }
+ 
+   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
+     cwd: wjsRoot,
+@@ -157,11 +157,10 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
+       encoding: "utf8"
+     });
+   }
+-  if (result.status !== 0 && kind === "operations" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
+-    return validateOperationsFallback(target);
+-  }
+-  if (result.status !== 0 && kind === "wbs" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
+-    return validateWbsDocument(root, relativePath);
++  if (result.status !== 0 && isWjsRuntimeUnavailable(result)) {
++    return kind === "operations"
++      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")]
++      : validateWbsDocument(root, relativePath);
+   }
+ 
+   if (result.status === 0) return [];
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 24e1733..c119da8 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -766,6 +766,28 @@ describe("check-diff", () => {
+     expect(issues.some((issue) => issue.code.startsWith("diff.wbsOperations."))).toBe(true);
+   });
+ 
++  test("check-diff fails closed when the canonical WJS validator is unavailable", () => {
++    const root = makeTempRepo();
++    const task = sampleTask({ allowedPaths: ["contracts/**"] });
++    const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
++    const validatorIssue = issues.find((issue) => issue.code === "diff.wbsOperations.wjs.validator.unavailable");
++    expect(validatorIssue).toMatchObject({
++      severity: "error",
++      message: expect.stringContaining("canonical WJS operations validator is unavailable"),
++      fixCommand: "git submodule update --init --recursive wjs"
++    });
++  });
++
++  test("check-diff fails closed when the canonical WJS validator runtime cannot execute", () => {
++    const root = makeTempRepo();
++    writeText(root, "wjs/tools/validate.ts", "export {}\n");
++    writeText(root, "wjs/package.json", JSON.stringify({ scripts: { validate: "node tools/missing-validator-runtime.js" } }));
++    const task = sampleTask({ allowedPaths: ["contracts/**"] });
++    const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
++    const validatorIssue = issues.find((issue) => issue.code === "diff.wbsOperations.wjs.validator.unavailable");
++    expect(validatorIssue?.message).toContain("validator runtime or dependencies could not be executed");
++  });
++
+   test("git changed file helpers split working-tree and branch diff basis", () => {
+     const root = makeTempRepo();
+     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+diff --git a/tests/integration/doctor.test.ts b/tests/integration/doctor.test.ts
+index 74057de..830e466 100644
+--- a/tests/integration/doctor.test.ts
++++ b/tests/integration/doctor.test.ts
+@@ -40,6 +40,9 @@ describe("doctor", () => {
+     writeText(root, "wjs/node_modules/.keep", "");
+     mkdirSync(path.join(root, "wjs/node_modules/@esbuild"), { recursive: true });
+     writeText(root, "wjs/node_modules/@esbuild/.keep", "");
++    writeText(root, "wjs/package.json", JSON.stringify({ scripts: { validate: "node tools/validate.js" } }));
++    writeText(root, "wjs/tools/validate.ts", "export {}\n");
++    writeText(root, "wjs/tools/validate.js", "process.exit(0);\n");
+     writeText(root, "wjs/schema/wbs-json.schema.json", "{}");
+ 
+     const output: string[] = [];
+@@ -59,6 +62,9 @@ describe("doctor", () => {
+       diagnostics: expect.any(Array),
+       contractIssues: expect.any(Array)
+     });
++    expect(parsed.diagnostics).toEqual(expect.arrayContaining([
++      expect.objectContaining({ id: "wjs.validator", status: "pass" })
++    ]));
+ 
+     for (const diagnostic of parsed.diagnostics) {
+       expect(diagnostic).toMatchObject({
+@@ -93,5 +99,8 @@ describe("doctor", () => {
+       contractIssues: expect.any(Array)
+     });
+     expect(parsed.diagnostics.some((d: { status: string }) => d.status === "fail")).toBe(true);
++    expect(parsed.diagnostics).toEqual(expect.arrayContaining([
++      expect.objectContaining({ id: "wjs.validator", status: "fail", fix: "Run: git submodule update --init --recursive wjs" })
++    ]));
+   });
+ });
