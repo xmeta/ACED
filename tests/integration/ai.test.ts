@@ -1,9 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
+import { buildAiExecution } from "../../src/commands/ai-run.js";
+import type { ChecksRunSummary } from "../../src/commands/checks-run.js";
 import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
 import { buildNextAction } from "../../src/commands/next.js";
 import { main } from "../../src/cli.js";
@@ -11,7 +14,140 @@ import { readApproval, readBlock } from "../../src/core/contracts.js";
 import { buildCodeContextManifest, buildCodeContextManifestJson } from "../../src/core/code-context.js";
 import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 
+const AI_TASK_ID = "WBS-001-004";
+const AI_BRANCH = "task/WBS-001-004-api-implementation";
+
+function prepareAiExecutionRepo(): string {
+  const root = makeTempRepo();
+  writeScwbsProject(root);
+  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
+    branchName: AI_BRANCH,
+    allowedPaths: ["src/features/api/**"],
+    forbiddenPaths: ["src/auth/**"],
+    humanGateRequiredPaths: ["src/security/**"],
+    requiredChecks: ["test"]
+  }) as unknown as Record<string, unknown>);
+  execFileSync("git", ["add", "."], { cwd: root });
+  execFileSync("git", ["commit", "-m", "baseline"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["branch", "-M", AI_BRANCH], { cwd: root });
+  return root;
+}
+
+function adapterScript(role: "implementer" | "reviewer", behavior: string, status = role === "implementer" ? "completed" : "approved"): string {
+  const directory = mkdtempSync(path.join(tmpdir(), "scwbs-ai-adapter-"));
+  const file = path.join(directory, `${role}-adapter.mjs`);
+  writeFileSync(file, `import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+const input = JSON.parse(readFileSync(process.argv[2], "utf8"));
+${behavior}
+writeFileSync(process.argv[3], JSON.stringify({
+  schemaVersion: "scwbs.ai-execution-result.v1",
+  role: ${JSON.stringify(role)},
+  contextId: input.contextId,
+  status: ${JSON.stringify(status)},
+  summary: input.role === ${JSON.stringify(role)} ? "adapter accepted bounded input" : "role mismatch",
+  findings: [],
+  changedFiles: []
+}));
+`);
+  return file;
+}
+
+function passingChecks(root: string, taskId = AI_TASK_ID): ChecksRunSummary {
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  return {
+    schemaVersion: "1.0.0",
+    status: "pass",
+    taskId,
+    headCommit: head,
+    subjectFingerprint: "test-fingerprint",
+    receiptPath: null,
+    receiptReason: "test-injected",
+    checks: [{ name: "test", status: "passed", disposition: "executed", reason: "test-injected", command: "npm test", cacheKey: "test" }]
+  };
+}
+
 describe("AI commands", () => {
+  test("ai execute runs one bounded implementer-checks-fresh-reviewer iteration without human transitions", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `
+if (input.role !== "implementer" || !input.packet || input.authority.authorityFingerprint.length === 0) process.exit(3);
+mkdirSync("src/features/api", { recursive: true });
+writeFileSync("src/features/api/index.ts", "export const api = true;\\n");
+`);
+    const reviewer = adapterScript("reviewer", `
+if (input.role !== "reviewer" || input.freshContext !== true || typeof input.diff !== "string" || input.taskPacket.length === 0) process.exit(4);
+`);
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer])
+    }, { now: () => "2026-08-09T13:00:00.000Z", runChecks: passingChecks });
+
+    expect(receipt.status).toBe("completed");
+    expect(receipt.plan.iteration).toBe(1);
+    expect(receipt.plan.automaticMerge).toBe(false);
+    expect(receipt.plan.automaticPullRequest).toBe(false);
+    expect(receipt.plan.debugger).toBe(false);
+    expect(receipt.implementer?.contextId).not.toBe(receipt.reviewer?.contextId);
+    expect(receipt.reviewer?.status).toBe("approved");
+    expect(receipt.checks?.status).toBe("pass");
+    expect(receipt.changedFiles).toEqual(["src/features/api/index.ts"]);
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ai-execution.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(receipt)).toBe(true);
+    expect(readApproval(root, AI_TASK_ID).approval).toBeUndefined();
+    expect(readFileSync(path.join(root, "src/features/api/index.ts"), "utf8")).toContain("api = true");
+  });
+
+  test("ai execute fails closed on an out-of-scope implementer change and skips checks/reviewer", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `mkdirSync("src/security", { recursive: true }); writeFileSync("src/security/secret.ts", "export const secret = true;\\n");`);
+    const reviewer = adapterScript("reviewer", `writeFileSync("reviewer-was-called", "unexpected\\n");`);
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer])
+    }, { runChecks: passingChecks });
+
+    expect(receipt.status).toBe("blocked");
+    expect(receipt.failure?.code).toBe("execution.fail-closed");
+    expect(receipt.checks).toBeUndefined();
+    expect(existsSync(path.join(root, "reviewer-was-called"))).toBe(false);
+  });
+
+  test("ai execute returns a blocked receipt for reviewer rejection without creating a Review record", () => {
+    const root = prepareAiExecutionRepo();
+    const implementer = adapterScript("implementer", `mkdirSync("src/features/api", { recursive: true }); writeFileSync("src/features/api/index.ts", "export const api = true;\\n");`);
+    const reviewer = adapterScript("reviewer", `if (input.freshContext !== true) process.exit(4);`, "changes-requested");
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer])
+    }, { runChecks: passingChecks });
+
+    expect(receipt.status).toBe("blocked");
+    expect(receipt.failure?.stage).toBe("reviewer");
+    expect(receipt.failure?.code).toBe("review.not-approved");
+    expect(existsSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"))).toBe(false);
+  });
+
+  test("ai execute rejects multiple active Tasks before adapter dispatch", () => {
+    const root = prepareAiExecutionRepo();
+    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", branchName: "task/WBS-001-005-other" }) as unknown as Record<string, unknown>);
+    execFileSync("git", ["add", "contracts/tasks/WBS-001-005.yaml"], { cwd: root });
+    execFileSync("git", ["commit", "-m", "second active task"], { cwd: root, stdio: "ignore" });
+    const implementer = adapterScript("implementer", `writeFileSync("adapter-was-called", "unexpected\\n");`);
+    const reviewer = adapterScript("reviewer", "");
+    const receipt = buildAiExecution(root, {
+      taskId: AI_TASK_ID,
+      implementerCommand: JSON.stringify([process.execPath, implementer]),
+      reviewerCommand: JSON.stringify([process.execPath, reviewer])
+    }, { runChecks: passingChecks });
+
+    expect(receipt.status).toBe("blocked");
+    expect(receipt.failure?.message).toContain("exactly one active Task");
+    expect(existsSync(path.join(root, "adapter-was-called"))).toBe(false);
+  });
+
   test("ai packet includes WBS node, task contract, and stop conditions", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);

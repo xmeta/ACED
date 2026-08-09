@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/schemas/ai-execution.schema.json",
+  "title": "SC-WBS bounded AI execution artifacts",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/plan"
+    },
+    {
+      "$ref": "#/$defs/input"
+    },
+    {
+      "$ref": "#/$defs/result"
+    },
+    {
+      "$ref": "#/$defs/receipt"
+    }
+  ],
+  "$defs": {
+    "pathList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "command": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "executionId",
+        "taskId",
+        "iteration",
+        "phase",
+        "branch",
+        "expectedBranch",
+        "subjectHeadCommit",
+        "authorityFingerprint",
+        "allowedPaths",
+        "forbiddenPaths",
+        "humanGateRequiredPaths",
+        "requiredChecks",
+        "implementer",
+        "reviewer",
+        "automaticPullRequest",
+        "automaticMerge",
+        "debugger"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-execution-plan.v1" },
+        "executionId": { "type": "string", "minLength": 1 },
+        "taskId": { "type": "string", "minLength": 1 },
+        "iteration": { "const": 1 },
+        "phase": { "const": "phase-1" },
+        "branch": { "type": "string", "minLength": 1 },
+        "expectedBranch": { "type": "string", "minLength": 1 },
+        "subjectHeadCommit": { "type": "string", "minLength": 1 },
+        "authorityFingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "allowedPaths": { "$ref": "#/$defs/pathList" },
+        "forbiddenPaths": { "$ref": "#/$defs/pathList" },
+        "humanGateRequiredPaths": { "$ref": "#/$defs/pathList" },
+        "requiredChecks": { "$ref": "#/$defs/pathList" },
+        "implementer": { "$ref": "#/$defs/adapter" },
+        "reviewer": { "$ref": "#/$defs/adapter" },
+        "automaticPullRequest": { "const": false },
+        "automaticMerge": { "const": false },
+        "debugger": { "const": false }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "contextId", "freshContext"],
+      "properties": {
+        "command": { "$ref": "#/$defs/command" },
+        "contextId": { "type": "string", "minLength": 1 },
+        "freshContext": { "const": true }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schemaVersion", "role", "contextId", "taskId", "iteration"],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-execution-input.v1" },
+        "role": { "enum": ["implementer", "reviewer"] },
+        "contextId": { "type": "string", "minLength": 1 },
+        "freshContext": { "const": true },
+        "taskId": { "type": "string", "minLength": 1 },
+        "iteration": { "const": 1 }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "role", "contextId", "status", "summary"],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-execution-result.v1" },
+        "role": { "enum": ["implementer", "reviewer"] },
+        "contextId": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["completed", "blocked", "manual-review-required", "approved", "changes-requested"] },
+        "summary": { "type": "string", "minLength": 1 },
+        "findings": { "$ref": "#/$defs/pathList" },
+        "changedFiles": { "$ref": "#/$defs/pathList" }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "executionId", "taskId", "iteration", "status", "plan"],
+      "properties": {
+        "schemaVersion": { "const": "scwbs.ai-run-receipt.v1" },
+        "executionId": { "type": "string", "minLength": 1 },
+        "taskId": { "type": "string", "minLength": 1 },
+        "iteration": { "const": 1 },
+        "status": { "enum": ["completed", "blocked"] },
+        "plan": { "$ref": "#/$defs/plan" },
+        "implementer": { "$ref": "#/$defs/result" },
+        "checks": { "type": "object" },
+        "reviewer": { "$ref": "#/$defs/result" },
+        "changedFiles": { "$ref": "#/$defs/pathList" },
+        "failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "code", "message"],
+          "properties": {
+            "stage": { "enum": ["preflight", "implementer", "checks", "reviewer"] },
+            "code": { "type": "string", "minLength": 1 },
+            "message": { "type": "string", "minLength": 1 }
+          }
+        },
+        "receiptPath": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
