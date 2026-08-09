@@ -258,7 +258,7 @@ is an explicit bulk migration and must not be used as an implicit repair.
 | ------------------- | --------------------------- |
 | `--forbid <paths>`  | `forbiddenPaths`            |
 | `--gate <paths>`    | `humanGateRequiredPaths`    |
-| `--checks <checks>` | `requiredChecks`            |
+| `--checks <checks>` | `requiredChecks` (baseline `test,typecheck,build` +追加値) |
 
 ```bash
 npm run scwbs -- task new "Add permission check" \
@@ -269,6 +269,13 @@ npm run scwbs -- task new "Add permission check" \
   --stop "auth redesign required" \
   --wbs-node node-staff-search
 ```
+
+`task new --checks` は置換ではなく additive semantics である。指定した値は
+`test,typecheck,build` に追加され、重複は除去される。したがって
+`--checks lint` でも安全性のbaselineは失われない。baselineを変更する必要がある場合は、
+通常のCLI optionではなく、監査可能なTask Contract/authority workflowとして明示的に扱う。
+check名は小文字のnpm script形式（必要なら `:` と `-` を含む）でなければならず、
+不正な値はTask Contractを書き込む前に拒否される。
 
 `task index rebuild --check` は `contracts/tasks/index.yaml` とTask Contract inventoryの整合性をread-onlyで検査する。`--force` は既存のlifecycle status、`dependsOn`、`archivedAt`を保持しながらcanonical path、branch、WBS node、並び順をatomicに再構築し、Registryも同期する。出力はactive、archived、total、issuesの固定長summaryで、`--json`も全Taskを展開しない。
 

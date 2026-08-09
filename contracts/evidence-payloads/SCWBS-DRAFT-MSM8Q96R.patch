@@ -1,0 +1,211 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml b/contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
+new file mode 100644
+index 0000000..2dfc5c6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
+@@ -0,0 +1,52 @@
++id: SCWBS-DRAFT-MSM8Q96R
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSM8Q96R
++branchName: task/SCWBS-DRAFT-MSM8Q96R-issue-490-task-new-baseline-requiredchecks
++allowedPaths:
++  - src/commands/task-new.ts
++  - tests/integration/task-new.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - DB schema or migration
++  - authentication or authorization design change
++  - breaking API change
++  - personal data or security setting impact
++  - external service billing or release decision
++  - allowedPaths外の変更
++  - humanGateRequiredPathsへの変更
++  - 仕様変更レベルの判断に迷う
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #490: task newのbaseline requiredChecksを保護する'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSM8Q96R.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSM8Q96R.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSM8Q96R.patch
++  - contracts/approvals/SCWBS-DRAFT-MSM8Q96R.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSM8Q96R.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-09T20:14:06.145Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index cab80a7..a2bb717 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1812,3 +1812,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T19:15:50.932Z"
++  - id: SCWBS-DRAFT-MSM8Q96R
++    path: contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
++    branchName: task/SCWBS-DRAFT-MSM8Q96R-issue-490-task-new-baseline-requiredchecks
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 5a722f9..f332479 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -258,7 +258,7 @@ is an explicit bulk migration and must not be used as an implicit repair.
+ | ------------------- | --------------------------- |
+ | `--forbid <paths>`  | `forbiddenPaths`            |
+ | `--gate <paths>`    | `humanGateRequiredPaths`    |
+-| `--checks <checks>` | `requiredChecks`            |
++| `--checks <checks>` | `requiredChecks` (baseline `test,typecheck,build` +追加値) |
+ 
+ ```bash
+ npm run scwbs -- task new "Add permission check" \
+@@ -270,6 +270,13 @@ npm run scwbs -- task new "Add permission check" \
+   --wbs-node node-staff-search
+ ```
+ 
++`task new --checks` は置換ではなく additive semantics である。指定した値は
++`test,typecheck,build` に追加され、重複は除去される。したがって
++`--checks lint` でも安全性のbaselineは失われない。baselineを変更する必要がある場合は、
++通常のCLI optionではなく、監査可能なTask Contract/authority workflowとして明示的に扱う。
++check名は小文字のnpm script形式（必要なら `:` と `-` を含む）でなければならず、
++不正な値はTask Contractを書き込む前に拒否される。
++
+ `task index rebuild --check` は `contracts/tasks/index.yaml` とTask Contract inventoryの整合性をread-onlyで検査する。`--force` は既存のlifecycle status、`dependsOn`、`archivedAt`を保持しながらcanonical path、branch、WBS node、並び順をatomicに再構築し、Registryも同期する。出力はactive、archived、total、issuesの固定長summaryで、`--json`も全Taskを展開しない。
+ 
+ ### `task archive` とTaskの状態変更操作
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index fc91d68..f295453 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -41,6 +41,19 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
+   return items.length > 0 ? items : fallback;
+ }
+ 
++export const TASK_NEW_BASELINE_CHECKS = ["test", "typecheck", "build"] as const;
++
++const VALID_CHECK_NAME = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)*$/;
++
++export function normalizeTaskNewChecks(value: string | undefined): { checks: string[]; invalid: string[] } {
++  const requested = value
++    ? value.split(",").map((item) => item.trim()).filter(Boolean)
++    : [];
++  const invalid = requested.filter((item) => !VALID_CHECK_NAME.test(item));
++  const checks = [...new Set([...TASK_NEW_BASELINE_CHECKS, ...requested.filter((item) => VALID_CHECK_NAME.test(item))])];
++  return { checks, invalid: [...new Set(invalid)] };
++}
++
+ function humanGatePaths(value: string | undefined): string[] {
+   return [...new Set([...standardHumanGatePaths(), ...splitList(value, [])])];
+ }
+@@ -81,9 +94,10 @@ export function buildCoreTaskNew(title: string, options: {
+   noStopConditions?: boolean;
+   wbsNode?: string;
+   id?: string;
+-} = {}): { task: TaskContract; fallback: TaskNewFallback } {
++} = {}): { task: TaskContract; fallback: TaskNewFallback; invalidChecks: string[] } {
+   const id = options.id ?? `SCWBS-DRAFT-${stamp()}`;
+   const { title: resolvedTitle, fallback } = resolveTaskTitle(title, id);
++  const normalizedChecks = normalizeTaskNewChecks(options.checks);
+   const safeTitle = slug(resolvedTitle);
+   const task: TaskContract = {
+     id,
+@@ -95,12 +109,12 @@ export function buildCoreTaskNew(title: string, options: {
+     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
+     humanGateRequiredPaths: humanGatePaths(options.gate),
+     stopIf: splitList(options.stop, []),
+-    requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
++    requiredChecks: normalizedChecks.checks,
+     doneCriteria: [`Complete ${resolvedTitle}`],
+     evidenceRequired: ["test-result", "typecheck-result", "build-result"],
+     managedContractPaths: taskBootstrapManagedContractPaths(id)
+   };
+-  return { task, fallback };
++  return { task, fallback, invalidChecks: normalizedChecks.invalid };
+ }
+ 
+ export function runTaskNew(root: string, title: string, options: {
+@@ -118,6 +132,15 @@ export function runTaskNew(root: string, title: string, options: {
+       return 1;
+     }
+     const built = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
++    if (built.invalidChecks.length > 0) {
++      console.error(`Invalid check name(s): ${built.invalidChecks.join(", ")}`);
++      return 1;
++    }
++    const missingBaselineChecks = TASK_NEW_BASELINE_CHECKS.filter((check) => !built.task.requiredChecks.includes(check));
++    if (missingBaselineChecks.length > 0) {
++      console.error(`Task new baseline validation failed: ${missingBaselineChecks.join(", ")}`);
++      return 1;
++    }
+     const { task: completedTask, requirements } = completeCheckCoverageRequirements(root, built.task);
+     if (requirements.issues.length > 0) {
+       for (const issue of requirements.issues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
+diff --git a/tests/integration/task-new.test.ts b/tests/integration/task-new.test.ts
+new file mode 100644
+index 0000000..252aefe
+--- /dev/null
++++ b/tests/integration/task-new.test.ts
+@@ -0,0 +1,39 @@
++import { describe, expect, test } from "vitest";
++import { buildCoreTaskNew, normalizeTaskNewChecks, runTaskNew, TASK_NEW_BASELINE_CHECKS } from "../../src/commands/task-new.js";
++import { makeTempRepo, writeScwbsProject } from "../helpers.js";
++
++describe("task new requiredChecks baseline", () => {
++  test("keeps the bootstrap baseline and adds custom checks", () => {
++    const { task } = buildCoreTaskNew("Add lint gate", {
++      checks: "lint,test:integration,lint",
++      id: "SCWBS-DRAFT-BASELINE"
++    });
++
++    expect(task.requiredChecks).toEqual(["test", "typecheck", "build", "lint", "test:integration"]);
++    expect(task.requiredChecks.slice(0, TASK_NEW_BASELINE_CHECKS.length)).toEqual([...TASK_NEW_BASELINE_CHECKS]);
++  });
++
++  test("deduplicates baseline and requested checks", () => {
++    expect(normalizeTaskNewChecks("build,typecheck,test,lint,lint")).toEqual({
++      checks: ["test", "typecheck", "build", "lint"],
++      invalid: []
++    });
++  });
++
++  test("rejects invalid check names before creating a contract", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runTaskNew(root, "Invalid check", {
++      checks: "lint;rm -rf,valid-check",
++      noStopConditions: true
++    })).toBe(1);
++  });
++
++  test("default and empty check values retain the baseline", () => {
++    expect(buildCoreTaskNew("Default checks", { id: "SCWBS-DRAFT-DEFAULT" }).task.requiredChecks)
++      .toEqual([...TASK_NEW_BASELINE_CHECKS]);
++    expect(buildCoreTaskNew("Empty checks", { checks: "", id: "SCWBS-DRAFT-EMPTY" }).task.requiredChecks)
++      .toEqual([...TASK_NEW_BASELINE_CHECKS]);
++  });
++});

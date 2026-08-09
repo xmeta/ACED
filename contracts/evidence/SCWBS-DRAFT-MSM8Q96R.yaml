@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSM8Q96R
+type: evidence
+taskId: SCWBS-DRAFT-MSM8Q96R
+commit: 145491a6bd070052a154c15638decb8f11b6bfcf
+subjectHeadCommit: 145491a6bd070052a154c15638decb8f11b6bfcf
+diffHash: sha256:1974be85ea33a81c1eae564a9493566ced6ab303401ab80aa02b4b874ea33eec
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 145491a6bd070052a154c15638decb8f11b6bfcf
+    treeHash: dad781d9cf89b3ec5213b31bcee7944dabed4049
+    diffHash: sha256:1974be85ea33a81c1eae564a9493566ced6ab303401ab80aa02b4b874ea33eec
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSM8Q96R.patch
+    manifestHash: sha256:1974be85ea33a81c1eae564a9493566ced6ab303401ab80aa02b4b874ea33eec
+git:
+  branch: task/SCWBS-DRAFT-MSM8Q96R-issue-490-task-new-baseline-requiredchecks
+  base: origin/main
+  baseCommit: e36bf3a7c9843d600476a2d4ec156849197c9f77
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 145491a6bd070052a154c15638decb8f11b6bfcf
+  diffHash: sha256:1974be85ea33a81c1eae564a9493566ced6ab303401ab80aa02b4b874ea33eec
+  headCommit: 145491a6bd070052a154c15638decb8f11b6bfcf
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM8Q96R.patch
+  - contracts/evidence/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/commands/task-new.ts
+  - tests/integration/task-new.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:698dcd3c0fd22094c934245728c0ee282af29743c93f710651c95090b554338b
+    durationMilliseconds: 15036
+    executedAt: "2026-08-09T20:23:41.004Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:453798fba4f00e1e0b7229be5ea8e3802975344399f1b41ff19160a2aace0503
+    durationMilliseconds: 10114
+    executedAt: "2026-08-09T20:23:51.123Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:fd6547485ad2ea973ce12f57c379e49103ebedeaef9b959417795977db806ac2
+    durationMilliseconds: 4252
+    executedAt: "2026-08-09T20:23:55.379Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:1da81e75a4a7b1b5fa0123070eac78433b82b31dcf10e3c1f945f29387142e91
+    durationMilliseconds: 278993
+    executedAt: "2026-08-09T20:28:34.376Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added baseline, additive, duplicate, and invalid check-name coverage for task new.

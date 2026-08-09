@@ -1,0 +1,52 @@
+id: SCWBS-DRAFT-MSM8Q96R
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSM8Q96R
+branchName: task/SCWBS-DRAFT-MSM8Q96R-issue-490-task-new-baseline-requiredchecks
+allowedPaths:
+  - src/commands/task-new.ts
+  - tests/integration/task-new.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - DB schema or migration
+  - authentication or authorization design change
+  - breaking API change
+  - personal data or security setting impact
+  - external service billing or release decision
+  - allowedPaths外の変更
+  - humanGateRequiredPathsへの変更
+  - 仕様変更レベルの判断に迷う
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - 'Complete Issue #490: task newのbaseline requiredChecksを保護する'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM8Q96R.patch
+  - contracts/approvals/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSM8Q96R.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T20:14:06.145Z"
