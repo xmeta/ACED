@@ -1,0 +1,77 @@
+id: SCWBS-DRAFT-MSLSKL63
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLSKL63
+branchName: task/SCWBS-DRAFT-MSLSKL63-issue-455-phase-1-bounded-implementer-checks-fre
+priority: high
+status: approved
+approvedBy: xmeta
+sourceIssue: 455
+allowedPaths:
+  - src/commands/ai-run.ts
+  - src/cli/register-governance.ts
+  - docs/scwbs/schemas/ai-execution.schema.json
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+  - tests/integration/ai.test.ts
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - agent provider credentials or permission changes
+  - external service integration
+  - automatic pull request or merge
+  - debugger retry resume Phase 2
+  - Human Gate
+  - authority outside allowed paths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Versioned JSON schema defines the Phase 1 execution plan, implementer result, reviewer result, and local run receipt with explicit role, Task, iteration, head, authority fingerprint, and status fields
+  - '`ai execute --task <id> --implementer-command <path> --reviewer-command <path>` runs exactly one Task iteration through declared non-shell adapter commands and rejects missing or unsupported capabilities before mutation'
+  - Preflight revalidates the Task Contract, branch, clean working tree, single active Task, authority fingerprint, allowed/forbidden/Human Gate paths, required checks, and active Blocks
+  - Implementer input contains only the bounded AI Work Packet and execution context; adapter output is schema-validated and cannot modify Task authority or Human Approval/review records
+  - After implementer execution, changed paths are fail-closed checked against allowed, forbidden, and Human Gate paths before required checks run
+  - Required checks run through the existing SC-WBS check runner and their receipt is included in the local run receipt; failed checks prevent reviewer dispatch
+  - Reviewer runs in a distinct fresh process/context with a separate bounded input and returns approved, changes-requested, or manual-review-required plus machine-readable findings
+  - The runner never creates Human Approval, human-only review transitions, pull requests, commits, or merges, and does not implement debugger/retry/resume Phase 2 behavior
+  - Unsupported adapter capability, adapter spawn/output failure, stale HEAD, out-of-scope change, active Block, failed check, and reviewer rejection fail closed with a versioned receipt
+  - Integration tests cover one-Task isolation, bounded inputs, no-shell invocation, stale/authority/path failures, check failure, fresh reviewer context, reviewer rejection, and no human-transition mutation
+  - 'Issue #455 Phase 1 remains open for Phase 2 debugger/retry/resume work and is not closed by this Task'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - ai-execution-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLSKL63.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLSKL63.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLSKL63.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLSKL63.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLSKL63.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T12:43:47.423Z"
