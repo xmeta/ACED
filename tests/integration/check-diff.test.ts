@@ -766,6 +766,28 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code.startsWith("diff.wbsOperations."))).toBe(true);
   });
 
+  test("check-diff fails closed when the canonical WJS validator is unavailable", () => {
+    const root = makeTempRepo();
+    const task = sampleTask({ allowedPaths: ["contracts/**"] });
+    const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
+    const validatorIssue = issues.find((issue) => issue.code === "diff.wbsOperations.wjs.validator.unavailable");
+    expect(validatorIssue).toMatchObject({
+      severity: "error",
+      message: expect.stringContaining("canonical WJS operations validator is unavailable"),
+      fixCommand: "git submodule update --init --recursive wjs"
+    });
+  });
+
+  test("check-diff fails closed when the canonical WJS validator runtime cannot execute", () => {
+    const root = makeTempRepo();
+    writeText(root, "wjs/tools/validate.ts", "export {}\n");
+    writeText(root, "wjs/package.json", JSON.stringify({ scripts: { validate: "node tools/missing-validator-runtime.js" } }));
+    const task = sampleTask({ allowedPaths: ["contracts/**"] });
+    const issues = collectDiffIssues(root, task, ["contracts/changesets/change.json"]);
+    const validatorIssue = issues.find((issue) => issue.code === "diff.wbsOperations.wjs.validator.unavailable");
+    expect(validatorIssue?.message).toContain("validator runtime or dependencies could not be executed");
+  });
+
   test("git changed file helpers split working-tree and branch diff basis", () => {
     const root = makeTempRepo();
     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");

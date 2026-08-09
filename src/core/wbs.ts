@@ -121,31 +121,29 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
   return issues;
 }
 
-function validateOperationsFallback(target: string): Issue[] {
-  try {
-    const document = readJsonFile<unknown>(target);
-    if (typeof document !== "object" || document === null || Array.isArray(document)) {
-      return [{ severity: "error", code: "wjs.validate", message: "operation change set must be an object" }];
-    }
-    const value = document as Record<string, unknown>;
-    const issues: Issue[] = [];
-    for (const key of ["schemaVersion", "targetWbsId", "changeSetId", "operations"]) {
-      if (value[key] === undefined) issues.push({ severity: "error", code: "wjs.validate", message: `operation change set missing ${key}` });
-    }
-    if (!Array.isArray(value.operations)) {
-      issues.push({ severity: "error", code: "wjs.validate", message: "operation change set operations must be an array" });
-    }
-    return issues;
-  } catch (error) {
-    return [{ severity: "error", code: "wjs.validate", message: error instanceof Error ? error.message : String(error) }];
-  }
+const WJS_REPAIR_COMMAND = "git submodule update --init --recursive wjs";
+
+function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string): Issue {
+  return {
+    severity: "error",
+    code: "wjs.validator.unavailable",
+    message: `canonical WJS ${kind} validator is unavailable for ${target}: ${reason}`,
+    fixCommand: WJS_REPAIR_COMMAND
+  };
+}
+
+function isWjsRuntimeUnavailable(result: { error?: Error; stderr?: string; stdout?: string }): boolean {
+  const output = `${result.error?.message ?? ""}\n${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+  return /ENOENT|ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION|MODULE_NOT_FOUND|Cannot find (?:module|package)/i.test(output);
 }
 
 export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
   const wjsRoot = path.resolve(root, "wjs");
   const validator = path.resolve(wjsRoot, "tools/validate.ts");
   const target = resolveFrom(root, relativePath);
-  if (!existsSync(validator)) return validateWbsDocument(root, relativePath);
+  if (!existsSync(validator)) {
+    return [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")];
+  }
 
   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
     cwd: wjsRoot,
@@ -157,11 +155,8 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
       encoding: "utf8"
     });
   }
-  if (result.status !== 0 && kind === "operations" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
-    return validateOperationsFallback(target);
-  }
-  if (result.status !== 0 && kind === "wbs" && /ERR_NO_TYPESCRIPT|ERR_UNKNOWN_FILE_EXTENSION/.test(result.stderr ?? "")) {
-    return validateWbsDocument(root, relativePath);
+  if (result.status !== 0 && isWjsRuntimeUnavailable(result)) {
+    return [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")];
   }
 
   if (result.status === 0) return [];

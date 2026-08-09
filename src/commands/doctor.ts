@@ -226,6 +226,15 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
     fix: "Run: npm install"
   });
 
+  const validatorPath = resolveFrom(root, "wjs/tools/validate.ts");
+  diagnostics.push({
+    id: "wjs.validator",
+    label: "wjs canonical validator available",
+    status: existsSync(validatorPath) ? "pass" : "fail",
+    message: existsSync(validatorPath) ? "canonical validator present" : "canonical validator is missing",
+    fix: "Run: git submodule update --init --recursive wjs"
+  });
+
   const registryPath = resolveFrom(root, "contracts/registry.yaml");
   diagnostics.push({
     id: "contracts.registry",
