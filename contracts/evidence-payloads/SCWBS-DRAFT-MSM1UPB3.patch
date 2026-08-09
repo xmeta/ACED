@@ -1,0 +1,500 @@
+diff --git a/README.md b/README.md
+index 2ca0eb8..b4263ee 100644
+--- a/README.md
++++ b/README.md
+@@ -164,11 +164,12 @@ the merge to the checked PR head with
+ ambiguous `validate` results are rejected. Do not replace this normal path
+ with direct `gh pr merge`, `--admin`, or `--auto`.
+ 
+-This repository is currently private on a GitHub plan where branch protection
+-and repository rulesets are unavailable. The local command therefore improves
+-the normal merge path but cannot prevent direct/force pushes or privileged API
+-and administrator bypasses. Changing repository visibility, GitHub plan,
+-external cost, or permissions requires a Human Decision. See
++Repository visibility and branch-protection capability are recorded only as
++dated GitHub API snapshots; they are not current-state guarantees. Revalidate
++the live repository before relying on the merge boundary. The local command
++therefore improves the normal merge path but cannot prevent direct/force pushes
++or privileged API and administrator bypasses. Changing repository visibility,
++GitHub plan, external cost, or permissions requires a Human Decision. See
+ [`docs/scwbs/merge-protection.md`](docs/scwbs/merge-protection.md).
+ 
+ Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
+@@ -250,7 +251,7 @@ npm run test:integration    # integration tests (heavier)
+ npm run test:all            # all tests
+ npm run test:coverage       # unit-only coverage (fast)
+ npm run test:coverage:all   # unit and integration coverage
+-npm run lint                # ESLint baseline gate (currently up to 37 warnings)
++npm run lint                # ESLint gate (--max-warnings=0; historical counts are not authoritative)
+ npm run format              # format source, tests, scripts, docs, and root config files
+ npm run typecheck
+ npm run build
+@@ -266,12 +267,13 @@ The production build continues to use `tsconfig.json`. Test code uses
+ with `checkJs`; implicit JavaScript parameter types remain a documented
+ migration boundary, but other inferred type errors are checked.
+ 
+-`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`.
+-The measured baseline is currently 37 warnings, and the command fails when a
+-change increases that count. This finite cap provides a phased adoption path:
+-remove existing warnings, then lower `--max-warnings` to the new measured
+-baseline. Individual rules can be promoted to errors in later, separately
+-scoped changes; this task does not bulk-rewrite existing source. Prettier is
++`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`,
++with the current zero-warning threshold configured in `package.json`.
++Historical warning counts are not an active acceptance criterion. The current
++command fails on any warning because `--max-warnings=0` is configured in
++`package.json`; update this documentation whenever that gate changes.
++Individual rules can be promoted to errors in later, separately scoped
++changes; this task does not bulk-rewrite existing source. Prettier is
+ available through the explicit `npm run format` write command and is not run
+ automatically by CI.
+ 
+diff --git a/contracts/specs/SPEC-LITE-MSM1UPB3.yaml b/contracts/specs/SPEC-LITE-MSM1UPB3.yaml
+new file mode 100644
+index 0000000..f47bfa1
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSM1UPB3.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MSM1UPB3
++type: spec-contract
++featureId: F-MSM1UPB3
++title: "Issue #484: docs lifecycle orphan and factual drift checks"
++status: approved
++version: 0.1.0
++summary: "docs check detects unregistered maintained Markdown and selected factual drift while treating repository capability as a revalidated snapshot"
++approvedBy: xmeta
++approvedAt: "2026-08-10T00:00:00+09:00"
++acceptanceCriteria:
++  - maintained docs Markdown is covered by a lifecycle document set or explicit ignoredPaths
++  - README lint threshold is checked against package.json without changing package.json
++  - implemented docs generate capability is not listed as Still Missing
++  - merge protection documentation describes repository visibility as a dated snapshot requiring live verification
++  - docs check JSON exposes machine-readable orphan and factual drift reason codes
++  - current stale prose is corrected and regression tests cover the new checks
++  - package, CI, WBS, WJS, and GitHub repository settings remain unchanged
++nonGoals:
++  - natural-language semantic analysis of all Markdown
++  - requiring GitHub API availability for local docs check
++  - automatically changing repository visibility or protection settings
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml b/contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
+new file mode 100644
+index 0000000..a95bc1b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
+@@ -0,0 +1,72 @@
++id: SCWBS-DRAFT-MSM1UPB3
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSM1UPB3
++branchName: task/SCWBS-DRAFT-MSM1UPB3-issue-484-docs-lifecycle-orphan-and-factual-drif
++status: approved
++approvedBy: xmeta
++sourceIssue: 484
++allowedPaths:
++  - src/core/document-lifecycle.ts
++  - src/commands/docs-check.ts
++  - tests/integration/docs-check.test.ts
++  - docs/document-lifecycle.json
++  - docs/scwbs/schemas/document-lifecycle.schema.json
++  - docs/implementation-gaps.md
++  - docs/scwbs/merge-protection.md
++  - README.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or CI change
++  - authority outside allowedPaths
++  - Human Gate
++  - external service or credential change
++  - WBS or WJS source change
++  - transient repository fact requires live external mutation
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - maintained Markdown files under docs are either covered by a lifecycle document set or explicitly ignored
++  - docs check detects README lint threshold drift and implemented commands listed as Still Missing
++  - transient repository visibility/protection prose is marked as a dated snapshot with live revalidation guidance
++  - docs check JSON reports orphan and factual drift issues with machine-readable reason codes
++  - current stale documentation is corrected without changing package, CI, WBS, WJS, or external repository settings
++  - regression tests cover orphan, ignore, lint drift, implemented-missing, and transient snapshot checks
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
++  - contracts/specs/SPEC-LITE-MSM1UPB3.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSM1UPB3.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSM1UPB3.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSM1UPB3.patch
++  - contracts/approvals/SCWBS-DRAFT-MSM1UPB3.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSM1UPB3.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:85209f1eece2702acbd7aa183cb5970ea1c7a746b8cd62351fc54dc6c18674bb
++  createdAt: "2026-08-09T17:03:43.398Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 7f3961a..6ab11df 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1784,3 +1784,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T16:56:38.831Z"
++  - id: SCWBS-DRAFT-MSM1UPB3
++    path: contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
++    branchName: task/SCWBS-DRAFT-MSM1UPB3-issue-484-docs-lifecycle-orphan-and-factual-drif
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/document-lifecycle.json b/docs/document-lifecycle.json
+index 32203eb..997c056 100644
+--- a/docs/document-lifecycle.json
++++ b/docs/document-lifecycle.json
+@@ -5,6 +5,7 @@
+     "docs/README.md",
+     "docs/sc-wbs-core/00-index.md"
+   ],
++  "ignoredPaths": [],
+   "documents": [
+     {
+       "documentId": "repository-overview",
+@@ -50,6 +51,33 @@
+       "entrypoint": "docs/sc-wbs-core-revision/00-index.md",
+       "paths": ["docs/sc-wbs-core-revision/**"],
+       "supersedes": []
++    },
++    {
++      "documentId": "implementation-gaps",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/implementation-gaps.md",
++      "paths": ["docs/implementation-gaps.md"],
++      "supersedes": []
++    },
++    {
++      "documentId": "sc-wbs-development",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/sc-wbs-development.md",
++      "paths": ["docs/sc-wbs-development.md"],
++      "supersedes": []
++    },
++    {
++      "documentId": "wbs-conflict-mitigation",
++      "status": "informative",
++      "version": "1.0.0",
++      "appliesToCli": ">=0.1.0 <0.2.0",
++      "entrypoint": "docs/wbs-conflict-mitigation.md",
++      "paths": ["docs/wbs-conflict-mitigation.md"],
++      "supersedes": []
+     }
+   ]
+ }
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 0f68048..f48f3b8 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -44,6 +44,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
+ - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+ - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
++- docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
+ 
+ ## Still Missing
+ 
+@@ -56,7 +57,6 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
+ | Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
+ | CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
+-| Documentation automation | Markdown generation from contracts                          | Human-maintained docs still need manual upkeep                                                                                                                                                                                  |
+ | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
+ | WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
+ 
+diff --git a/docs/scwbs/merge-protection.md b/docs/scwbs/merge-protection.md
+index 26650e6..1980aa3 100644
+--- a/docs/scwbs/merge-protection.md
++++ b/docs/scwbs/merge-protection.md
+@@ -2,7 +2,10 @@
+ 
+ ## Current repository state
+ 
+-2026-07-26時点のGitHub API観測では、このrepositoryはprivateである。
++2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という
++historical snapshotを記録している。この記録は現在のvisibilityや保護状態を
++保証しないため、作業前に `gh repo view xmeta/ACED --json visibility` と
++`gh api repos/xmeta/ACED/branches/main/protection` を再確認する。
+ `main` branch protectionとrepository rulesetsの読取は、どちらも次の403を返す。
+ 
+ ```text
+diff --git a/docs/scwbs/schemas/document-lifecycle.schema.json b/docs/scwbs/schemas/document-lifecycle.schema.json
+index ab8b92b..7292109 100644
+--- a/docs/scwbs/schemas/document-lifecycle.schema.json
++++ b/docs/scwbs/schemas/document-lifecycle.schema.json
+@@ -13,6 +13,11 @@
+       "uniqueItems": true,
+       "items": { "$ref": "#/$defs/repositoryPath" }
+     },
++    "ignoredPaths": {
++      "type": "array",
++      "uniqueItems": true,
++      "items": { "$ref": "#/$defs/repositoryPath" }
++    },
+     "documents": {
+       "type": "array",
+       "minItems": 1,
+diff --git a/src/core/document-lifecycle.ts b/src/core/document-lifecycle.ts
+index e95afad..817e47f 100644
+--- a/src/core/document-lifecycle.ts
++++ b/src/core/document-lifecycle.ts
+@@ -1,4 +1,5 @@
+-import { existsSync, readFileSync } from "node:fs";
++import { existsSync, readFileSync, readdirSync } from "node:fs";
++import path from "node:path";
+ import { matchesAny } from "./glob.js";
+ import { resolveFrom } from "./paths.js";
+ import type { Issue } from "./types.js";
+@@ -22,6 +23,7 @@ export type DocumentLifecycleManifest = {
+   schemaVersion: "1.0.0";
+   standardEntrypoints: string[];
+   documents: DocumentSet[];
++  ignoredPaths: string[];
+ };
+ 
+ export type DocumentLifecycleResult = {
+@@ -64,6 +66,93 @@ function warning(code: string, message: string): Issue {
+   return { severity: "warn", code, message };
+ }
+ 
++function readText(root: string, relativePath: string): string | undefined {
++  const absolutePath = resolveFrom(root, relativePath);
++  if (!existsSync(absolutePath)) return undefined;
++  try {
++    return readFileSync(absolutePath, "utf8");
++  } catch {
++    return undefined;
++  }
++}
++
++function collectMarkdownFiles(root: string): string[] {
++  const docsRoot = resolveFrom(root, "docs");
++  if (!existsSync(docsRoot)) return [];
++  const files: string[] = [];
++  const visit = (directory: string): void => {
++    for (const entry of readdirSync(directory, { withFileTypes: true })) {
++      const absolutePath = path.join(directory, entry.name);
++      if (entry.isDirectory()) visit(absolutePath);
++      else if (entry.isFile() && entry.name.endsWith(".md")) {
++        files.push(path.relative(root, absolutePath).replace(/\\/g, "/"));
++      }
++    }
++  };
++  visit(docsRoot);
++  return files.sort();
++}
++
++function repositoryPackage(root: string): { version?: string; lintScript?: string } | undefined {
++  const text = readText(root, "package.json");
++  if (!text) return undefined;
++  try {
++    const packageJson = JSON.parse(text) as { version?: unknown; scripts?: { lint?: unknown } };
++    return {
++      version: typeof packageJson.version === "string" ? packageJson.version : undefined,
++      lintScript: typeof packageJson.scripts?.lint === "string" ? packageJson.scripts.lint : undefined
++    };
++  } catch {
++    return undefined;
++  }
++}
++
++function collectOrphanDocumentationIssues(root: string, manifest: DocumentLifecycleManifest): Issue[] {
++  return collectMarkdownFiles(root)
++    .filter((file) => !manifest.documents.some((document) => matchesAny(file, document.paths)))
++    .filter((file) => !manifest.ignoredPaths.some((pattern) => matchesAny(file, [pattern])))
++    .map((file) => error("docs.orphan.unregistered", `${file} is a maintained Markdown file not covered by document lifecycle or ignoredPaths`));
++}
++
++function collectFactualDocumentationIssues(root: string): Issue[] {
++  const issues: Issue[] = [];
++  const packageJson = repositoryPackage(root);
++  const readme = readText(root, "README.md") ?? "";
++  const gaps = readText(root, "docs/implementation-gaps.md") ?? "";
++  const mergeProtection = readText(root, "docs/scwbs/merge-protection.md") ?? "";
++  const cliSource = readText(root, "src/cli.ts") ?? "";
++
++  const configuredLintWarnings = packageJson?.lintScript?.match(/--max-warnings(?:=|\s+)(\d+)/)?.[1];
++  const documentedLintWarnings = readme.match(/(?:baseline|up to)\s+(\d+)\s+warnings/i)?.[1];
++  if (configuredLintWarnings && documentedLintWarnings && configuredLintWarnings !== documentedLintWarnings) {
++    issues.push(error(
++      "docs.fact.lintThreshold",
++      `README documents ${documentedLintWarnings} lint warnings but package.json lint uses --max-warnings=${configuredLintWarnings}`
++    ));
++  }
++
++  if (/Documentation automation\s*\|[^\n]*Markdown generation from contracts/i.test(gaps)
++    && /runDocsGenerate|\.command\("generate"\)/.test(cliSource)) {
++    issues.push(error(
++      "docs.fact.implementedMissing",
++      "docs/implementation-gaps.md lists contract Markdown generation as missing although docs generate is implemented"
++    ));
++  }
++
++  if (mergeProtection && /(?:currently|現行)[^\n]*(?:private|public)/i.test(mergeProtection)
++    && !/(?:snapshot|観測|revalidat|再検証|gh api)/i.test(mergeProtection)) {
++    issues.push(error(
++      "docs.fact.transientRepositoryState",
++      "merge protection documentation contains an unbounded repository visibility claim; record a dated snapshot and live revalidation guidance"
++    ));
++  }
++
++  if (readme.includes("docs check") && !/\.command\("check"\)/.test(cliSource)) {
++    issues.push(error("docs.fact.commandMissing", "README documents docs check but the command is not registered in src/cli.ts"));
++  }
++  return issues;
++}
++
+ function parseVersion(value: string): [number, number, number] | undefined {
+   const match = value.match(SEMVER);
+   if (!match) return undefined;
+@@ -114,6 +203,10 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+   if (!stringArray(raw.standardEntrypoints) || raw.standardEntrypoints.length === 0) {
+     issues.push(error("docs.manifest.standardEntrypoints", "standardEntrypoints must be a non-empty string array"));
+   }
++  const validIgnoredPaths = raw.ignoredPaths === undefined || stringArray(raw.ignoredPaths);
++  if (!validIgnoredPaths || (raw.ignoredPaths as unknown[] | undefined)?.some((item) => !safeRepositoryPath(item as string))) {
++    issues.push(error("docs.manifest.ignoredPaths", "ignoredPaths must be a string array of safe repository-relative paths"));
++  }
+   if (!Array.isArray(raw.documents) || raw.documents.length === 0) {
+     issues.push(error("docs.manifest.documents", "documents must be a non-empty array"));
+     return { issues };
+@@ -172,7 +265,8 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+     manifest: {
+       schemaVersion: "1.0.0",
+       standardEntrypoints: raw.standardEntrypoints as string[],
+-      documents
++      documents,
++      ignoredPaths: raw.ignoredPaths === undefined ? [] : raw.ignoredPaths as string[]
+     },
+     issues
+   };
+@@ -308,6 +402,8 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
+     }
+   }
+   issues.push(...validateSuccessorGraph(manifest));
++  issues.push(...collectOrphanDocumentationIssues(root, manifest));
++  issues.push(...collectFactualDocumentationIssues(root));
+ 
+   return { manifest, cliVersion, issues };
+ }
+diff --git a/tests/integration/docs-check.test.ts b/tests/integration/docs-check.test.ts
+index 296557a..f5b8b87 100644
+--- a/tests/integration/docs-check.test.ts
++++ b/tests/integration/docs-check.test.ts
+@@ -38,7 +38,12 @@ function documentSet(overrides: Partial<DocumentSetFixture> = {}): DocumentSetFi
+   };
+ }
+ 
+-function writeFixture(root: string, documents: DocumentSetFixture[], standardEntrypoints = [documents[0].entrypoint]): void {
++function writeFixture(
++  root: string,
++  documents: DocumentSetFixture[],
++  standardEntrypoints = [documents[0].entrypoint],
++  ignoredPaths: string[] = []
++): void {
+   writeJson(root, "package.json", { version: "0.1.0" });
+   for (const document of documents) {
+     writeText(root, document.entrypoint, `# ${document.documentId}\n`);
+@@ -46,6 +51,7 @@ function writeFixture(root: string, documents: DocumentSetFixture[], standardEnt
+   writeJson(root, "docs/document-lifecycle.json", {
+     schemaVersion: "1.0.0",
+     standardEntrypoints,
++    ignoredPaths,
+     documents
+   });
+ }
+@@ -174,6 +180,62 @@ describe("docs check", () => {
+     ]));
+   });
+ 
++  test("reports orphan Markdown and supports explicit ignored paths", () => {
++    const root = makeTempRepo();
++    writeFixture(root, [documentSet()]);
++    writeText(root, "docs/orphan.md", "# Orphan\n");
++
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .toContain("docs.orphan.unregistered");
++
++    writeFixture(root, [documentSet()], undefined, ["docs/orphan.md"]);
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .not.toContain("docs.orphan.unregistered");
++  });
++
++  test("reports lint threshold drift between package.json and README", () => {
++    const root = makeTempRepo();
++    writeFixture(root, [documentSet()]);
++    writeJson(root, "package.json", { version: "0.1.0", scripts: { lint: "eslint --max-warnings=0" } });
++    writeText(root, "README.md", "# ACED\nThe baseline is currently up to 37 warnings.\n");
++
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .toContain("docs.fact.lintThreshold");
++  });
++
++  test("reports implemented documentation automation that remains in the gaps table", () => {
++    const root = makeTempRepo();
++    const gaps = documentSet({
++      documentId: "gaps",
++      entrypoint: "docs/implementation-gaps.md",
++      paths: ["docs/implementation-gaps.md"]
++    });
++    writeFixture(root, [gaps]);
++    writeText(root, "docs/implementation-gaps.md", "| Documentation automation | Markdown generation from contracts | missing |\n");
++    writeText(root, "src/cli.ts", 'program.command("generate");\n');
++
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .toContain("docs.fact.implementedMissing");
++  });
++
++  test("requires repository visibility claims to be dated snapshots with revalidation", () => {
++    const root = makeTempRepo();
++    const protection = documentSet({
++      documentId: "merge-protection",
++      entrypoint: "docs/scwbs/merge-protection.md",
++      paths: ["docs/scwbs/merge-protection.md"]
++    });
++    writeFixture(root, [protection]);
++    writeText(root, "docs/scwbs/merge-protection.md", "This repository is currently private.\n");
++
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .toContain("docs.fact.transientRepositoryState");
++
++    writeText(root, "docs/scwbs/merge-protection.md", "This is a dated snapshot; revalidate with gh api.\n");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
++      .not.toContain("docs.fact.transientRepositoryState");
++  });
++
+   test("is available in CLI help and aggregate scwbs check", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
