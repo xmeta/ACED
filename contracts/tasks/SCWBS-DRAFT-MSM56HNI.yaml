@@ -1,0 +1,69 @@
+id: SCWBS-DRAFT-MSM56HNI
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSM56HNI
+branchName: task/SCWBS-DRAFT-MSM56HNI-p1-ai-issue-455-phase-2-bounded-debugger-remedia
+status: approved
+approvedBy: xmeta
+sourceIssue: 455
+allowedPaths:
+  - src/commands/ai-run.ts
+  - src/cli/register-governance.ts
+  - tests/integration/ai.test.ts
+  - docs/scwbs/schemas/ai-execution.schema.json
+  - docs/implementation-gaps.md
+  - README.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - agent credential or external service change
+  - unbounded retry or multi-task execution
+  - Human Approval transition
+  - authority or Human Gate path change
+  - PR/merge/release automation
+  - dependency or lockfile change
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - debugger input/output uses a versioned contract with ROOT_CAUSE, CATEGORY, FIX_PLAN, and NEXT_ACTION fields
+  - reviewer rejection can trigger at most two fresh debugger/remediation rounds, then fails closed
+  - debugger and remediation never create Approval/Review records or bypass Human Gate/authority checks
+  - interrupted execution can resume only when receipt, HEAD, task authority, and scope fingerprints still match
+  - receipts preserve bounded round history and remain derived local state
+  - integration tests cover debugger success, round limit, stale resume, and unsupported adapter capability
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/specs/SPEC-LITE-MSM56HNI.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM56HNI.patch
+  - contracts/approvals/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a152813fd0b5f788507260465449377e4f9864531c1f198a0a70eda04bb63e5f
+  createdAt: "2026-08-09T18:35:32.401Z"
