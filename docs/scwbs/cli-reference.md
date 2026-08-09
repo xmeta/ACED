@@ -30,6 +30,27 @@ task/SCWBS-DRAFT-M3QJ2K-fix-parser
 
 ## Core Checks
 
+### Top-level command groups
+
+The top-level help lists each command group with a short purpose. Use the
+group-specific help for its subcommands and options:
+
+| Group | Purpose |
+|---|---|
+| `ci` | Plan and classify CI execution |
+| `checks` | Run and inspect required checks |
+| `metrics` | Measure governance cost and repository metrics |
+| `ai` | Build AI packets and dry-run task plans |
+| `approval` | Manage task approval requests and delegated policy preparation |
+| `completion` | Apply completion changes through SC-WBS |
+| `evidence` | Collect and maintain Task Evidence |
+| `registry` | Validate and rebuild the contract registry |
+| `profile` | Show or change the SC-WBS profile |
+| `review` | Request and route Task reviews |
+| `lite` | Create lightweight task proposals |
+| `task` | Manage Task Contracts and lifecycle |
+| `wbs` | Validate and apply WBS changes |
+
 ```bash
 npm run scwbs -- init --profile lean --agent codex --lang ja
 npm run scwbs -- update --agent claude

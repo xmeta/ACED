@@ -10,7 +10,7 @@ import type { CommandContext } from "./command-context.js";
 
 export function registerTaskCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
-  const lite = program.command("lite");
+  const lite = program.command("lite").description("Create lightweight task proposals");
   lite
     .command("task")
     .description("Create a lite task")
@@ -25,7 +25,7 @@ export function registerTaskCommands(program: Command, context: CommandContext):
       setExitCode(runLiteTask(root, title));
     });
 
-  const task = program.command("task");
+  const task = program.command("task").description("Manage Task Contracts and lifecycle");
   task
     .command("start")
     .description("Run pre-flight for an existing Task Contract")

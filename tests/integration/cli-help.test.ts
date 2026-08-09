@@ -77,6 +77,28 @@ describe("CLI help lifecycle semantics", () => {
     expect(aiRun.stdout.replace(/\s+/g, " ")).toContain("Print a dry-run AI task plan");
   });
 
+  test("describes every top-level command group", () => {
+    const root = makeTempRepo();
+    const topLevel = captureHelp(["--help"], root);
+    const topLevelText = topLevel.stdout.replace(/\s+/g, " ");
+    const descriptions = [
+      "ci Plan and classify CI execution",
+      "checks Run and inspect required checks",
+      "metrics Measure governance cost and repository metrics",
+      "ai Build AI packets and dry-run task plans",
+      "approval Manage task approval requests and delegated policy preparation",
+      "completion Apply completion changes through SC-WBS",
+      "evidence Collect and maintain Task Evidence",
+      "registry Validate and rebuild the contract registry",
+      "profile Show or change the SC-WBS profile",
+      "review Request and route Task reviews",
+      "lite Create lightweight task proposals",
+      "task Manage Task Contracts and lifecycle",
+      "wbs Validate and apply WBS changes"
+    ];
+    descriptions.forEach((description) => expect(topLevelText).toContain(description));
+  });
+
   test("distinguishes Commander usage errors from action validation errors", () => {
     const root = makeTempRepo();
 

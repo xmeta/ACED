@@ -4,7 +4,7 @@ import type { CommandContext } from "./command-context.js";
 
 export function registerWbsCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
-  const wbs = program.command("wbs");
+  const wbs = program.command("wbs").description("Validate and apply WBS changes");
   wbs
     .command("validate")
     .description("Validate WBS")

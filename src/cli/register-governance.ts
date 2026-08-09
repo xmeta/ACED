@@ -168,7 +168,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       setExitCode(runSpecChangeNew(root, options));
     });
 
-  const ai = program.command("ai");
+  const ai = program.command("ai").description("Build AI packets and dry-run task plans");
   ai.command("packet")
     .description("Build AI work packet")
     .option("--task <id>", "task id")
@@ -234,7 +234,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       setExitCode(runAiNextTask(root));
     });
 
-  const approval = program.command("approval");
+  const approval = program.command("approval").description("Manage task approval requests and delegated policy preparation");
   approval
     .command("request")
     .description("Request task approval")
@@ -304,7 +304,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       setExitCode(runApprovalDelegationPrepare(root, options.task, options));
     });
 
-  const completion = program.command("completion");
+  const completion = program.command("completion").description("Apply completion changes through SC-WBS");
   completion
     .command("apply")
     .description("Apply completion")
@@ -323,7 +323,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       );
     });
 
-  const evidence = program.command("evidence");
+  const evidence = program.command("evidence").description("Collect and maintain Task Evidence");
   evidence
     .command("collect")
     .description("Collect evidence for a task")
@@ -409,7 +409,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       setExitCode(runEvidencePrune(root, { json: options.json ?? false, apply: options.apply ?? false }));
     });
 
-  const registry = program.command("registry");
+  const registry = program.command("registry").description("Validate and rebuild the contract registry");
   registry
     .command("rebuild")
     .description("Rebuild registry")
@@ -432,7 +432,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       );
     });
 
-  const profile = program.command("profile");
+  const profile = program.command("profile").description("Show or change the SC-WBS profile");
   profile
     .command("show")
     .description("Show profile")
@@ -453,7 +453,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
       setExitCode(runProfileSet(root, profileName));
     });
 
-  const review = program.command("review");
+  const review = program.command("review").description("Request and route Task reviews");
   review
     .command("request")
     .description("Request a review")

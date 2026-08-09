@@ -249,7 +249,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   registerDiscoveryCommands(program, commandContext);
   registerProjectCommands(program, commandContext);
 
-  const ci = program.command("ci");
+  const ci = program.command("ci").description("Plan and classify CI execution");
   ci
     .command("plan")
     .description("Plan full or provenance-verified metadata CI and report a read-only task execution classification")
@@ -266,7 +266,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       });
     });
 
-  const checks = program.command("checks");
+  const checks = program.command("checks").description("Run and inspect required checks");
   checks
     .command("run")
     .description("Run required checks and write a provenance-bound receipt")
@@ -307,7 +307,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--governance-cost", "include warning-only governance cost budget status")
     .action((opts) => { exitCode = runHealth(root, { json: opts.json ?? false, verbose: opts.verbose ?? false, governanceCost: opts.governanceCost ?? false }); });
 
-  const metrics = program.command("metrics");
+  const metrics = program.command("metrics").description("Measure governance cost and repository metrics");
   metrics
     .command("governance")
     .description("Measure governance cost without writing artifacts")
