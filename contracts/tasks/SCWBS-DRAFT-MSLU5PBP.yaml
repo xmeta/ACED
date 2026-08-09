@@ -41,8 +41,8 @@ requiredChecks:
   - build
   - test:integration
 doneCriteria:
-  - runWjsValidate never downgrades missing or unusable canonical WJS validation to a permissive local fallback
-  - unavailable validator errors are fail-closed, identify the validation kind and target, and include the WJS initialization repair command
+  - operations validation never downgrades missing or unusable canonical WJS validation to a permissive local fallback
+  - unavailable operations validator errors are fail-closed, identify the target, and include the WJS initialization repair command
   - canonical WJS validation behavior remains unchanged when the validator is available
   - operations validation rejects malformed changesets through the canonical validator path and check-diff surfaces the fail-closed issue
   - doctor reports canonical validator availability using the same availability boundary and remediation guidance

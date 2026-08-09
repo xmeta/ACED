@@ -142,7 +142,9 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
   const validator = path.resolve(wjsRoot, "tools/validate.ts");
   const target = resolveFrom(root, relativePath);
   if (!existsSync(validator)) {
-    return [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")];
+    return kind === "operations"
+      ? [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")]
+      : validateWbsDocument(root, relativePath);
   }
 
   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
@@ -156,7 +158,9 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
     });
   }
   if (result.status !== 0 && isWjsRuntimeUnavailable(result)) {
-    return [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")];
+    return kind === "operations"
+      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")]
+      : validateWbsDocument(root, relativePath);
   }
 
   if (result.status === 0) return [];
