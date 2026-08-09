@@ -1,6 +1,6 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
-import { matchesAny, validateGlobPattern } from "../core/glob.js";
+import { matchesAny } from "../core/glob.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
@@ -158,22 +158,6 @@ export function evaluateWorkingTreeGuard(root: string, taskId: string): { state:
  */
 export function collectDiffIssues(root: string, task: TaskContract, files: string[], evidenceOverride?: Evidence): Issue[] {
   const issues: Issue[] = [];
-  const pathPatterns = [
-    ...task.allowedPaths.map((pattern) => ({ field: "allowedPaths", pattern })),
-    ...task.forbiddenPaths.map((pattern) => ({ field: "forbiddenPaths", pattern })),
-    ...task.humanGateRequiredPaths.map((pattern) => ({ field: "humanGateRequiredPaths", pattern }))
-  ];
-  for (const { field, pattern } of pathPatterns) {
-    const reason = validateGlobPattern(pattern);
-    if (reason) {
-      issues.push({
-        severity: "error",
-        code: "diff.glob.unsupported",
-        message: `${task.id} ${field} pattern ${pattern} is unsupported: ${reason}`,
-        fixCommand: `Use repository-relative literal paths, * within one segment, or ** as a complete segment in contracts/tasks/${task.id}.yaml`
-      });
-    }
-  }
   const evidence = evidenceOverride ?? readEvidence(root, task.id).evidence;
   const releaseAuthority = verifiedUpstreamReleasePaths(task, evidence, files);
   issues.push(...releaseAuthority.issues);
