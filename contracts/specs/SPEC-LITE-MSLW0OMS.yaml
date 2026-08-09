@@ -1,0 +1,19 @@
+id: SPEC-LITE-MSLW0OMS
+type: spec-contract
+featureId: F-MSLW0OMS
+title: "Issue #486: Task Contractとcheck-coverageで共有するglobstarをsegment-aware semanticsへ統一する"
+status: approved
+version: 0.1.0
+summary: "allowedPaths等のauthority matcherで**をpath segment単位の0個以上として扱い、root-levelとnested directoryの判定差をなくす"
+approvedBy: xmeta
+approvedAt: "2026-08-09T00:00:00+09:00"
+acceptanceCriteria:
+  - "**/*.tsがfoo.tsとa/b.tsにmatchし、src/**/foo.tsがsrc/foo.tsとsrc/a/b/foo.tsにmatchする"
+  - "*は単一path segment内だけをmatchし、slashを跨がない"
+  - Windows separatorを正規化し、allowedPaths、forbiddenPaths、humanGateRequiredPaths、check-coverageが同じmatchesGlob実装を使い続ける
+  - unsupported syntaxを別のglob semanticsへ黙って変換せず、必要な検証境界で明示的に拒否できる
+  - root-level、nested、non-match、separator、authority/check-coverage regression testsを追加する
+  - path policy、WBS正本、WJS source、package、CIは変更しない
+nonGoals:
+  - shell globの全syntaxやbrace expansionの実装
+  - regexをauthority pathとして受け入れること
