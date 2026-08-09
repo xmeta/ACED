@@ -1,0 +1,61 @@
+id: SCWBS-DRAFT-MSLCDELO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLCDELO
+branchName: task/SCWBS-DRAFT-MSLCDELO-issue-475-split-runfinishinternal-into-testable-
+status: approved
+approvedBy: xmeta
+sourceIssue: 475
+allowedPaths:
+  - src/commands/finish.ts
+  - tests/unit/finish.test.ts
+forbiddenPaths:
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - finish behavior ambiguity
+  - Human Gate or approval semantics change
+  - required-check semantics change
+  - authority outside allowed paths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - '`runFinishInternal` is decomposed into lifecycle-step helpers so the coordinator is under 150 lines without changing finish outcomes or mutation order'
+  - Required-check execution, Evidence construction, diff guard, registry checkpoint, Human Gate, and readiness decisions retain their current behavior
+  - Unit tests in `tests/unit/finish.test.ts` cover the extracted lifecycle decisions and failure boundaries
+  - Full `test:all` behavior remains green through the Task required checks
+  - 'Issue #475 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - finish-lifecycle-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLCDELO.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLCDELO.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T05:09:31.141Z"
