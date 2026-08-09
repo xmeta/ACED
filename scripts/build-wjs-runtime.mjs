@@ -33,7 +33,7 @@ function resolveEsbuild() {
 function compactSchema(value) {
   if (Array.isArray(value)) return value.map(compactSchema);
   if (!value || typeof value !== "object") return value;
-  const omitted = new Set(["$schema", "title", "description", "default"]);
+  const omitted = new Set(["$schema", "title", "description", "default", "examples"]);
   return Object.fromEntries(Object.entries(value)
     .filter(([key]) => !omitted.has(key))
     .map(([key, item]) => [key, compactSchema(item)]));
