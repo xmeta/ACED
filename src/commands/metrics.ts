@@ -13,6 +13,7 @@ import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycl
 import { listApprovals } from "../core/contracts.js";
 import { evaluateGovernanceWarningBudgets, type GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
 import { readWbs } from "../core/wbs.js";
+import { summarizeNumbers, type NumericSummary } from "../core/metrics-domain.js";
 
 const GOVERNANCE_DIRS = [
   "contracts/tasks",
@@ -27,7 +28,7 @@ const GOVERNANCE_DIRS = [
 ] as const;
 
 type Bucket = { files: number; bytes: number; lines: number };
-type NullableDuration = { total: number | null; average: number | null; minimum: number | null; maximum: number | null };
+type NullableDuration = NumericSummary;
 type Period = { from: string | null; to: string | null };
 
 export type LocalAiExecutionSummary = {
@@ -224,17 +225,6 @@ export type MetricsOptions = { json?: boolean };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function numericValues(values: Array<number | null | undefined>): number[] {
-  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-}
-
-function summarizeNumbers(values: Array<number | null | undefined>): NullableDuration {
-  const observed = numericValues(values);
-  if (observed.length === 0) return { total: null, average: null, minimum: null, maximum: null };
-  const total = observed.reduce((sum, value) => sum + value, 0);
-  return { total, average: Math.round(total / observed.length), minimum: Math.min(...observed), maximum: Math.max(...observed) };
 }
 
 type LocalAiReceipt = {
