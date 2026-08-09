@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSLW0OMS
+type: evidence
+taskId: SCWBS-DRAFT-MSLW0OMS
+commit: 274ca20c0c10f5c88c28c30e082d7993b0a337ef
+subjectHeadCommit: 274ca20c0c10f5c88c28c30e082d7993b0a337ef
+diffHash: sha256:182f580bba3a3d1af7535fcc9de0d8f44a345098419dce9bae7383d79b986041
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 274ca20c0c10f5c88c28c30e082d7993b0a337ef
+    treeHash: 0aacf0a1bad81acf16a7b96a652ed17239220ee0
+    diffHash: sha256:182f580bba3a3d1af7535fcc9de0d8f44a345098419dce9bae7383d79b986041
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLW0OMS.patch
+    manifestHash: sha256:182f580bba3a3d1af7535fcc9de0d8f44a345098419dce9bae7383d79b986041
+git:
+  branch: task/SCWBS-DRAFT-MSLW0OMS-issue-486-segment-aware-globstar-semantics-and-s
+  base: origin/main
+  baseCommit: a23ec7abb3c3e95f617195ed8e2bb2fd8e424b07
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 274ca20c0c10f5c88c28c30e082d7993b0a337ef
+  diffHash: sha256:182f580bba3a3d1af7535fcc9de0d8f44a345098419dce9bae7383d79b986041
+  headCommit: 274ca20c0c10f5c88c28c30e082d7993b0a337ef
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSLW0OMS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - src/core/glob.ts
+  - tests/integration/check-diff.test.ts
+  - tests/unit/glob.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ac7d3c7898fb8ac6af957757ed33eabc1b5aad9abc534910684652e14d1c7b5d
+    durationMilliseconds: 20110
+    executedAt: "2026-08-09T14:32:09.825Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:fc13d0d789146b8984dc036c6fc1a2a81353a52655b9d7e02923bd5bb283e9ad
+    durationMilliseconds: 14385
+    executedAt: "2026-08-09T14:32:24.214Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:851f6d6b0bb5ca975afb8741271f56957da661a4393602eb7d33951c5e730983
+    durationMilliseconds: 5713
+    executedAt: "2026-08-09T14:32:29.931Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:0a2e5811fbd540906ea02bb9a54b9f593eb60262cc07dcafcc5465d4c41f4424
+    durationMilliseconds: 302646
+    executedAt: "2026-08-09T14:37:32.581Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added segment-aware globstar, separator normalization, unsupported syntax, and shared matcher regression coverage
