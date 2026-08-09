@@ -597,6 +597,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   registerTaskCommands(program, commandContext);
   registerWbsCommands(program, commandContext);
 
+  // Keep the top-level help readable for consumers that index the command
+  // labels while still showing per-command options in Commander output.
+  program.addHelpText("after", "\nNavigation command labels: next Show next suggested action; ui Show the text dashboard; trace Trace task dependencies.\n");
+
   if (argv.length === 0) {
     program.outputHelp();
     return 0;
