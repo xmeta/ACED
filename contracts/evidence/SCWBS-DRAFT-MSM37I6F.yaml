@@ -1,0 +1,69 @@
+id: EVD-SCWBS-DRAFT-MSM37I6F
+type: evidence
+taskId: SCWBS-DRAFT-MSM37I6F
+commit: 4e65826056dfd5885bfb1e53b0c50a119372ff78
+subjectHeadCommit: 4e65826056dfd5885bfb1e53b0c50a119372ff78
+diffHash: sha256:ed53be9c3dbcb986c6f52e7ff0f53790fc033a7f4b158f91261482d84d1c5d2e
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 4e65826056dfd5885bfb1e53b0c50a119372ff78
+    treeHash: d131734b2a2a69731875b8c3c4a2b7c58da1daf5
+    diffHash: sha256:ed53be9c3dbcb986c6f52e7ff0f53790fc033a7f4b158f91261482d84d1c5d2e
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSM37I6F.patch
+    manifestHash: sha256:ed53be9c3dbcb986c6f52e7ff0f53790fc033a7f4b158f91261482d84d1c5d2e
+git:
+  branch: task/SCWBS-DRAFT-MSM37I6F-p1-distribution-issue-483-phase-1-standalone-pac
+  base: origin/main
+  baseCommit: 1d6f253d9819f6b58b3872ff28b998b5e661f7cb
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 4e65826056dfd5885bfb1e53b0c50a119372ff78
+  diffHash: sha256:ed53be9c3dbcb986c6f52e7ff0f53790fc033a7f4b158f91261482d84d1c5d2e
+  headCommit: 4e65826056dfd5885bfb1e53b0c50a119372ff78
+changedFiles:
+  - CONTRIBUTING.md
+  - README.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSM37I6F.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSM37I6F.yaml
+  - contracts/tasks/index.yaml
+  - src/cli.ts
+  - tests/integration/packaging.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:6ad09c125e9a516732c74c4d7fe739e6b1a2432b104a86f2b4cbb1118547495c
+    durationMilliseconds: 5199
+    executedAt: "2026-08-09T18:13:50.453Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:38d0da6aa82d3ea9033656189aa53a1bf35260dbd64d8852320310c9ae52ba8d
+    durationMilliseconds: 11254
+    executedAt: "2026-08-09T18:14:01.713Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:2dd24afededb19497b84366c3d0bd3194b1660fec283cd43f520aab45bed8994
+    durationMilliseconds: 4876
+    executedAt: "2026-08-09T18:14:06.592Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f6dc41c3276aa5e614f02b14d4998e71bc02dc80557c2ea418bd9233c8dcd32b
+    durationMilliseconds: 304330
+    executedAt: "2026-08-09T18:19:10.928Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added standalone npm pack smoke coverage and package-version CLI assertion
