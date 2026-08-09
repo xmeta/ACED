@@ -38,6 +38,31 @@
         "minLength": 1
       }
     },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "capabilities"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "capabilities": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": { "enum": ["implement", "review", "debug", "fresh-context", "json-io"] }
+        }
+      }
+    },
+    "learnedNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceTaskId", "sourceHeadCommit", "scope", "note"],
+      "properties": {
+        "sourceTaskId": { "type": "string", "pattern": "^SCWBS-[A-Z0-9-]+$" },
+        "sourceHeadCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "scope": { "$ref": "#/$defs/pathList", "maxItems": 8 },
+        "note": { "type": "string", "minLength": 1, "maxLength": 2000 }
+      }
+    },
     "plan": {
       "type": "object",
       "additionalProperties": false,
@@ -79,7 +104,8 @@
         "reviewer": { "$ref": "#/$defs/adapter" },
         "automaticPullRequest": { "const": false },
         "automaticMerge": { "const": false },
-        "debugger": { "const": false }
+        "debugger": { "const": false },
+        "learnedNotes": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/learnedNote" } }
       }
     },
     "adapter": {
@@ -89,7 +115,8 @@
       "properties": {
         "command": { "$ref": "#/$defs/command" },
         "contextId": { "type": "string", "minLength": 1 },
-        "freshContext": { "const": true }
+        "freshContext": { "const": true },
+        "provider": { "$ref": "#/$defs/provider" }
       }
     },
     "planV2": {
@@ -116,7 +143,8 @@
         "automaticMerge": { "const": false },
         "debugger": { "$ref": "#/$defs/adapter" },
         "maxRemediationRounds": { "const": 2 },
-        "resumeFrom": { "type": "string", "minLength": 1 }
+        "resumeFrom": { "type": "string", "minLength": 1 },
+        "learnedNotes": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/learnedNote" } }
       }
     },
     "input": {
@@ -190,7 +218,10 @@
             "message": { "type": "string", "minLength": 1 }
           }
         },
-        "receiptPath": { "type": "string", "minLength": 1 }
+        "receiptPath": { "type": "string", "minLength": 1 },
+        "startedAt": { "type": "string", "minLength": 1 },
+        "endedAt": { "type": "string", "minLength": 1 },
+        "cost": { "$ref": "#/$defs/cost" }
       }
     },
     "receiptV2": {
@@ -225,7 +256,23 @@
           }
         },
         "failure": { "$ref": "#/$defs/receipt/properties/failure" },
-        "receiptPath": { "type": "string", "minLength": 1 }
+        "receiptPath": { "type": "string", "minLength": 1 },
+        "startedAt": { "type": "string", "minLength": 1 },
+        "endedAt": { "type": "string", "minLength": 1 },
+        "cost": { "$ref": "#/$defs/cost" }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wallTimeMilliseconds", "agentTurns", "remediationRounds", "requiredChecksObserved", "requiredChecksReused", "requiredCheckReuseRate"],
+      "properties": {
+        "wallTimeMilliseconds": { "type": ["integer", "null"], "minimum": 0 },
+        "agentTurns": { "type": "integer", "minimum": 0 },
+        "remediationRounds": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "requiredChecksObserved": { "type": "integer", "minimum": 0 },
+        "requiredChecksReused": { "type": "integer", "minimum": 0 },
+        "requiredCheckReuseRate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
       }
     }
   }

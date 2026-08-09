@@ -159,12 +159,15 @@ npm run scwbs -- metrics governance --json
 - `humanGate`
 - `historicalPullRequests`
 - `healthLifecycle`
+- `aiExecution`
 
 `1.0.0` は現行CLIが返す値ではない。consumerは `schemaVersion` を検査し、対応していないversionを推測で処理しないこと。将来versionの互換性方針は現行実装だけからは保証されない。
 
 GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順、paginateしない）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。`taskPullRequests` は `pull_request` eventの `task/SCWBS-*` branchだけをtask ID別にまとめ（「Task IDとブランチ命名」を参照）、run、completed、success、failure、その他の完了、未完了、durationを`latestUpdatedAt`降順（同値は`taskId`昇順）の最大20件で返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
 
 `localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。
+
+`aiExecution` はgit common dirの`scwbs-ai-execution`にあるTask別最新receiptをread-onlyで集計する。wall time、adapter turn数、remediation round数、required-check reuse率を返し、cost metadataのないlegacy receiptは有効な未観測値として扱う。receipt directoryを読めない場合やgit repository外では`status: unavailable`とreasonを返し、未観測値を0へ推測しない。正式なJSON shapeは[`governance-cost.schema.json`](schemas/governance-cost.schema.json)で定義する。
 
 `finish` はpreflight/fullのterminal outcomeごとに、git common dirのTask別 `scwbs-finish-lifecycle` receiptへ開始・終了・duration・phase・outcome・exit code・mutated file数・subject/head・検証済みmetadata ancestry数をatomicに記録する。tracked artifactやRegistryは増やさない。1 Taskは最新50 event、repositoryは最新100 Taskにbounded化される。
 
@@ -193,9 +196,9 @@ npm run scwbs -- next
 
 `ai run` is initially a dry-run orchestrator. It prints the pre-flight checks, implementation stop conditions, and post-flight checks rather than launching an external agent.
 
-`ai execute` is the bounded Phase 1 runner. It accepts JSON command arrays rather than a shell string, starts exactly one Task iteration, sends a bounded Work Packet to an implementer, runs the Task's existing required checks, and sends a separate fresh-context input to a reviewer. Adapter processes receive `SCWBS_RUNNER_ROLE` and `SCWBS_RUNNER_CONTEXT_ID`; the approval delegation token is removed from their environment. Each adapter must write a versioned JSON result to the output path supplied as its final argument. A failed preflight, path/authority check, required check, adapter result, or reviewer decision produces a blocked `scwbs.ai-run-receipt.v1` and skips later stages.
+`ai execute` is the bounded Phase 1/2 runner. It accepts JSON command arrays rather than a shell string, starts exactly one Task iteration, sends a bounded Work Packet to an implementer, runs the Task's existing required checks, and sends a separate fresh-context input to a reviewer. Adapter processes receive `SCWBS_RUNNER_ROLE` and `SCWBS_RUNNER_CONTEXT_ID`; the approval delegation token is removed from their environment. Each adapter must write a versioned JSON result to the output path supplied as its final argument. Optional JSON provider descriptors (`--implementer-provider`, `--reviewer-provider`, and `--debugger-provider`) declare the role, `fresh-context`, and `json-io` capabilities required by that adapter; unsupported declarations fail closed before spawning it. A bounded `--learned-note` carries only a source Task ID, source HEAD SHA, scope, and advisory note. A failed preflight, path/authority check, required check, adapter result, or reviewer decision produces a blocked `scwbs.ai-run-receipt.v1` and skips later stages.
 
-The runner never creates Approval or human-only Review transitions, commits, pull requests, or merges. It does not implement debugger, retry, or resume behavior; those belong to the later Phase 2 work. The plan, input, result, and receipt shapes are defined in [`ai-execution.schema.json`](schemas/ai-execution.schema.json).
+The runner never creates Approval or human-only Review transitions, commits, pull requests, or merges. Phase 2 debugger/remediation remains bounded to two rounds and resume remains fail-closed. By default, receipts are written as derived local state under the git common directory's `scwbs-ai-execution` directory, one latest receipt per Task, and retain wall time, adapter turns, remediation rounds, and required-check reuse rate. The plan, input, result, and receipt shapes are defined in [`ai-execution.schema.json`](schemas/ai-execution.schema.json).
 
 `ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. Eligible candidates are ordered by optional Task Contract `priority` (`high`, `medium`, `low`), then by Task ID; tasks without a priority remain after prioritized tasks and retain the existing Task ID fallback. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
 
