@@ -1,0 +1,79 @@
+id: SCWBS-DRAFT-MSMD8D3O
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSMD8D3O
+branchName: task/SCWBS-DRAFT-MSMD8D3O-issue-483-phase-2
+status: approved
+approvedBy: xmeta
+sourceIssue: 483
+allowedPaths:
+  - package.json
+  - src/core/wbs.ts
+  - src/commands/wbs.ts
+  - src/commands/doctor.ts
+  - src/core/wjs-runtime.ts
+  - scripts/build-wjs-runtime.mjs
+  - scripts/distribution-smoke.mjs
+  - tests/integration/distribution-standalone.test.ts
+  - .github/workflows/scwbs.yml
+  - .github/workflows/release.yml
+  - README.md
+  - CONTRIBUTING.md
+  - CHANGELOG.md
+  - docs/scwbs/distribution.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - npm publish
+  - repository visibility
+  - registry credentials
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/release.yml
+stopIf:
+  - WJS ownership change required
+  - npm registry publication or credential change required
+  - repository visibility or external release policy change required
+  - destructive or schema change required
+  - allowed path expansion required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+  - test:wjs
+doneCriteria:
+  - standalone packed artifact resolves WJS validator and apply runtime without an ACED checkout or wjs submodule
+  - package build bundles the required WJS tools and schemas while leaving wjs ownership unchanged
+  - scwbs init, doctor, check, WBS validation, and WBS apply smoke coverage works from a packed standalone artifact
+  - CI installs and exercises the packed artifact in a fresh fixture project
+  - GitHub Release workflow produces a self-contained artifact without npm publication
+  - README, CONTRIBUTING, CHANGELOG, and distribution documentation describe consumer, contributor, compatibility, and release policy
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/specs/SPEC-LITE-MSMD8D3O.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMD8D3O.patch
+  - contracts/approvals/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSMD8D3O.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:ae22883260cdc48dcbd306e3da034b77d4aeca35026eb25457b088096aa2217a
+  createdAt: "2026-08-09T22:22:07.015Z"
