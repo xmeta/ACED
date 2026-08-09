@@ -65,11 +65,26 @@ npm run scwbs -- check-diff --task SCWBS-001
 npm run scwbs -- status
 npm run scwbs -- status --json
 npm run scwbs -- status --strict
+npm run scwbs -- next --json
+npm run scwbs -- ui --json
+npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
 ```
 
 `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
 
 `init --agent` creates the selected adapter's standard instruction file only when it does not exist. Supported adapters are `codex`, `claude`, `cursor`, and `copilot`. It records generated file hashes in `.scwbs/agent-files.json`. `update` refreshes only files whose current contents still match the recorded generated hash; divergent or user-owned files are reported and left unchanged.
+
+### Navigation JSON contracts
+
+`next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
+
+| Command | Version | Schema |
+|---|---|---|
+| `next --json` | `scwbs.next.v1` | `docs/scwbs/schemas/next.schema.json` |
+| `ui --json` | `scwbs.ui.v1` | `docs/scwbs/schemas/ui.schema.json` |
+| `trace --json` | `scwbs.trace.v1` | `docs/scwbs/schemas/trace.schema.json` |
+
+`next --json` の `action.owner` が `human` の場合、`aiStop: true` とともにAIは停止し、`command`を自動実行してはならない。`version`は互換性の固定点であり、既存フィールドの意味を変更する場合は同じversionを再利用せず、新しいversionとschemaを追加する。後方互換な任意フィールド追加は、consumerが未知フィールドを無視できることを前提に行う。
 
 ### `fixCommand` の意味
 

@@ -347,12 +347,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("next")
     .description("Show next suggested action")
-    .action(() => { exitCode = runNext(root); });
+    .option("--json", "output a versioned JSON action contract")
+    .action((opts) => { exitCode = runNext(root, { json: opts.json ?? false }); });
 
   program
     .command("ui")
     .description("Show the text dashboard")
-    .action(() => { exitCode = runUi(root); });
+    .option("--json", "output a versioned JSON dashboard")
+    .action((opts) => { exitCode = runUi(root, { json: opts.json ?? false }); });
 
   program
     .command("serve")
@@ -566,13 +568,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("trace")
     .description("Trace task dependencies")
     .option("--task <id>", "task id")
+    .option("--json", "output a versioned JSON graph")
     .action((opts) => {
       if (!opts.task) {
         console.error("Missing --task <task-id>");
         exitCode = 2;
         return;
       }
-      exitCode = runTrace(root, opts.task);
+      exitCode = runTrace(root, opts.task, { json: opts.json ?? false });
     });
 
   program
@@ -593,6 +596,10 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   registerGovernanceCommands(program, commandContext);
   registerTaskCommands(program, commandContext);
   registerWbsCommands(program, commandContext);
+
+  // Keep the top-level help readable for consumers that index the command
+  // labels while still showing per-command options in Commander output.
+  program.addHelpText("after", "\nNavigation command labels: next Show next suggested action; ui Show the text dashboard; trace Trace task dependencies.\n");
 
   if (argv.length === 0) {
     program.outputHelp();

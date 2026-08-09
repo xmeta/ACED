@@ -1,0 +1,58 @@
+id: SCWBS-DRAFT-MSM9LEWE
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSM9LEWE
+branchName: task/SCWBS-DRAFT-MSM9LEWE-issue-489-next-ui-trace-versioned-json-contract
+allowedPaths:
+  - src/cli.ts
+  - src/commands/next.ts
+  - src/commands/ui.ts
+  - src/commands/trace.ts
+  - tests/integration/navigation-json.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/next.schema.json
+  - docs/scwbs/schemas/ui.schema.json
+  - docs/scwbs/schemas/trace.schema.json
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - DB schema or migration
+  - authentication or authorization design change
+  - breaking API change
+  - personal data or security setting impact
+  - external service billing or release decision
+  - allowedPaths外の変更
+  - humanGateRequiredPathsへの変更
+  - 仕様変更レベルの判断に迷う
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - 'Complete Issue #489: next ui traceのversioned JSON contract'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM9LEWE.patch
+  - contracts/approvals/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSM9LEWE.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T20:38:19.202Z"
