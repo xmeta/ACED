@@ -2,10 +2,85 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { buildDoctorReport, runDoctor } from "../../src/commands/doctor.js";
-import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
+import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
+import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
 
 describe("doctor", () => {
+  test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", {
+      engines: { node: ">=22.12.0", npm: ">=10" },
+      packageManager: "npm@10.9.0",
+      workspaces: ["wjs"]
+    });
+
+    const diagnostics = collectEnvironmentDiagnostics(root, {
+      nodeVersion: "22.12.0",
+      npmVersion: "9.9.0",
+      corepackAvailable: true,
+      corepackVersion: "0.31.0",
+      corepackNpmVersion: "10.9.0",
+      dependencyGraphStatus: 0
+    });
+    const npm = diagnostics.find((diagnostic) => diagnostic.id === "npm");
+    const packageManager = diagnostics.find((diagnostic) => diagnostic.id === "packageManager");
+    const graph = diagnostics.find((diagnostic) => diagnostic.id === "dependencies.graph");
+    expect(npm).toMatchObject({
+      status: "fail",
+      details: { required: ">=10", actual: "9.9.0", source: "package.json#engines.npm" }
+    });
+    expect(packageManager).toMatchObject({
+      status: "pass",
+      details: { required: "npm@10.9.0", actual: "10.9.0" }
+    });
+    expect(graph).toMatchObject({
+      status: "pass",
+      details: { required: "npm ls --workspaces --depth=0", actual: "healthy", source: "corepack npm ls --workspaces --depth=0" }
+    });
+  });
+
+  test("doctor reports wrong pinned npm and missing Corepack independently", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeJson(root, "package.json", {
+      engines: { npm: ">=10" },
+      packageManager: "npm@10.9.0",
+      workspaces: ["wjs"]
+    });
+
+    const wrongPin = collectEnvironmentDiagnostics(root, {
+      npmVersion: "10.9.0",
+      corepackAvailable: true,
+      corepackNpmVersion: "10.8.0",
+      dependencyGraphStatus: 0
+    });
+    expect(wrongPin.find((diagnostic) => diagnostic.id === "npm")).toMatchObject({ status: "pass" });
+    expect(wrongPin.find((diagnostic) => diagnostic.id === "packageManager")).toMatchObject({ status: "fail" });
+
+    const noCorepack = collectEnvironmentDiagnostics(root, {
+      npmVersion: "10.9.0",
+      corepackAvailable: false,
+      corepackNpmVersion: "",
+      dependencyGraphStatus: 0
+    });
+    expect(noCorepack.find((diagnostic) => diagnostic.id === "corepack")).toMatchObject({ status: "fail" });
+    expect(noCorepack.find((diagnostic) => diagnostic.id === "packageManager")).toMatchObject({ status: "fail" });
+  });
+
+  test("doctor fix plan respects the pinned package manager", () => {
+    const root = makeTempRepo();
+    writeJson(root, "package.json", { packageManager: "npm@10.9.0" });
+    const plan = buildDoctorFixPlan(root, [{
+      id: "root.node_modules",
+      label: "root dependencies installed",
+      status: "fail",
+      message: "node_modules is missing",
+      fix: "Run: corepack npm install"
+    }]);
+    expect(plan).toEqual([{ command: "corepack", args: ["npm", "install"], cwd: "." }]);
+  });
+
   test("doctor shows the issue-specific CRLF repair command", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -50,13 +125,15 @@ describe("doctor", () => {
     console.log = (message?: unknown) => {
       output.push(String(message));
     };
+    let status: number;
     try {
-      expect(runDoctor(root, { json: true })).toBe(0);
+      status = runDoctor(root, { json: true });
     } finally {
       console.log = originalLog;
     }
 
     const parsed = JSON.parse(output.join("\n"));
+    expect(status).toBe(0);
     expect(parsed).toMatchObject({
       status: "pass",
       diagnostics: expect.any(Array),
