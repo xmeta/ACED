@@ -1,0 +1,65 @@
+id: SCWBS-DRAFT-MSLBJUFC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLBJUFC
+branchName: task/SCWBS-DRAFT-MSLBJUFC-issue-476-describe-cli-command-groups-in-help-ou
+status: approved
+approvedBy: xmeta
+sourceIssue: 476
+allowedPaths:
+  - src/cli.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-task.ts
+  - src/cli/register-wbs.ts
+  - docs/scwbs/cli-reference.md
+  - tests/integration/cli-help.test.ts
+forbiddenPaths:
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - CLI behavior ambiguity
+  - configuration change
+  - external service integration
+  - release decision
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - All 13 specified top-level command groups show a concise non-empty description in `scwbs --help`
+  - Group descriptions are consistent with the CLI Reference and do not claim unsupported mutation, service, or agent behavior
+  - Integration coverage verifies every group description and existing help semantics remain intact
+  - No command behavior, configuration, dependency, CI, credential, or release setting changes beyond help descriptions and their tests/docs
+  - 'Issue #476 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - cli-help-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLBJUFC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLBJUFC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLBJUFC.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLBJUFC.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLBJUFC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLBJUFC.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T04:46:25.175Z"
