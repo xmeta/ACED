@@ -1,0 +1,72 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..e071784
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,16 @@
++# Changelog
++
++All notable changes to this project will be documented in this file.
++
++The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
++and this project uses [Semantic Versioning](https://semver.org/).
++
++## [Unreleased]
++
++### Added
++
++- Project security-reporting and release-history entry points.
++
++Future user-visible changes should be added under `Unreleased` and moved to a
++versioned section when a release is published. Historical implementation work
++before this file was introduced remains available in the Git history.
+diff --git a/README.md b/README.md
+index 0fcec41..2ca0eb8 100644
+--- a/README.md
++++ b/README.md
+@@ -21,6 +21,8 @@ a separate dependency and retains its own licensing terms.
+ |---|---|
+ | New human user | `docs/scwbs/getting-started.md` |
+ | Human contributor | `CONTRIBUTING.md` |
++| Security reporter | [SECURITY.md](SECURITY.md) |
++| Release history | [CHANGELOG.md](CHANGELOG.md) |
+ | Docs navigator | `docs/README.md` |
+ | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
+ | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
+diff --git a/SECURITY.md b/SECURITY.md
+new file mode 100644
+index 0000000..35dcab6
+--- /dev/null
++++ b/SECURITY.md
+@@ -0,0 +1,31 @@
++# Security Policy
++
++## Supported versions
++
++The `main` branch is the currently supported development line. A release or
++maintenance branch is supported only when it is explicitly identified in the
++repository's release documentation. If you are unsure which version is
++affected, include the commit or release tag in a private report.
++
++## Reporting a vulnerability
++
++Please do not open a public GitHub Issue for a suspected vulnerability.
++
++Use GitHub Security Advisories' private vulnerability reporting for this
++repository. Include the affected commit or tag, impact, reproduction steps,
++and any safe mitigation or proof-of-concept that is necessary to reproduce the
++issue. Remove credentials, tokens, and personal data from the report.
++
++If private vulnerability reporting is unavailable, contact the repository
++maintainers through a private GitHub channel before making any disclosure.
++
++## Response targets
++
++The maintainers aim to acknowledge a report within 5 business days and provide
++an initial triage or status update within 10 business days. These are response
++targets rather than guarantees; remediation timing depends on severity,
++reproducibility, affected versions, and the availability of a safe fix.
++
++Please allow maintainers reasonable time to investigate and release a fix
++before public disclosure. Coordinated disclosure details can be agreed with
++the reporter after triage.
