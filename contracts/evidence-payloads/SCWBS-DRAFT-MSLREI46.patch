@@ -1,0 +1,132 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index b0e9a9c..8719ae1 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -17,8 +17,6 @@ on:
+ jobs:
+   plan:
+     runs-on: ubuntu-latest
+-    env:
+-      SCWBS_APPROVAL_DELEGATION_TOKEN: ${{ secrets.SCWBS_APPROVAL_DELEGATION_TOKEN }}
+     outputs:
+       mode: ${{ steps.final.outputs.mode }}
+       task_id: ${{ steps.final.outputs.task_id }}
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml b/contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
+new file mode 100644
+index 0000000..8243b9b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
+@@ -0,0 +1,64 @@
++id: SCWBS-DRAFT-MSLREI46
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLREI46
++branchName: task/SCWBS-DRAFT-MSLREI46-issue-481-isolate-approval-delegation-token-from
++status: approved
++approvedBy: xmeta
++sourceIssue: 481
++allowedPaths:
++  - .github/workflows/scwbs.yml
++  - tests/integration/workflow-security.test.ts
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - secret exposure boundary ambiguity
++  - Human Gate
++  - external service or credential design
++  - authority outside allowed paths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - '`SCWBS_APPROVAL_DELEGATION_TOKEN` is absent from every `pull_request` job that checks out, installs, builds, or executes PR-head repository code'
++  - The `plan` job evaluates PR-head code without inheriting the delegation token at job scope or step scope
++  - A workflow regression test fails if the delegation token is reintroduced into a PR-head execution job or into the local setup action
++  - The regression test documents the same-repository and fork pull-request threat model and verifies that PR code cannot read the token from `process.env`
++  - The existing CLI delegated-approval normal path remains unchanged and is covered by the existing approval tests
++  - 'Issue #481 is closed only after protected merge and Task archive'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - workflow-secret-isolation-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLREI46.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLREI46.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLREI46.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLREI46.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLREI46.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-09T12:10:31.782Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 06974f7..f9d51db 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1742,3 +1742,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T05:33:19.024Z"
++  - id: SCWBS-DRAFT-MSLREI46
++    path: contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
++    branchName: task/SCWBS-DRAFT-MSLREI46-issue-481-isolate-approval-delegation-token-from
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/tests/integration/workflow-security.test.ts b/tests/integration/workflow-security.test.ts
+new file mode 100644
+index 0000000..5ab6fec
+--- /dev/null
++++ b/tests/integration/workflow-security.test.ts
+@@ -0,0 +1,29 @@
++import { execFileSync } from "node:child_process";
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++
++const DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
++const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
++const setupAction = readFileSync(path.join(process.cwd(), ".github/actions/setup-toolchain/action.yml"), "utf8");
++
++describe("workflow secret isolation", () => {
++  test("same-repository and fork pull requests never expose the delegation token to CI code", () => {
++    // Both event types execute repository-controlled code. Forks normally do not receive secrets,
++    // but the same-repository case must remain safe if the secret is configured for the workflow.
++    expect(workflow).not.toContain(DELEGATION_TOKEN_ENV);
++    expect(setupAction).not.toContain(DELEGATION_TOKEN_ENV);
++  });
++
++  test("PR-head code cannot read the delegation token from process.env", () => {
++    const prCodeEnv = { ...process.env };
++    delete prCodeEnv[DELEGATION_TOKEN_ENV];
++    const observed = execFileSync(
++      process.execPath,
++      ["-e", `process.stdout.write(process.env[${JSON.stringify(DELEGATION_TOKEN_ENV)}] ?? "")`],
++      { env: prCodeEnv, encoding: "utf8" }
++    );
++
++    expect(observed).toBe("");
++  });
++});

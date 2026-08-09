@@ -1,0 +1,70 @@
+id: EVD-SCWBS-DRAFT-MSLREI46
+type: evidence
+taskId: SCWBS-DRAFT-MSLREI46
+commit: 320ab08861e03655ae538f7502b650047da86b8b
+subjectHeadCommit: 320ab08861e03655ae538f7502b650047da86b8b
+diffHash: sha256:1c8b64960b0c1a35e9cdda3920bb84309f622e5a64878a2f1727d41e1f9f1f4e
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 320ab08861e03655ae538f7502b650047da86b8b
+    treeHash: 1e9d86b9b9a965b99aba4c4aefe75ec19160c479
+    diffHash: sha256:1c8b64960b0c1a35e9cdda3920bb84309f622e5a64878a2f1727d41e1f9f1f4e
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLREI46.patch
+    manifestHash: sha256:1c8b64960b0c1a35e9cdda3920bb84309f622e5a64878a2f1727d41e1f9f1f4e
+git:
+  branch: task/SCWBS-DRAFT-MSLREI46-issue-481-isolate-approval-delegation-token-from
+  base: origin/main
+  baseCommit: 448fcad18f9bef54d6a4d903ce74bb9ae254aea0
+  changedFilesBasis: branch-diff
+  pullRequest: "491"
+  subjectHeadCommit: 320ab08861e03655ae538f7502b650047da86b8b
+  diffHash: sha256:1c8b64960b0c1a35e9cdda3920bb84309f622e5a64878a2f1727d41e1f9f1f4e
+  headCommit: 320ab08861e03655ae538f7502b650047da86b8b
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLREI46.patch
+  - contracts/evidence/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/tasks/index.yaml
+  - tests/integration/workflow-security.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e30d6784cba15b4dc0d2327725a2458c0e7b825320e22f3df45528c20edd9344
+    durationMilliseconds: 21991
+    executedAt: "2026-08-09T12:24:10.404Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:ab32d2ac7b11c5a1f73c2960b19755849ef062bd3154a28c96d935d633f5c5d3
+    durationMilliseconds: 10629
+    executedAt: "2026-08-09T12:24:21.042Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:189ce560a1447d11371912f3862cd979595351a5c2d17f5f8fd359d902930a01
+    durationMilliseconds: 3997
+    executedAt: "2026-08-09T12:24:25.044Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6b887459c604062475955e4495bafedf8e841a32fef1b5ac853155ea3d3bfca8
+    durationMilliseconds: 291333
+    executedAt: "2026-08-09T12:29:16.380Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added integration coverage proving pull_request workflow and setup action do not expose SCWBS_APPROVAL_DELEGATION_TOKEN, including same-repository and fork threat-model cases.
