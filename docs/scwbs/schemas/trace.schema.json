@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/scwbs.trace.v1.schema.json",
+  "title": "SC-WBS trace JSON output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "taskId", "nodes", "edges"],
+  "properties": {
+    "version": { "const": "scwbs.trace.v1" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["spec", "wbs", "task", "evidence", "review", "approval"] },
+          "status": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "kind"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

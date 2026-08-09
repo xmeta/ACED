@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/scwbs.ui.v1.schema.json",
+  "title": "SC-WBS ui JSON output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "status", "statusReport", "next", "review", "doctor"],
+  "properties": {
+    "version": { "const": "scwbs.ui.v1" },
+    "status": { "enum": ["pass", "fail"] },
+    "statusReport": { "type": "object" },
+    "next": { "$ref": "https://xmeta.github.io/ACED/scwbs.next.v1.schema.json" },
+    "review": { "type": "object" },
+    "doctor": { "type": "object" }
+  }
+}

@@ -347,12 +347,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("next")
     .description("Show next suggested action")
-    .action(() => { exitCode = runNext(root); });
+    .option("--json", "output a versioned JSON action contract")
+    .action((opts) => { exitCode = runNext(root, { json: opts.json ?? false }); });
 
   program
     .command("ui")
     .description("Show the text dashboard")
-    .action(() => { exitCode = runUi(root); });
+    .option("--json", "output a versioned JSON dashboard")
+    .action((opts) => { exitCode = runUi(root, { json: opts.json ?? false }); });
 
   program
     .command("serve")
@@ -566,13 +568,14 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("trace")
     .description("Trace task dependencies")
     .option("--task <id>", "task id")
+    .option("--json", "output a versioned JSON graph")
     .action((opts) => {
       if (!opts.task) {
         console.error("Missing --task <task-id>");
         exitCode = 2;
         return;
       }
-      exitCode = runTrace(root, opts.task);
+      exitCode = runTrace(root, opts.task, { json: opts.json ?? false });
     });
 
   program
