@@ -53,9 +53,10 @@ npm install --save-dev /path/to/scwbs-0.1.0.tgz
 npx scwbs --version
 ```
 
-This Phase 1 path validates the packed CLI boundary only. WJS validator
-bundling, release automation, and publication policy remain separate decisions;
-the repository checkout workflow below is still required for development.
+The packed artifact includes the WJS validator, apply runtime, and schemas, so
+the consumer does not need an ACED checkout or the `wjs` submodule. The
+supported release path is a self-contained tarball attached to a GitHub
+Release; this repository does not publish to npm.
 
 ## 3. Minimal Setup
 
@@ -99,10 +100,11 @@ npm run scwbs -- status --strict
 npm run scwbs -- registry rebuild --check
 ```
 
-`doctor` reads the Node.js requirement from `package.json` and reports PASS /
+`doctor` reads the Node.js requirement from the consumer package when declared,
+or from the installed scwbs package for standalone consumers, and reports PASS /
 FAIL for that range, npm, the root `node_modules`,
-`wjs/node_modules`, `git`, `contracts/registry.yaml`,
-`contracts/wbs/project.wbs.json`, and `wjs/schema/wbs-json.schema.json`,
+`wjs/node_modules` (or the bundled runtime), `git`, `contracts/registry.yaml`,
+`contracts/wbs/project.wbs.json`, and the WJS schema,
 plus any check / health issues. Each FAIL prints a suggested fix command.
 
 `doctor --fix` only runs safe repairs (for example `npm install`). It refuses destructive operations; for anything risky, follow the printed suggested fix command instead.
@@ -350,7 +352,7 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
 │   ├── scwbs/               # current user and tool docs
 │   ├── sc-wbs-core/         # lightweight Core documentation pack
 │   └── sc-wbs-core-revision/ # draft revision notes, not current rules
-├── wjs/                     # WBS-JSON submodule
+├── wjs/                     # WBS-JSON submodule (contributor checkout)
 ├── package.json
 └── tsconfig.json
 ```
@@ -382,7 +384,7 @@ Implemented in v0.1:
 - AI work packets, review queues, approval requests, and lightweight
   orchestration helpers.
 - WJS-backed WBS validation, semantic operation application, and changeset
-  checks.
+  checks, with a packaged runtime for standalone consumers.
 - WBS-less task index operation, WBS candidate generation, and WBS changeset
   reproduction checks.
 - Branch-per-task safeguards and Evidence git metadata.

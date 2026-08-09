@@ -41,8 +41,12 @@ npm install --save-dev /path/to/scwbs-0.1.0.tgz
 npx scwbs --version
 ```
 
-WJS validator の bundled runtime、release workflow、npm 公開方針は別の
-Human Decision が必要なため、この確認には含めません。
+packed artifact には WJS validator、apply runtime、schema が含まれます。
+GitHub Release の self-contained tarball を作る場合は、リポジトリ root で
+`npm pack` を実行し、`node scripts/distribution-smoke.mjs` と同じ smoke
+条件を満たすことを確認します。npmjs.com への公開はこのリポジトリの
+配布方針に含めません。通常の contributor checkout では従来通り下記の
+submodule setup を使用します。
 
 ## ローカルセットアップ（contributor）
 
