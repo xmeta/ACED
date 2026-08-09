@@ -5,14 +5,13 @@ import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
 import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
 import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
 import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+import { BROAD_ALLOWED_PATH_PATTERNS, standardHumanGatePaths } from "../core/governance-path-policy.js";
 import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
 import type { TaskContract } from "../core/types.js";
 import { syncRegistry } from "./registry-rebuild.js";
 
-const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
-const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
 
 function slug(value: string): string {
   return value
@@ -43,7 +42,7 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
 }
 
 function humanGatePaths(value: string | undefined): string[] {
-  return [...new Set([...STANDARD_HUMAN_GATE_PATHS, ...splitList(value, [])])];
+  return [...new Set([...standardHumanGatePaths(), ...splitList(value, [])])];
 }
 
 export interface TaskNewFallback {
@@ -162,7 +161,7 @@ export function runTaskNew(root: string, title: string, options: {
     if (task.allowedPaths.length === 0) {
       process.stdout.write("Notice: no --paths were provided; allowedPaths is empty and this draft cannot authorize implementation.\n");
     }
-    const broadScopes = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
+    const broadScopes = task.allowedPaths.filter((item) => BROAD_ALLOWED_PATH_PATTERNS.includes(item as typeof BROAD_ALLOWED_PATH_PATTERNS[number]));
     if (broadScopes.length > 0) {
       process.stdout.write(`Warning: broad allowedPaths require explicit review before implementation: ${broadScopes.join(", ")}\n`);
     }

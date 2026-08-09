@@ -1,6 +1,7 @@
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
+import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
@@ -31,17 +32,25 @@ export function buildHumanGateActionOwnership(command: string): HumanGateActionO
   };
 }
 
-const SENSITIVE_META_PATHS = [
-  "package.json",
-  "package-lock.json",
-  "tsconfig.json",
-  "vitest.config.ts",
-  ".gitignore",
-  ".github/**"
-];
-
 function requiresMetaFileGuard(file: string): boolean {
-  return matchesAny(file, SENSITIVE_META_PATHS);
+  return matchesAny(file, sensitiveMetaPaths());
+}
+
+function governancePolicyGateFiles(task: TaskContract, files: string[]): string[] {
+  const broadAllowed = task.allowedPaths.some((pattern) => isBroadAllowedPath(pattern));
+  if (!broadAllowed) return [];
+  return files.filter((file) => {
+    const impact = governancePathImpact(file);
+    return Boolean(impact?.critical) && !matchesAny(file, task.forbiddenPaths);
+  });
+}
+
+function taskWithGovernancePolicyGates(task: TaskContract, files: string[]): TaskContract {
+  const policyGateFiles = governancePolicyGateFiles(task, files);
+  return {
+    ...task,
+    humanGateRequiredPaths: [...new Set([...task.humanGateRequiredPaths, ...policyGateFiles])]
+  };
 }
 
 function shellQuote(value: string): string {
@@ -168,7 +177,9 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
     .flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
   const authorityFiles = Array.from(new Set([...files, ...authorityNestedFiles]));
   const coverageFiles = Array.from(new Set([...files, ...nestedFiles]));
-  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, authorityFiles, root);
+  const gateTask = taskWithGovernancePolicyGates(task, authorityFiles);
+  const policyGateFiles = governancePolicyGateFiles(task, authorityFiles);
+  const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, task.id).approval, authorityFiles, root);
   for (const dependency of task.submoduleDependencies ?? []) {
     if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
       issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
@@ -220,6 +231,23 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
         message: `${file} is a sensitive meta/config file and must be explicitly allowed for ${task.id}`,
         fixCommand: `Add ${file} to allowedPaths or humanGateRequiredPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
       });
+    }
+    const policyReason = governancePolicyReason(file);
+    if (policyReason && policyGateFiles.includes(file) && !gate.approved) {
+      const policyIssue: Issue & {
+        policyReasonCode: string;
+        policyClassification: string;
+        policyReason: string;
+      } = {
+        severity: "error",
+        code: "diff.humanGate",
+        message: `${file} is a governance-critical path covered by broad allowedPaths; explicit Human Gate is required (policy=${policyReason.code}, classification=${policyReason.classification}): ${policyReason.reason}`,
+        fixCommand: `Narrow allowedPaths or add ${file} to humanGateRequiredPaths, then request Human Approval for the current Evidence`,
+        policyReasonCode: policyReason.code,
+        policyClassification: policyReason.classification,
+        policyReason: policyReason.reason
+      };
+      issues.push(policyIssue);
     }
   }
   issues.push(...gate.issues.map((issue) => ({
@@ -329,7 +357,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   if (requiresHumanApproval) {
     const evidence = options.evidence ?? readEvidence(root, taskId).evidence;
     diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
-    const gate = validateHumanGateApproval(task, evidence, readApproval(root, taskId).approval, files, root);
+    const gateTask = taskWithGovernancePolicyGates(task, files);
+    const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
     humanGateFiles = gate.requiredFiles;
     nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
   }

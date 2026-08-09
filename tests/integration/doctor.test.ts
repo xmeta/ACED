@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
-import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
+import { makeTempRepo, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 
 describe("doctor", () => {
   test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
@@ -79,6 +79,29 @@ describe("doctor", () => {
       fix: "Run: corepack npm install"
     }]);
     expect(plan).toEqual([{ command: "corepack", args: ["npm", "install"], cwd: "." }]);
+  });
+
+  test("doctor reports governance policy impact as read-only machine-readable diagnostics", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/**"] }) as unknown as Record<string, unknown>);
+
+    const diagnostic = collectEnvironmentDiagnostics(root, {
+      npmVersion: "10.9.0",
+      corepackAvailable: true,
+      corepackVersion: "0.31.0",
+      corepackNpmVersion: "10.9.0",
+      dependencyGraphStatus: 0
+    }).find((item) => item.id === "governance.policy");
+    expect(diagnostic).toMatchObject({
+      status: "pass",
+      details: {
+        policyVersion: "1.0.0",
+        mode: "read-only",
+        affectedTasks: "WBS-001-004",
+        reasonCodes: expect.stringContaining("governance.agent.path-policy")
+      }
+    });
   });
 
   test("doctor shows the issue-specific CRLF repair command", () => {

@@ -2,6 +2,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { listTasks } from "../core/contracts.js";
+import { matchesAny } from "../core/glob.js";
+import { GOVERNANCE_PATH_POLICY, GOVERNANCE_PATH_POLICY_VERSION } from "../core/governance-path-policy.js";
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
@@ -43,6 +46,33 @@ export type DoctorFixStep = {
   args: string[];
   cwd: string;
 };
+
+function governancePolicyImpactDiagnostic(root: string): DoctorDiagnostic {
+  const impacts = listTasks(root).flatMap(({ task }) => {
+    if (!task) return [];
+    return GOVERNANCE_PATH_POLICY
+      .filter((entry) => task.allowedPaths.some((allowedPath) => matchesAny(entry.pattern, [allowedPath])))
+      .map((entry) => ({ taskId: task.id, entry }));
+  });
+  const taskIds = [...new Set(impacts.map((impact) => impact.taskId))].sort();
+  const reasonCodes = [...new Set(impacts.map((impact) => impact.entry.reasonCode))].sort();
+  return {
+    id: "governance.policy",
+    label: "governance-critical path policy impact",
+    status: "pass",
+    message: impacts.length === 0
+      ? `No existing Task Contract overlaps policy v${GOVERNANCE_PATH_POLICY_VERSION} critical paths`
+      : `Read-only impact report: ${impacts.length} policy overlap(s) across ${taskIds.length} Task Contract(s); enforcement was not changed`,
+    fix: "Review the read-only impact before changing governance path enforcement",
+    details: {
+      policyVersion: GOVERNANCE_PATH_POLICY_VERSION,
+      mode: "read-only",
+      affectedTasks: taskIds.join(",") || "(none)",
+      reasonCodes: reasonCodes.join(",") || "(none)",
+      overlapCount: impacts.length
+    }
+  };
+}
 
 type CommandResult = { status: number | null; stdout: string; stderr: string };
 
@@ -526,6 +556,7 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
   });
 
   diagnostics.push(dependencyGraphDiagnostic(root, runtime));
+  diagnostics.push(governancePolicyImpactDiagnostic(root));
 
   return diagnostics;
 }
