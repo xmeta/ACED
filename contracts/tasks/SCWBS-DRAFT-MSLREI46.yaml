@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MSLREI46
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLREI46
+branchName: task/SCWBS-DRAFT-MSLREI46-issue-481-isolate-approval-delegation-token-from
+status: approved
+approvedBy: xmeta
+sourceIssue: 481
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - tests/integration/workflow-security.test.ts
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+stopIf:
+  - secret exposure boundary ambiguity
+  - Human Gate
+  - external service or credential design
+  - authority outside allowed paths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - '`SCWBS_APPROVAL_DELEGATION_TOKEN` is absent from every `pull_request` job that checks out, installs, builds, or executes PR-head repository code'
+  - The `plan` job evaluates PR-head code without inheriting the delegation token at job scope or step scope
+  - A workflow regression test fails if the delegation token is reintroduced into a PR-head execution job or into the local setup action
+  - The regression test documents the same-repository and fork pull-request threat model and verifies that PR code cannot read the token from `process.env`
+  - The existing CLI delegated-approval normal path remains unchanged and is covered by the existing approval tests
+  - 'Issue #481 is closed only after protected merge and Task archive'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - workflow-secret-isolation-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLREI46.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLREI46.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-09T12:10:31.782Z"
