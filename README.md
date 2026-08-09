@@ -164,11 +164,12 @@ the merge to the checked PR head with
 ambiguous `validate` results are rejected. Do not replace this normal path
 with direct `gh pr merge`, `--admin`, or `--auto`.
 
-This repository is currently private on a GitHub plan where branch protection
-and repository rulesets are unavailable. The local command therefore improves
-the normal merge path but cannot prevent direct/force pushes or privileged API
-and administrator bypasses. Changing repository visibility, GitHub plan,
-external cost, or permissions requires a Human Decision. See
+Repository visibility and branch-protection capability are recorded only as
+dated GitHub API snapshots; they are not current-state guarantees. Revalidate
+the live repository before relying on the merge boundary. The local command
+therefore improves the normal merge path but cannot prevent direct/force pushes
+or privileged API and administrator bypasses. Changing repository visibility,
+GitHub plan, external cost, or permissions requires a Human Decision. See
 [`docs/scwbs/merge-protection.md`](docs/scwbs/merge-protection.md).
 
 Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
@@ -250,7 +251,7 @@ npm run test:integration    # integration tests (heavier)
 npm run test:all            # all tests
 npm run test:coverage       # unit-only coverage (fast)
 npm run test:coverage:all   # unit and integration coverage
-npm run lint                # ESLint baseline gate (currently up to 37 warnings)
+npm run lint                # ESLint gate (--max-warnings=0; historical counts are not authoritative)
 npm run format              # format source, tests, scripts, docs, and root config files
 npm run typecheck
 npm run build
@@ -266,12 +267,13 @@ The production build continues to use `tsconfig.json`. Test code uses
 with `checkJs`; implicit JavaScript parameter types remain a documented
 migration boundary, but other inferred type errors are checked.
 
-`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`.
-The measured baseline is currently 37 warnings, and the command fails when a
-change increases that count. This finite cap provides a phased adoption path:
-remove existing warnings, then lower `--max-warnings` to the new measured
-baseline. Individual rules can be promoted to errors in later, separately
-scoped changes; this task does not bulk-rewrite existing source. Prettier is
+`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`,
+with the current zero-warning threshold configured in `package.json`.
+Historical warning counts are not an active acceptance criterion. The current
+command fails on any warning because `--max-warnings=0` is configured in
+`package.json`; update this documentation whenever that gate changes.
+Individual rules can be promoted to errors in later, separately scoped
+changes; this task does not bulk-rewrite existing source. Prettier is
 available through the explicit `npm run format` write command and is not run
 automatically by CI.
 
