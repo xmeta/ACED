@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSLYVJRY
+type: spec-contract
+featureId: F-MSLYVJRY
+title: "Issue #485: doctor npm/Corepack/packageManager consistency"
+status: approved
+version: 0.1.0
+summary: "doctor verifies repository npm requirements, Corepack availability, packageManager pin agreement, and workspace dependency graph health"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - engines.npm is compared with the active npm version and reports required, actual, and source values
+  - packageManager npm pin is compared with the Corepack-resolved npm version
+  - Corepack unavailable or unable to resolve the pinned npm is an independent diagnostic failure
+  - doctor --fix plans and executes corepack npm commands when a packageManager pin exists
+  - workspace dependency graph health is reported through npm ls without lockfile mutation
+  - JSON output remains machine-readable and tests cover healthy and unhealthy toolchains
+  - package, CI, lockfile, WBS, WJS, and external configuration are unchanged
+nonGoals:
+  - supporting package managers other than npm
+  - installing Node.js or Corepack automatically
+  - destructive lockfile repair

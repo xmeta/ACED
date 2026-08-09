@@ -43,6 +43,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
 - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
 - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+- Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
 
 ## Still Missing
 

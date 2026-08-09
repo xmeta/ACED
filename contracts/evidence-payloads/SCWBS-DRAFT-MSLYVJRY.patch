@@ -1,0 +1,710 @@
+diff --git a/contracts/specs/SPEC-LITE-MSLYVJRY.yaml b/contracts/specs/SPEC-LITE-MSLYVJRY.yaml
+new file mode 100644
+index 0000000..1544304
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSLYVJRY.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MSLYVJRY
++type: spec-contract
++featureId: F-MSLYVJRY
++title: "Issue #485: doctor npm/Corepack/packageManager consistency"
++status: approved
++version: 0.1.0
++summary: "doctor verifies repository npm requirements, Corepack availability, packageManager pin agreement, and workspace dependency graph health"
++approvedBy: xmeta
++approvedAt: "2026-08-10T00:00:00+09:00"
++acceptanceCriteria:
++  - engines.npm is compared with the active npm version and reports required, actual, and source values
++  - packageManager npm pin is compared with the Corepack-resolved npm version
++  - Corepack unavailable or unable to resolve the pinned npm is an independent diagnostic failure
++  - doctor --fix plans and executes corepack npm commands when a packageManager pin exists
++  - workspace dependency graph health is reported through npm ls without lockfile mutation
++  - JSON output remains machine-readable and tests cover healthy and unhealthy toolchains
++  - package, CI, lockfile, WBS, WJS, and external configuration are unchanged
++nonGoals:
++  - supporting package managers other than npm
++  - installing Node.js or Corepack automatically
++  - destructive lockfile repair
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml b/contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
+new file mode 100644
+index 0000000..42468ee
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
+@@ -0,0 +1,66 @@
++id: SCWBS-DRAFT-MSLYVJRY
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLYVJRY
++branchName: task/SCWBS-DRAFT-MSLYVJRY-issue-485-doctor-npm-corepack-packagemanager-con
++status: approved
++approvedBy: xmeta
++sourceIssue: 485
++allowedPaths:
++  - src/commands/doctor.ts
++  - tests/integration/doctor.test.ts
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or CI change
++  - authority outside allowedPaths
++  - Human Gate
++  - external service or credential change
++  - WBS or WJS source change
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - doctor reads engines.npm and reports required, actual, and source values
++  - doctor independently diagnoses Corepack availability and packageManager pin agreement
++  - doctor --json exposes machine-readable npm, Corepack, packageManager, and dependency graph results
++  - doctor --fix uses the declared npm packageManager pin rather than plain npm install
++  - npm workspace dependency graph health is checked without changing lockfiles
++  - tests cover healthy, old npm, wrong pinned npm, missing Corepack, and repair-plan behavior
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
++  - contracts/specs/SPEC-LITE-MSLYVJRY.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLYVJRY.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLYVJRY.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYVJRY.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLYVJRY.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLYVJRY.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:67b8bcd0d968d660ed5ec85ca091b325ced23634a7e315fc2d002978d36a4b98
++  createdAt: "2026-08-09T15:38:55.054Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8a19d2f..c2342b2 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1777,3 +1777,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T15:27:15.321Z"
++  - id: SCWBS-DRAFT-MSLYVJRY
++    path: contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
++    branchName: task/SCWBS-DRAFT-MSLYVJRY-issue-485-doctor-npm-corepack-packagemanager-con
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 67b9948..0f68048 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -43,6 +43,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
+ - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
+ - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
++- Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+ 
+ ## Still Missing
+ 
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index 98f8af0..7bc6b3f 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -7,9 +7,14 @@ import { collectHealthIssues } from "./health.js";
+ import { resolveFrom } from "../core/paths.js";
+ import type { Issue } from "../core/types.js";
+ 
+-type EnvironmentRuntime = {
++export type EnvironmentRuntime = {
+   nodeVersion?: string;
+   npmVersion?: string;
++  corepackAvailable?: boolean;
++  corepackVersion?: string;
++  corepackNpmVersion?: string;
++  dependencyGraphStatus?: number;
++  dependencyGraphOutput?: string;
+ };
+ 
+ export type DoctorDiagnostic = {
+@@ -18,6 +23,7 @@ export type DoctorDiagnostic = {
+   status: "pass" | "fail";
+   message: string;
+   fix: string;
++  details?: Record<string, string | number | boolean>;
+ };
+ 
+ export type DoctorOptions = {
+@@ -38,29 +44,46 @@ export type DoctorFixStep = {
+   cwd: string;
+ };
+ 
+-const FIX_RECIPES: Record<string, DoctorFixStep> = {
+-  "root.node_modules": { command: "npm", args: ["install"], cwd: "." },
+-  "wjs.node_modules": { command: "npm", args: ["install"], cwd: "." },
+-  "wjs.esbuild": { command: "npm", args: ["install"], cwd: "." }
+-};
++type CommandResult = { status: number | null; stdout: string; stderr: string };
+ 
+-function runShellVersion(command: string, args: string[]): string {
++function runCommand(command: string, args: string[], cwd?: string): CommandResult {
+   try {
+-    const result = spawnSync(command, args, { encoding: "utf8" });
+-    if (result.status !== 0) return "";
+-    return (result.stdout ?? "").trim() || (result.stderr ?? "").trim();
++    const result = spawnSync(command, args, { cwd, encoding: "utf8" });
++    return {
++      status: result.status,
++      stdout: (result.stdout ?? "").trim(),
++      stderr: (result.stderr ?? "").trim()
++    };
+   } catch {
+-    return "";
++    return { status: null, stdout: "", stderr: "" };
+   }
+ }
+ 
+-function parseNodeVersion(version: string): [number, number, number] | undefined {
++function runShellVersion(command: string, args: string[]): string {
++  const result = runCommand(command, args);
++  if (result.status !== 0) return "";
++  return result.stdout || result.stderr;
++}
++
++type Version = [number, number, number];
++
++function parseVersion(version: string): Version | undefined {
+   const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+   if (!match) return undefined;
+   return [Number(match[1]), Number(match[2]), Number(match[3])];
+ }
+ 
+-function meetsMinimumVersion(actual: [number, number, number], minimum: [number, number, number]): boolean {
++function parseMinimumVersion(range: string): Version | undefined {
++  const match = /(?:^|\s)>=\s*v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/.exec(range.trim());
++  if (!match) return undefined;
++  return [Number(match[1]), Number(match[2] ?? 0), Number(match[3] ?? 0)];
++}
++
++function parseNodeVersion(version: string): Version | undefined {
++  return parseVersion(version);
++}
++
++function meetsMinimumVersion(actual: Version, minimum: Version): boolean {
+   for (let index = 0; index < actual.length; index += 1) {
+     if (actual[index]! > minimum[index]!) return true;
+     if (actual[index]! < minimum[index]!) return false;
+@@ -75,23 +98,36 @@ type NodeEngineInfo =
+   | { range: undefined; source: undefined }
+   | { range: undefined; source: undefined; corrupt: true };
+ 
+-function readRepoNodeEngine(root: string): { range?: string; missingEngine: boolean; corrupt: boolean } {
++type RepositoryPackageJson = {
++  engines?: { node?: unknown; npm?: unknown };
++  packageManager?: unknown;
++  workspaces?: unknown;
++};
++
++type RepositoryPackageInfo = {
++  packageJson?: RepositoryPackageJson;
++  corrupt: boolean;
++};
++
++function readRepositoryPackage(root: string): RepositoryPackageInfo {
+   const packagePath = resolveFrom(root, "package.json");
+-  if (!existsSync(packagePath)) {
+-    return { missingEngine: false, corrupt: false };
+-  }
++  if (!existsSync(packagePath)) return { corrupt: false };
+   try {
+-    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
+-      engines?: { node?: unknown };
+-    };
+-    return typeof packageJson.engines?.node === "string"
+-      ? { range: packageJson.engines.node, missingEngine: false, corrupt: false }
+-      : { missingEngine: true, corrupt: false };
++    return { packageJson: JSON.parse(readFileSync(packagePath, "utf8")) as RepositoryPackageJson, corrupt: false };
+   } catch {
+-    return { missingEngine: false, corrupt: true };
++    return { corrupt: true };
+   }
+ }
+ 
++function readRepoNodeEngine(root: string): { range?: string; missingEngine: boolean; corrupt: boolean } {
++  const repository = readRepositoryPackage(root);
++  if (repository.corrupt) return { missingEngine: false, corrupt: true };
++  if (!repository.packageJson) return { missingEngine: false, corrupt: false };
++  return typeof repository.packageJson?.engines?.node === "string"
++    ? { range: repository.packageJson.engines.node, missingEngine: false, corrupt: false }
++    : { missingEngine: true, corrupt: false };
++}
++
+ function readCliNodeEngine(): string | undefined {
+   try {
+     const packagePath = fileURLToPath(new URL("../../package.json", import.meta.url));
+@@ -136,7 +172,8 @@ function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnost
+       label,
+       status: "fail",
+       message: "package.json could not be parsed",
+-      fix: "Repair package.json so it is valid JSON"
++      fix: "Repair package.json so it is valid JSON",
++      details: { required: range ?? "(unknown)", actual: nodeVersion || "(unknown)", source: "package.json#engines.node" }
+     };
+   }
+ 
+@@ -146,7 +183,8 @@ function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnost
+       label,
+       status: "fail",
+       message: "package.json engines.node is missing",
+-      fix: "Declare engines.node in package.json using a >= semver range"
++      fix: "Declare engines.node in package.json using a >= semver range",
++      details: { required: "(missing)", actual: nodeVersion || "(unknown)", source: "package.json#engines.node" }
+     };
+   }
+   if (!minimum) {
+@@ -155,7 +193,8 @@ function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnost
+       label,
+       status: "fail",
+       message: `Unsupported engines.node range: ${range}`,
+-      fix: "Use a >= semver range in package.json engines.node"
++      fix: "Use a >= semver range in package.json engines.node",
++      details: { required: range, actual: nodeVersion || "(unknown)", source: `${source}#engines.node` }
+     };
+   }
+   const supported = actual !== undefined && meetsMinimumVersion(actual, minimum);
+@@ -168,7 +207,230 @@ function nodeEngineDiagnostic(root: string, nodeVersion: string): DoctorDiagnost
+         ? `Node.js ${nodeVersion} satisfies ${source} engines.node ${range}`
+         : `Node.js ${nodeVersion} does not satisfy ${source} engines.node ${range}`
+       : "Node.js version unknown",
+-    fix: `Install Node.js ${range} from https://nodejs.org/`
++    fix: `Install Node.js ${range} from https://nodejs.org/`,
++    details: { required: range, actual: nodeVersion || "(unknown)", source: `${source}#engines.node` }
++  };
++}
++
++type PackageManagerPin =
++  | { raw: string; name: "npm"; version: string }
++  | { raw: string; name: "unsupported"; version: string };
++
++function readPackageManagerPin(root: string): PackageManagerPin | undefined {
++  const repository = readRepositoryPackage(root);
++  if (repository.corrupt || typeof repository.packageJson?.packageManager !== "string") return undefined;
++  const raw = repository.packageJson.packageManager.trim();
++  const match = /^npm@(.+)$/.exec(raw);
++  return match
++    ? { raw, name: "npm", version: match[1]! }
++    : { raw, name: "unsupported", version: raw.split("@", 2)[1] ?? "" };
++}
++
++function exactVersionMatches(expected: string, actual: string): boolean {
++  const expectedVersion = parseVersion(expected);
++  const actualVersion = parseVersion(actual);
++  return expectedVersion !== undefined && actualVersion !== undefined
++    ? expectedVersion.every((value, index) => value === actualVersion[index])
++    : expected.trim() === actual.trim();
++}
++
++function packageManagerInstallStep(root: string): DoctorFixStep {
++  const pin = readPackageManagerPin(root);
++  return pin?.name === "npm"
++    ? { command: "corepack", args: ["npm", "install"], cwd: "." }
++    : { command: "npm", args: ["install"], cwd: "." };
++}
++
++function packageManagerInstallCommand(root: string): string {
++  const step = packageManagerInstallStep(root);
++  return `${step.command} ${step.args.join(" ")}`;
++}
++
++function npmDiagnostic(root: string, npmVersion: string): DoctorDiagnostic {
++  const repository = readRepositoryPackage(root);
++  const range = typeof repository.packageJson?.engines?.npm === "string" ? repository.packageJson.engines.npm : undefined;
++  const details = {
++    required: range ?? "(not declared)",
++    actual: npmVersion || "(unknown)",
++    source: range ? "package.json#engines.npm" : "npm --version"
++  };
++  if (repository.corrupt) {
++    return {
++      id: "npm",
++      label: "npm available",
++      status: "fail",
++      message: "package.json could not be parsed",
++      fix: "Repair package.json so it is valid JSON",
++      details
++    };
++  }
++  if (!npmVersion) {
++    return {
++      id: "npm",
++      label: range ? `npm ${range} (package.json engines.npm)` : "npm available",
++      status: "fail",
++      message: "npm not found in PATH",
++      fix: "Install Node.js (bundles npm) from https://nodejs.org/",
++      details
++    };
++  }
++  if (!range) {
++    return {
++      id: "npm",
++      label: "npm available",
++      status: "pass",
++      message: `npm ${npmVersion}`,
++      fix: "Declare engines.npm in package.json to enforce a minimum npm version",
++      details
++    };
++  }
++  const minimum = parseMinimumVersion(range);
++  const actual = parseVersion(npmVersion);
++  if (!minimum) {
++    return {
++      id: "npm",
++      label: `npm ${range} (package.json engines.npm)`,
++      status: "fail",
++      message: `Unsupported engines.npm range: ${range}`,
++      fix: "Use a >= semver range in package.json engines.npm",
++      details
++    };
++  }
++  const supported = actual !== undefined && meetsMinimumVersion(actual, minimum);
++  return {
++    id: "npm",
++    label: `npm ${range} (package.json engines.npm)`,
++    status: supported ? "pass" : "fail",
++    message: supported
++      ? `npm ${npmVersion} satisfies package.json engines.npm ${range}`
++      : `npm ${npmVersion} does not satisfy package.json engines.npm ${range}`,
++    fix: "Install a compatible npm version through the repository packageManager pin",
++    details
++  };
++}
++
++type CorepackRuntime = { available: boolean; version: string; npmVersion: string };
++
++function corepackRuntime(runtime: EnvironmentRuntime, resolvePinnedNpm: boolean): CorepackRuntime {
++  if (runtime.corepackAvailable !== undefined) {
++    return {
++      available: runtime.corepackAvailable,
++      version: runtime.corepackVersion ?? (runtime.corepackAvailable ? "test runtime" : "(unavailable)"),
++      npmVersion: runtime.corepackNpmVersion ?? ""
++    };
++  }
++  const version = runShellVersion("corepack", ["--version"]);
++  return {
++    available: Boolean(version),
++    version: version || "(unavailable)",
++    npmVersion: version && resolvePinnedNpm ? runShellVersion("corepack", ["npm", "--version"]) : ""
++  };
++}
++
++function corepackDiagnostic(corepack: CorepackRuntime): DoctorDiagnostic {
++  return {
++    id: "corepack",
++    label: "Corepack available",
++    status: corepack.available ? "pass" : "fail",
++    message: corepack.available ? `Corepack ${corepack.version}` : "Corepack is unavailable or disabled",
++    fix: "Run: corepack enable",
++    details: { required: "available", actual: corepack.version, source: "corepack --version" }
++  };
++}
++
++function packageManagerDiagnostic(root: string, corepack: CorepackRuntime): DoctorDiagnostic {
++  const repository = readRepositoryPackage(root);
++  const raw = typeof repository.packageJson?.packageManager === "string" ? repository.packageJson.packageManager.trim() : "";
++  const pin = readPackageManagerPin(root);
++  const details = {
++    required: raw || "(not declared)",
++    actual: corepack.npmVersion || "(unknown)",
++    source: "package.json#packageManager via corepack npm --version"
++  };
++  if (repository.corrupt) {
++    return {
++      id: "packageManager",
++      label: "packageManager pin",
++      status: "fail",
++      message: "package.json could not be parsed",
++      fix: "Repair package.json so it is valid JSON",
++      details
++    };
++  }
++  if (!raw) {
++    return {
++      id: "packageManager",
++      label: "packageManager pin",
++      status: "pass",
++      message: "packageManager is not declared; pin verification skipped",
++      fix: "Declare packageManager in package.json for reproducible installs",
++      details
++    };
++  }
++  if (!pin || pin.name === "unsupported") {
++    return {
++      id: "packageManager",
++      label: `packageManager ${raw}`,
++      status: "fail",
++      message: `Unsupported packageManager declaration: ${raw}; this repository supports npm pins only`,
++      fix: "Declare packageManager as npm@<exact-version>",
++      details
++    };
++  }
++  const matches = corepack.available && exactVersionMatches(pin.version, corepack.npmVersion);
++  return {
++    id: "packageManager",
++    label: `packageManager ${raw}`,
++    status: matches ? "pass" : "fail",
++    message: matches
++      ? `Corepack resolved npm ${corepack.npmVersion}, matching ${raw}`
++      : corepack.available
++        ? `Corepack resolved npm ${corepack.npmVersion || "(unknown)"}, expected ${raw}`
++        : `Cannot verify ${raw} because Corepack is unavailable or disabled`,
++    fix: "Run: corepack enable, then verify with corepack npm --version",
++    details
++  };
++}
++
++function dependencyGraphDiagnostic(root: string, runtime: EnvironmentRuntime): DoctorDiagnostic {
++  const repository = readRepositoryPackage(root);
++  const workspaces = repository.packageJson?.workspaces;
++  const hasWorkspaces = Array.isArray(workspaces) ? workspaces.length > 0 : Boolean(workspaces && typeof workspaces === "object");
++  if (repository.corrupt) {
++    return {
++      id: "dependencies.graph",
++      label: "workspace dependency graph",
++      status: "fail",
++      message: "package.json could not be parsed",
++      fix: "Repair package.json so it is valid JSON",
++      details: { required: "npm ls --workspaces --depth=0", actual: "(unknown)", source: "package.json#workspaces" }
++    };
++  }
++  if (!hasWorkspaces) {
++    return {
++      id: "dependencies.graph",
++      label: "workspace dependency graph",
++      status: "pass",
++      message: "No workspaces declared; graph check skipped",
++      fix: packageManagerInstallCommand(root),
++      details: { required: "(workspaces not declared)", actual: "(not applicable)", source: "package.json#workspaces" }
++    };
++  }
++  const pin = readPackageManagerPin(root);
++  const graphCommand = pin?.name === "npm" ? "corepack" : "npm";
++  const graphArgs = pin?.name === "npm" ? ["npm", "ls", "--workspaces", "--depth=0"] : ["ls", "--workspaces", "--depth=0"];
++  const graphSource = `${graphCommand} ${graphArgs.join(" ")}`;
++  const result = runtime.dependencyGraphStatus === undefined
++    ? runCommand(graphCommand, graphArgs, root)
++    : { status: runtime.dependencyGraphStatus, stdout: runtime.dependencyGraphOutput ?? "", stderr: "" };
++  const output = result.stdout || result.stderr;
++  return {
++    id: "dependencies.graph",
++    label: "workspace dependency graph",
++    status: result.status === 0 ? "pass" : "fail",
++    message: result.status === 0 ? "npm workspace dependency graph is healthy" : output || `npm ls exited with status ${result.status}`,
++    fix: packageManagerInstallCommand(root),
++    details: { required: "npm ls --workspaces --depth=0", actual: result.status === 0 ? "healthy" : "failed", source: graphSource }
+   };
+ }
+ 
+@@ -179,13 +441,14 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+   diagnostics.push(nodeEngineDiagnostic(root, nodeVersion));
+ 
+   const npmVersion = runtime.npmVersion ?? runShellVersion("npm", ["--version"]);
+-  diagnostics.push({
+-    id: "npm",
+-    label: "npm available",
+-    status: npmVersion ? "pass" : "fail",
+-    message: npmVersion ? `npm ${npmVersion}` : "npm not found in PATH",
+-    fix: "Install Node.js (bundles npm) from https://nodejs.org/"
+-  });
++  diagnostics.push(npmDiagnostic(root, npmVersion));
++
++  const repositoryPackage = readRepositoryPackage(root);
++  const hasPackageManagerPin = typeof repositoryPackage.packageJson?.packageManager === "string"
++    && repositoryPackage.packageJson.packageManager.trim().length > 0;
++  const corepack = corepackRuntime(runtime, hasPackageManagerPin);
++  diagnostics.push(corepackDiagnostic(corepack));
++  diagnostics.push(packageManagerDiagnostic(root, corepack));
+ 
+   const gitVersion = runShellVersion("git", ["--version"]);
+   diagnostics.push({
+@@ -202,7 +465,7 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     label: "root dependencies installed",
+     status: existsSync(rootNm) ? "pass" : "fail",
+     message: existsSync(rootNm) ? "node_modules present" : "node_modules is missing",
+-    fix: "Run: npm install"
++    fix: `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
+   const wjsNm = resolveFrom(root, "wjs/node_modules");
+@@ -213,7 +476,7 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     label: "wjs dependencies installed",
+     status: wjsDepsOk ? "pass" : "fail",
+     message: wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
+-    fix: "Run: npm install"
++    fix: `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
+   const esbuildPkg = resolveFrom(root, "wjs/node_modules/@esbuild");
+@@ -223,7 +486,7 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     label: "wjs esbuild resolved",
+     status: esbuildOk ? "pass" : "fail",
+     message: esbuildOk ? "esbuild present" : "esbuild missing",
+-    fix: "Run: npm install"
++    fix: `Run: ${packageManagerInstallCommand(root)}`
+   });
+ 
+   const validatorPath = resolveFrom(root, "wjs/tools/validate.ts");
+@@ -262,14 +525,28 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+     fix: "Re-initialize the wjs submodule: git submodule update --init --recursive wjs"
+   });
+ 
++  diagnostics.push(dependencyGraphDiagnostic(root, runtime));
++
+   return diagnostics;
+ }
+ 
++export function buildDoctorFixPlan(root: string, diagnostics: DoctorDiagnostic[]): DoctorFixStep[] {
++  const installStep = packageManagerInstallStep(root);
++  return diagnostics
++    .filter((diagnostic) => diagnostic.status === "fail")
++    .filter((diagnostic) => ["root.node_modules", "wjs.node_modules", "wjs.esbuild"].includes(diagnostic.id))
++    .map(() => ({ ...installStep, args: [...installStep.args] }));
++}
++
+ export function applyDoctorFixes(root: string, diagnostics: DoctorDiagnostic[]): { id: string; status: "ok" | "fail"; message: string }[] {
+   const results: { id: string; status: "ok" | "fail"; message: string }[] = [];
++  const fixPlan = buildDoctorFixPlan(root, diagnostics);
++  let planIndex = 0;
+   for (const diag of diagnostics) {
+     if (diag.status !== "fail") continue;
+-    const recipe = FIX_RECIPES[diag.id];
++    const recipe = ["root.node_modules", "wjs.node_modules", "wjs.esbuild"].includes(diag.id)
++      ? fixPlan[planIndex++]
++      : undefined;
+     if (!recipe) {
+       results.push({ id: diag.id, status: "fail", message: "no safe automated fix available" });
+       continue;
+diff --git a/tests/integration/doctor.test.ts b/tests/integration/doctor.test.ts
+index 830e466..062ec55 100644
+--- a/tests/integration/doctor.test.ts
++++ b/tests/integration/doctor.test.ts
+@@ -2,10 +2,85 @@ import { execFileSync } from "node:child_process";
+ import { mkdirSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { buildDoctorReport, runDoctor } from "../../src/commands/doctor.js";
+-import { makeTempRepo, writeScwbsProject, writeText } from "../helpers.js";
++import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
++import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
+ 
+ describe("doctor", () => {
++  test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeJson(root, "package.json", {
++      engines: { node: ">=22.12.0", npm: ">=10" },
++      packageManager: "npm@10.9.0",
++      workspaces: ["wjs"]
++    });
++
++    const diagnostics = collectEnvironmentDiagnostics(root, {
++      nodeVersion: "22.12.0",
++      npmVersion: "9.9.0",
++      corepackAvailable: true,
++      corepackVersion: "0.31.0",
++      corepackNpmVersion: "10.9.0",
++      dependencyGraphStatus: 0
++    });
++    const npm = diagnostics.find((diagnostic) => diagnostic.id === "npm");
++    const packageManager = diagnostics.find((diagnostic) => diagnostic.id === "packageManager");
++    const graph = diagnostics.find((diagnostic) => diagnostic.id === "dependencies.graph");
++    expect(npm).toMatchObject({
++      status: "fail",
++      details: { required: ">=10", actual: "9.9.0", source: "package.json#engines.npm" }
++    });
++    expect(packageManager).toMatchObject({
++      status: "pass",
++      details: { required: "npm@10.9.0", actual: "10.9.0" }
++    });
++    expect(graph).toMatchObject({
++      status: "pass",
++      details: { required: "npm ls --workspaces --depth=0", actual: "healthy", source: "corepack npm ls --workspaces --depth=0" }
++    });
++  });
++
++  test("doctor reports wrong pinned npm and missing Corepack independently", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeJson(root, "package.json", {
++      engines: { npm: ">=10" },
++      packageManager: "npm@10.9.0",
++      workspaces: ["wjs"]
++    });
++
++    const wrongPin = collectEnvironmentDiagnostics(root, {
++      npmVersion: "10.9.0",
++      corepackAvailable: true,
++      corepackNpmVersion: "10.8.0",
++      dependencyGraphStatus: 0
++    });
++    expect(wrongPin.find((diagnostic) => diagnostic.id === "npm")).toMatchObject({ status: "pass" });
++    expect(wrongPin.find((diagnostic) => diagnostic.id === "packageManager")).toMatchObject({ status: "fail" });
++
++    const noCorepack = collectEnvironmentDiagnostics(root, {
++      npmVersion: "10.9.0",
++      corepackAvailable: false,
++      corepackNpmVersion: "",
++      dependencyGraphStatus: 0
++    });
++    expect(noCorepack.find((diagnostic) => diagnostic.id === "corepack")).toMatchObject({ status: "fail" });
++    expect(noCorepack.find((diagnostic) => diagnostic.id === "packageManager")).toMatchObject({ status: "fail" });
++  });
++
++  test("doctor fix plan respects the pinned package manager", () => {
++    const root = makeTempRepo();
++    writeJson(root, "package.json", { packageManager: "npm@10.9.0" });
++    const plan = buildDoctorFixPlan(root, [{
++      id: "root.node_modules",
++      label: "root dependencies installed",
++      status: "fail",
++      message: "node_modules is missing",
++      fix: "Run: corepack npm install"
++    }]);
++    expect(plan).toEqual([{ command: "corepack", args: ["npm", "install"], cwd: "." }]);
++  });
++
+   test("doctor shows the issue-specific CRLF repair command", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -50,13 +125,15 @@ describe("doctor", () => {
+     console.log = (message?: unknown) => {
+       output.push(String(message));
+     };
++    let status: number;
+     try {
+-      expect(runDoctor(root, { json: true })).toBe(0);
++      status = runDoctor(root, { json: true });
+     } finally {
+       console.log = originalLog;
+     }
+ 
+     const parsed = JSON.parse(output.join("\n"));
++    expect(status).toBe(0);
+     expect(parsed).toMatchObject({
+       status: "pass",
+       diagnostics: expect.any(Array),

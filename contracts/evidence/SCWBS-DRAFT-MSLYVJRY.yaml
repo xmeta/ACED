@@ -1,0 +1,71 @@
+id: EVD-SCWBS-DRAFT-MSLYVJRY
+type: evidence
+taskId: SCWBS-DRAFT-MSLYVJRY
+commit: 5b298e1a7d69ce62019fdb10de0cb5645bd0c69c
+subjectHeadCommit: 5b298e1a7d69ce62019fdb10de0cb5645bd0c69c
+diffHash: sha256:52d8075c421f970fa04627ef6f5cca0629fa9a505868021bb6d051da2fed01e6
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 5b298e1a7d69ce62019fdb10de0cb5645bd0c69c
+    treeHash: 7a5d1650586f3f3f3cb64594a1b693a800727fdf
+    diffHash: sha256:52d8075c421f970fa04627ef6f5cca0629fa9a505868021bb6d051da2fed01e6
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLYVJRY.patch
+    manifestHash: sha256:52d8075c421f970fa04627ef6f5cca0629fa9a505868021bb6d051da2fed01e6
+git:
+  branch: task/SCWBS-DRAFT-MSLYVJRY-issue-485-doctor-npm-corepack-packagemanager-con
+  base: origin/main
+  baseCommit: ba20082a81e7ffec03a36768625087c0defa176b
+  changedFilesBasis: branch-diff
+  pullRequest: "496"
+  subjectHeadCommit: 5b298e1a7d69ce62019fdb10de0cb5645bd0c69c
+  diffHash: sha256:52d8075c421f970fa04627ef6f5cca0629fa9a505868021bb6d051da2fed01e6
+  headCommit: 5b298e1a7d69ce62019fdb10de0cb5645bd0c69c
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYVJRY.patch
+  - contracts/evidence/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSLYVJRY.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - src/commands/doctor.ts
+  - tests/integration/doctor.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:91c3a8848f9ecef61efae3f4e076096f8c656d903184f4df67ee40bbd1e30083
+    durationMilliseconds: 5681
+    executedAt: "2026-08-09T16:25:40.810Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:b649c4e8bb70ee1848aae39f0ae5db6d53483508294dc2fe6408120b72f1ab0a
+    durationMilliseconds: 10888
+    executedAt: "2026-08-09T16:25:51.703Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:4a97087c09c74f45605e3b2bf3fef7d75558c7d919f16eca9b8f83821077a60b
+    durationMilliseconds: 5381
+    executedAt: "2026-08-09T16:25:57.088Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5680348a47b7ddc6cd8584518dace859109f9cfdb781e5d90adc9fe0cb4512a4
+    durationMilliseconds: 329944
+    executedAt: "2026-08-09T16:31:27.037Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added npm Corepack packageManager workspace diagnostics and pin-aware repair-plan coverage
