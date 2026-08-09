@@ -1,0 +1,70 @@
+id: EVD-SCWBS-DRAFT-MSM56HNI
+type: evidence
+taskId: SCWBS-DRAFT-MSM56HNI
+commit: 0949d197a2a6de75d22523e421d9a2085040e43b
+subjectHeadCommit: 0949d197a2a6de75d22523e421d9a2085040e43b
+diffHash: sha256:f66022c66a78513ca6f796d9acb58bf16744b43c969a253dafb1ebc073b4bf2a
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 0949d197a2a6de75d22523e421d9a2085040e43b
+    treeHash: 4da6710ef938f27c266fd30c2b5c84ab4ee07848
+    diffHash: sha256:f66022c66a78513ca6f796d9acb58bf16744b43c969a253dafb1ebc073b4bf2a
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSM56HNI.patch
+    manifestHash: sha256:f66022c66a78513ca6f796d9acb58bf16744b43c969a253dafb1ebc073b4bf2a
+git:
+  branch: task/SCWBS-DRAFT-MSM56HNI-p1-ai-issue-455-phase-2-bounded-debugger-remedia
+  base: origin/main
+  baseCommit: 96ff5cd3182103ace5f4e97e8d1fd418ecffc149
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 0949d197a2a6de75d22523e421d9a2085040e43b
+  diffHash: sha256:f66022c66a78513ca6f796d9acb58bf16744b43c969a253dafb1ebc073b4bf2a
+  headCommit: 0949d197a2a6de75d22523e421d9a2085040e43b
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSM56HNI.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSM56HNI.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/schemas/ai-execution.schema.json
+  - src/cli/register-governance.ts
+  - src/commands/ai-run.ts
+  - tests/integration/ai.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:48bc196e94b00c5f7cb78bf5dee28411f03047209a10404e67c25ecb1d8610a6
+    durationMilliseconds: 5437
+    executedAt: "2026-08-09T19:01:36.823Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:540c38332ffbf268ab7a23c13ff88b3dcf23aeae558c543765354a9ddb8aeb0a
+    durationMilliseconds: 11450
+    executedAt: "2026-08-09T19:01:48.278Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:b2b4b2097dc84d43bb2dffdd963deca66a8a17926316d07aa46e88f027398f29
+    durationMilliseconds: 4869
+    executedAt: "2026-08-09T19:01:53.152Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3ce35eb07154cd495f30fcd458d802fd4bc94e6fe1b42446c05a78669321f7b1
+    durationMilliseconds: 316198
+    executedAt: "2026-08-09T19:07:09.354Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added bounded debugger remediation, round-limit, and stale resume coverage
