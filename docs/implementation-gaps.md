@@ -39,10 +39,12 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
 - Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
 - Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
-- Bounded Phase 1 AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, versioned plan/result/receipt artifacts, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; debugger, retry, resume, PR, and merge automation remain excluded
+- Bounded AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, a versioned Phase 2 debugger/remediation receipt with a two-round cap, stale resume validation, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; PR and merge automation remain excluded
 - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
 - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
 - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+- Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+- docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
 
 ## Still Missing
 
@@ -55,7 +57,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
 | Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
 | CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
-| Documentation automation | Markdown generation from contracts                          | Human-maintained docs still need manual upkeep                                                                                                                                                                                  |
 | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
 | WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
 

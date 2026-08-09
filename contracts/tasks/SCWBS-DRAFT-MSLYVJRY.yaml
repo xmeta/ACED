@@ -1,0 +1,66 @@
+id: SCWBS-DRAFT-MSLYVJRY
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLYVJRY
+branchName: task/SCWBS-DRAFT-MSLYVJRY-issue-485-doctor-npm-corepack-packagemanager-con
+status: approved
+approvedBy: xmeta
+sourceIssue: 485
+allowedPaths:
+  - src/commands/doctor.ts
+  - tests/integration/doctor.test.ts
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or CI change
+  - authority outside allowedPaths
+  - Human Gate
+  - external service or credential change
+  - WBS or WJS source change
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - doctor reads engines.npm and reports required, actual, and source values
+  - doctor independently diagnoses Corepack availability and packageManager pin agreement
+  - doctor --json exposes machine-readable npm, Corepack, packageManager, and dependency graph results
+  - doctor --fix uses the declared npm packageManager pin rather than plain npm install
+  - npm workspace dependency graph health is checked without changing lockfiles
+  - tests cover healthy, old npm, wrong pinned npm, missing Corepack, and repair-plan behavior
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/specs/SPEC-LITE-MSLYVJRY.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYVJRY.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLYVJRY.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:67b8bcd0d968d660ed5ec85ca091b325ced23634a7e315fc2d002978d36a4b98
+  createdAt: "2026-08-09T15:38:55.054Z"
