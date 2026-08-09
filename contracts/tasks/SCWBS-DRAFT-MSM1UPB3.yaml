@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MSM1UPB3
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSM1UPB3
+branchName: task/SCWBS-DRAFT-MSM1UPB3-issue-484-docs-lifecycle-orphan-and-factual-drif
+status: approved
+approvedBy: xmeta
+sourceIssue: 484
+allowedPaths:
+  - src/core/document-lifecycle.ts
+  - src/commands/docs-check.ts
+  - tests/integration/docs-check.test.ts
+  - docs/document-lifecycle.json
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - docs/implementation-gaps.md
+  - docs/scwbs/merge-protection.md
+  - README.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or CI change
+  - authority outside allowedPaths
+  - Human Gate
+  - external service or credential change
+  - WBS or WJS source change
+  - transient repository fact requires live external mutation
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - maintained Markdown files under docs are either covered by a lifecycle document set or explicitly ignored
+  - docs check detects README lint threshold drift and implemented commands listed as Still Missing
+  - transient repository visibility/protection prose is marked as a dated snapshot with live revalidation guidance
+  - docs check JSON reports orphan and factual drift issues with machine-readable reason codes
+  - current stale documentation is corrected without changing package, CI, WBS, WJS, or external repository settings
+  - regression tests cover orphan, ignore, lint drift, implemented-missing, and transient snapshot checks
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/specs/SPEC-LITE-MSM1UPB3.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM1UPB3.patch
+  - contracts/approvals/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:85209f1eece2702acbd7aa183cb5970ea1c7a746b8cd62351fc54dc6c18674bb
+  createdAt: "2026-08-09T17:03:43.398Z"

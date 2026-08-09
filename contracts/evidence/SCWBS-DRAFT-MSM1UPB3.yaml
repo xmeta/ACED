@@ -1,0 +1,75 @@
+id: EVD-SCWBS-DRAFT-MSM1UPB3
+type: evidence
+taskId: SCWBS-DRAFT-MSM1UPB3
+commit: faca84d0f2802f4481762a8e6cf275760ee8a399
+subjectHeadCommit: faca84d0f2802f4481762a8e6cf275760ee8a399
+diffHash: sha256:34c69b3ebfa1c21e56d3243254645eb3b07b3aec5047f99a1f559d32d9bafd24
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: faca84d0f2802f4481762a8e6cf275760ee8a399
+    treeHash: 532ea2e044b1805f48f2fc122e0bc9b5a7ccb30d
+    diffHash: sha256:34c69b3ebfa1c21e56d3243254645eb3b07b3aec5047f99a1f559d32d9bafd24
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSM1UPB3.patch
+    manifestHash: sha256:34c69b3ebfa1c21e56d3243254645eb3b07b3aec5047f99a1f559d32d9bafd24
+git:
+  branch: task/SCWBS-DRAFT-MSM1UPB3-issue-484-docs-lifecycle-orphan-and-factual-drif
+  base: origin/main
+  baseCommit: dfddff17ea076387f857c6772117a0c0d43c6565
+  changedFilesBasis: branch-diff
+  pullRequest: "497"
+  subjectHeadCommit: faca84d0f2802f4481762a8e6cf275760ee8a399
+  diffHash: sha256:34c69b3ebfa1c21e56d3243254645eb3b07b3aec5047f99a1f559d32d9bafd24
+  headCommit: faca84d0f2802f4481762a8e6cf275760ee8a399
+changedFiles:
+  - README.md
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSM1UPB3.patch
+  - contracts/evidence/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSM1UPB3.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSM1UPB3.yaml
+  - contracts/tasks/index.yaml
+  - docs/document-lifecycle.json
+  - docs/implementation-gaps.md
+  - docs/scwbs/merge-protection.md
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - src/core/document-lifecycle.ts
+  - tests/integration/docs-check.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:85a71588aa9a4382007e347e239c449340f13075005d8d184ec09112707678f6
+    durationMilliseconds: 4924
+    executedAt: "2026-08-09T17:20:36.046Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:68fc9aeb6283748c27cb7c704f156f7527ec6d2cb89101438cd4b554b1d2dbbc
+    durationMilliseconds: 10642
+    executedAt: "2026-08-09T17:20:46.693Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e5bcad11d1c7ac708d278769a5e4473561b53a1259bb85e4b1cdcc6651c04fe0
+    durationMilliseconds: 4472
+    executedAt: "2026-08-09T17:20:51.169Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3905bef8da21021545472911abb96648cc680afc2eae00645200bb97bf4c9a83
+    durationMilliseconds: 282641
+    executedAt: "2026-08-09T17:25:33.813Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added docs orphan and factual drift checks

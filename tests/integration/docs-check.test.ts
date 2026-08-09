@@ -38,7 +38,12 @@ function documentSet(overrides: Partial<DocumentSetFixture> = {}): DocumentSetFi
   };
 }
 
-function writeFixture(root: string, documents: DocumentSetFixture[], standardEntrypoints = [documents[0].entrypoint]): void {
+function writeFixture(
+  root: string,
+  documents: DocumentSetFixture[],
+  standardEntrypoints = [documents[0].entrypoint],
+  ignoredPaths: string[] = []
+): void {
   writeJson(root, "package.json", { version: "0.1.0" });
   for (const document of documents) {
     writeText(root, document.entrypoint, `# ${document.documentId}\n`);
@@ -46,6 +51,7 @@ function writeFixture(root: string, documents: DocumentSetFixture[], standardEnt
   writeJson(root, "docs/document-lifecycle.json", {
     schemaVersion: "1.0.0",
     standardEntrypoints,
+    ignoredPaths,
     documents
   });
 }
@@ -172,6 +178,62 @@ describe("docs check", () => {
       "docs.standardEntrypoint.nonCurrent",
       "docs.successor.missing"
     ]));
+  });
+
+  test("reports orphan Markdown and supports explicit ignored paths", () => {
+    const root = makeTempRepo();
+    writeFixture(root, [documentSet()]);
+    writeText(root, "docs/orphan.md", "# Orphan\n");
+
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .toContain("docs.orphan.unregistered");
+
+    writeFixture(root, [documentSet()], undefined, ["docs/orphan.md"]);
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .not.toContain("docs.orphan.unregistered");
+  });
+
+  test("reports lint threshold drift between package.json and README", () => {
+    const root = makeTempRepo();
+    writeFixture(root, [documentSet()]);
+    writeJson(root, "package.json", { version: "0.1.0", scripts: { lint: "eslint --max-warnings=0" } });
+    writeText(root, "README.md", "# ACED\nThe baseline is currently up to 37 warnings.\n");
+
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .toContain("docs.fact.lintThreshold");
+  });
+
+  test("reports implemented documentation automation that remains in the gaps table", () => {
+    const root = makeTempRepo();
+    const gaps = documentSet({
+      documentId: "gaps",
+      entrypoint: "docs/implementation-gaps.md",
+      paths: ["docs/implementation-gaps.md"]
+    });
+    writeFixture(root, [gaps]);
+    writeText(root, "docs/implementation-gaps.md", "| Documentation automation | Markdown generation from contracts | missing |\n");
+    writeText(root, "src/cli.ts", 'program.command("generate");\n');
+
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .toContain("docs.fact.implementedMissing");
+  });
+
+  test("requires repository visibility claims to be dated snapshots with revalidation", () => {
+    const root = makeTempRepo();
+    const protection = documentSet({
+      documentId: "merge-protection",
+      entrypoint: "docs/scwbs/merge-protection.md",
+      paths: ["docs/scwbs/merge-protection.md"]
+    });
+    writeFixture(root, [protection]);
+    writeText(root, "docs/scwbs/merge-protection.md", "This repository is currently private.\n");
+
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .toContain("docs.fact.transientRepositoryState");
+
+    writeText(root, "docs/scwbs/merge-protection.md", "This is a dated snapshot; revalidate with gh api.\n");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+      .not.toContain("docs.fact.transientRepositoryState");
   });
 
   test("is available in CLI help and aggregate scwbs check", () => {

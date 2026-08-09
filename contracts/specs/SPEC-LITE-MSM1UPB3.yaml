@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSM1UPB3
+type: spec-contract
+featureId: F-MSM1UPB3
+title: "Issue #484: docs lifecycle orphan and factual drift checks"
+status: approved
+version: 0.1.0
+summary: "docs check detects unregistered maintained Markdown and selected factual drift while treating repository capability as a revalidated snapshot"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - maintained docs Markdown is covered by a lifecycle document set or explicit ignoredPaths
+  - README lint threshold is checked against package.json without changing package.json
+  - implemented docs generate capability is not listed as Still Missing
+  - merge protection documentation describes repository visibility as a dated snapshot requiring live verification
+  - docs check JSON exposes machine-readable orphan and factual drift reason codes
+  - current stale prose is corrected and regression tests cover the new checks
+  - package, CI, WBS, WJS, and GitHub repository settings remain unchanged
+nonGoals:
+  - natural-language semantic analysis of all Markdown
+  - requiring GitHub API availability for local docs check
+  - automatically changing repository visibility or protection settings

@@ -44,6 +44,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
 - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
 - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+- docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
 
 ## Still Missing
 
@@ -56,7 +57,6 @@ This document tracks the pieces that are intentionally still missing from the cu
 | Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
 | Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
 | CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
-| Documentation automation | Markdown generation from contracts                          | Human-maintained docs still need manual upkeep                                                                                                                                                                                  |
 | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
 | WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
 

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { matchesAny } from "./glob.js";
 import { resolveFrom } from "./paths.js";
 import type { Issue } from "./types.js";
@@ -22,6 +23,7 @@ export type DocumentLifecycleManifest = {
   schemaVersion: "1.0.0";
   standardEntrypoints: string[];
   documents: DocumentSet[];
+  ignoredPaths: string[];
 };
 
 export type DocumentLifecycleResult = {
@@ -62,6 +64,93 @@ function error(code: string, message: string): Issue {
 
 function warning(code: string, message: string): Issue {
   return { severity: "warn", code, message };
+}
+
+function readText(root: string, relativePath: string): string | undefined {
+  const absolutePath = resolveFrom(root, relativePath);
+  if (!existsSync(absolutePath)) return undefined;
+  try {
+    return readFileSync(absolutePath, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+function collectMarkdownFiles(root: string): string[] {
+  const docsRoot = resolveFrom(root, "docs");
+  if (!existsSync(docsRoot)) return [];
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolutePath);
+      else if (entry.isFile() && entry.name.endsWith(".md")) {
+        files.push(path.relative(root, absolutePath).replace(/\\/g, "/"));
+      }
+    }
+  };
+  visit(docsRoot);
+  return files.sort();
+}
+
+function repositoryPackage(root: string): { version?: string; lintScript?: string } | undefined {
+  const text = readText(root, "package.json");
+  if (!text) return undefined;
+  try {
+    const packageJson = JSON.parse(text) as { version?: unknown; scripts?: { lint?: unknown } };
+    return {
+      version: typeof packageJson.version === "string" ? packageJson.version : undefined,
+      lintScript: typeof packageJson.scripts?.lint === "string" ? packageJson.scripts.lint : undefined
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function collectOrphanDocumentationIssues(root: string, manifest: DocumentLifecycleManifest): Issue[] {
+  return collectMarkdownFiles(root)
+    .filter((file) => !manifest.documents.some((document) => matchesAny(file, document.paths)))
+    .filter((file) => !manifest.ignoredPaths.some((pattern) => matchesAny(file, [pattern])))
+    .map((file) => error("docs.orphan.unregistered", `${file} is a maintained Markdown file not covered by document lifecycle or ignoredPaths`));
+}
+
+function collectFactualDocumentationIssues(root: string): Issue[] {
+  const issues: Issue[] = [];
+  const packageJson = repositoryPackage(root);
+  const readme = readText(root, "README.md") ?? "";
+  const gaps = readText(root, "docs/implementation-gaps.md") ?? "";
+  const mergeProtection = readText(root, "docs/scwbs/merge-protection.md") ?? "";
+  const cliSource = readText(root, "src/cli.ts") ?? "";
+
+  const configuredLintWarnings = packageJson?.lintScript?.match(/--max-warnings(?:=|\s+)(\d+)/)?.[1];
+  const documentedLintWarnings = readme.match(/(?:baseline|up to)\s+(\d+)\s+warnings/i)?.[1];
+  if (configuredLintWarnings && documentedLintWarnings && configuredLintWarnings !== documentedLintWarnings) {
+    issues.push(error(
+      "docs.fact.lintThreshold",
+      `README documents ${documentedLintWarnings} lint warnings but package.json lint uses --max-warnings=${configuredLintWarnings}`
+    ));
+  }
+
+  if (/Documentation automation\s*\|[^\n]*Markdown generation from contracts/i.test(gaps)
+    && /runDocsGenerate|\.command\("generate"\)/.test(cliSource)) {
+    issues.push(error(
+      "docs.fact.implementedMissing",
+      "docs/implementation-gaps.md lists contract Markdown generation as missing although docs generate is implemented"
+    ));
+  }
+
+  if (mergeProtection && /(?:currently|現行)[^\n]*(?:private|public)/i.test(mergeProtection)
+    && !/(?:snapshot|観測|revalidat|再検証|gh api)/i.test(mergeProtection)) {
+    issues.push(error(
+      "docs.fact.transientRepositoryState",
+      "merge protection documentation contains an unbounded repository visibility claim; record a dated snapshot and live revalidation guidance"
+    ));
+  }
+
+  if (readme.includes("docs check") && !/\.command\("check"\)/.test(cliSource)) {
+    issues.push(error("docs.fact.commandMissing", "README documents docs check but the command is not registered in src/cli.ts"));
+  }
+  return issues;
 }
 
 function parseVersion(value: string): [number, number, number] | undefined {
@@ -113,6 +202,10 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
   }
   if (!stringArray(raw.standardEntrypoints) || raw.standardEntrypoints.length === 0) {
     issues.push(error("docs.manifest.standardEntrypoints", "standardEntrypoints must be a non-empty string array"));
+  }
+  const validIgnoredPaths = raw.ignoredPaths === undefined || stringArray(raw.ignoredPaths);
+  if (!validIgnoredPaths || (raw.ignoredPaths as unknown[] | undefined)?.some((item) => !safeRepositoryPath(item as string))) {
+    issues.push(error("docs.manifest.ignoredPaths", "ignoredPaths must be a string array of safe repository-relative paths"));
   }
   if (!Array.isArray(raw.documents) || raw.documents.length === 0) {
     issues.push(error("docs.manifest.documents", "documents must be a non-empty array"));
@@ -172,7 +265,8 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
     manifest: {
       schemaVersion: "1.0.0",
       standardEntrypoints: raw.standardEntrypoints as string[],
-      documents
+      documents,
+      ignoredPaths: raw.ignoredPaths === undefined ? [] : raw.ignoredPaths as string[]
     },
     issues
   };
@@ -308,6 +402,8 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
     }
   }
   issues.push(...validateSuccessorGraph(manifest));
+  issues.push(...collectOrphanDocumentationIssues(root, manifest));
+  issues.push(...collectFactualDocumentationIssues(root));
 
   return { manifest, cliVersion, issues };
 }

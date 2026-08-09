@@ -2,7 +2,10 @@
 
 ## Current repository state
 
-2026-07-26時点のGitHub API観測では、このrepositoryはprivateである。
+2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という
+historical snapshotを記録している。この記録は現在のvisibilityや保護状態を
+保証しないため、作業前に `gh repo view xmeta/ACED --json visibility` と
+`gh api repos/xmeta/ACED/branches/main/protection` を再確認する。
 `main` branch protectionとrepository rulesetsの読取は、どちらも次の403を返す。
 
 ```text
