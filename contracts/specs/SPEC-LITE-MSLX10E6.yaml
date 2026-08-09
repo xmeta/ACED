@@ -1,0 +1,20 @@
+id: SPEC-LITE-MSLX10E6
+type: spec-contract
+featureId: F-MSLX10E6
+title: "Issue #488: finishのPR readinessをmerge preflightと同一evaluatorへ統一する"
+status: approved
+version: 0.1.0
+summary: "finishが曖昧なchecks-successをmerge-readyと案内せず、merge preflightのvalidate trust criteriaと同じmachine-readable readinessを返す"
+approvedBy: xmeta
+approvedAt: "2026-08-09T00:00:00+09:00"
+acceptanceCriteria:
+  - finishとmergeが同じpure evaluatorのvalidate count、workflow、repository URL、COMPLETED、SUCCESS判定を共有する
+  - validateがSKIPPED、NEUTRAL、wrong workflow、missing、duplicate、pending、failureの場合、finishはmerge-readyを返さない
+  - finish --jsonがmergeReadiness.status、reasonCodes、validate.statusを返し、原因に応じたnextActionを維持する
+  - draft、closed、base mismatch、merge state mismatch、invalid headのPRをmerge-readyと誤案内しない
+  - merge preflightのstrictness、自動merge禁止、protected command経路を変更しない
+  - finish/merge evaluator parityのunit/integration regression testsを追加する
+  - package、CI、WBS/WJS source、Human Gate behaviorは変更しない
+nonGoals:
+  - finishから自動mergeすること
+  - pending checksを成功扱いすること
