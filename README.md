@@ -21,6 +21,8 @@ a separate dependency and retains its own licensing terms.
 |---|---|
 | New human user | `docs/scwbs/getting-started.md` |
 | Human contributor | `CONTRIBUTING.md` |
+| Security reporter | [SECURITY.md](SECURITY.md) |
+| Release history | [CHANGELOG.md](CHANGELOG.md) |
 | Docs navigator | `docs/README.md` |
 | AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
 | AI reviewer | `docs/scwbs/ai-agent-guide.md` |

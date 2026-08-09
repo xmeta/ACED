@@ -1,0 +1,68 @@
+id: EVD-SCWBS-DRAFT-MSLAQZZO
+type: evidence
+taskId: SCWBS-DRAFT-MSLAQZZO
+commit: 970044625a0af9aea47df4bcecccf79de835a90e
+subjectHeadCommit: 970044625a0af9aea47df4bcecccf79de835a90e
+diffHash: sha256:c46dee9aaa33782b9c61f8d66d397986aea6ecc3b8dea1e324c69969121076d5
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 970044625a0af9aea47df4bcecccf79de835a90e
+    treeHash: 24f0a51d3d9e1fb7e70c6d2ec96ff23a71fab07b
+    diffHash: sha256:c46dee9aaa33782b9c61f8d66d397986aea6ecc3b8dea1e324c69969121076d5
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLAQZZO.patch
+    manifestHash: sha256:c46dee9aaa33782b9c61f8d66d397986aea6ecc3b8dea1e324c69969121076d5
+git:
+  branch: task/SCWBS-DRAFT-MSLAQZZO-issue-477-add-security-policy-and-changelog-entr
+  base: origin/main
+  baseCommit: 31d56bf44ad8cea2d3623452fe14e4018ae85bb7
+  changedFilesBasis: branch-diff
+  pullRequest: "478"
+  subjectHeadCommit: 970044625a0af9aea47df4bcecccf79de835a90e
+  diffHash: sha256:c46dee9aaa33782b9c61f8d66d397986aea6ecc3b8dea1e324c69969121076d5
+  headCommit: 970044625a0af9aea47df4bcecccf79de835a90e
+changedFiles:
+  - CHANGELOG.md
+  - README.md
+  - SECURITY.md
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLAQZZO.patch
+  - contracts/evidence/SCWBS-DRAFT-MSLAQZZO.yaml
+  - contracts/registry.yaml
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c56e28eaa82e522ee96a6124a8d55f39d5112137488f61378f0c24346e3106b5
+    durationMilliseconds: 16786
+    executedAt: "2026-08-09T04:31:43.545Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:0b2751dc9167b6990dadedf88c9eec89e20403b44e765d056a8f4db4726c2a4e
+    durationMilliseconds: 10964
+    executedAt: "2026-08-09T04:31:54.515Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:63dfb6743b9503bc2c569c69da52210f8377dbaa00655ad473e1a6d784e62e85
+    durationMilliseconds: 4336
+    executedAt: "2026-08-09T04:31:58.856Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6c08cc65b35eea909f98d79c877d493e0aa201643a0820642f0ba0b11df15a5f
+    durationMilliseconds: 270634
+    executedAt: "2026-08-09T04:36:29.494Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - documentation-only change; no test files or assertions changed
