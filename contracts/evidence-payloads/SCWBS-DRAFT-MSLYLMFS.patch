@@ -1,0 +1,719 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml b/contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml
+new file mode 100644
+index 0000000..e6d5aa2
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml
+@@ -0,0 +1,25 @@
++id: BLK-SCWBS-DRAFT-MSLYLMFS
++type: block
++taskId: SCWBS-DRAFT-MSLYLMFS
++status: resolved
++category: db
++level: 2
++requiredHumanDecision: Decide database schema or migration scope before implementation continues.
++reason: "Issue #487 implementation requires adding src/core/governance-path-policy.ts to contracts/check-coverage.yaml, but the approved Task Contract does not allow governance-schema scope expansion"
++createdAt: "2026-08-09T19:50:21.296Z"
++history:
++  - status: blocked
++    at: "2026-08-09T15:33:13.718Z"
++    reason: Human Gate required before creating or changing governance-critical path policy; review policy classifications and broad allowedPaths behavior
++    by: ai-agent
++  - status: blocked
++    at: "2026-08-09T19:50:21.296Z"
++    reason: "Issue #487 implementation requires adding src/core/governance-path-policy.ts to contracts/check-coverage.yaml, but the approved Task Contract does not allow governance-schema scope expansion"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-09T19:51:48.391Z"
++    reason: contracts/check-coverage.yaml を allowedPaths と humanGateRequiredPaths に追加し、governance-path-policy.ts の coverage 分類を許可する
++    by: human
++resolvedAt: "2026-08-09T19:51:48.391Z"
++resolvedBy: human
++resolution: contracts/check-coverage.yaml を allowedPaths と humanGateRequiredPaths に追加し、governance-path-policy.ts の coverage 分類を許可する
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 0ed4b53..98fa9a9 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -88,6 +88,7 @@ rules:
+       - src/core/github-actions.ts
+       - src/core/github-pull-requests.ts
+       - src/core/glob.ts
++      - src/core/governance-path-policy.ts
+       - src/core/governance-warning-budget.ts
+       - src/core/hash.ts
+       - src/core/human-gate.ts
+diff --git a/contracts/specs/SPEC-LITE-MSLYLMFS.yaml b/contracts/specs/SPEC-LITE-MSLYLMFS.yaml
+new file mode 100644
+index 0000000..966afd4
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSLYLMFS.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MSLYLMFS
++type: spec-contract
++featureId: F-MSLYLMFS
++title: "Issue #487: governance-critical path policy single source of truth"
++status: approved
++version: 0.1.0
++summary: "Task creation, authority bootstrap, check-diff, and diagnostics share one versioned governance path policy without weakening Human Gates or forbidden paths"
++approvedBy: xmeta
++approvedAt: "2026-08-10T00:00:00+09:00"
++acceptanceCriteria:
++  - task-new, task-authority, and check-diff import the same policy module instead of maintaining copied critical-path constants
++  - policy classifications cover toolchain, build, quality-gate, CI, agent-policy, and governance-schema impact with machine-readable reasons
++  - broad allowedPaths cannot bypass critical configuration protection, and policy changes remain Human-Gated
++  - doctor JSON and check-diff JSON expose policy reason codes for critical paths
++  - existing Task Contract impact is available through a read-only diagnostic or migration report before enforcement changes
++  - unit and integration tests prove all consumers receive newly added policy paths
++  - package, CI, WBS/WJS source, and Human Approval semantics remain unchanged
++nonGoals:
++  - making every configuration or documentation file Human-Gated
++  - allowing Human Approval to override forbiddenPaths
++  - changing package, CI, WBS, WJS, or external service configuration
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml b/contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
+new file mode 100644
+index 0000000..75bccaf
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
+@@ -0,0 +1,77 @@
++id: SCWBS-DRAFT-MSLYLMFS
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLYLMFS
++branchName: task/SCWBS-DRAFT-MSLYLMFS-issue-487-governance-critical-path-policy-single
++status: approved
++approvedBy: xmeta
++sourceIssue: 487
++allowedPaths:
++  - src/core/governance-path-policy.ts
++  - src/commands/task-new.ts
++  - src/core/task-authority.ts
++  - src/commands/check-diff.ts
++  - src/core/check-coverage.ts
++  - contracts/check-coverage.yaml
++  - src/commands/doctor.ts
++  - tests/unit/governance-path-policy.test.ts
++  - tests/integration/tasks.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/doctor.test.ts
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/governance-path-policy.ts
++  - contracts/check-coverage.yaml
++stopIf:
++  - Human Gate
++  - governance policy classification
++  - authority outside allowedPaths
++  - package or CI change
++  - WBS or WJS source change
++  - external service or credential change
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - STANDARD_HUMAN_GATE_PATHS, REQUIRED_NEW_TASK_HUMAN_GATES, and SENSITIVE_META_PATHS are replaced by one versioned policy source
++  - task creation, task authority bootstrap, and check-diff consume the same policy classifications
++  - governance-impact paths include toolchain, build, quality-gate, CI, agent-policy, and governance-schema classifications with reasons
++  - broad allowedPaths cannot bypass critical configuration protection and doctor/check-diff JSON expose machine-readable policy reasons
++  - existing Task Contract impact is reported read-only before enforcement changes, with regression tests for policy consumers
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
++  - contracts/specs/SPEC-LITE-MSLYLMFS.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLYLMFS.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYLMFS.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLYLMFS.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLYLMFS.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:78243624a66ff26b40bcd949e58771f8ddfcc162a46ee818fb6a37f246f7d643
++  createdAt: "2026-08-09T19:53:36.159Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index b2f03d4..89fd88e 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1777,6 +1777,12 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T15:27:15.321Z"
++  - id: SCWBS-DRAFT-MSLYLMFS
++    path: contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
++    branchName: task/SCWBS-DRAFT-MSLYLMFS-issue-487-governance-critical-path-policy-single
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+   - id: SCWBS-DRAFT-MSLYVJRY
+     path: contracts/tasks/SCWBS-DRAFT-MSLYVJRY.yaml
+     branchName: task/SCWBS-DRAFT-MSLYVJRY-issue-485-doctor-npm-corepack-packagemanager-con
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index c437b35..7534bfb 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -1,6 +1,7 @@
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
++import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
+ import { validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+@@ -31,17 +32,25 @@ export function buildHumanGateActionOwnership(command: string): HumanGateActionO
+   };
+ }
+ 
+-const SENSITIVE_META_PATHS = [
+-  "package.json",
+-  "package-lock.json",
+-  "tsconfig.json",
+-  "vitest.config.ts",
+-  ".gitignore",
+-  ".github/**"
+-];
+-
+ function requiresMetaFileGuard(file: string): boolean {
+-  return matchesAny(file, SENSITIVE_META_PATHS);
++  return matchesAny(file, sensitiveMetaPaths());
++}
++
++function governancePolicyGateFiles(task: TaskContract, files: string[]): string[] {
++  const broadAllowed = task.allowedPaths.some((pattern) => isBroadAllowedPath(pattern));
++  if (!broadAllowed) return [];
++  return files.filter((file) => {
++    const impact = governancePathImpact(file);
++    return Boolean(impact?.critical) && !matchesAny(file, task.forbiddenPaths);
++  });
++}
++
++function taskWithGovernancePolicyGates(task: TaskContract, files: string[]): TaskContract {
++  const policyGateFiles = governancePolicyGateFiles(task, files);
++  return {
++    ...task,
++    humanGateRequiredPaths: [...new Set([...task.humanGateRequiredPaths, ...policyGateFiles])]
++  };
+ }
+ 
+ function shellQuote(value: string): string {
+@@ -168,7 +177,9 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+     .flatMap((submodule) => submodule.changedFiles.map((file) => `${submodule.path}/${file}`));
+   const authorityFiles = Array.from(new Set([...files, ...authorityNestedFiles]));
+   const coverageFiles = Array.from(new Set([...files, ...nestedFiles]));
+-  const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, authorityFiles, root);
++  const gateTask = taskWithGovernancePolicyGates(task, authorityFiles);
++  const policyGateFiles = governancePolicyGateFiles(task, authorityFiles);
++  const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, task.id).approval, authorityFiles, root);
+   for (const dependency of task.submoduleDependencies ?? []) {
+     if (files.includes(dependency.path) && !evidence?.submodules?.some((submodule) => submodule.path === dependency.path)) {
+       issues.push({ severity: "error", code: "diff.submodule.evidence.missing", message: `${dependency.path} gitlink changed but nested Evidence is missing` });
+@@ -221,6 +232,23 @@ export function collectDiffIssues(root: string, task: TaskContract, files: strin
+         fixCommand: `Add ${file} to allowedPaths or humanGateRequiredPaths in contracts/tasks/${task.id}.yaml if this change is intentional`
+       });
+     }
++    const policyReason = governancePolicyReason(file);
++    if (policyReason && policyGateFiles.includes(file) && !gate.approved) {
++      const policyIssue: Issue & {
++        policyReasonCode: string;
++        policyClassification: string;
++        policyReason: string;
++      } = {
++        severity: "error",
++        code: "diff.humanGate",
++        message: `${file} is a governance-critical path covered by broad allowedPaths; explicit Human Gate is required (policy=${policyReason.code}, classification=${policyReason.classification}): ${policyReason.reason}`,
++        fixCommand: `Narrow allowedPaths or add ${file} to humanGateRequiredPaths, then request Human Approval for the current Evidence`,
++        policyReasonCode: policyReason.code,
++        policyClassification: policyReason.classification,
++        policyReason: policyReason.reason
++      };
++      issues.push(policyIssue);
++    }
+   }
+   issues.push(...gate.issues.map((issue) => ({
+     ...issue,
+@@ -329,7 +357,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+   if (requiresHumanApproval) {
+     const evidence = options.evidence ?? readEvidence(root, taskId).evidence;
+     diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "(not recorded)";
+-    const gate = validateHumanGateApproval(task, evidence, readApproval(root, taskId).approval, files, root);
++    const gateTask = taskWithGovernancePolicyGates(task, files);
++    const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
+     humanGateFiles = gate.requiredFiles;
+     nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+   }
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index 7bc6b3f..8c3e882 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -2,6 +2,9 @@ import { spawnSync } from "node:child_process";
+ import { existsSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { fileURLToPath } from "node:url";
++import { listTasks } from "../core/contracts.js";
++import { matchesAny } from "../core/glob.js";
++import { GOVERNANCE_PATH_POLICY, GOVERNANCE_PATH_POLICY_VERSION } from "../core/governance-path-policy.js";
+ import { collectCheckIssues } from "./check.js";
+ import { collectHealthIssues } from "./health.js";
+ import { resolveFrom } from "../core/paths.js";
+@@ -44,6 +47,33 @@ export type DoctorFixStep = {
+   cwd: string;
+ };
+ 
++function governancePolicyImpactDiagnostic(root: string): DoctorDiagnostic {
++  const impacts = listTasks(root).flatMap(({ task }) => {
++    if (!task) return [];
++    return GOVERNANCE_PATH_POLICY
++      .filter((entry) => task.allowedPaths.some((allowedPath) => matchesAny(entry.pattern, [allowedPath])))
++      .map((entry) => ({ taskId: task.id, entry }));
++  });
++  const taskIds = [...new Set(impacts.map((impact) => impact.taskId))].sort();
++  const reasonCodes = [...new Set(impacts.map((impact) => impact.entry.reasonCode))].sort();
++  return {
++    id: "governance.policy",
++    label: "governance-critical path policy impact",
++    status: "pass",
++    message: impacts.length === 0
++      ? `No existing Task Contract overlaps policy v${GOVERNANCE_PATH_POLICY_VERSION} critical paths`
++      : `Read-only impact report: ${impacts.length} policy overlap(s) across ${taskIds.length} Task Contract(s); enforcement was not changed`,
++    fix: "Review the read-only impact before changing governance path enforcement",
++    details: {
++      policyVersion: GOVERNANCE_PATH_POLICY_VERSION,
++      mode: "read-only",
++      affectedTasks: taskIds.join(",") || "(none)",
++      reasonCodes: reasonCodes.join(",") || "(none)",
++      overlapCount: impacts.length
++    }
++  };
++}
++
+ type CommandResult = { status: number | null; stdout: string; stderr: string };
+ 
+ function runCommand(command: string, args: string[], cwd?: string): CommandResult {
+@@ -526,6 +556,7 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
+   });
+ 
+   diagnostics.push(dependencyGraphDiagnostic(root, runtime));
++  diagnostics.push(governancePolicyImpactDiagnostic(root));
+ 
+   return diagnostics;
+ }
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index b841033..fc91d68 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -5,14 +5,13 @@ import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
+ import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
++import { BROAD_ALLOWED_PATH_PATTERNS, standardHumanGatePaths } from "../core/governance-path-policy.js";
+ import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+ import type { TaskContract } from "../core/types.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ 
+-const BROAD_SCOPE_PATTERNS = new Set(["src/**", "tests/**", "docs/**", "contracts/**", "**"]);
+-const STANDARD_HUMAN_GATE_PATHS = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+ 
+ function slug(value: string): string {
+   return value
+@@ -43,7 +42,7 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
+ }
+ 
+ function humanGatePaths(value: string | undefined): string[] {
+-  return [...new Set([...STANDARD_HUMAN_GATE_PATHS, ...splitList(value, [])])];
++  return [...new Set([...standardHumanGatePaths(), ...splitList(value, [])])];
+ }
+ 
+ export interface TaskNewFallback {
+@@ -162,7 +161,7 @@ export function runTaskNew(root: string, title: string, options: {
+     if (task.allowedPaths.length === 0) {
+       process.stdout.write("Notice: no --paths were provided; allowedPaths is empty and this draft cannot authorize implementation.\n");
+     }
+-    const broadScopes = task.allowedPaths.filter((item) => BROAD_SCOPE_PATTERNS.has(item));
++    const broadScopes = task.allowedPaths.filter((item) => BROAD_ALLOWED_PATH_PATTERNS.includes(item as typeof BROAD_ALLOWED_PATH_PATTERNS[number]));
+     if (broadScopes.length > 0) {
+       process.stdout.write(`Warning: broad allowedPaths require explicit review before implementation: ${broadScopes.join(", ")}\n`);
+     }
+diff --git a/src/core/governance-path-policy.ts b/src/core/governance-path-policy.ts
+new file mode 100644
+index 0000000..d8c4a4a
+--- /dev/null
++++ b/src/core/governance-path-policy.ts
+@@ -0,0 +1,182 @@
++import { matchesGlob } from "./glob.js";
++
++export const GOVERNANCE_PATH_POLICY_VERSION = "1.0.0";
++
++export type GovernancePathClassification =
++  | "toolchain"
++  | "build"
++  | "quality-gate"
++  | "ci"
++  | "agent-policy"
++  | "governance-schema";
++
++export type GovernancePathPolicyEntry = {
++  pattern: string;
++  classification: GovernancePathClassification;
++  reasonCode: string;
++  reason: string;
++  critical?: boolean;
++  sensitiveMeta?: boolean;
++  newTaskHumanGate?: boolean;
++};
++
++export const GOVERNANCE_PATH_POLICY: readonly GovernancePathPolicyEntry[] = [
++  {
++    pattern: "package.json",
++    classification: "toolchain",
++    reasonCode: "governance.toolchain.package",
++    reason: "package scripts, engines, packageManager, and dependencies affect the execution toolchain",
++    critical: true,
++    sensitiveMeta: true,
++    newTaskHumanGate: true
++  },
++  {
++    pattern: "package-lock.json",
++    classification: "toolchain",
++    reasonCode: "governance.toolchain.lockfile",
++    reason: "dependency resolution and installed toolchain inputs are changed",
++    critical: true,
++    sensitiveMeta: true,
++    newTaskHumanGate: true
++  },
++  {
++    pattern: "tsconfig.json",
++    classification: "build",
++    reasonCode: "governance.build.typescript",
++    reason: "the TypeScript compiler boundary and emitted build can change",
++    critical: true,
++    sensitiveMeta: true,
++    newTaskHumanGate: true
++  },
++  {
++    pattern: "tsconfig.*.json",
++    classification: "build",
++    reasonCode: "governance.build.extra-typescript-config",
++    reason: "an additional TypeScript project can change compilation or packaging behavior",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "vitest.config.ts",
++    classification: "quality-gate",
++    reasonCode: "governance.quality.vitest",
++    reason: "test discovery, isolation, or pass/fail behavior can change",
++    critical: true,
++    sensitiveMeta: true,
++    newTaskHumanGate: true
++  },
++  {
++    pattern: "eslint.config.js",
++    classification: "quality-gate",
++    reasonCode: "governance.quality.eslint",
++    reason: "lint enforcement and the accepted code-quality boundary can change",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: ".github/**",
++    classification: "ci",
++    reasonCode: "governance.ci.workflow",
++    reason: "repository automation and CI enforcement can change",
++    critical: true,
++    sensitiveMeta: true,
++    newTaskHumanGate: true
++  },
++  {
++    pattern: ".npmrc",
++    classification: "toolchain",
++    reasonCode: "governance.toolchain.npm-config",
++    reason: "npm registry, install, or execution behavior can change",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "AGENTS.md",
++    classification: "agent-policy",
++    reasonCode: "governance.agent.instructions",
++    reason: "agent operating constraints and approval boundaries can change",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: ".gitignore",
++    classification: "agent-policy",
++    reasonCode: "governance.agent.workspace-boundary",
++    reason: "ignored files can alter what enters Evidence and review scope",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "scripts/tsconfig.json",
++    classification: "build",
++    reasonCode: "governance.build.scripts-typescript",
++    reason: "script compilation and validation tooling can change",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "contracts/check-coverage.yaml",
++    classification: "governance-schema",
++    reasonCode: "governance.schema.check-coverage",
++    reason: "required checks and Evidence coverage are derived from this policy",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "docs/scwbs/schemas/**",
++    classification: "governance-schema",
++    reasonCode: "governance.schema.scwbs",
++    reason: "SC-WBS machine-readable contract semantics can change",
++    critical: true,
++    sensitiveMeta: true
++  },
++  {
++    pattern: "src/core/governance-path-policy.ts",
++    classification: "agent-policy",
++    reasonCode: "governance.agent.path-policy",
++    reason: "the single source of truth for governance-critical paths can change",
++    critical: true,
++    sensitiveMeta: true
++  }
++] as const;
++
++export const BROAD_ALLOWED_PATH_PATTERNS = ["**", "src/**", "tests/**", "docs/**", "contracts/**"] as const;
++
++export type GovernancePathImpact = GovernancePathPolicyEntry & { matchedPath: string };
++
++export function governancePathImpacts(file: string): GovernancePathImpact[] {
++  return GOVERNANCE_PATH_POLICY
++    .filter((entry) => matchesGlob(file, entry.pattern))
++    .map((entry) => ({ ...entry, matchedPath: file }));
++}
++
++export function governancePathImpact(file: string): GovernancePathImpact | undefined {
++  return governancePathImpacts(file)[0];
++}
++
++export function standardHumanGatePaths(): string[] {
++  return GOVERNANCE_PATH_POLICY
++    .filter((entry) => entry.newTaskHumanGate)
++    .map((entry) => entry.pattern);
++}
++
++export function requiredNewTaskHumanGatePaths(): string[] {
++  return standardHumanGatePaths();
++}
++
++export function sensitiveMetaPaths(): string[] {
++  return GOVERNANCE_PATH_POLICY
++    .filter((entry) => entry.sensitiveMeta)
++    .map((entry) => entry.pattern);
++}
++
++export function isBroadAllowedPath(pattern: string): boolean {
++  return BROAD_ALLOWED_PATH_PATTERNS.includes(pattern as typeof BROAD_ALLOWED_PATH_PATTERNS[number]);
++}
++
++export function governancePolicyReason(file: string): { code: string; classification: GovernancePathClassification; reason: string } | undefined {
++  const impact = governancePathImpact(file);
++  return impact
++    ? { code: impact.reasonCode, classification: impact.classification, reason: impact.reason }
++    : undefined;
++}
+diff --git a/src/core/task-authority.ts b/src/core/task-authority.ts
+index d4e9148..0bf5f1f 100644
+--- a/src/core/task-authority.ts
++++ b/src/core/task-authority.ts
+@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
+ import { readApproval, readEvidence, readTask } from "./contracts.js";
+ import { commitChangedFiles, fileIntroductionCommit, gitObject, isShallowRepository, mergeBase } from "./git.js";
+ import { matchesAny } from "./glob.js";
++import { isBroadAllowedPath, requiredNewTaskHumanGatePaths } from "./governance-path-policy.js";
+ import { validateHumanGateApproval } from "./human-gate.js";
+ import { matchesManagedContractPath } from "./managed-contract-paths.js";
+ import { asTaskContract, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+@@ -19,16 +20,6 @@ export const TASK_AUTHORITY_FIELDS = [
+   "approvalPolicy"
+ ] as const;
+ 
+-const REQUIRED_NEW_TASK_HUMAN_GATES = [
+-  "package.json",
+-  "package-lock.json",
+-  "tsconfig.json",
+-  "vitest.config.ts",
+-  ".github/**"
+-];
+-
+-const UNSAFE_NEW_TASK_GLOBS = new Set(["**", "src/**", "tests/**", "docs/**", "contracts/**"]);
+-
+ type AuthorityField = typeof TASK_AUTHORITY_FIELDS[number];
+ type AuthoritySnapshot = Record<AuthorityField, unknown>;
+ 
+@@ -257,7 +248,7 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
+       fixCommand: `Add ${taskPath} to managedContractPaths before the contract-only creation commit`
+     });
+   }
+-  const missingGates = REQUIRED_NEW_TASK_HUMAN_GATES.filter((path) => !introducedTask.humanGateRequiredPaths.includes(path));
++  const missingGates = requiredNewTaskHumanGatePaths().filter((path) => !introducedTask.humanGateRequiredPaths.includes(path));
+   if (missingGates.length > 0) {
+     issues.push({
+       severity: "error",
+@@ -274,7 +265,7 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
+       fixCommand: `Add wjs/** to forbiddenPaths in the contract creation commit`
+     });
+   }
+-  const broadScopes = introducedTask.allowedPaths.filter((path) => UNSAFE_NEW_TASK_GLOBS.has(path));
++  const broadScopes = introducedTask.allowedPaths.filter((path) => isBroadAllowedPath(path));
+   if (broadScopes.length > 0) {
+     issues.push({
+       severity: "error",
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index c9153fb..3fccb94 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -619,6 +619,25 @@ describe("check-diff", () => {
+     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
+   });
+ 
++  test("check-diff exposes a machine-readable policy reason for critical paths under broad scope", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const task = sampleTask({ allowedPaths: ["src/**"], humanGateRequiredPaths: [] });
++    const issues = collectDiffIssues(root, task, ["eslint.config.js"], sampleEvidence({
++      changedFiles: ["eslint.config.js"],
++      diffHash: "policy-diff"
++    }));
++
++    expect(issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({
++        code: "diff.humanGate",
++        policyReasonCode: "governance.quality.eslint",
++        policyClassification: "quality-gate",
++        policyReason: expect.stringContaining("lint enforcement")
++      })
++    ]));
++  });
++
+   test("check-diff errors on human-gated sensitive meta files without approved approval", () => {
+     const root = makeTempRepo();
+     const task = sampleTask({
+diff --git a/tests/integration/doctor.test.ts b/tests/integration/doctor.test.ts
+index 062ec55..4d5d1ec 100644
+--- a/tests/integration/doctor.test.ts
++++ b/tests/integration/doctor.test.ts
+@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
+-import { makeTempRepo, writeJson, writeScwbsProject, writeText } from "../helpers.js";
++import { makeTempRepo, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("doctor", () => {
+   test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
+@@ -81,6 +81,29 @@ describe("doctor", () => {
+     expect(plan).toEqual([{ command: "corepack", args: ["npm", "install"], cwd: "." }]);
+   });
+ 
++  test("doctor reports governance policy impact as read-only machine-readable diagnostics", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ allowedPaths: ["src/**"] }) as unknown as Record<string, unknown>);
++
++    const diagnostic = collectEnvironmentDiagnostics(root, {
++      npmVersion: "10.9.0",
++      corepackAvailable: true,
++      corepackVersion: "0.31.0",
++      corepackNpmVersion: "10.9.0",
++      dependencyGraphStatus: 0
++    }).find((item) => item.id === "governance.policy");
++    expect(diagnostic).toMatchObject({
++      status: "pass",
++      details: {
++        policyVersion: "1.0.0",
++        mode: "read-only",
++        affectedTasks: "WBS-001-004",
++        reasonCodes: expect.stringContaining("governance.agent.path-policy")
++      }
++    });
++  });
++
+   test("doctor shows the issue-specific CRLF repair command", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/unit/governance-path-policy.test.ts b/tests/unit/governance-path-policy.test.ts
+new file mode 100644
+index 0000000..68fbe80
+--- /dev/null
++++ b/tests/unit/governance-path-policy.test.ts
+@@ -0,0 +1,48 @@
++import { describe, expect, test } from "vitest";
++import {
++  GOVERNANCE_PATH_POLICY,
++  GOVERNANCE_PATH_POLICY_VERSION,
++  governancePathImpact,
++  requiredNewTaskHumanGatePaths,
++  sensitiveMetaPaths,
++  standardHumanGatePaths
++} from "../../src/core/governance-path-policy.js";
++
++describe("governance path policy", () => {
++  test("keeps the baseline Human Gate and sensitive metadata consumers on one source", () => {
++    expect(GOVERNANCE_PATH_POLICY_VERSION).toBe("1.0.0");
++    expect(GOVERNANCE_PATH_POLICY.length).toBeGreaterThan(standardHumanGatePaths().length);
++    expect(standardHumanGatePaths()).toEqual([
++      "package.json",
++      "package-lock.json",
++      "tsconfig.json",
++      "vitest.config.ts",
++      ".github/**"
++    ]);
++    expect(requiredNewTaskHumanGatePaths()).toEqual(standardHumanGatePaths());
++    expect(sensitiveMetaPaths()).toEqual(expect.arrayContaining([
++      ...standardHumanGatePaths(),
++      ".gitignore",
++      "eslint.config.js",
++      "tsconfig.*.json",
++      "scripts/tsconfig.json",
++      "contracts/check-coverage.yaml"
++    ]));
++  });
++
++  test("classifies critical paths with machine-readable reasons", () => {
++    expect(governancePathImpact("eslint.config.js")).toMatchObject({
++      classification: "quality-gate",
++      reasonCode: "governance.quality.eslint",
++      critical: true
++    });
++    expect(governancePathImpact("scripts/tsconfig.json")).toMatchObject({
++      classification: "build",
++      reasonCode: "governance.build.scripts-typescript"
++    });
++    expect(governancePathImpact("contracts/check-coverage.yaml")).toMatchObject({
++      classification: "governance-schema",
++      reasonCode: "governance.schema.check-coverage"
++    });
++  });
++});

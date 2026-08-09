@@ -619,6 +619,25 @@ describe("check-diff", () => {
     expect(issues.some((issue) => issue.code === "diff.metaFile")).toBe(false);
   });
 
+  test("check-diff exposes a machine-readable policy reason for critical paths under broad scope", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const task = sampleTask({ allowedPaths: ["src/**"], humanGateRequiredPaths: [] });
+    const issues = collectDiffIssues(root, task, ["eslint.config.js"], sampleEvidence({
+      changedFiles: ["eslint.config.js"],
+      diffHash: "policy-diff"
+    }));
+
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "diff.humanGate",
+        policyReasonCode: "governance.quality.eslint",
+        policyClassification: "quality-gate",
+        policyReason: expect.stringContaining("lint enforcement")
+      })
+    ]));
+  });
+
   test("check-diff errors on human-gated sensitive meta files without approved approval", () => {
     const root = makeTempRepo();
     const task = sampleTask({

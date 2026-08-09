@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readApproval, readEvidence, readTask } from "./contracts.js";
 import { commitChangedFiles, fileIntroductionCommit, gitObject, isShallowRepository, mergeBase } from "./git.js";
 import { matchesAny } from "./glob.js";
+import { isBroadAllowedPath, requiredNewTaskHumanGatePaths } from "./governance-path-policy.js";
 import { validateHumanGateApproval } from "./human-gate.js";
 import { matchesManagedContractPath } from "./managed-contract-paths.js";
 import { asTaskContract, validateTaskContract, validateTaskContractSchema } from "./schema.js";
@@ -18,16 +19,6 @@ export const TASK_AUTHORITY_FIELDS = [
   "submoduleDependencies",
   "approvalPolicy"
 ] as const;
-
-const REQUIRED_NEW_TASK_HUMAN_GATES = [
-  "package.json",
-  "package-lock.json",
-  "tsconfig.json",
-  "vitest.config.ts",
-  ".github/**"
-];
-
-const UNSAFE_NEW_TASK_GLOBS = new Set(["**", "src/**", "tests/**", "docs/**", "contracts/**"]);
 
 type AuthorityField = typeof TASK_AUTHORITY_FIELDS[number];
 type AuthoritySnapshot = Record<AuthorityField, unknown>;
@@ -257,7 +248,7 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
       fixCommand: `Add ${taskPath} to managedContractPaths before the contract-only creation commit`
     });
   }
-  const missingGates = REQUIRED_NEW_TASK_HUMAN_GATES.filter((path) => !introducedTask.humanGateRequiredPaths.includes(path));
+  const missingGates = requiredNewTaskHumanGatePaths().filter((path) => !introducedTask.humanGateRequiredPaths.includes(path));
   if (missingGates.length > 0) {
     issues.push({
       severity: "error",
@@ -274,7 +265,7 @@ function collectNewTaskTrustIssues(root: string, mergeBaseRef: string, taskPath:
       fixCommand: `Add wjs/** to forbiddenPaths in the contract creation commit`
     });
   }
-  const broadScopes = introducedTask.allowedPaths.filter((path) => UNSAFE_NEW_TASK_GLOBS.has(path));
+  const broadScopes = introducedTask.allowedPaths.filter((path) => isBroadAllowedPath(path));
   if (broadScopes.length > 0) {
     issues.push({
       severity: "error",

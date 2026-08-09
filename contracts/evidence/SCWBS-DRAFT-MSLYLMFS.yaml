@@ -1,0 +1,79 @@
+id: EVD-SCWBS-DRAFT-MSLYLMFS
+type: evidence
+taskId: SCWBS-DRAFT-MSLYLMFS
+commit: c3cbeb63ee74e0a1f6d4027cc9dd3e0572bab868
+subjectHeadCommit: c3cbeb63ee74e0a1f6d4027cc9dd3e0572bab868
+diffHash: sha256:c151a0509448fdc2de6861460aa795d298561df6a892f13d16d7f36eb002350d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: c3cbeb63ee74e0a1f6d4027cc9dd3e0572bab868
+    treeHash: 77e93a100599c0b08945234b99bcd5e9a542c343
+    diffHash: sha256:c151a0509448fdc2de6861460aa795d298561df6a892f13d16d7f36eb002350d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSLYLMFS.patch
+    manifestHash: sha256:c151a0509448fdc2de6861460aa795d298561df6a892f13d16d7f36eb002350d
+git:
+  branch: task/SCWBS-DRAFT-MSLYLMFS-issue-487-governance-critical-path-policy-single
+  base: origin/main
+  baseCommit: 4936804ea745475ac55ff887fea224f0a3a70c87
+  changedFilesBasis: branch-diff
+  pullRequest: "500"
+  subjectHeadCommit: c3cbeb63ee74e0a1f6d4027cc9dd3e0572bab868
+  diffHash: sha256:c151a0509448fdc2de6861460aa795d298561df6a892f13d16d7f36eb002350d
+  headCommit: c3cbeb63ee74e0a1f6d4027cc9dd3e0572bab868
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/check-coverage.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLYLMFS.patch
+  - contracts/evidence/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSLYLMFS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSLYLMFS.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/check-diff.ts
+  - src/commands/doctor.ts
+  - src/commands/task-new.ts
+  - src/core/governance-path-policy.ts
+  - src/core/task-authority.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/doctor.test.ts
+  - tests/unit/governance-path-policy.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:b0c46fd2815f08a2a294614dbdecb4035347f1f98c276528ed7ed4340059d4ec
+    durationMilliseconds: 15569
+    executedAt: "2026-08-09T19:55:06.908Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:a136dbed155a646b42300be20f9d77ad8055953af81ed59d3b263cb262af61f4
+    durationMilliseconds: 9674
+    executedAt: "2026-08-09T19:55:16.588Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:0388e24bc60d293b5cbb218786e5aa4b3ac1823fa7cc93fe91581ca264b2c085
+    durationMilliseconds: 3972
+    executedAt: "2026-08-09T19:55:20.563Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:fec7325357a2204e16ab3e2ad062ae11b761bdfc615aa9b1b23fe2f2391886d8
+    durationMilliseconds: 270171
+    executedAt: "2026-08-09T19:59:50.737Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added governance policy unit and integration coverage for consumer propagation and critical-path diagnostics
