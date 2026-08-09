@@ -1,0 +1,835 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml b/contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml
+new file mode 100644
+index 0000000..4d2bbfa
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml
+@@ -0,0 +1,77 @@
++id: SCWBS-DRAFT-MSLSKL63
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLSKL63
++branchName: task/SCWBS-DRAFT-MSLSKL63-issue-455-phase-1-bounded-implementer-checks-fre
++priority: high
++status: approved
++approvedBy: xmeta
++sourceIssue: 455
++allowedPaths:
++  - src/commands/ai-run.ts
++  - src/cli/register-governance.ts
++  - docs/scwbs/schemas/ai-execution.schema.json
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++  - tests/integration/ai.test.ts
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++stopIf:
++  - agent provider credentials or permission changes
++  - external service integration
++  - automatic pull request or merge
++  - debugger retry resume Phase 2
++  - Human Gate
++  - authority outside allowed paths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Versioned JSON schema defines the Phase 1 execution plan, implementer result, reviewer result, and local run receipt with explicit role, Task, iteration, head, authority fingerprint, and status fields
++  - '`ai execute --task <id> --implementer-command <path> --reviewer-command <path>` runs exactly one Task iteration through declared non-shell adapter commands and rejects missing or unsupported capabilities before mutation'
++  - Preflight revalidates the Task Contract, branch, clean working tree, single active Task, authority fingerprint, allowed/forbidden/Human Gate paths, required checks, and active Blocks
++  - Implementer input contains only the bounded AI Work Packet and execution context; adapter output is schema-validated and cannot modify Task authority or Human Approval/review records
++  - After implementer execution, changed paths are fail-closed checked against allowed, forbidden, and Human Gate paths before required checks run
++  - Required checks run through the existing SC-WBS check runner and their receipt is included in the local run receipt; failed checks prevent reviewer dispatch
++  - Reviewer runs in a distinct fresh process/context with a separate bounded input and returns approved, changes-requested, or manual-review-required plus machine-readable findings
++  - The runner never creates Human Approval, human-only review transitions, pull requests, commits, or merges, and does not implement debugger/retry/resume Phase 2 behavior
++  - Unsupported adapter capability, adapter spawn/output failure, stale HEAD, out-of-scope change, active Block, failed check, and reviewer rejection fail closed with a versioned receipt
++  - Integration tests cover one-Task isolation, bounded inputs, no-shell invocation, stale/authority/path failures, check failure, fresh reviewer context, reviewer rejection, and no human-transition mutation
++  - 'Issue #455 Phase 1 remains open for Phase 2 debugger/retry/resume work and is not closed by this Task'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - ai-execution-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLSKL63.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLSKL63.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLSKL63.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLSKL63.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLSKL63.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-09T12:43:47.423Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 1c5dbdb..4669f4b 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1749,3 +1749,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T12:37:54.713Z"
++  - id: SCWBS-DRAFT-MSLSKL63
++    path: contracts/tasks/SCWBS-DRAFT-MSLSKL63.yaml
++    branchName: task/SCWBS-DRAFT-MSLSKL63-issue-455-phase-1-bounded-implementer-checks-fre
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 33ea426..020c4b1 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -39,6 +39,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
+ - Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
+ - Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
++- Bounded Phase 1 AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, versioned plan/result/receipt artifacts, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; debugger, retry, resume, PR, and merge automation remain excluded
+ 
+ ## Still Missing
+ 
+@@ -49,7 +50,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Evidence trust           | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope                                                                                                                       |
+ | Evidence diff basis      | CI correlation and publish-time PR metadata gating          | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
+ | Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
+-| Review independence      | Separate independent review mode                            | Single-session review remains policy-driven; `scwbs check` does not enforce independent review validation                                                                                                                       |
++| Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
+ | CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
+ | Documentation automation | Markdown generation from contracts                          | Human-maintained docs still need manual upkeep                                                                                                                                                                                  |
+ | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 65f4d65..5a722f9 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -168,6 +168,9 @@ Profile（Lean / Standard / Strict）ごとの必須artifact・required checks
+ ```bash
+ npm run scwbs -- ai packet --task SCWBS-001 --relation-depth 1
+ npm run scwbs -- ai run --task SCWBS-001 --agent codex
++npm run scwbs -- ai execute --task SCWBS-001 \
++  --implementer-command '["node","./adapters/implementer.mjs"]' \
++  --reviewer-command '["node","./adapters/reviewer.mjs"]' --json
+ npm run scwbs -- ai block --task SCWBS-001 --reason "Human Gate required"
+ npm run scwbs -- ai next-task
+ npm run scwbs -- next
+@@ -175,6 +178,10 @@ npm run scwbs -- next
+ 
+ `ai run` is initially a dry-run orchestrator. It prints the pre-flight checks, implementation stop conditions, and post-flight checks rather than launching an external agent.
+ 
++`ai execute` is the bounded Phase 1 runner. It accepts JSON command arrays rather than a shell string, starts exactly one Task iteration, sends a bounded Work Packet to an implementer, runs the Task's existing required checks, and sends a separate fresh-context input to a reviewer. Adapter processes receive `SCWBS_RUNNER_ROLE` and `SCWBS_RUNNER_CONTEXT_ID`; the approval delegation token is removed from their environment. Each adapter must write a versioned JSON result to the output path supplied as its final argument. A failed preflight, path/authority check, required check, adapter result, or reviewer decision produces a blocked `scwbs.ai-run-receipt.v1` and skips later stages.
++
++The runner never creates Approval or human-only Review transitions, commits, pull requests, or merges. It does not implement debugger, retry, or resume behavior; those belong to the later Phase 2 work. The plan, input, result, and receipt shapes are defined in [`ai-execution.schema.json`](schemas/ai-execution.schema.json).
++
+ `ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. Eligible candidates are ordered by optional Task Contract `priority` (`high`, `medium`, `low`), then by Task ID; tasks without a priority remain after prioritized tasks and retain the existing Task ID fallback. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
+ 
+ `scwbs next` is the local follow-up command. It prioritizes stale task locks, missing Evidence, and review queue work before falling back to planned-task candidates.
+diff --git a/docs/scwbs/schemas/ai-execution.schema.json b/docs/scwbs/schemas/ai-execution.schema.json
+new file mode 100644
+index 0000000..40ada25
+--- /dev/null
++++ b/docs/scwbs/schemas/ai-execution.schema.json
+@@ -0,0 +1,145 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/schemas/ai-execution.schema.json",
++  "title": "SC-WBS bounded AI execution artifacts",
++  "oneOf": [
++    {
++      "$ref": "#/$defs/plan"
++    },
++    {
++      "$ref": "#/$defs/input"
++    },
++    {
++      "$ref": "#/$defs/result"
++    },
++    {
++      "$ref": "#/$defs/receipt"
++    }
++  ],
++  "$defs": {
++    "pathList": {
++      "type": "array",
++      "items": {
++        "type": "string",
++        "minLength": 1
++      }
++    },
++    "command": {
++      "type": "array",
++      "minItems": 1,
++      "items": {
++        "type": "string",
++        "minLength": 1
++      }
++    },
++    "plan": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "schemaVersion",
++        "executionId",
++        "taskId",
++        "iteration",
++        "phase",
++        "branch",
++        "expectedBranch",
++        "subjectHeadCommit",
++        "authorityFingerprint",
++        "allowedPaths",
++        "forbiddenPaths",
++        "humanGateRequiredPaths",
++        "requiredChecks",
++        "implementer",
++        "reviewer",
++        "automaticPullRequest",
++        "automaticMerge",
++        "debugger"
++      ],
++      "properties": {
++        "schemaVersion": { "const": "scwbs.ai-execution-plan.v1" },
++        "executionId": { "type": "string", "minLength": 1 },
++        "taskId": { "type": "string", "minLength": 1 },
++        "iteration": { "const": 1 },
++        "phase": { "const": "phase-1" },
++        "branch": { "type": "string", "minLength": 1 },
++        "expectedBranch": { "type": "string", "minLength": 1 },
++        "subjectHeadCommit": { "type": "string", "minLength": 1 },
++        "authorityFingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
++        "allowedPaths": { "$ref": "#/$defs/pathList" },
++        "forbiddenPaths": { "$ref": "#/$defs/pathList" },
++        "humanGateRequiredPaths": { "$ref": "#/$defs/pathList" },
++        "requiredChecks": { "$ref": "#/$defs/pathList" },
++        "implementer": { "$ref": "#/$defs/adapter" },
++        "reviewer": { "$ref": "#/$defs/adapter" },
++        "automaticPullRequest": { "const": false },
++        "automaticMerge": { "const": false },
++        "debugger": { "const": false }
++      }
++    },
++    "adapter": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["command", "contextId", "freshContext"],
++      "properties": {
++        "command": { "$ref": "#/$defs/command" },
++        "contextId": { "type": "string", "minLength": 1 },
++        "freshContext": { "const": true }
++      }
++    },
++    "input": {
++      "type": "object",
++      "additionalProperties": true,
++      "required": ["schemaVersion", "role", "contextId", "taskId", "iteration"],
++      "properties": {
++        "schemaVersion": { "const": "scwbs.ai-execution-input.v1" },
++        "role": { "enum": ["implementer", "reviewer"] },
++        "contextId": { "type": "string", "minLength": 1 },
++        "freshContext": { "const": true },
++        "taskId": { "type": "string", "minLength": 1 },
++        "iteration": { "const": 1 }
++      }
++    },
++    "result": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["schemaVersion", "role", "contextId", "status", "summary"],
++      "properties": {
++        "schemaVersion": { "const": "scwbs.ai-execution-result.v1" },
++        "role": { "enum": ["implementer", "reviewer"] },
++        "contextId": { "type": "string", "minLength": 1 },
++        "status": { "enum": ["completed", "blocked", "manual-review-required", "approved", "changes-requested"] },
++        "summary": { "type": "string", "minLength": 1 },
++        "findings": { "$ref": "#/$defs/pathList" },
++        "changedFiles": { "$ref": "#/$defs/pathList" }
++      }
++    },
++    "receipt": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["schemaVersion", "executionId", "taskId", "iteration", "status", "plan"],
++      "properties": {
++        "schemaVersion": { "const": "scwbs.ai-run-receipt.v1" },
++        "executionId": { "type": "string", "minLength": 1 },
++        "taskId": { "type": "string", "minLength": 1 },
++        "iteration": { "const": 1 },
++        "status": { "enum": ["completed", "blocked"] },
++        "plan": { "$ref": "#/$defs/plan" },
++        "implementer": { "$ref": "#/$defs/result" },
++        "checks": { "type": "object" },
++        "reviewer": { "$ref": "#/$defs/result" },
++        "changedFiles": { "$ref": "#/$defs/pathList" },
++        "failure": {
++          "type": "object",
++          "additionalProperties": false,
++          "required": ["stage", "code", "message"],
++          "properties": {
++            "stage": { "enum": ["preflight", "implementer", "checks", "reviewer"] },
++            "code": { "type": "string", "minLength": 1 },
++            "message": { "type": "string", "minLength": 1 }
++          }
++        },
++        "receiptPath": { "type": "string", "minLength": 1 }
++      }
++    }
++  }
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 5d7dd89..71c5211 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -15,7 +15,7 @@ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { SpecChangeProposal } from "../core/types.js";
+ import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
+ import { runAiPacket } from "../commands/ai-packet.js";
+-import { runAiRun } from "../commands/ai-run.js";
++import { runAiExecute, runAiRun } from "../commands/ai-run.js";
+ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js";
+ import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
+ import { runCompletionApply } from "../commands/completion.js";
+@@ -209,6 +209,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       setExitCode(runAiRun(root, options.task, options.agent));
+     });
+ 
++  ai.command("execute")
++    .description("Run one bounded implementer-checks-fresh-reviewer iteration")
++    .requiredOption("--task <id>", "task id")
++    .requiredOption("--implementer-command <json>", "JSON command array for the implementer adapter")
++    .requiredOption("--reviewer-command <json>", "JSON command array for the fresh reviewer adapter")
++    .option("--base <ref>", "base ref for required-check receipts", "origin/main")
++    .option("--receipt <path>", "optional local run receipt path")
++    .option("--json", "print the versioned run receipt as JSON")
++    .action((options) => {
++      setExitCode(runAiExecute(root, {
++        taskId: options.task,
++        implementerCommand: options.implementerCommand,
++        reviewerCommand: options.reviewerCommand,
++        baseRef: options.base,
++        receiptPath: options.receipt,
++        json: options.json ?? false
++      }));
++    });
++
+   ai.command("block")
+     .description("AI: block a task")
+     .option("--task <id>", "task id")
+diff --git a/src/commands/ai-run.ts b/src/commands/ai-run.ts
+index 12a683d..8291cfe 100644
+--- a/src/commands/ai-run.ts
++++ b/src/commands/ai-run.ts
+@@ -1,5 +1,322 @@
++import { createHash } from "node:crypto";
++import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import { spawnSync } from "node:child_process";
++import os from "node:os";
++import path from "node:path";
+ import { buildAiPacket } from "./ai-packet.js";
+-import { readTask } from "../core/contracts.js";
++import { buildChecksRunSummary, type ChecksRunSummary } from "./checks-run.js";
++import { listActiveTasks, readBlock, readTask } from "../core/contracts.js";
++import { currentBranch, headCommit, workingTreeChangedFiles } from "../core/git.js";
++import { matchesAny } from "../core/glob.js";
++import { taskAuthorityFingerprint } from "../core/task-authority.js";
++import type { TaskContract } from "../core/types.js";
++
++export type AiExecutionPlan = {
++  schemaVersion: "scwbs.ai-execution-plan.v1";
++  executionId: string;
++  taskId: string;
++  iteration: 1;
++  phase: "phase-1";
++  branch: string;
++  expectedBranch: string;
++  subjectHeadCommit: string;
++  authorityFingerprint: string;
++  allowedPaths: string[];
++  forbiddenPaths: string[];
++  humanGateRequiredPaths: string[];
++  requiredChecks: string[];
++  implementer: { command: string[]; contextId: string; freshContext: true };
++  reviewer: { command: string[]; contextId: string; freshContext: true };
++  automaticPullRequest: false;
++  automaticMerge: false;
++  debugger: false;
++};
++
++export type AiAdapterResult = {
++  schemaVersion: "scwbs.ai-execution-result.v1";
++  role: "implementer" | "reviewer";
++  contextId: string;
++  status: "completed" | "blocked" | "manual-review-required" | "approved" | "changes-requested";
++  summary: string;
++  findings?: string[];
++  changedFiles?: string[];
++};
++
++export type AiExecutionReceipt = {
++  schemaVersion: "scwbs.ai-run-receipt.v1";
++  executionId: string;
++  taskId: string;
++  iteration: 1;
++  status: "completed" | "blocked";
++  plan: AiExecutionPlan;
++  implementer?: AiAdapterResult;
++  checks?: ChecksRunSummary;
++  reviewer?: AiAdapterResult;
++  changedFiles?: string[];
++  failure?: { stage: "preflight" | "implementer" | "checks" | "reviewer"; code: string; message: string };
++  receiptPath?: string;
++};
++
++export type AiExecuteOptions = {
++  taskId: string;
++  implementerCommand: string;
++  reviewerCommand: string;
++  baseRef?: string;
++  receiptPath?: string;
++  json?: boolean;
++};
++
++export type AiExecutionDependencies = {
++  now?: () => string;
++  runChecks?: (root: string, taskId: string, baseRef: string) => ChecksRunSummary;
++};
++
++function executionId(taskId: string, now: string): string {
++  return `AIR-${createHash("sha256").update(`${taskId}:${now}`).digest("hex").slice(0, 16).toUpperCase()}`;
++}
++
++function parseCommandSpec(raw: string, label: string): string[] {
++  const trimmed = raw.trim();
++  if (!trimmed) throw new Error(`${label} must be a non-empty JSON command array`);
++  let value: unknown;
++  try {
++    value = JSON.parse(trimmed);
++  } catch (error) {
++    throw new Error(`${label} must be a JSON array such as ["node","adapter.mjs"]: ${error instanceof Error ? error.message : String(error)}`);
++  }
++  if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== "string" || item.trim().length === 0)) {
++    throw new Error(`${label} must be a non-empty JSON array of command arguments`);
++  }
++  return value as string[];
++}
++
++function safeAdapterEnvironment(): NodeJS.ProcessEnv {
++  const env = { ...process.env };
++  delete env.SCWBS_APPROVAL_DELEGATION_TOKEN;
++  return env;
++}
++
++function writeJson(filePath: string, value: unknown): void {
++  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
++}
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function parseAdapterResult(filePath: string, role: "implementer" | "reviewer", contextId: string): AiAdapterResult {
++  if (!existsSync(filePath)) throw new Error(`${role} adapter did not write its output file`);
++  let value: unknown;
++  try {
++    value = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
++  } catch (error) {
++    throw new Error(`${role} adapter output is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
++  }
++  if (!isRecord(value)) throw new Error(`${role} adapter output must be an object`);
++  const allowedStatuses = role === "implementer"
++    ? new Set(["completed", "blocked", "manual-review-required"])
++    : new Set(["approved", "changes-requested", "manual-review-required"]);
++  if (value.schemaVersion !== "scwbs.ai-execution-result.v1") throw new Error(`${role} adapter output has an unsupported schemaVersion`);
++  if (value.role !== role) throw new Error(`${role} adapter output role mismatch`);
++  if (typeof value.status !== "string" || !allowedStatuses.has(value.status)) throw new Error(`${role} adapter output has an invalid status`);
++  if (typeof value.summary !== "string" || value.summary.trim().length === 0) throw new Error(`${role} adapter output requires a non-empty summary`);
++  if (value.contextId !== undefined && value.contextId !== contextId) throw new Error(`${role} adapter output contextId does not match its fresh context`);
++  if (value.findings !== undefined && (!Array.isArray(value.findings) || value.findings.some((item) => typeof item !== "string"))) {
++    throw new Error(`${role} adapter output findings must be a string array`);
++  }
++  if (value.changedFiles !== undefined && (!Array.isArray(value.changedFiles) || value.changedFiles.some((item) => typeof item !== "string"))) {
++    throw new Error(`${role} adapter output changedFiles must be a string array`);
++  }
++  return {
++    schemaVersion: "scwbs.ai-execution-result.v1",
++    role,
++    contextId,
++    status: String(value.status) as AiAdapterResult["status"],
++    summary: value.summary as string,
++    ...(Array.isArray(value.findings) ? { findings: value.findings as string[] } : {}),
++    ...(Array.isArray(value.changedFiles) ? { changedFiles: value.changedFiles as string[] } : {})
++  };
++}
++
++function runAdapter(root: string, command: string[], input: unknown, role: "implementer" | "reviewer", contextId: string, directory: string): AiAdapterResult {
++  const inputPath = path.join(directory, `${role}-input.json`);
++  const outputPath = path.join(directory, `${role}-output.json`);
++  writeJson(inputPath, input);
++  const result = spawnSync(command[0]!, [...command.slice(1), inputPath, outputPath], {
++    cwd: root,
++    env: { ...safeAdapterEnvironment(), SCWBS_RUNNER_ROLE: role, SCWBS_RUNNER_CONTEXT_ID: contextId },
++    encoding: "utf8",
++    shell: false,
++    timeout: 120_000
++  });
++  if (result.error) throw new Error(`${role} adapter could not be spawned: ${result.error.message}`);
++  if (result.status !== 0) {
++    const detail = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
++    throw new Error(`${role} adapter exited with status ${String(result.status)}${detail ? `: ${detail}` : ""}`);
++  }
++  return parseAdapterResult(outputPath, role, contextId);
++}
++
++function preflightTask(root: string, task: TaskContract, taskId: string, branch: string, head: string): void {
++  if (branch !== task.branchName) throw new Error(`branch mismatch: expected ${task.branchName}, got ${branch}`);
++  const dirty = workingTreeChangedFiles(root);
++  if (dirty.length > 0) throw new Error(`working tree must be clean before ai execute: ${dirty.join(", ")}`);
++  const activeTasks = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task.id] : []);
++  if (activeTasks.length !== 1 || activeTasks[0] !== taskId) {
++    throw new Error(`ai execute requires exactly one active Task (${taskId}); active tasks: ${activeTasks.join(", ") || "none"}`);
++  }
++  const block = readBlock(root, taskId);
++  if (block.block?.status === "blocked") throw new Error(`active Block prevents ai execute: ${block.block.reason}`);
++  if (block.issues.some((issue) => issue.code !== "block.missing")) throw new Error(block.issues.map((issue) => issue.message).join("\n"));
++  if (!head) throw new Error("HEAD is unavailable");
++}
++
++function buildPlan(root: string, task: TaskContract, options: AiExecuteOptions, now: string): AiExecutionPlan {
++  const branch = currentBranch(root) ?? "";
++  const subjectHeadCommit = headCommit(root) ?? "";
++  const id = executionId(task.id, now);
++  const implementerCommand = parseCommandSpec(options.implementerCommand, "--implementer-command");
++  const reviewerCommand = parseCommandSpec(options.reviewerCommand, "--reviewer-command");
++  return {
++    schemaVersion: "scwbs.ai-execution-plan.v1",
++    executionId: id,
++    taskId: task.id,
++    iteration: 1,
++    phase: "phase-1",
++    branch,
++    expectedBranch: task.branchName ?? "",
++    subjectHeadCommit,
++    authorityFingerprint: taskAuthorityFingerprint(task),
++    allowedPaths: [...task.allowedPaths],
++    forbiddenPaths: [...task.forbiddenPaths],
++    humanGateRequiredPaths: [...task.humanGateRequiredPaths],
++    requiredChecks: [...task.requiredChecks],
++    implementer: { command: implementerCommand, contextId: `${id}-IMPLEMENTER`, freshContext: true },
++    reviewer: { command: reviewerCommand, contextId: `${id}-REVIEWER`, freshContext: true },
++    automaticPullRequest: false,
++    automaticMerge: false,
++    debugger: false
++  };
++}
++
++function receiptPath(root: string, options: AiExecuteOptions, directory: string): string {
++  const requested = options.receiptPath?.trim();
++  if (requested) return path.isAbsolute(requested) ? requested : path.resolve(root, requested);
++  return path.join(directory, "receipt.json");
++}
++
++function writeReceipt(receipt: AiExecutionReceipt, outputPath: string): AiExecutionReceipt {
++  const withPath = { ...receipt, receiptPath: outputPath };
++  mkdirSync(path.dirname(outputPath), { recursive: true });
++  writeJson(outputPath, withPath);
++  return withPath;
++}
++
++export function buildAiExecution(root: string, options: AiExecuteOptions, dependencies: AiExecutionDependencies = {}): AiExecutionReceipt {
++  const now = dependencies.now?.() ?? new Date().toISOString();
++  const { task, issues } = readTask(root, options.taskId);
++  if (!task) throw new Error(issues.map((issue) => issue.message).join("\n"));
++  const directory = mkdtempSync(path.join(os.tmpdir(), "scwbs-ai-execute-"));
++  const id = executionId(task.id, now);
++  let plan: AiExecutionPlan;
++  try {
++    plan = buildPlan(root, task, options, now);
++  } catch (error) {
++    const fallbackPlan = {
++      schemaVersion: "scwbs.ai-execution-plan.v1" as const,
++      executionId: id,
++      taskId: task.id,
++      iteration: 1 as const,
++      phase: "phase-1" as const,
++      branch: currentBranch(root) ?? "",
++      expectedBranch: task.branchName ?? "",
++      subjectHeadCommit: headCommit(root) ?? "",
++      authorityFingerprint: taskAuthorityFingerprint(task),
++      allowedPaths: [...task.allowedPaths],
++      forbiddenPaths: [...task.forbiddenPaths],
++      humanGateRequiredPaths: [...task.humanGateRequiredPaths],
++      requiredChecks: [...task.requiredChecks],
++      implementer: { command: [], contextId: `${id}-IMPLEMENTER`, freshContext: true as const },
++      reviewer: { command: [], contextId: `${id}-REVIEWER`, freshContext: true as const },
++      automaticPullRequest: false as const,
++      automaticMerge: false as const,
++      debugger: false as const
++    };
++    return writeReceipt({
++      schemaVersion: "scwbs.ai-run-receipt.v1",
++      executionId: id,
++      taskId: task.id,
++      iteration: 1,
++      status: "blocked",
++      plan: fallbackPlan,
++      failure: { stage: "preflight", code: "adapter.command.invalid", message: error instanceof Error ? error.message : String(error) }
++    }, receiptPath(root, options, directory));
++  }
++
++  const baseReceipt = { schemaVersion: "scwbs.ai-run-receipt.v1" as const, executionId: plan.executionId, taskId: task.id, iteration: 1 as const, plan };
++  try {
++    preflightTask(root, task, task.id, plan.branch, plan.subjectHeadCommit);
++    const packet = buildAiPacket(root, task.id, 1, "compact");
++    const implementer = runAdapter(root, plan.implementer.command, {
++      schemaVersion: "scwbs.ai-execution-input.v1",
++      role: "implementer",
++      contextId: plan.implementer.contextId,
++      taskId: task.id,
++      iteration: 1,
++      packet,
++      authority: {
++        allowedPaths: plan.allowedPaths,
++        forbiddenPaths: plan.forbiddenPaths,
++        humanGateRequiredPaths: plan.humanGateRequiredPaths,
++        requiredChecks: plan.requiredChecks,
++        authorityFingerprint: plan.authorityFingerprint
++      },
++      restrictions: ["Do not edit Task Contract authority", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
++    }, "implementer", plan.implementer.contextId, directory);
++    if (implementer.status !== "completed") {
++      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, failure: { stage: "implementer", code: "implementer.not-completed", message: implementer.summary } }, receiptPath(root, options, directory));
++    }
++
++    const changedFiles = workingTreeChangedFiles(root).sort();
++    const changedTask = readTask(root, task.id).task;
++    if (headCommit(root) !== plan.subjectHeadCommit) throw new Error("implementer changed HEAD; commits are forbidden during ai execute");
++    if (!changedTask || taskAuthorityFingerprint(changedTask) !== plan.authorityFingerprint) throw new Error("Task authority fingerprint changed during implementer execution");
++    const violations = changedFiles.filter((file) => !matchesAny(file, plan.allowedPaths) || matchesAny(file, plan.forbiddenPaths) || matchesAny(file, plan.humanGateRequiredPaths));
++    if (violations.length > 0) throw new Error(`implementer changed forbidden or Human Gate paths: ${violations.join(", ")}`);
++
++    const checks = dependencies.runChecks?.(root, task.id, options.baseRef ?? "origin/main")
++      ?? buildChecksRunSummary(root, task.id, { baseRef: options.baseRef ?? "origin/main" });
++    if (checks.status !== "pass") {
++      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, changedFiles, failure: { stage: "checks", code: "required-checks.failed", message: "Required checks did not pass; reviewer dispatch was skipped." } }, receiptPath(root, options, directory));
++    }
++
++    const diff = spawnSync("git", ["diff", "--binary", "--no-ext-diff", "origin/main"], { cwd: root, encoding: "utf8", shell: false });
++    const reviewer = runAdapter(root, plan.reviewer.command, {
++      schemaVersion: "scwbs.ai-execution-input.v1",
++      role: "reviewer",
++      contextId: plan.reviewer.contextId,
++      freshContext: true,
++      taskId: task.id,
++      iteration: 1,
++      taskPacket: packet,
++      implementer: { status: implementer.status, summary: implementer.summary, findings: implementer.findings ?? [] },
++      requiredChecks: checks,
++      changedFiles,
++      diff: diff.status === 0 ? diff.stdout : "",
++      restrictions: ["Review only; do not edit files", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
++    }, "reviewer", plan.reviewer.contextId, directory);
++    const afterReviewFiles = workingTreeChangedFiles(root).sort();
++    if (headCommit(root) !== plan.subjectHeadCommit || JSON.stringify(afterReviewFiles) !== JSON.stringify(changedFiles)) {
++      throw new Error("reviewer changed repository state; reviewer must be read-only");
++    }
++    if (reviewer.status !== "approved") {
++      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, reviewer, changedFiles, failure: { stage: "reviewer", code: "review.not-approved", message: reviewer.summary } }, receiptPath(root, options, directory));
++    }
++    return writeReceipt({ ...baseReceipt, status: "completed", implementer, checks, reviewer, changedFiles }, receiptPath(root, options, directory));
++  } catch (error) {
++    return writeReceipt({ ...baseReceipt, status: "blocked", failure: { stage: "preflight", code: "execution.fail-closed", message: error instanceof Error ? error.message : String(error) } }, receiptPath(root, options, directory));
++  }
++}
+ 
+ export function buildAiRunPlan(root: string, taskId: string, agent = "codex"): string {
+   const { task, issues } = readTask(root, taskId);
+@@ -37,3 +354,14 @@ export function runAiRun(root: string, taskId: string, agent?: string): number {
+     return 1;
+   }
+ }
++
++export function runAiExecute(root: string, options: AiExecuteOptions): number {
++  try {
++    const receipt = buildAiExecution(root, options);
++    process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
++    return receipt.status === "completed" ? 0 : 1;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index 713494e..6b39f5e 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -1,9 +1,12 @@
+ import { execFileSync } from "node:child_process";
+-import { readFileSync } from "node:fs";
++import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+ import path from "node:path";
++import { tmpdir } from "node:os";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildAiPacket, buildTinyPacket } from "../../src/commands/ai-packet.js";
++import { buildAiExecution } from "../../src/commands/ai-run.js";
++import type { ChecksRunSummary } from "../../src/commands/checks-run.js";
+ import { buildBlockChangeSet, buildNextTask } from "../../src/commands/ai-queue.js";
+ import { buildNextAction } from "../../src/commands/next.js";
+ import { main } from "../../src/cli.js";
+@@ -11,7 +14,140 @@ import { readApproval, readBlock } from "../../src/core/contracts.js";
+ import { buildCodeContextManifest, buildCodeContextManifestJson } from "../../src/core/code-context.js";
+ import { makeTempRepo, sampleTask, sampleWbs, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
++const AI_TASK_ID = "WBS-001-004";
++const AI_BRANCH = "task/WBS-001-004-api-implementation";
++
++function prepareAiExecutionRepo(): string {
++  const root = makeTempRepo();
++  writeScwbsProject(root);
++  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({
++    branchName: AI_BRANCH,
++    allowedPaths: ["src/features/api/**"],
++    forbiddenPaths: ["src/auth/**"],
++    humanGateRequiredPaths: ["src/security/**"],
++    requiredChecks: ["test"]
++  }) as unknown as Record<string, unknown>);
++  execFileSync("git", ["add", "."], { cwd: root });
++  execFileSync("git", ["commit", "-m", "baseline"], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["branch", "-M", AI_BRANCH], { cwd: root });
++  return root;
++}
++
++function adapterScript(role: "implementer" | "reviewer", behavior: string, status = role === "implementer" ? "completed" : "approved"): string {
++  const directory = mkdtempSync(path.join(tmpdir(), "scwbs-ai-adapter-"));
++  const file = path.join(directory, `${role}-adapter.mjs`);
++  writeFileSync(file, `import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
++const input = JSON.parse(readFileSync(process.argv[2], "utf8"));
++${behavior}
++writeFileSync(process.argv[3], JSON.stringify({
++  schemaVersion: "scwbs.ai-execution-result.v1",
++  role: ${JSON.stringify(role)},
++  contextId: input.contextId,
++  status: ${JSON.stringify(status)},
++  summary: input.role === ${JSON.stringify(role)} ? "adapter accepted bounded input" : "role mismatch",
++  findings: [],
++  changedFiles: []
++}));
++`);
++  return file;
++}
++
++function passingChecks(root: string, taskId = AI_TASK_ID): ChecksRunSummary {
++  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++  return {
++    schemaVersion: "1.0.0",
++    status: "pass",
++    taskId,
++    headCommit: head,
++    subjectFingerprint: "test-fingerprint",
++    receiptPath: null,
++    receiptReason: "test-injected",
++    checks: [{ name: "test", status: "passed", disposition: "executed", reason: "test-injected", command: "npm test", cacheKey: "test" }]
++  };
++}
++
+ describe("AI commands", () => {
++  test("ai execute runs one bounded implementer-checks-fresh-reviewer iteration without human transitions", () => {
++    const root = prepareAiExecutionRepo();
++    const implementer = adapterScript("implementer", `
++if (input.role !== "implementer" || !input.packet || input.authority.authorityFingerprint.length === 0) process.exit(3);
++mkdirSync("src/features/api", { recursive: true });
++writeFileSync("src/features/api/index.ts", "export const api = true;\\n");
++`);
++    const reviewer = adapterScript("reviewer", `
++if (input.role !== "reviewer" || input.freshContext !== true || typeof input.diff !== "string" || input.taskPacket.length === 0) process.exit(4);
++`);
++    const receipt = buildAiExecution(root, {
++      taskId: AI_TASK_ID,
++      implementerCommand: JSON.stringify([process.execPath, implementer]),
++      reviewerCommand: JSON.stringify([process.execPath, reviewer])
++    }, { now: () => "2026-08-09T13:00:00.000Z", runChecks: passingChecks });
++
++    expect(receipt.status).toBe("completed");
++    expect(receipt.plan.iteration).toBe(1);
++    expect(receipt.plan.automaticMerge).toBe(false);
++    expect(receipt.plan.automaticPullRequest).toBe(false);
++    expect(receipt.plan.debugger).toBe(false);
++    expect(receipt.implementer?.contextId).not.toBe(receipt.reviewer?.contextId);
++    expect(receipt.reviewer?.status).toBe("approved");
++    expect(receipt.checks?.status).toBe("pass");
++    expect(receipt.changedFiles).toEqual(["src/features/api/index.ts"]);
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/ai-execution.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(receipt)).toBe(true);
++    expect(readApproval(root, AI_TASK_ID).approval).toBeUndefined();
++    expect(readFileSync(path.join(root, "src/features/api/index.ts"), "utf8")).toContain("api = true");
++  });
++
++  test("ai execute fails closed on an out-of-scope implementer change and skips checks/reviewer", () => {
++    const root = prepareAiExecutionRepo();
++    const implementer = adapterScript("implementer", `mkdirSync("src/security", { recursive: true }); writeFileSync("src/security/secret.ts", "export const secret = true;\\n");`);
++    const reviewer = adapterScript("reviewer", `writeFileSync("reviewer-was-called", "unexpected\\n");`);
++    const receipt = buildAiExecution(root, {
++      taskId: AI_TASK_ID,
++      implementerCommand: JSON.stringify([process.execPath, implementer]),
++      reviewerCommand: JSON.stringify([process.execPath, reviewer])
++    }, { runChecks: passingChecks });
++
++    expect(receipt.status).toBe("blocked");
++    expect(receipt.failure?.code).toBe("execution.fail-closed");
++    expect(receipt.checks).toBeUndefined();
++    expect(existsSync(path.join(root, "reviewer-was-called"))).toBe(false);
++  });
++
++  test("ai execute returns a blocked receipt for reviewer rejection without creating a Review record", () => {
++    const root = prepareAiExecutionRepo();
++    const implementer = adapterScript("implementer", `mkdirSync("src/features/api", { recursive: true }); writeFileSync("src/features/api/index.ts", "export const api = true;\\n");`);
++    const reviewer = adapterScript("reviewer", `if (input.freshContext !== true) process.exit(4);`, "changes-requested");
++    const receipt = buildAiExecution(root, {
++      taskId: AI_TASK_ID,
++      implementerCommand: JSON.stringify([process.execPath, implementer]),
++      reviewerCommand: JSON.stringify([process.execPath, reviewer])
++    }, { runChecks: passingChecks });
++
++    expect(receipt.status).toBe("blocked");
++    expect(receipt.failure?.stage).toBe("reviewer");
++    expect(receipt.failure?.code).toBe("review.not-approved");
++    expect(existsSync(path.join(root, "contracts/reviews/WBS-001-004.yaml"))).toBe(false);
++  });
++
++  test("ai execute rejects multiple active Tasks before adapter dispatch", () => {
++    const root = prepareAiExecutionRepo();
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", branchName: "task/WBS-001-005-other" }) as unknown as Record<string, unknown>);
++    execFileSync("git", ["add", "contracts/tasks/WBS-001-005.yaml"], { cwd: root });
++    execFileSync("git", ["commit", "-m", "second active task"], { cwd: root, stdio: "ignore" });
++    const implementer = adapterScript("implementer", `writeFileSync("adapter-was-called", "unexpected\\n");`);
++    const reviewer = adapterScript("reviewer", "");
++    const receipt = buildAiExecution(root, {
++      taskId: AI_TASK_ID,
++      implementerCommand: JSON.stringify([process.execPath, implementer]),
++      reviewerCommand: JSON.stringify([process.execPath, reviewer])
++    }, { runChecks: passingChecks });
++
++    expect(receipt.status).toBe("blocked");
++    expect(receipt.failure?.message).toContain("exactly one active Task");
++    expect(existsSync(path.join(root, "adapter-was-called"))).toBe(false);
++  });
++
+   test("ai packet includes WBS node, task contract, and stop conditions", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
