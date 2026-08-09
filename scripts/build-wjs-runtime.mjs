@@ -15,7 +15,7 @@ function rebuildCleanDist() {
   const tsc = process.platform === "win32"
     ? path.join(root, "node_modules", ".bin", "tsc.cmd")
     : path.join(root, "node_modules", ".bin", "tsc");
-  const result = spawnSync(tsc, ["-p", "tsconfig.json"], {
+  const result = spawnSync(tsc, ["-p", "tsconfig.json", "--removeComments"], {
     cwd: root,
     stdio: "inherit",
     shell: process.platform === "win32"
