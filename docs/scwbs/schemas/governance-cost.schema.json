@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/schemas/governance-cost.schema.json",
+  "title": "SC-WBS governance cost summary",
+  "type": "object",
+  "required": ["schemaVersion", "metric", "aiExecution"],
+  "properties": {
+    "schemaVersion": { "const": "1.1.0" },
+    "metric": { "const": "governance-cost" },
+    "aiExecution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["status", "source", "receiptCount", "invalidReceiptCount", "observedReceiptCount", "unobservedReceiptCount", "totals", "taskTrend"],
+          "properties": {
+            "status": { "const": "available" },
+            "source": { "const": "git-common-dir-ai-execution-receipts" },
+            "receiptCount": { "type": "integer", "minimum": 0 },
+            "invalidReceiptCount": { "type": "integer", "minimum": 0 },
+            "observedReceiptCount": { "type": "integer", "minimum": 0 },
+            "unobservedReceiptCount": { "type": "integer", "minimum": 0 },
+            "totals": { "$ref": "#/$defs/totals" },
+            "taskTrend": { "$ref": "#/$defs/taskTrend" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["status", "source", "reason"],
+          "properties": {
+            "status": { "const": "unavailable" },
+            "source": { "const": "git-common-dir-ai-execution-receipts" },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "duration": {
+      "type": "object",
+      "required": ["total", "average", "minimum", "maximum"],
+      "properties": {
+        "total": { "type": ["integer", "null"], "minimum": 0 },
+        "average": { "type": ["integer", "null"], "minimum": 0 },
+        "minimum": { "type": ["integer", "null"], "minimum": 0 },
+        "maximum": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["wallTimeMilliseconds", "agentTurns", "remediationRounds", "requiredCheckReuseRate"],
+      "properties": {
+        "wallTimeMilliseconds": { "$ref": "#/$defs/duration" },
+        "agentTurns": { "$ref": "#/$defs/duration" },
+        "remediationRounds": { "$ref": "#/$defs/duration" },
+        "requiredCheckReuseRate": {
+          "type": "object",
+          "required": ["observedCheckCount", "reusedCheckCount", "rate"],
+          "properties": {
+            "observedCheckCount": { "type": "integer", "minimum": 0 },
+            "reusedCheckCount": { "type": "integer", "minimum": 0 },
+            "rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "taskTrend": {
+      "type": "object",
+      "required": ["limit", "totalCount", "truncated", "items"],
+      "properties": {
+        "limit": { "const": 20 },
+        "totalCount": { "type": "integer", "minimum": 0 },
+        "truncated": { "type": "boolean" },
+        "items": { "type": "array", "maxItems": 20 }
+      }
+    }
+  }
+}

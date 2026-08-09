@@ -30,6 +30,40 @@ type Bucket = { files: number; bytes: number; lines: number };
 type NullableDuration = { total: number | null; average: number | null; minimum: number | null; maximum: number | null };
 type Period = { from: string | null; to: string | null };
 
+export type LocalAiExecutionSummary = {
+  status: "available";
+  source: "git-common-dir-ai-execution-receipts";
+  receiptCount: number;
+  invalidReceiptCount: number;
+  observedReceiptCount: number;
+  unobservedReceiptCount: number;
+  totals: {
+    wallTimeMilliseconds: NullableDuration;
+    agentTurns: NullableDuration;
+    remediationRounds: NullableDuration;
+    requiredCheckReuseRate: { observedCheckCount: number; reusedCheckCount: number; rate: number | null };
+  };
+  taskTrend: {
+    limit: 20;
+    totalCount: number;
+    truncated: boolean;
+    items: Array<{
+      taskId: string;
+      executionId: string;
+      status: "completed" | "blocked";
+      endedAt: string | null;
+      wallTimeMilliseconds: number | null;
+      agentTurns: number | null;
+      remediationRounds: number | null;
+      requiredCheckReuseRate: number | null;
+    }>;
+  };
+} | {
+  status: "unavailable";
+  source: "git-common-dir-ai-execution-receipts";
+  reason: string;
+};
+
 export type LocalRequiredChecksSummary = {
   status: "available";
   source: "git-common-dir-check-receipts";
@@ -163,6 +197,7 @@ export type GovernanceCostSummary = {
     humanGate: string;
     historicalPullRequests: string;
     healthLifecycle: string;
+    aiExecution: string;
     hardLimitEnforced: false;
   };
   categories: Record<string, FileMeasurement>;
@@ -180,11 +215,140 @@ export type GovernanceCostSummary = {
   humanGate: HumanGateSummary;
   historicalPullRequests: HistoricalPullRequests;
   healthLifecycle: HealthLifecycleSummary;
+  aiExecution: LocalAiExecutionSummary;
   warningBudgets: GovernanceWarningBudgets;
   unmeasured: string[];
 };
 
 export type MetricsOptions = { json?: boolean };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function numericValues(values: Array<number | null | undefined>): number[] {
+  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+}
+
+function summarizeNumbers(values: Array<number | null | undefined>): NullableDuration {
+  const observed = numericValues(values);
+  if (observed.length === 0) return { total: null, average: null, minimum: null, maximum: null };
+  const total = observed.reduce((sum, value) => sum + value, 0);
+  return { total, average: Math.round(total / observed.length), minimum: Math.min(...observed), maximum: Math.max(...observed) };
+}
+
+type LocalAiReceipt = {
+  taskId: string;
+  executionId: string;
+  status: "completed" | "blocked";
+  endedAt: string | null;
+  cost?: {
+    wallTimeMilliseconds: number | null;
+    agentTurns: number;
+    remediationRounds: number;
+    requiredChecksObserved: number;
+    requiredChecksReused: number;
+    requiredCheckReuseRate: number | null;
+  };
+};
+
+function parseLocalAiReceipt(value: unknown): LocalAiReceipt | undefined {
+  if (!isRecord(value)
+    || (value.schemaVersion !== "scwbs.ai-run-receipt.v1" && value.schemaVersion !== "scwbs.ai-run-receipt.v2")
+    || typeof value.taskId !== "string"
+    || typeof value.executionId !== "string"
+    || (value.status !== "completed" && value.status !== "blocked")) return undefined;
+  const rawCost = value.cost;
+  const cost = isRecord(rawCost)
+    && (rawCost.wallTimeMilliseconds === null || typeof rawCost.wallTimeMilliseconds === "number")
+    && typeof rawCost.agentTurns === "number"
+    && typeof rawCost.remediationRounds === "number"
+    && typeof rawCost.requiredChecksObserved === "number"
+    && typeof rawCost.requiredChecksReused === "number"
+    && (rawCost.requiredCheckReuseRate === null || typeof rawCost.requiredCheckReuseRate === "number")
+    ? {
+      wallTimeMilliseconds: rawCost.wallTimeMilliseconds as number | null,
+      agentTurns: rawCost.agentTurns as number,
+      remediationRounds: rawCost.remediationRounds as number,
+      requiredChecksObserved: rawCost.requiredChecksObserved as number,
+      requiredChecksReused: rawCost.requiredChecksReused as number,
+      requiredCheckReuseRate: rawCost.requiredCheckReuseRate as number | null
+    }
+    : undefined;
+  return {
+    taskId: value.taskId,
+    executionId: value.executionId,
+    status: value.status,
+    endedAt: typeof value.endedAt === "string" ? value.endedAt : null,
+    ...(cost ? { cost } : {})
+  };
+}
+
+export function buildLocalAiExecutionSummary(root: string): LocalAiExecutionSummary {
+  let directory: string;
+  try {
+    directory = path.join(gitCommonDir(root), "scwbs-ai-execution");
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-ai-execution-receipts", reason: error instanceof Error ? error.message.trim() : String(error) };
+  }
+  const receipts: LocalAiReceipt[] = [];
+  let invalidReceiptCount = 0;
+  try {
+    if (existsSync(directory)) {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+        try {
+          const value = parseLocalAiReceipt(JSON.parse(readFileSync(path.join(directory, entry.name), "utf8")) as unknown);
+          if (value && entry.name === `${encodeURIComponent(value.taskId)}.json`) receipts.push(value);
+          else invalidReceiptCount += 1;
+        } catch {
+          invalidReceiptCount += 1;
+        }
+      }
+    }
+  } catch (error) {
+    return { status: "unavailable", source: "git-common-dir-ai-execution-receipts", reason: error instanceof Error ? error.message : String(error) };
+  }
+  const observed = receipts.filter((receipt) => receipt.cost);
+  const observedCheckCount = observed.reduce((sum, receipt) => sum + (receipt.cost?.requiredChecksObserved ?? 0), 0);
+  const reusedCheckCount = observed.reduce((sum, receipt) => sum + (receipt.cost?.requiredChecksReused ?? 0), 0);
+  const taskTrend = [...receipts].sort((left, right) =>
+    (right.endedAt ?? "").localeCompare(left.endedAt ?? "") || left.taskId.localeCompare(right.taskId)
+  );
+  return {
+    status: "available",
+    source: "git-common-dir-ai-execution-receipts",
+    receiptCount: receipts.length,
+    invalidReceiptCount,
+    observedReceiptCount: observed.length,
+    unobservedReceiptCount: receipts.length - observed.length,
+    totals: {
+      wallTimeMilliseconds: summarizeNumbers(observed.map((receipt) => receipt.cost?.wallTimeMilliseconds)),
+      agentTurns: summarizeNumbers(observed.map((receipt) => receipt.cost?.agentTurns)),
+      remediationRounds: summarizeNumbers(observed.map((receipt) => receipt.cost?.remediationRounds)),
+      requiredCheckReuseRate: {
+        observedCheckCount,
+        reusedCheckCount,
+        rate: observedCheckCount === 0 ? null : Number((reusedCheckCount / observedCheckCount).toFixed(4))
+      }
+    },
+    taskTrend: {
+      limit: 20,
+      totalCount: taskTrend.length,
+      truncated: taskTrend.length > 20,
+      items: taskTrend.slice(0, 20).map((receipt) => ({
+        taskId: receipt.taskId,
+        executionId: receipt.executionId,
+        status: receipt.status,
+        endedAt: receipt.endedAt,
+        wallTimeMilliseconds: receipt.cost?.wallTimeMilliseconds ?? null,
+        agentTurns: receipt.cost?.agentTurns ?? null,
+        remediationRounds: receipt.cost?.remediationRounds ?? null,
+        requiredCheckReuseRate: receipt.cost?.requiredCheckReuseRate ?? null
+      }))
+    }
+  };
+}
 
 function emptyMeasurement(): FileMeasurement {
   return {
@@ -542,6 +706,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
   const humanGate = buildHumanGateSummary(root);
   const historicalPullRequests = readHistoricalPullRequests(root);
   const healthLifecycle = buildHealthLifecycleSummary(root);
+  const aiExecution = buildLocalAiExecutionSummary(root);
   const lifecycleItems = localLifecycle.status === "available" ? localLifecycle.taskTrend.items : [];
   const warningBudgets = evaluateGovernanceWarningBudgets(readWbs(root), profile, {
     completedTaskCount: lifecycleItems.filter((item) => item.fullAttemptCount > 0 && item.successfulCount > 0).length,
@@ -573,6 +738,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
       humanGate: "Approval requestedAt through approvedAt when both timestamps are observed; legacy records remain unobserved",
       historicalPullRequests: "one bounded GitHub pull request list request; unmerged and unavailable durations remain null",
       healthLifecycle: "bounded Task-local health warning summaries from the current git common directory; delta requires comparable first and last events",
+      aiExecution: "latest valid local AI execution receipt per Task; missing cost fields remain unobserved rather than zero",
       hardLimitEnforced: false
     },
     categories,
@@ -590,6 +756,7 @@ export function buildGovernanceCostSummary(root: string, now = new Date()): Gove
     humanGate,
     historicalPullRequests,
     healthLifecycle,
+    aiExecution,
     warningBudgets,
     unmeasured: [
       "hard enforcement"

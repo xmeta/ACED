@@ -1,0 +1,20 @@
+id: SPEC-LITE-MSMAZ1NQ
+type: spec-contract
+featureId: F-MSMAZ1NQ
+title: "Issue #455 residual: provider capabilities, learned notes, and execution cost"
+status: approved
+version: 0.1.0
+summary: "Make bounded AI execution provider capabilities and advisory Task notes explicit, and expose execution cost dimensions through local governance metrics"
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+acceptanceCriteria:
+  - implementer, reviewer, and debugger plan adapters carry a validated provider descriptor with role capability, fresh-context, and JSON-I/O capabilities
+  - unsupported provider capability declarations fail closed before adapter execution and preserve v1/v2 compatibility when no descriptor is supplied
+  - learned notes require source Task ID, full source HEAD SHA, and bounded scope, and are passed as advisory context without changing Task authority or Spec
+  - local AI execution receipts retain bounded cost fields for wall time, adapter turns, remediation rounds, and required-check reuse rate
+  - governance metrics aggregate only valid latest-per-Task local AI receipts and report unavailable or unobserved dimensions explicitly
+  - package, lockfile, CI, WJS, WBS, changesets, credentials, and release behavior remain unchanged
+nonGoals:
+  - automatic provider discovery or credential management
+  - cross-Task authority or Spec mutation from learned notes
+  - automatic pull request, review transition, approval, merge, or release

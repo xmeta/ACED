@@ -218,6 +218,10 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .option("--receipt <path>", "optional local run receipt path")
     .option("--debugger-command <json>", "JSON command array for the fresh debugger adapter; enables Phase 2")
     .option("--resume-receipt <path>", "resume a blocked Phase 2 reviewer rejection after receipt validation")
+    .option("--implementer-provider <json>", "JSON provider descriptor for the implementer")
+    .option("--reviewer-provider <json>", "JSON provider descriptor for the reviewer")
+    .option("--debugger-provider <json>", "JSON provider descriptor for the debugger")
+    .option("--learned-note <json>", "bounded advisory note with source Task, HEAD SHA, scope, and note")
     .option("--json", "print the versioned run receipt as JSON")
     .action((options) => {
       setExitCode(runAiExecute(root, {
@@ -228,6 +232,10 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         receiptPath: options.receipt,
         debuggerCommand: options.debuggerCommand,
         resumeReceipt: options.resumeReceipt,
+        implementerProvider: options.implementerProvider,
+        reviewerProvider: options.reviewerProvider,
+        debuggerProvider: options.debuggerProvider,
+        learnedNote: options.learnedNote,
         json: options.json ?? false
       }));
     });

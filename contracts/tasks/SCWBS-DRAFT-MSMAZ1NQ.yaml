@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MSMAZ1NQ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSMAZ1NQ
+sourceIssue: 455
+status: approved
+approvedBy: xmeta
+branchName: task/SCWBS-DRAFT-MSMAZ1NQ-issue-455-residual-provider-capabilities-learned
+allowedPaths:
+  - src/commands/ai-run.ts
+  - src/cli/register-governance.ts
+  - src/commands/metrics.ts
+  - tests/integration/ai-residual.test.ts
+  - tests/integration/ai-cost-metrics.test.ts
+  - docs/scwbs/schemas/ai-execution.schema.json
+  - docs/scwbs/schemas/governance-cost.schema.json
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs/**
+stopIf:
+  - agent credential or external service change
+  - unbounded retry or multi-task execution
+  - Human Approval or human-only Review transition
+  - authority or Human Gate path change
+  - PR/merge/release automation
+  - dependency or lockfile change
+  - unsupported provider capability or ambiguous adapter semantics
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - provider descriptors declare role capabilities and fresh-context/json-I/O requirements, and unsupported capability combinations fail closed
+  - learned notes carry source Task, source HEAD SHA, and bounded scope, are advisory-only, and never alter authority or Spec
+  - versioned execution receipts record wall time, adapter turn count, remediation count, and required-check reuse rate
+  - governance metrics read the latest valid local AI execution receipt per Task without treating missing history as zero
+  - integration tests cover unsupported provider capability, learned-note provenance, receipt cost fields, and metrics aggregation
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/specs/SPEC-LITE-MSMAZ1NQ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMAZ1NQ.patch
+  - contracts/approvals/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSMAZ1NQ.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:9c00e099f2ee3f238f6a3e389179fb9c30f48b45f6f81d98f5f98016e5890c62
+  createdAt: "2026-08-09T21:18:32.854Z"

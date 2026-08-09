@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -8,8 +8,20 @@ import { buildChecksRunSummary, type ChecksRunSummary } from "./checks-run.js";
 import { listActiveTasks, readBlock, readTask } from "../core/contracts.js";
 import { currentBranch, headCommit, workingTreeChangedFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
+import { gitCommonDir } from "../core/required-check-run.js";
 import { taskAuthorityFingerprint } from "../core/task-authority.js";
 import type { TaskContract } from "../core/types.js";
+
+export const AI_PROVIDER_CAPABILITIES = ["implement", "review", "debug", "fresh-context", "json-io"] as const;
+export type AiProviderCapability = typeof AI_PROVIDER_CAPABILITIES[number];
+export type AiProviderDescriptor = { id: string; capabilities: AiProviderCapability[] };
+export type AiLearnedNote = {
+  sourceTaskId: string;
+  sourceHeadCommit: string;
+  scope: string[];
+  note: string;
+};
+type AiPlanAdapter = { command: string[]; contextId: string; freshContext: true; provider: AiProviderDescriptor };
 
 export type AiExecutionPlan = {
   schemaVersion: "scwbs.ai-execution-plan.v1" | "scwbs.ai-execution-plan.v2";
@@ -25,13 +37,14 @@ export type AiExecutionPlan = {
   forbiddenPaths: string[];
   humanGateRequiredPaths: string[];
   requiredChecks: string[];
-  implementer: { command: string[]; contextId: string; freshContext: true };
-  reviewer: { command: string[]; contextId: string; freshContext: true };
+  implementer: AiPlanAdapter;
+  reviewer: AiPlanAdapter;
   automaticPullRequest: false;
   automaticMerge: false;
-  debugger: false | { command: string[]; contextId: string; freshContext: true };
+  debugger: false | AiPlanAdapter;
   maxRemediationRounds?: number;
   resumeFrom?: string;
+  learnedNotes?: AiLearnedNote[];
 };
 
 export type AiAdapterResult = {
@@ -68,6 +81,16 @@ export type AiExecutionReceipt = {
   changedFiles?: string[];
   failure?: { stage: "preflight" | "implementer" | "checks" | "reviewer"; code: string; message: string };
   receiptPath?: string;
+  startedAt?: string;
+  endedAt?: string;
+  cost?: {
+    wallTimeMilliseconds: number | null;
+    agentTurns: number;
+    remediationRounds: number;
+    requiredChecksObserved: number;
+    requiredChecksReused: number;
+    requiredCheckReuseRate: number | null;
+  };
 };
 
 export type AiExecuteOptions = {
@@ -78,6 +101,10 @@ export type AiExecuteOptions = {
   receiptPath?: string;
   debuggerCommand?: string;
   resumeReceipt?: string;
+  implementerProvider?: string;
+  reviewerProvider?: string;
+  debuggerProvider?: string;
+  learnedNote?: string;
   json?: boolean;
 };
 
@@ -103,6 +130,66 @@ function parseCommandSpec(raw: string, label: string): string[] {
     throw new Error(`${label} must be a non-empty JSON array of command arguments`);
   }
   return value as string[];
+}
+
+function defaultProvider(role: "implementer" | "reviewer" | "debugger"): AiProviderDescriptor {
+  const capability = role === "implementer" ? "implement" : role === "reviewer" ? "review" : "debug";
+  return {
+    id: "local-process",
+    capabilities: [capability, "fresh-context", "json-io"]
+  };
+}
+
+function parseProviderSpec(raw: string | undefined, role: "implementer" | "reviewer" | "debugger", label: string): AiProviderDescriptor {
+  if (raw === undefined) return defaultProvider(role);
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`${label} must be a JSON provider descriptor: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!isRecord(value) || typeof value.id !== "string" || value.id.trim().length === 0 || !Array.isArray(value.capabilities)) {
+    throw new Error(`${label} must contain a non-empty id and capabilities array`);
+  }
+  const capabilities = [...new Set(value.capabilities)];
+  if (capabilities.some((capability) => typeof capability !== "string" || !AI_PROVIDER_CAPABILITIES.includes(capability as AiProviderCapability))) {
+    throw new Error(`${label} contains an unsupported capability`);
+  }
+  const required = [role === "implementer" ? "implement" : role === "reviewer" ? "review" : "debug", "fresh-context", "json-io"] as const;
+  if (required.some((capability) => !capabilities.includes(capability))) {
+    throw new Error(`${label} must support ${required.join(", ")} for the ${role} role`);
+  }
+  return { id: value.id.trim(), capabilities: capabilities as AiProviderCapability[] };
+}
+
+function parseLearnedNote(raw: string | undefined): AiLearnedNote[] | undefined {
+  if (raw === undefined) return undefined;
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`--learned-note must be a JSON object: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!isRecord(value)
+    || typeof value.sourceTaskId !== "string"
+    || !/^SCWBS-[A-Z0-9-]+$/.test(value.sourceTaskId)
+    || typeof value.sourceHeadCommit !== "string"
+    || !/^[0-9a-f]{40}$/i.test(value.sourceHeadCommit)
+    || !Array.isArray(value.scope)
+    || value.scope.length === 0
+    || value.scope.length > 8
+    || value.scope.some((item) => typeof item !== "string" || item.trim().length === 0 || item.length > 160)
+    || typeof value.note !== "string"
+    || value.note.trim().length === 0
+    || value.note.length > 2000) {
+    throw new Error("--learned-note requires sourceTaskId, a 40-character sourceHeadCommit, bounded scope, and a note of at most 2000 characters");
+  }
+  return [{
+    sourceTaskId: value.sourceTaskId,
+    sourceHeadCommit: value.sourceHeadCommit.toLowerCase(),
+    scope: value.scope.map((item) => item.trim()),
+    note: value.note.trim()
+  }];
 }
 
 function safeAdapterEnvironment(): NodeJS.ProcessEnv {
@@ -211,6 +298,7 @@ function buildPlan(root: string, task: TaskContract, options: AiExecuteOptions, 
   const debuggerCommand = options.debuggerCommand === undefined
     ? undefined
     : parseCommandSpec(options.debuggerCommand, "--debugger-command");
+  const learnedNotes = parseLearnedNote(options.learnedNote);
   return {
     schemaVersion: debuggerCommand ? "scwbs.ai-execution-plan.v2" : "scwbs.ai-execution-plan.v1",
     executionId: id,
@@ -225,26 +313,59 @@ function buildPlan(root: string, task: TaskContract, options: AiExecuteOptions, 
     forbiddenPaths: [...task.forbiddenPaths],
     humanGateRequiredPaths: [...task.humanGateRequiredPaths],
     requiredChecks: [...task.requiredChecks],
-    implementer: { command: implementerCommand, contextId: `${id}-IMPLEMENTER`, freshContext: true },
-    reviewer: { command: reviewerCommand, contextId: `${id}-REVIEWER`, freshContext: true },
+    implementer: { command: implementerCommand, contextId: `${id}-IMPLEMENTER`, freshContext: true, provider: parseProviderSpec(options.implementerProvider, "implementer", "--implementer-provider") },
+    reviewer: { command: reviewerCommand, contextId: `${id}-REVIEWER`, freshContext: true, provider: parseProviderSpec(options.reviewerProvider, "reviewer", "--reviewer-provider") },
     automaticPullRequest: false,
     automaticMerge: false,
     debugger: debuggerCommand
-      ? { command: debuggerCommand, contextId: `${id}-DEBUGGER-1`, freshContext: true }
+      ? { command: debuggerCommand, contextId: `${id}-DEBUGGER-1`, freshContext: true, provider: parseProviderSpec(options.debuggerProvider, "debugger", "--debugger-provider") }
       : false,
     ...(debuggerCommand ? { maxRemediationRounds: 2 } : {}),
-    ...(options.resumeReceipt ? { resumeFrom: options.resumeReceipt } : {})
+    ...(options.resumeReceipt ? { resumeFrom: options.resumeReceipt } : {}),
+    ...(learnedNotes ? { learnedNotes } : {})
   };
 }
 
-function receiptPath(root: string, options: AiExecuteOptions, directory: string): string {
+function receiptPath(root: string, options: AiExecuteOptions): string {
   const requested = options.receiptPath?.trim();
   if (requested) return path.isAbsolute(requested) ? requested : path.resolve(root, requested);
-  return path.join(directory, "receipt.json");
+  const gitEntry = path.join(root, ".git");
+  const commonDirectory = existsSync(gitEntry) && statSync(gitEntry).isDirectory() ? gitEntry : gitCommonDir(root);
+  return path.join(commonDirectory, "scwbs-ai-execution", `${encodeURIComponent(options.taskId)}.json`);
 }
 
 function writeReceipt(receipt: AiExecutionReceipt, outputPath: string): AiExecutionReceipt {
-  const withPath = { ...receipt, receiptPath: outputPath };
+  const endedAt = new Date().toISOString();
+  const startedAt = receipt.startedAt ?? endedAt;
+  const startMilliseconds = Date.parse(startedAt);
+  const endMilliseconds = Date.parse(endedAt);
+  const checkSummaries = [
+    receipt.checks,
+    ...(receipt.remediation?.map((round) => round.checks) ?? [])
+  ].filter((summary): summary is ChecksRunSummary => summary !== undefined);
+  const checkItems = checkSummaries.flatMap((summary) => summary.checks);
+  const adapterTurns = [
+    receipt.implementer,
+    receipt.reviewer,
+    ...(receipt.remediation?.flatMap((round) => [round.debugger, round.implementer, round.reviewer]) ?? [])
+  ].filter(Boolean).length;
+  const reusedChecks = checkItems.filter((check) => check.disposition === "reused").length;
+  const withPath = {
+    ...receipt,
+    startedAt,
+    endedAt,
+    cost: {
+      wallTimeMilliseconds: Number.isFinite(startMilliseconds) && Number.isFinite(endMilliseconds)
+        ? Math.max(0, endMilliseconds - startMilliseconds)
+        : null,
+      agentTurns: adapterTurns,
+      remediationRounds: receipt.remediation?.length ?? 0,
+      requiredChecksObserved: checkItems.length,
+      requiredChecksReused: reusedChecks,
+      requiredCheckReuseRate: checkItems.length === 0 ? null : Number((reusedChecks / checkItems.length).toFixed(4))
+    },
+    receiptPath: outputPath
+  };
   mkdirSync(path.dirname(outputPath), { recursive: true });
   writeJson(outputPath, withPath);
   return withPath;
@@ -282,6 +403,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
   try {
     plan = buildPlan(root, task, options, now);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     const fallbackPlan = {
       schemaVersion: "scwbs.ai-execution-plan.v1" as const,
       executionId: id,
@@ -296,8 +418,8 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       forbiddenPaths: [...task.forbiddenPaths],
       humanGateRequiredPaths: [...task.humanGateRequiredPaths],
       requiredChecks: [...task.requiredChecks],
-      implementer: { command: [], contextId: `${id}-IMPLEMENTER`, freshContext: true as const },
-      reviewer: { command: [], contextId: `${id}-REVIEWER`, freshContext: true as const },
+      implementer: { command: [], contextId: `${id}-IMPLEMENTER`, freshContext: true as const, provider: defaultProvider("implementer") },
+      reviewer: { command: [], contextId: `${id}-REVIEWER`, freshContext: true as const, provider: defaultProvider("reviewer") },
       automaticPullRequest: false as const,
       automaticMerge: false as const,
       debugger: false as const,
@@ -309,8 +431,9 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       iteration: 1,
       status: "blocked",
       plan: fallbackPlan,
-      failure: { stage: "preflight", code: "adapter.command.invalid", message: error instanceof Error ? error.message : String(error) }
-    }, receiptPath(root, options, directory));
+      startedAt: now,
+      failure: { stage: "preflight", code: message.includes("provider") ? "adapter.provider.unsupported" : "adapter.command.invalid", message }
+    }, receiptPath(root, options));
   }
 
   const resumeReceipt = readResumeReceipt(root, options.resumeReceipt, task);
@@ -322,15 +445,17 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       iteration: 1,
       status: "blocked",
       plan: { ...plan, schemaVersion: "scwbs.ai-execution-plan.v2", phase: "phase-2", debugger: false, maxRemediationRounds: 0 },
+      startedAt: now,
       failure: { stage: "preflight", code: "resume.debugger.required", message: "--resume-receipt requires --debugger-command" }
-    }, receiptPath(root, options, directory));
+    }, receiptPath(root, options));
   }
   const baseReceipt = {
     schemaVersion: plan.schemaVersion === "scwbs.ai-execution-plan.v2" ? "scwbs.ai-run-receipt.v2" as const : "scwbs.ai-run-receipt.v1" as const,
     executionId: plan.executionId,
     taskId: task.id,
     iteration: 1,
-    plan
+    plan,
+    startedAt: now
   };
   try {
     preflightTask(root, task, task.id, plan.branch, plan.subjectHeadCommit, resumeReceipt?.changedFiles ?? []);
@@ -339,6 +464,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       schemaVersion: "scwbs.ai-execution-input.v1",
       role: "implementer",
       contextId: plan.implementer.contextId,
+      provider: plan.implementer.provider,
       taskId: task.id,
       iteration: 1,
       packet,
@@ -349,10 +475,11 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
         requiredChecks: plan.requiredChecks,
         authorityFingerprint: plan.authorityFingerprint
       },
+      learnedNotes: plan.learnedNotes ?? [],
       restrictions: ["Do not edit Task Contract authority", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
     }, "implementer", plan.implementer.contextId, directory);
     if (implementer.status !== "completed") {
-      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, failure: { stage: "implementer", code: "implementer.not-completed", message: implementer.summary } }, receiptPath(root, options, directory));
+      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, failure: { stage: "implementer", code: "implementer.not-completed", message: implementer.summary } }, receiptPath(root, options));
     }
 
     const changedFiles = workingTreeChangedFiles(root).sort();
@@ -365,7 +492,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
     const checks = dependencies.runChecks?.(root, task.id, options.baseRef ?? "origin/main")
       ?? buildChecksRunSummary(root, task.id, { baseRef: options.baseRef ?? "origin/main" });
     if (checks.status !== "pass") {
-      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, changedFiles, failure: { stage: "checks", code: "required-checks.failed", message: "Required checks did not pass; reviewer dispatch was skipped." } }, receiptPath(root, options, directory));
+      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, changedFiles, failure: { stage: "checks", code: "required-checks.failed", message: "Required checks did not pass; reviewer dispatch was skipped." } }, receiptPath(root, options));
     }
 
     const diff = spawnSync("git", ["diff", "--binary", "--no-ext-diff", "origin/main"], { cwd: root, encoding: "utf8", shell: false });
@@ -373,6 +500,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       schemaVersion: "scwbs.ai-execution-input.v1",
       role: "reviewer",
       contextId: plan.reviewer.contextId,
+      provider: plan.reviewer.provider,
       freshContext: true,
       taskId: task.id,
       iteration: 1,
@@ -381,6 +509,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
       requiredChecks: checks,
       changedFiles,
       diff: diff.status === 0 ? diff.stdout : "",
+      learnedNotes: plan.learnedNotes ?? [],
       restrictions: ["Review only; do not edit files", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
     }, "reviewer", plan.reviewer.contextId, directory);
     const afterReviewFiles = workingTreeChangedFiles(root).sort();
@@ -398,21 +527,24 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
             schemaVersion: "scwbs.ai-execution-input.v1",
             role: "debugger",
             contextId: `${plan.executionId}-DEBUGGER-${round}`,
+            provider: plan.debugger.provider,
             freshContext: true,
             taskId: task.id,
             iteration: round + 1,
             failure: { stage: "reviewer", status: currentReviewer.status, summary: currentReviewer.summary, findings: currentReviewer.findings ?? [] },
             changedFiles: currentChangedFiles,
+            learnedNotes: plan.learnedNotes ?? [],
             restrictions: ["Return diagnosis only", "Do not edit files", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
           }, "debugger", `${plan.executionId}-DEBUGGER-${round}`, directory);
           if (debuggerResult.status !== "completed") {
-            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation, failure: { stage: "reviewer", code: "debugger.not-completed", message: debuggerResult.summary } }, receiptPath(root, options, directory));
+            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation, failure: { stage: "reviewer", code: "debugger.not-completed", message: debuggerResult.summary } }, receiptPath(root, options));
           }
 
           const remediationImplementer = runAdapter(root, plan.implementer.command, {
             schemaVersion: "scwbs.ai-execution-input.v1",
             role: "implementer",
             contextId: `${plan.executionId}-REMEDIATION-${round}`,
+            provider: plan.implementer.provider,
             freshContext: true,
             taskId: task.id,
             iteration: round + 1,
@@ -425,10 +557,11 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
               requiredChecks: plan.requiredChecks,
               authorityFingerprint: plan.authorityFingerprint
             },
+            learnedNotes: plan.learnedNotes ?? [],
             restrictions: ["Edit only allowed implementation paths", "Do not edit Task Contract authority", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
           }, "implementer", `${plan.executionId}-REMEDIATION-${round}`, directory);
           if (remediationImplementer.status !== "completed") {
-            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation: [...remediation, { round, debugger: debuggerResult, implementer: remediationImplementer }], failure: { stage: "implementer", code: "remediation.not-completed", message: remediationImplementer.summary } }, receiptPath(root, options, directory));
+            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation: [...remediation, { round, debugger: debuggerResult, implementer: remediationImplementer }], failure: { stage: "implementer", code: "remediation.not-completed", message: remediationImplementer.summary } }, receiptPath(root, options));
           }
           currentChangedFiles = workingTreeChangedFiles(root).sort();
           const violations = currentChangedFiles.filter((file) => !matchesAny(file, plan.allowedPaths) || matchesAny(file, plan.forbiddenPaths) || matchesAny(file, plan.humanGateRequiredPaths));
@@ -438,13 +571,14 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
           currentChecks = dependencies.runChecks?.(root, task.id, options.baseRef ?? "origin/main")
             ?? buildChecksRunSummary(root, task.id, { baseRef: options.baseRef ?? "origin/main" });
           if (currentChecks.status !== "pass") {
-            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation: [...remediation, { round, debugger: debuggerResult, implementer: remediationImplementer, checks: currentChecks }], failure: { stage: "checks", code: "remediation-checks.failed", message: "Remediation checks did not pass; reviewer dispatch was skipped." } }, receiptPath(root, options, directory));
+            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation: [...remediation, { round, debugger: debuggerResult, implementer: remediationImplementer, checks: currentChecks }], failure: { stage: "checks", code: "remediation-checks.failed", message: "Remediation checks did not pass; reviewer dispatch was skipped." } }, receiptPath(root, options));
           }
           const remediationDiff = spawnSync("git", ["diff", "--binary", "--no-ext-diff", "origin/main"], { cwd: root, encoding: "utf8", shell: false });
           currentReviewer = runAdapter(root, plan.reviewer.command, {
             schemaVersion: "scwbs.ai-execution-input.v1",
             role: "reviewer",
             contextId: `${plan.executionId}-REVIEWER-${round + 1}`,
+            provider: plan.reviewer.provider,
             freshContext: true,
             taskId: task.id,
             iteration: round + 1,
@@ -453,6 +587,7 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
             debugger: debuggerResult,
             requiredChecks: currentChecks,
             changedFiles: currentChangedFiles,
+            learnedNotes: plan.learnedNotes ?? [],
             diff: remediationDiff.status === 0 ? remediationDiff.stdout : "",
             restrictions: ["Review only; do not edit files", "Do not create Approval or Review records", "Do not commit, push, create a PR, or merge"]
           }, "reviewer", `${plan.executionId}-REVIEWER-${round + 1}`, directory);
@@ -461,16 +596,16 @@ export function buildAiExecution(root: string, options: AiExecuteOptions, depend
           }
           remediation.push({ round, debugger: debuggerResult, implementer: remediationImplementer, checks: currentChecks, reviewer: currentReviewer });
           if (currentReviewer.status === "approved") {
-            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", iteration: round + 1, status: "completed", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation }, receiptPath(root, options, directory));
+            return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", iteration: round + 1, status: "completed", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation }, receiptPath(root, options));
           }
         }
-        return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation, failure: { stage: "reviewer", code: "review.remediation-limit", message: `Reviewer did not approve after ${plan.maxRemediationRounds ?? 0} remediation rounds` } }, receiptPath(root, options, directory));
+        return writeReceipt({ ...baseReceipt, schemaVersion: "scwbs.ai-run-receipt.v2", status: "blocked", implementer, checks: currentChecks, reviewer: currentReviewer, changedFiles: currentChangedFiles, remediation, failure: { stage: "reviewer", code: "review.remediation-limit", message: `Reviewer did not approve after ${plan.maxRemediationRounds ?? 0} remediation rounds` } }, receiptPath(root, options));
       }
-      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, reviewer, changedFiles, failure: { stage: "reviewer", code: "review.not-approved", message: reviewer.summary } }, receiptPath(root, options, directory));
+      return writeReceipt({ ...baseReceipt, status: "blocked", implementer, checks, reviewer, changedFiles, failure: { stage: "reviewer", code: "review.not-approved", message: reviewer.summary } }, receiptPath(root, options));
     }
-    return writeReceipt({ ...baseReceipt, status: "completed", implementer, checks, reviewer, changedFiles }, receiptPath(root, options, directory));
+    return writeReceipt({ ...baseReceipt, status: "completed", implementer, checks, reviewer, changedFiles }, receiptPath(root, options));
   } catch (error) {
-    return writeReceipt({ ...baseReceipt, status: "blocked", failure: { stage: "preflight", code: "execution.fail-closed", message: error instanceof Error ? error.message : String(error) } }, receiptPath(root, options, directory));
+    return writeReceipt({ ...baseReceipt, status: "blocked", failure: { stage: "preflight", code: "execution.fail-closed", message: error instanceof Error ? error.message : String(error) } }, receiptPath(root, options));
   }
 }
 
