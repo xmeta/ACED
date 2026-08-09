@@ -15,7 +15,7 @@ import { stringifySimpleYaml } from "../core/yaml.js";
 import type { SpecChangeProposal } from "../core/types.js";
 import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
 import { runAiPacket } from "../commands/ai-packet.js";
-import { runAiRun } from "../commands/ai-run.js";
+import { runAiExecute, runAiRun } from "../commands/ai-run.js";
 import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js";
 import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
 import { runCompletionApply } from "../commands/completion.js";
@@ -207,6 +207,25 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         return;
       }
       setExitCode(runAiRun(root, options.task, options.agent));
+    });
+
+  ai.command("execute")
+    .description("Run one bounded implementer-checks-fresh-reviewer iteration")
+    .requiredOption("--task <id>", "task id")
+    .requiredOption("--implementer-command <json>", "JSON command array for the implementer adapter")
+    .requiredOption("--reviewer-command <json>", "JSON command array for the fresh reviewer adapter")
+    .option("--base <ref>", "base ref for required-check receipts", "origin/main")
+    .option("--receipt <path>", "optional local run receipt path")
+    .option("--json", "print the versioned run receipt as JSON")
+    .action((options) => {
+      setExitCode(runAiExecute(root, {
+        taskId: options.task,
+        implementerCommand: options.implementerCommand,
+        reviewerCommand: options.reviewerCommand,
+        baseRef: options.base,
+        receiptPath: options.receipt,
+        json: options.json ?? false
+      }));
     });
 
   ai.command("block")

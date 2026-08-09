@@ -168,12 +168,19 @@ Profile（Lean / Standard / Strict）ごとの必須artifact・required checks�
 ```bash
 npm run scwbs -- ai packet --task SCWBS-001 --relation-depth 1
 npm run scwbs -- ai run --task SCWBS-001 --agent codex
+npm run scwbs -- ai execute --task SCWBS-001 \
+  --implementer-command '["node","./adapters/implementer.mjs"]' \
+  --reviewer-command '["node","./adapters/reviewer.mjs"]' --json
 npm run scwbs -- ai block --task SCWBS-001 --reason "Human Gate required"
 npm run scwbs -- ai next-task
 npm run scwbs -- next
 ```
 
 `ai run` is initially a dry-run orchestrator. It prints the pre-flight checks, implementation stop conditions, and post-flight checks rather than launching an external agent.
+
+`ai execute` is the bounded Phase 1 runner. It accepts JSON command arrays rather than a shell string, starts exactly one Task iteration, sends a bounded Work Packet to an implementer, runs the Task's existing required checks, and sends a separate fresh-context input to a reviewer. Adapter processes receive `SCWBS_RUNNER_ROLE` and `SCWBS_RUNNER_CONTEXT_ID`; the approval delegation token is removed from their environment. Each adapter must write a versioned JSON result to the output path supplied as its final argument. A failed preflight, path/authority check, required check, adapter result, or reviewer decision produces a blocked `scwbs.ai-run-receipt.v1` and skips later stages.
+
+The runner never creates Approval or human-only Review transitions, commits, pull requests, or merges. It does not implement debugger, retry, or resume behavior; those belong to the later Phase 2 work. The plan, input, result, and receipt shapes are defined in [`ai-execution.schema.json`](schemas/ai-execution.schema.json).
 
 `ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. Eligible candidates are ordered by optional Task Contract `priority` (`high`, `medium`, `low`), then by Task ID; tasks without a priority remain after prioritized tasks and retain the existing Task ID fallback. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
 
