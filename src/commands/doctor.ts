@@ -8,7 +8,7 @@ import { GOVERNANCE_PATH_POLICY, GOVERNANCE_PATH_POLICY_VERSION } from "../core/
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
-import { resolveWjsRuntime, wjsRepairCommand } from "../core/wjs-runtime.js";
+import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {

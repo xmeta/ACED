@@ -3,8 +3,7 @@ import { spawnSync } from "node:child_process";
 import { listActiveTasks } from "../core/contracts.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import { readWbs, runWjsValidate } from "../core/wbs.js";
-import { resolveWjsRuntime } from "../core/wjs-runtime.js";
+import { readWbs, resolveWjsRuntime, runWjsValidate } from "../core/wbs.js";
 import type { WbsDocument, WbsNode } from "../core/types.js";
 
 export function runWbsValidate(root: string): number {
