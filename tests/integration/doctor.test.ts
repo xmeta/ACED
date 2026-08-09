@@ -40,6 +40,9 @@ describe("doctor", () => {
     writeText(root, "wjs/node_modules/.keep", "");
     mkdirSync(path.join(root, "wjs/node_modules/@esbuild"), { recursive: true });
     writeText(root, "wjs/node_modules/@esbuild/.keep", "");
+    writeText(root, "wjs/package.json", JSON.stringify({ scripts: { validate: "node tools/validate.js" } }));
+    writeText(root, "wjs/tools/validate.ts", "export {}\n");
+    writeText(root, "wjs/tools/validate.js", "process.exit(0);\n");
     writeText(root, "wjs/schema/wbs-json.schema.json", "{}");
 
     const output: string[] = [];
@@ -59,6 +62,9 @@ describe("doctor", () => {
       diagnostics: expect.any(Array),
       contractIssues: expect.any(Array)
     });
+    expect(parsed.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "wjs.validator", status: "pass" })
+    ]));
 
     for (const diagnostic of parsed.diagnostics) {
       expect(diagnostic).toMatchObject({
@@ -93,5 +99,8 @@ describe("doctor", () => {
       contractIssues: expect.any(Array)
     });
     expect(parsed.diagnostics.some((d: { status: string }) => d.status === "fail")).toBe(true);
+    expect(parsed.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "wjs.validator", status: "fail", fix: "Run: git submodule update --init --recursive wjs" })
+    ]));
   });
 });
