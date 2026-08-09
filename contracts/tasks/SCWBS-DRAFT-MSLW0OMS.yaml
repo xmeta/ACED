@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MSLW0OMS
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSLW0OMS
+branchName: task/SCWBS-DRAFT-MSLW0OMS-issue-486-segment-aware-globstar-semantics-and-s
+status: approved
+approvedBy: xmeta
+sourceIssue: 486
+allowedPaths:
+  - src/core/glob.ts
+  - tests/unit/glob.test.ts
+  - tests/integration/check-diff.test.ts
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - wjs/**
+stopIf:
+  - Human Gate
+  - glob semantics ambiguity
+  - path authority policy change
+  - package or CI change
+  - WBS or WJS source change
+  - external service or credential change
+  - authority outside allowedPaths
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - globstar matching is segment-aware and supports zero or more path segments for patterns such as **/*.ts and src/**/foo.ts
+  - single-star matching remains segment-local and Windows separators normalize to repository-relative forward slashes
+  - all existing authority and check-coverage consumers continue using the same matcher implementation
+  - unsupported glob syntax is not silently interpreted as a different supported pattern
+  - regression tests cover root-level and nested globstar matches, non-matches, separator normalization, and safety-sensitive path consumers
+  - Issue
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - glob-semantics-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/specs/SPEC-LITE-MSLW0OMS.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSLW0OMS.patch
+  - contracts/approvals/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSLW0OMS.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:a57add71f50791875e332ea479737dab9341fb896e3e07fdeb4ef7d2cd6a0131
+  createdAt: "2026-08-09T14:19:37.479Z"

@@ -1,0 +1,241 @@
+diff --git a/contracts/specs/SPEC-LITE-MSLW0OMS.yaml b/contracts/specs/SPEC-LITE-MSLW0OMS.yaml
+new file mode 100644
+index 0000000..a8f6f19
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSLW0OMS.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MSLW0OMS
++type: spec-contract
++featureId: F-MSLW0OMS
++title: "Issue #486: Task Contractとcheck-coverageで共有するglobstarをsegment-aware semanticsへ統一する"
++status: approved
++version: 0.1.0
++summary: "allowedPaths等のauthority matcherで**をpath segment単位の0個以上として扱い、root-levelとnested directoryの判定差をなくす"
++approvedBy: xmeta
++approvedAt: "2026-08-09T00:00:00+09:00"
++acceptanceCriteria:
++  - "**/*.tsがfoo.tsとa/b.tsにmatchし、src/**/foo.tsがsrc/foo.tsとsrc/a/b/foo.tsにmatchする"
++  - "*は単一path segment内だけをmatchし、slashを跨がない"
++  - Windows separatorを正規化し、allowedPaths、forbiddenPaths、humanGateRequiredPaths、check-coverageが同じmatchesGlob実装を使い続ける
++  - unsupported syntaxを別のglob semanticsへ黙って変換せず、必要な検証境界で明示的に拒否できる
++  - root-level、nested、non-match、separator、authority/check-coverage regression testsを追加する
++  - path policy、WBS正本、WJS source、package、CIは変更しない
++nonGoals:
++  - shell globの全syntaxやbrace expansionの実装
++  - regexをauthority pathとして受け入れること
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml b/contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
+new file mode 100644
+index 0000000..3bfb6a9
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
+@@ -0,0 +1,74 @@
++id: SCWBS-DRAFT-MSLW0OMS
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSLW0OMS
++branchName: task/SCWBS-DRAFT-MSLW0OMS-issue-486-segment-aware-globstar-semantics-and-s
++status: approved
++approvedBy: xmeta
++sourceIssue: 486
++allowedPaths:
++  - src/core/glob.ts
++  - tests/unit/glob.test.ts
++  - tests/integration/check-diff.test.ts
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - wjs/**
++stopIf:
++  - Human Gate
++  - glob semantics ambiguity
++  - path authority policy change
++  - package or CI change
++  - WBS or WJS source change
++  - external service or credential change
++  - authority outside allowedPaths
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - globstar matching is segment-aware and supports zero or more path segments for patterns such as **/*.ts and src/**/foo.ts
++  - single-star matching remains segment-local and Windows separators normalize to repository-relative forward slashes
++  - all existing authority and check-coverage consumers continue using the same matcher implementation
++  - unsupported glob syntax is not silently interpreted as a different supported pattern
++  - regression tests cover root-level and nested globstar matches, non-matches, separator normalization, and safety-sensitive path consumers
++  - Issue
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - glob-semantics-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
++  - contracts/specs/SPEC-LITE-MSLW0OMS.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSLW0OMS.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSLW0OMS.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSLW0OMS.patch
++  - contracts/approvals/SCWBS-DRAFT-MSLW0OMS.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSLW0OMS.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:a57add71f50791875e332ea479737dab9341fb896e3e07fdeb4ef7d2cd6a0131
++  createdAt: "2026-08-09T14:19:37.479Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8f7af27..385ec32 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1763,3 +1763,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-09T14:15:48.306Z"
++  - id: SCWBS-DRAFT-MSLW0OMS
++    path: contracts/tasks/SCWBS-DRAFT-MSLW0OMS.yaml
++    branchName: task/SCWBS-DRAFT-MSLW0OMS-issue-486-segment-aware-globstar-semantics-and-s
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 639e701..d2306c4 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -41,6 +41,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
+ - Bounded Phase 1 AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, versioned plan/result/receipt artifacts, shell-free adapter invocation, and fail-closed authority/Human Gate boundaries; debugger, retry, resume, PR, and merge automation remain excluded
+ - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
++- Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
+ 
+ ## Still Missing
+ 
+diff --git a/src/core/glob.ts b/src/core/glob.ts
+index 37e6c2b..cd183c2 100644
+--- a/src/core/glob.ts
++++ b/src/core/glob.ts
+@@ -6,25 +6,53 @@ function escapeRegex(input: string): string {
+   return input.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+ }
+ 
++function normalizeGlob(glob: string): string {
++  return normalizePath(glob).replace(/\/+/g, "/");
++}
++
++function validateSegment(segment: string): string | undefined {
++  if ([...segment].some((char) => ["?", "[", "]", "{", "}", "!"].includes(char))) {
++    return "only * and ** wildcards are supported";
++  }
++  if (segment.includes("**") && segment !== "**") return "** must occupy a complete path segment";
++  return undefined;
++}
++
++export function validateGlobPattern(glob: string): string | undefined {
++  const normalized = normalizeGlob(glob);
++  if (normalized.length === 0) return "pattern must not be empty";
++  return normalized.split("/").map(validateSegment).find(Boolean);
++}
++
++function segmentToRegex(segment: string): string {
++  let pattern = "";
++  for (let index = 0; index < segment.length; index += 1) {
++    const char = segment[index];
++    pattern += char === "*" ? "[^/]*" : escapeRegex(char);
++  }
++  return pattern;
++}
++
+ function globToRegex(glob: string): RegExp {
+-  const normalized = normalizePath(glob);
++  const normalized = normalizeGlob(glob);
++  const segments = normalized.split("/");
+   let pattern = "";
+-  for (let index = 0; index < normalized.length; index += 1) {
+-    const char = normalized[index];
+-    const next = normalized[index + 1];
+-    if (char === "*" && next === "*") {
+-      pattern += ".*";
+-      index += 1;
+-    } else if (char === "*") {
+-      pattern += "[^/]*";
++  for (let index = 0; index < segments.length; index += 1) {
++    const segment = segments[index]!;
++    const previous = segments[index - 1];
++    if (segment === "**") {
++      if (previous !== "**") pattern += index === 0 ? "" : "/";
++      pattern += index === segments.length - 1 ? "(?:[^/]+(?:/[^/]+)*)?" : "(?:[^/]+/)*";
+     } else {
+-      pattern += escapeRegex(char);
++      if (index > 0 && previous !== "**") pattern += "/";
++      pattern += segmentToRegex(segment);
+     }
+   }
+   return new RegExp(`^${pattern}$`);
+ }
+ 
+ export function matchesGlob(filePath: string, glob: string): boolean {
++  if (validateGlobPattern(glob)) return false;
+   return globToRegex(glob).test(normalizePath(filePath));
+ }
+ 
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index c119da8..c9153fb 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -788,6 +788,7 @@ describe("check-diff", () => {
+     expect(validatorIssue?.message).toContain("validator runtime or dependencies could not be executed");
+   });
+ 
++
+   test("git changed file helpers split working-tree and branch diff basis", () => {
+     const root = makeTempRepo();
+     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
+diff --git a/tests/unit/glob.test.ts b/tests/unit/glob.test.ts
+new file mode 100644
+index 0000000..48e8a2c
+--- /dev/null
++++ b/tests/unit/glob.test.ts
+@@ -0,0 +1,24 @@
++import { describe, expect, test } from "vitest";
++import { matchesAny, matchesGlob, validateGlobPattern } from "../../src/core/glob.js";
++
++describe("glob matching", () => {
++  test("globstar matches zero or more path segments", () => {
++    expect(matchesGlob("foo.ts", "**/*.ts")).toBe(true);
++    expect(matchesGlob("src/foo.ts", "**/*.ts")).toBe(true);
++    expect(matchesGlob("src/a/b/foo.ts", "src/**/foo.ts")).toBe(true);
++    expect(matchesGlob("src/foo.ts", "src/**/foo.ts")).toBe(true);
++    expect(matchesGlob("src/a/foo.js", "src/**/foo.ts")).toBe(false);
++  });
++
++  test("single star remains segment-local and separators normalize", () => {
++    expect(matchesGlob("src\\features\\api.ts", "src/*/api.ts")).toBe(true);
++    expect(matchesGlob("src/a/b/api.ts", "src/*/api.ts")).toBe(false);
++    expect(matchesAny("src/a/b/api.ts", ["src/**/api.ts"])).toBe(true);
++  });
++
++  test("unsupported syntax is rejected instead of reinterpreted", () => {
++    expect(validateGlobPattern("src/{api,web}/**")).toContain("only * and ** wildcards are supported");
++    expect(validateGlobPattern("src/**.ts")).toContain("** must occupy a complete path segment");
++    expect(matchesGlob("src/api/index.ts", "src/{api,web}/**")).toBe(false);
++  });
++});

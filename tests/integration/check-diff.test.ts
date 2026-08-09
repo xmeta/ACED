@@ -788,6 +788,7 @@ describe("check-diff", () => {
     expect(validatorIssue?.message).toContain("validator runtime or dependencies could not be executed");
   });
 
+
   test("git changed file helpers split working-tree and branch diff basis", () => {
     const root = makeTempRepo();
     writeText(root, "src/features/api/index.ts", "export const value = 1;\n");
