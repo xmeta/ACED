@@ -41,6 +41,19 @@ function splitList(value: string | undefined, fallback: string[]): string[] {
   return items.length > 0 ? items : fallback;
 }
 
+export const TASK_NEW_BASELINE_CHECKS = ["test", "typecheck", "build"] as const;
+
+const VALID_CHECK_NAME = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)*$/;
+
+export function normalizeTaskNewChecks(value: string | undefined): { checks: string[]; invalid: string[] } {
+  const requested = value
+    ? value.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
+  const invalid = requested.filter((item) => !VALID_CHECK_NAME.test(item));
+  const checks = [...new Set([...TASK_NEW_BASELINE_CHECKS, ...requested.filter((item) => VALID_CHECK_NAME.test(item))])];
+  return { checks, invalid: [...new Set(invalid)] };
+}
+
 function humanGatePaths(value: string | undefined): string[] {
   return [...new Set([...standardHumanGatePaths(), ...splitList(value, [])])];
 }
@@ -81,9 +94,10 @@ export function buildCoreTaskNew(title: string, options: {
   noStopConditions?: boolean;
   wbsNode?: string;
   id?: string;
-} = {}): { task: TaskContract; fallback: TaskNewFallback } {
+} = {}): { task: TaskContract; fallback: TaskNewFallback; invalidChecks: string[] } {
   const id = options.id ?? `SCWBS-DRAFT-${stamp()}`;
   const { title: resolvedTitle, fallback } = resolveTaskTitle(title, id);
+  const normalizedChecks = normalizeTaskNewChecks(options.checks);
   const safeTitle = slug(resolvedTitle);
   const task: TaskContract = {
     id,
@@ -95,12 +109,12 @@ export function buildCoreTaskNew(title: string, options: {
     forbiddenPaths: splitList(options.forbid, ["wjs/**"]),
     humanGateRequiredPaths: humanGatePaths(options.gate),
     stopIf: splitList(options.stop, []),
-    requiredChecks: splitList(options.checks, ["test", "typecheck", "build"]),
+    requiredChecks: normalizedChecks.checks,
     doneCriteria: [`Complete ${resolvedTitle}`],
     evidenceRequired: ["test-result", "typecheck-result", "build-result"],
     managedContractPaths: taskBootstrapManagedContractPaths(id)
   };
-  return { task, fallback };
+  return { task, fallback, invalidChecks: normalizedChecks.invalid };
 }
 
 export function runTaskNew(root: string, title: string, options: {
@@ -118,6 +132,15 @@ export function runTaskNew(root: string, title: string, options: {
       return 1;
     }
     const built = buildCoreTaskNew(title, { ...options, id: nextDraftTaskId(root) });
+    if (built.invalidChecks.length > 0) {
+      console.error(`Invalid check name(s): ${built.invalidChecks.join(", ")}`);
+      return 1;
+    }
+    const missingBaselineChecks = TASK_NEW_BASELINE_CHECKS.filter((check) => !built.task.requiredChecks.includes(check));
+    if (missingBaselineChecks.length > 0) {
+      console.error(`Task new baseline validation failed: ${missingBaselineChecks.join(", ")}`);
+      return 1;
+    }
     const { task: completedTask, requirements } = completeCheckCoverageRequirements(root, built.task);
     if (requirements.issues.length > 0) {
       for (const issue of requirements.issues) console.error(`${issue.code}: ${issue.message}${issue.fixCommand ? `\nFix: ${issue.fixCommand}` : ""}`);
