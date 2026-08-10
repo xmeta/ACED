@@ -1,0 +1,86 @@
+id: SCWBS-DRAFT-MSNSPHI4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSNSPHI4
+branchName: task/SCWBS-DRAFT-MSNSPHI4-issue-513-read-only-wbs-3-way-semantic-merge-pla
+allowedPaths:
+  - src/commands/wbs.ts
+  - src/core/wbs.ts
+  - src/core/types.ts
+  - src/cli/register-wbs.ts
+  - docs/scwbs/wbs-json.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/wbs-merge-plan.schema.json
+  - tests/integration/wbs-merge-plan.test.ts
+  - contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml
+  - contracts/specs/SPEC-LITE-MSNSPHI4.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+stopIf:
+  - DB schema
+  - migration
+  - auth or permission design
+  - breaking API
+  - security or personal data
+  - external service or billing
+  - release decision
+  - scope expansion
+  - canonical WBS write
+  - automatic conflict resolution
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+status: approved
+approvedBy: user-requested-issue-513
+approvedAt: "2026-08-11T00:00:00+09:00"
+acceptanceCriteria:
+  - wbs merge-plan accepts base, ours, and theirs as explicit refs or files and emits a versioned deterministic JSON plan
+  - node, relation, resource, artifact, and extension identities are compared semantically rather than by JSON line order
+  - independent edits are classified clean while same-field edits produce structured conflicts
+  - delete-vs-modify, identity collision, duplicate code, missing relation endpoint, and schema-version conflicts fail closed with stable conflict classes
+  - the default planner is read-only and never writes contracts/wbs/project.wbs.json or applies a changeset
+  - an explicit write option can emit a WJS-compatible changeset only for a clean plan and never resolves an unresolved conflict
+  - generated output is reproducible across object key order and formatting-only differences
+  - existing direct-edit guard, Human Gate boundary, WJS validation, and changeset apply behavior remain fail-closed
+  - representative clean, concurrent-edit, delete-vs-modify, identity-collision, and formatting-only fixtures are covered by integration tests
+  - CLI and WBS documentation define inputs, output schema, conflict classes, read-only default, and explicit write/apply boundary
+doneCriteria:
+  - 'Complete Issue #513: read-only WBS 3-way semantic merge plan with structured conflicts and explicit changeset generation'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/specs/SPEC-LITE-MSNSPHI4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNSPHI4.patch
+  - contracts/approvals/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:d3a9412eccd9d45b717e507ee963e620452feab3a00efed19c73c5ba8e981a70
+  createdAt: "2026-08-10T22:22:00.398Z"

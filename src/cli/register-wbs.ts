@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "../commands/wbs.js";
+import { runWbsApply, runWbsCandidates, runWbsMergePlan, runWbsValidate, runWbsVerifyChangesets } from "../commands/wbs.js";
 import type { CommandContext } from "./command-context.js";
 
 export function registerWbsCommands(program: Command, context: CommandContext): void {
@@ -36,6 +36,25 @@ export function registerWbsCommands(program: Command, context: CommandContext): 
           base: options.base,
           head: options.head,
           changeSets: options.changeset ?? []
+        })
+      );
+    });
+
+  wbs
+    .command("merge-plan")
+    .description("Build a read-only three-way semantic WBS merge plan")
+    .requiredOption("--base <ref-or-file>", "base WBS ref or file")
+    .requiredOption("--ours <ref-or-file>", "ours WBS ref or file")
+    .requiredOption("--theirs <ref-or-file>", "theirs WBS ref or file")
+    .option("--write-changeset <file>", "write a WJS-compatible changeset only when the plan is clean")
+    .option("--json", "emit versioned JSON output")
+    .action((options) => {
+      setExitCode(
+        runWbsMergePlan(root, {
+          base: options.base,
+          ours: options.ours,
+          theirs: options.theirs,
+          writeChangeset: options.writeChangeset
         })
       );
     });
