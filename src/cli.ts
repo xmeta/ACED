@@ -233,30 +233,26 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("update")
-    .description("Update AI files")
-    .option("--agent <agent>", "agent")
-    .option("--dry-run", "dry run")
-    .option("--json", "json output")
+    .option("--agent <agent>")
+    .option("--dry-run")
+    .option("--json")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
 
-  const agent = program.command("agent").description("Manage AI adapters");
+  const agent = program.command("agent");
   agent
     .command("add")
-    .description("Add adapter")
-    .argument("<agent>", "agent")
-    .option("--json", "json output")
+    .argument("<agent>")
+    .option("--json")
     .action((agentName: string, opts) => { exitCode = runAgentAdd(root, agentName, opts); });
   agent
     .command("remove")
-    .description("Remove adapter")
-    .argument("<agent>", "agent")
-    .option("--json", "json output")
+    .argument("<agent>")
+    .option("--json")
     .action((agentName: string, opts) => { exitCode = runAgentRemove(root, agentName, opts); });
   agent
     .command("set-primary")
-    .description("Set primary adapter")
-    .argument("<agent>", "agent")
-    .option("--json", "json output")
+    .argument("<agent>")
+    .option("--json")
     .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
 
   program
