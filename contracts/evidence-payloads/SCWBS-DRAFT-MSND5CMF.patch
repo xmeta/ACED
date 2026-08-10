@@ -105,7 +105,7 @@ index 624f87f..972ba3e 100644
 +    status: planned
 +    dependsOn: []
 diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
-index 8b58316..a2be210 100644
+index 8b58316..a689bbb 100644
 --- a/docs/scwbs/cli-reference.md
 +++ b/docs/scwbs/cli-reference.md
 @@ -23,10 +23,9 @@ npm run scwbs -- --help
@@ -117,7 +117,7 @@ index 8b58316..a2be210 100644
 -
 -このため、`SCWBS-*` をTask IDの標準形式として使うことを推奨する。既存プロジェクトで別命名規則（例: `WBS-<node>-<seq>`）を使いたい場合は、`taskIdFromBranch` の正規表現（`src/core/github-actions.ts`）をプロジェクトのID規則に合わせて調整しない限り、`historicalCi.taskPullRequests` にそのTaskは現れない。本ドキュメントの以降の例はすべて `SCWBS-*` を使う。
 +- `metrics governance --json` の `historicalCi.taskPullRequests` は、`pull_request` eventの `task/` branchをTask Index（`contracts/tasks/index.yaml`）のbranchName exact matchで先に解決し、current/archivedを問わずTask ID別に集計する。
-+- Indexにない過去の `task/SCWBS-*` branchは後方互換の正規表現で解決し、各itemの `resolutionSource` に解決源を示す。Indexにない他のtask-like branchは `unmatched` のboundedな `totalCount` / `items` に残し、`completeness` のcandidate attribution percentageで欠落を確認できる。
++- Indexにない過去の `task/SCWBS-*` branchは後方互換の正規表現で解決し、各itemの `resolutionSource` に解決源を示す。Indexにない他のtask-like branchは `unmatched` のboundedな `count` / `items` に残し、`completeness` のcandidate attribution percentageで欠落を確認できる。
 +- Task Indexが欠落・不正な場合は `completeness.taskIndex: unavailable` とreasonを返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
  
  ## Core Checks
@@ -132,7 +132,7 @@ index 8b58316..a2be210 100644
  `localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。
  
 diff --git a/src/core/github-actions.ts b/src/core/github-actions.ts
-index 4b4689c..7afb7a5 100644
+index 4b4689c..41e1036 100644
 --- a/src/core/github-actions.ts
 +++ b/src/core/github-actions.ts
 @@ -1,4 +1,5 @@
@@ -158,7 +158,7 @@ index 4b4689c..7afb7a5 100644
  export type GithubActionsDurationSummary = {
    status: "available";
    source: "github-actions";
-@@ -29,9 +40,22 @@ export type GithubActionsDurationSummary = {
+@@ -29,9 +40,17 @@ export type GithubActionsDurationSummary = {
      limit: 20;
      totalCount: number;
      truncated: boolean;
@@ -168,36 +168,31 @@ index 4b4689c..7afb7a5 100644
 +      taskIndex: "available" | "unavailable";
 +      taskIndexReason?: string;
 +    };
-+    unmatched: {
-+      limit: 20;
-+      totalCount: number;
-+      truncated: boolean;
-+      items: Array<{ headBranch: string; runCount: number }>;
-+    };
++    unmatched: { limit: 20; count: number; items: Array<{ headBranch: string; runCount: number }> };
      items: Array<{
        taskId: string;
        headBranches: string[];
-+      resolutionSource: GithubActionsTaskResolutionSource | "mixed";
++      resolutionSource: GithubActionsTaskResolutionSource;
        runCount: number;
        completedRunCount: number;
        successfulRunCount: number;
-@@ -56,6 +80,15 @@ function taskIdFromBranch(branch: string): string | undefined {
+@@ -56,6 +75,15 @@ function taskIdFromBranch(branch: string): string | undefined {
    return branch.match(/^task\/(SCWBS-(?:DRAFT-)?[A-Z0-9]+(?:-[A-Z0-9]+)*)/)?.[1];
  }
  
-+function resolveTaskBranch(branch: string, taskIndex: GithubActionsTaskIndex): { taskId: string; source: GithubActionsTaskResolutionSource } | undefined {
++function resolveTaskBranch(branch: string, taskIndex: GithubActionsTaskIndex): [string, GithubActionsTaskResolutionSource] | undefined {
 +  if (taskIndex.status === "available") {
 +    const indexed = taskIndex.entries.find((entry) => entry.branchName === branch);
-+    if (indexed) return { taskId: indexed.id, source: "task-index" };
++    if (indexed) return [indexed.id, "task-index"];
 +  }
 +  const fallback = taskIdFromBranch(branch);
-+  return fallback ? { taskId: fallback, source: "scwbs-regex" } : undefined;
++  return fallback ? [fallback, "scwbs-regex"] : undefined;
 +}
 +
  function githubRepository(remote: string): string | undefined {
    const match = remote.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/);
    return match?.[1];
-@@ -77,13 +110,21 @@ function toRun(value: Record<string, unknown>): GithubActionsRun | undefined {
+@@ -77,13 +105,21 @@ function toRun(value: Record<string, unknown>): GithubActionsRun | undefined {
    };
  }
  
@@ -220,7 +215,7 @@ index 4b4689c..7afb7a5 100644
    for (const run of runs) {
      const existing = workflows[run.name] ?? { runCount: 0, completedRunCount: 0, durationMilliseconds: 0 };
      existing.runCount += 1;
-@@ -101,22 +142,31 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
+@@ -101,20 +137,28 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
      branch.runCount += 1;
      if (duration >= 0) branch.completedRunCount += 1;
      branches[run.headBranch] = branch;
@@ -238,19 +233,19 @@ index 4b4689c..7afb7a5 100644
 -        durationMilliseconds: 0,
 -        latestUpdatedAt: run.updatedAt
 -      };
-+    const taskLike = run.event === "pull_request" && run.headBranch.startsWith("task/");
-+    const resolution = taskLike ? resolveTaskBranch(run.headBranch, taskIndex) : null;
-+    if (taskLike) candidateRunCount += 1;
++    if (run.event !== "pull_request" || !run.headBranch.startsWith("task/")) continue;
++    candidateRunCount += 1;
++    const resolution = resolveTaskBranch(run.headBranch, taskIndex);
 +    if (!resolution) {
-+      if (taskLike) unmatched.set(run.headBranch, (unmatched.get(run.headBranch) ?? 0) + 1);
++      unmatched.set(run.headBranch, (unmatched.get(run.headBranch) ?? 0) + 1);
 +      continue;
 +    }
 +    attributedRunCount += 1;
-+    const taskId = resolution.taskId;
++    const [taskId, resolutionSource] = resolution;
 +    const item = taskPullRequests.get(taskId) ?? {
 +      taskId,
 +      headBranches: [],
-+      resolutionSource: resolution.source,
++      resolutionSource,
 +      runCount: 0,
 +      completedRunCount: 0,
 +      successfulRunCount: 0,
@@ -262,11 +257,8 @@ index 4b4689c..7afb7a5 100644
 +    };
        item.runCount += 1;
        if (!item.headBranches.includes(run.headBranch)) item.headBranches.push(run.headBranch);
-+      if (item.resolutionSource !== resolution.source) item.resolutionSource = "mixed";
        if (duration >= 0) {
-         item.completedRunCount += 1;
-         item.durationMilliseconds += durations[duration];
-@@ -127,13 +177,16 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
+@@ -127,13 +171,16 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
          item.incompleteRunCount += 1;
        }
        if (run.updatedAt > item.latestUpdatedAt) item.latestUpdatedAt = run.updatedAt;
@@ -285,7 +277,7 @@ index 4b4689c..7afb7a5 100644
    return {
      status: "available",
      source: "github-actions",
-@@ -157,6 +210,18 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
+@@ -157,6 +204,17 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
        limit: 20,
        totalCount: taskItems.length,
        truncated: taskItems.length > 20,
@@ -297,14 +289,13 @@ index 4b4689c..7afb7a5 100644
 +      },
 +      unmatched: {
 +        limit: 20,
-+        totalCount: unmatchedItems.length,
-+        truncated: unmatchedItems.length > 20,
++        count: unmatchedItems.length,
 +        items: unmatchedItems.slice(0, 20)
 +      },
        items: taskItems.slice(0, 20)
      }
    };
-@@ -176,7 +241,14 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
+@@ -176,7 +234,14 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
      const payload = JSON.parse(result.stdout) as { workflow_runs?: unknown[] };
      if (!Array.isArray(payload.workflow_runs)) throw new Error("GitHub Actions response has no workflow_runs array");
      const runs = payload.workflow_runs.map((value) => toRun(value as Record<string, unknown>)).filter((value): value is GithubActionsRun => Boolean(value));
@@ -321,7 +312,7 @@ index 4b4689c..7afb7a5 100644
      return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
    }
 diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
-index 6d8ca73..48ac5f5 100644
+index 6d8ca73..b5c700d 100644
 --- a/tests/integration/metrics.test.ts
 +++ b/tests/integration/metrics.test.ts
 @@ -138,9 +138,17 @@ describe("governance metrics", () => {
@@ -334,7 +325,7 @@ index 6d8ca73..48ac5f5 100644
 +        taskIndex: "unavailable",
 +        taskIndexReason: "Task Index was not supplied"
 +      },
-+      unmatched: { limit: 20, totalCount: 0, truncated: false, items: [] },
++      unmatched: { limit: 20, count: 0, items: [] },
        items: [{
          taskId: "SCWBS-DRAFT-ABC123",
          headBranches: ["task/SCWBS-DRAFT-ABC123-fix", "task/SCWBS-DRAFT-ABC123-retry"],
@@ -342,7 +333,7 @@ index 6d8ca73..48ac5f5 100644
          runCount: 4,
          completedRunCount: 3,
          successfulRunCount: 1,
-@@ -153,6 +161,61 @@ describe("governance metrics", () => {
+@@ -153,6 +161,55 @@ describe("governance metrics", () => {
      });
    });
  
@@ -370,12 +361,7 @@ index 6d8ca73..48ac5f5 100644
 +      { taskId: "SCWBS-DRAFT-OLD", resolutionSource: "task-index" },
 +      { taskId: "WBS-001-004", resolutionSource: "task-index" }
 +    ]);
-+    expect(summary.taskPullRequests.unmatched).toEqual({
-+      limit: 20,
-+      totalCount: 1,
-+      truncated: false,
-+      items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }]
-+    });
++    expect(summary.taskPullRequests.unmatched).toEqual({ limit: 20, count: 1, items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }] });
 +  });
 +
 +  test("marks an unavailable index as incomplete and bounds unknown task-like branches", () => {
@@ -392,8 +378,7 @@ index 6d8ca73..48ac5f5 100644
 +    });
 +    expect(summary.taskPullRequests.unmatched).toEqual({
 +      limit: 20,
-+      totalCount: 2,
-+      truncated: false,
++      count: 2,
 +      items: [
 +        { headBranch: "task/custom-feature", runCount: 1 },
 +        { headBranch: "task/WBS-001-004-api", runCount: 1 }
