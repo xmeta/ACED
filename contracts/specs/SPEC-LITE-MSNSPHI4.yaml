@@ -1,0 +1,22 @@
+id: SPEC-LITE-MSNSPHI4
+type: spec-contract
+featureId: F-MSNSPHI4
+title: "Issue #513: read-only WBS 3-way semantic merge plan"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-513
+approvedAt: "2026-08-11T00:00:00+09:00"
+summary: "WBSをidentity単位で3-way比較し、独立変更はclean plan、競合は構造化conflictとしてread-onlyに報告し、clean時だけ明示的にWJS changesetを生成する"
+acceptanceCriteria:
+  - base, ours, and theirs inputs produce a versioned deterministic merge-plan JSON output
+  - semantic identities cover nodes, relations, resources, artifacts, and document extensions without treating order or formatting as conflict
+  - concurrent field edits, delete-vs-modify, identity collisions, duplicate codes, missing endpoints, and schema mismatches are fail-closed structured conflicts
+  - read-only is the default and canonical WBS is never directly rewritten by the planner
+  - clean plans may explicitly emit a WJS-compatible changeset while conflicted plans cannot emit or apply a winner
+  - existing WJS validation, changeset-only WBS policy, and Human Gate boundaries remain enforced
+  - integration fixtures and documentation define the supported first-slice comparison matrix and output contract
+nonGoals:
+  - automatic conflict winner selection
+  - direct canonical WBS editing
+  - CRDT or distributed planning storage
+  - mandatory Git conflict-driver installation
