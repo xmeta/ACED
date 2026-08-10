@@ -42,9 +42,10 @@ function testFileCounts(root: string, baseCommit: string | undefined, subjectHea
   return counts;
 }
 
-function addedSkippedMarkers(root: string, baseCommit: string | undefined, subjectHead: string | undefined): number {
-  if (!baseCommit || !subjectHead) return 0;
-  const diff = runGit(root, ["diff", "--no-ext-diff", "--unified=0", "--no-color", baseCommit, subjectHead, "--"]);
+function addedSkippedMarkers(root: string, baseCommit: string | undefined, subjectHead: string | undefined, changedFiles: string[]): number {
+  const paths = changedTestFiles(changedFiles);
+  if (!baseCommit || !subjectHead || paths.length === 0) return 0;
+  const diff = runGit(root, ["diff", "--no-ext-diff", "--unified=0", "--no-color", baseCommit, subjectHead, "--", ...paths]);
   return diff
     .split("\n")
     .filter((line) => line.startsWith("+") && !line.startsWith("+++")).filter((line) => addedMarkerPattern.test(line)).length;
@@ -76,7 +77,7 @@ function evaluatedCoverage(
 
 export function buildTestQualityObservation(input: TestQualityObservationInput): TestQualityObservation {
   const testCounts = testFileCounts(input.root, input.baseCommit, input.subjectHead, input.changedFiles);
-  const skippedMarkersAdded = addedSkippedMarkers(input.root, input.baseCommit, input.subjectHead);
+  const skippedMarkersAdded = addedSkippedMarkers(input.root, input.baseCommit, input.subjectHead, input.changedFiles);
   const coverage = evaluatedCoverage(input.baseCommit, input.subjectHead, input.currentCoverage, input.baselineCoverage);
   const status = input.baseCommit && input.subjectHead && input.diffHash ? "evaluated" : "not-evaluated";
   return {
