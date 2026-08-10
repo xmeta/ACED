@@ -1,0 +1,626 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 00eb229..09e8f3d 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -275,6 +275,15 @@ jobs:
+         run: npm run lint
+       - name: Unit tests
+         run: npm test
++      - name: Unit coverage
++        run: npm run test:coverage
++      - name: Upload unit coverage report
++        if: always()
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: coverage-unit-${{ github.sha }}
++          path: coverage
++          if-no-files-found: warn
+       - name: Combined unit and integration coverage
+         run: npm run test:coverage:all
+       - name: Resolve implementation subject head
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 98fa9a9..f9325e7 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -78,6 +78,7 @@ rules:
+       - src/core/check-output-summary.ts
+       - src/core/check-receipt.ts
+       - src/core/check-coverage.ts
++      - src/core/ci-plan-domain.ts
+       - src/core/code-context.ts
+       - src/core/document-lifecycle.ts
+       - src/core/discovery.ts
+@@ -92,6 +93,7 @@ rules:
+       - src/core/governance-warning-budget.ts
+       - src/core/hash.ts
+       - src/core/human-gate.ts
++      - src/core/health-domain.ts
+       - src/core/health-lifecycle.ts
+       - src/core/json.ts
+       - src/core/managed-contract-paths.ts
+@@ -113,6 +115,7 @@ rules:
+       - src/core/task-authority.ts
+       - src/core/task-index.ts
+       - src/core/task-wbs-policy.ts
++      - src/core/metrics-domain.ts
+       - src/core/wbs-lock.ts
+       - src/core/wbs.ts
+       - src/core/yaml.ts
+diff --git a/contracts/specs/SPEC-LITE-MSMQTRYB.yaml b/contracts/specs/SPEC-LITE-MSMQTRYB.yaml
+new file mode 100644
+index 0000000..bc59ea8
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSMQTRYB.yaml
+@@ -0,0 +1,22 @@
++id: SPEC-LITE-MSMQTRYB
++type: spec-contract
++featureId: F-MSMQTRYB
++title: "Issue #474 Phase 1: domain logic and unit coverage replacement"
++status: approved
++version: 0.1.0
++summary: "Extract pure decision and aggregation logic from the ci-plan, health, and metrics commands into unit-testable core modules, classify the new paths, and publish unit/integration coverage in CI."
++approvedBy: xmeta
++approvedAt: "2026-08-10T04:45:00+09:00"
++sourceIssue: 474
++acceptanceCriteria:
++  - ci-plan, health, and metrics command orchestration delegates decision or aggregation logic to dedicated src/core/*-domain.ts modules
++  - Unit tests cover the extracted domain modules' success, boundary, and error paths, and each target module reaches at least 50 percent statement coverage under npm run test:coverage
++  - contracts/check-coverage.yaml classifies the new domain and unit-test paths without weakening unrelated fail-closed coverage rules
++  - CI reports both unit coverage and combined unit/integration coverage for pull requests
++  - npm run test:all, typecheck, build, lint, and SC-WBS validation remain green
++  - No database, authentication, breaking API, WBS authority, or external service changes are introduced
++nonGoals:
++  - broad refactoring of unrelated commands or core modules
++  - changing the WBS project or adding a WBS changeset
++  - lowering global coverage thresholds or excluding target domain modules from coverage
++  - changing package publication, repository visibility, or credentials
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml b/contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
+new file mode 100644
+index 0000000..dd1507e
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
+@@ -0,0 +1,79 @@
++id: SCWBS-DRAFT-MSMQTRYB
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSMQTRYB
++branchName: task/SCWBS-DRAFT-MSMQTRYB-issue-474-phase-1-domain-logic-and-unit-coverage
++status: approved
++approvedBy: xmeta
++sourceIssue: 474
++allowedPaths:
++  - src/core/ci-plan-domain.ts
++  - src/core/health-domain.ts
++  - src/core/metrics-domain.ts
++  - src/commands/ci-plan.ts
++  - src/commands/health.ts
++  - src/commands/metrics.ts
++  - tests/unit/ci-plan-domain.test.ts
++  - tests/unit/health-domain.test.ts
++  - tests/unit/metrics-domain.test.ts
++  - contracts/check-coverage.yaml
++  - vitest.config.ts
++  - .github/workflows/scwbs.yml
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++  - package-lock.json
++  - db/**
++  - migrations/**
++  - auth/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/check-coverage.yaml
++  - .github/workflows/scwbs.yml
++stopIf:
++  - DB schema change
++  - migration addition
++  - authentication or authorization design change
++  - breaking API change
++  - external service or billing change
++  - unbounded scope
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++  - test:wjs
++doneCriteria:
++  - ci-plan, health, and metrics command orchestration delegates to the dedicated domain modules
++  - each target domain module reaches at least 50 percent statement coverage in the unit coverage run
++  - new domain and unit-test paths are classified in contracts/check-coverage.yaml
++  - CI publishes unit and combined unit/integration coverage results
++  - all required checks, SC-WBS diff checks, and Registry checks pass
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
++  - contracts/specs/SPEC-LITE-MSMQTRYB.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSMQTRYB.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSMQTRYB.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSMQTRYB.patch
++  - contracts/approvals/SCWBS-DRAFT-MSMQTRYB.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSMQTRYB.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:7d0eb702bde4226dec4d41402add2622ef38e0bc186e328412e60c358e998601
++  createdAt: "2026-08-10T04:41:10.806Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 9976121..4a68a66 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1840,3 +1840,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T00:20:00.730Z"
++  - id: SCWBS-DRAFT-MSMQTRYB
++    path: contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
++    branchName: task/SCWBS-DRAFT-MSMQTRYB-issue-474-phase-1-domain-logic-and-unit-coverage
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/ci-plan.ts b/src/commands/ci-plan.ts
+index 97b6ad9..95c4ae4 100644
+--- a/src/commands/ci-plan.ts
++++ b/src/commands/ci-plan.ts
+@@ -14,15 +14,12 @@ import {
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { approvalPath, resolveFrom, reviewPath } from "../core/paths.js";
+ import { collectTaskAuthorityIssues, taskAuthorityFingerprint, verifyTaskBootstrapAuthority } from "../core/task-authority.js";
+-import { matchesAny } from "../core/glob.js";
++import { classifyCiPlanFiles, uniqueCiPlanReasons, type CiPlanReason } from "../core/ci-plan-domain.js";
+ import { readWbs } from "../core/wbs.js";
+ import type { Issue, TaskContract } from "../core/types.js";
+ import { collectDiffIssues } from "./check-diff.js";
+ 
+-export type CiPlanReason = {
+-  code: string;
+-  message: string;
+-};
++export type { CiPlanReason } from "../core/ci-plan-domain.js";
+ 
+ export type CiPlanCommit = {
+   sha: string;
+@@ -75,16 +72,6 @@ function issueReasons(issues: Issue[], prefix: string): CiPlanReason[] {
+   return issues.map((issue) => reason(`${prefix}.${issue.code}`, issue.message));
+ }
+ 
+-function uniqueReasons(reasons: CiPlanReason[]): CiPlanReason[] {
+-  const seen = new Set<string>();
+-  return reasons.filter((item) => {
+-    const key = `${item.code}\0${item.message}`;
+-    if (seen.has(key)) return false;
+-    seen.add(key);
+-    return true;
+-  });
+-}
+-
+ function resolveTask(root: string, options: CiPlanOptions): { task?: TaskContract; reasons: CiPlanReason[] } {
+   if (options.taskId) {
+     const result = readTask(root, options.taskId);
+@@ -178,28 +165,17 @@ function classifyTask(root: string, task: TaskContract, baseRef: string, branchF
+     ? verifyTaskBootstrapAuthority(root, baseRef, task)
+     : { verified: true, reasons: [], introductionCommit: undefined, bootstrapFiles: [] };
+   const bootstrapFiles = bootstrap.verified ? bootstrap.bootstrapFiles : [];
+-  const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
+-  const reasons: CiPlanReason[] = bootstrap.reasons.map((item) => reason(item.code, item.message));
+-  if (issues.some((item) => ["git.shallow", "git.base.missing", "git.mergeBase.missing", "git.diff.failed"].includes(item.code))) {
+-    reasons.push(reason("classification.provenance.unverified", "Repository history or the classified branch diff cannot be verified"));
+-  }
+-  if (issues.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {
+-    reasons.push(reason("classification.authorityOrCoverage.unverified", "Authority or implementation coverage cannot be verified"));
+-  }
+-  if (consideredFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths))) {
+-    reasons.push(reason("classification.path.humanGate", "A Human Gate path is in the classified change set"));
+-  }
+-  if (consideredFiles.some((file) => /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|.*schema.*|.*migration.*|.*auth.*|.*permission.*|.*release.*)$/.test(file) || file.startsWith(".github/") || file.startsWith("wjs/"))) {
+-    reasons.push(reason("classification.path.highRisk", "A dependency, schema, migration, authority, release, workflow, or submodule path is in the classified change set"));
+-  }
+-  const executionClass = reasons.length > 0 ? "high-risk"
+-    : consideredFiles.some((file) => file.startsWith("src/") || file.startsWith("tests/")) ? "standard"
+-      : "routine";
+-  if (reasons.length === 0) reasons.push(reason(`classification.${executionClass}`, executionClass === "routine" ? "Only non-implementation, non-gated files remain after verified bootstrap metadata exclusion" : "Implementation or test files require the Standard execution class"));
++  const classification = classifyCiPlanFiles(
++    branchFiles,
++    bootstrapFiles,
++    task.humanGateRequiredPaths,
++    bootstrap.reasons.map((item) => reason(item.code, item.message)),
++    issues
++  );
+   return {
+-    schemaVersion: "1.0.0", status: "classified", projectProfile: profile(root), executionClass, enforcement: "read-only",
++    schemaVersion: "1.0.0", status: "classified", projectProfile: profile(root), executionClass: classification.executionClass, enforcement: "read-only",
+     bootstrapAuthority: { verified: bootstrap.verified, introductionCommit: bootstrap.introductionCommit ?? null },
+-    consideredFiles, excludedBootstrapFiles: bootstrapFiles.filter((file) => branchFiles.includes(file)).sort(), reasons: uniqueReasons(reasons)
++    consideredFiles: classification.consideredFiles, excludedBootstrapFiles: classification.excludedBootstrapFiles, reasons: classification.reasons
+   };
+ }
+ 
+@@ -299,7 +275,7 @@ export function buildCiPlan(root: string, options: CiPlanOptions = {}): CiPlan {
+     }
+   }
+ 
+-  const normalizedReasons = uniqueReasons(reasons);
++  const normalizedReasons = uniqueCiPlanReasons(reasons);
+   const decision = normalizedReasons.length === 0 ? "metadata-candidate" : "full";
+   const classification = classifyTask(root, task, baseRef, branchFiles, normalizedReasons);
+   return {
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index 41f4e2a..d4805d3 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -18,6 +18,8 @@ import { buildGovernanceCostSummary } from "./metrics.js";
+ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
+ import { verifyPatchArtifact } from "../core/git.js";
+ import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
++import { summarizeHealthIssues } from "../core/health-domain.js";
++export { sortHealthIssues } from "../core/health-domain.js";
+ 
+ export type CurrentPullRequest = {
+   number: number;
+@@ -705,13 +707,6 @@ export function collectHealthIssues(root: string): Issue[] {
+   return issues;
+ }
+ 
+-function issuePriority(issue: Issue): number {
+-  if (issue.severity === "error") return 0;
+-  if (/humanGate|approval/i.test(issue.code)) return 1;
+-  if (issue.fixCommand) return 2;
+-  return 3;
+-}
+-
+ function collectTimestampDriftIssues(task: TaskContract, tracked: string[], timestamps: Map<string, number>): Issue[] {
+   const sourceFiles = tracked.filter((file) => !file.startsWith("contracts/") && matchesAny(file, task.allowedPaths));
+   const contractFiles = tracked.filter((file) => file === taskPath(task.id) || matchesManagedContractPath(task, file));
+@@ -728,38 +723,20 @@ function collectTimestampDriftIssues(task: TaskContract, tracked: string[], time
+   }];
+ }
+ 
+-export function sortHealthIssues(issues: Issue[]): Issue[] {
+-  return [...issues].sort((left, right) =>
+-    issuePriority(left) - issuePriority(right)
+-    || left.code.localeCompare(right.code)
+-    || left.message.localeCompare(right.message)
+-  );
+-}
+-
+ export function buildHealthJsonOutput(root: string, issues = collectHealthIssues(root)): HealthJsonOutput {
+-  const sorted = sortHealthIssues(issues);
+-  const byCode = new Map<string, { code: string; severity: Issue["severity"]; count: number }>();
+-  for (const issue of sorted) {
+-    const existing = byCode.get(issue.code);
+-    if (existing) existing.count += 1;
+-    else byCode.set(issue.code, { code: issue.code, severity: issue.severity, count: 1 });
+-  }
+-  const errors = sorted.filter((issue) => issue.severity === "error").length;
++  const domain = summarizeHealthIssues(issues);
+   const shallow = isShallowRepository(root);
+   return {
+     version: "scwbs.health.v1",
+-    status: errors > 0 ? "fail" : sorted.length > 0 ? "warn" : "pass",
++    status: domain.status,
+     repository: {
+       shallow,
+       commitReachability: shallow ? "not-evaluated" : "evaluated"
+     },
+     summary: {
+-      total: sorted.length,
+-      errors,
+-      warnings: sorted.length - errors,
+-      byCode: [...byCode.values()]
++      ...domain.summary
+     },
+-    issues: sorted
++    issues: domain.issues
+   };
+ }
+ 
+diff --git a/src/commands/metrics.ts b/src/commands/metrics.ts
+index de22323..93e6487 100644
+--- a/src/commands/metrics.ts
++++ b/src/commands/metrics.ts
+@@ -13,6 +13,7 @@ import { healthLifecycleDirectory, isHealthLifecycleReceipt, type HealthLifecycl
+ import { listApprovals } from "../core/contracts.js";
+ import { evaluateGovernanceWarningBudgets, type GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
+ import { readWbs } from "../core/wbs.js";
++import { summarizeNumbers, type NumericSummary } from "../core/metrics-domain.js";
+ 
+ const GOVERNANCE_DIRS = [
+   "contracts/tasks",
+@@ -27,7 +28,7 @@ const GOVERNANCE_DIRS = [
+ ] as const;
+ 
+ type Bucket = { files: number; bytes: number; lines: number };
+-type NullableDuration = { total: number | null; average: number | null; minimum: number | null; maximum: number | null };
++type NullableDuration = NumericSummary;
+ type Period = { from: string | null; to: string | null };
+ 
+ export type LocalAiExecutionSummary = {
+@@ -226,17 +227,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
+   return typeof value === "object" && value !== null && !Array.isArray(value);
+ }
+ 
+-function numericValues(values: Array<number | null | undefined>): number[] {
+-  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+-}
+-
+-function summarizeNumbers(values: Array<number | null | undefined>): NullableDuration {
+-  const observed = numericValues(values);
+-  if (observed.length === 0) return { total: null, average: null, minimum: null, maximum: null };
+-  const total = observed.reduce((sum, value) => sum + value, 0);
+-  return { total, average: Math.round(total / observed.length), minimum: Math.min(...observed), maximum: Math.max(...observed) };
+-}
+-
+ type LocalAiReceipt = {
+   taskId: string;
+   executionId: string;
+diff --git a/src/core/ci-plan-domain.ts b/src/core/ci-plan-domain.ts
+new file mode 100644
+index 0000000..1c0692f
+--- /dev/null
++++ b/src/core/ci-plan-domain.ts
+@@ -0,0 +1,61 @@
++import { matchesAny } from "./glob.js";
++
++export type CiPlanReason = { code: string; message: string };
++
++export type CiPlanFileClassification = {
++  consideredFiles: string[];
++  excludedBootstrapFiles: string[];
++  executionClass: "routine" | "standard" | "high-risk";
++  reasons: CiPlanReason[];
++};
++
++function reason(code: string, message: string): CiPlanReason {
++  return { code, message };
++}
++
++export function uniqueCiPlanReasons(reasons: CiPlanReason[]): CiPlanReason[] {
++  const seen = new Set<string>();
++  return reasons.filter((item) => {
++    const key = `${item.code}\0${item.message}`;
++    if (seen.has(key)) return false;
++    seen.add(key);
++    return true;
++  });
++}
++
++export function classifyCiPlanFiles(
++  branchFiles: string[],
++  bootstrapFiles: string[],
++  humanGateRequiredPaths: string[],
++  initialReasons: CiPlanReason[],
++  issueReasons: CiPlanReason[]
++): CiPlanFileClassification {
++  const consideredFiles = branchFiles.filter((file) => !bootstrapFiles.includes(file)).sort();
++  const reasons = [...initialReasons];
++  if (issueReasons.some((item) => ["git.shallow", "git.base.missing", "git.mergeBase.missing", "git.diff.failed"].includes(item.code))) {
++    reasons.push(reason("classification.provenance.unverified", "Repository history or the classified branch diff cannot be verified"));
++  }
++  if (issueReasons.some((item) => item.code.includes("taskAuthority") || item.code.includes("checkCoverage.unclassified"))) {
++    reasons.push(reason("classification.authorityOrCoverage.unverified", "Authority or implementation coverage cannot be verified"));
++  }
++  if (consideredFiles.some((file) => matchesAny(file, humanGateRequiredPaths))) {
++    reasons.push(reason("classification.path.humanGate", "A Human Gate path is in the classified change set"));
++  }
++  if (consideredFiles.some((file) => /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|.*schema.*|.*migration.*|.*auth.*|.*permission.*|.*release.*)$/.test(file) || file.startsWith(".github/") || file.startsWith("wjs/"))) {
++    reasons.push(reason("classification.path.highRisk", "A dependency, schema, migration, authority, release, workflow, or submodule path is in the classified change set"));
++  }
++  const executionClass = reasons.length > 0 ? "high-risk"
++    : consideredFiles.some((file) => file.startsWith("src/") || file.startsWith("tests/")) ? "standard"
++      : "routine";
++  if (reasons.length === 0) {
++    reasons.push(reason(`classification.${executionClass}`, executionClass === "routine"
++      ? "Only non-implementation, non-gated files remain after verified bootstrap metadata exclusion"
++      : "Implementation or test files require the Standard execution class"));
++  }
++  return {
++    consideredFiles,
++    excludedBootstrapFiles: bootstrapFiles.filter((file) => branchFiles.includes(file)).sort(),
++    executionClass,
++    reasons: uniqueCiPlanReasons(reasons)
++  };
++}
+diff --git a/src/core/health-domain.ts b/src/core/health-domain.ts
+new file mode 100644
+index 0000000..f54f12b
+--- /dev/null
++++ b/src/core/health-domain.ts
+@@ -0,0 +1,43 @@
++import type { Issue } from "./types.js";
++
++export type HealthIssueSummary = {
++  status: "pass" | "warn" | "fail";
++  summary: {
++    total: number;
++    errors: number;
++    warnings: number;
++    byCode: Array<{ code: string; severity: Issue["severity"]; count: number }>;
++  };
++  issues: Issue[];
++};
++
++function issuePriority(issue: Issue): number {
++  if (issue.severity === "error") return 0;
++  if (/humanGate|approval/i.test(issue.code)) return 1;
++  if (issue.fixCommand) return 2;
++  return 3;
++}
++
++export function sortHealthIssues(issues: Issue[]): Issue[] {
++  return [...issues].sort((left, right) =>
++    issuePriority(left) - issuePriority(right)
++    || left.code.localeCompare(right.code)
++    || left.message.localeCompare(right.message)
++  );
++}
++
++export function summarizeHealthIssues(issues: Issue[]): HealthIssueSummary {
++  const sorted = sortHealthIssues(issues);
++  const byCode = new Map<string, { code: string; severity: Issue["severity"]; count: number }>();
++  for (const issue of sorted) {
++    const existing = byCode.get(issue.code);
++    if (existing) existing.count += 1;
++    else byCode.set(issue.code, { code: issue.code, severity: issue.severity, count: 1 });
++  }
++  const errors = sorted.filter((issue) => issue.severity === "error").length;
++  return {
++    status: errors > 0 ? "fail" : sorted.length > 0 ? "warn" : "pass",
++    summary: { total: sorted.length, errors, warnings: sorted.length - errors, byCode: [...byCode.values()] },
++    issues: sorted
++  };
++}
+diff --git a/src/core/metrics-domain.ts b/src/core/metrics-domain.ts
+new file mode 100644
+index 0000000..7149500
+--- /dev/null
++++ b/src/core/metrics-domain.ts
+@@ -0,0 +1,12 @@
++export type NumericSummary = { total: number | null; average: number | null; minimum: number | null; maximum: number | null };
++
++export function numericValues(values: Array<number | null | undefined>): number[] {
++  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
++}
++
++export function summarizeNumbers(values: Array<number | null | undefined>): NumericSummary {
++  const observed = numericValues(values);
++  if (observed.length === 0) return { total: null, average: null, minimum: null, maximum: null };
++  const total = observed.reduce((sum, value) => sum + value, 0);
++  return { total, average: Math.round(total / observed.length), minimum: Math.min(...observed), maximum: Math.max(...observed) };
++}
+diff --git a/tests/unit/ci-plan-domain.test.ts b/tests/unit/ci-plan-domain.test.ts
+new file mode 100644
+index 0000000..69c4a61
+--- /dev/null
++++ b/tests/unit/ci-plan-domain.test.ts
+@@ -0,0 +1,39 @@
++import { describe, expect, test } from "vitest";
++import { classifyCiPlanFiles, uniqueCiPlanReasons } from "../../src/core/ci-plan-domain.js";
++
++describe("ci-plan domain", () => {
++  test("deduplicates identical reasons while retaining distinct messages", () => {
++    const reasons = uniqueCiPlanReasons([
++      { code: "same", message: "one" },
++      { code: "same", message: "one" },
++      { code: "same", message: "two" }
++    ]);
++    expect(reasons).toEqual([{ code: "same", message: "one" }, { code: "same", message: "two" }]);
++  });
++
++  test("classifies implementation files as standard and excludes bootstrap files", () => {
++    const result = classifyCiPlanFiles(["contracts/tasks/T.yaml", "src/example.ts"], ["contracts/tasks/T.yaml"], [".github/**"], [], []);
++    expect(result).toMatchObject({
++      consideredFiles: ["src/example.ts"],
++      excludedBootstrapFiles: ["contracts/tasks/T.yaml"],
++      executionClass: "standard"
++    });
++    expect(result.reasons[0]?.code).toBe("classification.standard");
++  });
++
++  test("fails closed for human gate, high-risk, and provenance reasons", () => {
++    const result = classifyCiPlanFiles(
++      [".github/workflows/check.yml", "package.json", "src/security/secret.ts"],
++      [],
++      ["src/security/**"],
++      [],
++      [{ code: "git.shallow", message: "history unavailable" }]
++    );
++    expect(result.executionClass).toBe("high-risk");
++    expect(result.reasons.map((item) => item.code)).toEqual(expect.arrayContaining([
++      "classification.provenance.unverified",
++      "classification.path.humanGate",
++      "classification.path.highRisk"
++    ]));
++  });
++});
+diff --git a/tests/unit/health-domain.test.ts b/tests/unit/health-domain.test.ts
+new file mode 100644
+index 0000000..27b94f2
+--- /dev/null
++++ b/tests/unit/health-domain.test.ts
+@@ -0,0 +1,34 @@
++import { describe, expect, test } from "vitest";
++import { sortHealthIssues, summarizeHealthIssues } from "../../src/core/health-domain.js";
++
++describe("health domain", () => {
++  test("sorts errors and human-gate warnings before fixable and ordinary warnings", () => {
++    const issues = [
++      { severity: "warn" as const, code: "z-last", message: "last" },
++      { severity: "warn" as const, code: "health.approval.pending", message: "approval" },
++      { severity: "error" as const, code: "a-error", message: "error" },
++      { severity: "warn" as const, code: "health.fix", message: "fix", fixCommand: "fix" }
++    ];
++    expect(sortHealthIssues(issues).map((issue) => issue.code)).toEqual([
++      "a-error", "health.approval.pending", "health.fix", "z-last"
++    ]);
++  });
++
++  test("summarizes empty and repeated issue codes deterministically", () => {
++    expect(summarizeHealthIssues([])).toEqual({
++      status: "pass",
++      summary: { total: 0, errors: 0, warnings: 0, byCode: [] },
++      issues: []
++    });
++    const summary = summarizeHealthIssues([
++      { severity: "warn", code: "same", message: "one" },
++      { severity: "warn", code: "same", message: "two" },
++      { severity: "error", code: "bad", message: "bad" }
++    ]);
++    expect(summary).toMatchObject({ status: "fail", summary: { total: 3, errors: 1, warnings: 2 } });
++    expect(summary.summary.byCode).toEqual([
++      { code: "bad", severity: "error", count: 1 },
++      { code: "same", severity: "warn", count: 2 }
++    ]);
++  });
++});
+diff --git a/tests/unit/metrics-domain.test.ts b/tests/unit/metrics-domain.test.ts
+new file mode 100644
+index 0000000..b97a57a
+--- /dev/null
++++ b/tests/unit/metrics-domain.test.ts
+@@ -0,0 +1,13 @@
++import { describe, expect, test } from "vitest";
++import { numericValues, summarizeNumbers } from "../../src/core/metrics-domain.js";
++
++describe("metrics domain", () => {
++  test("keeps only finite numeric observations", () => {
++    expect(numericValues([null, undefined, 1, Number.NaN, Number.POSITIVE_INFINITY, 3])).toEqual([1, 3]);
++  });
++
++  test("returns null aggregates for no observations and rounded aggregates otherwise", () => {
++    expect(summarizeNumbers([null, undefined])).toEqual({ total: null, average: null, minimum: null, maximum: null });
++    expect(summarizeNumbers([1, 2, 4])).toEqual({ total: 7, average: 2, minimum: 1, maximum: 4 });
++  });
++});
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 4f4d177..06dfa43 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -11,7 +11,12 @@ export default defineConfig({
+     coverage: {
+       provider: "v8",
+       reporter: ["text", "lcov"],
+-      reportsDirectory: "./coverage"
++      reportsDirectory: "./coverage",
++      thresholds: {
++        "src/core/ci-plan-domain.ts": { statements: 50 },
++        "src/core/health-domain.ts": { statements: 50 },
++        "src/core/metrics-domain.ts": { statements: 50 }
++      }
+     }
+   }
+ });
