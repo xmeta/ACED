@@ -23,10 +23,9 @@ npm run scwbs -- --help
 task/SCWBS-DRAFT-M3QJ2K-fix-parser
 ```
 
-- `metrics governance --json` の `historicalCi.taskPullRequests` は、`pull_request` eventのうち `task/SCWBS-*` branchだけをtask ID別に集計する。
-- `SCWBS-*` 以外のプレフィックスを使うTask（例: `task generate --task WBS-001-004` で生成したTask）のPRは、この集計から**サイレントに除外される**。エラーにも `unavailable` にもならない。
-
-このため、`SCWBS-*` をTask IDの標準形式として使うことを推奨する。既存プロジェクトで別命名規則（例: `WBS-<node>-<seq>`）を使いたい場合は、`taskIdFromBranch` の正規表現（`src/core/github-actions.ts`）をプロジェクトのID規則に合わせて調整しない限り、`historicalCi.taskPullRequests` にそのTaskは現れない。本ドキュメントの以降の例はすべて `SCWBS-*` を使う。
+- `metrics governance --json` の `historicalCi.taskPullRequests` は、`pull_request` eventの `task/` branchをTask Index（`contracts/tasks/index.yaml`）のbranchName exact matchで先に解決し、current/archivedを問わずTask ID別に集計する。
+- Indexにない過去の `task/SCWBS-*` branchは後方互換の正規表現で解決し、各itemの `resolutionSource` に解決源を示す。Indexにない他のtask-like branchは `unmatched` のboundedな `count` / `items` に残し、`completeness` のcandidate attribution percentageで欠落を確認できる。
+- Task Indexが欠落・不正な場合は `completeness.taskIndex: unavailable` として帰属の不完全性を明示する。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
 
 ## Core Checks
 
@@ -167,7 +166,7 @@ npm run scwbs -- metrics governance --json
 
 `1.0.0` は現行CLIが返す値ではない。consumerは `schemaVersion` を検査し、対応していないversionを推測で処理しないこと。将来versionの互換性方針は現行実装だけからは保証されない。
 
-GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順、paginateしない）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。`taskPullRequests` は `pull_request` eventの `task/SCWBS-*` branchだけをtask ID別にまとめ（「Task IDとブランチ命名」を参照）、run、completed、success、failure、その他の完了、未完了、durationを`latestUpdatedAt`降順（同値は`taskId`昇順）の最大20件で返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
+GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `historicalCi` に既存GitHub Actions runの先頭100件（GitHub APIの新しい順、paginateしない）を集計する。対象repository、取得上限、run数、完了runのみのduration、workflow・event・head branch別集計、最初と最後のtimestampを返す。`taskPullRequests` は `task/` branchをTask Index優先・SCWBS形式fallbackでtask ID別にまとめ、run、completed、success、failure、その他の完了、未完了、duration、`resolutionSource`を`latestUpdatedAt`降順（同値は`taskId`昇順）の最大20件で返す。未解決branchは最大20件の`unmatched`にまとめ、`completeness` は候補run数、帰属率、Index可用性を返す。
 
 `localRequiredChecks` はgit common dirに現存するtask別の最新canonical receiptをread-onlyで集計する。各checkの実行時間、観測・未観測check数、receipt期間、最大20件のtask trendを返す。durationを持たないlegacy receiptは有効な未観測値として扱い、0秒へ変換しない。git common dirやreceipt directoryを読めない場合も0件とせず `status: unavailable` とreasonを返す。receiptは全required checksが成功したときだけ保存され、taskごとに上書きされるため、失敗・旧attemptを含む全local履歴ではない。
 

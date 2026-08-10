@@ -1,0 +1,64 @@
+id: SCWBS-DRAFT-MSND5CMF
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-509
+approvedAt: "2026-08-11T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSND5CMF
+branchName: task/SCWBS-DRAFT-MSND5CMF-issue-509-include-custom-task-ids-in-github-acti
+allowedPaths:
+  - src/core/github-actions.ts
+  - src/commands/metrics.ts
+  - src/core/task-index.ts
+  - docs/scwbs/cli-reference.md
+  - tests/integration/metrics.test.ts
+  - tests/integration/task-index.test.ts
+  - tests/unit/metrics-domain.test.ts
+  - contracts/specs/SPEC-LITE-MSND5CMF.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or CI policy change required
+  - scope outside allowed paths
+  - security or external service change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - repository-local Task Index branchName exact matches resolve current and archived Task IDs in historicalCi.taskPullRequests
+  - SCWBS branch parsing remains a backward-compatible fallback when no indexed branch matches
+  - task-like pull request branches that cannot be resolved are reported in bounded unmatched metadata instead of being silently dropped
+  - JSON exposes resolution source, unmatched count/items, and candidate attribution completeness
+  - standard SCWBS aggregation, bounded multi-branch aggregation, and unavailable-index incompleteness are covered by tests
+  - CLI documentation describes index-first resolution and no longer instructs consumers to patch a regex
+  - 'Complete Issue #509: include custom Task IDs in GitHub Actions metrics'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/specs/SPEC-LITE-MSND5CMF.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSND5CMF.patch
+  - contracts/approvals/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:4c2bb375613419f88d5f79ced08e8b2217a0223316ed3be372c1db18239cf914
+  createdAt: "2026-08-10T15:06:23.936Z"

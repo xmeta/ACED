@@ -138,9 +138,15 @@ describe("governance metrics", () => {
       limit: 20,
       totalCount: 1,
       truncated: false,
+      completeness: {
+        attributionPercentage: 100,
+        taskIndex: "unavailable"
+      },
+      unmatched: { count: 0, items: [] },
       items: [{
         taskId: "SCWBS-DRAFT-ABC123",
         headBranches: ["task/SCWBS-DRAFT-ABC123-fix", "task/SCWBS-DRAFT-ABC123-retry"],
+        resolutionSource: "scwbs-regex",
         runCount: 4,
         completedRunCount: 3,
         successfulRunCount: 1,
@@ -150,6 +156,51 @@ describe("governance metrics", () => {
         durationMilliseconds: 60000,
         latestUpdatedAt: "2026-07-16T05:00:05Z"
       }]
+    });
+  });
+
+  test("resolves custom and archived Task branches from the index and reports unknown task-like branches", () => {
+    const summary = summarizeGithubActionsRuns("xmeta/ACED", [
+      { id: 1, name: "SC-WBS", event: "pull_request", headBranch: "task/WBS-001-004-api", status: "completed", conclusion: "success", createdAt: "2026-07-16T00:00:00Z", updatedAt: "2026-07-16T00:00:10Z" },
+      { id: 2, name: "SC-WBS", event: "pull_request", headBranch: "task/SCWBS-DRAFT-OLD-archived", status: "completed", conclusion: "success", createdAt: "2026-07-16T01:00:00Z", updatedAt: "2026-07-16T01:00:10Z" },
+      { id: 3, name: "SC-WBS", event: "pull_request", headBranch: "task/SCWBS-DRAFT-FALLBACK-fix", status: "completed", conclusion: "success", createdAt: "2026-07-16T02:00:00Z", updatedAt: "2026-07-16T02:00:10Z" },
+      { id: 4, name: "SC-WBS", event: "pull_request", headBranch: "task/WBS-999-999-unknown", status: "completed", conclusion: "failure", createdAt: "2026-07-16T03:00:00Z", updatedAt: "2026-07-16T03:00:10Z" }
+    ], 100, {
+      status: "available",
+      entries: [
+        { id: "WBS-001-004", branchName: "task/WBS-001-004-api" },
+        { id: "SCWBS-DRAFT-OLD", branchName: "task/SCWBS-DRAFT-OLD-archived" }
+      ]
+    });
+
+    expect(summary.taskPullRequests.completeness).toEqual({
+      attributionPercentage: 75,
+      taskIndex: "available"
+    });
+    expect(summary.taskPullRequests.items.map((item) => ({ taskId: item.taskId, resolutionSource: item.resolutionSource }))).toEqual([
+      { taskId: "SCWBS-DRAFT-FALLBACK", resolutionSource: "scwbs-regex" },
+      { taskId: "SCWBS-DRAFT-OLD", resolutionSource: "task-index" },
+      { taskId: "WBS-001-004", resolutionSource: "task-index" }
+    ]);
+    expect(summary.taskPullRequests.unmatched).toEqual({ count: 1, items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }] });
+  });
+
+  test("marks an unavailable index as incomplete and bounds unknown task-like branches", () => {
+    const summary = summarizeGithubActionsRuns("xmeta/ACED", [
+      { id: 1, name: "SC-WBS", event: "pull_request", headBranch: "task/WBS-001-004-api", status: "completed", conclusion: "success", createdAt: "2026-07-16T00:00:00Z", updatedAt: "2026-07-16T00:00:10Z" },
+      { id: 2, name: "SC-WBS", event: "pull_request", headBranch: "task/custom-feature", status: "completed", conclusion: "success", createdAt: "2026-07-16T01:00:00Z", updatedAt: "2026-07-16T01:00:10Z" }
+    ], 100, { status: "unavailable" });
+
+    expect(summary.taskPullRequests.completeness).toEqual({
+      attributionPercentage: 0,
+      taskIndex: "unavailable"
+    });
+    expect(summary.taskPullRequests.unmatched).toEqual({
+      count: 2,
+      items: [
+        { headBranch: "task/WBS-001-004-api", runCount: 1 },
+        { headBranch: "task/custom-feature", runCount: 1 }
+      ]
     });
   });
 

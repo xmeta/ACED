@@ -1,0 +1,90 @@
+id: EVD-SCWBS-DRAFT-MSND5CMF
+type: evidence
+taskId: SCWBS-DRAFT-MSND5CMF
+commit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+subjectHeadCommit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+diffHash: sha256:0873e5902c0339df8a0d0ea653b78db3cff55c48c000547a36ac9fa19ed3fa0d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+    treeHash: 886f68bbf8fb1c0613998f4e844cd0294108a54f
+    diffHash: sha256:0873e5902c0339df8a0d0ea653b78db3cff55c48c000547a36ac9fa19ed3fa0d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSND5CMF.patch
+    manifestHash: sha256:0873e5902c0339df8a0d0ea653b78db3cff55c48c000547a36ac9fa19ed3fa0d
+git:
+  branch: task/SCWBS-DRAFT-MSND5CMF-issue-509-include-custom-task-ids-in-github-acti
+  base: origin/main
+  baseCommit: 62af431fd2788e877dae330090986055e5d1ff1c
+  changedFilesBasis: branch-diff
+  pullRequest: "519"
+  subjectHeadCommit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+  diffHash: sha256:0873e5902c0339df8a0d0ea653b78db3cff55c48c000547a36ac9fa19ed3fa0d
+  headCommit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSND5CMF.patch
+  - contracts/evidence/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSND5CMF.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/core/github-actions.ts
+  - tests/integration/metrics.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 62af431fd2788e877dae330090986055e5d1ff1c
+    headCommit: 226d8c8da8acb8eb68c070effa48e7619db4f6a1
+    diffHash: sha256:0873e5902c0339df8a0d0ea653b78db3cff55c48c000547a36ac9fa19ed3fa0d
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:427487ab9a2ea495440dadee01c4c748ec50e6d25ecfeebefd07fb9222c02c09
+    durationMilliseconds: 15815
+    executedAt: "2026-08-10T18:48:10.439Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4be4729cc21354767aa71307907a9be2d8d369bb9cd7c08db32388f950c2dceb
+    durationMilliseconds: 10228
+    executedAt: "2026-08-10T18:48:20.670Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:04687297ac841b1369b67b088acbae97ecc81b51c26957ecedc55dcd282e79cd
+    durationMilliseconds: 4170
+    executedAt: "2026-08-10T18:48:24.844Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:51ad7ae425783262965ce12b0f69afd07dcb48f9b0851d445be09ac69f88fb46
+    durationMilliseconds: 320398
+    executedAt: "2026-08-10T18:53:45.246Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Regression coverage for indexed custom and archived Task branches, SCWBS fallback, unknown task-like branches, and unavailable index completeness
