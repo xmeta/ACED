@@ -1,0 +1,751 @@
+diff --git a/contracts/discovery/PROBE-issue-515-github-readiness.yaml b/contracts/discovery/PROBE-issue-515-github-readiness.yaml
+new file mode 100644
+index 0000000..645998f
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-515-github-readiness.yaml
+@@ -0,0 +1,54 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-515-github-readiness
++type: discovery-probe
++status: concluded
++question: GitHub依存機能のgh CLI・認証・origin/API readinessをlocal-only利用を壊さず診断する最小範囲は何か
++hypotheses:
++  - doctor --github can distinguish gh missing unauthenticated non-GitHub origin read-only auth and ready without exposing credentials
++  - GitHub capability status can remain optional and non-fatal for local-only doctor
++  - merge and metrics can reuse one bounded readiness result and guide users to doctor --github
++activities:
++  - inspect doctor JSON and CLI registration
++  - inspect merge metrics and health GitHub call boundaries
++  - define safe gh command outputs and origin parsing
++  - define allowed paths and no-auth-redesign boundary
++evidenceExpected:
++  - current doctor diagnostics and JSON shape
++  - GitHub-dependent command behavior
++  - credential redaction boundary
++  - capability fixture matrix
++  - bounded path proposal
++unknowns:
++  - exact gh auth status parsing
++  - repository metadata and Actions/PR capability probes
++  - read-only scope mapping
++  - how to report partial capability without token details
++timebox: 30m
++costLimit: 1 bounded implementation Task
++exitConditions:
++  - optional doctor mode and capability statuses are explicit
++  - credential output is bounded and redacted
++  - dependent guidance path is explicit
++  - required tests and docs are identified
++nextDecision: create and lock one bounded delivery Task for opt-in GitHub capability diagnostics, bounded JSON reporting, dependent-command guidance, and regression fixtures
++deliveryTaskId: TASK-515
++createdAt: "2026-08-10T22:57:05.050Z"
++startedAt: "2026-08-10T22:57:16.899Z"
++concludedAt: "2026-08-10T22:58:12.208Z"
++exitConditionsMet: true
++factsLearned:
++  - doctor currently diagnoses local Node npm Corepack Git dependencies WJS registry and WBS but has no GitHub capability mode
++  - merge reads PR metadata through gh and returns unavailable without a doctor remediation path
++  - GitHub Actions metrics reads origin and gh api directly and can expose unbounded stderr as reason
++  - origin parsing already has a bounded GitHub repository pattern
++  - auth status and repository capability can be mapped to statuses without storing or printing credentials
++hypothesesRejected:
++  - GitHub authentication can be automated by doctor
++  - raw gh auth output is safe to expose
++  - local-only doctor should fail when GitHub is unavailable
++  - admin or write permission should be required for readiness diagnosis
++remainingUnknowns:
++  - safe parsing of gh auth status and failure classes
++  - repository metadata Actions and PR read probes
++  - feature status matrix for merge readiness
++  - credential redaction and dependent-command guidance wording
+diff --git a/contracts/specs/SPEC-LITE-MSNU253P.yaml b/contracts/specs/SPEC-LITE-MSNU253P.yaml
+new file mode 100644
+index 0000000..b116d70
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSNU253P.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MSNU253P
++type: spec-contract
++featureId: F-MSNU253P
++title: "Issue #515: opt-in GitHub capability readiness diagnostics"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-515
++approvedAt: "2026-08-11T00:00:00+09:00"
++summary: "doctor --githubでgh・auth・origin・repository・PR・Actionsのreadinessをcredential非表示で診断し、依存commandのunavailable理由から安全に誘導する"
++acceptanceCriteria:
++  - explicit doctor --github probes are optional and do not make local-only doctor fatal
++  - gh availability, authentication, GitHub origin, repository read, PR read, Actions read, and merge readiness have bounded statuses
++  - ready, partial, unavailable, and not-evaluated states are deterministic and machine-readable
++  - token strings, credential fields, raw auth output, and unbounded subprocess output never appear in text or JSON
++  - merge and metrics unavailable messages point to doctor --github while preserving fail-closed behavior
++  - tests cover missing gh, unauthenticated auth, non-GitHub origin, read-only capability, ready capability, and redaction
++  - no authentication flow, token storage, write API, admin permission, or non-GitHub forge is added
++nonGoals:
++  - automated GitHub login or token management
++  - GitHub write operations or merge execution from doctor
++  - support for other forge providers
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml b/contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
+new file mode 100644
+index 0000000..b62e422
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
+@@ -0,0 +1,89 @@
++id: SCWBS-DRAFT-MSNU253P
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSNU253P
++branchName: task/SCWBS-DRAFT-MSNU253P-issue-515-add-opt-in-github-capability-readiness
++allowedPaths:
++  - src/commands/doctor.ts
++  - src/cli.ts
++  - src/commands/merge.ts
++  - src/core/github-actions.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/getting-started.md
++  - docs/scwbs/schemas/doctor-github.schema.json
++  - tests/integration/doctor.test.ts
++  - tests/integration/merge.test.ts
++  - tests/integration/metrics.test.ts
++  - contracts/discovery/PROBE-issue-515-github-readiness.yaml
++  - contracts/specs/SPEC-LITE-MSNU253P.yaml
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++  - src/core/github-actions.ts
++  - src/commands/merge.ts
++stopIf:
++  - DB schema
++  - migration
++  - auth or permission design
++  - credential storage
++  - write-capable GitHub integration
++  - breaking API
++  - security or personal data
++  - external service expansion
++  - release decision
++  - scope expansion
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++status: approved
++approvedBy: user-requested-issue-515
++approvedAt: "2026-08-11T00:00:00+09:00"
++acceptanceCriteria:
++  - doctor --github is explicit opt-in and default doctor remains local-only and non-fatal when GitHub is unavailable
++  - capability reporting distinguishes gh missing, unauthenticated, non-GitHub origin, inaccessible repository, read-only capability, partial capability, and ready capability
++  - PR read, Actions read, and merge readiness are reported as bounded feature statuses without write calls or admin-scope requirements
++  - doctor --json exposes a versioned bounded GitHub capability report and never includes tokens, credentials, raw auth output, or unbounded stderr
++  - merge and GitHub Actions metrics unavailable paths guide users to doctor --github without changing local-only behavior
++  - origin parsing accepts GitHub SSH and HTTPS forms and explicitly reports non-GitHub origins
++  - regression fixtures cover gh missing, unauthenticated, non-GitHub origin, read-only auth, ready, and credential-redaction cases
++  - existing Node/npm/Corepack, WJS, registry, WBS, health, and doctor --fix behavior remains intact
++  - CLI and getting-started documentation define the opt-in diagnostic, capability meanings, and safe remediation boundary
++doneCriteria:
++  - 'Complete Issue #515: add opt-in GitHub capability readiness diagnostics with bounded JSON and dependent-command guidance'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
++  - contracts/specs/SPEC-LITE-MSNU253P.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSNU253P.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSNU253P.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSNU253P.patch
++  - contracts/approvals/SCWBS-DRAFT-MSNU253P.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSNU253P.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:13435a5e4c822eac102ac4ba54b77c8de50b9d2fd429f9b8cca838b658659673
++  createdAt: "2026-08-10T22:59:36.828Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 4fc1c19..3defd5d 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1903,3 +1903,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T22:53:52.681Z"
++  - id: SCWBS-DRAFT-MSNU253P
++    path: contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
++    branchName: task/SCWBS-DRAFT-MSNU253P-issue-515-add-opt-in-github-capability-readiness
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 9bece55..f86e23b 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -58,6 +58,7 @@ npm run scwbs -- update --dry-run --json
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
++npm run scwbs -- doctor --github
+ npm run scwbs -- health
+ npm run scwbs -- health --json
+ npm run scwbs -- health --verbose
+@@ -73,6 +74,8 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+ 
++`doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
++
+ `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+ 
+ `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index ba86373..5d63bde 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -33,6 +33,19 @@ Check repository health:
+ npm run scwbs -- check
+ ```
+ 
++GitHub連携を使う前に、必要な read-only capability だけを確認できます。
++これは認証や権限を自動変更せず、GitHub が使えない環境でもローカル作業を
++妨げません。
++
++```bash
++npm run scwbs -- doctor --github
++npm run scwbs -- doctor --github --json
++```
++
++`gh` CLI、認証、`origin`、repository/PR/Actions の読み取り可否を確認し、
++不足している項目には限定された診断メッセージを返します。merge の事前確認や
++Metrics が GitHub 情報を取得できない場合も、このコマンドを案内します。
++
+ Ask what needs attention:
+ 
+ ```bash
+diff --git a/docs/scwbs/schemas/doctor-github.schema.json b/docs/scwbs/schemas/doctor-github.schema.json
+new file mode 100644
+index 0000000..538b82c
+--- /dev/null
++++ b/docs/scwbs/schemas/doctor-github.schema.json
+@@ -0,0 +1,36 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.org/schemas/scwbs/doctor-github.schema.json",
++  "title": "SC-WBS GitHub Capability Report",
++  "type": "object",
++  "required": ["schemaVersion", "status", "repository", "capabilities", "messages"],
++  "additionalProperties": false,
++  "properties": {
++    "schemaVersion": { "const": "1.0.0" },
++    "status": { "enum": ["ready", "partial", "unavailable"] },
++    "repository": { "type": ["string", "null"] },
++    "capabilities": {
++      "type": "object",
++      "required": ["gh", "auth", "origin", "repositoryRead", "prRead", "actionsRead", "mergeReadiness"],
++      "additionalProperties": false,
++      "properties": {
++        "gh": { "$ref": "#/$defs/capabilityStatus" },
++        "auth": { "$ref": "#/$defs/capabilityStatus" },
++        "origin": { "$ref": "#/$defs/capabilityStatus" },
++        "repositoryRead": { "$ref": "#/$defs/capabilityStatus" },
++        "prRead": { "$ref": "#/$defs/capabilityStatus" },
++        "actionsRead": { "$ref": "#/$defs/capabilityStatus" },
++        "mergeReadiness": { "$ref": "#/$defs/capabilityStatus" }
++      }
++    },
++    "messages": {
++      "type": "object",
++      "additionalProperties": { "type": "string" }
++    }
++  },
++  "$defs": {
++    "capabilityStatus": {
++      "enum": ["ready", "partial", "unavailable", "not-evaluated"]
++    }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index c313406..7f752b6 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -322,8 +322,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .command("doctor")
+     .description("Diagnose and optionally fix repository issues")
+     .option("--fix", "apply auto-fixes")
++    .option("--github", "probe optional GitHub CLI, auth, origin, and read capabilities")
+     .option("--json", "output as JSON")
+-    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, json: opts.json ?? false }); });
++    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, github: opts.github ?? false, json: opts.json ?? false }); });
+ 
+   program
+     .command("health")
+diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
+index ebd4aae..0a6d4de 100644
+--- a/src/commands/doctor.ts
++++ b/src/commands/doctor.ts
+@@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
+ import { collectHealthIssues } from "./health.js";
+ import { resolveFrom } from "../core/paths.js";
+ import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
++import { probeGithubCapabilities, type GithubCapabilityReport } from "../core/github-actions.js";
+ import { withDefaultFixCommand as remediate } from "../core/report.js";
+ import type { Issue } from "../core/types.js";
+ 
+@@ -38,12 +39,14 @@ export type DoctorDiagnostic = {
+ export type DoctorOptions = {
+   fix?: boolean;
+   json?: boolean;
++  github?: boolean;
+ };
+ 
+ export type DoctorJsonOutput = {
+   status: "pass" | "fail";
+   diagnostics: DoctorDiagnostic[];
+   contractIssues: Array<{ source: "check" | "health"; issue: Issue }>;
++  github?: GithubCapabilityReport;
+   fixResults?: Array<{ id: string; status: "ok" | "fail"; message: string }>;
+ };
+ 
+@@ -672,6 +675,16 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
+     }
+   }
+ 
++  if (options.github) {
++    const github = probeGithubCapabilities(root);
++    lines.push("", "GitHub capability diagnostics (opt-in, read-only):");
++    lines.push(`  [${github.status.toUpperCase()}] origin=${github.repository ?? "unknown"}`);
++    for (const key of Object.keys(github.capabilities).sort()) {
++      const capability = key as keyof typeof github.capabilities;
++      lines.push(`  [${github.capabilities[capability]}] ${key} -- ${github.messages[key] ?? "not evaluated"}`);
++    }
++  }
++
+   lines.push("");
+   if (contractIssues.length === 0) {
+     lines.push("Contract and health: OK");
+@@ -721,6 +734,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
+         status: envHasFailure || hasContractErrors ? "fail" : "pass",
+         diagnostics,
+         contractIssues,
++        github: options.github ? probeGithubCapabilities(root) : undefined,
+         fixResults: options.fix ? applyDoctorFixes(root, diagnostics) : undefined
+       };
+       console.log(JSON.stringify(output, null, 2));
+diff --git a/src/commands/merge.ts b/src/commands/merge.ts
+index 43e13c6..f3ec44b 100644
+--- a/src/commands/merge.ts
++++ b/src/commands/merge.ts
+@@ -5,6 +5,7 @@ import {
+   type MergePreflightReport,
+   type MergePullRequestView
+ } from "../core/merge-preflight.js";
++import { doctorGithubHint } from "../core/github-actions.js";
+ 
+ const VIEW_FIELDS = "number,state,isDraft,baseRefName,headRefOid,mergeStateStatus,statusCheckRollup";
+ 
+@@ -42,7 +43,7 @@ function readPullRequest(root: string, repository: string, pullRequest: number):
+     return {
+       report: unavailableMergeReport(
+         pullRequest,
+-        (result.stderr || "gh pr view failed").trim(),
++        doctorGithubHint("GitHub PR metadata could not be read"),
+         repository
+       )
+     };
+@@ -53,11 +54,11 @@ function readPullRequest(root: string, repository: string, pullRequest: number):
+       throw new Error("expected an object");
+     }
+     return { view: value as MergePullRequestView };
+-  } catch (error) {
++  } catch {
+     return {
+       report: unavailableMergeReport(
+         pullRequest,
+-        `gh pr view returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
++        doctorGithubHint("GitHub PR metadata returned invalid JSON"),
+         repository
+       )
+     };
+@@ -70,7 +71,7 @@ export function runMerge(root: string, pullRequest: number, options: {
+ } = {}): number {
+   const repository = githubRepository(root);
+   if (!repository) {
+-    const report = unavailableMergeReport(pullRequest, "origin is not a GitHub repository");
++    const report = unavailableMergeReport(pullRequest, doctorGithubHint("origin is not a GitHub repository"));
+     report.execution.requested = options.preflightOnly !== true;
+     emit(report, options.json ?? false);
+     return 1;
+diff --git a/src/core/github-actions.ts b/src/core/github-actions.ts
+index 1c7e562..2a9a763 100644
+--- a/src/core/github-actions.ts
++++ b/src/core/github-actions.ts
+@@ -66,6 +66,149 @@ export type GithubActionsUnavailable = {
+   reason: string;
+ };
+ 
++export type GithubCapabilityStatus = "ready" | "partial" | "unavailable" | "not-evaluated";
++
++export type GithubCapabilityReport = {
++  schemaVersion: "1.0.0";
++  status: "ready" | "partial" | "unavailable";
++  repository: string | null;
++  capabilities: {
++    gh: GithubCapabilityStatus;
++    auth: GithubCapabilityStatus;
++    origin: GithubCapabilityStatus;
++    repositoryRead: GithubCapabilityStatus;
++    prRead: GithubCapabilityStatus;
++    actionsRead: GithubCapabilityStatus;
++    mergeReadiness: GithubCapabilityStatus;
++  };
++  messages: Record<string, string>;
++};
++
++type GithubProbeResult = { status: number | null; stdout: string; stderr: string };
++
++function runGithubProbe(command: string, args: string[], cwd: string): GithubProbeResult {
++  try {
++    const result = spawnSync(command, args, { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 });
++    return {
++      status: result.status,
++      stdout: (result.stdout ?? "").trim(),
++      stderr: (result.stderr ?? "").trim()
++    };
++  } catch {
++    return { status: null, stdout: "", stderr: "" };
++  }
++}
++
++function boundedGithubFailure(result: GithubProbeResult, fallback: string): string {
++  const output = `${result.stdout}\n${result.stderr}`.toLowerCase();
++  if (result.status === null || /enoent|not found|is not recognized/.test(output)) return "gh CLI is not installed or unavailable in PATH";
++  if (/not logged in|authentication|unauthenticated|auth login/.test(output)) return "GitHub authentication is unavailable";
++  if (/forbidden|permission|status 403|http 403/.test(output)) return "GitHub capability permission was denied";
++  if (/not found|status 404|http 404|does not exist/.test(output)) return "GitHub repository or capability was not found";
++  return fallback;
++}
++
++function parseJsonObject(stdout: string): Record<string, unknown> | undefined {
++  try {
++    const value: unknown = JSON.parse(stdout);
++    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
++  } catch {
++    return undefined;
++  }
++}
++
++function parseJsonArray(stdout: string): unknown[] | undefined {
++  try {
++    const value: unknown = JSON.parse(stdout);
++    return Array.isArray(value) ? value : undefined;
++  } catch {
++    return undefined;
++  }
++}
++
++export function doctorGithubHint(reason: string): string {
++  return `${reason}. Run: scwbs doctor --github`;
++}
++
++export function probeGithubCapabilities(root: string): GithubCapabilityReport {
++  const remote = runGithubProbe("git", ["remote", "get-url", "origin"], root);
++  const repository = remote.status === 0 ? githubRepository(remote.stdout) ?? null : null;
++  const messages: Record<string, string> = {};
++  const capabilities: GithubCapabilityReport["capabilities"] = {
++    gh: "unavailable",
++    auth: "not-evaluated",
++    origin: repository ? "ready" : "unavailable",
++    repositoryRead: "not-evaluated",
++    prRead: "not-evaluated",
++    actionsRead: "not-evaluated",
++    mergeReadiness: "not-evaluated"
++  };
++  messages.origin = repository
++    ? "origin resolves to a GitHub repository"
++    : remote.status === 0
++      ? "origin is not a GitHub repository"
++      : "origin could not be resolved";
++
++  const ghVersion = runGithubProbe("gh", ["--version"], root);
++  if (ghVersion.status !== 0) {
++    messages.gh = boundedGithubFailure(ghVersion, "gh CLI version check failed");
++    messages.auth = "not evaluated because gh CLI is unavailable";
++    messages.repositoryRead = "not evaluated because gh CLI is unavailable";
++    messages.prRead = "not evaluated because gh CLI is unavailable";
++    messages.actionsRead = "not evaluated because gh CLI is unavailable";
++    messages.mergeReadiness = "not evaluated because gh CLI is unavailable";
++    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
++  }
++  capabilities.gh = "ready";
++  messages.gh = "gh CLI is available";
++
++  const auth = runGithubProbe("gh", ["auth", "status", "--hostname", "github.com"], root);
++  if (auth.status !== 0) {
++    capabilities.auth = "unavailable";
++    messages.auth = boundedGithubFailure(auth, "GitHub authentication status could not be verified");
++    for (const key of ["repositoryRead", "prRead", "actionsRead", "mergeReadiness"] as const) {
++      messages[key] = "not evaluated because GitHub authentication is unavailable";
++    }
++    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
++  }
++  capabilities.auth = "ready";
++  messages.auth = "GitHub authentication is available; credential details are suppressed";
++  if (!repository) {
++    for (const key of ["repositoryRead", "prRead", "actionsRead", "mergeReadiness"] as const) {
++      messages[key] = "not evaluated because origin is not a GitHub repository";
++    }
++    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
++  }
++
++  const repositoryRead = runGithubProbe("gh", ["api", `repos/${repository}`], root);
++  const repositoryPayload = parseJsonObject(repositoryRead.stdout);
++  capabilities.repositoryRead = repositoryRead.status === 0 && typeof repositoryPayload?.full_name === "string" ? "ready" : "unavailable";
++  messages.repositoryRead = capabilities.repositoryRead === "ready"
++    ? "repository metadata is readable"
++    : boundedGithubFailure(repositoryRead, "repository metadata could not be read");
++
++  const prRead = runGithubProbe("gh", ["pr", "list", "--repo", repository, "--state", "all", "--limit", "1", "--json", "number"], root);
++  capabilities.prRead = prRead.status === 0 && parseJsonArray(prRead.stdout) ? "ready" : "unavailable";
++  messages.prRead = capabilities.prRead === "ready"
++    ? "pull request metadata is readable"
++    : boundedGithubFailure(prRead, "pull request metadata could not be read");
++
++  const actionsRead = runGithubProbe("gh", ["api", `repos/${repository}/actions/runs?per_page=1`], root);
++  const actionsPayload = parseJsonObject(actionsRead.stdout);
++  capabilities.actionsRead = actionsRead.status === 0 && Array.isArray(actionsPayload?.workflow_runs) ? "ready" : "unavailable";
++  messages.actionsRead = capabilities.actionsRead === "ready"
++    ? "GitHub Actions history is readable"
++    : boundedGithubFailure(actionsRead, "GitHub Actions history could not be read");
++
++  capabilities.mergeReadiness = capabilities.repositoryRead === "ready" && capabilities.prRead === "ready" ? "ready" : "partial";
++  messages.mergeReadiness = capabilities.mergeReadiness === "ready"
++    ? "PR metadata prerequisites are readable; exact merge preflight still checks the selected PR and aggregate validate"
++    : "merge readiness is unavailable until repository and pull request metadata are readable";
++  const readyCount = Object.values(capabilities).filter((status) => status === "ready").length;
++  const status = readyCount === Object.keys(capabilities).length ? "ready" : readyCount > 0 ? "partial" : "unavailable";
++  return { schemaVersion: "1.0.0", status, repository, capabilities, messages };
++}
++
+ export type GithubActionsHistory = GithubActionsDurationSummary | GithubActionsUnavailable;
+ 
+ function taskIdFromBranch(branch: string): string | undefined {
+@@ -215,13 +358,16 @@ export function summarizeGithubActionsRuns(
+ export function readGithubActionsHistory(root: string, limit = 100): GithubActionsHistory {
+   const remote = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
+   const repository = remote.status === 0 ? githubRepository(remote.stdout) : undefined;
+-  if (!repository) return { status: "unavailable", source: "github-actions", reason: "origin is not a GitHub repository" };
++  if (!repository) return { status: "unavailable", source: "github-actions", reason: doctorGithubHint("origin is not a GitHub repository") };
+   const result = spawnSync("gh", ["api", `repos/${repository}/actions/runs?per_page=${limit}`], {
+     cwd: root,
+     encoding: "utf8",
+     maxBuffer: 10 * 1024 * 1024
+   });
+-  if (result.status !== 0) return { status: "unavailable", source: "github-actions", reason: (result.stderr || "GitHub Actions history could not be retrieved").trim() };
++  if (result.status !== 0) {
++    const bounded = boundedGithubFailure({ status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" }, "GitHub Actions history could not be retrieved");
++    return { status: "unavailable", source: "github-actions", reason: doctorGithubHint(bounded) };
++  }
+   try {
+     const payload = JSON.parse(result.stdout) as { workflow_runs?: unknown[] };
+     if (!Array.isArray(payload.workflow_runs)) throw new Error("GitHub Actions response has no workflow_runs array");
+@@ -231,7 +377,7 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
+       ? { status: "available", entries: taskIndex.index.tasks.map((entry) => ({ id: entry.id, branchName: entry.branchName })) }
+       : { status: "unavailable" };
+     return summarizeGithubActionsRuns(repository, runs, limit, indexResolution);
+-  } catch (error) {
+-    return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
++  } catch {
++    return { status: "unavailable", source: "github-actions", reason: doctorGithubHint("GitHub Actions response could not be parsed") };
+   }
+ }
+diff --git a/tests/integration/doctor.test.ts b/tests/integration/doctor.test.ts
+index 4d5d1ec..6dcfef7 100644
+--- a/tests/integration/doctor.test.ts
++++ b/tests/integration/doctor.test.ts
+@@ -1,11 +1,107 @@
+ import { execFileSync } from "node:child_process";
+-import { mkdirSync } from "node:fs";
++import { chmodSync, mkdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
++import { probeGithubCapabilities } from "../../src/core/github-actions.js";
+ import { makeTempRepo, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("doctor", () => {
++  function githubFixture(root: string, mode: "ready" | "unauthenticated" | "readonly"): void {
++    writeText(root, "bin/gh", `#!/usr/bin/env node
++const args = process.argv.slice(2).join(" ");
++const mode = process.env.GH_FIXTURE_MODE;
++if (args === "--version") process.stdout.write("gh version 2.0.0\\n");
++else if (args.startsWith("auth status")) {
++  if (mode === "unauthenticated") { process.stderr.write("not logged in; Token: ghp_secret_should_not_leak\\n"); process.exit(1); }
++  process.stdout.write("Logged in to github.com\\n");
++} else if (args.includes("actions/runs")) {
++  if (mode === "readonly") { process.stderr.write("HTTP 403 Forbidden\\n"); process.exit(1); }
++  process.stdout.write(JSON.stringify({ workflow_runs: [] }));
++} else if (args.startsWith("api repos/")) process.stdout.write(JSON.stringify({ full_name: "xmeta/ACED" }));
++else if (args.startsWith("pr list")) process.stdout.write(JSON.stringify([{ number: 1 }]));
++else process.exit(1);
++`);
++    chmodSync(`${root}/bin/gh`, 0o755);
++    try {
++      execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, stdio: "ignore" });
++    } catch {
++      execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++    }
++    process.env.GH_FIXTURE_MODE = mode;
++  }
++
++  test("doctor GitHub probe distinguishes missing gh and never exposes credentials", () => {
++    const root = makeTempRepo();
++    mkdirSync(`${root}/empty-bin`, { recursive: true });
++    const previousPath = process.env.PATH;
++    process.env.PATH = `${root}/empty-bin`;
++    try {
++      const report = probeGithubCapabilities(root);
++      expect(report.status).toBe("unavailable");
++      expect(report.capabilities.gh).toBe("unavailable");
++      expect(JSON.stringify(report)).not.toContain("ghp_");
++    } finally {
++      process.env.PATH = previousPath;
++    }
++  });
++
++  test("doctor GitHub probe distinguishes unauthenticated, non-GitHub, read-only, and ready states", () => {
++    const root = makeTempRepo();
++    const previousPath = process.env.PATH;
++    const previousMode = process.env.GH_FIXTURE_MODE;
++    process.env.PATH = `${root}/bin:${previousPath ?? ""}`;
++    try {
++      githubFixture(root, "unauthenticated");
++      const unauthenticated = probeGithubCapabilities(root);
++      expect(unauthenticated.status).toBe("unavailable");
++      expect(unauthenticated.capabilities.auth).toBe("unavailable");
++      expect(JSON.stringify(unauthenticated)).not.toContain("ghp_secret");
++
++      const nonGithub = makeTempRepo();
++      writeText(nonGithub, "bin/gh", readFileSync(`${root}/bin/gh`, "utf8"));
++      chmodSync(`${nonGithub}/bin/gh`, 0o755);
++      execFileSync("git", ["remote", "add", "origin", "https://gitlab.example/acme/project.git"], { cwd: nonGithub });
++      const nonGitHubReport = probeGithubCapabilities(nonGithub);
++      expect(nonGitHubReport.capabilities.origin).toBe("unavailable");
++
++      githubFixture(root, "readonly");
++      const readonly = probeGithubCapabilities(root);
++      expect(readonly.status).toBe("partial");
++      expect(readonly.capabilities.repositoryRead).toBe("ready");
++      expect(readonly.capabilities.actionsRead).toBe("unavailable");
++
++      githubFixture(root, "ready");
++      const ready = probeGithubCapabilities(root);
++      expect(ready.status).toBe("ready");
++      expect(ready.capabilities.prRead).toBe("ready");
++      expect(ready.capabilities.mergeReadiness).toBe("ready");
++    } finally {
++      process.env.PATH = previousPath;
++      if (previousMode === undefined) delete process.env.GH_FIXTURE_MODE;
++      else process.env.GH_FIXTURE_MODE = previousMode;
++    }
++  });
++
++  test("doctor --github JSON nests optional capability report without changing local status", () => {
++    const root = makeTempRepo();
++    const output: string[] = [];
++    const originalLog = console.log;
++    console.log = (message?: unknown) => output.push(String(message));
++    try {
++      expect(runDoctor(root, { json: true, github: true })).toBe(1);
++    } finally {
++      console.log = originalLog;
++    }
++    const parsed = JSON.parse(output.join("\n"));
++    expect(parsed.status).toBe("fail");
++    expect(parsed.github).toMatchObject({
++      schemaVersion: "1.0.0",
++      status: expect.stringMatching(/ready|partial|unavailable/),
++      capabilities: expect.any(Object)
++    });
++  });
++
+   test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/merge.test.ts b/tests/integration/merge.test.ts
+index 1a9142b..735757e 100644
+--- a/tests/integration/merge.test.ts
++++ b/tests/integration/merge.test.ts
+@@ -200,10 +200,12 @@ describe("merge preflight", () => {
+     try {
+       process.env.SCWBS_TEST_GH_VIEW_ERROR = "1";
+       expect(main(["merge", "--pr", "42", "--json"], root)).toBe(1);
+-      expect(JSON.parse(output.pop()!)).toMatchObject({
++      const unavailable = JSON.parse(output.pop()!);
++      expect(unavailable).toMatchObject({
+         status: "blocked",
+         violations: [{ code: "merge.github.unavailable" }]
+       });
++      expect(unavailable.violations[0].message).toContain("doctor --github");
+ 
+       delete process.env.SCWBS_TEST_GH_VIEW_ERROR;
+       process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView());
+diff --git a/tests/integration/metrics.test.ts b/tests/integration/metrics.test.ts
+index 9afceb3..4023df9 100644
+--- a/tests/integration/metrics.test.ts
++++ b/tests/integration/metrics.test.ts
+@@ -1,11 +1,12 @@
+ import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
++import { execFileSync } from "node:child_process";
+ import { tmpdir } from "node:os";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { buildGovernanceCostSummary, runMetricsGovernance } from "../../src/commands/metrics.js";
+ import { main } from "../../src/cli.js";
+ import { checkReceiptPath } from "../../src/core/check-receipt.js";
+-import { summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
++import { readGithubActionsHistory, summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
+ import { makeTempRepo, sampleWbs, writeJson, writeText, writeYaml } from "../helpers.js";
+ 
+ function captureStdout(action: () => number): { result: number; stdout: string } {
+@@ -159,6 +160,24 @@ describe("governance metrics", () => {
+     });
+   });
+ 
++  test("guides unavailable GitHub Actions history to the opt-in doctor probe", () => {
++    const root = makeTempRepo();
++    writeText(root, "bin/gh", "#!/bin/sh\nprintf 'not logged in; Token: ghp_secret_should_not_leak\\n' >&2\nexit 1\n");
++    const previousPath = process.env.PATH;
++    process.env.PATH = `${path.join(root, "bin")}:${previousPath ?? ""}`;
++    try {
++      execFileSync("chmod", ["+x", path.join(root, "bin/gh")]);
++      execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
++      const history = readGithubActionsHistory(root);
++      expect(history).toMatchObject({ status: "unavailable", source: "github-actions" });
++      if (history.status !== "unavailable") throw new Error("expected unavailable GitHub Actions history");
++      expect(history.reason).toContain("doctor --github");
++      expect(history.reason).not.toContain("ghp_secret");
++    } finally {
++      process.env.PATH = previousPath;
++    }
++  });
++
+   test("resolves custom and archived Task branches from the index and reports unknown task-like branches", () => {
+     const summary = summarizeGithubActionsRuns("xmeta/ACED", [
+       { id: 1, name: "SC-WBS", event: "pull_request", headBranch: "task/WBS-001-004-api", status: "completed", conclusion: "success", createdAt: "2026-07-16T00:00:00Z", updatedAt: "2026-07-16T00:00:10Z" },

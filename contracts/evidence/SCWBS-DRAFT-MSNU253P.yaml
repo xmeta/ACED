@@ -1,0 +1,94 @@
+id: EVD-SCWBS-DRAFT-MSNU253P
+type: evidence
+taskId: SCWBS-DRAFT-MSNU253P
+commit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+subjectHeadCommit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+diffHash: sha256:dbb846094f585eb2249a9fd3e1434d7268d276a5523aa39964df81a4f998f2dd
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+    treeHash: 7e7d3b57c858424bcd766ef2f948325d10c1068a
+    diffHash: sha256:dbb846094f585eb2249a9fd3e1434d7268d276a5523aa39964df81a4f998f2dd
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSNU253P.patch
+    manifestHash: sha256:dbb846094f585eb2249a9fd3e1434d7268d276a5523aa39964df81a4f998f2dd
+git:
+  branch: task/SCWBS-DRAFT-MSNU253P-issue-515-add-opt-in-github-capability-readiness
+  base: origin/main
+  baseCommit: ae314c3b916a10d81c8677222a6a3612d810dcc5
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+  diffHash: sha256:dbb846094f585eb2249a9fd3e1434d7268d276a5523aa39964df81a4f998f2dd
+  headCommit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+changedFiles:
+  - contracts/discovery/PROBE-issue-515-github-readiness.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSNU253P.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/schemas/doctor-github.schema.json
+  - src/cli.ts
+  - src/commands/doctor.ts
+  - src/commands/merge.ts
+  - src/core/github-actions.ts
+  - tests/integration/doctor.test.ts
+  - tests/integration/merge.test.ts
+  - tests/integration/metrics.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: ae314c3b916a10d81c8677222a6a3612d810dcc5
+    headCommit: 880ea7ae44b4c1d962e2183a95bc7ce98ab970eb
+    diffHash: sha256:dbb846094f585eb2249a9fd3e1434d7268d276a5523aa39964df81a4f998f2dd
+  tests:
+    filesAdded: 0
+    filesModified: 3
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:c523a93c19d9f490c90d04ba811884672e1325f0ee4e38f37e985b47ca0d2bc5
+    durationMilliseconds: 15419
+    executedAt: "2026-08-10T23:21:48.619Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9bd731538234de40669337f341db0c07acec2c8696db99146f27a99f7b9539b1
+    durationMilliseconds: 9127
+    executedAt: "2026-08-10T23:21:57.750Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:efce081e5a72cae2d2e5dd0dd74f5469336bb2e27c1524352d1823b3d3b3abea
+    durationMilliseconds: 3960
+    executedAt: "2026-08-10T23:22:01.715Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:6d580099dee962c3d808e1d421a2e1c2f528f459a504ae122c6da6ea92d1dc43
+    durationMilliseconds: 287539
+    executedAt: "2026-08-10T23:26:49.257Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added opt-in GitHub readiness integration assertions; no tests disabled and no coverage decrease.
