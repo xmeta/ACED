@@ -1,0 +1,53 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-513-wbs-semantic-merge
+type: discovery-probe
+status: concluded
+question: WBSの3-way semantic merge planをread-onlyかつchangeset経路で安全に実装する最小範囲は何か
+hypotheses:
+  - identity単位の比較で独立node変更をcleanとして分類できる
+  - 同一field変更やdelete-vs-modifyをstructured conflictとして分類できる
+  - clean planからcanonical WBSを直接編集せずchangesetを生成できる
+activities:
+  - inspect WBS schema and current wbs command
+  - inspect WJS changeset validation/apply path
+  - inspect integration test conventions
+  - define allowed paths and Human Gate boundaries
+evidenceExpected:
+  - WBS identity model
+  - current CLI and WJS apply behavior
+  - deterministic output requirements
+  - representative fixtures
+  - bounded path proposal
+unknowns:
+  - exact ref-or-file input contract
+  - how to preserve read-only default
+  - which conflict classes are supported in the first slice
+  - Human Gate boundary for changeset write/apply
+timebox: 30m
+costLimit: 1 bounded implementation Task
+exitConditions:
+  - identity and comparison model is explicit
+  - conflict classes and fail-closed behavior are explicit
+  - read-only and explicit write boundary are explicit
+  - required tests and docs are identified
+nextDecision: create and lock one bounded delivery Task for read-only semantic merge planning, structured conflicts, explicit changeset generation, regression fixtures, and WJS documentation
+deliveryTaskId: TASK-513
+createdAt: "2026-08-10T22:19:29.352Z"
+startedAt: "2026-08-10T22:19:41.811Z"
+concludedAt: "2026-08-10T22:20:12.943Z"
+exitConditionsMet: true
+factsLearned:
+  - existing wbs command has validate apply and verify-changesets but no merge-plan
+  - canonical WBS edits are guarded by changeset presence and WJS operations validation
+  - existing WBS fixtures and integration coverage can host deterministic semantic merge cases
+  - first slice can remain read-only and emit an explicit changeset only through a separate write option
+  - project.wbs.json and WJS apply remain Human Gate boundaries
+hypothesesRejected:
+  - automatic conflict winner selection is safe
+  - planner may directly rewrite canonical WBS
+  - unrelated changeset operations can be reused as exact merge provenance
+remainingUnknowns:
+  - exact ref-or-file input resolution
+  - supported identity and field comparison matrix
+  - versioned merge-plan schema and changeset output contract
+  - Human Gate enforcement for generated changeset apply
