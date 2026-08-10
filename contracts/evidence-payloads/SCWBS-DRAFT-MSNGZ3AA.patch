@@ -1,0 +1,614 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml b/contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml
+new file mode 100644
+index 0000000..9a837fa
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSNGZ3AA
++type: block
++taskId: SCWBS-DRAFT-MSNGZ3AA
++status: resolved
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Human Decision required: Issue #511 Phase 1 package is 201241 bytes against the fixed 200000-byte guard; changing the package-size threshold or widening allowedPaths is outside this Task Contract"
++createdAt: "2026-08-10T17:13:32.163Z"
++history:
++  - status: blocked
++    at: "2026-08-10T17:13:32.163Z"
++    reason: "Human Decision required: Issue #511 Phase 1 package is 201241 bytes against the fixed 200000-byte guard; changing the package-size threshold or widening allowedPaths is outside this Task Contract"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-10T17:23:08.264Z"
++    reason: Human approved revised package-size policy and Task Contract
++    by: human
++resolvedAt: "2026-08-10T17:23:08.264Z"
++resolvedBy: human
++resolution: Human approved revised package-size policy and Task Contract
+diff --git a/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml b/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
+new file mode 100644
+index 0000000..ce8b424
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
+@@ -0,0 +1,19 @@
++id: SPEC-LITE-MSNGZ3AA
++type: spec-contract
++featureId: F-MSNGZ3AA
++title: "Observe test quality from diff and verified coverage"
++status: approved
++approvedBy: user-requested-issue-511-phase1
++approvedAt: "2026-08-11T00:00:00Z"
++version: 0.1.0
++summary: Add fail-safe machine observations to Evidence without replacing manually declared testQuality metadata.
++acceptanceCriteria:
++  - Evidence supports a separate versioned testQualityObservation with subject provenance and an evaluated or not-evaluated status.
++  - Diff observation counts changed test files and newly added skip, only, and todo markers without false passing conclusions.
++  - Verified base and subject coverage summaries produce a line coverage delta; absent or unverified baselines remain not-evaluated.
++  - Health and finish expose observation context while preserving manually supplied testQuality fields and existing provenance checks.
++  - Documentation and regression tests describe disabled tests, coverage regression/improvement, unavailable baselines, and compatibility behavior.
++nonGoals:
++  - AST assertion counting or framework-specific semantic test analysis
++  - Changing package-size or CI policy thresholds
++  - Replacing human-authored testQuality metadata
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
+new file mode 100644
+index 0000000..9e6b4c5
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
+@@ -0,0 +1,70 @@
++id: SCWBS-DRAFT-MSNGZ3AA
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-511-phase1
++approvedAt: "2026-08-11T00:00:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSNGZ3AA
++branchName: task/SCWBS-DRAFT-MSNGZ3AA-issue-511-phase-1-observe-test-quality-from-diff
++allowedPaths:
++  - src/commands/evidence-collect.ts
++  - src/commands/evidence-annotate.ts
++  - src/commands/health.ts
++  - src/core/contracts.ts
++  - src/core/evidence
++  - src/core/types.ts
++  - scripts/coverage-evidence.mjs
++  - docs/implementation-gaps.md
++  - docs/scwbs/cli-reference.md
++  - tests/integration/evidence.test.ts
++  - tests/integration/health.test.ts
++  - tests/unit/coverage-evidence.test.ts
++  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or CI policy change required
++  - scope outside allowed paths
++  - security or external service change required
++  - unsupported coverage framework or provenance decision required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Evidence preserves existing manually supplied testQuality metadata and records a separate versioned testQualityObservation when diff observation is available
++  - Diff observation reports added, modified, and deleted test files plus newly added skip, only, and todo markers without treating unsupported syntax as a passing result
++  - Coverage observation compares verified base and subject coverage receipt line percentages when both are available, reports delta and status, and uses not-evaluated without inventing zero or false values when a baseline is unavailable
++  - Observation provenance is bound to the Evidence subjectHeadCommit and diffHash, and stale or mismatched inputs are not presented as evaluated
++  - health and finish surface machine observation as advisory context while retaining manual testQuality compatibility and existing Human Gate behavior
++  - JSON schema, CLI reference, implementation-gap documentation, and regression tests cover disabled markers, coverage regression/improvement, unavailable baseline, and manual metadata compatibility
++  - 'Complete Issue #511 Phase 1: observe test quality from diff and coverage'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
++  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSNGZ3AA.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSNGZ3AA.patch
++  - contracts/approvals/SCWBS-DRAFT-MSNGZ3AA.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSNGZ3AA.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:cab05c9109341dcc61362cd8400e8bc57a8abc319954b81b67ba1ba25509e21b
++  createdAt: "2026-08-10T16:55:33.006Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 4517e99..ea2b0ed 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1868,3 +1868,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T16:46:55.087Z"
++  - id: SCWBS-DRAFT-MSNGZ3AA
++    path: contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
++    branchName: task/SCWBS-DRAFT-MSNGZ3AA-issue-511-phase-1-observe-test-quality-from-diff
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index a72846c..159aa80 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -54,7 +54,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Risk management          | Risk Register format and command                            | Strict workflows still need a formal risk log                                                                                                                                                                                   |
+ | Evidence trust           | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope                                                                                                                       |
+ | Evidence diff basis      | CI correlation and publish-time PR metadata gating          | `evidence collect` records branch-diff provenance and can attach a verified coverage receipt with PR/head/workflow/artifact provenance; a dedicated publish gate and full required-check CI receipt correlation remain separate |
+-| Test quality             | Diff-aware assertion and coverage inspection                | Combined coverage inputs are parsed into a versioned receipt and retained Evidence snapshot; source-diff comparison and threshold gating remain intentionally out of scope                                                      |
++| Test quality             | Diff-aware assertion and coverage inspection                | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope                  |
+ | Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
+ | CI integration           | PR feedback and CI evidence correlation                     | GitHub Actions retain a read-only coverage Evidence snapshot and artifact provenance, but PR feedback and automatic promotion into tracked Evidence are not wired into the workflow                                             |
+ | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
+@@ -63,7 +63,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ ## Near-Term Follow-Ups
+ 
+ - Add a command to create lightweight spec-change proposal artifacts.
+-- Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
++- Extend `testQualityObservation` with AST-based assertion counting where practical. Phase 1 already compares test diffs and verified coverage summaries without replacing manual `testQuality` metadata.
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+ - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+ - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index d1f690f..43fb470 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -484,7 +484,7 @@ archived Task候補を表示するread-only inventoryである。候補はretent
+ 自動選択せず、`--apply` は常にfail closedする。保持期限、外部archiveの耐久性、
+ payload削除後の監査trust、Git履歴の書換えはHuman Decisionと新しいTask Contractが必要である。
+ 
+-`evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
++`evidence annotate` は既存Evidenceの `git.pullRequest` と手動の `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks`、`testQualityObservation` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+ 
+ `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
+ 
+@@ -623,7 +623,7 @@ finish / evidence collect / checks run
+ 
+ For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
+ 
+-When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
++When task changes include tests, record manual test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Evidence collection separately records versioned `testQualityObservation` data from the branch diff. It counts added/modified/deleted test files and newly added `skip`/`only`/`todo` markers; when the previous Evidence coverage receipt is verified at the current base commit, it also records the line coverage delta. Missing or mismatched baseline provenance is `not-evaluated` and never becomes a false `0` or `false`. Forced Evidence refreshes preserve existing manual `testQuality` metadata when no replacement values are supplied.
+ 
+ ## Mutation / Read-only 一覧
+ 
+diff --git a/src/commands/health.ts b/src/commands/health.ts
+index d4805d3..14b1dd6 100644
+--- a/src/commands/health.ts
++++ b/src/commands/health.ts
+@@ -387,6 +387,36 @@ export function collectEvidenceTrustIssues(
+         });
+       }
+     }
++    const observation = evidence.testQualityObservation;
++    if (!observation) {
++      issues.push({
++        severity: "warn",
++        code: "health.evidence.testQualityObservation.missing",
++        message: `${task.id} changes tests but evidence has no machine test quality observation`
++      });
++    } else {
++      if (observation.status === "not-evaluated") {
++        issues.push({
++          severity: "warn",
++          code: "health.evidence.testQualityObservation.notEvaluated",
++          message: `${task.id} machine test quality observation could not be evaluated from verified provenance`
++        });
++      }
++      if (observation.tests.skippedMarkersAdded > 0) {
++        issues.push({
++          severity: "warn",
++          code: "health.evidence.testQualityObservation.disabled",
++          message: `${task.id} diff adds ${observation.tests.skippedMarkersAdded} skip/only/todo test marker(s)`
++        });
++      }
++      if (observation.coverage.status === "evaluated" && (observation.coverage.deltaLines ?? 0) < 0) {
++        issues.push({
++          severity: "warn",
++          code: "health.evidence.testQualityObservation.coverage",
++          message: `${task.id} observed line coverage decreased by ${Math.abs(observation.coverage.deltaLines ?? 0)} points`
++        });
++      }
++    }
+   }
+ 
+   return issues;
+diff --git a/src/core/evidence/build.ts b/src/core/evidence/build.ts
+index 57ee3a6..967b617 100644
+--- a/src/core/evidence/build.ts
++++ b/src/core/evidence/build.ts
+@@ -32,6 +32,7 @@ import {
+ } from "../required-check-run.js";
+ import { verifyCiReceipt } from "./ci-receipt.js";
+ import { verifyCoverageReceipt } from "./coverage-receipt.js";
++import { buildTestQualityObservation } from "./test-quality-observation.js";
+ 
+ export type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
+ 
+@@ -188,6 +189,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: Ev
+         || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
+       ? existingEvidence.coverageReceipt
+       : undefined;
++  const baselineCoverageReceipt = existingEvidence?.coverageReceipt
++    && baseCommit
++    && existingEvidence.coverageReceipt.subjectHeadCommit === baseCommit
++    ? existingEvidence.coverageReceipt
++    : undefined;
++  const testQualityObservation = buildTestQualityObservation({
++    root,
++    baseCommit,
++    subjectHead,
++    diffHash,
++    changedFiles,
++    currentCoverage: coverageReceipt,
++    baselineCoverage: baselineCoverageReceipt
++  });
+   const cacheSubject = task.requiredChecks.length > 0
+     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
+     : undefined;
+@@ -289,6 +304,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: Ev
+     ...(submodules.length > 0 ? { submodules } : {}),
+     ...(ciReceipt ? { ciReceipt } : {}),
+     ...(coverageReceipt ? { coverageReceipt } : {}),
++    testQualityObservation,
+     checks,
+     ...(testQuality ? { testQuality } : {})
+   };
+diff --git a/src/core/evidence/test-quality-observation.ts b/src/core/evidence/test-quality-observation.ts
+new file mode 100644
+index 0000000..1dc12c7
+--- /dev/null
++++ b/src/core/evidence/test-quality-observation.ts
+@@ -0,0 +1,94 @@
++import { spawnSync } from "node:child_process";
++import type { CoverageReceipt, TestQualityObservation } from "../types.js";
++
++const testFilePattern = /(^|\/|\\)(tests?|__tests__)(\/|\\)|\.(test|spec)\.[cm]?[jt]sx?$/;
++const addedMarkerPattern = /(?:\.skip|\.only|\.todo\b|\bskip\(|\bonly\(|\btodo\()/;
++
++export type TestQualityObservationInput = {
++  root: string;
++  baseCommit?: string;
++  subjectHead?: string;
++  diffHash?: string;
++  changedFiles: string[];
++  currentCoverage?: CoverageReceipt;
++  baselineCoverage?: CoverageReceipt;
++};
++
++function runGit(root: string, args: string[]): string {
++  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
++  if (result.status !== 0) return "";
++  return result.stdout;
++}
++
++function changedTestFiles(changedFiles: string[]): string[] {
++  return changedFiles.filter((file) => testFilePattern.test(file.replace(/\\/g, "/")));
++}
++
++function testFileCounts(root: string, baseCommit: string | undefined, subjectHead: string | undefined, changedFiles: string[]) {
++  const files = changedTestFiles(changedFiles);
++  const counts = { filesAdded: 0, filesModified: 0, filesDeleted: 0 };
++  if (!baseCommit || !subjectHead) return counts;
++  const status = runGit(root, ["diff", "--name-status", "--find-renames", baseCommit, subjectHead, "--"]);
++  for (const line of status.split("\n")) {
++    const fields = line.split("\t");
++    const code = fields[0]?.[0];
++    const path = fields.at(-1)?.replace(/\\/g, "/");
++    if (!code || !path || !testFilePattern.test(path)) continue;
++    if (code === "A") counts.filesAdded += 1;
++    else if (code === "D") counts.filesDeleted += 1;
++    else counts.filesModified += 1;
++  }
++  if (files.length === 0) return counts;
++  return counts;
++}
++
++function addedSkippedMarkers(root: string, baseCommit: string | undefined, subjectHead: string | undefined): number {
++  if (!baseCommit || !subjectHead) return 0;
++  const diff = runGit(root, ["diff", "--no-ext-diff", "--unified=0", "--no-color", baseCommit, subjectHead, "--"]);
++  return diff
++    .split("\n")
++    .filter((line) => line.startsWith("+") && !line.startsWith("+++")).filter((line) => addedMarkerPattern.test(line)).length;
++}
++
++function evaluatedCoverage(
++  baseCommit: string | undefined,
++  subjectHead: string | undefined,
++  currentCoverage: CoverageReceipt | undefined,
++  baselineCoverage: CoverageReceipt | undefined
++): TestQualityObservation["coverage"] {
++  if (!currentCoverage || !baselineCoverage || !baseCommit || !subjectHead) {
++    return { status: "not-evaluated", reason: "verified base and subject coverage receipts are both required" };
++  }
++  if (currentCoverage.subjectHeadCommit !== subjectHead || baselineCoverage.subjectHeadCommit !== baseCommit) {
++    return { status: "not-evaluated", reason: "coverage receipt provenance does not match the Evidence subject and base" };
++  }
++  const baselineLines = baselineCoverage.metrics.lines.percent;
++  const subjectLines = currentCoverage.metrics.lines.percent;
++  return {
++    status: "evaluated",
++    baselineSubjectHeadCommit: baselineCoverage.subjectHeadCommit,
++    baselineLines,
++    subjectLines,
++    deltaLines: Number((subjectLines - baselineLines).toFixed(4)),
++    source: "coverage-receipt"
++  };
++}
++
++export function buildTestQualityObservation(input: TestQualityObservationInput): TestQualityObservation {
++  const testCounts = testFileCounts(input.root, input.baseCommit, input.subjectHead, input.changedFiles);
++  const skippedMarkersAdded = addedSkippedMarkers(input.root, input.baseCommit, input.subjectHead);
++  const coverage = evaluatedCoverage(input.baseCommit, input.subjectHead, input.currentCoverage, input.baselineCoverage);
++  const status = input.baseCommit && input.subjectHead && input.diffHash ? "evaluated" : "not-evaluated";
++  return {
++    version: "1",
++    status,
++    subject: {
++      ...(input.baseCommit ? { baseCommit: input.baseCommit } : {}),
++      ...(input.subjectHead ? { headCommit: input.subjectHead } : {}),
++      ...(input.diffHash ? { diffHash: input.diffHash } : {})
++    },
++    tests: { ...testCounts, skippedMarkersAdded },
++    coverage,
++    assertionDelta: { status: "not-evaluated", method: "phase-2-out-of-scope" }
++  };
++}
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 564d9b6..a28e2c0 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -27,6 +27,59 @@ const coverageCountsSchema = {
+   }
+ };
+ 
++const testQualityObservationSchema = {
++  type: "object",
++  required: ["version", "status", "subject", "tests", "coverage", "assertionDelta"],
++  additionalProperties: false,
++  properties: {
++    version: { const: "1" },
++    status: { enum: ["evaluated", "not-evaluated"] },
++    subject: {
++      type: "object",
++      additionalProperties: false,
++      properties: {
++        baseCommit: { type: "string", minLength: 1 },
++        headCommit: { type: "string", minLength: 1 },
++        diffHash: { type: "string", minLength: 1 }
++      }
++    },
++    tests: {
++      type: "object",
++      required: ["filesAdded", "filesModified", "filesDeleted", "skippedMarkersAdded"],
++      additionalProperties: false,
++      properties: {
++        filesAdded: { type: "integer", minimum: 0 },
++        filesModified: { type: "integer", minimum: 0 },
++        filesDeleted: { type: "integer", minimum: 0 },
++        skippedMarkersAdded: { type: "integer", minimum: 0 }
++      }
++    },
++    coverage: {
++      type: "object",
++      required: ["status"],
++      additionalProperties: false,
++      properties: {
++        status: { enum: ["evaluated", "not-evaluated"] },
++        baselineSubjectHeadCommit: { type: "string", minLength: 1 },
++        baselineLines: { type: "number", minimum: 0, maximum: 100 },
++        subjectLines: { type: "number", minimum: 0, maximum: 100 },
++        deltaLines: { type: "number" },
++        source: { const: "coverage-receipt" },
++        reason: { type: "string", minLength: 1 }
++      }
++    },
++    assertionDelta: {
++      type: "object",
++      required: ["status", "method"],
++      additionalProperties: false,
++      properties: {
++        status: { const: "not-evaluated" },
++        method: { const: "phase-2-out-of-scope" }
++      }
++    }
++  }
++};
++
+ const requirementEvidenceSchema = {
+   type: "object",
+   required: ["requirementId", "status", "references"],
+@@ -254,6 +307,7 @@ const evidenceSchema = {
+         notes: stringArraySchema
+       }
+     },
++    testQualityObservation: testQualityObservationSchema,
+     notes: stringArraySchema
+   }
+ };
+@@ -473,6 +527,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
+       }
+     }
+   }
++  if (value.testQualityObservation !== undefined && !isObject(value.testQualityObservation)) {
++    issues.push(issue("evidence.testQualityObservation", `${filePath}.testQualityObservation must be an object when present`));
++  }
+   return issues;
+ }
+ 
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 4473599..2e7fa99 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -304,6 +304,35 @@ export type CoverageReceipt = {
+   generatedAt: string;
+ };
+ 
++export type TestQualityObservation = {
++  version: "1";
++  status: "evaluated" | "not-evaluated";
++  subject: {
++    baseCommit?: string;
++    headCommit?: string;
++    diffHash?: string;
++  };
++  tests: {
++    filesAdded: number;
++    filesModified: number;
++    filesDeleted: number;
++    skippedMarkersAdded: number;
++  };
++  coverage: {
++    status: "evaluated" | "not-evaluated";
++    baselineSubjectHeadCommit?: string;
++    baselineLines?: number;
++    subjectLines?: number;
++    deltaLines?: number;
++    source?: "coverage-receipt";
++    reason?: string;
++  };
++  assertionDelta: {
++    status: "not-evaluated";
++    method: "phase-2-out-of-scope";
++  };
++};
++
+ export type Evidence = {
+   id: string;
+   type: "evidence";
+@@ -339,6 +368,7 @@ export type Evidence = {
+   changedFiles: string[];
+   ciReceipt?: CiReceipt;
+   coverageReceipt?: CoverageReceipt;
++  testQualityObservation?: TestQualityObservation;
+   submodules?: Array<{
+     path: string;
+     repository: string;
+diff --git a/tests/integration/health.test.ts b/tests/integration/health.test.ts
+index 2db1e69..5dc3549 100644
+--- a/tests/integration/health.test.ts
++++ b/tests/integration/health.test.ts
+@@ -751,6 +751,36 @@ describe("health", () => {
+     expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(false);
+   });
+ 
++  test("health surfaces machine observation warnings without replacing manual test quality", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeYaml(
++      root,
++      "contracts/evidence/WBS-001-004.yaml",
++      sampleEvidence({
++        changedFiles: ["tests/features/api/api.test.ts"],
++        testQuality: {
++          assertionsAdded: true,
++          testsDisabled: false,
++          coverageDecreased: false,
++          notes: ["Manual review recorded regression coverage."]
++        },
++        testQualityObservation: {
++          version: "1",
++          status: "evaluated",
++          subject: { baseCommit: "a".repeat(40), headCommit: "b".repeat(40), diffHash: "sha256:diff" },
++          tests: { filesAdded: 0, filesModified: 1, filesDeleted: 0, skippedMarkersAdded: 1 },
++          coverage: { status: "evaluated", baselineLines: 80, subjectLines: 78, deltaLines: -2, source: "coverage-receipt" },
++          assertionDelta: { status: "not-evaluated", method: "phase-2-out-of-scope" }
++        }
++      }) as unknown as Record<string, unknown>
++    );
++    const issues = collectHealthIssues(root);
++    expect(issues.some((issue) => issue.code === "health.evidence.testQualityObservation.disabled")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.evidence.testQualityObservation.coverage")).toBe(true);
++    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.missing")).toBe(false);
++  });
++
+   test("health warns when test changes add no assertions without rationale", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+diff --git a/tests/unit/coverage-evidence.test.ts b/tests/unit/coverage-evidence.test.ts
+index db0147c..d487ddf 100644
+--- a/tests/unit/coverage-evidence.test.ts
++++ b/tests/unit/coverage-evidence.test.ts
+@@ -1,5 +1,9 @@
++import { execFileSync } from "node:child_process";
+ import { describe, expect, test } from "vitest";
+ import { buildCoverageReceipt, buildEvidenceSnapshot } from "../../scripts/coverage-evidence.mjs";
++import { buildTestQualityObservation } from "../../src/core/evidence/test-quality-observation.js";
++import type { CoverageReceipt } from "../../src/core/types.js";
++import { makeTempRepo, writeText } from "../helpers.js";
+ 
+ const coverageSummary = {
+   total: {
+@@ -86,4 +90,60 @@ describe("coverage Evidence receipt", () => {
+       })
+     ).toThrow(/test result counts do not add up/);
+   });
++
++  test("observes changed test files, added disabled markers, and coverage improvement", () => {
++    const root = makeTempRepo();
++    writeText(root, "tests/example.test.ts", "test('old', () => expect(true).toBe(true));\n");
++    execFileSync("git", ["add", "."], { cwd: root });
++    execFileSync("git", ["commit", "-m", "base"], { cwd: root });
++    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    writeText(root, "tests/example.test.ts", "test.only('old', () => expect(true).toBe(true));\n");
++    writeText(root, "tests/new.test.ts", "test('new', () => expect(true).toBe(true));\n");
++    execFileSync("git", ["add", "."], { cwd: root });
++    execFileSync("git", ["commit", "-m", "subject"], { cwd: root });
++    const subjectHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
++    const observation = buildTestQualityObservation({
++      root,
++      baseCommit,
++      subjectHead,
++      diffHash: "sha256:diff",
++      changedFiles: ["tests/example.test.ts", "tests/new.test.ts"],
++      baselineCoverage: { subjectHeadCommit: baseCommit, metrics: { lines: { percent: 78 } } } as unknown as CoverageReceipt,
++      currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 79.5 } } } as unknown as CoverageReceipt
++    });
++
++    expect(observation).toMatchObject({
++      status: "evaluated",
++      tests: { filesAdded: 1, filesModified: 1, filesDeleted: 0, skippedMarkersAdded: 1 },
++      coverage: { status: "evaluated", baselineLines: 78, subjectLines: 79.5, deltaLines: 1.5 }
++    });
++    const regressed = buildTestQualityObservation({
++      root,
++      baseCommit,
++      subjectHead,
++      diffHash: "sha256:diff",
++      changedFiles: ["tests/example.test.ts", "tests/new.test.ts"],
++      baselineCoverage: { subjectHeadCommit: baseCommit, metrics: { lines: { percent: 78 } } } as unknown as CoverageReceipt,
++      currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 76 } } } as unknown as CoverageReceipt
++    });
++    expect(regressed.coverage.deltaLines).toBe(-2);
++  });
++
++  test("does not invent coverage values when a verified baseline is unavailable", () => {
++    const root = makeTempRepo();
++    const observation = buildTestQualityObservation({
++      root,
++      baseCommit: "a".repeat(40),
++      subjectHead: "b".repeat(40),
++      diffHash: "sha256:diff",
++      changedFiles: ["tests/example.test.ts"]
++    });
++
++    expect(observation.coverage).toEqual({
++      status: "not-evaluated",
++      reason: "verified base and subject coverage receipts are both required"
++    });
++    expect(observation.coverage.baselineLines).toBeUndefined();
++    expect(observation.coverage.deltaLines).toBeUndefined();
++  });
+ });
