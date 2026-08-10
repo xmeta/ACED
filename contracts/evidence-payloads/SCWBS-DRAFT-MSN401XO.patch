@@ -121,22 +121,21 @@ index 56ea988..5c73cb9 100644
 +    status: planned
 +    dependsOn: []
 diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
-index 4aa8691..ae2f355 100644
+index 4aa8691..8b58316 100644
 --- a/docs/scwbs/cli-reference.md
 +++ b/docs/scwbs/cli-reference.md
-@@ -53,7 +53,10 @@ group-specific help for its subcommands and options:
+@@ -53,7 +53,9 @@ group-specific help for its subcommands and options:
  
  ```bash
  npm run scwbs -- init --profile lean --agent codex --lang ja
 -npm run scwbs -- update --agent claude
 +npm run scwbs -- agent add claude
 +npm run scwbs -- agent set-primary codex
-+npm run scwbs -- update --all-agents
 +npm run scwbs -- update --dry-run --json
  npm run scwbs -- check
  npm run scwbs -- fix
  npm run scwbs -- doctor
-@@ -72,7 +75,9 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+@@ -72,7 +74,9 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
  
  `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
  
@@ -148,7 +147,7 @@ index 4aa8691..ae2f355 100644
  ### Navigation JSON contracts
  
 diff --git a/src/cli.ts b/src/cli.ts
-index e397130..5785b92 100644
+index e397130..fa978a8 100644
 --- a/src/cli.ts
 +++ b/src/cli.ts
 @@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
@@ -160,14 +159,13 @@ index e397130..5785b92 100644
  import { runPromote } from "./commands/lite.js";
  import { runMerge } from "./commands/merge.js";
  import { runMetricsGovernance } from "./commands/metrics.js";
-@@ -233,10 +233,33 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+@@ -233,10 +233,32 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
  
    program
      .command("update")
 -    .description("Update generated AI tool files without overwriting divergent files")
 +    .description("Update generated AI tool files")
      .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
-+    .option("--all-agents", "update every managed agent (the default)")
 +    .option("--dry-run", "show planned changes without writing")
 +    .option("--json", "output a versioned machine-readable decision report")
      .action((opts) => { exitCode = runAgentUpdate(root, opts); });
