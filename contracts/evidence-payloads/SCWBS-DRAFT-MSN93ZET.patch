@@ -1,3 +1,30 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSN93ZET.yaml b/contracts/blocks/SCWBS-DRAFT-MSN93ZET.yaml
+new file mode 100644
+index 0000000..36bb3ee
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSN93ZET.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSN93ZET
++type: block
++taskId: SCWBS-DRAFT-MSN93ZET
++status: resolved
++category: human-gate
++level: 1
++requiredHumanDecision: Complete the required human gate decision before implementation continues.
++reason: "Human Decision required: CI package size is 200230 bytes against the fixed 200000-byte guard; changing the threshold or widening allowedPaths is outside this Task Contract"
++createdAt: "2026-08-10T15:00:15.176Z"
++history:
++  - status: blocked
++    at: "2026-08-10T15:00:15.176Z"
++    reason: "Human Decision required: CI package size is 200230 bytes against the fixed 200000-byte guard; changing the threshold or widening allowedPaths is outside this Task Contract"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-10T19:08:41.945Z"
++    reason: "Human Decision completed: package guard is 300000 bytes on main"
++    by: human
++resolvedAt: "2026-08-10T19:08:41.945Z"
++resolvedBy: human
++resolution: "Human Decision completed: package guard is 300000 bytes on main"
 diff --git a/contracts/specs/SPEC-LITE-MSN93ZET.yaml b/contracts/specs/SPEC-LITE-MSN93ZET.yaml
 new file mode 100644
 index 0000000..187098f
@@ -119,10 +146,10 @@ index 0000000..c26af59
 +  specRevision: sha256:fd8da89b2b088ca8ee98d395899258c84681bac9191aee86a802b9e4a8bdcfa7
 +  createdAt: "2026-08-10T13:14:19.765Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
-index 624f87f..51f944d 100644
+index f8e1e47..c57c03a 100644
 --- a/contracts/tasks/index.yaml
 +++ b/contracts/tasks/index.yaml
-@@ -1861,3 +1861,9 @@ tasks:
+@@ -1861,6 +1861,12 @@ tasks:
      status: archived
      dependsOn: []
      archivedAt: "2026-08-10T13:09:17.721Z"
@@ -132,11 +159,14 @@ index 624f87f..51f944d 100644
 +    wbsNodeId: node-governance-maintenance
 +    status: planned
 +    dependsOn: []
+   - id: SCWBS-DRAFT-MSND5CMF
+     path: contracts/tasks/SCWBS-DRAFT-MSND5CMF.yaml
+     branchName: task/SCWBS-DRAFT-MSND5CMF-issue-509-include-custom-task-ids-in-github-acti
 diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
-index 8b58316..2d39ad6 100644
+index b8a99bd..09491d6 100644
 --- a/docs/scwbs/cli-reference.md
 +++ b/docs/scwbs/cli-reference.md
-@@ -101,6 +101,16 @@ fieldがある場合も、値には2種類ある。
+@@ -100,6 +100,16 @@ fieldがある場合も、値には2種類ある。
  
  `fixCommand` の値をそのままshellへ渡す自動化を書いてはならない。fieldの有無を確認し、値が実行可能なコマンドか助言かを判定してから、人間または上位workflowが次の操作を決める。
  
@@ -481,7 +511,7 @@ index 67b98b0..8938ec1 100644
      }), json);
      return 1;
 diff --git a/src/commands/health.ts b/src/commands/health.ts
-index d4805d3..c2d0184 100644
+index 14b1dd6..c0b4223 100644
 --- a/src/commands/health.ts
 +++ b/src/commands/health.ts
 @@ -19,6 +19,7 @@ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget
@@ -492,7 +522,7 @@ index d4805d3..c2d0184 100644
  export { sortHealthIssues } from "../core/health-domain.js";
  
  export type CurrentPullRequest = {
-@@ -736,7 +737,7 @@ export function buildHealthJsonOutput(root: string, issues = collectHealthIssues
+@@ -766,7 +767,7 @@ export function buildHealthJsonOutput(root: string, issues = collectHealthIssues
      summary: {
        ...domain.summary
      },
@@ -656,7 +686,7 @@ index 5e5c9be..82865db 100644
 -}
 +export const hasErrors = (issues: Issue[]): boolean => issues.some((item) => item.severity === "error");
 diff --git a/src/core/types.ts b/src/core/types.ts
-index 4473599..8874003 100644
+index 2e7fa99..a382eb5 100644
 --- a/src/core/types.ts
 +++ b/src/core/types.ts
 @@ -1,10 +1,31 @@

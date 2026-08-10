@@ -1,30 +1,31 @@
 id: EVD-SCWBS-DRAFT-MSN93ZET
 type: evidence
 taskId: SCWBS-DRAFT-MSN93ZET
-commit: dcd8cbfbb6b186513caa3963378de22ec5a13ba0
-subjectHeadCommit: dcd8cbfbb6b186513caa3963378de22ec5a13ba0
-diffHash: sha256:5d71f9fe4ce553042e8e0cd41ad432dbd6a9468991a05d760894a577ed185b08
+commit: 4f22fec055af468774783fbfd64c751a32858f48
+subjectHeadCommit: 4f22fec055af468774783fbfd64c751a32858f48
+diffHash: sha256:bc86b5618dce4af08b1410ecc7e04d02f0f617f68fd4f5692af975fb3eb3ed29
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: dcd8cbfbb6b186513caa3963378de22ec5a13ba0
-    treeHash: 116746cc3b2bf0ac7810e5bc5382cd02940bfb01
-    diffHash: sha256:5d71f9fe4ce553042e8e0cd41ad432dbd6a9468991a05d760894a577ed185b08
+    commit: 4f22fec055af468774783fbfd64c751a32858f48
+    treeHash: c2dedde929d644d3f92caba52b280cb7a70539b5
+    diffHash: sha256:bc86b5618dce4af08b1410ecc7e04d02f0f617f68fd4f5692af975fb3eb3ed29
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSN93ZET.patch
-    manifestHash: sha256:5d71f9fe4ce553042e8e0cd41ad432dbd6a9468991a05d760894a577ed185b08
+    manifestHash: sha256:bc86b5618dce4af08b1410ecc7e04d02f0f617f68fd4f5692af975fb3eb3ed29
 git:
   branch: task/SCWBS-DRAFT-MSN93ZET-issue-remediation-contract-for-typed-command-gui
   base: origin/main
-  baseCommit: 4345f2b6d352f5c7ed0e1b73d3329fe7fb60036a
+  baseCommit: cb96b1ebcfe952239b1e6496d376a159047dab97
   changedFilesBasis: branch-diff
   pullRequest: "518"
-  subjectHeadCommit: dcd8cbfbb6b186513caa3963378de22ec5a13ba0
-  diffHash: sha256:5d71f9fe4ce553042e8e0cd41ad432dbd6a9468991a05d760894a577ed185b08
-  headCommit: dcd8cbfbb6b186513caa3963378de22ec5a13ba0
+  subjectHeadCommit: 4f22fec055af468774783fbfd64c751a32858f48
+  diffHash: sha256:bc86b5618dce4af08b1410ecc7e04d02f0f617f68fd4f5692af975fb3eb3ed29
+  headCommit: 4f22fec055af468774783fbfd64c751a32858f48
 changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSN93ZET.yaml
   - contracts/evidence-payloads/SCWBS-DRAFT-MSN93ZET.patch
   - contracts/evidence/SCWBS-DRAFT-MSN93ZET.yaml
   - contracts/registry.yaml
@@ -44,35 +45,53 @@ changedFiles:
   - src/core/types.ts
   - tests/unit/human-gate.test.ts
   - tests/unit/report.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: cb96b1ebcfe952239b1e6496d376a159047dab97
+    headCommit: 4f22fec055af468774783fbfd64c751a32858f48
+    diffHash: sha256:bc86b5618dce4af08b1410ecc7e04d02f0f617f68fd4f5692af975fb3eb3ed29
+  tests:
+    filesAdded: 0
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
 checks:
   - name: test
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:933d96d0f5187a3570ff3f75758ec5d2a01aa28fb165e49be76467182dee203b
-    durationMilliseconds: 14188
-    executedAt: "2026-08-10T14:48:35.935Z"
+    cacheKey: sha256:a5ea46a5e204ce1a92a8757f3e08573dc44b8931e2c7b60da2e487af0c09cc56
+    durationMilliseconds: 16783
+    executedAt: "2026-08-10T19:09:25.150Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:7d5b0fdb44b91cc14a328968f59937df3998eff44d026eeaf47226c8a1b597e8
-    durationMilliseconds: 9057
-    executedAt: "2026-08-10T14:48:44.996Z"
+    cacheKey: sha256:9879db3c1c3f118f01d9202060e58b007332b5862e872f399d602787197056be
+    durationMilliseconds: 9985
+    executedAt: "2026-08-10T19:09:35.140Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:4401af6f4ffc0ede80996a49551062da5f579d01ef00529f18baf29e8a35c79f
-    durationMilliseconds: 3822
-    executedAt: "2026-08-10T14:48:48.822Z"
+    cacheKey: sha256:8a44d4736b5c0ad6460b8dc6a5dcad31eb48e81cb44d60a2976db73a6b85b9d6
+    durationMilliseconds: 4212
+    executedAt: "2026-08-10T19:09:39.358Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:942a1b9b585da04c7e251b09af39f19d3420bc6666b1aaaed93810a7b0461085
-    durationMilliseconds: 296032
-    executedAt: "2026-08-10T14:53:44.859Z"
+    cacheKey: sha256:adbdb4c5c2d85edb4a808a1c12c2475c7857945067669a9b20e63465e029f7f1
+    durationMilliseconds: 300625
+    executedAt: "2026-08-10T19:14:39.986Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
