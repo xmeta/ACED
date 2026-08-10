@@ -27,7 +27,7 @@ index 0000000..9a837fa
 +resolution: Human approved revised package-size policy and Task Contract
 diff --git a/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml b/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 new file mode 100644
-index 0000000..ce8b424
+index 0000000..306e777
 --- /dev/null
 +++ b/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 @@ -0,0 +1,19 @@
@@ -46,16 +46,16 @@ index 0000000..ce8b424
 +  - Verified base and subject coverage summaries produce a line coverage delta; absent or unverified baselines remain not-evaluated.
 +  - Health and finish expose observation context while preserving manually supplied testQuality fields and existing provenance checks.
 +  - Documentation and regression tests describe disabled tests, coverage regression/improvement, unavailable baselines, and compatibility behavior.
++  - The standalone npm package size guard is explicitly 300000 bytes and remains covered by the packaging integration test.
 +nonGoals:
 +  - AST assertion counting or framework-specific semantic test analysis
-+  - Changing package-size or CI policy thresholds
 +  - Replacing human-authored testQuality metadata
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
 new file mode 100644
-index 0000000..9e6b4c5
+index 0000000..6798764
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,73 @@
 +id: SCWBS-DRAFT-MSNGZ3AA
 +type: task-contract
 +status: approved
@@ -76,6 +76,7 @@ index 0000000..9e6b4c5
 +  - docs/scwbs/cli-reference.md
 +  - tests/integration/evidence.test.ts
 +  - tests/integration/health.test.ts
++  - tests/integration/packaging.test.ts
 +  - tests/unit/coverage-evidence.test.ts
 +  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 +forbiddenPaths:
@@ -86,6 +87,7 @@ index 0000000..9e6b4c5
 +  - tsconfig.json
 +  - vitest.config.ts
 +  - .github/**
++  - tests/integration/packaging.test.ts
 +stopIf:
 +  - package or CI policy change required
 +  - scope outside allowed paths
@@ -103,6 +105,7 @@ index 0000000..9e6b4c5
 +  - Observation provenance is bound to the Evidence subjectHeadCommit and diffHash, and stale or mismatched inputs are not presented as evaluated
 +  - health and finish surface machine observation as advisory context while retaining manual testQuality compatibility and existing Human Gate behavior
 +  - JSON schema, CLI reference, implementation-gap documentation, and regression tests cover disabled markers, coverage regression/improvement, unavailable baseline, and manual metadata compatibility
++  - The standalone npm package size guard is explicitly 300000 bytes and remains covered by the packaging integration test
 +  - 'Complete Issue #511 Phase 1: observe test quality from diff and coverage'
 +evidenceRequired:
 +  - test-result
@@ -124,8 +127,8 @@ index 0000000..9e6b4c5
 +  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
-+  specRevision: sha256:cab05c9109341dcc61362cd8400e8bc57a8abc319954b81b67ba1ba25509e21b
-+  createdAt: "2026-08-10T16:55:33.006Z"
++  specRevision: sha256:be704c0472225010c0b92cd2ff9d342b03f3827810e3e2f7a6cd20159edd931d
++  createdAt: "2026-08-10T17:48:04.810Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 4517e99..ea2b0ed 100644
 --- a/contracts/tasks/index.yaml
@@ -537,6 +540,19 @@ index 2db1e69..5dc3549 100644
    test("health warns when test changes add no assertions without rationale", () => {
      const root = makeTempRepo();
      writeScwbsProject(root, "completed");
+diff --git a/tests/integration/packaging.test.ts b/tests/integration/packaging.test.ts
+index 3e2573b..6e7ecd5 100644
+--- a/tests/integration/packaging.test.ts
++++ b/tests/integration/packaging.test.ts
+@@ -35,7 +35,7 @@ describe("npm bin entrypoint", () => {
+ 
+     expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
+     expect(packed.files.length).toBeLessThan(120);
+-    expect(packed.size).toBeLessThan(200_000);
++    expect(packed.size).toBeLessThan(300_000);
+ 
+     const tarball = path.join(fixture, packed.filename);
+     execFileSync("npm", [
 diff --git a/tests/unit/coverage-evidence.test.ts b/tests/unit/coverage-evidence.test.ts
 index db0147c..d487ddf 100644
 --- a/tests/unit/coverage-evidence.test.ts

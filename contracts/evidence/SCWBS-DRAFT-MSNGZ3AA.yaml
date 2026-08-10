@@ -1,32 +1,34 @@
 id: EVD-SCWBS-DRAFT-MSNGZ3AA
 type: evidence
 taskId: SCWBS-DRAFT-MSNGZ3AA
-commit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
-subjectHeadCommit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
-diffHash: sha256:f0ed014c4735d6349514a016ecea8f96b6408a2557afc32a638ae11ce21cb758
+commit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
+subjectHeadCommit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
+diffHash: sha256:201cff92c55bc8b1a8ba7f72d5da37bd022324cd687a849390c2337a4fb39062
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
-    treeHash: d76d11b9239dfaa6840985b0fbe5fb325e68b304
-    diffHash: sha256:f0ed014c4735d6349514a016ecea8f96b6408a2557afc32a638ae11ce21cb758
+    commit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
+    treeHash: 882708e8cebbb27006d29a0a182f7ded197f374a
+    diffHash: sha256:201cff92c55bc8b1a8ba7f72d5da37bd022324cd687a849390c2337a4fb39062
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSNGZ3AA.patch
-    manifestHash: sha256:f0ed014c4735d6349514a016ecea8f96b6408a2557afc32a638ae11ce21cb758
+    manifestHash: sha256:201cff92c55bc8b1a8ba7f72d5da37bd022324cd687a849390c2337a4fb39062
 git:
   branch: task/SCWBS-DRAFT-MSNGZ3AA-issue-511-phase-1-observe-test-quality-from-diff
   base: origin/main
   baseCommit: 62a75ade6bf47ab41fe2f59bd86a0e9c38adc9e9
   changedFilesBasis: branch-diff
   pullRequest: "522"
-  subjectHeadCommit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
-  diffHash: sha256:f0ed014c4735d6349514a016ecea8f96b6408a2557afc32a638ae11ce21cb758
-  headCommit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
+  subjectHeadCommit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
+  diffHash: sha256:201cff92c55bc8b1a8ba7f72d5da37bd022324cd687a849390c2337a4fb39062
+  headCommit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
 changedFiles:
   - contracts/approvals/SCWBS-DRAFT-MSNGZ3AA.yaml
   - contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNGZ3AA.patch
+  - contracts/evidence/SCWBS-DRAFT-MSNGZ3AA.yaml
   - contracts/registry.yaml
   - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
   - contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
@@ -39,19 +41,20 @@ changedFiles:
   - src/core/schema/records.ts
   - src/core/types.ts
   - tests/integration/health.test.ts
+  - tests/integration/packaging.test.ts
   - tests/unit/coverage-evidence.test.ts
 testQualityObservation:
   version: "1"
   status: evaluated
   subject:
     baseCommit: 62a75ade6bf47ab41fe2f59bd86a0e9c38adc9e9
-    headCommit: a547e806980d8a5ef42c68ef9f1a2b7c6a2baa1b
-    diffHash: sha256:f0ed014c4735d6349514a016ecea8f96b6408a2557afc32a638ae11ce21cb758
+    headCommit: aea46b4e2d30308cfa3bdb570dcc6a084d1e9a83
+    diffHash: sha256:201cff92c55bc8b1a8ba7f72d5da37bd022324cd687a849390c2337a4fb39062
   tests:
     filesAdded: 0
-    filesModified: 2
+    filesModified: 3
     filesDeleted: 0
-    skippedMarkersAdded: 4
+    skippedMarkersAdded: 8
   coverage:
     status: not-evaluated
     reason: verified base and subject coverage receipts are both required
@@ -63,47 +66,30 @@ checks:
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:ecbb2e131f308ab9b5a18ca9a36a85bf094d6b81b0fa8c025ce4fba274f09292
-    durationMilliseconds: 18692
-    executedAt: "2026-08-10T17:28:04.297Z"
+    cacheKey: sha256:96623f7696511b8b6e2f4b9a9c8ca828f621893096bd1f099ad6de5daba1cff4
+    durationMilliseconds: 15985
+    executedAt: "2026-08-10T17:48:51.070Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:62b64522058a1a98b07077b0c84a88f0288dad05ed099d45ff6ec337d2ddd31f
-    durationMilliseconds: 11801
-    executedAt: "2026-08-10T17:28:16.103Z"
+    cacheKey: sha256:8f0809c3370e08b4dfa72c35774fec7d959b37cfb634ab4d6e44ff84385955a3
+    durationMilliseconds: 10260
+    executedAt: "2026-08-10T17:49:01.334Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:0b82f101fb09b566de23ff096e8f875fb05ee1ee78ae608f46e7dfebad5a5935
-    durationMilliseconds: 5108
-    executedAt: "2026-08-10T17:28:21.216Z"
+    cacheKey: sha256:24d717ecad405f7211ba2adfd5f66ca1c1a52f459ea2d1c3b3046fbabab58e37
+    durationMilliseconds: 4304
+    executedAt: "2026-08-10T17:49:05.644Z"
   - name: test:integration
-    status: failed
+    status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:6b44db73082ccab61214721417a593de84a7b2f59f4c75d97b58b68b13161863
-    durationMilliseconds: 392180
-    executedAt: "2026-08-10T17:34:53.402Z"
-    exitStatus: 1
-    stdoutSummary: |-
-      > scwbs@0.1.0 test:integration
-      > node scripts/integration-test-output.mjs
-
-      integration temp=/tmp tempSource=wsl-linux-fallback
-    stderrSummary: |-
-      failed test=tests/integration/packaging.test.ts :: npm bin entrypoint packs a runnable CLI without a repository checkout or WJS submodule
-      cause=AssertionError: expected 201241 to be less than 200000 at /home/x_meta/workspace/ACED/tests/integration/packaging.test.ts:38:25 at file:///home/x_meta/workspace/ACED/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11 at file:///home/x_meta/workspace/ACED/node_modules/@vitest [truncated]
-      rerun=npx vitest run tests/integration/packaging.test.ts --pool=forks --maxWorkers=1 --testTimeout=10000 -t "npm bin entrypoint packs a runnable CLI without a repository checkout or WJS submodule"
-      FAIL integration files=40 tests=542 passed=541 failed=1 skipped=0 workers=4 duration=391.33s
-      slow file=tests/integration/finish.test.ts duration=98.53s tests=36
-      slow file=tests
-      [truncated]
-             display help for command
-      [progress summaries=5]
-      scwbs progress task=WBS-001-004 check=1/1:test status=executed elapsed=0s pid=2349923 startedAt=2026-08-10T17:28:53.202Z
+    cacheKey: sha256:84de886ce94aac6322049f01ef805fdbad1c9e97bc9f24464499f233ddcbb5a6
+    durationMilliseconds: 307334
+    executedAt: "2026-08-10T17:54:12.981Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
