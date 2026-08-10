@@ -147,7 +147,7 @@ index 4aa8691..8b58316 100644
  ### Navigation JSON contracts
  
 diff --git a/src/cli.ts b/src/cli.ts
-index e397130..fa978a8 100644
+index e397130..514977a 100644
 --- a/src/cli.ts
 +++ b/src/cli.ts
 @@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
@@ -164,30 +164,31 @@ index e397130..fa978a8 100644
    program
      .command("update")
 -    .description("Update generated AI tool files without overwriting divergent files")
-+    .description("Update generated AI tool files")
-     .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
-+    .option("--dry-run", "show planned changes without writing")
-+    .option("--json", "output a versioned machine-readable decision report")
+-    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
++    .description("Update AI files")
++    .option("--agent <agent>", "agent")
++    .option("--dry-run", "dry run")
++    .option("--json", "json output")
      .action((opts) => { exitCode = runAgentUpdate(root, opts); });
  
-+  const agent = program.command("agent").description("Manage multiple AI adapter ownership");
++  const agent = program.command("agent").description("Manage AI adapters");
 +  agent
 +    .command("add")
-+    .description("Add an AI adapter")
-+    .argument("<agent>", "agent type codex|claude|cursor|copilot")
-+    .option("--json", "output a versioned machine-readable decision report")
++    .description("Add adapter")
++    .argument("<agent>", "agent")
++    .option("--json", "json output")
 +    .action((agentName: string, opts) => { exitCode = runAgentAdd(root, agentName, opts); });
 +  agent
 +    .command("remove")
-+    .description("Remove an AI adapter")
-+    .argument("<agent>", "agent type codex|claude|cursor|copilot")
-+    .option("--json", "output a versioned machine-readable decision report")
++    .description("Remove adapter")
++    .argument("<agent>", "agent")
++    .option("--json", "json output")
 +    .action((agentName: string, opts) => { exitCode = runAgentRemove(root, agentName, opts); });
 +  agent
 +    .command("set-primary")
-+    .description("Set the default AI adapter")
-+    .argument("<agent>", "managed agent type")
-+    .option("--json", "output a versioned machine-readable decision report")
++    .description("Set primary adapter")
++    .argument("<agent>", "agent")
++    .option("--json", "json output")
 +    .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
 +
    program
