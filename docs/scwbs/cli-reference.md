@@ -24,7 +24,7 @@ task/SCWBS-DRAFT-M3QJ2K-fix-parser
 ```
 
 - `metrics governance --json` の `historicalCi.taskPullRequests` は、`pull_request` eventの `task/` branchをTask Index（`contracts/tasks/index.yaml`）のbranchName exact matchで先に解決し、current/archivedを問わずTask ID別に集計する。
-- Indexにない過去の `task/SCWBS-*` branchは後方互換の正規表現で解決し、各itemの `resolutionSource` に解決源を示す。Indexにない他のtask-like branchは `unmatched` のboundedな `totalCount` / `items` に残し、`completeness` のcandidate attribution percentageで欠落を確認できる。
+- Indexにない過去の `task/SCWBS-*` branchは後方互換の正規表現で解決し、各itemの `resolutionSource` に解決源を示す。Indexにない他のtask-like branchは `unmatched` のboundedな `count` / `items` に残し、`completeness` のcandidate attribution percentageで欠落を確認できる。
 - Task Indexが欠落・不正な場合は `completeness.taskIndex: unavailable` とreasonを返す。認証、通信、保持期間などにより取得できない場合は、0件・0秒と推測せず `status: unavailable` とreasonを返す。
 
 ## Core Checks

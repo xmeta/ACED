@@ -144,7 +144,7 @@ describe("governance metrics", () => {
         taskIndex: "unavailable",
         taskIndexReason: "Task Index was not supplied"
       },
-      unmatched: { limit: 20, totalCount: 0, truncated: false, items: [] },
+      unmatched: { limit: 20, count: 0, items: [] },
       items: [{
         taskId: "SCWBS-DRAFT-ABC123",
         headBranches: ["task/SCWBS-DRAFT-ABC123-fix", "task/SCWBS-DRAFT-ABC123-retry"],
@@ -185,12 +185,7 @@ describe("governance metrics", () => {
       { taskId: "SCWBS-DRAFT-OLD", resolutionSource: "task-index" },
       { taskId: "WBS-001-004", resolutionSource: "task-index" }
     ]);
-    expect(summary.taskPullRequests.unmatched).toEqual({
-      limit: 20,
-      totalCount: 1,
-      truncated: false,
-      items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }]
-    });
+    expect(summary.taskPullRequests.unmatched).toEqual({ limit: 20, count: 1, items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }] });
   });
 
   test("marks an unavailable index as incomplete and bounds unknown task-like branches", () => {
@@ -207,8 +202,7 @@ describe("governance metrics", () => {
     });
     expect(summary.taskPullRequests.unmatched).toEqual({
       limit: 20,
-      totalCount: 2,
-      truncated: false,
+      count: 2,
       items: [
         { headBranch: "task/custom-feature", runCount: 1 },
         { headBranch: "task/WBS-001-004-api", runCount: 1 }

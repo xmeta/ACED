@@ -46,16 +46,11 @@ export type GithubActionsDurationSummary = {
       taskIndex: "available" | "unavailable";
       taskIndexReason?: string;
     };
-    unmatched: {
-      limit: 20;
-      totalCount: number;
-      truncated: boolean;
-      items: Array<{ headBranch: string; runCount: number }>;
-    };
+    unmatched: { limit: 20; count: number; items: Array<{ headBranch: string; runCount: number }> };
     items: Array<{
       taskId: string;
       headBranches: string[];
-      resolutionSource: GithubActionsTaskResolutionSource | "mixed";
+      resolutionSource: GithubActionsTaskResolutionSource;
       runCount: number;
       completedRunCount: number;
       successfulRunCount: number;
@@ -80,13 +75,13 @@ function taskIdFromBranch(branch: string): string | undefined {
   return branch.match(/^task\/(SCWBS-(?:DRAFT-)?[A-Z0-9]+(?:-[A-Z0-9]+)*)/)?.[1];
 }
 
-function resolveTaskBranch(branch: string, taskIndex: GithubActionsTaskIndex): { taskId: string; source: GithubActionsTaskResolutionSource } | undefined {
+function resolveTaskBranch(branch: string, taskIndex: GithubActionsTaskIndex): [string, GithubActionsTaskResolutionSource] | undefined {
   if (taskIndex.status === "available") {
     const indexed = taskIndex.entries.find((entry) => entry.branchName === branch);
-    if (indexed) return { taskId: indexed.id, source: "task-index" };
+    if (indexed) return [indexed.id, "task-index"];
   }
   const fallback = taskIdFromBranch(branch);
-  return fallback ? { taskId: fallback, source: "scwbs-regex" } : undefined;
+  return fallback ? [fallback, "scwbs-regex"] : undefined;
 }
 
 function githubRepository(remote: string): string | undefined {
@@ -142,19 +137,19 @@ export function summarizeGithubActionsRuns(
     branch.runCount += 1;
     if (duration >= 0) branch.completedRunCount += 1;
     branches[run.headBranch] = branch;
-    const taskLike = run.event === "pull_request" && run.headBranch.startsWith("task/");
-    const resolution = taskLike ? resolveTaskBranch(run.headBranch, taskIndex) : null;
-    if (taskLike) candidateRunCount += 1;
+    if (run.event !== "pull_request" || !run.headBranch.startsWith("task/")) continue;
+    candidateRunCount += 1;
+    const resolution = resolveTaskBranch(run.headBranch, taskIndex);
     if (!resolution) {
-      if (taskLike) unmatched.set(run.headBranch, (unmatched.get(run.headBranch) ?? 0) + 1);
+      unmatched.set(run.headBranch, (unmatched.get(run.headBranch) ?? 0) + 1);
       continue;
     }
     attributedRunCount += 1;
-    const taskId = resolution.taskId;
+    const [taskId, resolutionSource] = resolution;
     const item = taskPullRequests.get(taskId) ?? {
       taskId,
       headBranches: [],
-      resolutionSource: resolution.source,
+      resolutionSource,
       runCount: 0,
       completedRunCount: 0,
       successfulRunCount: 0,
@@ -166,7 +161,6 @@ export function summarizeGithubActionsRuns(
     };
       item.runCount += 1;
       if (!item.headBranches.includes(run.headBranch)) item.headBranches.push(run.headBranch);
-      if (item.resolutionSource !== resolution.source) item.resolutionSource = "mixed";
       if (duration >= 0) {
         item.completedRunCount += 1;
         item.durationMilliseconds += durations[duration];
@@ -218,8 +212,7 @@ export function summarizeGithubActionsRuns(
       },
       unmatched: {
         limit: 20,
-        totalCount: unmatchedItems.length,
-        truncated: unmatchedItems.length > 20,
+        count: unmatchedItems.length,
         items: unmatchedItems.slice(0, 20)
       },
       items: taskItems.slice(0, 20)
