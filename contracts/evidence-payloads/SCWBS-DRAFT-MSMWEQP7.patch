@@ -1,0 +1,717 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index ef4d981..1cbb9c0 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -10,6 +10,8 @@ on:
+ 
+ permissions:
+   contents: write
++  checks: read
++  actions: read
+ 
+ jobs:
+   release:
+@@ -21,6 +23,93 @@ jobs:
+         with:
+           fetch-depth: 0
+ 
++      - name: Resolve and checkout exact release subject
++        id: subject
++        env:
++          RELEASE_TAG: ${{ inputs.tag }}
++        run: |
++          set -euo pipefail
++          integrity_script="$RUNNER_TEMP/release-integrity.mjs"
++          cp scripts/release-integrity.mjs "$integrity_script"
++          printf 'RELEASE_INTEGRITY_SCRIPT=%s\n' "$integrity_script" >> "$GITHUB_ENV"
++          git fetch origin main --tags --force
++          if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
++            tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
++            test -n "$tag_commit"
++            git checkout --detach "$tag_commit"
++            release_commit="$tag_commit"
++            tag_exists=true
++          else
++            release_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
++            checkout_commit="$(git rev-parse HEAD^{commit})"
++            test "$checkout_commit" = "$release_commit"
++            tag_commit=""
++            tag_exists=false
++          fi
++          printf 'release_commit=%s\n' "$release_commit" >> "$GITHUB_OUTPUT"
++          printf 'tag_commit=%s\n' "$tag_commit" >> "$GITHUB_OUTPUT"
++          printf 'tag_exists=%s\n' "$tag_exists" >> "$GITHUB_OUTPUT"
++
++      - name: Validate release subject, package version, and changelog
++        env:
++          RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
++          TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
++          TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
++        run: |
++          node --input-type=module <<'NODE'
++          import { execFileSync } from "node:child_process";
++          import { readFileSync } from "node:fs";
++          const { assertChangelogVersion, assertReleaseSubject } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
++
++          const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
++          const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
++          assertReleaseSubject({
++            releaseTag: process.env.RELEASE_TAG,
++            packageVersion: packageJson.version,
++            tagExists: process.env.TAG_EXISTS === "true",
++            tagCommit: process.env.TAG_COMMIT || null,
++            releaseCommit: process.env.RELEASE_COMMIT,
++            checkoutCommit
++          });
++          assertChangelogVersion(readFileSync("CHANGELOG.md", "utf8"), packageJson.version);
++          console.log(`validated release subject ${process.env.RELEASE_COMMIT} for ${process.env.RELEASE_TAG}`);
++          NODE
++
++      - name: Verify exact-head aggregate validation
++        id: validation
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
++        env:
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
++        with:
++          script: |
++            const { findTrustedValidationRun } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
++            const checkRuns = await github.paginate(github.rest.checks.listForRef, {
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              ref: process.env.RELEASE_COMMIT,
++              per_page: 100
++            });
++            const workflowRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              workflow_id: "scwbs.yml",
++              head_sha: process.env.RELEASE_COMMIT,
++              per_page: 100
++            });
++            const trusted = findTrustedValidationRun({
++              checkRuns,
++              workflowRuns,
++              subjectCommit: process.env.RELEASE_COMMIT
++            });
++            if (!trusted) {
++              core.setFailed(`No successful exact-head aggregate validation was found for ${process.env.RELEASE_COMMIT}`);
++            } else {
++              core.setOutput("workflow_run_id", String(trusted.workflowRunId));
++              core.setOutput("checks", JSON.stringify(trusted.checks));
++              core.info(`trusted scwbs validation workflow run ${trusted.workflowRunId}`);
++            }
++
+       - name: Set up repository and Node.js toolchain
+         uses: ./.github/actions/setup-toolchain
+         with:
+@@ -30,29 +119,45 @@ jobs:
+         id: pack
+         env:
+           RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
++          VALIDATION_WORKFLOW_RUN_ID: ${{ steps.validation.outputs.workflow_run_id }}
++          VALIDATION_CHECKS: ${{ steps.validation.outputs.checks }}
+         run: |
+           set -euo pipefail
+           mkdir -p "$RUNNER_TEMP/scwbs-release"
+-          npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/manifest.json"
+-          node - <<'NODE'
+-          const fs = require("fs");
+-          const path = require("path");
+-          const manifest = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "scwbs-release", "manifest.json"), "utf8"))[0];
+-          const required = [
+-            "dist/cli.js",
+-            "dist/wjs-runtime/tools/validate.mjs",
+-            "dist/wjs-runtime/tools/apply.mjs",
+-            "dist/wjs-runtime/schema/wbs-json.schema.json",
+-            "dist/wjs-runtime/schema/wbs-operations.schema.json"
+-          ];
+-          const files = new Set(manifest.files.map((file) => file.path));
+-          for (const file of required) if (!files.has(file)) throw new Error(`release artifact is missing ${file}`);
+-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${path.join(process.env.RUNNER_TEMP, "scwbs-release", manifest.filename)}\n`);
++          npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/pack-metadata.json"
++          RELEASE_DIR="$RUNNER_TEMP/scwbs-release" node --input-type=module <<'NODE'
++          import { execFileSync } from "node:child_process";
++          import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
++          import path from "node:path";
++          const { assertCliVersion, createReleaseManifest } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
++
++          const releaseDir = process.env.RELEASE_DIR;
++          const packMetadata = JSON.parse(readFileSync(path.join(releaseDir, "pack-metadata.json"), "utf8"));
++          const packageEntry = packMetadata[0];
++          const tarballPath = path.join(releaseDir, packageEntry.filename);
++          const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
++          const cliVersion = execFileSync(process.execPath, ["dist/cli.js", "--version"], { encoding: "utf8" }).trim();
++          assertCliVersion(cliVersion, packageVersion);
++          const releaseManifest = createReleaseManifest({
++            packageVersion,
++            releaseTag: process.env.RELEASE_TAG,
++            commit: process.env.RELEASE_COMMIT,
++            tarballPath,
++            packMetadata,
++            validationWorkflowRunId: Number(process.env.VALIDATION_WORKFLOW_RUN_ID),
++            validationChecks: JSON.parse(process.env.VALIDATION_CHECKS)
++          });
++          const manifestPath = path.join(releaseDir, "release-manifest.json");
++          writeFileSync(manifestPath, `${JSON.stringify(releaseManifest, null, 2)}\n`);
++          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\n`);
+           NODE
+ 
+       - name: Create GitHub Release with artifact
+         env:
+           GH_TOKEN: ${{ github.token }}
+           RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           TARBALL: ${{ steps.pack.outputs.tarball }}
+-        run: gh release create "$RELEASE_TAG" "$TARBALL" --repo "$GITHUB_REPOSITORY" --title "scwbs $RELEASE_TAG" --generate-notes
++          RELEASE_MANIFEST: ${{ steps.pack.outputs.manifest }}
++        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml b/contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
+new file mode 100644
+index 0000000..7e83ee6
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSMWEQP7
++type: block
++taskId: SCWBS-DRAFT-MSMWEQP7
++status: resolved
++category: external-service
++level: 2
++requiredHumanDecision: Decide external service, billing, or release impact before implementation continues.
++reason: "Issue #506 requires editing .github/workflows/release.yml; Human Gate approval is required before implementation continues"
++createdAt: "2026-08-10T07:19:37.216Z"
++history:
++  - status: blocked
++    at: "2026-08-10T07:19:37.216Z"
++    reason: "Issue #506 requires editing .github/workflows/release.yml; Human Gate approval is required before implementation continues"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-10T07:38:24.424Z"
++    reason: Human Gate approval completed
++    by: human
++resolvedAt: "2026-08-10T07:38:24.424Z"
++resolvedBy: human
++resolution: Human Gate approval completed
+diff --git a/contracts/discovery/PROBE-issue-506-release-integrity.yaml b/contracts/discovery/PROBE-issue-506-release-integrity.yaml
+new file mode 100644
+index 0000000..7df5fe2
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-506-release-integrity.yaml
+@@ -0,0 +1,49 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-506-release-integrity
++type: discovery-probe
++status: concluded
++question: GitHub Releaseのtag・commit・package version・tarballを同一subjectへfail-closedに固定する最小実装範囲は何か
++hypotheses:
++  - 既存tagをそのcommitからcheckoutしてbuildできる
++  - aggregate validateのexact-head確認をrelease workflowに組み込める
++  - release-manifest.jsonとCHANGELOG version gateをworkflow-level testで検証できる
++activities:
++  - inspect release workflow and CI validation contract
++  - inspect package/changelog/release docs
++  - identify test harness and exact required checks
++  - define allowed paths and human-gate boundaries
++evidenceExpected:
++  - release workflow current behavior
++  - validate workflow/check naming
++  - package and changelog version rules
++  - existing workflow test conventions
++  - bounded path proposal
++unknowns:
++  - tag creation policy for workflow_dispatch
++  - exact aggregate validate check identity
++  - whether workflow-level tests can run without external GitHub API
++  - required human gate for release/publishing
++timebox: 30m
++costLimit: 1 bounded implementation Task
++exitConditions:
++  - release subject and package version rule is explicit
++  - exact subject validation path is explicit
++  - manifest fields and checksum source are explicit
++  - bounded delivery paths and stop conditions are explicit
++nextDecision: create and lock one bounded delivery Task for release subject pinning, exact aggregate validation, manifest checksum, changelog gate, regression tests, and distribution documentation
++deliveryTaskId: TASK-506
++createdAt: "2026-08-10T07:15:39.679Z"
++startedAt: "2026-08-10T07:15:48.130Z"
++concludedAt: "2026-08-10T07:18:03.348Z"
++exitConditionsMet: true
++factsLearned:
++  - release workflow currently builds main regardless of input tag
++  - scwbs aggregate validation is the named core integration wjs distribution validate set
++  - GitHub Actions check runs expose workflow run identity and head SHA
++  - distribution docs are the current release procedure source
++hypothesesRejected:
++  - existing tag can safely reuse main checkout
++  - validation from an unrelated commit is acceptable
++  - Unreleased-only changelog is sufficient for a versioned release
++remainingUnknowns:
++  - Human must approve release workflow change before merge and release execution
+diff --git a/contracts/specs/SPEC-LITE-MSMWEQP7.yaml b/contracts/specs/SPEC-LITE-MSMWEQP7.yaml
+new file mode 100644
+index 0000000..18e2485
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSMWEQP7.yaml
+@@ -0,0 +1,20 @@
++id: SPEC-LITE-MSMWEQP7
++type: spec-contract
++featureId: F-MSMWEQP7
++title: "Issue #506: GitHub Release subject integrity"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-506
++approvedAt: "2026-08-10T16:20:00+09:00"
++summary: "GitHub Releaseのtag、commit、package version、検証済みtarballを同一のrelease subjectへfail-closedに固定する"
++acceptanceCriteria:
++  - release workflow validates that the checked-out package version maps exactly to the requested vX.Y.Z tag
++  - an existing tag is resolved and checked out before build; a different main commit is never packaged for that tag
++  - a new tag is created by the GitHub Release operation only after the exact main subject commit has passed release validation
++  - aggregate validation requires successful core, integration, wjs, distribution, and validate checks from .github/workflows/scwbs.yml with workflow head SHA equal to the release subject
++  - release-manifest.json includes schemaVersion, packageVersion, tag, commit, tarball, sha256, and validation workflow run identity
++  - the tarball filename and package --version agree with the tag version
++  - a versioned CHANGELOG section is required; an Unreleased-only changelog fails closed
++  - workflow-level regression tests cover tag/version mismatch, existing-tag subject mismatch, missing or unrelated validation, manifest checksum, and changelog failures
++  - distribution documentation explains how to verify the manifest against the release asset
++  - no npm publish, automatic version selection, source mutation, or attestation implementation is added
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml b/contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
+new file mode 100644
+index 0000000..d44f2c4
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
+@@ -0,0 +1,69 @@
++id: SCWBS-DRAFT-MSMWEQP7
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSMWEQP7
++branchName: task/SCWBS-DRAFT-MSMWEQP7-issue-506-github-release-tag-commit-package-vers
++allowedPaths:
++  - .github/workflows/release.yml
++  - scripts/release-integrity.mjs
++  - tests/integration/release-integrity.test.ts
++  - docs/scwbs/distribution.md
++  - contracts/discovery/PROBE-issue-506-release-integrity.yaml
++  - contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/specs/SPEC-LITE-MSMWEQP7.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
++  - contracts/approvals/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - .github/workflows/release.yml
++stopIf:
++  - release/publish decision requires Human Gate
++  - external service or credential policy change
++  - package versioning policy change beyond explicit vX.Y.Z tag match
++  - attestation/provenance expansion beyond this bounded slice
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - release tag must equal v${package.json.version} after the release subject checkout
++  - existing tags are built from the exact commit resolved from that tag
++  - new tags are created only against the exact validated main subject commit
++  - only a successful .github/workflows/scwbs.yml run whose head SHA equals the release subject may satisfy aggregate validation
++  - release-manifest.json records packageVersion, tag, commit, tarball filename, SHA-256, and validation run identity
++  - the tarball filename and scwbs --version agree with the release tag version
++  - a versioned CHANGELOG section is required and Unreleased-only release attempts fail closed
++  - regression tests cover existing-tag mismatch, tag/version mismatch, missing validation, manifest checksum, and changelog gate failures
++  - release procedure documentation explains subject pinning and manifest verification
++  - 'Complete Issue #506: GitHub Releaseのtag・commit・package version・tarballを同一subjectへ固定する'
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
++  - contracts/approvals/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSMWEQP7.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:30e507bce3ef9ea5f547e1840c199aece8ce9e75b0cb9448b0dd4befefb9634d
++  createdAt: "2026-08-10T07:18:55.863Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 783146a..d8a13ed 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1847,3 +1847,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T05:35:03.859Z"
++  - id: SCWBS-DRAFT-MSMWEQP7
++    path: contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
++    branchName: task/SCWBS-DRAFT-MSMWEQP7-issue-506-github-release-tag-commit-package-vers
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index 451552a..3534444 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -32,5 +32,33 @@ packed artifact の境界は CI の `distribution` job と
+ ## Release policy
+ 
+ Release は main から手動 dispatch する `.github/workflows/release.yml` が
+-`npm pack` した tarball を GitHub Release に添付します。npm registry への
++release subject を先に確定し、対象 commit から `npm pack` した tarball と
++`release-manifest.json` を GitHub Release に添付します。npm registry への
+ publish、repository visibility の変更、credential の追加は行いません。
++
++workflow は次の順序を fail-closed で検証します。
++
++1. 入力 tag が `v${package.json.version}` と一致すること
++2. 既存 tag はその tag が指す commit を checkout し、新規 tag は現在の main
++   commit を release subject とすること
++3. 同じ subject SHA を head に持つ `.github/workflows/scwbs.yml` の
++   `core`、`integration`、`wjs`、`distribution`、`validate` がすべて成功済みであること
++4. versioned `CHANGELOG.md` section が存在すること
++5. tarball filename、package version、release tag が一致し、manifest の SHA-256
++   が生成 tarball と一致すること
++
++既存 tag の subject mismatch、version mismatch、validation 不在、または
++`Unreleased` section しかない CHANGELOG の場合は、tag や Release を作成せずに
++失敗します。新規 tag は全検証と manifest 生成が終わった後、
++`gh release create --target <subject-commit>` で初めて作成されます。
++
++Release asset の検証例:
++
++```bash
++gh release download v0.1.0 --repo xmeta/ACED --pattern 'scwbs-*.tgz' --pattern release-manifest.json
++sha256sum scwbs-0.1.0.tgz
++node -e 'const m=require("./release-manifest.json"); console.log(m.commit, m.tag, m.packageVersion, m.sha256)'
++```
++
++表示された SHA-256、tag、package version、commit が manifest の値と一致することを
++確認してから artifact を配布します。
+diff --git a/scripts/release-integrity.mjs b/scripts/release-integrity.mjs
+new file mode 100644
+index 0000000..4d9ed6c
+--- /dev/null
++++ b/scripts/release-integrity.mjs
+@@ -0,0 +1,153 @@
++import { createHash } from "node:crypto";
++import { readFileSync } from "node:fs";
++import path from "node:path";
++
++export const REQUIRED_RELEASE_CHECKS = Object.freeze([
++  "core",
++  "integration",
++  "wjs",
++  "distribution",
++  "validate"
++]);
++
++export const RELEASE_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
++
++const REQUIRED_PACKED_FILES = Object.freeze([
++  "dist/cli.js",
++  "dist/wjs-runtime/tools/validate.mjs",
++  "dist/wjs-runtime/tools/apply.mjs",
++  "dist/wjs-runtime/schema/wbs-json.schema.json",
++  "dist/wjs-runtime/schema/wbs-operations.schema.json"
++]);
++
++function escapeRegExp(value) {
++  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
++}
++
++export function expectedReleaseTag(packageVersion) {
++  if (typeof packageVersion !== "string" || packageVersion.length === 0 || packageVersion.includes("\n")) {
++    throw new Error("package.json version must be a non-empty single-line string");
++  }
++  return `v${packageVersion}`;
++}
++
++export function assertReleaseSubject({
++  releaseTag,
++  packageVersion,
++  tagExists,
++  tagCommit,
++  releaseCommit,
++  checkoutCommit
++}) {
++  const expectedTag = expectedReleaseTag(packageVersion);
++  if (releaseTag !== expectedTag) {
++    throw new Error(`release tag ${releaseTag} does not match package version ${packageVersion}; expected ${expectedTag}`);
++  }
++  if (!releaseCommit || checkoutCommit !== releaseCommit) {
++    throw new Error("release checkout is not the exact release subject commit");
++  }
++  if (tagExists && (!tagCommit || tagCommit !== releaseCommit)) {
++    throw new Error("existing release tag does not resolve to the checked-out release subject");
++  }
++}
++
++export function assertChangelogVersion(changelog, packageVersion) {
++  const heading = new RegExp(`^## \\[${escapeRegExp(packageVersion)}\\](?:\\s|$)`, "m");
++  if (!heading.test(changelog)) {
++    throw new Error(`CHANGELOG.md is missing a versioned section for ${packageVersion}`);
++  }
++}
++
++export function assertCliVersion(actualVersion, packageVersion) {
++  if (actualVersion !== packageVersion) {
++    throw new Error(`scwbs --version returned ${actualVersion}; expected ${packageVersion}`);
++  }
++}
++
++function runIdFromCheck(check) {
++  if (Number.isInteger(check?.run_id)) return check.run_id;
++  if (Number.isInteger(check?.workflow_run?.id)) return check.workflow_run.id;
++  return Number(/\/actions\/runs\/(\d+)/.exec(check?.details_url ?? "")?.[1] ?? 0) || null;
++}
++
++export function findTrustedValidationRun({
++  checkRuns,
++  workflowRuns,
++  subjectCommit,
++  requiredChecks = REQUIRED_RELEASE_CHECKS,
++  workflowPath = RELEASE_WORKFLOW_PATH
++}) {
++  const trustedRuns = workflowRuns
++    .filter((run) => run?.head_sha === subjectCommit)
++    .filter((run) => run?.path === workflowPath)
++    .filter((run) => run?.status === "completed" && run?.conclusion === "success")
++    .sort((left, right) => Number(right.id ?? 0) - Number(left.id ?? 0));
++
++  for (const workflowRun of trustedRuns) {
++    const byName = new Map(
++      checkRuns
++        .filter((check) => runIdFromCheck(check) === workflowRun.id)
++        .filter((check) => check?.app?.slug === "github-actions")
++        .filter((check) => check?.status === "completed" && check?.conclusion === "success")
++        .map((check) => [check.name, check])
++    );
++    if (!requiredChecks.every((name) => byName.has(name))) continue;
++    return {
++      workflowRunId: workflowRun.id,
++      checks: requiredChecks.map((name) => {
++        const check = byName.get(name);
++        return {
++          id: check.id,
++          name: check.name,
++          conclusion: check.conclusion,
++          detailsUrl: check.details_url ?? null
++        };
++      })
++    };
++  }
++  return null;
++}
++
++export function createReleaseManifest({
++  packageVersion,
++  releaseTag,
++  commit,
++  tarballPath,
++  packMetadata,
++  validationWorkflowRunId,
++  validationChecks
++}) {
++  const tarball = path.basename(tarballPath);
++  const expectedTarball = `scwbs-${packageVersion}.tgz`;
++  if (releaseTag !== expectedReleaseTag(packageVersion)) {
++    throw new Error(`manifest tag ${releaseTag} does not match package version ${packageVersion}`);
++  }
++  if (tarball !== expectedTarball) {
++    throw new Error(`tarball ${tarball} does not match expected filename ${expectedTarball}`);
++  }
++  const packageEntry = Array.isArray(packMetadata) ? packMetadata[0] : packMetadata;
++  if (!packageEntry || packageEntry.name !== "scwbs" || packageEntry.version !== packageVersion) {
++    throw new Error("npm pack metadata does not match the release package version");
++  }
++  if (!Number.isInteger(validationWorkflowRunId) || validationWorkflowRunId <= 0) {
++    throw new Error("release manifest is missing a trusted validation workflow run id");
++  }
++  const packedFiles = new Set((packageEntry.files ?? []).map((file) => file.path));
++  for (const required of REQUIRED_PACKED_FILES) {
++    if (!packedFiles.has(required)) throw new Error(`release artifact is missing ${required}`);
++  }
++  const sha256 = createHash("sha256").update(readFileSync(tarballPath)).digest("hex");
++  return {
++    schemaVersion: "1.0.0",
++    packageVersion,
++    tag: releaseTag,
++    commit,
++    tarball,
++    sha256,
++    validation: {
++      workflow: RELEASE_WORKFLOW_PATH,
++      workflowRunId: validationWorkflowRunId,
++      checks: validationChecks
++    }
++  };
++}
+diff --git a/tests/integration/release-integrity.test.ts b/tests/integration/release-integrity.test.ts
+new file mode 100644
+index 0000000..b7279eb
+--- /dev/null
++++ b/tests/integration/release-integrity.test.ts
+@@ -0,0 +1,147 @@
++import { createHash } from "node:crypto";
++import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import {
++  assertChangelogVersion,
++  assertCliVersion,
++  assertReleaseSubject,
++  createReleaseManifest,
++  findTrustedValidationRun
++} from "../../scripts/release-integrity.mjs";
++
++const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/release.yml"), "utf8");
++const subject = "a".repeat(40);
++const otherSubject = "b".repeat(40);
++
++function validationFixtures(overrides: Record<string, unknown> = {}) {
++  const workflowRun = {
++    id: 5060,
++    path: ".github/workflows/scwbs.yml",
++    head_sha: subject,
++    status: "completed",
++    conclusion: "success"
++  };
++  const checkRuns = ["core", "integration", "wjs", "distribution", "validate"].map((name) => ({
++    id: name,
++    name,
++    status: "completed",
++    conclusion: "success",
++    app: { slug: "github-actions" },
++    details_url: `https://github.com/xmeta/ACED/actions/runs/${workflowRun.id}/job/1`
++  }));
++  return {
++    workflowRuns: [workflowRun],
++    checkRuns,
++    subjectCommit: subject,
++    ...overrides
++  };
++}
++
++describe("release integrity", () => {
++  test("requires the package version tag and exact checked-out subject", () => {
++    expect(() => assertReleaseSubject({
++      releaseTag: "v0.1.0",
++      packageVersion: "0.1.0",
++      tagExists: true,
++      tagCommit: subject,
++      releaseCommit: subject,
++      checkoutCommit: subject
++    })).not.toThrow();
++
++    expect(() => assertReleaseSubject({
++      releaseTag: "v0.2.0",
++      packageVersion: "0.1.0",
++      tagExists: false,
++      tagCommit: null,
++      releaseCommit: subject,
++      checkoutCommit: subject
++    })).toThrow(/does not match package version/);
++
++    expect(() => assertReleaseSubject({
++      releaseTag: "v0.1.0",
++      packageVersion: "0.1.0",
++      tagExists: true,
++      tagCommit: otherSubject,
++      releaseCommit: subject,
++      checkoutCommit: subject
++    })).toThrow(/existing release tag/);
++
++    expect(() => assertReleaseSubject({
++      releaseTag: "v0.1.0",
++      packageVersion: "0.1.0",
++      tagExists: false,
++      tagCommit: null,
++      releaseCommit: subject,
++      checkoutCommit: otherSubject
++    })).toThrow(/exact release subject/);
++  });
++
++  test("accepts only successful aggregate validation for the exact workflow head", () => {
++    expect(findTrustedValidationRun(validationFixtures())).toMatchObject({ workflowRunId: 5060 });
++    expect(findTrustedValidationRun(validationFixtures({ subjectCommit: otherSubject }))).toBeNull();
++    expect(findTrustedValidationRun(validationFixtures({
++      workflowRuns: [{ ...validationFixtures().workflowRuns[0], head_sha: otherSubject }]
++    }))).toBeNull();
++    expect(findTrustedValidationRun(validationFixtures({
++      checkRuns: validationFixtures().checkRuns.filter((check) => check.name !== "validate")
++    }))).toBeNull();
++  });
++
++  test("rejects an Unreleased-only changelog and accepts a versioned section", () => {
++    expect(() => assertChangelogVersion("## [Unreleased]\n", "0.1.0")).toThrow(/missing a versioned section/);
++    expect(() => assertChangelogVersion("## [Unreleased]\n\n## [0.1.0] - 2026-08-10\n", "0.1.0")).not.toThrow();
++  });
++
++  test("requires the packaged CLI version to equal package.json", () => {
++    expect(() => assertCliVersion("0.1.0", "0.1.0")).not.toThrow();
++    expect(() => assertCliVersion("0.2.0", "0.1.0")).toThrow(/expected 0.1.0/);
++  });
++
++  test("creates a manifest with the tarball checksum and validation provenance", () => {
++    const root = mkdtempSync(path.join(tmpdir(), "scwbs-release-integrity-"));
++    const tarballPath = path.join(root, "scwbs-0.1.0.tgz");
++    const tarball = Buffer.from("release subject");
++    writeFileSync(tarballPath, tarball);
++    const manifest = createReleaseManifest({
++      packageVersion: "0.1.0",
++      releaseTag: "v0.1.0",
++      commit: subject,
++      tarballPath,
++      packMetadata: [{
++        name: "scwbs",
++        version: "0.1.0",
++        filename: "scwbs-0.1.0.tgz",
++        files: [
++          { path: "dist/cli.js" },
++          { path: "dist/wjs-runtime/tools/validate.mjs" },
++          { path: "dist/wjs-runtime/tools/apply.mjs" },
++          { path: "dist/wjs-runtime/schema/wbs-json.schema.json" },
++          { path: "dist/wjs-runtime/schema/wbs-operations.schema.json" }
++        ]
++      }],
++      validationWorkflowRunId: 5060,
++      validationChecks: [{ name: "validate", conclusion: "success" }]
++    });
++    expect(manifest).toMatchObject({
++      packageVersion: "0.1.0",
++      tag: "v0.1.0",
++      commit: subject,
++      tarball: "scwbs-0.1.0.tgz",
++      sha256: createHash("sha256").update(tarball).digest("hex"),
++      validation: { workflowRunId: 5060 }
++    });
++  });
++
++  test("keeps the workflow fail-closed and target-pinned", () => {
++    expect(workflow).toContain("checks: read");
++    expect(workflow).toContain("actions: read");
++    expect(workflow).toContain('cp scripts/release-integrity.mjs "$integrity_script"');
++    expect(workflow).toContain('git checkout --detach "$tag_commit"');
++    expect(workflow).toContain('import(process.env.RELEASE_INTEGRITY_SCRIPT)');
++    expect(workflow).toContain("findTrustedValidationRun");
++    expect(workflow).toContain("release-manifest.json");
++    expect(workflow).toContain('--target "$RELEASE_COMMIT"');
++  });
++});
