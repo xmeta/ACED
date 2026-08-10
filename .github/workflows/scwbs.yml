@@ -13,14 +13,22 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["scwbs"]
+    types: [completed]
 
 jobs:
   plan:
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     outputs:
       mode: ${{ steps.final.outputs.mode }}
       task_id: ${{ steps.final.outputs.task_id }}
       subject: ${{ steps.final.outputs.subject }}
+      head_commit: ${{ steps.final.outputs.head_commit }}
+      base_commit: ${{ steps.final.outputs.base_commit }}
+      diff_hash: ${{ steps.final.outputs.diff_hash }}
+      authority_fingerprint: ${{ steps.final.outputs.authority_fingerprint }}
     steps:
       - name: Bootstrap local action checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -221,7 +229,7 @@ jobs:
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\n`);
+            `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\nhead_commit=${plan.headCommit ?? ""}\nbase_commit=${plan.baseCommit ?? ""}\ndiff_hash=${plan.diffHash ?? ""}\nauthority_fingerprint=${plan.authorityFingerprint ?? ""}\n`);
           process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
           NODE
       - name: Validate schemas and check coverage on metadata fast path
@@ -375,7 +383,7 @@ jobs:
         run: node scripts/distribution-smoke.mjs
 
   validate:
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'workflow_run' && always() }}
     needs:
       - plan
       - core
@@ -410,3 +418,166 @@ jobs:
             test "$DISTRIBUTION_RESULT" = "success"
             test "$MINIMUM_NODE_RESULT" = "success"
           fi
+      - name: Create verified CI receipt and PR readiness artifact
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SCWBS_REPOSITORY: ${{ github.repository }}
+          SCWBS_PULL_REQUEST: ${{ github.event.pull_request.number }}
+          SCWBS_TASK_ID: ${{ needs.plan.outputs.task_id }}
+          SCWBS_HEAD_COMMIT: ${{ needs.plan.outputs.head_commit }}
+          SCWBS_BASE_COMMIT: ${{ needs.plan.outputs.base_commit }}
+          SCWBS_DIFF_HASH: ${{ needs.plan.outputs.diff_hash }}
+          SCWBS_AUTHORITY_FINGERPRINT: ${{ needs.plan.outputs.authority_fingerprint }}
+          SCWBS_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCWBS_DRAFT: ${{ github.event.pull_request.draft }}
+        with:
+          script: |
+            const fs = require("fs");
+            const crypto = require("crypto");
+            const workflowPath = ".github/workflows/scwbs.yml";
+            const required = ["core", "integration", "wjs"];
+            const checks = await github.paginate(github.rest.checks.listForRef, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: process.env.SCWBS_HEAD_COMMIT,
+              per_page: 100
+            });
+            const jobs = required.map((name) => {
+              const check = checks.find((candidate) => candidate.name === name && candidate.app?.slug === "github-actions" && candidate.conclusion === "success");
+              if (!check) throw new Error(`missing successful ${name} check for the implementation subject`);
+              return {
+                name,
+                checkNames: name === "core" ? ["test", "typecheck", "build"] : name === "integration" ? ["test:integration"] : [],
+                jobId: String(check.id),
+                conclusion: "success",
+                url: check.details_url,
+                workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+                workflowPath
+              };
+            });
+            jobs.push({
+              name: "validate",
+              checkNames: [],
+              jobId: `${process.env.SCWBS_WORKFLOW_RUN_ID}-validate`,
+              conclusion: "success",
+              url: process.env.SCWBS_WORKFLOW_RUN_URL,
+              workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+              workflowPath
+            });
+            const ciReceipt = {
+              schemaVersion: "1.0.0",
+              repository: process.env.SCWBS_REPOSITORY,
+              pullRequest: process.env.SCWBS_PULL_REQUEST,
+              taskId: process.env.SCWBS_TASK_ID,
+              headCommit: process.env.SCWBS_HEAD_COMMIT,
+              baseRef: "origin/main",
+              baseCommit: process.env.SCWBS_BASE_COMMIT,
+              diffHash: process.env.SCWBS_DIFF_HASH,
+              authorityFingerprint: process.env.SCWBS_AUTHORITY_FINGERPRINT,
+              workflowPath,
+              workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+              workflowRunUrl: process.env.SCWBS_WORKFLOW_RUN_URL,
+              trustedCommit: process.env.SCWBS_HEAD_COMMIT,
+              retrievedAt: new Date().toISOString(),
+              verifiedBy: "github-actions-provenance",
+              jobs
+            };
+            const ciBytes = Buffer.from(`${JSON.stringify(ciReceipt, null, 2)}\n`, "utf8");
+            const artifactName = `scwbs-ci-receipt-${process.env.SCWBS_WORKFLOW_RUN_ID}`;
+            const readiness = {
+              schemaVersion: "1.0.0",
+              type: "scwbs.pr-readiness.v1",
+              repository: process.env.SCWBS_REPOSITORY,
+              pullRequest: process.env.SCWBS_PULL_REQUEST,
+              taskId: process.env.SCWBS_TASK_ID,
+              headCommit: process.env.SCWBS_HEAD_COMMIT,
+              baseRef: "origin/main",
+              baseCommit: process.env.SCWBS_BASE_COMMIT,
+              diffHash: process.env.SCWBS_DIFF_HASH,
+              authorityFingerprint: process.env.SCWBS_AUTHORITY_FINGERPRINT,
+              workflowPath,
+              workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+              workflowRunUrl: process.env.SCWBS_WORKFLOW_RUN_URL,
+              artifactName,
+              artifactDigest: `sha256:${crypto.createHash("sha256").update(ciBytes).digest("hex")}`,
+              validateStatus: "success",
+              nextAction: process.env.SCWBS_DRAFT === "true"
+                ? { owner: "human", kind: "guidance", message: "Mark the pull request ready for review before protected merge." }
+                : { owner: "human", kind: "guidance", message: "Review Evidence and Approval state, then use the protected scwbs merge command." },
+              mergeReadiness: {
+                status: process.env.SCWBS_DRAFT === "true" ? "not-ready" : "ready",
+                reasonCodes: process.env.SCWBS_DRAFT === "true" ? ["pr.draft"] : []
+              },
+              generatedAt: new Date().toISOString()
+            };
+            fs.writeFileSync("ci-receipt.json", ciBytes);
+            fs.writeFileSync("pr-readiness.json", `${JSON.stringify(readiness, null, 2)}\n`);
+      - name: Upload verified CI readiness artifact
+        if: ${{ github.event_name == 'pull_request' && success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scwbs-readiness-${{ github.run_id }}
+          path: |
+            ci-receipt.json
+            pr-readiness.json
+          if-no-files-found: error
+
+  readiness-reporter:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified readiness artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: scwbs-readiness-${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Verify provenance and upsert PR readiness comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
+        with:
+          script: |
+            const fs = require("fs");
+            const crypto = require("crypto");
+            const readiness = JSON.parse(fs.readFileSync("pr-readiness.json", "utf8"));
+            const ciBytes = fs.readFileSync("ci-receipt.json");
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            if (readiness.repository !== expectedRepository) throw new Error("readiness repository provenance mismatch");
+            if (readiness.workflowRunId !== String(process.env.WORKFLOW_RUN_ID)) throw new Error("readiness workflow run mismatch");
+            if (readiness.headCommit !== process.env.WORKFLOW_HEAD_SHA) throw new Error("readiness head provenance mismatch");
+            if (readiness.workflowPath !== ".github/workflows/scwbs.yml" || process.env.WORKFLOW_PATH !== readiness.workflowPath) throw new Error("readiness workflow path mismatch");
+            const digest = `sha256:${crypto.createHash("sha256").update(ciBytes).digest("hex")}`;
+            if (readiness.artifactDigest !== digest) throw new Error("readiness artifact digest mismatch");
+            const pullRequest = Number(readiness.pullRequest);
+            if (!Number.isInteger(pullRequest) || pullRequest <= 0) throw new Error("readiness pull request is invalid");
+            const pullRequestData = (await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest
+            })).data;
+            if (pullRequestData.head?.sha !== readiness.headCommit) throw new Error("readiness PR head does not match the verified artifact");
+            if (pullRequestData.base?.repo?.full_name !== expectedRepository) throw new Error("readiness PR base repository mismatch");
+            const marker = "<!-- scwbs-pr-readiness-v1 -->";
+            const body = `${marker}\n## SC-WBS readiness\n\n- Task: \`${readiness.taskId}\`\n- Head: \`${readiness.headCommit}\`\n- Validate: ✅ ${readiness.validateStatus}\n- Merge readiness: ${readiness.mergeReadiness.status === "ready" ? "✅ ready" : "⚠ not ready"}\n- Next owner: **${readiness.nextAction.owner}** — ${readiness.nextAction.message}\n- Workflow: [${readiness.workflowRunId}](${readiness.workflowRunUrl})\n\nProvenance was verified by the trusted reporter; this comment does not create Approval, Review, or merge transitions.`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => typeof comment.body === "string" && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pullRequest, body });
+            }

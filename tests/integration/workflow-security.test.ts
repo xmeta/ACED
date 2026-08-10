@@ -26,4 +26,22 @@ describe("workflow secret isolation", () => {
 
     expect(observed).toBe("");
   });
+
+  test("readiness reporting is isolated to the trusted workflow_run reporter", () => {
+    expect(workflow).toContain("workflow_run:");
+    expect(workflow).toContain("readiness-reporter:");
+    expect(workflow).toContain("pull-requests: write");
+    const reporter = workflow.slice(workflow.indexOf("  readiness-reporter:"));
+    expect(reporter).not.toContain("actions/checkout@");
+    expect(reporter).toContain("actions/download-artifact@");
+    expect(reporter).toContain("scwbs-pr-readiness-v1");
+    expect(reporter).toContain("does not create Approval, Review, or merge transitions");
+    expect(reporter).toContain("updateComment");
+    expect(reporter).toContain("createComment");
+  });
+
+  test("pull_request execution retains read-only workflow permissions", () => {
+    expect(workflow).toContain("permissions:\n  contents: read\n  checks: read\n  actions: read");
+    expect(workflow).not.toContain("SCWBS_APPROVAL_DELEGATION_TOKEN");
+  });
 });

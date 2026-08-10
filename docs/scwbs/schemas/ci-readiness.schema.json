@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.example/scwbs/ci-readiness.schema.json",
+  "title": "SC-WBS PR readiness artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "type", "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash", "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "artifactName", "artifactDigest", "validateStatus", "nextAction", "mergeReadiness", "generatedAt"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "type": { "const": "scwbs.pr-readiness.v1" },
+    "repository": { "type": "string", "minLength": 1 },
+    "pullRequest": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "headCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "baseRef": { "type": "string", "minLength": 1 },
+    "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "diffHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "authorityFingerprint": { "type": "string", "minLength": 1 },
+    "workflowPath": { "const": ".github/workflows/scwbs.yml" },
+    "workflowRunId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "workflowRunUrl": { "type": "string", "format": "uri" },
+    "artifactName": { "type": "string", "minLength": 1 },
+    "artifactDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "validateStatus": { "enum": ["success", "failure", "cancelled", "unknown"] },
+    "nextAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "kind", "message"],
+      "properties": {
+        "owner": { "enum": ["human", "ai", "user", "external"] },
+        "kind": { "enum": ["guidance", "wait", "command"] },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    },
+    "mergeReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reasonCodes"],
+      "properties": {
+        "status": { "enum": ["ready", "not-ready", "unknown"] },
+        "reasonCodes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "generatedAt": { "type": "string", "format": "date-time" }
+  }
+}

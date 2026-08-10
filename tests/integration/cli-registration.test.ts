@@ -46,6 +46,7 @@ describe("domain CLI registration", () => {
     expect(captureHelp(["approval", "approve", "--help"], root).stdout).toContain("--scope <scope>");
     expect(captureHelp(["spec-change", "new", "--help"], root).stdout).toContain("--proposed-version <version>");
     expect(captureHelp(["evidence", "collect", "--help"], root).stdout).toContain("--output <target>");
+    expect(captureHelp(["evidence", "import-ci", "--help"], root).stdout).toContain("--readiness <path>");
     expect(captureHelp(["review", "request", "--help"], root).stdout).toContain("--json");
   });
 
