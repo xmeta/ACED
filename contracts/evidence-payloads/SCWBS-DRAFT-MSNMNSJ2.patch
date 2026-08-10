@@ -1,15 +1,87 @@
-diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
-index 09e8f3d..ba9770d 100644
---- a/.github/workflows/scwbs.yml
-+++ b/.github/workflows/scwbs.yml
-@@ -13,14 +13,22 @@ on:
-   push:
-     branches:
-       - main
+diff --git a/.github/workflows/scwbs-readiness-reporter.yml b/.github/workflows/scwbs-readiness-reporter.yml
+new file mode 100644
+index 0000000..f23e235
+--- /dev/null
++++ b/.github/workflows/scwbs-readiness-reporter.yml
+@@ -0,0 +1,69 @@
++name: scwbs-readiness-reporter
++
++on:
 +  workflow_run:
 +    workflows: ["scwbs"]
 +    types: [completed]
- 
++
++permissions:
++  actions: read
++  contents: read
++
++jobs:
++  readiness-reporter:
++    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
++    permissions:
++      actions: read
++      contents: read
++      pull-requests: write
++    runs-on: ubuntu-latest
++    steps:
++      - name: Download verified readiness artifact
++        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
++        with:
++          name: scwbs-readiness-${{ github.event.workflow_run.id }}
++          github-token: ${{ secrets.GITHUB_TOKEN }}
++          repository: ${{ github.repository }}
++          run-id: ${{ github.event.workflow_run.id }}
++      - name: Verify provenance and upsert PR readiness comment
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
++        env:
++          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
++          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
++          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
++        with:
++          script: |
++            const fs = require("fs");
++            const crypto = require("crypto");
++            const readiness = JSON.parse(fs.readFileSync("pr-readiness.json", "utf8"));
++            const ciBytes = fs.readFileSync("ci-receipt.json");
++            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
++            if (readiness.repository !== expectedRepository) throw new Error("readiness repository provenance mismatch");
++            if (readiness.workflowRunId !== String(process.env.WORKFLOW_RUN_ID)) throw new Error("readiness workflow run mismatch");
++            if (readiness.headCommit !== process.env.WORKFLOW_HEAD_SHA) throw new Error("readiness head provenance mismatch");
++            if (readiness.workflowPath !== ".github/workflows/scwbs.yml" || process.env.WORKFLOW_PATH !== readiness.workflowPath) throw new Error("readiness workflow path mismatch");
++            const digest = `sha256:${crypto.createHash("sha256").update(ciBytes).digest("hex")}`;
++            if (readiness.artifactDigest !== digest) throw new Error("readiness artifact digest mismatch");
++            const pullRequest = Number(readiness.pullRequest);
++            if (!Number.isInteger(pullRequest) || pullRequest <= 0) throw new Error("readiness pull request is invalid");
++            const pullRequestData = (await github.rest.pulls.get({
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              pull_number: pullRequest
++            })).data;
++            if (pullRequestData.head?.sha !== readiness.headCommit) throw new Error("readiness PR head does not match the verified artifact");
++            if (pullRequestData.base?.repo?.full_name !== expectedRepository) throw new Error("readiness PR base repository mismatch");
++            const marker = "<!-- scwbs-pr-readiness-v1 -->";
++            const body = `${marker}\n## SC-WBS readiness\n\n- Task: \`${readiness.taskId}\`\n- Head: \`${readiness.headCommit}\`\n- Validate: ✅ ${readiness.validateStatus}\n- Merge readiness: ${readiness.mergeReadiness.status === "ready" ? "✅ ready" : "⚠ not ready"}\n- Next owner: **${readiness.nextAction.owner}** — ${readiness.nextAction.message}\n- Workflow: [${readiness.workflowRunId}](${readiness.workflowRunUrl})\n\nProvenance was verified by the trusted reporter; this comment does not create Approval, Review, or merge transitions.`;
++            const comments = await github.paginate(github.rest.issues.listComments, {
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              issue_number: pullRequest,
++              per_page: 100
++            });
++            const existing = comments.find((comment) => typeof comment.body === "string" && comment.body.includes(marker));
++            if (existing) {
++              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
++            } else {
++              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pullRequest, body });
++            }
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 09e8f3d..afe22e6 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -13,14 +13,18 @@ on:
+   push:
+     branches:
+       - main
+-
  jobs:
    plan:
 +    if: github.event_name != 'workflow_run'
@@ -25,7 +97,7 @@ index 09e8f3d..ba9770d 100644
      steps:
        - name: Bootstrap local action checkout
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -221,7 +229,7 @@ jobs:
+@@ -221,7 +225,7 @@ jobs:
            };
            fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
            fs.appendFileSync(process.env.GITHUB_OUTPUT,
@@ -34,7 +106,7 @@ index 09e8f3d..ba9770d 100644
            process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
            NODE
        - name: Validate schemas and check coverage on metadata fast path
-@@ -375,7 +383,7 @@ jobs:
+@@ -375,7 +379,7 @@ jobs:
          run: node scripts/distribution-smoke.mjs
  
    validate:
@@ -43,7 +115,7 @@ index 09e8f3d..ba9770d 100644
      needs:
        - plan
        - core
-@@ -410,3 +418,166 @@ jobs:
+@@ -410,3 +414,108 @@ jobs:
              test "$DISTRIBUTION_RESULT" = "success"
              test "$MINIMUM_NODE_RESULT" = "success"
            fi
@@ -152,64 +224,6 @@ index 09e8f3d..ba9770d 100644
 +            ci-receipt.json
 +            pr-readiness.json
 +          if-no-files-found: error
-+
-+  readiness-reporter:
-+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
-+    permissions:
-+      actions: read
-+      contents: read
-+      pull-requests: write
-+    runs-on: ubuntu-latest
-+    steps:
-+      - name: Download verified readiness artifact
-+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-+        with:
-+          name: scwbs-readiness-${{ github.event.workflow_run.id }}
-+          github-token: ${{ secrets.GITHUB_TOKEN }}
-+          repository: ${{ github.repository }}
-+          run-id: ${{ github.event.workflow_run.id }}
-+      - name: Verify provenance and upsert PR readiness comment
-+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-+        env:
-+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-+          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
-+        with:
-+          script: |
-+            const fs = require("fs");
-+            const crypto = require("crypto");
-+            const readiness = JSON.parse(fs.readFileSync("pr-readiness.json", "utf8"));
-+            const ciBytes = fs.readFileSync("ci-receipt.json");
-+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
-+            if (readiness.repository !== expectedRepository) throw new Error("readiness repository provenance mismatch");
-+            if (readiness.workflowRunId !== String(process.env.WORKFLOW_RUN_ID)) throw new Error("readiness workflow run mismatch");
-+            if (readiness.headCommit !== process.env.WORKFLOW_HEAD_SHA) throw new Error("readiness head provenance mismatch");
-+            if (readiness.workflowPath !== ".github/workflows/scwbs.yml" || process.env.WORKFLOW_PATH !== readiness.workflowPath) throw new Error("readiness workflow path mismatch");
-+            const digest = `sha256:${crypto.createHash("sha256").update(ciBytes).digest("hex")}`;
-+            if (readiness.artifactDigest !== digest) throw new Error("readiness artifact digest mismatch");
-+            const pullRequest = Number(readiness.pullRequest);
-+            if (!Number.isInteger(pullRequest) || pullRequest <= 0) throw new Error("readiness pull request is invalid");
-+            const pullRequestData = (await github.rest.pulls.get({
-+              owner: context.repo.owner,
-+              repo: context.repo.repo,
-+              pull_number: pullRequest
-+            })).data;
-+            if (pullRequestData.head?.sha !== readiness.headCommit) throw new Error("readiness PR head does not match the verified artifact");
-+            if (pullRequestData.base?.repo?.full_name !== expectedRepository) throw new Error("readiness PR base repository mismatch");
-+            const marker = "<!-- scwbs-pr-readiness-v1 -->";
-+            const body = `${marker}\n## SC-WBS readiness\n\n- Task: \`${readiness.taskId}\`\n- Head: \`${readiness.headCommit}\`\n- Validate: ✅ ${readiness.validateStatus}\n- Merge readiness: ${readiness.mergeReadiness.status === "ready" ? "✅ ready" : "⚠ not ready"}\n- Next owner: **${readiness.nextAction.owner}** — ${readiness.nextAction.message}\n- Workflow: [${readiness.workflowRunId}](${readiness.workflowRunUrl})\n\nProvenance was verified by the trusted reporter; this comment does not create Approval, Review, or merge transitions.`;
-+            const comments = await github.paginate(github.rest.issues.listComments, {
-+              owner: context.repo.owner,
-+              repo: context.repo.repo,
-+              issue_number: pullRequest,
-+              per_page: 100
-+            });
-+            const existing = comments.find((comment) => typeof comment.body === "string" && comment.body.includes(marker));
-+            if (existing) {
-+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
-+            } else {
-+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pullRequest, body });
-+            }
 diff --git a/contracts/blocks/SCWBS-DRAFT-MSNMNSJ2.yaml b/contracts/blocks/SCWBS-DRAFT-MSNMNSJ2.yaml
 new file mode 100644
 index 0000000..721dc0a
@@ -322,10 +336,10 @@ index 0000000..d7e198f
 +  - "External GitHub API behavior is validated through bounded adapters and fail-closed tests; no new credential or billing integration is introduced."
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSNMNSJ2.yaml b/contracts/tasks/SCWBS-DRAFT-MSNMNSJ2.yaml
 new file mode 100644
-index 0000000..5c09028
+index 0000000..7d8f623
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSNMNSJ2.yaml
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,92 @@
 +id: SCWBS-DRAFT-MSNMNSJ2
 +type: task-contract
 +status: approved
@@ -337,6 +351,7 @@ index 0000000..5c09028
 +branchName: task/SCWBS-DRAFT-MSNMNSJ2-issue-512-safe-pr-readiness-feedback-and-verifie
 +allowedPaths:
 +  - .github/workflows/scwbs.yml
++  - .github/workflows/scwbs-readiness-reporter.yml
 +  - contracts/discovery/PROBE-issue-512-pr-readiness-evidence.yaml
 +  - src/commands/evidence-import-ci.ts
 +  - src/core/ci-readiness.ts
@@ -416,7 +431,7 @@ index 0000000..5c09028
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:7be93a4d3473fbbed67d7d2c56ae3c7385e93e6ce4830a90bfd07cdf061a1235
-+  createdAt: "2026-08-10T19:47:49.109Z"
++  createdAt: "2026-08-10T21:01:24.844Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 91590a7..d915344 100644
 --- a/contracts/tasks/index.yaml
@@ -858,19 +873,29 @@ index 0000000..1af5ccc
 +  });
 +});
 diff --git a/tests/integration/workflow-security.test.ts b/tests/integration/workflow-security.test.ts
-index 5ab6fec..e6b236b 100644
+index 5ab6fec..47eaec8 100644
 --- a/tests/integration/workflow-security.test.ts
 +++ b/tests/integration/workflow-security.test.ts
-@@ -26,4 +26,22 @@ describe("workflow secret isolation", () => {
+@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
+ 
+ const DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+ const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
++const reporterWorkflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs-readiness-reporter.yml"), "utf8");
+ const setupAction = readFileSync(path.join(process.cwd(), ".github/actions/setup-toolchain/action.yml"), "utf8");
+ 
+ describe("workflow secret isolation", () => {
+@@ -26,4 +27,24 @@ describe("workflow secret isolation", () => {
  
      expect(observed).toBe("");
    });
 +
 +  test("readiness reporting is isolated to the trusted workflow_run reporter", () => {
-+    expect(workflow).toContain("workflow_run:");
-+    expect(workflow).toContain("readiness-reporter:");
-+    expect(workflow).toContain("pull-requests: write");
-+    const reporter = workflow.slice(workflow.indexOf("  readiness-reporter:"));
++    expect(workflow).not.toContain("\n  workflow_run:");
++    expect(workflow).not.toContain("readiness-reporter:");
++    expect(reporterWorkflow).toContain("workflow_run:");
++    expect(reporterWorkflow).toContain("readiness-reporter:");
++    expect(reporterWorkflow).toContain("pull-requests: write");
++    const reporter = reporterWorkflow;
 +    expect(reporter).not.toContain("actions/checkout@");
 +    expect(reporter).toContain("actions/download-artifact@");
 +    expect(reporter).toContain("scwbs-pr-readiness-v1");
