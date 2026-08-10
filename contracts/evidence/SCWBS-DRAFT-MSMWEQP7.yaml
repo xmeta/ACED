@@ -1,0 +1,74 @@
+id: EVD-SCWBS-DRAFT-MSMWEQP7
+type: evidence
+taskId: SCWBS-DRAFT-MSMWEQP7
+commit: 7061c701bf5c05b44af7d4b8447658156d810c70
+subjectHeadCommit: 7061c701bf5c05b44af7d4b8447658156d810c70
+diffHash: sha256:d1844ea8c44d3e90a9f686dba9662d5e87af63a9f7626c4e9a06030fd7d65178
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 7061c701bf5c05b44af7d4b8447658156d810c70
+    treeHash: 8ee6124d6cdcae7272c9a77b2f1ae802a8023549
+    diffHash: sha256:d1844ea8c44d3e90a9f686dba9662d5e87af63a9f7626c4e9a06030fd7d65178
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
+    manifestHash: sha256:d1844ea8c44d3e90a9f686dba9662d5e87af63a9f7626c4e9a06030fd7d65178
+git:
+  branch: task/SCWBS-DRAFT-MSMWEQP7-issue-506-github-release-tag-commit-package-vers
+  base: origin/main
+  baseCommit: 8ed0168e0602edec2b60e6c41cb9304e5735a443
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 7061c701bf5c05b44af7d4b8447658156d810c70
+  diffHash: sha256:d1844ea8c44d3e90a9f686dba9662d5e87af63a9f7626c4e9a06030fd7d65178
+  headCommit: 7061c701bf5c05b44af7d4b8447658156d810c70
+changedFiles:
+  - .github/workflows/release.yml
+  - contracts/approvals/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/discovery/PROBE-issue-506-release-integrity.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
+  - contracts/evidence/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSMWEQP7.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/distribution.md
+  - scripts/release-integrity.mjs
+  - tests/integration/release-integrity.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:fb4091f70ed267dc51afad2780e1f6b46374c695f7cc1f921d6737a6514bbab7
+    durationMilliseconds: 16183
+    executedAt: "2026-08-10T08:01:16.160Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:45a922da2aa5ae591b057a21b5e054e1f542c99a04bb2cace582c23152db21d2
+    durationMilliseconds: 9025
+    executedAt: "2026-08-10T08:01:25.188Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e963872fbacd4895c5f3279591f96dfffd2830921184e95a8fee1bc5a1fa2481
+    durationMilliseconds: 3876
+    executedAt: "2026-08-10T08:01:29.069Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f36040e50b423ea4ceeac066eae0c74e3f9dd98c2254402c24a7d8cda3991b48
+    durationMilliseconds: 222044
+    executedAt: "2026-08-10T08:05:11.116Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added regression coverage for tag/version mismatch, exact-head validation provenance, changelog gating, CLI version, tarball manifest, checksum, and workflow target pinning.

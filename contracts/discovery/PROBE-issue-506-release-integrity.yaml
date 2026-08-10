@@ -1,0 +1,49 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-506-release-integrity
+type: discovery-probe
+status: concluded
+question: GitHub Releaseのtag・commit・package version・tarballを同一subjectへfail-closedに固定する最小実装範囲は何か
+hypotheses:
+  - 既存tagをそのcommitからcheckoutしてbuildできる
+  - aggregate validateのexact-head確認をrelease workflowに組み込める
+  - release-manifest.jsonとCHANGELOG version gateをworkflow-level testで検証できる
+activities:
+  - inspect release workflow and CI validation contract
+  - inspect package/changelog/release docs
+  - identify test harness and exact required checks
+  - define allowed paths and human-gate boundaries
+evidenceExpected:
+  - release workflow current behavior
+  - validate workflow/check naming
+  - package and changelog version rules
+  - existing workflow test conventions
+  - bounded path proposal
+unknowns:
+  - tag creation policy for workflow_dispatch
+  - exact aggregate validate check identity
+  - whether workflow-level tests can run without external GitHub API
+  - required human gate for release/publishing
+timebox: 30m
+costLimit: 1 bounded implementation Task
+exitConditions:
+  - release subject and package version rule is explicit
+  - exact subject validation path is explicit
+  - manifest fields and checksum source are explicit
+  - bounded delivery paths and stop conditions are explicit
+nextDecision: create and lock one bounded delivery Task for release subject pinning, exact aggregate validation, manifest checksum, changelog gate, regression tests, and distribution documentation
+deliveryTaskId: TASK-506
+createdAt: "2026-08-10T07:15:39.679Z"
+startedAt: "2026-08-10T07:15:48.130Z"
+concludedAt: "2026-08-10T07:18:03.348Z"
+exitConditionsMet: true
+factsLearned:
+  - release workflow currently builds main regardless of input tag
+  - scwbs aggregate validation is the named core integration wjs distribution validate set
+  - GitHub Actions check runs expose workflow run identity and head SHA
+  - distribution docs are the current release procedure source
+hypothesesRejected:
+  - existing tag can safely reuse main checkout
+  - validation from an unrelated commit is acceptable
+  - Unreleased-only changelog is sufficient for a versioned release
+remainingUnknowns:
+  - Human must approve release workflow change before merge and release execution

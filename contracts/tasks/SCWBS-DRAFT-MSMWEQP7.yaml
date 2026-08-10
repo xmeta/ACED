@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MSMWEQP7
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSMWEQP7
+branchName: task/SCWBS-DRAFT-MSMWEQP7-issue-506-github-release-tag-commit-package-vers
+allowedPaths:
+  - .github/workflows/release.yml
+  - scripts/release-integrity.mjs
+  - tests/integration/release-integrity.test.ts
+  - docs/scwbs/distribution.md
+  - contracts/discovery/PROBE-issue-506-release-integrity.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/specs/SPEC-LITE-MSMWEQP7.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
+  - contracts/approvals/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/release.yml
+stopIf:
+  - release/publish decision requires Human Gate
+  - external service or credential policy change
+  - package versioning policy change beyond explicit vX.Y.Z tag match
+  - attestation/provenance expansion beyond this bounded slice
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - release tag must equal v${package.json.version} after the release subject checkout
+  - existing tags are built from the exact commit resolved from that tag
+  - new tags are created only against the exact validated main subject commit
+  - only a successful .github/workflows/scwbs.yml run whose head SHA equals the release subject may satisfy aggregate validation
+  - release-manifest.json records packageVersion, tag, commit, tarball filename, SHA-256, and validation run identity
+  - the tarball filename and scwbs --version agree with the release tag version
+  - a versioned CHANGELOG section is required and Unreleased-only release attempts fail closed
+  - regression tests cover existing-tag mismatch, tag/version mismatch, missing validation, manifest checksum, and changelog gate failures
+  - release procedure documentation explains subject pinning and manifest verification
+  - 'Complete Issue #506: GitHub Releaseのtag・commit・package version・tarballを同一subjectへ固定する'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMWEQP7.patch
+  - contracts/approvals/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSMWEQP7.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:30e507bce3ef9ea5f547e1840c199aece8ce9e75b0cb9448b0dd4befefb9634d
+  createdAt: "2026-08-10T07:18:55.863Z"
