@@ -189,7 +189,7 @@ describe("governance metrics", () => {
     const summary = summarizeGithubActionsRuns("xmeta/ACED", [
       { id: 1, name: "SC-WBS", event: "pull_request", headBranch: "task/WBS-001-004-api", status: "completed", conclusion: "success", createdAt: "2026-07-16T00:00:00Z", updatedAt: "2026-07-16T00:00:10Z" },
       { id: 2, name: "SC-WBS", event: "pull_request", headBranch: "task/custom-feature", status: "completed", conclusion: "success", createdAt: "2026-07-16T01:00:00Z", updatedAt: "2026-07-16T01:00:10Z" }
-    ], 100, { status: "unavailable", reason: "contracts/tasks/index.yaml does not exist" });
+    ], 100, { status: "unavailable" });
 
     expect(summary.taskPullRequests.completeness).toEqual({
       attributionPercentage: 0,

@@ -17,7 +17,6 @@ export type GithubActionsTaskIndex = {
   entries: Array<{ id: string; branchName: string }>;
 } | {
   status: "unavailable";
-  reason: string;
 };
 
 type GithubActionsTaskResolutionSource = "task-index" | "scwbs-regex";
@@ -107,7 +106,7 @@ export function summarizeGithubActionsRuns(
   repository: string,
   runs: GithubActionsRun[],
   retrievedRunLimit: number,
-  taskIndex: GithubActionsTaskIndex = { status: "unavailable", reason: "not supplied" }
+  taskIndex: GithubActionsTaskIndex = { status: "unavailable" }
 ): GithubActionsDurationSummary {
   const completed = runs.filter((run) => run.status === "completed" && !Number.isNaN(Date.parse(run.createdAt)) && !Number.isNaN(Date.parse(run.updatedAt)));
   const durations = completed.map((run) => Math.max(0, Date.parse(run.updatedAt) - Date.parse(run.createdAt)));
@@ -231,10 +230,7 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
     const taskIndex = readTaskIndex(root);
     const indexResolution: GithubActionsTaskIndex = taskIndex.index && taskIndex.issues.length === 0
       ? { status: "available", entries: taskIndex.index.tasks.map((entry) => ({ id: entry.id, branchName: entry.branchName })) }
-      : {
-        status: "unavailable",
-        reason: taskIndex.issues.map((issue) => issue.message).join("; ") || "Task Index could not be read"
-      };
+      : { status: "unavailable" };
     return summarizeGithubActionsRuns(repository, runs, limit, indexResolution);
   } catch (error) {
     return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
