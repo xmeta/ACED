@@ -233,30 +233,30 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("update")
-    .description("Update generated AI tool files")
-    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
-    .option("--dry-run", "show planned changes without writing")
-    .option("--json", "output a versioned machine-readable decision report")
+    .description("Update AI files")
+    .option("--agent <agent>", "agent")
+    .option("--dry-run", "dry run")
+    .option("--json", "json output")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
 
-  const agent = program.command("agent").description("Manage multiple AI adapter ownership");
+  const agent = program.command("agent").description("Manage AI adapters");
   agent
     .command("add")
-    .description("Add an AI adapter")
-    .argument("<agent>", "agent type codex|claude|cursor|copilot")
-    .option("--json", "output a versioned machine-readable decision report")
+    .description("Add adapter")
+    .argument("<agent>", "agent")
+    .option("--json", "json output")
     .action((agentName: string, opts) => { exitCode = runAgentAdd(root, agentName, opts); });
   agent
     .command("remove")
-    .description("Remove an AI adapter")
-    .argument("<agent>", "agent type codex|claude|cursor|copilot")
-    .option("--json", "output a versioned machine-readable decision report")
+    .description("Remove adapter")
+    .argument("<agent>", "agent")
+    .option("--json", "json output")
     .action((agentName: string, opts) => { exitCode = runAgentRemove(root, agentName, opts); });
   agent
     .command("set-primary")
-    .description("Set the default AI adapter")
-    .argument("<agent>", "managed agent type")
-    .option("--json", "output a versioned machine-readable decision report")
+    .description("Set primary adapter")
+    .argument("<agent>", "agent")
+    .option("--json", "json output")
     .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
 
   program
