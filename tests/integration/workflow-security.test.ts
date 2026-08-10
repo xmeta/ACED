@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 
 const DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
 const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
+const reporterWorkflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs-readiness-reporter.yml"), "utf8");
 const setupAction = readFileSync(path.join(process.cwd(), ".github/actions/setup-toolchain/action.yml"), "utf8");
 
 describe("workflow secret isolation", () => {
@@ -28,10 +29,12 @@ describe("workflow secret isolation", () => {
   });
 
   test("readiness reporting is isolated to the trusted workflow_run reporter", () => {
-    expect(workflow).toContain("workflow_run:");
-    expect(workflow).toContain("readiness-reporter:");
-    expect(workflow).toContain("pull-requests: write");
-    const reporter = workflow.slice(workflow.indexOf("  readiness-reporter:"));
+    expect(workflow).not.toContain("\n  workflow_run:");
+    expect(workflow).not.toContain("readiness-reporter:");
+    expect(reporterWorkflow).toContain("workflow_run:");
+    expect(reporterWorkflow).toContain("readiness-reporter:");
+    expect(reporterWorkflow).toContain("pull-requests: write");
+    const reporter = reporterWorkflow;
     expect(reporter).not.toContain("actions/checkout@");
     expect(reporter).toContain("actions/download-artifact@");
     expect(reporter).toContain("scwbs-pr-readiness-v1");
