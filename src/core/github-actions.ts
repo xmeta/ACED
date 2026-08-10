@@ -41,12 +41,10 @@ export type GithubActionsDurationSummary = {
     totalCount: number;
     truncated: boolean;
     completeness: {
-      candidateRunCount: number;
       attributionPercentage: number | null;
       taskIndex: "available" | "unavailable";
-      taskIndexReason?: string;
     };
-    unmatched: { limit: 20; count: number; items: Array<{ headBranch: string; runCount: number }> };
+    unmatched: { count: number; items: Array<{ headBranch: string; runCount: number }> };
     items: Array<{
       taskId: string;
       headBranches: string[];
@@ -109,7 +107,7 @@ export function summarizeGithubActionsRuns(
   repository: string,
   runs: GithubActionsRun[],
   retrievedRunLimit: number,
-  taskIndex: GithubActionsTaskIndex = { status: "unavailable", reason: "Task Index was not supplied" }
+  taskIndex: GithubActionsTaskIndex = { status: "unavailable", reason: "not supplied" }
 ): GithubActionsDurationSummary {
   const completed = runs.filter((run) => run.status === "completed" && !Number.isNaN(Date.parse(run.createdAt)) && !Number.isNaN(Date.parse(run.updatedAt)));
   const durations = completed.map((run) => Math.max(0, Date.parse(run.updatedAt) - Date.parse(run.createdAt)));
@@ -117,7 +115,7 @@ export function summarizeGithubActionsRuns(
   const events: GithubActionsDurationSummary["events"] = {};
   const branches: GithubActionsDurationSummary["branches"] = {};
   const taskPullRequests = new Map<string, GithubActionsDurationSummary["taskPullRequests"]["items"][number]>();
-  const unmatched = new Map<string, number>();
+  const unmatched: Record<string, number> = {};
   let candidateRunCount = 0;
   let attributedRunCount = 0;
   for (const run of runs) {
@@ -141,7 +139,7 @@ export function summarizeGithubActionsRuns(
     candidateRunCount += 1;
     const resolution = resolveTaskBranch(run.headBranch, taskIndex);
     if (!resolution) {
-      unmatched.set(run.headBranch, (unmatched.get(run.headBranch) ?? 0) + 1);
+      unmatched[run.headBranch] = (unmatched[run.headBranch] ?? 0) + 1;
       continue;
     }
     attributedRunCount += 1;
@@ -177,10 +175,9 @@ export function summarizeGithubActionsRuns(
   const taskItems = [...taskPullRequests.values()]
     .map((item) => ({ ...item, headBranches: item.headBranches.sort() }))
     .sort((left, right) => right.latestUpdatedAt.localeCompare(left.latestUpdatedAt) || left.taskId.localeCompare(right.taskId));
-  const unmatchedItems = [...unmatched.entries()]
+  const unmatchedItems = Object.entries(unmatched)
     .map(([headBranch, runCount]) => ({ headBranch, runCount }))
     .sort((left, right) => right.runCount - left.runCount || left.headBranch.localeCompare(right.headBranch));
-  const taskIndexReason = taskIndex.status === "unavailable" ? taskIndex.reason : undefined;
   return {
     status: "available",
     source: "github-actions",
@@ -205,13 +202,10 @@ export function summarizeGithubActionsRuns(
       totalCount: taskItems.length,
       truncated: taskItems.length > 20,
       completeness: {
-        candidateRunCount,
         attributionPercentage: candidateRunCount === 0 ? null : Math.round((attributedRunCount / candidateRunCount) * 10000) / 100,
-        taskIndex: taskIndex.status,
-        ...(taskIndexReason ? { taskIndexReason } : {})
+        taskIndex: taskIndex.status
       },
       unmatched: {
-        limit: 20,
         count: unmatchedItems.length,
         items: unmatchedItems.slice(0, 20)
       },

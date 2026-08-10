@@ -139,12 +139,10 @@ describe("governance metrics", () => {
       totalCount: 1,
       truncated: false,
       completeness: {
-        candidateRunCount: 4,
         attributionPercentage: 100,
-        taskIndex: "unavailable",
-        taskIndexReason: "Task Index was not supplied"
+        taskIndex: "unavailable"
       },
-      unmatched: { limit: 20, count: 0, items: [] },
+      unmatched: { count: 0, items: [] },
       items: [{
         taskId: "SCWBS-DRAFT-ABC123",
         headBranches: ["task/SCWBS-DRAFT-ABC123-fix", "task/SCWBS-DRAFT-ABC123-retry"],
@@ -176,7 +174,6 @@ describe("governance metrics", () => {
     });
 
     expect(summary.taskPullRequests.completeness).toEqual({
-      candidateRunCount: 4,
       attributionPercentage: 75,
       taskIndex: "available"
     });
@@ -185,7 +182,7 @@ describe("governance metrics", () => {
       { taskId: "SCWBS-DRAFT-OLD", resolutionSource: "task-index" },
       { taskId: "WBS-001-004", resolutionSource: "task-index" }
     ]);
-    expect(summary.taskPullRequests.unmatched).toEqual({ limit: 20, count: 1, items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }] });
+    expect(summary.taskPullRequests.unmatched).toEqual({ count: 1, items: [{ headBranch: "task/WBS-999-999-unknown", runCount: 1 }] });
   });
 
   test("marks an unavailable index as incomplete and bounds unknown task-like branches", () => {
@@ -195,13 +192,10 @@ describe("governance metrics", () => {
     ], 100, { status: "unavailable", reason: "contracts/tasks/index.yaml does not exist" });
 
     expect(summary.taskPullRequests.completeness).toEqual({
-      candidateRunCount: 2,
       attributionPercentage: 0,
-      taskIndex: "unavailable",
-      taskIndexReason: "contracts/tasks/index.yaml does not exist"
+      taskIndex: "unavailable"
     });
     expect(summary.taskPullRequests.unmatched).toEqual({
-      limit: 20,
       count: 2,
       items: [
         { headBranch: "task/custom-feature", runCount: 1 },
