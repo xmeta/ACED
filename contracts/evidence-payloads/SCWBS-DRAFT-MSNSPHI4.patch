@@ -1,0 +1,909 @@
+diff --git a/contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml b/contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml
+new file mode 100644
+index 0000000..1ca9b27
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml
+@@ -0,0 +1,53 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-513-wbs-semantic-merge
++type: discovery-probe
++status: concluded
++question: WBSの3-way semantic merge planをread-onlyかつchangeset経路で安全に実装する最小範囲は何か
++hypotheses:
++  - identity単位の比較で独立node変更をcleanとして分類できる
++  - 同一field変更やdelete-vs-modifyをstructured conflictとして分類できる
++  - clean planからcanonical WBSを直接編集せずchangesetを生成できる
++activities:
++  - inspect WBS schema and current wbs command
++  - inspect WJS changeset validation/apply path
++  - inspect integration test conventions
++  - define allowed paths and Human Gate boundaries
++evidenceExpected:
++  - WBS identity model
++  - current CLI and WJS apply behavior
++  - deterministic output requirements
++  - representative fixtures
++  - bounded path proposal
++unknowns:
++  - exact ref-or-file input contract
++  - how to preserve read-only default
++  - which conflict classes are supported in the first slice
++  - Human Gate boundary for changeset write/apply
++timebox: 30m
++costLimit: 1 bounded implementation Task
++exitConditions:
++  - identity and comparison model is explicit
++  - conflict classes and fail-closed behavior are explicit
++  - read-only and explicit write boundary are explicit
++  - required tests and docs are identified
++nextDecision: create and lock one bounded delivery Task for read-only semantic merge planning, structured conflicts, explicit changeset generation, regression fixtures, and WJS documentation
++deliveryTaskId: TASK-513
++createdAt: "2026-08-10T22:19:29.352Z"
++startedAt: "2026-08-10T22:19:41.811Z"
++concludedAt: "2026-08-10T22:20:12.943Z"
++exitConditionsMet: true
++factsLearned:
++  - existing wbs command has validate apply and verify-changesets but no merge-plan
++  - canonical WBS edits are guarded by changeset presence and WJS operations validation
++  - existing WBS fixtures and integration coverage can host deterministic semantic merge cases
++  - first slice can remain read-only and emit an explicit changeset only through a separate write option
++  - project.wbs.json and WJS apply remain Human Gate boundaries
++hypothesesRejected:
++  - automatic conflict winner selection is safe
++  - planner may directly rewrite canonical WBS
++  - unrelated changeset operations can be reused as exact merge provenance
++remainingUnknowns:
++  - exact ref-or-file input resolution
++  - supported identity and field comparison matrix
++  - versioned merge-plan schema and changeset output contract
++  - Human Gate enforcement for generated changeset apply
+diff --git a/contracts/specs/SPEC-LITE-MSNSPHI4.yaml b/contracts/specs/SPEC-LITE-MSNSPHI4.yaml
+new file mode 100644
+index 0000000..cf51a4f
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSNSPHI4.yaml
+@@ -0,0 +1,22 @@
++id: SPEC-LITE-MSNSPHI4
++type: spec-contract
++featureId: F-MSNSPHI4
++title: "Issue #513: read-only WBS 3-way semantic merge plan"
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-513
++approvedAt: "2026-08-11T00:00:00+09:00"
++summary: "WBSをidentity単位で3-way比較し、独立変更はclean plan、競合は構造化conflictとしてread-onlyに報告し、clean時だけ明示的にWJS changesetを生成する"
++acceptanceCriteria:
++  - base, ours, and theirs inputs produce a versioned deterministic merge-plan JSON output
++  - semantic identities cover nodes, relations, resources, artifacts, and document extensions without treating order or formatting as conflict
++  - concurrent field edits, delete-vs-modify, identity collisions, duplicate codes, missing endpoints, and schema mismatches are fail-closed structured conflicts
++  - read-only is the default and canonical WBS is never directly rewritten by the planner
++  - clean plans may explicitly emit a WJS-compatible changeset while conflicted plans cannot emit or apply a winner
++  - existing WJS validation, changeset-only WBS policy, and Human Gate boundaries remain enforced
++  - integration fixtures and documentation define the supported first-slice comparison matrix and output contract
++nonGoals:
++  - automatic conflict winner selection
++  - direct canonical WBS editing
++  - CRDT or distributed planning storage
++  - mandatory Git conflict-driver installation
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml b/contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
+new file mode 100644
+index 0000000..0ebc699
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
+@@ -0,0 +1,86 @@
++id: SCWBS-DRAFT-MSNSPHI4
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSNSPHI4
++branchName: task/SCWBS-DRAFT-MSNSPHI4-issue-513-read-only-wbs-3-way-semantic-merge-pla
++allowedPaths:
++  - src/commands/wbs.ts
++  - src/core/wbs.ts
++  - src/core/types.ts
++  - src/cli/register-wbs.ts
++  - docs/scwbs/wbs-json.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/wbs-merge-plan.schema.json
++  - tests/integration/wbs-merge-plan.test.ts
++  - contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml
++  - contracts/specs/SPEC-LITE-MSNSPHI4.yaml
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - .github/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++stopIf:
++  - DB schema
++  - migration
++  - auth or permission design
++  - breaking API
++  - security or personal data
++  - external service or billing
++  - release decision
++  - scope expansion
++  - canonical WBS write
++  - automatic conflict resolution
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++status: approved
++approvedBy: user-requested-issue-513
++approvedAt: "2026-08-11T00:00:00+09:00"
++acceptanceCriteria:
++  - wbs merge-plan accepts base, ours, and theirs as explicit refs or files and emits a versioned deterministic JSON plan
++  - node, relation, resource, artifact, and extension identities are compared semantically rather than by JSON line order
++  - independent edits are classified clean while same-field edits produce structured conflicts
++  - delete-vs-modify, identity collision, duplicate code, missing relation endpoint, and schema-version conflicts fail closed with stable conflict classes
++  - the default planner is read-only and never writes contracts/wbs/project.wbs.json or applies a changeset
++  - an explicit write option can emit a WJS-compatible changeset only for a clean plan and never resolves an unresolved conflict
++  - generated output is reproducible across object key order and formatting-only differences
++  - existing direct-edit guard, Human Gate boundary, WJS validation, and changeset apply behavior remain fail-closed
++  - representative clean, concurrent-edit, delete-vs-modify, identity-collision, and formatting-only fixtures are covered by integration tests
++  - CLI and WBS documentation define inputs, output schema, conflict classes, read-only default, and explicit write/apply boundary
++doneCriteria:
++  - 'Complete Issue #513: read-only WBS 3-way semantic merge plan with structured conflicts and explicit changeset generation'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
++  - contracts/specs/SPEC-LITE-MSNSPHI4.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSNSPHI4.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSNSPHI4.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSNSPHI4.patch
++  - contracts/approvals/SCWBS-DRAFT-MSNSPHI4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSNSPHI4.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d3a9412eccd9d45b717e507ee963e620452feab3a00efed19c73c5ba8e981a70
++  createdAt: "2026-08-10T22:22:00.398Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 74fba15..94e1dbf 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1896,3 +1896,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T21:37:09.644Z"
++  - id: SCWBS-DRAFT-MSNSPHI4
++    path: contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
++    branchName: task/SCWBS-DRAFT-MSNSPHI4-issue-513-read-only-wbs-3-way-semantic-merge-pla
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 27664a4..9bece55 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -146,6 +146,10 @@ completion trustの対象と `--strict` の失敗対象は**同一の母集団**
+ 
+ `archived` は「一度完了して保管された」ことを意味しない。実装上、`task archive` で `status: archived` になったTaskは、完了経緯にかかわらずcompletion trust判定の対象になる。したがって、実装が未完了のままarchiveしたTaskがある場合、`status --strict` はそのTaskのEvidence/Approval欠落を理由に非0を返し得る。未完了のまま追跡対象から外したいだけであれば、archiveする前にそのTaskの扱い（完了扱いにするか、`cancelled` にするか）を先に決めること。
+ 
++### `wbs merge-plan`
++
++`wbs merge-plan --base <ref-or-file> --ours <ref-or-file> --theirs <ref-or-file>` は、WBSのread-only 3-way semantic merge planを `scwbs.wbs-merge-plan.v1` JSONで出力する。node、relation、resource、artifact、extension namespaceをidentity単位で比較し、独立変更は `clean`、同一field変更やdelete-vs-modifyなどは `conflicted` として報告する。`--write-changeset <file>` はclean planに限ってWJS-compatible changesetを書き出すが、canonical WBSへの適用やconflict解決は行わない。
++
+ `health` はTask index上でactiveなTask Contractの `packet --context-json` manifestを診断する。ここでactiveとは `completed` / `cancelled` / `archived` 以外（`planned` / `active` / `blocked` / `reviewed`）である。次のcode context指標はWARNのみでexit codeを変更しない。指標はファイル単位またはwidening reason単位で全アクティブタスクを横断集約し、タスク数の爆発を防ぐ。
+ 
+ - `health.codeContext.fileTooLarge`：context内の単一file（mustRead/candidates）が 500 lines を超える、または 40,960 bytes を超える。一意な file path ごとに 1 issue、message に参照しているアクティブタスク数と代表例を含める。
+diff --git a/docs/scwbs/schemas/wbs-merge-plan.schema.json b/docs/scwbs/schemas/wbs-merge-plan.schema.json
+new file mode 100644
+index 0000000..08ceb27
+--- /dev/null
++++ b/docs/scwbs/schemas/wbs-merge-plan.schema.json
+@@ -0,0 +1,38 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.org/schemas/scwbs/wbs-merge-plan.schema.json",
++  "title": "SC-WBS WBS Merge Plan",
++  "type": "object",
++  "required": ["version", "status", "autoMergeableOperations", "conflicts", "warnings"],
++  "additionalProperties": true,
++  "properties": {
++    "version": { "const": "scwbs.wbs-merge-plan.v1" },
++    "status": { "enum": ["clean", "conflicted"] },
++    "autoMergeableOperations": { "type": "array", "items": { "type": "object" } },
++    "conflicts": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["class", "identity", "path", "message"],
++        "properties": {
++          "class": { "type": "string", "minLength": 1 },
++          "identity": { "type": "string", "minLength": 1 },
++          "path": { "type": "string", "minLength": 1 },
++          "message": { "type": "string", "minLength": 1 }
++        },
++        "additionalProperties": true
++      }
++    },
++    "warnings": { "type": "array", "items": { "type": "string" } },
++    "inputs": {
++      "type": "object",
++      "required": ["base", "ours", "theirs"],
++      "properties": {
++        "base": { "type": "string", "minLength": 1 },
++        "ours": { "type": "string", "minLength": 1 },
++        "theirs": { "type": "string", "minLength": 1 }
++      },
++      "additionalProperties": false
++    }
++  }
++}
+diff --git a/docs/scwbs/wbs-json.md b/docs/scwbs/wbs-json.md
+index f0a10e1..149be08 100644
+--- a/docs/scwbs/wbs-json.md
++++ b/docs/scwbs/wbs-json.md
+@@ -76,6 +76,32 @@ npm run scwbs -- wbs validate
+ `scwbs wbs validate` と `scwbs check` は、内部で `wjs/tools/validate.ts --wbs` を使ってWBS-JSON schemaとsemantic validationを確認する。
+ `scwbs check-diff` は、`contracts/wbs/project.wbs.json` が変更されているのに `contracts/changesets/*.json` がない場合はErrorとし、change setがある場合は `wjs/tools/validate.ts --operations` で検証する。
+ 
++## 3-way semantic merge plan
++
++複数branchのWBSを統合するときは、canonical JSONを直接編集せず、まずread-onlyのsemantic planを生成する。
++
++```bash
++npm run scwbs -- wbs merge-plan \
++  --base origin/main \
++  --ours HEAD \
++  --theirs origin/other-branch \
++  --json
++```
++
++出力は `scwbs.wbs-merge-plan.v1` のJSONで、`nodes`、`relations`、`resources`、`artifacts`、extension namespaceをidentity単位で比較する。JSONのキー順やcollectionの並び順はsemantic conflictではない。独立変更は `clean`、同一fieldの異なる変更、delete-vs-modify、identity/code collision、欠落endpoint、schema mismatchは `conflicted` として構造化する。
++
++既定ではファイルを書き換えない。`clean` planだけを、明示的な出力先へWJS-compatible changesetとして書き出せる。
++
++```bash
++npm run scwbs -- wbs merge-plan \
++  --base base.wbs.json \
++  --ours ours.wbs.json \
++  --theirs theirs.wbs.json \
++  --write-changeset /tmp/wbs-merge.json
++```
++
++生成changesetはレビューとcanonical WBS validatorを通してから、既存の `wbs apply --force --output contracts/wbs/project.wbs.json` 経路で適用する。conflictの勝者を自動選択したり、plan commandがcanonical WBSを直接更新したりしてはならない。
++
+ `dryRun: true` のchange setは、結果を確認するためのプレビューとして扱う。
+ 
+ 実際に書き込む場合は、Taskの運用policyでHuman Gateが必要かを先に判断し、適用が許可されたchangesetだけに明示的な `--force --output contracts/wbs/project.wbs.json` を使う。現行 `wbs apply` はTask IDやApproval recordを入力に取らないため、Human Gateを一律に自動検証するcommandではない。機械強制が必要なTaskでは、Task開始前から `contracts/wbs/project.wbs.json` を `humanGateRequiredPaths` に含める。
+diff --git a/src/cli/register-wbs.ts b/src/cli/register-wbs.ts
+index 80e85df..9b03dbf 100644
+--- a/src/cli/register-wbs.ts
++++ b/src/cli/register-wbs.ts
+@@ -1,5 +1,5 @@
+ import type { Command } from "commander";
+-import { runWbsApply, runWbsCandidates, runWbsValidate, runWbsVerifyChangesets } from "../commands/wbs.js";
++import { runWbsApply, runWbsCandidates, runWbsMergePlan, runWbsValidate, runWbsVerifyChangesets } from "../commands/wbs.js";
+ import type { CommandContext } from "./command-context.js";
+ 
+ export function registerWbsCommands(program: Command, context: CommandContext): void {
+@@ -40,6 +40,25 @@ export function registerWbsCommands(program: Command, context: CommandContext):
+       );
+     });
+ 
++  wbs
++    .command("merge-plan")
++    .description("Build a read-only three-way semantic WBS merge plan")
++    .requiredOption("--base <ref-or-file>", "base WBS ref or file")
++    .requiredOption("--ours <ref-or-file>", "ours WBS ref or file")
++    .requiredOption("--theirs <ref-or-file>", "theirs WBS ref or file")
++    .option("--write-changeset <file>", "write a WJS-compatible changeset only when the plan is clean")
++    .option("--json", "emit versioned JSON output")
++    .action((options) => {
++      setExitCode(
++        runWbsMergePlan(root, {
++          base: options.base,
++          ours: options.ours,
++          theirs: options.theirs,
++          writeChangeset: options.writeChangeset
++        })
++      );
++    });
++
+   wbs
+     .command("apply")
+     .description("Apply a WBS changeset")
+diff --git a/src/commands/wbs.ts b/src/commands/wbs.ts
+index 3dc2c50..cd542ad 100644
+--- a/src/commands/wbs.ts
++++ b/src/commands/wbs.ts
+@@ -1,9 +1,16 @@
+-import { existsSync, readFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import { spawnSync } from "node:child_process";
++import path from "node:path";
+ import { listActiveTasks } from "../core/contracts.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { hasErrors, printIssues } from "../core/report.js";
+-import { readWbs, resolveWjsRuntime, runWjsValidate } from "../core/wbs.js";
++import {
++  buildWbsMergeChangeset,
++  buildWbsMergePlan,
++  readWbs,
++  resolveWjsRuntime,
++  runWjsValidate
++} from "../core/wbs.js";
+ import type { WbsDocument, WbsNode } from "../core/types.js";
+ 
+ export function runWbsValidate(root: string): number {
+@@ -132,6 +139,52 @@ export function runWbsVerifyChangesets(root: string, options: { base?: string; h
+   }
+ }
+ 
++function readWbsReference(root: string, reference: string): WbsDocument {
++  const candidate = resolveFrom(root, reference);
++  if (existsSync(candidate)) return readWbs(root, reference);
++  const result = spawnSync("git", ["show", `${reference}:${defaultWbsPath}`], { cwd: root, encoding: "utf8" });
++  if (result.status !== 0 || !result.stdout) {
++    throw new Error(`Unable to read WBS reference ${reference} as a file or git ref`);
++  }
++  return JSON.parse(result.stdout) as WbsDocument;
++}
++
++export function runWbsMergePlan(
++  root: string,
++  options: { base?: string; ours?: string; theirs?: string; writeChangeset?: string }
++): number {
++  if (!options.base || !options.ours || !options.theirs) {
++    console.error("Usage: scwbs wbs merge-plan --base <ref-or-file> --ours <ref-or-file> --theirs <ref-or-file> [--write-changeset <file>]");
++    return 2;
++  }
++  try {
++    const base = readWbsReference(root, options.base);
++    const ours = readWbsReference(root, options.ours);
++    const theirs = readWbsReference(root, options.theirs);
++    const plan = buildWbsMergePlan(base, ours, theirs);
++    const output: Record<string, unknown> = {
++      ...plan,
++      inputs: { base: options.base, ours: options.ours, theirs: options.theirs }
++    };
++    if (options.writeChangeset) {
++      if (plan.status !== "clean") {
++        process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
++        console.error("Cannot write a changeset for a conflicted WBS merge plan");
++        return 1;
++      }
++      const changesetPath = resolveFrom(root, options.writeChangeset);
++      mkdirSync(path.dirname(changesetPath), { recursive: true });
++      writeFileSync(changesetPath, `${JSON.stringify(buildWbsMergeChangeset(plan, base.id), null, 2)}\n`);
++      output.changesetPath = options.writeChangeset;
++    }
++    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
+ export function buildWbsCandidatesFromTaskIndex(root: string): string {
+   const ids = listActiveTasks(root).flatMap((entry) => entry.task ? [entry.task.id] : []);
+   const wbs = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root) : null;
+diff --git a/src/core/wbs.ts b/src/core/wbs.ts
+index 33529c5..4cf02c1 100644
+--- a/src/core/wbs.ts
++++ b/src/core/wbs.ts
+@@ -201,6 +201,390 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
+   return lines.map((line) => ({ severity: "error", code: "wjs.validate", message: line }));
+ }
+ 
++type MergeRecord = Record<string, unknown>;
++type MergeCollection = "nodes" | "relations" | "resources" | "artifacts";
++
++export type WbsMergeConflict = {
++  class: string;
++  identity: string;
++  path: string;
++  message: string;
++  base?: unknown;
++  ours?: unknown;
++  theirs?: unknown;
++};
++
++export type WbsMergePlan = {
++  version: "scwbs.wbs-merge-plan.v1";
++  status: "clean" | "conflicted";
++  autoMergeableOperations: Array<Record<string, unknown>>;
++  conflicts: WbsMergeConflict[];
++  warnings: string[];
++};
++
++const mergeCollections: Array<{ key: MergeCollection; kind: string }> = [
++  { key: "nodes", kind: "node" },
++  { key: "relations", kind: "relation" },
++  { key: "resources", kind: "resource" },
++  { key: "artifacts", kind: "artifact" }
++];
++
++function mergeClone<T>(value: T): T {
++  return JSON.parse(JSON.stringify(value)) as T;
++}
++
++function mergeCanonical(value: unknown): unknown {
++  if (Array.isArray(value)) return value.map(mergeCanonical);
++  if (value && typeof value === "object") {
++    return Object.fromEntries(
++      Object.entries(value as MergeRecord)
++        .sort(([left], [right]) => left.localeCompare(right))
++        .map(([key, item]) => [key, mergeCanonical(item)])
++    );
++  }
++  return value;
++}
++
++function mergeEqual(left: unknown, right: unknown): boolean {
++  return JSON.stringify(mergeCanonical(left)) === JSON.stringify(mergeCanonical(right));
++}
++
++function mergeItems(document: WbsDocument, key: MergeCollection): MergeRecord[] {
++  const items = document[key] as unknown;
++  return Array.isArray(items) ? items.filter((item): item is MergeRecord => Boolean(item && typeof item === "object")) : [];
++}
++
++function itemMap(items: MergeRecord[]): Map<string, MergeRecord> {
++  return new Map(items.filter((item) => typeof item.id === "string").map((item) => [item.id as string, item]));
++}
++
++function hasKey(value: MergeRecord | undefined, key: string): boolean {
++  return Boolean(value && Object.prototype.hasOwnProperty.call(value, key));
++}
++
++function mergeCollection(
++  baseItems: MergeRecord[],
++  oursItems: MergeRecord[],
++  theirsItems: MergeRecord[],
++  kind: string
++): { items: MergeRecord[]; conflicts: WbsMergeConflict[] } {
++  const base = itemMap(baseItems);
++  const ours = itemMap(oursItems);
++  const theirs = itemMap(theirsItems);
++  const ids = new Set([...base.keys(), ...ours.keys(), ...theirs.keys()]);
++  const merged: MergeRecord[] = [];
++  const conflicts: WbsMergeConflict[] = [];
++
++  for (const id of [...ids].sort()) {
++    const baseItem = base.get(id);
++    const oursItem = ours.get(id);
++    const theirsItem = theirs.get(id);
++    if (!baseItem) {
++      if (oursItem && theirsItem && !mergeEqual(oursItem, theirsItem)) {
++        conflicts.push({
++          class: `${kind}.id.collision`,
++          identity: id,
++          path: `${kind}[${id}]`,
++          message: `both sides added different values for ${kind} ${id}`,
++          ours: mergeClone(oursItem),
++          theirs: mergeClone(theirsItem)
++        });
++        merged.push(mergeClone(oursItem));
++      } else if (oursItem || theirsItem) {
++        const addedItem = oursItem ?? theirsItem;
++        if (addedItem) merged.push(mergeClone(addedItem));
++      }
++      continue;
++    }
++
++    if (!oursItem && !theirsItem) continue;
++    if (!oursItem || !theirsItem) {
++      const changedSide = oursItem ?? theirsItem;
++      if (!changedSide || !mergeEqual(changedSide, baseItem)) {
++        conflicts.push({
++          class: `${kind}.delete-vs-modify`,
++          identity: id,
++          path: `${kind}[${id}]`,
++          message: `one side deleted ${kind} ${id} while the other modified it`,
++          base: mergeClone(baseItem),
++          ours: oursItem ? mergeClone(oursItem) : undefined,
++          theirs: theirsItem ? mergeClone(theirsItem) : undefined
++        });
++        merged.push(mergeClone(changedSide ?? baseItem));
++      }
++      continue;
++    }
++
++    const result: MergeRecord = { id };
++    const fields = new Set([...Object.keys(baseItem), ...Object.keys(oursItem), ...Object.keys(theirsItem)]);
++    for (const field of [...fields].sort()) {
++      if (field === "id") continue;
++      const basePresent = hasKey(baseItem, field);
++      const oursPresent = hasKey(oursItem, field);
++      const theirsPresent = hasKey(theirsItem, field);
++      const baseValue = baseItem[field];
++      const oursValue = oursItem[field];
++      const theirsValue = theirsItem[field];
++      const oursChanged = basePresent !== oursPresent || !mergeEqual(baseValue, oursValue);
++      const theirsChanged = basePresent !== theirsPresent || !mergeEqual(baseValue, theirsValue);
++      let selectedPresent = basePresent;
++      let selectedValue = baseValue;
++
++      if (!oursChanged && theirsChanged) {
++        selectedPresent = theirsPresent;
++        selectedValue = theirsValue;
++      } else if (oursChanged && !theirsChanged) {
++        selectedPresent = oursPresent;
++        selectedValue = oursValue;
++      } else if (oursChanged && theirsChanged) {
++        if (oursPresent === theirsPresent && mergeEqual(oursValue, theirsValue)) {
++          selectedPresent = oursPresent;
++          selectedValue = oursValue;
++        } else {
++          conflicts.push({
++            class: `${kind}.field.concurrent-edit`,
++            identity: id,
++            path: `${kind}[${id}].${field}`,
++            message: `both sides changed ${kind} ${id} field ${field} differently`,
++            base: basePresent ? mergeClone(baseValue) : undefined,
++            ours: oursPresent ? mergeClone(oursValue) : undefined,
++            theirs: theirsPresent ? mergeClone(theirsValue) : undefined
++          });
++          selectedPresent = oursPresent;
++          selectedValue = oursValue;
++        }
++      }
++
++      if (selectedPresent) result[field] = mergeClone(selectedValue);
++    }
++    merged.push(result);
++  }
++
++  return { items: merged.sort((left, right) => String(left.id).localeCompare(String(right.id))), conflicts };
++}
++
++function mergeExtensions(
++  base: Record<string, unknown> | undefined,
++  ours: Record<string, unknown> | undefined,
++  theirs: Record<string, unknown> | undefined
++): { value: Record<string, unknown>; conflicts: WbsMergeConflict[] } {
++  const baseValue = base ?? {};
++  const oursValue = ours ?? {};
++  const theirsValue = theirs ?? {};
++  const namespaces = new Set([...Object.keys(baseValue), ...Object.keys(oursValue), ...Object.keys(theirsValue)]);
++  const result: Record<string, unknown> = {};
++  const conflicts: WbsMergeConflict[] = [];
++  for (const namespace of [...namespaces].sort()) {
++    const basePresent = Object.prototype.hasOwnProperty.call(baseValue, namespace);
++    const oursPresent = Object.prototype.hasOwnProperty.call(oursValue, namespace);
++    const theirsPresent = Object.prototype.hasOwnProperty.call(theirsValue, namespace);
++    const oursChanged = basePresent !== oursPresent || !mergeEqual(baseValue[namespace], oursValue[namespace]);
++    const theirsChanged = basePresent !== theirsPresent || !mergeEqual(baseValue[namespace], theirsValue[namespace]);
++    let present = basePresent;
++    let value = baseValue[namespace];
++    if (!oursChanged && theirsChanged) {
++      present = theirsPresent;
++      value = theirsValue[namespace];
++    } else if (oursChanged && !theirsChanged) {
++      present = oursPresent;
++      value = oursValue[namespace];
++    } else if (oursChanged && theirsChanged) {
++      if (oursPresent === theirsPresent && mergeEqual(oursValue[namespace], theirsValue[namespace])) {
++        present = oursPresent;
++        value = oursValue[namespace];
++      } else {
++        conflicts.push({
++          class: "extension.concurrent-edit",
++          identity: namespace,
++          path: `extensions.${namespace}`,
++          message: `both sides changed extension namespace ${namespace} differently`,
++          base: basePresent ? mergeClone(baseValue[namespace]) : undefined,
++          ours: oursPresent ? mergeClone(oursValue[namespace]) : undefined,
++          theirs: theirsPresent ? mergeClone(theirsValue[namespace]) : undefined
++        });
++        present = oursPresent;
++        value = oursValue[namespace];
++      }
++    }
++    if (!present) {
++      if (basePresent) {
++        conflicts.push({
++          class: "extension.delete-unsupported",
++          identity: namespace,
++          path: `extensions.${namespace}`,
++          message: `deleting extension namespace ${namespace} cannot be represented by the current WJS operation contract`
++        });
++      }
++    } else result[namespace] = mergeClone(value);
++  }
++  return { value: result, conflicts };
++}
++
++function mergeConflict(
++  conflicts: WbsMergeConflict[],
++  item: Omit<WbsMergeConflict, "identity" | "path" | "message"> & { identity: string; path: string; message: string }
++): void {
++  conflicts.push(item);
++}
++
++function mergePatch(base: MergeRecord, next: MergeRecord): MergeRecord {
++  const patch: MergeRecord = {};
++  for (const key of Object.keys(next).sort()) {
++    if (key === "id" || key === "parentId") continue;
++    if (!mergeEqual(base[key], next[key]) || hasKey(base, key) !== hasKey(next, key)) patch[key] = mergeClone(next[key]);
++  }
++  return patch;
++}
++
++function mergeOperations(base: WbsDocument, merged: WbsDocument): Array<Record<string, unknown>> {
++  const operations: Array<Record<string, unknown>> = [];
++  const addOperation = (operation: Record<string, unknown>): void => {
++    operations.push({ operationId: `merge-${String(operations.length + 1).padStart(3, "0")}`, ...operation });
++  };
++
++  for (const descriptor of mergeCollections) {
++    const before = itemMap(mergeItems(base, descriptor.key));
++    const after = itemMap(mergeItems(merged, descriptor.key));
++    for (const id of [...new Set([...before.keys(), ...after.keys()])].sort()) {
++      const left = before.get(id);
++      const right = after.get(id);
++      if (!left && right) {
++        addOperation({ operation: `add${descriptor.kind[0].toUpperCase()}${descriptor.kind.slice(1)}`, [descriptor.kind]: mergeClone(right) });
++        continue;
++      }
++      if (left && !right) {
++        addOperation({
++          operation: `delete${descriptor.kind[0].toUpperCase()}${descriptor.kind.slice(1)}`,
++          [`${descriptor.kind}Id`]: id,
++          ...(descriptor.kind === "node" ? { deleteMode: "subtree", relationHandling: "failIfReferenced" } : {})
++        });
++        continue;
++      }
++      if (!left || !right) continue;
++      const changes = mergePatch(left, right);
++      if (descriptor.kind === "node" && !mergeEqual(left.parentId, right.parentId)) {
++        addOperation({ operation: "moveNode", nodeId: id, newParentId: right.parentId, ...(left.code !== right.code ? { newCode: right.code } : {}) });
++        delete changes.code;
++      }
++      if (Object.keys(changes).length > 0) {
++        addOperation({
++          operation: `update${descriptor.kind[0].toUpperCase()}${descriptor.kind.slice(1)}`,
++          [`${descriptor.kind}Id`]: id,
++          changes
++        });
++      }
++    }
++  }
++
++  const beforeExtensions = base.extensions ?? {};
++  const afterExtensions = merged.extensions ?? {};
++  for (const namespace of Object.keys(afterExtensions).sort()) {
++    if (!mergeEqual(beforeExtensions[namespace], afterExtensions[namespace])) {
++      addOperation({ operation: "setDocumentExtension", namespace, value: mergeClone(afterExtensions[namespace]) });
++    }
++  }
++  return operations;
++}
++
++export function buildWbsMergePlan(base: WbsDocument, ours: WbsDocument, theirs: WbsDocument): WbsMergePlan {
++  const conflicts: WbsMergeConflict[] = [];
++  if (ours.schemaVersion !== base.schemaVersion || theirs.schemaVersion !== base.schemaVersion || ours.schemaVersion !== theirs.schemaVersion) {
++    mergeConflict(conflicts, {
++      class: "schema.version.mismatch",
++      identity: "document",
++      path: "schemaVersion",
++      message: "base, ours, and theirs must use the same WBS schema version",
++      base: base.schemaVersion,
++      ours: ours.schemaVersion,
++      theirs: theirs.schemaVersion
++    });
++  }
++
++  const merged = mergeClone(base);
++  for (const key of ["id", "name", "description", "rootId", "metadata"] as const) {
++    if (!mergeEqual(base[key], ours[key]) || !mergeEqual(base[key], theirs[key])) {
++      mergeConflict(conflicts, {
++        class: `document.${key}.unsupported-change`,
++        identity: "document",
++        path: key,
++        message: `document field ${key} changed; the first slice only emits collection operations`,
++        base: base[key],
++        ours: ours[key],
++        theirs: theirs[key]
++      });
++    }
++  }
++
++  const extensionMerge = mergeExtensions(base.extensions, ours.extensions, theirs.extensions);
++  if (Object.keys(extensionMerge.value).length > 0) merged.extensions = extensionMerge.value;
++  else delete merged.extensions;
++  conflicts.push(...extensionMerge.conflicts);
++
++  for (const descriptor of mergeCollections) {
++    const result = mergeCollection(mergeItems(base, descriptor.key), mergeItems(ours, descriptor.key), mergeItems(theirs, descriptor.key), descriptor.kind);
++    if (result.items.length > 0) (merged[descriptor.key] as unknown) = result.items;
++    else delete merged[descriptor.key];
++    conflicts.push(...result.conflicts);
++  }
++
++  const identityIds = new Set([
++    ...mergeItems(merged, "nodes").map((item) => item.id),
++    ...mergeItems(merged, "relations").map((item) => item.id),
++    ...mergeItems(merged, "resources").map((item) => item.id),
++    ...mergeItems(merged, "artifacts").map((item) => item.id)
++  ]);
++  for (const relation of mergeItems(merged, "relations")) {
++    for (const endpoint of ["source", "target"] as const) {
++      const endpointValue = relation[endpoint];
++      const externalEndpoint = typeof endpointValue === "string" && /^(?:req|issue|requirement):/.test(endpointValue);
++      if (typeof endpointValue === "string" && !identityIds.has(endpointValue) && !externalEndpoint) {
++        conflicts.push({
++          class: "relation.endpoint.missing",
++          identity: String(relation.id),
++          path: `relation[${String(relation.id)}].${endpoint}`,
++          message: `relation endpoint ${String(endpointValue)} does not exist in the merged identity set`
++        });
++      }
++    }
++  }
++  const codes = new Map<string, string>();
++  for (const node of mergeItems(merged, "nodes")) {
++    if (typeof node.code !== "string") continue;
++    const previous = codes.get(node.code);
++    if (previous && previous !== node.id) {
++      conflicts.push({
++        class: "node.code.duplicate",
++        identity: node.code,
++        path: `nodes.code.${node.code}`,
++        message: `nodes ${previous} and ${String(node.id)} use duplicate code ${node.code}`
++      });
++    } else codes.set(node.code, String(node.id));
++  }
++
++  conflicts.sort((left, right) => `${left.class}:${left.path}`.localeCompare(`${right.class}:${right.path}`));
++  const status = conflicts.length === 0 ? "clean" : "conflicted";
++  return {
++    version: "scwbs.wbs-merge-plan.v1",
++    status,
++    autoMergeableOperations: status === "clean" ? mergeOperations(base, merged) : [],
++    conflicts,
++    warnings: status === "clean" ? [] : ["Conflicts are not auto-resolved; review and produce a new explicit changeset after human decision."]
++  };
++}
++
++export function buildWbsMergeChangeset(plan: WbsMergePlan, targetWbsId: string): Record<string, unknown> {
++  if (plan.status !== "clean") throw new Error("Cannot generate a changeset from a conflicted WBS merge plan");
++  return {
++    schemaVersion: "0.1.0",
++    targetWbsId,
++    changeSetId: `changeset-wbs-merge-plan-${targetWbsId}`,
++    author: "scwbs-cli",
++    reason: "Explicit changeset generated from a clean read-only three-way WBS merge plan. Review before applying.",
++    dryRun: true,
++    operations: plan.autoMergeableOperations
++  };
++}
++
+ function runSubmoduleValidator(runtime: WjsRuntime, kind: "wbs" | "operations", target: string) {
+   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
+     cwd: runtime.root,
+diff --git a/tests/integration/wbs-merge-plan.test.ts b/tests/integration/wbs-merge-plan.test.ts
+new file mode 100644
+index 0000000..682665c
+--- /dev/null
++++ b/tests/integration/wbs-merge-plan.test.ts
+@@ -0,0 +1,106 @@
++import { existsSync, readFileSync } from "node:fs";
++import { describe, expect, test } from "vitest";
++import { buildWbsMergeChangeset, buildWbsMergePlan } from "../../src/core/wbs.js";
++import { runWbsMergePlan } from "../../src/commands/wbs.js";
++import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
++import type { WbsDocument } from "../../src/core/types.js";
++
++function clone(document: WbsDocument): WbsDocument {
++  return JSON.parse(JSON.stringify(document)) as WbsDocument;
++}
++
++describe("WBS semantic merge plan", () => {
++  test("classifies independent node edits as clean and emits WJS operations", () => {
++    const base = sampleWbs();
++    const ours = clone(base);
++    ours.nodes.push({
++      id: "node-design",
++      parentId: "node-root",
++      code: "1.2",
++      name: "Design",
++      type: "activity",
++      status: "planned"
++    });
++    const theirs = clone(base);
++    theirs.nodes.find((node) => node.id === "node-api")!.name = "API v2";
++
++    const plan = buildWbsMergePlan(base, ours, theirs);
++
++    expect(plan.status).toBe("clean");
++    expect(plan.conflicts).toEqual([]);
++    expect(plan.autoMergeableOperations.map((operation) => operation.operation).sort()).toEqual(["addNode", "updateNode"]);
++    expect(buildWbsMergeChangeset(plan, base.id).operations).toHaveLength(2);
++  });
++
++  test("reports concurrent field edits and delete-vs-modify without choosing a winner", () => {
++    const base = sampleWbs();
++    const ours = clone(base);
++    ours.nodes.find((node) => node.id === "node-api")!.name = "API ours";
++    const theirs = clone(base);
++    theirs.nodes.find((node) => node.id === "node-api")!.name = "API theirs";
++
++    const concurrent = buildWbsMergePlan(base, ours, theirs);
++    expect(concurrent.status).toBe("conflicted");
++    expect(concurrent.conflicts).toEqual([
++      expect.objectContaining({ class: "node.field.concurrent-edit", path: "node[node-api].name" })
++    ]);
++    expect(concurrent.autoMergeableOperations).toEqual([]);
++    expect(() => buildWbsMergeChangeset(concurrent, base.id)).toThrow(/conflicted/);
++
++    const deleted = clone(base);
++    deleted.nodes = deleted.nodes.filter((node) => node.id !== "node-api");
++    const modified = clone(base);
++    modified.nodes.find((node) => node.id === "node-api")!.status = "blocked";
++    const deleteVsModify = buildWbsMergePlan(base, deleted, modified);
++    expect(deleteVsModify.conflicts).toEqual([
++      expect.objectContaining({ class: "node.delete-vs-modify", identity: "node-api" })
++    ]);
++  });
++
++  test("ignores formatting and collection order while rejecting identity collisions", () => {
++    const base = sampleWbs();
++    const ours = clone(base);
++    ours.nodes.reverse();
++    const theirs = clone(base);
++    theirs.nodes = [...theirs.nodes].reverse();
++    const formattingOnly = buildWbsMergePlan(base, ours, theirs);
++    expect(formattingOnly.status).toBe("clean");
++    expect(formattingOnly.autoMergeableOperations).toEqual([]);
++
++    const addedOurs = clone(base);
++    addedOurs.nodes.push({ id: "node-collision", parentId: "node-root", code: "1.3", name: "Ours", type: "activity" });
++    const addedTheirs = clone(base);
++    addedTheirs.nodes.push({ id: "node-collision", parentId: "node-root", code: "1.4", name: "Theirs", type: "activity" });
++    const collision = buildWbsMergePlan(base, addedOurs, addedTheirs);
++    expect(collision.conflicts).toEqual([
++      expect.objectContaining({ class: "node.id.collision", identity: "node-collision" })
++    ]);
++  });
++
++  test("writes only an explicit clean-plan changeset and never edits canonical WBS", () => {
++    const root = makeTempRepo();
++    const base = sampleWbs();
++    const ours = clone(base);
++    ours.nodes.find((node) => node.id === "node-api")!.status = "blocked";
++    const theirs = clone(base);
++    writeJson(root, "base.json", base);
++    writeJson(root, "ours.json", ours);
++    writeJson(root, "theirs.json", theirs);
++    writeJson(root, "contracts/wbs/project.wbs.json", base);
++    const before = readFileSync(`${root}/contracts/wbs/project.wbs.json`, "utf8");
++
++    expect(runWbsMergePlan(root, {
++      base: "base.json",
++      ours: "ours.json",
++      theirs: "theirs.json",
++      writeChangeset: "out/merge.json"
++    })).toBe(0);
++    expect(existsSync(`${root}/out/merge.json`)).toBe(true);
++    expect(readFileSync(`${root}/contracts/wbs/project.wbs.json`, "utf8")).toBe(before);
++    expect(JSON.parse(readFileSync(`${root}/out/merge.json`, "utf8"))).toEqual(expect.objectContaining({
++      schemaVersion: "0.1.0",
++      targetWbsId: "test-wbs",
++      dryRun: true
++    }));
++  });
++});

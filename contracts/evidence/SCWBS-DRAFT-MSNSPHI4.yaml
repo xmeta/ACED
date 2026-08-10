@@ -1,0 +1,85 @@
+id: EVD-SCWBS-DRAFT-MSNSPHI4
+type: evidence
+taskId: SCWBS-DRAFT-MSNSPHI4
+commit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+subjectHeadCommit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+diffHash: sha256:e01abe1d87e67eb39a4c197e134ff45896020960ce2db6d23fd117c138e22a34
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+    treeHash: e955977c7baf99178a4ddff8a018331c3d8451a4
+    diffHash: sha256:e01abe1d87e67eb39a4c197e134ff45896020960ce2db6d23fd117c138e22a34
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSNSPHI4.patch
+    manifestHash: sha256:e01abe1d87e67eb39a4c197e134ff45896020960ce2db6d23fd117c138e22a34
+git:
+  branch: task/SCWBS-DRAFT-MSNSPHI4-issue-513-read-only-wbs-3-way-semantic-merge-pla
+  base: origin/main
+  baseCommit: 8d02b30362040e84ab8abfb01c7000c0310e0d04
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+  diffHash: sha256:e01abe1d87e67eb39a4c197e134ff45896020960ce2db6d23fd117c138e22a34
+  headCommit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+changedFiles:
+  - contracts/discovery/PROBE-issue-513-wbs-semantic-merge.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSNSPHI4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSNSPHI4.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/wbs-merge-plan.schema.json
+  - docs/scwbs/wbs-json.md
+  - src/cli/register-wbs.ts
+  - src/commands/wbs.ts
+  - src/core/wbs.ts
+  - tests/integration/wbs-merge-plan.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 8d02b30362040e84ab8abfb01c7000c0310e0d04
+    headCommit: ef9a9f6d8b14e9b942197da464b13f0aa33e7117
+    diffHash: sha256:e01abe1d87e67eb39a4c197e134ff45896020960ce2db6d23fd117c138e22a34
+  tests:
+    filesAdded: 1
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ba1c6c5fb217245c23c915fe65a78afcf8de948dcc426a16e16c22d17adb0a8e
+    durationMilliseconds: 15056
+    executedAt: "2026-08-10T22:40:19.272Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:c76bcd3993ef93840155503a356bcb79786df214e29d2963435a8be3e976ba78
+    durationMilliseconds: 9282
+    executedAt: "2026-08-10T22:40:28.557Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:c7104d84c99f2525f6c1127e5a0f53a2b5fca43e3400820eead0dc66ed66c7c2
+    durationMilliseconds: 3976
+    executedAt: "2026-08-10T22:40:32.538Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2f4f77e659c4cd893763e74d587b96a1ff5c6906f020c68d988883d308530e37
+    durationMilliseconds: 286034
+    executedAt: "2026-08-10T22:45:18.576Z"
