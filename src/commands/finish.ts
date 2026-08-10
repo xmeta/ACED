@@ -12,10 +12,10 @@ import { buildCollectedEvidence } from "./evidence-collect.js";
 import { buildRegistryYaml, runRegistryRebuild } from "./registry-rebuild.js";
 import { readProfile } from "./profile.js";
 import type { WorkingTreeState } from "../core/git.js";
-import type { ApprovalStatus, Evidence, Issue, Profile } from "../core/types.js";
+import type { ApprovalStatus, Evidence, Issue, Profile, Remediation } from "../core/types.js";
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
-import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
+import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
 import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 import {
@@ -56,7 +56,7 @@ export type FinishJsonOutput = {
   mutatedFiles: string[];
   humanGateFiles?: string[];
   diffHash?: string;
-  readinessWarnings: Array<{ code: string; message: string; fixCommand?: string }>;
+  readinessWarnings: Array<{ code: string; message: string; fixCommand?: string; remediation?: Remediation }>;
   fixCommands: string[];
   mergeReadiness?: MergeReadinessSummary;
   workingTree?: WorkingTreeState;
@@ -345,6 +345,15 @@ function printReadinessIssues(issues: Issue[], json: boolean): void {
   }
 }
 
+function readinessWarnings(issues: Issue[]): FinishJsonOutput["readinessWarnings"] {
+  return remediate(issues).map(({ code, message, fixCommand, remediation }) => ({
+    code,
+    message,
+    ...(fixCommand ? { fixCommand } : {}),
+    ...(remediation ? { remediation } : {})
+  }));
+}
+
 function collectFinishPreflightIssues(root: string, taskId: string, baseRef: string | undefined, testQuality: TestQuality | undefined): Issue[] {
   const { task } = readTask(root, taskId);
   if (!task) return [];
@@ -514,7 +523,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: [], violations: issues, requiredChecks: [],
       evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
       resumeCommand: nextAction, mutatedFiles: [],
-      readinessWarnings: issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+      readinessWarnings: readinessWarnings(issues),
       fixCommands: [nextAction]
     }), json);
     return 1;
@@ -549,7 +558,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: [], violations: [], requiredChecks: [],
       evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
       resumeCommand: nextAction, mutatedFiles: [],
-      readinessWarnings: preflightIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+      readinessWarnings: readinessWarnings(preflightIssues),
       fixCommands: readinessFixCommands(preflightIssues)
     }), json);
     return 1;
@@ -565,7 +574,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: [], violations: [issue], requiredChecks: [],
       evidencePath: evidenceRelativePath, approvalStatus: approvalStatus(), nextAction,
       resumeCommand: nextAction, mutatedFiles: [],
-      readinessWarnings: [{ code: issue.code, message: issue.message, ...(issue.fixCommand ? { fixCommand: issue.fixCommand } : {}) }],
+      readinessWarnings: readinessWarnings([issue]),
       fixCommands: issue.fixCommand ? [issue.fixCommand] : []
     }), json);
     return 1;
@@ -580,7 +589,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: workingTree.state.changedFiles,
       violations: workingTree.issues, requiredChecks: [], evidencePath: evidenceRelativePath,
       approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles: [],
-      readinessWarnings: workingTree.issues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+      readinessWarnings: readinessWarnings(workingTree.issues),
       fixCommands: readinessFixCommands(workingTree.issues), workingTree: workingTree.state
     }), json);
     return 1;
@@ -737,7 +746,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [issue],
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
       approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
-      readinessWarnings: [{ code: issue.code, message: issue.message, ...(issue.fixCommand ? { fixCommand: issue.fixCommand } : {}) }],
+      readinessWarnings: readinessWarnings([issue]),
       fixCommands: issue.fixCommand ? [issue.fixCommand] : []
     }), json);
     return 1;
@@ -755,7 +764,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
       approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
-      readinessWarnings: readinessIssues.map(({ code, message, fixCommand }) => ({ code, message, ...(fixCommand ? { fixCommand } : {}) })),
+      readinessWarnings: readinessWarnings(readinessIssues),
       fixCommands: readinessFixCommands(readinessIssues)
     }), json);
     return 1;

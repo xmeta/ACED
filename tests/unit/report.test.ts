@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createBufferedStdoutReporter, printIssues, type Reporter } from "../../src/core/report.js";
+import { createBufferedStdoutReporter, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../../src/core/report.js";
 
 describe("Reporter", () => {
   test("buffers stdout without replacing global output functions", () => {
@@ -35,5 +35,11 @@ describe("Reporter", () => {
       "ERROR example.failure: repair required",
       "  fixCommand: npm run fix"
     ]);
+  });
+
+  test("legacy fixCommand becomes non-runnable guidance while argv remains explicit", () => {
+    expect(remediate([{ severity: "error", code: "guidance", message: "review", fixCommand: "npm run scwbs -- approval approve" }])[0]?.remediation).toEqual(
+      { kind: "guidance", owner: "user", message: "npm run scwbs -- approval approve" }
+    );
   });
 });

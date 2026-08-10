@@ -1,10 +1,31 @@
 export type IssueSeverity = "error" | "warn";
 
+export type Remediation =
+  | {
+      kind: "command";
+      owner: "ai" | "human" | "user";
+      argv: string[];
+      cwd?: string;
+      safeToAutoRun: boolean;
+      reason?: string;
+    }
+  | {
+      kind: "guidance";
+      owner: "human" | "user";
+      message: string;
+    }
+  | {
+      kind: "wait";
+      owner: "external";
+      condition: string;
+    };
+
 export type Issue = {
   severity: IssueSeverity;
   code: string;
   message: string;
   fixCommand?: string;
+  remediation?: Remediation;
 };
 
 export type RegistryContractType =

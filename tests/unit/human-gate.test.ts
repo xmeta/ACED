@@ -138,6 +138,14 @@ describe("Human Gate security logic", () => {
     ]);
   });
 
+  test("marks Human Gate remediation as human-owned and never auto-runnable", () => {
+    const task = sampleTask({ humanGateRequiredPaths: ["package.json"] });
+    const evidence = sampleEvidence({ changedFiles: ["package.json"] });
+    const issue = validateHumanGateApproval(task, evidence, undefined).issues[0]!;
+    expect(issue.remediation).toMatchObject({ kind: "command", owner: "human", safeToAutoRun: false });
+    expect(issue.remediation).toMatchObject({ argv: ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id] });
+  });
+
   test("preserves a matching Approval through metadata-only descendant commits", () => {
     const root = makeTempRepo();
     writeText(root, "README.md", "base\n");

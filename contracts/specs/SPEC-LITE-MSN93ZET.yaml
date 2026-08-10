@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSN93ZET
+type: spec-contract
+featureId: F-MSN93ZET
+title: "Issue #508: typed remediation contract"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-508
+approvedAt: "2026-08-10T22:15:00+09:00"
+summary: "Issueの修復提案をcommand、guidance、waitへ型分類し、argv境界とHuman Gate ownershipを機械可読にする"
+acceptanceCriteria:
+  - common Issue type exposes a versioned remediation envelope with command, guidance, and wait variants
+  - command remediation uses argv, explicit owner, and safeToAutoRun rather than a shell command string
+  - Human Gate remediation is owner human and never safe to auto-run; external waits are owner external
+  - check, health, doctor, check-diff, and finish expose remediation while preserving deprecated fixCommand compatibility text
+  - versioned JSON schema and CLI documentation define compatibility and text rendering
+  - regression tests reject guidance-as-command and AI-owned or auto-runnable Human Gate remediation
+  - no arbitrary shell execution engine, automatic Human Approval, or breaking existing JSON version is added

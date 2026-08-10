@@ -1,0 +1,91 @@
+id: SCWBS-DRAFT-MSN93ZET
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSN93ZET
+branchName: task/SCWBS-DRAFT-MSN93ZET-issue-remediation-contract-for-typed-command-gui
+allowedPaths:
+  - src/core/types.ts
+  - src/core/remediation.ts
+  - src/core/report.ts
+  - src/core/health-domain.ts
+  - src/core/human-gate.ts
+  - src/core/wbs.ts
+  - src/core/task-authority.ts
+  - src/core/check-coverage.ts
+  - src/commands/check.ts
+  - src/commands/health.ts
+  - src/commands/doctor.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - contracts/specs/SPEC-LITE-MSN93ZET.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - docs/scwbs/schemas/remediation.schema.json
+  - tests/unit/report.test.ts
+  - tests/unit/health-domain.test.ts
+  - tests/unit/human-gate.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/doctor.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/finish-lifecycle.test.ts
+  - tests/integration/health.test.ts
+  - tests/integration/human-gate.test.ts
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - DB schema
+  - migration
+  - auth or permission design
+  - breaking API
+  - security or personal data
+  - external service or billing
+  - release decision
+  - scope expansion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Common Issue output exposes a versioned remediation envelope that distinguishes command, guidance, and wait actions
+  - Command remediation preserves argv boundaries, declares owner and safeToAutoRun, and never encodes an arbitrary shell line as the canonical form
+  - Human-only remediation is machine-readable as owner human with safeToAutoRun false; no Approval or Review transition is automated
+  - check, health, doctor, check-diff, and finish migrate their primary issue output to the remediation contract while retaining deprecated fixCommand text for compatibility
+  - Versioned JSON schemas and CLI documentation define the remediation shape, compatibility policy, and text rendering behavior
+  - Regression tests prove guidance is not emitted as an auto-runnable command and Human Gate remediation cannot be owned by AI or auto-run
+  - Complete Issue
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/specs/SPEC-LITE-MSN93ZET.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSN93ZET.patch
+  - contracts/approvals/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:fd8da89b2b088ca8ee98d395899258c84681bac9191aee86a802b9e4a8bdcfa7
+  createdAt: "2026-08-10T13:14:19.765Z"

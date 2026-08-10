@@ -19,6 +19,7 @@ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget
 import { verifyPatchArtifact } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { summarizeHealthIssues } from "../core/health-domain.js";
+import { withDefaultFixCommand as remediate } from "../core/report.js";
 export { sortHealthIssues } from "../core/health-domain.js";
 
 export type CurrentPullRequest = {
@@ -766,7 +767,7 @@ export function buildHealthJsonOutput(root: string, issues = collectHealthIssues
     summary: {
       ...domain.summary
     },
-    issues: domain.issues
+    issues: remediate(domain.issues)
   };
 }
 

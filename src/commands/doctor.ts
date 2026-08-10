@@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
+import { withDefaultFixCommand as remediate } from "../core/report.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {
@@ -20,6 +21,10 @@ export type EnvironmentRuntime = {
   dependencyGraphStatus?: number;
   dependencyGraphOutput?: string;
 };
+
+function decorateIssue(issue: Issue): Issue {
+  return remediate([issue])[0]!;
+}
 
 export type DoctorDiagnostic = {
   id: string;
@@ -622,6 +627,13 @@ function suggestedFix(issue: Issue): string {
 
 type DoctorContractIssue = { source: "check" | "health"; issue: Issue };
 
+function collectDoctorContractIssues(root: string): DoctorContractIssue[] {
+  return [
+    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
+    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
+  ];
+}
+
 function doctorIssuePriority(issue: Issue): number {
   if (issue.severity === "error") return 0;
   if (/humanGate|approval/i.test(issue.code)) return 1;
@@ -647,10 +659,7 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
   const diagnostics = collectEnvironmentDiagnostics(root);
   const envHasFailure = diagnostics.some((d) => d.status === "fail");
 
-  const contractIssues = [
-    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
-  ];
+  const contractIssues = collectDoctorContractIssues(root);
 
   const lines: string[] = ["SC-WBS Doctor", ""];
 
@@ -705,10 +714,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
   try {
     if (options.json) {
       const diagnostics = collectEnvironmentDiagnostics(root);
-      const contractIssues = [
-        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
-      ];
+      const contractIssues = collectDoctorContractIssues(root);
       const envHasFailure = diagnostics.some((d) => d.status === "fail");
       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
       const output: DoctorJsonOutput = {
