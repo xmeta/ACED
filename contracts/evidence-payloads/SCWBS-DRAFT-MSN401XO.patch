@@ -191,10 +191,10 @@ index e397130..741b91d 100644
      .command("check")
      .description("Check repository contracts")
 diff --git a/src/commands/init.ts b/src/commands/init.ts
-index 2b90811..e09bde9 100644
+index 2b90811..2d8dad4 100644
 --- a/src/commands/init.ts
 +++ b/src/commands/init.ts
-@@ -1,16 +1,18 @@
+@@ -1,16 +1,20 @@
  import { createHash } from "node:crypto";
 -import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 +import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
@@ -206,6 +206,8 @@ index 2b90811..e09bde9 100644
 -function writeIfMissing(root: string, relativePath: string, content: string): boolean {
 +const agentNames: Agent[] = ["codex", "claude", "cursor", "copilot"];
 +const agentManifestPath = ".scwbs/agent-files.json";
++const agentError = "Agent must be codex, claude, cursor, or copilot";
++const manifestError = "Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership";
 +
 +function writeIfMissing(root: string, relativePath: string, content: string): void {
    const fullPath = resolveFrom(root, relativePath);
@@ -217,7 +219,7 @@ index 2b90811..e09bde9 100644
  }
  
  export type InitOptions = {
-@@ -21,6 +23,12 @@ export type InitOptions = {
+@@ -21,6 +25,12 @@ export type InitOptions = {
  
  export type AgentUpdateOptions = {
    agent?: string;
@@ -230,7 +232,7 @@ index 2b90811..e09bde9 100644
  };
  
  type AgentFile = {
-@@ -28,13 +36,83 @@ type AgentFile = {
+@@ -28,13 +38,83 @@ type AgentFile = {
    content: string;
  };
  
@@ -316,7 +318,7 @@ index 2b90811..e09bde9 100644
  
  function agentFiles(agent: Agent, language: Language): AgentFile[] {
    const languageLine = language === "ja" ? "Use Japanese for project-facing handoffs when practical." : "Use English for project-facing handoffs.";
-@@ -51,86 +129,180 @@ function agentFiles(agent: Agent, language: Language): AgentFile[] {
+@@ -51,86 +131,180 @@ function agentFiles(agent: Agent, language: Language): AgentFile[] {
    }
  }
  
@@ -475,13 +477,13 @@ index 2b90811..e09bde9 100644
 +      if (!next.files.some((entry) => entry.path === file.path && entry.owner === agent)) {
 +        next.files.push({ path: file.path, owner: agent, sha256: sha256(file.content) });
 +      }
-       continue;
-     }
++      continue;
++    }
 +    const current = readFileSync(fullPath, "utf8");
 +    if (!previous) {
 +      decisions.push({ action: "preserved", agent, path: file.path });
-+      continue;
-+    }
+       continue;
+     }
 +    const matchesRecorded = sha256(current) === previous.sha256;
 +    const matchesGenerated = sha256(file.content) === previous.sha256;
      if (!update) {
@@ -511,9 +513,8 @@ index 2b90811..e09bde9 100644
    }
 -  if (changed || manifest?.agent === agent) writeAgentManifest(root, agent, files);
 -  return messages;
-+  return { manifest: next, decisions };
- }
- 
+-}
+-
 -function normalizeProfile(value: string | undefined): Profile | undefined {
 -  if (value === undefined) return "Standard";
 -  const lowered = value.toLowerCase();
@@ -521,6 +522,13 @@ index 2b90811..e09bde9 100644
 -  if (lowered === "standard") return "Standard";
 -  if (lowered === "strict") return "Strict";
 -  return undefined;
++  return { manifest: next, decisions };
+ }
+ 
+-function normalizeAgent(value: string | undefined): Agent | undefined {
+-  if (value === undefined) return "codex";
+-  const lowered = value.toLowerCase();
+-  return ["codex", "claude", "cursor", "copilot"].includes(lowered) ? lowered as Agent : undefined;
 +function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: Language; manifest: AgentManifestV2 } | undefined {
 +  const current = project(root);
 +  if (!current) return undefined;
@@ -532,12 +540,6 @@ index 2b90811..e09bde9 100644
 +  return { state, agents, primaryAgent, language: config.language, manifest: asV2(state, agents, primaryAgent) };
  }
  
--function normalizeAgent(value: string | undefined): Agent | undefined {
--  if (value === undefined) return "codex";
--  const lowered = value.toLowerCase();
--  return ["codex", "claude", "cursor", "copilot"].includes(lowered) ? lowered as Agent : undefined;
--}
--
 -function normalizeLanguage(value: string | undefined): Language | undefined {
 -  if (value === undefined) return "ja";
 -  const lowered = value.toLowerCase();
@@ -551,7 +553,16 @@ index 2b90811..e09bde9 100644
  }
  
  export function runInit(root: string, options: InitOptions = {}): number {
-@@ -150,90 +322,160 @@ export function runInit(root: string, options: InitOptions = {}): number {
+@@ -141,7 +315,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
+   }
+   const agent = normalizeAgent(options.agent);
+   if (!agent) {
+-    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
+     return 2;
+   }
+   const lang = normalizeLanguage(options.lang);
+@@ -150,90 +324,160 @@ export function runInit(root: string, options: InitOptions = {}): number {
      return 2;
    }
  
@@ -561,7 +572,7 @@ index 2b90811..e09bde9 100644
 +  const existing = project(root);
 +  const existingState = readManifest(root);
 +  if (existingState.version === "invalid") {
-+    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
++    console.error(manifestError);
 +    return 2;
    }
 -
@@ -640,7 +651,7 @@ index 2b90811..e09bde9 100644
 +export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
 +  const requested = options.agent ? normalizeAgent(options.agent) : undefined;
 +  if (options.agent && !requested) {
-+    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
 +    return 2;
 +  }
 +  const current = project(root);
@@ -650,7 +661,7 @@ index 2b90811..e09bde9 100644
 +  }
 +  const state = readManifest(root);
 +  if (state.version === "invalid") {
-+    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
++    console.error(manifestError);
 +    return 2;
 +  }
 +  const config = agentsFor(current.settings, state);
@@ -679,7 +690,7 @@ index 2b90811..e09bde9 100644
 +export function runAgentAdd(root: string, value: string, options: AgentOperationOptions = {}): number {
 +  const agent = normalizeAgent(value);
 +  if (!agent) {
-+    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
 +    return 2;
    }
 +  const prepared = prepare(root, agent);
@@ -711,10 +722,9 @@ index 2b90811..e09bde9 100644
 +export function runAgentSetPrimary(root: string, value: string, options: AgentOperationOptions = {}): number {
 +  const agent = normalizeAgent(value);
 +  if (!agent) {
-+    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
 +    return 2;
-   }
--  const agent = normalizeAgent(configuredAgent);
++  }
 +  const current = project(root);
 +  const state = readManifest(root);
 +  const existingAgents = current && state.version !== "invalid" ? agentsFor(current.settings, state).agents : [];
@@ -722,7 +732,8 @@ index 2b90811..e09bde9 100644
 +  if (!prepared || !existingAgents.includes(agent)) {
 +    console.error(`Cannot set primary agent: ${agent} is not managed; run scwbs agent add ${agent} first`);
 +    return 2;
-+  }
+   }
+-  const agent = normalizeAgent(configuredAgent);
 +  const next = { ...prepared.manifest, primaryAgent: agent };
 +  const decisions: AgentDecision[] = [{ action: "move", agent }];
 +  writeSettings(root, next.agents, agent);
@@ -734,10 +745,10 @@ index 2b90811..e09bde9 100644
 +export function runAgentRemove(root: string, value: string, options: AgentOperationOptions = {}): number {
 +  const agent = normalizeAgent(value);
    if (!agent) {
-     console.error("Agent must be codex, claude, cursor, or copilot");
-     return 2;
-   }
--  for (const message of syncAgentFiles(root, agent, language, true)) console.log(message);
+-    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
++    return 2;
++  }
 +  const current = project(root);
 +  const state = readManifest(root);
 +  if (!current || state.version === "invalid") {
@@ -752,8 +763,9 @@ index 2b90811..e09bde9 100644
 +  }
 +  if (manifest.agents.length === 1) {
 +    console.error("Cannot remove the last managed agent");
-+    return 2;
-+  }
+     return 2;
+   }
+-  for (const message of syncAgentFiles(root, agent, language, true)) console.log(message);
 +  const nextAgents = manifest.agents.filter((candidate) => candidate !== agent);
 +  const nextPrimary = manifest.primaryAgent === agent ? nextAgents[0] : manifest.primaryAgent;
 +  const decisions = migration(state);
