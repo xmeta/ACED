@@ -1,0 +1,20 @@
+id: SPEC-LITE-MSMWEQP7
+type: spec-contract
+featureId: F-MSMWEQP7
+title: "Issue #506: GitHub Release subject integrity"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-506
+approvedAt: "2026-08-10T16:20:00+09:00"
+summary: "GitHub Releaseのtag、commit、package version、検証済みtarballを同一のrelease subjectへfail-closedに固定する"
+acceptanceCriteria:
+  - release workflow validates that the checked-out package version maps exactly to the requested vX.Y.Z tag
+  - an existing tag is resolved and checked out before build; a different main commit is never packaged for that tag
+  - a new tag is created by the GitHub Release operation only after the exact main subject commit has passed release validation
+  - aggregate validation requires successful core, integration, wjs, distribution, and validate checks from .github/workflows/scwbs.yml with workflow head SHA equal to the release subject
+  - release-manifest.json includes schemaVersion, packageVersion, tag, commit, tarball, sha256, and validation workflow run identity
+  - the tarball filename and package --version agree with the tag version
+  - a versioned CHANGELOG section is required; an Unreleased-only changelog fails closed
+  - workflow-level regression tests cover tag/version mismatch, existing-tag subject mismatch, missing or unrelated validation, manifest checksum, and changelog failures
+  - distribution documentation explains how to verify the manifest against the release asset
+  - no npm publish, automatic version selection, source mutation, or attestation implementation is added
