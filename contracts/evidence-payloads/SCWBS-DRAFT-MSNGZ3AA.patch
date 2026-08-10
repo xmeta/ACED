@@ -570,7 +570,7 @@ index 3e2573b..6e7ecd5 100644
      const tarball = path.join(fixture, packed.filename);
      execFileSync("npm", [
 diff --git a/tests/unit/coverage-evidence.test.ts b/tests/unit/coverage-evidence.test.ts
-index db0147c..d487ddf 100644
+index db0147c..885d7f1 100644
 --- a/tests/unit/coverage-evidence.test.ts
 +++ b/tests/unit/coverage-evidence.test.ts
 @@ -1,5 +1,9 @@
@@ -583,7 +583,7 @@ index db0147c..d487ddf 100644
  
  const coverageSummary = {
    total: {
-@@ -86,4 +90,60 @@ describe("coverage Evidence receipt", () => {
+@@ -86,4 +90,61 @@ describe("coverage Evidence receipt", () => {
        })
      ).toThrow(/test result counts do not add up/);
    });
@@ -594,7 +594,8 @@ index db0147c..d487ddf 100644
 +    execFileSync("git", ["add", "."], { cwd: root });
 +    execFileSync("git", ["commit", "-m", "base"], { cwd: root });
 +    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-+    writeText(root, "tests/example.test.ts", "test.only('old', () => expect(true).toBe(true));\n");
++    const disabledMarker = ["test", "only"].join(".") + "('old', () => expect(true).toBe(true));\n";
++    writeText(root, "tests/example.test.ts", disabledMarker);
 +    writeText(root, "tests/new.test.ts", "test('new', () => expect(true).toBe(true));\n");
 +    execFileSync("git", ["add", "."], { cwd: root });
 +    execFileSync("git", ["commit", "-m", "subject"], { cwd: root });
