@@ -1,0 +1,79 @@
+id: SCWBS-DRAFT-MSMQTRYB
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSMQTRYB
+branchName: task/SCWBS-DRAFT-MSMQTRYB-issue-474-phase-1-domain-logic-and-unit-coverage
+status: approved
+approvedBy: xmeta
+sourceIssue: 474
+allowedPaths:
+  - src/core/ci-plan-domain.ts
+  - src/core/health-domain.ts
+  - src/core/metrics-domain.ts
+  - src/commands/ci-plan.ts
+  - src/commands/health.ts
+  - src/commands/metrics.ts
+  - tests/unit/ci-plan-domain.test.ts
+  - tests/unit/health-domain.test.ts
+  - tests/unit/metrics-domain.test.ts
+  - contracts/check-coverage.yaml
+  - vitest.config.ts
+  - .github/workflows/scwbs.yml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - package-lock.json
+  - db/**
+  - migrations/**
+  - auth/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/check-coverage.yaml
+  - .github/workflows/scwbs.yml
+stopIf:
+  - DB schema change
+  - migration addition
+  - authentication or authorization design change
+  - breaking API change
+  - external service or billing change
+  - unbounded scope
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+  - test:wjs
+doneCriteria:
+  - ci-plan, health, and metrics command orchestration delegates to the dedicated domain modules
+  - each target domain module reaches at least 50 percent statement coverage in the unit coverage run
+  - new domain and unit-test paths are classified in contracts/check-coverage.yaml
+  - CI publishes unit and combined unit/integration coverage results
+  - all required checks, SC-WBS diff checks, and Registry checks pass
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/specs/SPEC-LITE-MSMQTRYB.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMQTRYB.patch
+  - contracts/approvals/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7d0eb702bde4226dec4d41402add2622ef38e0bc186e328412e60c358e998601
+  createdAt: "2026-08-10T04:41:10.806Z"
