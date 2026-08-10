@@ -5,6 +5,7 @@ import {
   type MergePreflightReport,
   type MergePullRequestView
 } from "../core/merge-preflight.js";
+import { doctorGithubHint } from "../core/github-actions.js";
 
 const VIEW_FIELDS = "number,state,isDraft,baseRefName,headRefOid,mergeStateStatus,statusCheckRollup";
 
@@ -42,7 +43,7 @@ function readPullRequest(root: string, repository: string, pullRequest: number):
     return {
       report: unavailableMergeReport(
         pullRequest,
-        (result.stderr || "gh pr view failed").trim(),
+        doctorGithubHint("GitHub PR metadata could not be read"),
         repository
       )
     };
@@ -53,11 +54,11 @@ function readPullRequest(root: string, repository: string, pullRequest: number):
       throw new Error("expected an object");
     }
     return { view: value as MergePullRequestView };
-  } catch (error) {
+  } catch {
     return {
       report: unavailableMergeReport(
         pullRequest,
-        `gh pr view returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
+        doctorGithubHint("GitHub PR metadata returned invalid JSON"),
         repository
       )
     };
@@ -70,7 +71,7 @@ export function runMerge(root: string, pullRequest: number, options: {
 } = {}): number {
   const repository = githubRepository(root);
   if (!repository) {
-    const report = unavailableMergeReport(pullRequest, "origin is not a GitHub repository");
+    const report = unavailableMergeReport(pullRequest, doctorGithubHint("origin is not a GitHub repository"));
     report.execution.requested = options.preflightOnly !== true;
     emit(report, options.json ?? false);
     return 1;

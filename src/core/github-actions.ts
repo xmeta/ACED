@@ -66,6 +66,149 @@ export type GithubActionsUnavailable = {
   reason: string;
 };
 
+export type GithubCapabilityStatus = "ready" | "partial" | "unavailable" | "not-evaluated";
+
+export type GithubCapabilityReport = {
+  schemaVersion: "1.0.0";
+  status: "ready" | "partial" | "unavailable";
+  repository: string | null;
+  capabilities: {
+    gh: GithubCapabilityStatus;
+    auth: GithubCapabilityStatus;
+    origin: GithubCapabilityStatus;
+    repositoryRead: GithubCapabilityStatus;
+    prRead: GithubCapabilityStatus;
+    actionsRead: GithubCapabilityStatus;
+    mergeReadiness: GithubCapabilityStatus;
+  };
+  messages: Record<string, string>;
+};
+
+type GithubProbeResult = { status: number | null; stdout: string; stderr: string };
+
+function runGithubProbe(command: string, args: string[], cwd: string): GithubProbeResult {
+  try {
+    const result = spawnSync(command, args, { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 });
+    return {
+      status: result.status,
+      stdout: (result.stdout ?? "").trim(),
+      stderr: (result.stderr ?? "").trim()
+    };
+  } catch {
+    return { status: null, stdout: "", stderr: "" };
+  }
+}
+
+function boundedGithubFailure(result: GithubProbeResult, fallback: string): string {
+  const output = `${result.stdout}\n${result.stderr}`.toLowerCase();
+  if (result.status === null || /enoent|not found|is not recognized/.test(output)) return "gh CLI is not installed or unavailable in PATH";
+  if (/not logged in|authentication|unauthenticated|auth login/.test(output)) return "GitHub authentication is unavailable";
+  if (/forbidden|permission|status 403|http 403/.test(output)) return "GitHub capability permission was denied";
+  if (/not found|status 404|http 404|does not exist/.test(output)) return "GitHub repository or capability was not found";
+  return fallback;
+}
+
+function parseJsonObject(stdout: string): Record<string, unknown> | undefined {
+  try {
+    const value: unknown = JSON.parse(stdout);
+    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseJsonArray(stdout: string): unknown[] | undefined {
+  try {
+    const value: unknown = JSON.parse(stdout);
+    return Array.isArray(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function doctorGithubHint(reason: string): string {
+  return `${reason}. Run: scwbs doctor --github`;
+}
+
+export function probeGithubCapabilities(root: string): GithubCapabilityReport {
+  const remote = runGithubProbe("git", ["remote", "get-url", "origin"], root);
+  const repository = remote.status === 0 ? githubRepository(remote.stdout) ?? null : null;
+  const messages: Record<string, string> = {};
+  const capabilities: GithubCapabilityReport["capabilities"] = {
+    gh: "unavailable",
+    auth: "not-evaluated",
+    origin: repository ? "ready" : "unavailable",
+    repositoryRead: "not-evaluated",
+    prRead: "not-evaluated",
+    actionsRead: "not-evaluated",
+    mergeReadiness: "not-evaluated"
+  };
+  messages.origin = repository
+    ? "origin resolves to a GitHub repository"
+    : remote.status === 0
+      ? "origin is not a GitHub repository"
+      : "origin could not be resolved";
+
+  const ghVersion = runGithubProbe("gh", ["--version"], root);
+  if (ghVersion.status !== 0) {
+    messages.gh = boundedGithubFailure(ghVersion, "gh CLI version check failed");
+    messages.auth = "not evaluated because gh CLI is unavailable";
+    messages.repositoryRead = "not evaluated because gh CLI is unavailable";
+    messages.prRead = "not evaluated because gh CLI is unavailable";
+    messages.actionsRead = "not evaluated because gh CLI is unavailable";
+    messages.mergeReadiness = "not evaluated because gh CLI is unavailable";
+    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
+  }
+  capabilities.gh = "ready";
+  messages.gh = "gh CLI is available";
+
+  const auth = runGithubProbe("gh", ["auth", "status", "--hostname", "github.com"], root);
+  if (auth.status !== 0) {
+    capabilities.auth = "unavailable";
+    messages.auth = boundedGithubFailure(auth, "GitHub authentication status could not be verified");
+    for (const key of ["repositoryRead", "prRead", "actionsRead", "mergeReadiness"] as const) {
+      messages[key] = "not evaluated because GitHub authentication is unavailable";
+    }
+    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
+  }
+  capabilities.auth = "ready";
+  messages.auth = "GitHub authentication is available; credential details are suppressed";
+  if (!repository) {
+    for (const key of ["repositoryRead", "prRead", "actionsRead", "mergeReadiness"] as const) {
+      messages[key] = "not evaluated because origin is not a GitHub repository";
+    }
+    return { schemaVersion: "1.0.0", status: "unavailable", repository, capabilities, messages };
+  }
+
+  const repositoryRead = runGithubProbe("gh", ["api", `repos/${repository}`], root);
+  const repositoryPayload = parseJsonObject(repositoryRead.stdout);
+  capabilities.repositoryRead = repositoryRead.status === 0 && typeof repositoryPayload?.full_name === "string" ? "ready" : "unavailable";
+  messages.repositoryRead = capabilities.repositoryRead === "ready"
+    ? "repository metadata is readable"
+    : boundedGithubFailure(repositoryRead, "repository metadata could not be read");
+
+  const prRead = runGithubProbe("gh", ["pr", "list", "--repo", repository, "--state", "all", "--limit", "1", "--json", "number"], root);
+  capabilities.prRead = prRead.status === 0 && parseJsonArray(prRead.stdout) ? "ready" : "unavailable";
+  messages.prRead = capabilities.prRead === "ready"
+    ? "pull request metadata is readable"
+    : boundedGithubFailure(prRead, "pull request metadata could not be read");
+
+  const actionsRead = runGithubProbe("gh", ["api", `repos/${repository}/actions/runs?per_page=1`], root);
+  const actionsPayload = parseJsonObject(actionsRead.stdout);
+  capabilities.actionsRead = actionsRead.status === 0 && Array.isArray(actionsPayload?.workflow_runs) ? "ready" : "unavailable";
+  messages.actionsRead = capabilities.actionsRead === "ready"
+    ? "GitHub Actions history is readable"
+    : boundedGithubFailure(actionsRead, "GitHub Actions history could not be read");
+
+  capabilities.mergeReadiness = capabilities.repositoryRead === "ready" && capabilities.prRead === "ready" ? "ready" : "partial";
+  messages.mergeReadiness = capabilities.mergeReadiness === "ready"
+    ? "PR metadata prerequisites are readable; exact merge preflight still checks the selected PR and aggregate validate"
+    : "merge readiness is unavailable until repository and pull request metadata are readable";
+  const readyCount = Object.values(capabilities).filter((status) => status === "ready").length;
+  const status = readyCount === Object.keys(capabilities).length ? "ready" : readyCount > 0 ? "partial" : "unavailable";
+  return { schemaVersion: "1.0.0", status, repository, capabilities, messages };
+}
+
 export type GithubActionsHistory = GithubActionsDurationSummary | GithubActionsUnavailable;
 
 function taskIdFromBranch(branch: string): string | undefined {
@@ -215,13 +358,16 @@ export function summarizeGithubActionsRuns(
 export function readGithubActionsHistory(root: string, limit = 100): GithubActionsHistory {
   const remote = spawnSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" });
   const repository = remote.status === 0 ? githubRepository(remote.stdout) : undefined;
-  if (!repository) return { status: "unavailable", source: "github-actions", reason: "origin is not a GitHub repository" };
+  if (!repository) return { status: "unavailable", source: "github-actions", reason: doctorGithubHint("origin is not a GitHub repository") };
   const result = spawnSync("gh", ["api", `repos/${repository}/actions/runs?per_page=${limit}`], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 10 * 1024 * 1024
   });
-  if (result.status !== 0) return { status: "unavailable", source: "github-actions", reason: (result.stderr || "GitHub Actions history could not be retrieved").trim() };
+  if (result.status !== 0) {
+    const bounded = boundedGithubFailure({ status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" }, "GitHub Actions history could not be retrieved");
+    return { status: "unavailable", source: "github-actions", reason: doctorGithubHint(bounded) };
+  }
   try {
     const payload = JSON.parse(result.stdout) as { workflow_runs?: unknown[] };
     if (!Array.isArray(payload.workflow_runs)) throw new Error("GitHub Actions response has no workflow_runs array");
@@ -231,7 +377,7 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
       ? { status: "available", entries: taskIndex.index.tasks.map((entry) => ({ id: entry.id, branchName: entry.branchName })) }
       : { status: "unavailable" };
     return summarizeGithubActionsRuns(repository, runs, limit, indexResolution);
-  } catch (error) {
-    return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
+  } catch {
+    return { status: "unavailable", source: "github-actions", reason: doctorGithubHint("GitHub Actions response could not be parsed") };
   }
 }

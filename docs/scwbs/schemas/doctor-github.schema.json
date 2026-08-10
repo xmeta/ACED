@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/scwbs/doctor-github.schema.json",
+  "title": "SC-WBS GitHub Capability Report",
+  "type": "object",
+  "required": ["schemaVersion", "status", "repository", "capabilities", "messages"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["ready", "partial", "unavailable"] },
+    "repository": { "type": ["string", "null"] },
+    "capabilities": {
+      "type": "object",
+      "required": ["gh", "auth", "origin", "repositoryRead", "prRead", "actionsRead", "mergeReadiness"],
+      "additionalProperties": false,
+      "properties": {
+        "gh": { "$ref": "#/$defs/capabilityStatus" },
+        "auth": { "$ref": "#/$defs/capabilityStatus" },
+        "origin": { "$ref": "#/$defs/capabilityStatus" },
+        "repositoryRead": { "$ref": "#/$defs/capabilityStatus" },
+        "prRead": { "$ref": "#/$defs/capabilityStatus" },
+        "actionsRead": { "$ref": "#/$defs/capabilityStatus" },
+        "mergeReadiness": { "$ref": "#/$defs/capabilityStatus" }
+      }
+    },
+    "messages": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "capabilityStatus": {
+      "enum": ["ready", "partial", "unavailable", "not-evaluated"]
+    }
+  }
+}

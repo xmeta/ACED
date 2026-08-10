@@ -58,6 +58,7 @@ npm run scwbs -- update --dry-run --json
 npm run scwbs -- check
 npm run scwbs -- fix
 npm run scwbs -- doctor
+npm run scwbs -- doctor --github
 npm run scwbs -- health
 npm run scwbs -- health --json
 npm run scwbs -- health --verbose
@@ -72,6 +73,8 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
 ```
 
 `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+
+`doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
 
 `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
 

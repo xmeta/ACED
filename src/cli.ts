@@ -322,8 +322,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("doctor")
     .description("Diagnose and optionally fix repository issues")
     .option("--fix", "apply auto-fixes")
+    .option("--github", "probe optional GitHub CLI, auth, origin, and read capabilities")
     .option("--json", "output as JSON")
-    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, json: opts.json ?? false }); });
+    .action((opts) => { exitCode = runDoctor(root, { fix: opts.fix ?? false, github: opts.github ?? false, json: opts.json ?? false }); });
 
   program
     .command("health")
