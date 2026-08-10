@@ -213,8 +213,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .version(packageVersion())
     .exitOverride()
     .showHelpAfterError(true)
-    .showSuggestionAfterError(true)
-    .allowExcessArguments(true);
+    .showSuggestionAfterError(true);
 
   const commandContext: CommandContext = {
     root,
