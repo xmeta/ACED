@@ -25,6 +25,18 @@ index 0000000..9a837fa
 +resolvedAt: "2026-08-10T17:23:08.264Z"
 +resolvedBy: human
 +resolution: Human approved revised package-size policy and Task Contract
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index f9325e7..734b618 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -122,6 +122,7 @@ rules:
+       - src/core/evidence/build.ts
+       - src/core/evidence/ci-receipt.ts
+       - src/core/evidence/coverage-receipt.ts
++      - src/core/evidence/test-quality-observation.ts
+     requires:
+       - test:integration
+   - id: core-types-unit-only
 diff --git a/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml b/contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 new file mode 100644
 index 0000000..306e777
@@ -52,10 +64,10 @@ index 0000000..306e777
 +  - Replacing human-authored testQuality metadata
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
 new file mode 100644
-index 0000000..6798764
+index 0000000..a709ba1
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,76 @@
 +id: SCWBS-DRAFT-MSNGZ3AA
 +type: task-contract
 +status: approved
@@ -69,7 +81,8 @@ index 0000000..6798764
 +  - src/commands/evidence-annotate.ts
 +  - src/commands/health.ts
 +  - src/core/contracts.ts
-+  - src/core/evidence
++  - src/core/evidence/**
++  - src/core/schema/records.ts
 +  - src/core/types.ts
 +  - scripts/coverage-evidence.mjs
 +  - docs/implementation-gaps.md
@@ -77,6 +90,7 @@ index 0000000..6798764
 +  - tests/integration/evidence.test.ts
 +  - tests/integration/health.test.ts
 +  - tests/integration/packaging.test.ts
++  - contracts/check-coverage.yaml
 +  - tests/unit/coverage-evidence.test.ts
 +  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 +forbiddenPaths:
@@ -106,6 +120,7 @@ index 0000000..6798764
 +  - health and finish surface machine observation as advisory context while retaining manual testQuality compatibility and existing Human Gate behavior
 +  - JSON schema, CLI reference, implementation-gap documentation, and regression tests cover disabled markers, coverage regression/improvement, unavailable baseline, and manual metadata compatibility
 +  - The standalone npm package size guard is explicitly 300000 bytes and remains covered by the packaging integration test
++  - Every changed implementation path is classified by the repository check-coverage policy and required checks remain derived from that classification
 +  - 'Complete Issue #511 Phase 1: observe test quality from diff and coverage'
 +evidenceRequired:
 +  - test-result
@@ -128,7 +143,7 @@ index 0000000..6798764
 +  wbsNodeId: node-governance-maintenance
 +  specVersion: 0.1.0
 +  specRevision: sha256:be704c0472225010c0b92cd2ff9d342b03f3827810e3e2f7a6cd20159edd931d
-+  createdAt: "2026-08-10T17:48:04.810Z"
++  createdAt: "2026-08-10T18:01:46.904Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 4517e99..ea2b0ed 100644
 --- a/contracts/tasks/index.yaml
