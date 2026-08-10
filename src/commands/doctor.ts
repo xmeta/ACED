@@ -22,6 +22,10 @@ export type EnvironmentRuntime = {
   dependencyGraphOutput?: string;
 };
 
+function decorateIssue(issue: Issue): Issue {
+  return withLegacyRemediations([issue])[0]!;
+}
+
 export type DoctorDiagnostic = {
   id: string;
   label: string;
@@ -649,8 +653,8 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
   const envHasFailure = diagnostics.some((d) => d.status === "fail");
 
   const contractIssues = [
-    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: withLegacyRemediations([issue])[0]! })),
-    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: withLegacyRemediations([issue])[0]! }))
+    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
+    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
   ];
 
   const lines: string[] = ["SC-WBS Doctor", ""];
@@ -707,8 +711,8 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
     if (options.json) {
       const diagnostics = collectEnvironmentDiagnostics(root);
       const contractIssues = [
-        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: withLegacyRemediations([issue])[0]! })),
-        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: withLegacyRemediations([issue])[0]! }))
+        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
+        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
       ];
       const envHasFailure = diagnostics.some((d) => d.status === "fail");
       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");

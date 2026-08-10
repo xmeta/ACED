@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { createBufferedStdoutReporter, printIssues, type Reporter } from "../../src/core/report.js";
-import { commandRemediation, guidanceRemediation, withLegacyRemediations } from "../../src/core/remediation.js";
+import { commandRemediation, withLegacyRemediations } from "../../src/core/remediation.js";
 
 describe("Reporter", () => {
   test("buffers stdout without replacing global output functions", () => {
@@ -40,7 +40,7 @@ describe("Reporter", () => {
 
   test("legacy fixCommand becomes non-runnable guidance while argv remains explicit", () => {
     expect(withLegacyRemediations([{ severity: "error", code: "guidance", message: "review", fixCommand: "npm run scwbs -- approval approve" }])[0]?.remediation).toEqual(
-      guidanceRemediation("npm run scwbs -- approval approve")
+      { kind: "guidance", owner: "user", message: "npm run scwbs -- approval approve" }
     );
     expect(commandRemediation(["npm", "run", "scwbs", "--", "approval", "approve"], { owner: "human", safeToAutoRun: false })).toMatchObject({
       kind: "command",

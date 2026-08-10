@@ -172,11 +172,11 @@ export function validateHumanGateApproval(
   const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
   const approvalRequestRemediation = commandRemediation(
     ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id],
-    { owner: "human", safeToAutoRun: false, reason: "A human must review the current Evidence and diff." }
+    { owner: "human", safeToAutoRun: false }
   );
   const approvalRemediation = commandRemediation(
     ["npm", "run", "scwbs", "--", "approval", "approve", "--task", task.id, "--actor", "human", "--reason", "Evidence and diff reviewed"],
-    { owner: "human", safeToAutoRun: false, reason: "Human Approval is required; AI must not execute this command." }
+    { owner: "human", safeToAutoRun: false }
   );
   if (!approval) {
     return {
