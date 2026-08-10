@@ -1,16 +1,18 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
 
-function writeIfMissing(root: string, relativePath: string, content: string): boolean {
+const agentNames: Agent[] = ["codex", "claude", "cursor", "copilot"];
+const agentManifestPath = ".scwbs/agent-files.json";
+
+function writeIfMissing(root: string, relativePath: string, content: string): void {
   const fullPath = resolveFrom(root, relativePath);
-  if (existsSync(fullPath)) return false;
+  if (existsSync(fullPath)) return;
   mkdirSync(dirname(fullPath), { recursive: true });
   writeFileSync(fullPath, content, "utf8");
-  return true;
 }
 
 export type InitOptions = {
@@ -21,6 +23,14 @@ export type InitOptions = {
 
 export type AgentUpdateOptions = {
   agent?: string;
+  allAgents?: boolean;
+  dryRun?: boolean;
+  json?: boolean;
+};
+
+export type AgentOperationOptions = {
+  dryRun?: boolean;
+  json?: boolean;
 };
 
 type AgentFile = {
@@ -28,13 +38,84 @@ type AgentFile = {
   content: string;
 };
 
-type AgentManifest = {
+type AgentManifestFile = {
+  path: string;
+  owner: Agent;
+  sha256: string;
+};
+
+type AgentManifestV1 = {
   schemaVersion: "1";
   agent: Agent;
   files: Array<{ path: string; sha256: string }>;
 };
 
-const agentManifestPath = ".scwbs/agent-files.json";
+type AgentManifestV2 = {
+  schemaVersion: "2";
+  primaryAgent: Agent;
+  agents: Agent[];
+  files: AgentManifestFile[];
+};
+
+type AgentManifest = AgentManifestV1 | AgentManifestV2;
+
+type ManifestState = {
+  manifest?: AgentManifest;
+  version: "none" | "invalid" | "1" | "2";
+};
+
+type ScwbsSettings = {
+  profile?: Profile;
+  agent?: Agent;
+  primaryAgent?: Agent;
+  agents?: Agent[];
+  lang?: Language;
+  [key: string]: unknown;
+};
+
+type AgentDecisionAction = "create" | "update" | "unchanged" | "preserved" | "divergent" | "migrate" | "remove" | "removed" | "move";
+
+export type AgentDecision = {
+  action: AgentDecisionAction;
+  agent?: Agent;
+  path?: string;
+  reason?: string;
+};
+
+function isAgent(value: unknown): value is Agent {
+  return typeof value === "string" && agentNames.includes(value as Agent);
+}
+
+function uniqueAgents(values: Agent[]): Agent[] {
+  return [...new Set(values)];
+}
+
+function normalizeProfile(value: string | undefined): Profile | undefined {
+  if (value === undefined) return "Standard";
+  const lowered = value.toLowerCase();
+  if (lowered === "lean") return "Lean";
+  if (lowered === "standard") return "Standard";
+  if (lowered === "strict") return "Strict";
+  return undefined;
+}
+
+function normalizeAgent(value: string | undefined): Agent | undefined {
+  if (value === undefined) return "codex";
+  const lowered = value.toLowerCase();
+  return isAgent(lowered) ? lowered : undefined;
+}
+
+function normalizeLanguage(value: string | undefined): Language | undefined {
+  if (value === undefined) return "ja";
+  const lowered = value.toLowerCase();
+  if (lowered === "ja" || lowered === "ja-jp") return "ja";
+  if (lowered === "en" || lowered === "en-us") return "en";
+  return undefined;
+}
+
+function sha256(content: string): string {
+  return createHash("sha256").update(content, "utf8").digest("hex");
+}
 
 function agentFiles(agent: Agent, language: Language): AgentFile[] {
   const languageLine = language === "ja" ? "Use Japanese for project-facing handoffs when practical." : "Use English for project-facing handoffs.";
@@ -51,86 +132,190 @@ function agentFiles(agent: Agent, language: Language): AgentFile[] {
   }
 }
 
-function sha256(content: string): string {
-  return createHash("sha256").update(content, "utf8").digest("hex");
+function readAgentManifest(root: string): ManifestState {
+  const fullPath = resolveFrom(root, agentManifestPath);
+  if (!existsSync(fullPath)) return { version: "none" };
+  try {
+    const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as Record<string, unknown>;
+    if (parsed.schemaVersion === "1" && isAgent(parsed.agent) && Array.isArray(parsed.files)) {
+      const files = parsed.files.filter((entry): entry is { path: string; sha256: string } => {
+        if (!entry || typeof entry !== "object") return false;
+        const candidate = entry as Record<string, unknown>;
+        return typeof candidate.path === "string" && typeof candidate.sha256 === "string";
+      });
+      if (files.length !== parsed.files.length) return { version: "invalid" };
+      return { version: "1", manifest: { schemaVersion: "1", agent: parsed.agent, files } };
+    }
+    if (parsed.schemaVersion === "2" && isAgent(parsed.primaryAgent) && Array.isArray(parsed.agents) && Array.isArray(parsed.files)) {
+      const agents = parsed.agents.filter(isAgent);
+      const files = parsed.files.filter((entry): entry is AgentManifestFile => {
+        if (!entry || typeof entry !== "object") return false;
+        const candidate = entry as Record<string, unknown>;
+        return typeof candidate.path === "string" && isAgent(candidate.owner) && typeof candidate.sha256 === "string";
+      });
+      if (agents.length !== parsed.agents.length || files.length !== parsed.files.length || agents.length === 0) return { version: "invalid" };
+      return { version: "2", manifest: { schemaVersion: "2", primaryAgent: parsed.primaryAgent, agents: uniqueAgents(agents), files } };
+    }
+    return { version: "invalid" };
+  } catch {
+    return { version: "invalid" };
+  }
 }
 
-function readAgentManifest(root: string): AgentManifest | undefined {
+function manifestAsV2(state: ManifestState, agents: Agent[], primaryAgent: Agent): AgentManifestV2 {
+  const existing = state.manifest;
+  if (!existing) return { schemaVersion: "2", primaryAgent, agents: uniqueAgents(agents), files: [] };
+  if (existing.schemaVersion === "1") {
+    return {
+      schemaVersion: "2",
+      primaryAgent,
+      agents: uniqueAgents([...agents, existing.agent]),
+      files: existing.files.map((file) => ({ ...file, owner: existing.agent }))
+    };
+  }
+  return {
+    schemaVersion: "2",
+    primaryAgent,
+    agents: uniqueAgents([...agents, ...existing.agents]),
+    files: existing.files.map((file) => ({ ...file }))
+  };
+}
+
+function writeAgentManifest(root: string, manifest: AgentManifestV2): void {
   const fullPath = resolveFrom(root, agentManifestPath);
+  mkdirSync(dirname(fullPath), { recursive: true });
+  writeFileSync(fullPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
+
+function readProjectSettings(root: string): { wbs: WbsDocument; settings: ScwbsSettings } | undefined {
+  const fullPath = resolveFrom(root, defaultWbsPath);
   if (!existsSync(fullPath)) return undefined;
   try {
-    const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as AgentManifest;
-    if (parsed.schemaVersion !== "1" || !Array.isArray(parsed.files)) return undefined;
-    return parsed;
+    const wbs = JSON.parse(readFileSync(fullPath, "utf8")) as WbsDocument;
+    const settings = (wbs.extensions?.scwbs ?? {}) as ScwbsSettings;
+    return { wbs, settings };
   } catch {
     return undefined;
   }
 }
 
-function writeAgentManifest(root: string, agent: Agent, files: AgentFile[]): void {
-  const fullPath = resolveFrom(root, agentManifestPath);
-  mkdirSync(dirname(fullPath), { recursive: true });
-  const manifest: AgentManifest = {
-    schemaVersion: "1",
-    agent,
-    files: files.map((file) => ({ path: file.path, sha256: sha256(file.content) }))
-  };
-  writeFileSync(fullPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+function projectAgents(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: Language } {
+  const configured = [
+    ...(Array.isArray(settings.agents) ? settings.agents.filter(isAgent) : []),
+    ...(isAgent(settings.agent) ? [settings.agent] : []),
+    ...(isAgent(settings.primaryAgent) ? [settings.primaryAgent] : [])
+  ];
+  if (manifestState.manifest?.schemaVersion === "1") configured.push(manifestState.manifest.agent);
+  if (manifestState.manifest?.schemaVersion === "2") configured.push(...manifestState.manifest.agents, manifestState.manifest.primaryAgent);
+  const agents = uniqueAgents(configured.length > 0 ? configured : ["codex"]);
+  const primaryAgent = isAgent(settings.primaryAgent)
+    ? settings.primaryAgent
+    : isAgent(settings.agent)
+      ? settings.agent
+      : manifestState.manifest?.schemaVersion === "2"
+        ? manifestState.manifest.primaryAgent
+        : agents[0];
+  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: settings.lang === "en" ? "en" : "ja" };
 }
 
-function syncAgentFiles(root: string, agent: Agent, language: Language, update: boolean): string[] {
-  const files = agentFiles(agent, language);
-  const manifest = readAgentManifest(root);
-  const previous = new Map((manifest?.agent === agent ? manifest.files : []).map((file) => [file.path, file.sha256]));
-  const messages: string[] = [];
-  let changed = false;
-  for (const file of files) {
-    const fullPath = resolveFrom(root, file.path);
-    if (!existsSync(fullPath)) {
-      mkdirSync(dirname(fullPath), { recursive: true });
-      writeFileSync(fullPath, file.content, "utf8");
-      messages.push(`created ${file.path}`);
-      changed = true;
-      continue;
+function writeProjectAgentSettings(root: string, agents: Agent[], primaryAgent: Agent): void {
+  const project = readProjectSettings(root);
+  if (!project) throw new Error("Cannot update agent settings: project WBS is missing or malformed");
+  const nextSettings: ScwbsSettings = {
+    ...project.settings,
+    agent: primaryAgent,
+    primaryAgent,
+    agents: uniqueAgents(agents)
+  };
+  const nextWbs: WbsDocument = {
+    ...project.wbs,
+    extensions: {
+      ...(project.wbs.extensions ?? {}),
+      scwbs: nextSettings
     }
-    if (!update) {
-      messages.push(`skipped existing ${file.path}`);
+  };
+  writeFileSync(resolveFrom(root, defaultWbsPath), `${JSON.stringify(nextWbs, null, 2)}\n`, "utf8");
+}
+
+function decisionsOutput(decisions: AgentDecision[], json: boolean | undefined): void {
+  if (json) {
+    console.log(JSON.stringify({ version: "scwbs.agent-operation.v1", decisions }, null, 2));
+    return;
+  }
+  for (const decision of decisions) {
+    const target = [decision.agent, decision.path].filter(Boolean).join(" ");
+    console.log(`${decision.action} ${target}${decision.reason ? ` (${decision.reason})` : ""}`.trim());
+  }
+}
+
+function syncAgentFiles(
+  root: string,
+  manifest: AgentManifestV2,
+  agent: Agent,
+  language: Language,
+  update: boolean,
+  dryRun: boolean
+): { manifest: AgentManifestV2; decisions: AgentDecision[] } {
+  const next = { ...manifest, agents: [...manifest.agents], files: manifest.files.map((file) => ({ ...file })) };
+  const decisions: AgentDecision[] = [];
+  for (const file of agentFiles(agent, language)) {
+    const fullPath = resolveFrom(root, file.path);
+    const previous = next.files.find((entry) => entry.path === file.path && entry.owner === agent);
+    const currentExists = existsSync(fullPath);
+    if (!currentExists) {
+      decisions.push({ action: "create", agent, path: file.path });
+      if (!dryRun) {
+        mkdirSync(dirname(fullPath), { recursive: true });
+        writeFileSync(fullPath, file.content, "utf8");
+      }
+      if (!next.files.some((entry) => entry.path === file.path && entry.owner === agent)) {
+        next.files.push({ path: file.path, owner: agent, sha256: sha256(file.content) });
+      }
       continue;
     }
     const current = readFileSync(fullPath, "utf8");
-    if (previous.get(file.path) !== undefined && previous.get(file.path) === sha256(current)) {
+    if (!previous) {
+      decisions.push({ action: "preserved", agent, path: file.path, reason: "existing file has no matching managed ownership" });
+      continue;
+    }
+    const matchesRecorded = sha256(current) === previous.sha256;
+    const matchesGenerated = sha256(file.content) === previous.sha256;
+    if (!update) {
+      decisions.push({ action: matchesRecorded ? "unchanged" : "divergent", agent, path: file.path });
+      continue;
+    }
+    if (!matchesRecorded) {
+      decisions.push({ action: "divergent", agent, path: file.path, reason: "current content differs from recorded generated hash" });
+      continue;
+    }
+    if (matchesGenerated) {
+      decisions.push({ action: "unchanged", agent, path: file.path });
+      continue;
+    }
+    decisions.push({ action: "update", agent, path: file.path });
+    if (!dryRun) {
       writeFileSync(fullPath, file.content, "utf8");
-      messages.push(`updated ${file.path}`);
-      changed = true;
-    } else {
-      messages.push(`skipped divergent ${file.path}`);
+      previous.sha256 = sha256(file.content);
     }
   }
-  if (changed || manifest?.agent === agent) writeAgentManifest(root, agent, files);
-  return messages;
+  return { manifest: next, decisions };
 }
 
-function normalizeProfile(value: string | undefined): Profile | undefined {
-  if (value === undefined) return "Standard";
-  const lowered = value.toLowerCase();
-  if (lowered === "lean") return "Lean";
-  if (lowered === "standard") return "Standard";
-  if (lowered === "strict") return "Strict";
-  return undefined;
+function prepareProject(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: Language; manifest: AgentManifestV2 } | undefined {
+  const project = readProjectSettings(root);
+  if (!project) return undefined;
+  const state = readAgentManifest(root);
+  if (state.version === "invalid") return undefined;
+  const config = projectAgents(project.settings, state);
+  const agents = uniqueAgents([...config.agents, requestedAgent]);
+  const primaryAgent = config.primaryAgent;
+  return { state, agents, primaryAgent, language: config.language, manifest: manifestAsV2(state, agents, primaryAgent) };
 }
 
-function normalizeAgent(value: string | undefined): Agent | undefined {
-  if (value === undefined) return "codex";
-  const lowered = value.toLowerCase();
-  return ["codex", "claude", "cursor", "copilot"].includes(lowered) ? lowered as Agent : undefined;
-}
-
-function normalizeLanguage(value: string | undefined): Language | undefined {
-  if (value === undefined) return "ja";
-  const lowered = value.toLowerCase();
-  if (lowered === "ja" || lowered === "ja-jp") return "ja";
-  if (lowered === "en" || lowered === "en-us") return "en";
-  return undefined;
+function migrationDecision(state: ManifestState): AgentDecision[] {
+  return state.version === "1"
+    ? [{ action: "migrate", path: agentManifestPath, reason: "schema v1 ownership converted to per-file schema v2" }]
+    : [];
 }
 
 export function runInit(root: string, options: InitOptions = {}): number {
@@ -150,90 +335,170 @@ export function runInit(root: string, options: InitOptions = {}): number {
     return 2;
   }
 
-  for (const dir of profileRequiredDirs(profile)) {
-    mkdirSync(resolveFrom(root, dir), { recursive: true });
+  for (const dir of profileRequiredDirs(profile)) mkdirSync(resolveFrom(root, dir), { recursive: true });
+  const existing = readProjectSettings(root);
+  const existingState = readAgentManifest(root);
+  if (existingState.version === "invalid") {
+    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
+    return 2;
   }
-
-  const wbs: WbsDocument = {
+  const existingConfig = existing ? projectAgents(existing.settings, existingState) : { agents: [agent], primaryAgent: agent, language: lang };
+  const agents = uniqueAgents([...existingConfig.agents, agent]);
+  const primaryAgent = existing ? existingConfig.primaryAgent : agent;
+  const wbs: WbsDocument = existing?.wbs ?? {
     schemaVersion: "0.1.0",
     id: "scwbs-project",
     name: "SC-WBS Project",
     rootId: "node-project",
-    nodes: [
-      {
-        id: "node-project",
-        parentId: null,
-        code: "1",
-        name: "Project",
-        type: "deliverable",
-        status: "planned",
-        progressPercent: 0,
-        extensions: {
-          scwbs: {
-            status: "Not Started"
-          }
-        }
-      }
-    ],
+    nodes: [{ id: "node-project", parentId: null, code: "1", name: "Project", type: "deliverable", status: "planned", progressPercent: 0, extensions: { scwbs: { status: "Not Started" } } }],
     relations: [],
-    resources: [
-      {
-        id: "resource-human",
-        name: "Human",
-        type: "role"
-      },
-      {
-        id: "resource-ai",
-        name: "AI Agent",
-        type: "role"
-      }
-    ],
+    resources: [{ id: "resource-human", name: "Human", type: "role" }, { id: "resource-ai", name: "AI Agent", type: "role" }],
     artifacts: [],
-    metadata: {
-      createdBy: "scwbs",
-      language: lang === "ja" ? "ja-JP" : "en-US"
-    },
-    extensions: {
-      scwbs: {
-        profile,
-        agent,
-        lang
-      }
-    }
+    metadata: { createdBy: "scwbs", language: lang === "ja" ? "ja-JP" : "en-US" },
+    extensions: { scwbs: { profile, agent: primaryAgent, primaryAgent, agents, lang } }
   };
-
-  const created: string[] = [];
-  if (writeIfMissing(root, defaultWbsPath, `${JSON.stringify(wbs, null, 2)}\n`)) created.push(defaultWbsPath);
-  if (writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }))) created.push(defaultRegistryPath);
-  created.push(...syncAgentFiles(root, agent, lang, false));
-
-  if (created.length === 0) {
-    console.log("scwbs init: nothing to create");
-  } else {
-    for (const item of created) console.log(`created ${item}`);
+  if (!existing) {
+    writeIfMissing(root, defaultWbsPath, `${JSON.stringify(wbs, null, 2)}\n`);
+    writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }));
   }
+  const manifest = manifestAsV2(existingState, agents, primaryAgent);
+  const synced = syncAgentFiles(root, manifest, agent, existing ? existingConfig.language : lang, false, false);
+  writeProjectAgentSettings(root, agents, primaryAgent);
+  writeAgentManifest(root, synced.manifest);
+  for (const decision of synced.decisions) console.log(`${decision.action} ${decision.path ?? ""}`.trim());
+  if (!existing) console.log(`created ${defaultWbsPath}`);
   return 0;
 }
 
 export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
-  const wbsPath = resolveFrom(root, defaultWbsPath);
-  let configuredAgent: string | undefined = options.agent;
-  let language: Language = "ja";
-  if (existsSync(wbsPath)) {
-    try {
-      const wbs = JSON.parse(readFileSync(wbsPath, "utf8")) as WbsDocument;
-      const settings = wbs.extensions?.scwbs as { agent?: string; lang?: string } | undefined;
-      configuredAgent ??= settings?.agent;
-      if (settings?.lang === "en") language = "en";
-    } catch {
-      // The normal check command reports malformed WBS content; update remains fail-closed here.
-    }
+  if (options.agent && options.allAgents) {
+    console.error("Specify either --agent or --all-agents, not both");
+    return 2;
   }
-  const agent = normalizeAgent(configuredAgent);
+  const requested = options.agent ? normalizeAgent(options.agent) : undefined;
+  if (options.agent && !requested) {
+    console.error("Agent must be codex, claude, cursor, or copilot");
+    return 2;
+  }
+  const project = readProjectSettings(root);
+  if (!project) {
+    console.error("Cannot update agents: project WBS is missing or malformed");
+    return 2;
+  }
+  const state = readAgentManifest(root);
+  if (state.version === "invalid") {
+    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
+    return 2;
+  }
+  const config = projectAgents(project.settings, state);
+  const selected = requested ? [requested] : config.agents;
+  const agents = uniqueAgents([...config.agents, ...selected]);
+  const manifest = manifestAsV2(state, agents, config.primaryAgent);
+  let next = manifest;
+  const decisions = migrationDecision(state);
+  for (const agent of selected) {
+    const synced = syncAgentFiles(root, next, agent, config.language, true, options.dryRun ?? false);
+    next = synced.manifest;
+    decisions.push(...synced.decisions);
+  }
+  if (!(options.dryRun ?? false)) {
+    writeProjectAgentSettings(root, next.agents, config.primaryAgent);
+    writeAgentManifest(root, next);
+  }
+  decisionsOutput(decisions, options.json);
+  return 0;
+}
+
+export function runAgentAdd(root: string, value: string, options: AgentOperationOptions = {}): number {
+  const agent = normalizeAgent(value);
   if (!agent) {
     console.error("Agent must be codex, claude, cursor, or copilot");
     return 2;
   }
-  for (const message of syncAgentFiles(root, agent, language, true)) console.log(message);
+  const prepared = prepareProject(root, agent);
+  if (!prepared) {
+    console.error("Cannot add agent: project WBS or manifest is missing or malformed");
+    return 2;
+  }
+  const synced = syncAgentFiles(root, prepared.manifest, agent, prepared.language, false, options.dryRun ?? false);
+  const decisions = [...migrationDecision(prepared.state), ...synced.decisions, { action: "move" as const, agent, reason: "agent added to project ownership set" }];
+  if (!(options.dryRun ?? false)) {
+    writeProjectAgentSettings(root, synced.manifest.agents, prepared.primaryAgent);
+    writeAgentManifest(root, synced.manifest);
+  }
+  decisionsOutput(decisions, options.json);
+  return 0;
+}
+
+export function runAgentSetPrimary(root: string, value: string, options: AgentOperationOptions = {}): number {
+  const agent = normalizeAgent(value);
+  if (!agent) {
+    console.error("Agent must be codex, claude, cursor, or copilot");
+    return 2;
+  }
+  const project = readProjectSettings(root);
+  const state = readAgentManifest(root);
+  const existingAgents = project && state.version !== "invalid" ? projectAgents(project.settings, state).agents : [];
+  const prepared = prepareProject(root, agent);
+  if (!prepared || !existingAgents.includes(agent)) {
+    console.error(`Cannot set primary agent: ${agent} is not managed; run scwbs agent add ${agent} first`);
+    return 2;
+  }
+  const next = { ...prepared.manifest, primaryAgent: agent };
+  const decisions: AgentDecision[] = [{ action: "move", agent, reason: "primary agent changed" }];
+  if (!(options.dryRun ?? false)) {
+    writeProjectAgentSettings(root, next.agents, agent);
+    writeAgentManifest(root, next);
+  }
+  decisionsOutput(decisions, options.json);
+  return 0;
+}
+
+export function runAgentRemove(root: string, value: string, options: AgentOperationOptions = {}): number {
+  const agent = normalizeAgent(value);
+  if (!agent) {
+    console.error("Agent must be codex, claude, cursor, or copilot");
+    return 2;
+  }
+  const project = readProjectSettings(root);
+  const state = readAgentManifest(root);
+  if (!project || state.version === "invalid") {
+    console.error("Cannot remove agent: project WBS or manifest is missing or malformed");
+    return 2;
+  }
+  const config = projectAgents(project.settings, state);
+  const manifest = manifestAsV2(state, config.agents, config.primaryAgent);
+  if (!manifest.agents.includes(agent)) {
+    console.error(`Agent is not managed: ${agent}`);
+    return 2;
+  }
+  if (manifest.agents.length === 1) {
+    console.error("Cannot remove the last managed agent");
+    return 2;
+  }
+  const nextAgents = manifest.agents.filter((candidate) => candidate !== agent);
+  const nextPrimary = manifest.primaryAgent === agent ? nextAgents[0] : manifest.primaryAgent;
+  const decisions = migrationDecision(state);
+  const retained: AgentManifestFile[] = [];
+  for (const file of manifest.files) {
+    if (file.owner !== agent) {
+      retained.push(file);
+      continue;
+    }
+    const fullPath = resolveFrom(root, file.path);
+    const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
+    if (current !== undefined && sha256(current) !== file.sha256) {
+      decisions.push({ action: "preserved", agent, path: file.path, reason: "divergent user file is never deleted" });
+    } else {
+      decisions.push({ action: options.dryRun ? "remove" : "removed", agent, path: file.path });
+      if (!options.dryRun && current !== undefined) unlinkSync(fullPath);
+    }
+  }
+  const next: AgentManifestV2 = { ...manifest, agents: nextAgents, primaryAgent: nextPrimary, files: retained };
+  if (!(options.dryRun ?? false)) {
+    writeProjectAgentSettings(root, nextAgents, nextPrimary);
+    writeAgentManifest(root, next);
+  }
+  decisionsOutput(decisions, options.json);
   return 0;
 }

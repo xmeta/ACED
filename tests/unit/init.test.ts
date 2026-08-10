@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { runAgentUpdate, runInit } from "../../src/commands/init.js";
+import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "../../src/commands/init.js";
 import { validateWbsDocument } from "../../src/core/wbs.js";
 import { type WbsDocument } from "../../src/core/types.js";
 import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
@@ -18,9 +18,11 @@ describe("init + WBS validation", () => {
     expect(runInit(root, { profile: "lean", agent: "codex", lang: "ja" })).toBe(0);
     const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")) as WbsDocument;
     expect(wbs.metadata?.language).toBe("ja-JP");
-    expect(wbs.extensions?.scwbs).toEqual({
+    expect(wbs.extensions?.scwbs).toMatchObject({
       profile: "Lean",
       agent: "codex",
+      primaryAgent: "codex",
+      agents: ["codex"],
       lang: "ja"
     });
   });
@@ -39,6 +41,52 @@ describe("init + WBS validation", () => {
     writeJson(root, ".cursor/rules/scwbs.mdc", { custom: true });
     expect(runAgentUpdate(root, { agent: "cursor" })).toBe(0);
     expect(readFileSync(file, "utf8")).toContain("custom");
+  });
+
+  test("init adds a second agent without losing the first agent manifest ownership", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent: "codex" })).toBe(0);
+    expect(runInit(root, { agent: "claude" })).toBe(0);
+    const manifest = JSON.parse(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")) as {
+      schemaVersion: string;
+      primaryAgent: string;
+      agents: string[];
+      files: Array<{ owner: string; path: string }>;
+    };
+    expect(manifest).toMatchObject({ schemaVersion: "2", primaryAgent: "codex", agents: ["codex", "claude"] });
+    expect(manifest.files).toEqual(expect.arrayContaining([
+      { owner: "codex", path: "AGENTS.md", sha256: expect.any(String) },
+      { owner: "claude", path: ".claude/commands/scwbs.md", sha256: expect.any(String) }
+    ]));
+  });
+
+  test("v1 migration preserves divergent files and dry-run does not write", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent: "codex" })).toBe(0);
+    const manifestPath = path.join(root, ".scwbs/agent-files.json");
+    const legacy = JSON.parse(readFileSync(manifestPath, "utf8")) as { files: Array<{ path: string; sha256: string }> };
+    writeJson(root, ".scwbs/agent-files.json", { schemaVersion: "1", agent: "codex", files: legacy.files });
+    writeJson(root, "AGENTS.md", { custom: true });
+    const before = readFileSync(manifestPath, "utf8");
+    expect(runAgentUpdate(root, { dryRun: true, json: true })).toBe(0);
+    expect(readFileSync(manifestPath, "utf8")).toBe(before);
+    expect(runAgentUpdate(root, { json: true })).toBe(0);
+    const migrated = JSON.parse(readFileSync(manifestPath, "utf8")) as { schemaVersion: string };
+    expect(migrated.schemaVersion).toBe("2");
+    expect(readFileSync(path.join(root, "AGENTS.md"), "utf8")).toContain("custom");
+  });
+
+  test("agent commands converge primary state and never delete divergent files", () => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent: "codex" })).toBe(0);
+    expect(runAgentSetPrimary(root, "claude")).toBe(2);
+    expect(runAgentAdd(root, "claude")).toBe(0);
+    expect(runAgentSetPrimary(root, "claude")).toBe(0);
+    writeJson(root, ".claude/commands/scwbs.md", { custom: true });
+    expect(runAgentRemove(root, "claude")).toBe(0);
+    expect(readFileSync(path.join(root, ".claude/commands/scwbs.md"), "utf8")).toContain("custom");
+    const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")) as WbsDocument;
+    expect(wbs.extensions?.scwbs).toMatchObject({ agent: "codex", primaryAgent: "codex", agents: ["codex"] });
   });
 
   test("invalid WBS document reports validation errors", () => {
