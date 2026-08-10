@@ -101,6 +101,16 @@ fieldがある場合も、値には2種類ある。
 
 `fixCommand` の値をそのままshellへ渡す自動化を書いてはならない。fieldの有無を確認し、値が実行可能なコマンドか助言かを判定してから、人間または上位workflowが次の操作を決める。
 
+### `remediation` contract
+
+主要なcheck/health/doctor/check-diff/finishのJSON issueには、`remediation`（versioned contract）が付く。`kind` は `command`、`guidance`、`wait` のいずれかであり、commandはshell文字列ではなくargv配列をcanonical表現とする。
+
+- `command`: `owner`（`ai`、`human`、`user`）、`argv`、`safeToAutoRun`、任意の`cwd`/`reason`を持つ。Human Gateのcommandは必ず`owner: human`かつ`safeToAutoRun: false`である。
+- `guidance`: `owner`（`human`または`user`）と表示用`message`を持つ。単一コマンドと解釈して実行してはならない。
+- `wait`: 外部状態を待つ提案であり、`owner: external`と`condition`を持つ。
+
+既存consumer向けに`fixCommand`は互換textとして維持する。既存producerがまだargvを提供しないfixCommandは安全側に`guidance`として出力され、自然言語をshellへ渡すheuristicは行わない。正式なshapeは[`remediation.schema.json`](schemas/remediation.schema.json)で定義する。
+
 ### `health`
 
 `health` の既定出力は同じissue codeをcount、代表2件、omitted件数へ集約し、warning数に比例してログが増えない。error、Human Gate、具体的な `fixCommand` を持つissueの順に優先表示する。全件表示は `--verbose`、機械処理はversioned schema `scwbs.health.v1` を返す `--json` を使う。JSONは集約前の全issueとcode別件数を保持する。shallow cloneではcommit到達性を `not-evaluated` と明示し、取得されていないcommitをunknownとして誤警告しない。`doctor` の既定textも同じsource/codeを代表2件へ集約するが、既存JSONは全issueを保持する。CRLF診断は `.gitattributes` 設定後の `git add --renormalize` を修復手順として返す。

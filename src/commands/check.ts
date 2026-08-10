@@ -8,6 +8,7 @@ import { collectCheckCoveragePolicyIssues, readCheckCoveragePolicy } from "../co
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readProfile } from "./profile.js";
 import { hasErrors, printIssues } from "../core/report.js";
+import { withLegacyRemediations } from "../core/remediation.js";
 import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
@@ -341,9 +342,10 @@ export type CheckJsonOutput = {
 export function runCheck(root: string, options: CheckOptions = {}): number {
   const issues = collectCheckIssues(root);
   if (options.json) {
+    const outputIssues = withLegacyRemediations(issues);
     const output: CheckJsonOutput = {
       status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
-      issues
+      issues: outputIssues
     };
     console.log(JSON.stringify(output, null, 2));
     return hasErrors(issues) ? 1 : 0;

@@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
+import { withLegacyRemediations } from "../core/remediation.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {
@@ -648,8 +649,8 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
   const envHasFailure = diagnostics.some((d) => d.status === "fail");
 
   const contractIssues = [
-    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: withLegacyRemediations([issue])[0]! })),
+    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: withLegacyRemediations([issue])[0]! }))
   ];
 
   const lines: string[] = ["SC-WBS Doctor", ""];
@@ -706,8 +707,8 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
     if (options.json) {
       const diagnostics = collectEnvironmentDiagnostics(root);
       const contractIssues = [
-        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: withLegacyRemediations([issue])[0]! })),
+        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: withLegacyRemediations([issue])[0]! }))
       ];
       const envHasFailure = diagnostics.some((d) => d.status === "fail");
       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");

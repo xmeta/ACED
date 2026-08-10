@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.example/scwbs/remediation.schema.json",
+  "title": "SC-WBS remediation",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["kind", "owner", "argv", "safeToAutoRun"],
+      "properties": {
+        "kind": { "const": "command" },
+        "owner": { "enum": ["ai", "human", "user"] },
+        "argv": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "cwd": { "type": "string" },
+        "safeToAutoRun": { "type": "boolean" },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["kind", "owner", "message"],
+      "properties": {
+        "kind": { "const": "guidance" },
+        "owner": { "enum": ["human", "user"] },
+        "message": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["kind", "owner", "condition"],
+      "properties": {
+        "kind": { "const": "wait" },
+        "owner": { "const": "external" },
+        "condition": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  ]
+}
