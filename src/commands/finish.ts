@@ -15,7 +15,7 @@ import type { WorkingTreeState } from "../core/git.js";
 import type { ApprovalStatus, Evidence, Issue, Profile, Remediation } from "../core/types.js";
 import { collectTaskHealthIssues } from "./health.js";
 import { taskRefreshReasons } from "./task-refresh.js";
-import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter, withLegacyRemediations } from "../core/report.js";
+import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
 import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
 import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
 import {
@@ -346,7 +346,7 @@ function printReadinessIssues(issues: Issue[], json: boolean): void {
 }
 
 function readinessWarnings(issues: Issue[]): FinishJsonOutput["readinessWarnings"] {
-  return withLegacyRemediations(issues).map(({ code, message, fixCommand, remediation }) => ({
+  return remediate(issues).map(({ code, message, fixCommand, remediation }) => ({
     code,
     message,
     ...(fixCommand ? { fixCommand } : {}),

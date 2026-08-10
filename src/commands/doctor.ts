@@ -9,7 +9,7 @@ import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
-import { withLegacyRemediations } from "../core/report.js";
+import { withDefaultFixCommand as remediate } from "../core/report.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {
@@ -23,7 +23,7 @@ export type EnvironmentRuntime = {
 };
 
 function decorateIssue(issue: Issue): Issue {
-  return withLegacyRemediations([issue])[0]!;
+  return remediate([issue])[0]!;
 }
 
 export type DoctorDiagnostic = {

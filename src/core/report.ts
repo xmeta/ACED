@@ -1,21 +1,4 @@
-import type { Issue, Remediation } from "./types.js";
-
-export function commandRemediation(
-  argv: string[],
-  options: { owner?: "ai" | "human" | "user"; safeToAutoRun?: boolean } = {}
-): Remediation {
-  return {
-    kind: "command",
-    owner: options.owner ?? "user",
-    argv,
-    safeToAutoRun: options.safeToAutoRun ?? false
-  };
-}
-
-/** Compatibility adapter: legacy fixCommand text is guidance until a producer supplies argv explicitly. */
-export const withLegacyRemediations = (issues: Issue[]): Issue[] => issues.map((issue) =>
-  issue.remediation || !issue.fixCommand ? issue : { ...issue, remediation: { kind: "guidance", owner: "user", message: issue.fixCommand } }
-);
+import type { Issue } from "./types.js";
 
 export type Reporter = {
   log(message?: unknown): void;
@@ -65,13 +48,7 @@ export function printIssues(issues: Issue[], reporter: Reporter = createConsoleR
  * set a specific fixCommand, but this backstop guarantees one is always
  * present so a caller never sees an Error with no next action.
  */
-export function withDefaultFixCommand(issues: Issue[], defaultFixCommand: string): Issue[] {
-  return issues.map((issue) =>
-    issue.severity === "error" && !issue.fixCommand
-      ? { ...issue, fixCommand: defaultFixCommand }
-      : issue
-  );
-}
+export const withDefaultFixCommand = (issues: Issue[], defaultFixCommand?: string): Issue[] => issues.map((issue) => issue.remediation || !issue.fixCommand ? defaultFixCommand && issue.severity === "error" && !issue.fixCommand ? { ...issue, fixCommand: defaultFixCommand } : issue : { ...issue, remediation: { kind: "guidance", owner: "user", message: issue.fixCommand } });
 
 export function hasErrors(issues: Issue[]): boolean {
   return issues.some((item) => item.severity === "error");

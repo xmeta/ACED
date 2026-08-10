@@ -2,10 +2,11 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { matchesAny } from "./glob.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
-import { commandRemediation } from "./report.js";
 import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+
+const humanCommand = (argv: string[]) => ({ kind: "command" as const, owner: "human" as const, argv, safeToAutoRun: false });
 
 export type DelegatedApproval = {
   approvalMode: "delegated";
@@ -169,15 +170,9 @@ export function validateHumanGateApproval(
     return { required: false, requiredFiles, approved: true, issues: [] };
   }
 
+  const approvalRequestCommand = `npm run scwbs -- approval request --task ${task.id}`;
   const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
-  const approvalRequestRemediation = commandRemediation(
-    ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id],
-    { owner: "human", safeToAutoRun: false }
-  );
-  const approvalRemediation = commandRemediation(
-    ["npm", "run", "scwbs", "--", "approval", "approve", "--task", task.id, "--actor", "human", "--reason", "Evidence and diff reviewed"],
-    { owner: "human", safeToAutoRun: false }
-  );
+  const approvalRemediation = humanCommand(approvalCommand.replaceAll('"', "").split(" "));
   if (!approval) {
     return {
       required: true,
@@ -187,8 +182,8 @@ export function validateHumanGateApproval(
         severity: "error",
         code: "approval.missing",
         message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
-        remediation: approvalRequestRemediation
+        fixCommand: approvalRequestCommand,
+        remediation: humanCommand(approvalRequestCommand.split(" "))
       }]
     };
   }
@@ -260,11 +255,14 @@ export function validateHumanGateApproval(
       fixCommand: approvalCommand
     });
   }
+  for (const issue of issues) {
+    if (issue.fixCommand === approvalCommand) issue.remediation = approvalRemediation;
+  }
 
   return {
     required: true,
     requiredFiles,
     approved: issues.length === 0,
-    issues: issues.map((issue) => issue.fixCommand === approvalCommand ? { ...issue, remediation: approvalRemediation } : issue)
+    issues
   };
 }

@@ -7,7 +7,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoveragePolicyIssues, readCheckCoveragePolicy } from "../core/check-coverage.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readProfile } from "./profile.js";
-import { hasErrors, printIssues, withLegacyRemediations } from "../core/report.js";
+import { hasErrors, printIssues, withDefaultFixCommand as remediate } from "../core/report.js";
 import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
 import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
 import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
@@ -341,7 +341,7 @@ export type CheckJsonOutput = {
 export function runCheck(root: string, options: CheckOptions = {}): number {
   const issues = collectCheckIssues(root);
   if (options.json) {
-    const outputIssues = withLegacyRemediations(issues);
+        const outputIssues = remediate(issues);
     const output: CheckJsonOutput = {
       status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
       issues: outputIssues

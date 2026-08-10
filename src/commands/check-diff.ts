@@ -5,7 +5,7 @@ import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensi
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
-import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand, withLegacyRemediations } from "../core/report.js";
+import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
 import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";
@@ -308,7 +308,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
   const reporter = options.reporter ?? createConsoleReporter();
   const { task, issues } = readTask(root, taskId);
   if (!task) {
-    const taskIssues = withLegacyRemediations(withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`));
+    const taskIssues = remediate(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
     if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
     else printIssues(taskIssues, reporter);
     return 1;
@@ -326,7 +326,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
       ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
     ]));
   } catch (error) {
-    const baseIssues = withLegacyRemediations([{
+    const baseIssues = remediate([{
       severity: "error",
       code: "diff.git.base",
       message: error instanceof Error ? error.message : String(error),
@@ -336,14 +336,14 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     else printIssues(baseIssues, reporter);
     return 1;
   }
-  const diffIssues = withLegacyRemediations(withDefaultFixCommand([
+  const diffIssues = remediate([
     ...collectBranchIssues(task, currentBranch(root)),
     ...collectEvidenceGateIssues(root, task, options.evidence),
     ...collectCurrentPullRequestIssues(root, task, options.evidence),
     ...workingTreeIssues,
     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
     ...collectDiffIssues(root, task, files, options.evidence)
-  ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`));
+  ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
   const authorityRepairPreflights = diffIssues.some((issue) => issue.code === "diff.taskAuthority.change")
     ? buildTaskAuthorityRepairPreflights(root, baseRef, authorityFiles)
     : [];
