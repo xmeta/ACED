@@ -1,0 +1,54 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-515-github-readiness
+type: discovery-probe
+status: concluded
+question: GitHub依存機能のgh CLI・認証・origin/API readinessをlocal-only利用を壊さず診断する最小範囲は何か
+hypotheses:
+  - doctor --github can distinguish gh missing unauthenticated non-GitHub origin read-only auth and ready without exposing credentials
+  - GitHub capability status can remain optional and non-fatal for local-only doctor
+  - merge and metrics can reuse one bounded readiness result and guide users to doctor --github
+activities:
+  - inspect doctor JSON and CLI registration
+  - inspect merge metrics and health GitHub call boundaries
+  - define safe gh command outputs and origin parsing
+  - define allowed paths and no-auth-redesign boundary
+evidenceExpected:
+  - current doctor diagnostics and JSON shape
+  - GitHub-dependent command behavior
+  - credential redaction boundary
+  - capability fixture matrix
+  - bounded path proposal
+unknowns:
+  - exact gh auth status parsing
+  - repository metadata and Actions/PR capability probes
+  - read-only scope mapping
+  - how to report partial capability without token details
+timebox: 30m
+costLimit: 1 bounded implementation Task
+exitConditions:
+  - optional doctor mode and capability statuses are explicit
+  - credential output is bounded and redacted
+  - dependent guidance path is explicit
+  - required tests and docs are identified
+nextDecision: create and lock one bounded delivery Task for opt-in GitHub capability diagnostics, bounded JSON reporting, dependent-command guidance, and regression fixtures
+deliveryTaskId: TASK-515
+createdAt: "2026-08-10T22:57:05.050Z"
+startedAt: "2026-08-10T22:57:16.899Z"
+concludedAt: "2026-08-10T22:58:12.208Z"
+exitConditionsMet: true
+factsLearned:
+  - doctor currently diagnoses local Node npm Corepack Git dependencies WJS registry and WBS but has no GitHub capability mode
+  - merge reads PR metadata through gh and returns unavailable without a doctor remediation path
+  - GitHub Actions metrics reads origin and gh api directly and can expose unbounded stderr as reason
+  - origin parsing already has a bounded GitHub repository pattern
+  - auth status and repository capability can be mapped to statuses without storing or printing credentials
+hypothesesRejected:
+  - GitHub authentication can be automated by doctor
+  - raw gh auth output is safe to expose
+  - local-only doctor should fail when GitHub is unavailable
+  - admin or write permission should be required for readiness diagnosis
+remainingUnknowns:
+  - safe parsing of gh auth status and failure classes
+  - repository metadata Actions and PR read probes
+  - feature status matrix for merge readiness
+  - credential redaction and dependent-command guidance wording
