@@ -235,7 +235,6 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("update")
     .description("Update generated AI tool files")
     .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
-    .option("--all-agents", "update every managed agent (the default)")
     .option("--dry-run", "show planned changes without writing")
     .option("--json", "output a versioned machine-readable decision report")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });

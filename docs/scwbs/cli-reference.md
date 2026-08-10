@@ -55,7 +55,6 @@ group-specific help for its subcommands and options:
 npm run scwbs -- init --profile lean --agent codex --lang ja
 npm run scwbs -- agent add claude
 npm run scwbs -- agent set-primary codex
-npm run scwbs -- update --all-agents
 npm run scwbs -- update --dry-run --json
 npm run scwbs -- check
 npm run scwbs -- fix
