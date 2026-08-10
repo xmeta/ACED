@@ -32,5 +32,33 @@ packed artifact の境界は CI の `distribution` job と
 ## Release policy
 
 Release は main から手動 dispatch する `.github/workflows/release.yml` が
-`npm pack` した tarball を GitHub Release に添付します。npm registry への
+release subject を先に確定し、対象 commit から `npm pack` した tarball と
+`release-manifest.json` を GitHub Release に添付します。npm registry への
 publish、repository visibility の変更、credential の追加は行いません。
+
+workflow は次の順序を fail-closed で検証します。
+
+1. 入力 tag が `v${package.json.version}` と一致すること
+2. 既存 tag はその tag が指す commit を checkout し、新規 tag は現在の main
+   commit を release subject とすること
+3. 同じ subject SHA を head に持つ `.github/workflows/scwbs.yml` の
+   `core`、`integration`、`wjs`、`distribution`、`validate` がすべて成功済みであること
+4. versioned `CHANGELOG.md` section が存在すること
+5. tarball filename、package version、release tag が一致し、manifest の SHA-256
+   が生成 tarball と一致すること
+
+既存 tag の subject mismatch、version mismatch、validation 不在、または
+`Unreleased` section しかない CHANGELOG の場合は、tag や Release を作成せずに
+失敗します。新規 tag は全検証と manifest 生成が終わった後、
+`gh release create --target <subject-commit>` で初めて作成されます。
+
+Release asset の検証例:
+
+```bash
+gh release download v0.1.0 --repo xmeta/ACED --pattern 'scwbs-*.tgz' --pattern release-manifest.json
+sha256sum scwbs-0.1.0.tgz
+node -e 'const m=require("./release-manifest.json"); console.log(m.commit, m.tag, m.packageVersion, m.sha256)'
+```
+
+表示された SHA-256、tag、package version、commit が manifest の値と一致することを
+確認してから artifact を配布します。
