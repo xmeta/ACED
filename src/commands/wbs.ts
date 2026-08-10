@@ -1,9 +1,16 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { listActiveTasks } from "../core/contracts.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import { readWbs, resolveWjsRuntime, runWjsValidate } from "../core/wbs.js";
+import {
+  buildWbsMergeChangeset,
+  buildWbsMergePlan,
+  readWbs,
+  resolveWjsRuntime,
+  runWjsValidate
+} from "../core/wbs.js";
 import type { WbsDocument, WbsNode } from "../core/types.js";
 
 export function runWbsValidate(root: string): number {
@@ -126,6 +133,52 @@ export function runWbsVerifyChangesets(root: string, options: { base?: string; h
     }
     console.error("WBS changesets do not reproduce the head WBS");
     return 1;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+function readWbsReference(root: string, reference: string): WbsDocument {
+  const candidate = resolveFrom(root, reference);
+  if (existsSync(candidate)) return readWbs(root, reference);
+  const result = spawnSync("git", ["show", `${reference}:${defaultWbsPath}`], { cwd: root, encoding: "utf8" });
+  if (result.status !== 0 || !result.stdout) {
+    throw new Error(`Unable to read WBS reference ${reference} as a file or git ref`);
+  }
+  return JSON.parse(result.stdout) as WbsDocument;
+}
+
+export function runWbsMergePlan(
+  root: string,
+  options: { base?: string; ours?: string; theirs?: string; writeChangeset?: string }
+): number {
+  if (!options.base || !options.ours || !options.theirs) {
+    console.error("Usage: scwbs wbs merge-plan --base <ref-or-file> --ours <ref-or-file> --theirs <ref-or-file> [--write-changeset <file>]");
+    return 2;
+  }
+  try {
+    const base = readWbsReference(root, options.base);
+    const ours = readWbsReference(root, options.ours);
+    const theirs = readWbsReference(root, options.theirs);
+    const plan = buildWbsMergePlan(base, ours, theirs);
+    const output: Record<string, unknown> = {
+      ...plan,
+      inputs: { base: options.base, ours: options.ours, theirs: options.theirs }
+    };
+    if (options.writeChangeset) {
+      if (plan.status !== "clean") {
+        process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+        console.error("Cannot write a changeset for a conflicted WBS merge plan");
+        return 1;
+      }
+      const changesetPath = resolveFrom(root, options.writeChangeset);
+      mkdirSync(path.dirname(changesetPath), { recursive: true });
+      writeFileSync(changesetPath, `${JSON.stringify(buildWbsMergeChangeset(plan, base.id), null, 2)}\n`);
+      output.changesetPath = options.writeChangeset;
+    }
+    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+    return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/scwbs/wbs-merge-plan.schema.json",
+  "title": "SC-WBS WBS Merge Plan",
+  "type": "object",
+  "required": ["version", "status", "autoMergeableOperations", "conflicts", "warnings"],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "const": "scwbs.wbs-merge-plan.v1" },
+    "status": { "enum": ["clean", "conflicted"] },
+    "autoMergeableOperations": { "type": "array", "items": { "type": "object" } },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["class", "identity", "path", "message"],
+        "properties": {
+          "class": { "type": "string", "minLength": 1 },
+          "identity": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "inputs": {
+      "type": "object",
+      "required": ["base", "ours", "theirs"],
+      "properties": {
+        "base": { "type": "string", "minLength": 1 },
+        "ours": { "type": "string", "minLength": 1 },
+        "theirs": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

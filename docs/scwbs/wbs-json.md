@@ -76,6 +76,32 @@ npm run scwbs -- wbs validate
 `scwbs wbs validate` と `scwbs check` は、内部で `wjs/tools/validate.ts --wbs` を使ってWBS-JSON schemaとsemantic validationを確認する。
 `scwbs check-diff` は、`contracts/wbs/project.wbs.json` が変更されているのに `contracts/changesets/*.json` がない場合はErrorとし、change setがある場合は `wjs/tools/validate.ts --operations` で検証する。
 
+## 3-way semantic merge plan
+
+複数branchのWBSを統合するときは、canonical JSONを直接編集せず、まずread-onlyのsemantic planを生成する。
+
+```bash
+npm run scwbs -- wbs merge-plan \
+  --base origin/main \
+  --ours HEAD \
+  --theirs origin/other-branch \
+  --json
+```
+
+出力は `scwbs.wbs-merge-plan.v1` のJSONで、`nodes`、`relations`、`resources`、`artifacts`、extension namespaceをidentity単位で比較する。JSONのキー順やcollectionの並び順はsemantic conflictではない。独立変更は `clean`、同一fieldの異なる変更、delete-vs-modify、identity/code collision、欠落endpoint、schema mismatchは `conflicted` として構造化する。
+
+既定ではファイルを書き換えない。`clean` planだけを、明示的な出力先へWJS-compatible changesetとして書き出せる。
+
+```bash
+npm run scwbs -- wbs merge-plan \
+  --base base.wbs.json \
+  --ours ours.wbs.json \
+  --theirs theirs.wbs.json \
+  --write-changeset /tmp/wbs-merge.json
+```
+
+生成changesetはレビューとcanonical WBS validatorを通してから、既存の `wbs apply --force --output contracts/wbs/project.wbs.json` 経路で適用する。conflictの勝者を自動選択したり、plan commandがcanonical WBSを直接更新したりしてはならない。
+
 `dryRun: true` のchange setは、結果を確認するためのプレビューとして扱う。
 
 実際に書き込む場合は、Taskの運用policyでHuman Gateが必要かを先に判断し、適用が許可されたchangesetだけに明示的な `--force --output contracts/wbs/project.wbs.json` を使う。現行 `wbs apply` はTask IDやApproval recordを入力に取らないため、Human Gateを一律に自動検証するcommandではない。機械強制が必要なTaskでは、Task開始前から `contracts/wbs/project.wbs.json` を `humanGateRequiredPaths` に含める。

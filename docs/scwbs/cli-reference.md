@@ -146,6 +146,10 @@ completion trustの対象と `--strict` の失敗対象は**同一の母集団**
 
 `archived` は「一度完了して保管された」ことを意味しない。実装上、`task archive` で `status: archived` になったTaskは、完了経緯にかかわらずcompletion trust判定の対象になる。したがって、実装が未完了のままarchiveしたTaskがある場合、`status --strict` はそのTaskのEvidence/Approval欠落を理由に非0を返し得る。未完了のまま追跡対象から外したいだけであれば、archiveする前にそのTaskの扱い（完了扱いにするか、`cancelled` にするか）を先に決めること。
 
+### `wbs merge-plan`
+
+`wbs merge-plan --base <ref-or-file> --ours <ref-or-file> --theirs <ref-or-file>` は、WBSのread-only 3-way semantic merge planを `scwbs.wbs-merge-plan.v1` JSONで出力する。node、relation、resource、artifact、extension namespaceをidentity単位で比較し、独立変更は `clean`、同一field変更やdelete-vs-modifyなどは `conflicted` として報告する。`--write-changeset <file>` はclean planに限ってWJS-compatible changesetを書き出すが、canonical WBSへの適用やconflict解決は行わない。
+
 `health` はTask index上でactiveなTask Contractの `packet --context-json` manifestを診断する。ここでactiveとは `completed` / `cancelled` / `archived` 以外（`planned` / `active` / `blocked` / `reviewed`）である。次のcode context指標はWARNのみでexit codeを変更しない。指標はファイル単位またはwidening reason単位で全アクティブタスクを横断集約し、タスク数の爆発を防ぐ。
 
 - `health.codeContext.fileTooLarge`：context内の単一file（mustRead/candidates）が 500 lines を超える、または 40,960 bytes を超える。一意な file path ごとに 1 issue、message に参照しているアクティブタスク数と代表例を含める。
