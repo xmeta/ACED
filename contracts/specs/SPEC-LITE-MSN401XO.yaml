@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSN401XO
+type: spec-contract
+featureId: F-MSN401XO
+title: "Issue #507: multi-agent manifest ownership and convergence"
+status: approved
+version: 0.1.0
+approvedBy: issue-507-acceptance
+approvedAt: "2026-08-10T20:00:00+09:00"
+summary: "複数AI adapterのownershipを失わず、WBS設定とmanaged-file manifestを収束させる"
+acceptanceCriteria:
+  - schema v2 stores primaryAgent, agents, and per-file owner/hash records while preserving legacy schema v1 readers
+  - v1 migration verifies recorded hashes, preserves divergent/custom files, and supports dry-run JSON reporting
+  - init and agent add/set-primary/remove operations keep primary and agent lists consistent with the manifest and are idempotent
+  - update converges all managed agents by default and supports explicit agent scope plus dry-run JSON decisions
+  - removal never deletes a file whose current content differs from the recorded generated hash
+  - unit and clean consumer integration tests cover install, add, update, migration, remove, primary change, and repeat execution
+  - CLI reference documents the multi-agent commands, migration boundary, dry-run output, and Human Gate preservation

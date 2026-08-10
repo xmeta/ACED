@@ -1,0 +1,73 @@
+id: EVD-SCWBS-DRAFT-MSN401XO
+type: evidence
+taskId: SCWBS-DRAFT-MSN401XO
+commit: ee72b7ecd83cd502340f2b19b4428acf44d545cc
+subjectHeadCommit: ee72b7ecd83cd502340f2b19b4428acf44d545cc
+diffHash: sha256:93942d2707234ebcc1e327cf13243a42477b46ddc460f18cae6b1a75b01a74f9
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: ee72b7ecd83cd502340f2b19b4428acf44d545cc
+    treeHash: 45c713716ab20a19201649e1e2c72ffb430867c5
+    diffHash: sha256:93942d2707234ebcc1e327cf13243a42477b46ddc460f18cae6b1a75b01a74f9
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
+    manifestHash: sha256:93942d2707234ebcc1e327cf13243a42477b46ddc460f18cae6b1a75b01a74f9
+git:
+  branch: task/SCWBS-DRAFT-MSN401XO-issue-507-multi-agent-manifest-and-update-conver
+  base: origin/main
+  baseCommit: 3d04fcac642475a1991d3a4153bd7870a82dc10d
+  changedFilesBasis: branch-diff
+  pullRequest: "517"
+  subjectHeadCommit: ee72b7ecd83cd502340f2b19b4428acf44d545cc
+  diffHash: sha256:93942d2707234ebcc1e327cf13243a42477b46ddc460f18cae6b1a75b01a74f9
+  headCommit: ee72b7ecd83cd502340f2b19b4428acf44d545cc
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
+  - contracts/evidence/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSN401XO.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/init.ts
+  - tests/integration/multi-agent.test.ts
+  - tests/unit/init.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:842c94c894caeef4351b22c7ec0cb585431c5452be27b594521a6a1742ccf0e2
+    durationMilliseconds: 14298
+    executedAt: "2026-08-10T13:01:21.427Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3f02c46777f4c6e1010906d3ad36805c5dfd00e260a5a4dcd35d23dfb2b874d8
+    durationMilliseconds: 9022
+    executedAt: "2026-08-10T13:01:30.452Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6ba055521a35e70e33965dfa7ac0bdb6a2e62512ba16dc4a363ecf0f7382ea12
+    durationMilliseconds: 3810
+    executedAt: "2026-08-10T13:01:34.267Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e38f60cc0976bfa7a901e727f402e7bf738568c6846bacaeb2cee36828923321
+    durationMilliseconds: 311737
+    executedAt: "2026-08-10T13:06:46.009Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added multi-agent manifest v2 ownership, v1 migration, add/remove/set-primary, all-agent update, dry-run JSON, divergent-file preservation, consumer lifecycle regression coverage, and package-footprint regression fix.

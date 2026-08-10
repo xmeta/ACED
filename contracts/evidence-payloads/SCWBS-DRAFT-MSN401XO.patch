@@ -1,0 +1,934 @@
+diff --git a/contracts/specs/SPEC-LITE-MSN401XO.yaml b/contracts/specs/SPEC-LITE-MSN401XO.yaml
+new file mode 100644
+index 0000000..b709a2e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSN401XO.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSN401XO
++type: spec-contract
++featureId: F-MSN401XO
++title: "Issue #507: multi-agent manifest ownership and convergence"
++status: approved
++version: 0.1.0
++approvedBy: issue-507-acceptance
++approvedAt: "2026-08-10T20:00:00+09:00"
++summary: "複数AI adapterのownershipを失わず、WBS設定とmanaged-file manifestを収束させる"
++acceptanceCriteria:
++  - schema v2 stores primaryAgent, agents, and per-file owner/hash records while preserving legacy schema v1 readers
++  - v1 migration verifies recorded hashes, preserves divergent/custom files, and supports dry-run JSON reporting
++  - init and agent add/set-primary/remove operations keep primary and agent lists consistent with the manifest and are idempotent
++  - update converges all managed agents by default and supports explicit agent scope plus dry-run JSON decisions
++  - removal never deletes a file whose current content differs from the recorded generated hash
++  - unit and clean consumer integration tests cover install, add, update, migration, remove, primary change, and repeat execution
++  - CLI reference documents the multi-agent commands, migration boundary, dry-run output, and Human Gate preservation
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml b/contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
+new file mode 100644
+index 0000000..9ca6de6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
+@@ -0,0 +1,79 @@
++id: SCWBS-DRAFT-MSN401XO
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSN401XO
++branchName: task/SCWBS-DRAFT-MSN401XO-issue-507-multi-agent-manifest-and-update-conver
++allowedPaths:
++  - src/commands/init.ts
++  - src/cli.ts
++  - tests/unit/init.test.ts
++  - tests/integration/cli-registration.test.ts
++  - tests/integration/multi-agent.test.ts
++  - docs/scwbs/cli-reference.md
++  - contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/specs/SPEC-LITE-MSN401XO.yaml
++  - contracts/tasks/index.yaml
++  - contracts/registry.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
++  - contracts/approvals/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSN401XO.yaml
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - DB schema change
++  - migration addition
++  - authentication or permission design change
++  - destructive change
++  - external service or release decision
++  - allowed path expansion
++  - specification ambiguity
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - manifest schema v2 stores primaryAgent, all managed agents, and per-file owner/hash entries without losing existing ownership when a second agent is added
++  - existing schema v1 manifests migrate only verified managed files to schema v2; custom or divergent files remain untouched and migration is visible in dry-run output
++  - init and explicit agent add/set-primary operations keep WBS agent configuration and manifest ownership semantically consistent while preserving legacy primary agent compatibility
++  - agent remove deletes only unchanged generated files owned by that agent and never deletes custom or divergent user files
++  - update without an explicit agent converges all managed agents, while explicit agent update remains bounded to the selected agent
++  - update --dry-run --json reports create, update, unchanged, preserved, divergent, migrate, and remove/move decisions without writing files
++  - repeated init, agent operations, migration, and update are idempotent
++  - clean consumer fixture covers multi-agent install, update, migration, removal, and upgrade behavior
++  - adapter guidance preserves the existing Human Gate and approval boundary semantics
++  - 'Complete Issue #507: init/updateの単一agent manifestを複数agent対応へ直し、WBSとのsplit-brainを防ぐ'
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
++  - contracts/approvals/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSN401XO.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:08b3660ecce1f8a9e34d54fea68179034bb5acb5e4b37a3ec219d9cff67f9748
++  createdAt: "2026-08-10T10:51:25.117Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 56ea988..5c73cb9 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1854,3 +1854,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T10:42:01.454Z"
++  - id: SCWBS-DRAFT-MSN401XO
++    path: contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
++    branchName: task/SCWBS-DRAFT-MSN401XO-issue-507-multi-agent-manifest-and-update-conver
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 4aa8691..8b58316 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -53,7 +53,9 @@ group-specific help for its subcommands and options:
+ 
+ ```bash
+ npm run scwbs -- init --profile lean --agent codex --lang ja
+-npm run scwbs -- update --agent claude
++npm run scwbs -- agent add claude
++npm run scwbs -- agent set-primary codex
++npm run scwbs -- update --dry-run --json
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
+@@ -72,7 +74,9 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+ 
+-`init --agent` creates the selected adapter's standard instruction file only when it does not exist. Supported adapters are `codex`, `claude`, `cursor`, and `copilot`. It records generated file hashes in `.scwbs/agent-files.json`. `update` refreshes only files whose current contents still match the recorded generated hash; divergent or user-owned files are reported and left unchanged.
++`init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
++
++`update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+ 
+ ### Navigation JSON contracts
+ 
+diff --git a/src/cli.ts b/src/cli.ts
+index e397130..741b91d 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
+ import { runFinish } from "./commands/finish.js";
+ import { runFix } from "./commands/fix.js";
+ import { runHealth } from "./commands/health.js";
+-import { runAgentUpdate, runInit } from "./commands/init.js";
++import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "./commands/init.js";
+ import { runPromote } from "./commands/lite.js";
+ import { runMerge } from "./commands/merge.js";
+ import { runMetricsGovernance } from "./commands/metrics.js";
+@@ -233,10 +233,28 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   program
+     .command("update")
+-    .description("Update generated AI tool files without overwriting divergent files")
+-    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
++    .option("--agent <agent>")
++    .option("--dry-run")
++    .option("--json")
+     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
+ 
++  const agent = program.command("agent");
++  agent
++    .command("add")
++    .argument("<agent>")
++    .option("--json")
++    .action((agentName: string, opts) => { exitCode = runAgentAdd(root, agentName, opts); });
++  agent
++    .command("remove")
++    .argument("<agent>")
++    .option("--json")
++    .action((agentName: string, opts) => { exitCode = runAgentRemove(root, agentName, opts); });
++  agent
++    .command("set-primary")
++    .argument("<agent>")
++    .option("--json")
++    .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
++
+   program
+     .command("check")
+     .description("Check repository contracts")
+diff --git a/src/commands/init.ts b/src/commands/init.ts
+index 2b90811..960da53 100644
+--- a/src/commands/init.ts
++++ b/src/commands/init.ts
+@@ -1,16 +1,20 @@
+ import { createHash } from "node:crypto";
+-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+ import { dirname } from "node:path";
+ import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
+ 
+-function writeIfMissing(root: string, relativePath: string, content: string): boolean {
++const agentNames: Agent[] = ["codex", "claude", "cursor", "copilot"];
++const agentManifestPath = ".scwbs/agent-files.json";
++const agentError = "Unknown agent (codex, claude, cursor, copilot)";
++const manifestError = "Invalid agent manifest";
++
++function writeIfMissing(root: string, relativePath: string, content: string): void {
+   const fullPath = resolveFrom(root, relativePath);
+-  if (existsSync(fullPath)) return false;
++  if (existsSync(fullPath)) return;
+   mkdirSync(dirname(fullPath), { recursive: true });
+   writeFileSync(fullPath, content, "utf8");
+-  return true;
+ }
+ 
+ export type InitOptions = {
+@@ -21,6 +25,12 @@ export type InitOptions = {
+ 
+ export type AgentUpdateOptions = {
+   agent?: string;
++  dryRun?: boolean;
++  json?: boolean;
++};
++
++export type AgentOperationOptions = {
++  json?: boolean;
+ };
+ 
+ type AgentFile = {
+@@ -28,109 +38,272 @@ type AgentFile = {
+   content: string;
+ };
+ 
+-type AgentManifest = {
++type AgentManifestFile = {
++  path: string;
++  owner: Agent;
++  sha256: string;
++};
++
++type AgentManifestV1 = {
+   schemaVersion: "1";
+   agent: Agent;
+   files: Array<{ path: string; sha256: string }>;
+ };
+ 
+-const agentManifestPath = ".scwbs/agent-files.json";
++type AgentManifestV2 = {
++  schemaVersion: "2";
++  primaryAgent: Agent;
++  agents: Agent[];
++  files: AgentManifestFile[];
++};
++
++type AgentManifest = AgentManifestV1 | AgentManifestV2;
++
++type ManifestState = {
++  manifest?: AgentManifest;
++  version: "none" | "invalid" | "1" | "2";
++};
++
++type ScwbsSettings = {
++  profile?: Profile;
++  agent?: Agent;
++  primaryAgent?: Agent;
++  agents?: Agent[];
++  lang?: Language;
++  [key: string]: unknown;
++};
++
++type AgentDecisionAction = "create" | "update" | "unchanged" | "preserved" | "divergent" | "migrate" | "remove" | "removed" | "move";
++
++export type AgentDecision = {
++  action: AgentDecisionAction;
++  agent?: Agent;
++  path?: string;
++};
++
++function isAgent(value: unknown): value is Agent {
++  return typeof value === "string" && agentNames.includes(value as Agent);
++}
++
++function uniqueAgents(values: Agent[]): Agent[] {
++  return [...new Set(values)];
++}
++
++function normalizeProfile(value: string | undefined): Profile | undefined {
++  if (value === undefined) return "Standard";
++  const lowered = value.toLowerCase();
++  if (lowered === "lean") return "Lean";
++  if (lowered === "standard") return "Standard";
++  if (lowered === "strict") return "Strict";
++  return undefined;
++}
++
++function normalizeAgent(value: string | undefined): Agent | undefined {
++  if (value === undefined) return "codex";
++  const lowered = value.toLowerCase();
++  return isAgent(lowered) ? lowered : undefined;
++}
++
++function normalizeLanguage(value: string | undefined): Language | undefined {
++  if (value === undefined) return "ja";
++  const lowered = value.toLowerCase();
++  if (lowered === "ja" || lowered === "ja-jp") return "ja";
++  if (lowered === "en" || lowered === "en-us") return "en";
++  return undefined;
++}
++
++function sha256(content: string): string {
++  return createHash("sha256").update(content, "utf8").digest("hex");
++}
+ 
+ function agentFiles(agent: Agent, language: Language): AgentFile[] {
+-  const languageLine = language === "ja" ? "Use Japanese for project-facing handoffs when practical." : "Use English for project-facing handoffs.";
+-  const common = `<!-- Generated by scwbs. Keep local customizations in a separate file. -->\n\n# SC-WBS project workflow\n\nFollow the repository's AGENTS.md and SC-WBS Task Contract before changing files.\n${languageLine}\n\n- Read the active Task Contract and stay within allowed paths.\n- Run required checks and collect Evidence before reporting completion.\n- Stop for Human Gate, schema, dependency, authentication, or release decisions.\n`;
++  const languageLine = language === "ja" ? "Use Japanese for handoffs when practical." : "Use English for handoffs.";
++  const common = `<!-- scwbs; keep customizations separate. -->\n\n# SC-WBS\n\nFollow AGENTS.md and Task Contract.\n${languageLine}\n\n- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions.\n`;
+   switch (agent) {
+     case "codex":
+-      return [{ path: "AGENTS.md", content: `${common}\nUse scwbs packet --task <id> for the bounded work packet.\n` }];
++      return [{ path: "AGENTS.md", content: `${common}\nUse scwbs packet --task <id>.\n` }];
+     case "claude":
+-      return [{ path: ".claude/commands/scwbs.md", content: `${common}\nUse npm run scwbs -- packet --task <id> before implementation.\n` }];
++      return [{ path: ".claude/commands/scwbs.md", content: `${common}\nUse npm run scwbs -- packet --task <id>.\n` }];
+     case "cursor":
+-      return [{ path: ".cursor/rules/scwbs.mdc", content: `${common}\nUse the Task Contract as the source of truth for every edit.\n` }];
++      return [{ path: ".cursor/rules/scwbs.mdc", content: `${common}\nUse the Task Contract for every edit.\n` }];
+     case "copilot":
+-      return [{ path: ".github/copilot-instructions.md", content: `${common}\nUse the repository's SC-WBS CLI commands through the npm script.\n` }];
++      return [{ path: ".github/copilot-instructions.md", content: `${common}\nUse SC-WBS CLI commands through npm.\n` }];
+   }
+ }
+ 
+-function sha256(content: string): string {
+-  return createHash("sha256").update(content, "utf8").digest("hex");
++function readManifest(root: string): ManifestState {
++  const fullPath = resolveFrom(root, agentManifestPath);
++  if (!existsSync(fullPath)) return { version: "none" };
++  try {
++    const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as Record<string, unknown>;
++    const files = Array.isArray(parsed.files) ? parsed.files : [];
++    const validV1 = files.every((entry) => {
++      const candidate = entry as Record<string, unknown>;
++      return entry !== null && typeof entry === "object" && typeof candidate.path === "string" && typeof candidate.sha256 === "string";
++    });
++    if (parsed.schemaVersion === "1" && isAgent(parsed.agent) && validV1) {
++      return { version: "1", manifest: { schemaVersion: "1", agent: parsed.agent, files: files as AgentManifestV1["files"] } };
++    }
++    const agents = Array.isArray(parsed.agents) ? parsed.agents.filter(isAgent) : [];
++    const validV2 = files.every((entry) => {
++      const candidate = entry as Record<string, unknown>;
++      return entry !== null && typeof entry === "object" && typeof candidate.path === "string" && isAgent(candidate.owner) && typeof candidate.sha256 === "string";
++    });
++    if (parsed.schemaVersion === "2" && isAgent(parsed.primaryAgent) && agents.length === (Array.isArray(parsed.agents) ? parsed.agents.length : 0) && agents.length > 0 && validV2) {
++      return { version: "2", manifest: { schemaVersion: "2", primaryAgent: parsed.primaryAgent, agents: uniqueAgents(agents), files: files as AgentManifestV2["files"] } };
++    }
++    return { version: "invalid" };
++  } catch {
++    return { version: "invalid" };
++  }
+ }
+ 
+-function readAgentManifest(root: string): AgentManifest | undefined {
++function asV2(state: ManifestState, agents: Agent[], primaryAgent: Agent): AgentManifestV2 {
++  const existing = state.manifest;
++  if (!existing) return { schemaVersion: "2", primaryAgent, agents: uniqueAgents(agents), files: [] };
++  if (existing.schemaVersion === "1") {
++    return {
++      schemaVersion: "2",
++      primaryAgent,
++      agents: uniqueAgents([...agents, existing.agent]),
++      files: existing.files.map((file) => ({ ...file, owner: existing.agent }))
++    };
++  }
++  return {
++    schemaVersion: "2",
++    primaryAgent,
++    agents: uniqueAgents([...agents, ...existing.agents]),
++    files: existing.files.map((file) => ({ ...file }))
++  };
++}
++
++function writeManifest(root: string, manifest: AgentManifestV2): void {
+   const fullPath = resolveFrom(root, agentManifestPath);
++  mkdirSync(dirname(fullPath), { recursive: true });
++  writeFileSync(fullPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
++}
++
++function project(root: string): { wbs: WbsDocument; settings: ScwbsSettings } | undefined {
++  const fullPath = resolveFrom(root, defaultWbsPath);
+   if (!existsSync(fullPath)) return undefined;
+   try {
+-    const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as AgentManifest;
+-    if (parsed.schemaVersion !== "1" || !Array.isArray(parsed.files)) return undefined;
+-    return parsed;
++    const wbs = JSON.parse(readFileSync(fullPath, "utf8")) as WbsDocument;
++    const settings = (wbs.extensions?.scwbs ?? {}) as ScwbsSettings;
++    return { wbs, settings };
+   } catch {
+     return undefined;
+   }
+ }
+ 
+-function writeAgentManifest(root: string, agent: Agent, files: AgentFile[]): void {
+-  const fullPath = resolveFrom(root, agentManifestPath);
+-  mkdirSync(dirname(fullPath), { recursive: true });
+-  const manifest: AgentManifest = {
+-    schemaVersion: "1",
+-    agent,
+-    files: files.map((file) => ({ path: file.path, sha256: sha256(file.content) }))
++function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: Language } {
++  const manifestAgents = manifestState.manifest?.schemaVersion === "1"
++    ? [manifestState.manifest.agent]
++    : manifestState.manifest?.schemaVersion === "2"
++      ? [...manifestState.manifest.agents, manifestState.manifest.primaryAgent]
++      : [];
++  const configured = [ ...(settings.agents ?? []), settings.agent, settings.primaryAgent, ...manifestAgents ].filter(isAgent);
++  const agents = uniqueAgents(configured.length > 0 ? configured : ["codex"]);
++  const primaryAgent = [settings.primaryAgent, settings.agent, ...manifestAgents, agents[0]].find(isAgent) ?? agents[0];
++  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: settings.lang === "en" ? "en" : "ja" };
++}
++
++function writeSettings(root: string, agents: Agent[], primaryAgent: Agent): void {
++  const current = project(root);
++  if (!current) throw new Error("Cannot update agent settings: invalid WBS");
++  const nextSettings: ScwbsSettings = {
++    ...current.settings,
++    agent: primaryAgent,
++    primaryAgent,
++    agents: uniqueAgents(agents)
+   };
+-  writeFileSync(fullPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
++  const nextWbs: WbsDocument = {
++    ...current.wbs,
++    extensions: {
++      ...(current.wbs.extensions ?? {}),
++      scwbs: nextSettings
++    }
++  };
++  writeFileSync(resolveFrom(root, defaultWbsPath), `${JSON.stringify(nextWbs, null, 2)}\n`, "utf8");
++}
++
++function output(decisions: AgentDecision[], json: boolean | undefined): void {
++  if (json) {
++    console.log(JSON.stringify({ version: "scwbs.agent-operation.v1", decisions }, null, 2));
++    return;
++  }
++  for (const decision of decisions) {
++    const target = [decision.agent, decision.path].filter(Boolean).join(" ");
++    console.log(`${decision.action} ${target}`.trim());
++  }
+ }
+ 
+-function syncAgentFiles(root: string, agent: Agent, language: Language, update: boolean): string[] {
+-  const files = agentFiles(agent, language);
+-  const manifest = readAgentManifest(root);
+-  const previous = new Map((manifest?.agent === agent ? manifest.files : []).map((file) => [file.path, file.sha256]));
+-  const messages: string[] = [];
+-  let changed = false;
+-  for (const file of files) {
++function sync(
++  root: string,
++  manifest: AgentManifestV2,
++  agent: Agent,
++  language: Language,
++  update: boolean,
++  dryRun: boolean
++): { manifest: AgentManifestV2; decisions: AgentDecision[] } {
++  const next = { ...manifest, agents: [...manifest.agents], files: manifest.files.map((file) => ({ ...file })) };
++  const decisions: AgentDecision[] = [];
++  for (const file of agentFiles(agent, language)) {
+     const fullPath = resolveFrom(root, file.path);
+-    if (!existsSync(fullPath)) {
+-      mkdirSync(dirname(fullPath), { recursive: true });
+-      writeFileSync(fullPath, file.content, "utf8");
+-      messages.push(`created ${file.path}`);
+-      changed = true;
++    const previous = next.files.find((entry) => entry.path === file.path && entry.owner === agent);
++    const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
++    if (current === undefined) {
++      decisions.push({ action: "create", agent, path: file.path });
++      if (!dryRun) {
++        mkdirSync(dirname(fullPath), { recursive: true });
++        writeFileSync(fullPath, file.content, "utf8");
++      }
++      if (!previous) {
++        next.files.push({ path: file.path, owner: agent, sha256: sha256(file.content) });
++      }
++      continue;
++    }
++    if (!previous) {
++      decisions.push({ action: "preserved", agent, path: file.path });
+       continue;
+     }
++    const matchesRecorded = sha256(current) === previous.sha256;
++    const matchesGenerated = sha256(file.content) === previous.sha256;
+     if (!update) {
+-      messages.push(`skipped existing ${file.path}`);
++      decisions.push({ action: matchesRecorded ? "unchanged" : "divergent", agent, path: file.path });
+       continue;
+     }
+-    const current = readFileSync(fullPath, "utf8");
+-    if (previous.get(file.path) !== undefined && previous.get(file.path) === sha256(current)) {
++    if (!matchesRecorded) {
++      decisions.push({ action: "divergent", agent, path: file.path });
++      continue;
++    }
++    if (matchesGenerated) {
++      decisions.push({ action: "unchanged", agent, path: file.path });
++      continue;
++    }
++    decisions.push({ action: "update", agent, path: file.path });
++    if (!dryRun) {
+       writeFileSync(fullPath, file.content, "utf8");
+-      messages.push(`updated ${file.path}`);
+-      changed = true;
+-    } else {
+-      messages.push(`skipped divergent ${file.path}`);
++      previous.sha256 = sha256(file.content);
+     }
+   }
+-  if (changed || manifest?.agent === agent) writeAgentManifest(root, agent, files);
+-  return messages;
++  return { manifest: next, decisions };
+ }
+ 
+-function normalizeProfile(value: string | undefined): Profile | undefined {
+-  if (value === undefined) return "Standard";
+-  const lowered = value.toLowerCase();
+-  if (lowered === "lean") return "Lean";
+-  if (lowered === "standard") return "Standard";
+-  if (lowered === "strict") return "Strict";
+-  return undefined;
++function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: Language; manifest: AgentManifestV2 } | undefined {
++  const current = project(root);
++  if (!current) return undefined;
++  const state = readManifest(root);
++  if (state.version === "invalid") return undefined;
++  const config = agentsFor(current.settings, state);
++  const agents = uniqueAgents([...config.agents, requestedAgent]);
++  const primaryAgent = config.primaryAgent;
++  return { state, agents, primaryAgent, language: config.language, manifest: asV2(state, agents, primaryAgent) };
+ }
+ 
+-function normalizeAgent(value: string | undefined): Agent | undefined {
+-  if (value === undefined) return "codex";
+-  const lowered = value.toLowerCase();
+-  return ["codex", "claude", "cursor", "copilot"].includes(lowered) ? lowered as Agent : undefined;
+-}
+-
+-function normalizeLanguage(value: string | undefined): Language | undefined {
+-  if (value === undefined) return "ja";
+-  const lowered = value.toLowerCase();
+-  if (lowered === "ja" || lowered === "ja-jp") return "ja";
+-  if (lowered === "en" || lowered === "en-us") return "en";
+-  return undefined;
++function migration(state: ManifestState): AgentDecision[] {
++  return state.version === "1"
++    ? [{ action: "migrate", path: agentManifestPath }]
++    : [];
+ }
+ 
+ export function runInit(root: string, options: InitOptions = {}): number {
+@@ -141,7 +314,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
+   }
+   const agent = normalizeAgent(options.agent);
+   if (!agent) {
+-    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
+     return 2;
+   }
+   const lang = normalizeLanguage(options.lang);
+@@ -150,90 +323,161 @@ export function runInit(root: string, options: InitOptions = {}): number {
+     return 2;
+   }
+ 
+-  for (const dir of profileRequiredDirs(profile)) {
+-    mkdirSync(resolveFrom(root, dir), { recursive: true });
++  for (const dir of profileRequiredDirs(profile)) mkdirSync(resolveFrom(root, dir), { recursive: true });
++  const existing = project(root);
++  const existingState = readManifest(root);
++  if (existingState.version === "invalid") {
++    console.error(manifestError);
++    return 2;
+   }
+-
+-  const wbs: WbsDocument = {
++  const existingConfig = existing ? agentsFor(existing.settings, existingState) : { agents: [agent], primaryAgent: agent, language: lang };
++  const agents = uniqueAgents([...existingConfig.agents, agent]);
++  const primaryAgent = existing ? existingConfig.primaryAgent : agent;
++  const wbs: WbsDocument = existing?.wbs ?? {
+     schemaVersion: "0.1.0",
+     id: "scwbs-project",
+     name: "SC-WBS Project",
+     rootId: "node-project",
+-    nodes: [
+-      {
+-        id: "node-project",
+-        parentId: null,
+-        code: "1",
+-        name: "Project",
+-        type: "deliverable",
+-        status: "planned",
+-        progressPercent: 0,
+-        extensions: {
+-          scwbs: {
+-            status: "Not Started"
+-          }
+-        }
+-      }
+-    ],
++    nodes: [{ id: "node-project", parentId: null, code: "1", name: "Project", type: "deliverable", status: "planned", progressPercent: 0, extensions: { scwbs: { status: "Not Started" } } }],
+     relations: [],
+-    resources: [
+-      {
+-        id: "resource-human",
+-        name: "Human",
+-        type: "role"
+-      },
+-      {
+-        id: "resource-ai",
+-        name: "AI Agent",
+-        type: "role"
+-      }
+-    ],
++    resources: [{ id: "resource-human", name: "Human", type: "role" }, { id: "resource-ai", name: "AI Agent", type: "role" }],
+     artifacts: [],
+-    metadata: {
+-      createdBy: "scwbs",
+-      language: lang === "ja" ? "ja-JP" : "en-US"
+-    },
+-    extensions: {
+-      scwbs: {
+-        profile,
+-        agent,
+-        lang
+-      }
+-    }
++    metadata: { createdBy: "scwbs", language: lang === "ja" ? "ja-JP" : "en-US" },
++    extensions: { scwbs: { profile, agent: primaryAgent, primaryAgent, agents, lang } }
+   };
++  if (!existing) {
++    writeIfMissing(root, defaultWbsPath, `${JSON.stringify(wbs, null, 2)}\n`);
++    writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }));
++  }
++  const manifest = asV2(existingState, agents, primaryAgent);
++  const synced = sync(root, manifest, agent, existing ? existingConfig.language : lang, false, false);
++  writeSettings(root, agents, primaryAgent);
++  writeManifest(root, synced.manifest);
++  for (const decision of synced.decisions) console.log(`${decision.action} ${decision.path ?? ""}`.trim());
++  if (!existing) console.log(`created ${defaultWbsPath}`);
++  return 0;
++}
+ 
+-  const created: string[] = [];
+-  if (writeIfMissing(root, defaultWbsPath, `${JSON.stringify(wbs, null, 2)}\n`)) created.push(defaultWbsPath);
+-  if (writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }))) created.push(defaultRegistryPath);
+-  created.push(...syncAgentFiles(root, agent, lang, false));
++export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
++  const dryRun = options.dryRun ?? false;
++  const requested = options.agent ? normalizeAgent(options.agent) : undefined;
++  if (options.agent && !requested) {
++    console.error(agentError);
++    return 2;
++  }
++  const current = project(root);
++  if (!current) {
++    console.error("Cannot update agents: invalid WBS");
++    return 2;
++  }
++  const state = readManifest(root);
++  if (state.version === "invalid") {
++    console.error(manifestError);
++    return 2;
++  }
++  const config = agentsFor(current.settings, state);
++  const selected = requested ? [requested] : config.agents;
++  const agents = uniqueAgents([...config.agents, ...selected]);
++  const manifest = asV2(state, agents, config.primaryAgent);
++  let next = manifest;
++  const decisions = migration(state);
++  for (const agent of selected) {
++    const synced = sync(root, next, agent, config.language, true, dryRun);
++    next = synced.manifest;
++    decisions.push(...synced.decisions);
++  }
++  if (!dryRun) {
++    writeSettings(root, next.agents, config.primaryAgent);
++    writeManifest(root, next);
++  }
++  output(decisions, options.json);
++  return 0;
++}
+ 
+-  if (created.length === 0) {
+-    console.log("scwbs init: nothing to create");
+-  } else {
+-    for (const item of created) console.log(`created ${item}`);
++export function runAgentAdd(root: string, value: string, options: AgentOperationOptions = {}): number {
++  const agent = normalizeAgent(value);
++  if (!agent) {
++    console.error(agentError);
++    return 2;
+   }
++  const prepared = prepare(root, agent);
++  if (!prepared) {
++    console.error("Cannot add agent: invalid WBS/manifest");
++    return 2;
++  }
++  const synced = sync(root, prepared.manifest, agent, prepared.language, false, false);
++  const decisions = [...migration(prepared.state), ...synced.decisions, { action: "move" as const, agent }];
++  writeSettings(root, synced.manifest.agents, prepared.primaryAgent);
++  writeManifest(root, synced.manifest);
++  output(decisions, options.json);
+   return 0;
+ }
+ 
+-export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
+-  const wbsPath = resolveFrom(root, defaultWbsPath);
+-  let configuredAgent: string | undefined = options.agent;
+-  let language: Language = "ja";
+-  if (existsSync(wbsPath)) {
+-    try {
+-      const wbs = JSON.parse(readFileSync(wbsPath, "utf8")) as WbsDocument;
+-      const settings = wbs.extensions?.scwbs as { agent?: string; lang?: string } | undefined;
+-      configuredAgent ??= settings?.agent;
+-      if (settings?.lang === "en") language = "en";
+-    } catch {
+-      // The normal check command reports malformed WBS content; update remains fail-closed here.
+-    }
++export function runAgentSetPrimary(root: string, value: string, options: AgentOperationOptions = {}): number {
++  const agent = normalizeAgent(value);
++  if (!agent) {
++    console.error(agentError);
++    return 2;
++  }
++  const current = project(root);
++  const state = readManifest(root);
++  const existingAgents = current && state.version !== "invalid" ? agentsFor(current.settings, state).agents : [];
++  const prepared = prepare(root, agent);
++  if (!prepared || !existingAgents.includes(agent)) {
++    console.error(`Unmanaged agent: ${agent}; add it first`);
++    return 2;
+   }
+-  const agent = normalizeAgent(configuredAgent);
++  const next = { ...prepared.manifest, primaryAgent: agent };
++  const decisions: AgentDecision[] = [{ action: "move", agent }];
++  writeSettings(root, next.agents, agent);
++  writeManifest(root, next);
++  output(decisions, options.json);
++  return 0;
++}
++
++export function runAgentRemove(root: string, value: string, options: AgentOperationOptions = {}): number {
++  const agent = normalizeAgent(value);
+   if (!agent) {
+-    console.error("Agent must be codex, claude, cursor, or copilot");
++    console.error(agentError);
++    return 2;
++  }
++  const current = project(root);
++  const state = readManifest(root);
++  if (!current || state.version === "invalid") {
++    console.error("Cannot remove agent: invalid WBS/manifest");
++    return 2;
++  }
++  const config = agentsFor(current.settings, state);
++  const manifest = asV2(state, config.agents, config.primaryAgent);
++  if (!manifest.agents.includes(agent)) {
++    console.error(`Unmanaged agent: ${agent}`);
++    return 2;
++  }
++  if (manifest.agents.length === 1) {
++    console.error("Cannot remove only agent");
+     return 2;
+   }
+-  for (const message of syncAgentFiles(root, agent, language, true)) console.log(message);
++  const nextAgents = manifest.agents.filter((candidate) => candidate !== agent);
++  const nextPrimary = manifest.primaryAgent === agent ? nextAgents[0] : manifest.primaryAgent;
++  const decisions = migration(state);
++  const retained: AgentManifestFile[] = [];
++  for (const file of manifest.files) {
++    if (file.owner !== agent) {
++      retained.push(file);
++      continue;
++    }
++    const fullPath = resolveFrom(root, file.path);
++    const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
++    if (current !== undefined && sha256(current) !== file.sha256) {
++      decisions.push({ action: "preserved", agent, path: file.path });
++    } else {
++      decisions.push({ action: "removed", agent, path: file.path });
++      if (current !== undefined) unlinkSync(fullPath);
++    }
++  }
++  const next: AgentManifestV2 = { ...manifest, agents: nextAgents, primaryAgent: nextPrimary, files: retained };
++  writeSettings(root, nextAgents, nextPrimary);
++  writeManifest(root, next);
++  output(decisions, options.json);
+   return 0;
+ }
+diff --git a/tests/integration/multi-agent.test.ts b/tests/integration/multi-agent.test.ts
+new file mode 100644
+index 0000000..b1d7320
+--- /dev/null
++++ b/tests/integration/multi-agent.test.ts
+@@ -0,0 +1,42 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo } from "../helpers.js";
++
++function capture(root: string, args: string[]): { exitCode: number; stdout: string } {
++  const output: string[] = [];
++  const originalWrite = process.stdout.write;
++  const originalLog = console.log;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  console.log = ((...args: unknown[]) => output.push(`${args.join(" ")}\n`)) as typeof console.log;
++  try {
++    return { exitCode: main(args, root), stdout: output.join("") };
++  } finally {
++    process.stdout.write = originalWrite;
++    console.log = originalLog;
++  }
++}
++
++describe("multi-agent consumer lifecycle", () => {
++  test("install, add, dry-run update, primary change, and remove converge idempotently", () => {
++    const root = makeTempRepo();
++    expect(capture(root, ["init", "--agent", "codex"]).exitCode).toBe(0);
++    expect(capture(root, ["agent", "add", "claude"]).exitCode).toBe(0);
++    const dryRun = capture(root, ["update", "--dry-run", "--json"]);
++    expect(dryRun.exitCode).toBe(0);
++    expect(JSON.parse(dryRun.stdout)).toMatchObject({ version: "scwbs.agent-operation.v1" });
++    expect(capture(root, ["agent", "set-primary", "claude"]).exitCode).toBe(0);
++    expect(capture(root, ["update"]).exitCode).toBe(0);
++    expect(capture(root, ["agent", "remove", "codex"]).exitCode).toBe(0);
++    const manifest = JSON.parse(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")) as {
++      schemaVersion: string;
++      primaryAgent: string;
++      agents: string[];
++    };
++    expect(manifest).toMatchObject({ schemaVersion: "2", primaryAgent: "claude", agents: ["claude"] });
++  });
++});
+diff --git a/tests/unit/init.test.ts b/tests/unit/init.test.ts
+index 0301511..fde8791 100644
+--- a/tests/unit/init.test.ts
++++ b/tests/unit/init.test.ts
+@@ -1,7 +1,7 @@
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+-import { runAgentUpdate, runInit } from "../../src/commands/init.js";
++import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "../../src/commands/init.js";
+ import { validateWbsDocument } from "../../src/core/wbs.js";
+ import { type WbsDocument } from "../../src/core/types.js";
+ import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
+@@ -18,9 +18,11 @@ describe("init + WBS validation", () => {
+     expect(runInit(root, { profile: "lean", agent: "codex", lang: "ja" })).toBe(0);
+     const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")) as WbsDocument;
+     expect(wbs.metadata?.language).toBe("ja-JP");
+-    expect(wbs.extensions?.scwbs).toEqual({
++    expect(wbs.extensions?.scwbs).toMatchObject({
+       profile: "Lean",
+       agent: "codex",
++      primaryAgent: "codex",
++      agents: ["codex"],
+       lang: "ja"
+     });
+   });
+@@ -41,6 +43,52 @@ describe("init + WBS validation", () => {
+     expect(readFileSync(file, "utf8")).toContain("custom");
+   });
+ 
++  test("init adds a second agent without losing the first agent manifest ownership", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "codex" })).toBe(0);
++    expect(runInit(root, { agent: "claude" })).toBe(0);
++    const manifest = JSON.parse(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")) as {
++      schemaVersion: string;
++      primaryAgent: string;
++      agents: string[];
++      files: Array<{ owner: string; path: string }>;
++    };
++    expect(manifest).toMatchObject({ schemaVersion: "2", primaryAgent: "codex", agents: ["codex", "claude"] });
++    expect(manifest.files).toEqual(expect.arrayContaining([
++      { owner: "codex", path: "AGENTS.md", sha256: expect.any(String) },
++      { owner: "claude", path: ".claude/commands/scwbs.md", sha256: expect.any(String) }
++    ]));
++  });
++
++  test("v1 migration preserves divergent files and dry-run does not write", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "codex" })).toBe(0);
++    const manifestPath = path.join(root, ".scwbs/agent-files.json");
++    const legacy = JSON.parse(readFileSync(manifestPath, "utf8")) as { files: Array<{ path: string; sha256: string }> };
++    writeJson(root, ".scwbs/agent-files.json", { schemaVersion: "1", agent: "codex", files: legacy.files });
++    writeJson(root, "AGENTS.md", { custom: true });
++    const before = readFileSync(manifestPath, "utf8");
++    expect(runAgentUpdate(root, { dryRun: true, json: true })).toBe(0);
++    expect(readFileSync(manifestPath, "utf8")).toBe(before);
++    expect(runAgentUpdate(root, { json: true })).toBe(0);
++    const migrated = JSON.parse(readFileSync(manifestPath, "utf8")) as { schemaVersion: string };
++    expect(migrated.schemaVersion).toBe("2");
++    expect(readFileSync(path.join(root, "AGENTS.md"), "utf8")).toContain("custom");
++  });
++
++  test("agent commands converge primary state and never delete divergent files", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "codex" })).toBe(0);
++    expect(runAgentSetPrimary(root, "claude")).toBe(2);
++    expect(runAgentAdd(root, "claude")).toBe(0);
++    expect(runAgentSetPrimary(root, "claude")).toBe(0);
++    writeJson(root, ".claude/commands/scwbs.md", { custom: true });
++    expect(runAgentRemove(root, "claude")).toBe(0);
++    expect(readFileSync(path.join(root, ".claude/commands/scwbs.md"), "utf8")).toContain("custom");
++    const wbs = JSON.parse(readFileSync(path.join(root, "contracts/wbs/project.wbs.json"), "utf8")) as WbsDocument;
++    expect(wbs.extensions?.scwbs).toMatchObject({ agent: "codex", primaryAgent: "codex", agents: ["codex"] });
++  });
++
+   test("invalid WBS document reports validation errors", () => {
+     const root = makeTempRepo();
+     writeJson(root, "contracts/wbs/project.wbs.json", { schemaVersion: "0.1.0", id: "bad" });

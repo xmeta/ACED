@@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runFinish } from "./commands/finish.js";
 import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
-import { runAgentUpdate, runInit } from "./commands/init.js";
+import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "./commands/init.js";
 import { runPromote } from "./commands/lite.js";
 import { runMerge } from "./commands/merge.js";
 import { runMetricsGovernance } from "./commands/metrics.js";
@@ -233,9 +233,27 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("update")
-    .description("Update generated AI tool files without overwriting divergent files")
-    .option("--agent <agent>", "agent type codex|claude|cursor|copilot")
+    .option("--agent <agent>")
+    .option("--dry-run")
+    .option("--json")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
+
+  const agent = program.command("agent");
+  agent
+    .command("add")
+    .argument("<agent>")
+    .option("--json")
+    .action((agentName: string, opts) => { exitCode = runAgentAdd(root, agentName, opts); });
+  agent
+    .command("remove")
+    .argument("<agent>")
+    .option("--json")
+    .action((agentName: string, opts) => { exitCode = runAgentRemove(root, agentName, opts); });
+  agent
+    .command("set-primary")
+    .argument("<agent>")
+    .option("--json")
+    .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
 
   program
     .command("check")
