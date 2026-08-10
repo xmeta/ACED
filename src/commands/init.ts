@@ -7,6 +7,8 @@ import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
 
 const agentNames: Agent[] = ["codex", "claude", "cursor", "copilot"];
 const agentManifestPath = ".scwbs/agent-files.json";
+const agentError = "Agent must be codex, claude, cursor, or copilot";
+const manifestError = "Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership";
 
 function writeIfMissing(root: string, relativePath: string, content: string): void {
   const fullPath = resolveFrom(root, relativePath);
@@ -313,7 +315,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
   }
   const agent = normalizeAgent(options.agent);
   if (!agent) {
-    console.error("Agent must be codex, claude, cursor, or copilot");
+    console.error(agentError);
     return 2;
   }
   const lang = normalizeLanguage(options.lang);
@@ -326,7 +328,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
   const existing = project(root);
   const existingState = readManifest(root);
   if (existingState.version === "invalid") {
-    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
+    console.error(manifestError);
     return 2;
   }
   const existingConfig = existing ? agentsFor(existing.settings, existingState) : { agents: [agent], primaryAgent: agent, language: lang };
@@ -360,7 +362,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
 export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): number {
   const requested = options.agent ? normalizeAgent(options.agent) : undefined;
   if (options.agent && !requested) {
-    console.error("Agent must be codex, claude, cursor, or copilot");
+    console.error(agentError);
     return 2;
   }
   const current = project(root);
@@ -370,7 +372,7 @@ export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): 
   }
   const state = readManifest(root);
   if (state.version === "invalid") {
-    console.error("Invalid .scwbs/agent-files.json; refusing to overwrite unknown ownership");
+    console.error(manifestError);
     return 2;
   }
   const config = agentsFor(current.settings, state);
@@ -395,7 +397,7 @@ export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): 
 export function runAgentAdd(root: string, value: string, options: AgentOperationOptions = {}): number {
   const agent = normalizeAgent(value);
   if (!agent) {
-    console.error("Agent must be codex, claude, cursor, or copilot");
+    console.error(agentError);
     return 2;
   }
   const prepared = prepare(root, agent);
@@ -414,7 +416,7 @@ export function runAgentAdd(root: string, value: string, options: AgentOperation
 export function runAgentSetPrimary(root: string, value: string, options: AgentOperationOptions = {}): number {
   const agent = normalizeAgent(value);
   if (!agent) {
-    console.error("Agent must be codex, claude, cursor, or copilot");
+    console.error(agentError);
     return 2;
   }
   const current = project(root);
@@ -436,7 +438,7 @@ export function runAgentSetPrimary(root: string, value: string, options: AgentOp
 export function runAgentRemove(root: string, value: string, options: AgentOperationOptions = {}): number {
   const agent = normalizeAgent(value);
   if (!agent) {
-    console.error("Agent must be codex, claude, cursor, or copilot");
+    console.error(agentError);
     return 2;
   }
   const current = project(root);
