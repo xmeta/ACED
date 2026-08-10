@@ -1,0 +1,79 @@
+id: SCWBS-DRAFT-MSN401XO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSN401XO
+branchName: task/SCWBS-DRAFT-MSN401XO-issue-507-multi-agent-manifest-and-update-conver
+allowedPaths:
+  - src/commands/init.ts
+  - src/cli.ts
+  - tests/unit/init.test.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/integration/multi-agent.test.ts
+  - docs/scwbs/cli-reference.md
+  - contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/specs/SPEC-LITE-MSN401XO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/registry.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
+  - contracts/approvals/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSN401XO.yaml
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - DB schema change
+  - migration addition
+  - authentication or permission design change
+  - destructive change
+  - external service or release decision
+  - allowed path expansion
+  - specification ambiguity
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - manifest schema v2 stores primaryAgent, all managed agents, and per-file owner/hash entries without losing existing ownership when a second agent is added
+  - existing schema v1 manifests migrate only verified managed files to schema v2; custom or divergent files remain untouched and migration is visible in dry-run output
+  - init and explicit agent add/set-primary operations keep WBS agent configuration and manifest ownership semantically consistent while preserving legacy primary agent compatibility
+  - agent remove deletes only unchanged generated files owned by that agent and never deletes custom or divergent user files
+  - update without an explicit agent converges all managed agents, while explicit agent update remains bounded to the selected agent
+  - update --dry-run --json reports create, update, unchanged, preserved, divergent, migrate, and remove/move decisions without writing files
+  - repeated init, agent operations, migration, and update are idempotent
+  - clean consumer fixture covers multi-agent install, update, migration, removal, and upgrade behavior
+  - adapter guidance preserves the existing Human Gate and approval boundary semantics
+  - 'Complete Issue #507: init/updateの単一agent manifestを複数agent対応へ直し、WBSとのsplit-brainを防ぐ'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSN401XO.patch
+  - contracts/approvals/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSN401XO.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:08b3660ecce1f8a9e34d54fea68179034bb5acb5e4b37a3ec219d9cff67f9748
+  createdAt: "2026-08-10T10:51:25.117Z"
