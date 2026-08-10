@@ -175,8 +175,7 @@ export function summarizeGithubActionsRuns(
     .map((item) => ({ ...item, headBranches: item.headBranches.sort() }))
     .sort((left, right) => right.latestUpdatedAt.localeCompare(left.latestUpdatedAt) || left.taskId.localeCompare(right.taskId));
   const unmatchedItems = Object.entries(unmatched)
-    .map(([headBranch, runCount]) => ({ headBranch, runCount }))
-    .sort((left, right) => right.runCount - left.runCount || left.headBranch.localeCompare(right.headBranch));
+    .map(([headBranch, runCount]) => ({ headBranch, runCount }));
   return {
     status: "available",
     source: "github-actions",

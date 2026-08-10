@@ -198,8 +198,8 @@ describe("governance metrics", () => {
     expect(summary.taskPullRequests.unmatched).toEqual({
       count: 2,
       items: [
-        { headBranch: "task/custom-feature", runCount: 1 },
-        { headBranch: "task/WBS-001-004-api", runCount: 1 }
+        { headBranch: "task/WBS-001-004-api", runCount: 1 },
+        { headBranch: "task/custom-feature", runCount: 1 }
       ]
     });
   });
