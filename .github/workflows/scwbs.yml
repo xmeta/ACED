@@ -25,6 +25,9 @@ jobs:
       base_commit: ${{ steps.final.outputs.base_commit }}
       diff_hash: ${{ steps.final.outputs.diff_hash }}
       authority_fingerprint: ${{ steps.final.outputs.authority_fingerprint }}
+      trusted_commit: ${{ steps.final.outputs.trusted_commit }}
+      trusted_workflow_run_id: ${{ steps.final.outputs.trusted_workflow_run_id }}
+      trusted_checks: ${{ steps.final.outputs.trusted_checks }}
     steps:
       - name: Bootstrap local action checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -225,7 +228,9 @@ jobs:
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\nhead_commit=${plan.headCommit ?? ""}\nbase_commit=${plan.baseCommit ?? ""}\ndiff_hash=${plan.diffHash ?? ""}\nauthority_fingerprint=${plan.authorityFingerprint ?? ""}\n`);
+            const trustedChecksOutput = JSON.stringify(plan.trustedChecks ?? []);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,
+              `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\nhead_commit=${plan.headCommit ?? ""}\nbase_commit=${plan.baseCommit ?? ""}\ndiff_hash=${plan.diffHash ?? ""}\nauthority_fingerprint=${plan.authorityFingerprint ?? ""}\ntrusted_commit=${plan.trustedCommit ?? ""}\ntrusted_workflow_run_id=${plan.trustedWorkflowRunId ?? ""}\ntrusted_checks=${trustedChecksOutput}\n`);
           process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
           NODE
       - name: Validate schemas and check coverage on metadata fast path
@@ -425,6 +430,10 @@ jobs:
           SCWBS_BASE_COMMIT: ${{ needs.plan.outputs.base_commit }}
           SCWBS_DIFF_HASH: ${{ needs.plan.outputs.diff_hash }}
           SCWBS_AUTHORITY_FINGERPRINT: ${{ needs.plan.outputs.authority_fingerprint }}
+          SCWBS_MODE: ${{ needs.plan.outputs.mode }}
+          SCWBS_TRUSTED_COMMIT: ${{ needs.plan.outputs.trusted_commit }}
+          SCWBS_TRUSTED_WORKFLOW_RUN_ID: ${{ needs.plan.outputs.trusted_workflow_run_id }}
+          SCWBS_TRUSTED_CHECKS: ${{ needs.plan.outputs.trusted_checks }}
           SCWBS_WORKFLOW_RUN_ID: ${{ github.run_id }}
           SCWBS_WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SCWBS_DRAFT: ${{ github.event.pull_request.draft }}
@@ -434,22 +443,31 @@ jobs:
             const crypto = require("crypto");
             const workflowPath = ".github/workflows/scwbs.yml";
             const required = ["core", "integration", "wjs"];
-            const checks = await github.paginate(github.rest.checks.listForRef, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: process.env.SCWBS_HEAD_COMMIT,
-              per_page: 100
-            });
+            const trustedChecks = process.env.SCWBS_MODE === "metadata-fast-path"
+              ? JSON.parse(process.env.SCWBS_TRUSTED_CHECKS || "[]")
+              : [];
+            const checks = trustedChecks.length > 0
+              ? trustedChecks
+              : await github.paginate(github.rest.checks.listForRef, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: process.env.SCWBS_HEAD_COMMIT,
+                per_page: 100
+              });
+            const receiptWorkflowRunId = process.env.SCWBS_MODE === "metadata-fast-path"
+              ? process.env.SCWBS_TRUSTED_WORKFLOW_RUN_ID
+              : process.env.SCWBS_WORKFLOW_RUN_ID;
+            const receiptWorkflowRunUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.SCWBS_REPOSITORY}/actions/runs/${receiptWorkflowRunId}`;
             const jobs = required.map((name) => {
-              const check = checks.find((candidate) => candidate.name === name && candidate.app?.slug === "github-actions" && candidate.conclusion === "success");
+              const check = checks.find((candidate) => candidate.name === name && (candidate.app?.slug === "github-actions" || candidate.workflowPath === ".github/workflows/scwbs.yml") && candidate.conclusion === "success");
               if (!check) throw new Error(`missing successful ${name} check for the implementation subject`);
               return {
                 name,
                 checkNames: name === "core" ? ["test", "typecheck", "build"] : name === "integration" ? ["test:integration"] : [],
                 jobId: String(check.id),
                 conclusion: "success",
-                url: check.details_url,
-                workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+                url: check.details_url ?? check.detailsUrl ?? receiptWorkflowRunUrl,
+                workflowRunId: receiptWorkflowRunId,
                 workflowPath
               };
             });
@@ -458,8 +476,8 @@ jobs:
               checkNames: [],
               jobId: `${process.env.SCWBS_WORKFLOW_RUN_ID}-validate`,
               conclusion: "success",
-              url: process.env.SCWBS_WORKFLOW_RUN_URL,
-              workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
+              url: receiptWorkflowRunUrl,
+              workflowRunId: receiptWorkflowRunId,
               workflowPath
             });
             const ciReceipt = {
@@ -473,9 +491,9 @@ jobs:
               diffHash: process.env.SCWBS_DIFF_HASH,
               authorityFingerprint: process.env.SCWBS_AUTHORITY_FINGERPRINT,
               workflowPath,
-              workflowRunId: process.env.SCWBS_WORKFLOW_RUN_ID,
-              workflowRunUrl: process.env.SCWBS_WORKFLOW_RUN_URL,
-              trustedCommit: process.env.SCWBS_HEAD_COMMIT,
+              workflowRunId: receiptWorkflowRunId,
+              workflowRunUrl: receiptWorkflowRunUrl,
+              trustedCommit: process.env.SCWBS_TRUSTED_COMMIT || process.env.SCWBS_HEAD_COMMIT,
               retrievedAt: new Date().toISOString(),
               verifiedBy: "github-actions-provenance",
               jobs
