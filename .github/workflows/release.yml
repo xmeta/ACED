@@ -1,0 +1,58 @@
+name: scwbs release artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing or new release tag, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up repository and Node.js toolchain
+        uses: ./.github/actions/setup-toolchain
+        with:
+          node-version: 24
+
+      - name: Build and pack self-contained artifact
+        id: pack
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/scwbs-release"
+          npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/manifest.json"
+          node - <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+          const manifest = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "scwbs-release", "manifest.json"), "utf8"))[0];
+          const required = [
+            "dist/cli.js",
+            "dist/wjs-runtime/tools/validate.mjs",
+            "dist/wjs-runtime/tools/apply.mjs",
+            "dist/wjs-runtime/schema/wbs-json.schema.json",
+            "dist/wjs-runtime/schema/wbs-operations.schema.json"
+          ];
+          const files = new Set(manifest.files.map((file) => file.path));
+          for (const file of required) if (!files.has(file)) throw new Error(`release artifact is missing ${file}`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${path.join(process.env.RUNNER_TEMP, "scwbs-release", manifest.filename)}\n`);
+          NODE
+
+      - name: Create GitHub Release with artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: gh release create "$RELEASE_TAG" "$TARBALL" --repo "$GITHUB_REPOSITORY" --title "scwbs $RELEASE_TAG" --generate-notes

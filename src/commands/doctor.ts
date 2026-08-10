@@ -8,6 +8,7 @@ import { GOVERNANCE_PATH_POLICY, GOVERNANCE_PATH_POLICY_VERSION } from "../core/
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
+import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {
@@ -95,6 +96,14 @@ function runShellVersion(command: string, args: string[]): string {
   return result.stdout || result.stderr;
 }
 
+function isGitRepository(root: string): boolean {
+  return runCommand("git", ["rev-parse", "--git-dir"], root).status === 0;
+}
+
+function collectDoctorHealthIssues(root: string): Issue[] {
+  return isGitRepository(root) ? collectHealthIssues(root) : [];
+}
+
 type Version = [number, number, number];
 
 function parseVersion(version: string): Version | undefined {
@@ -177,9 +186,6 @@ function readNodeEngine(root: string): NodeEngineInfo {
   }
   if (repo.range) {
     return { range: repo.range, source: "package.json" };
-  }
-  if (repo.missingEngine) {
-    return { range: undefined, source: undefined };
   }
   const cliRange = readCliNodeEngine();
   if (cliRange) {
@@ -498,34 +504,36 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
     fix: `Run: ${packageManagerInstallCommand(root)}`
   });
 
+  const wjsRuntime = resolveWjsRuntime(root);
+  const bundledRuntime = wjsRuntime?.kind === "bundled";
   const wjsNm = resolveFrom(root, "wjs/node_modules");
   const rootEsbuild = resolveFrom(root, "node_modules/@esbuild");
-  const wjsDepsOk = existsSync(wjsNm) || existsSync(rootEsbuild);
+  const wjsDepsOk = bundledRuntime || existsSync(wjsNm) || existsSync(rootEsbuild);
   diagnostics.push({
     id: "wjs.node_modules",
     label: "wjs dependencies installed",
     status: wjsDepsOk ? "pass" : "fail",
-    message: wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
-    fix: `Run: ${packageManagerInstallCommand(root)}`
+    message: bundledRuntime ? "bundled WJS runtime present" : wjsDepsOk ? "wjs dependencies present" : "wjs dependencies are missing",
+    fix: bundledRuntime ? "No action required" : `Run: ${packageManagerInstallCommand(root)}`
   });
 
   const esbuildPkg = resolveFrom(root, "wjs/node_modules/@esbuild");
-  const esbuildOk = existsSync(esbuildPkg) || existsSync(rootEsbuild);
+  const esbuildOk = bundledRuntime || existsSync(esbuildPkg) || existsSync(rootEsbuild);
   diagnostics.push({
     id: "wjs.esbuild",
     label: "wjs esbuild resolved",
     status: esbuildOk ? "pass" : "fail",
-    message: esbuildOk ? "esbuild present" : "esbuild missing",
-    fix: `Run: ${packageManagerInstallCommand(root)}`
+    message: bundledRuntime ? "bundled WJS runtime does not require consumer esbuild" : esbuildOk ? "esbuild present" : "esbuild missing",
+    fix: bundledRuntime ? "No action required" : `Run: ${packageManagerInstallCommand(root)}`
   });
 
-  const validatorPath = resolveFrom(root, "wjs/tools/validate.ts");
+  const validatorPath = wjsRuntime?.validator ?? resolveFrom(root, "wjs/tools/validate.ts");
   diagnostics.push({
     id: "wjs.validator",
     label: "wjs canonical validator available",
     status: existsSync(validatorPath) ? "pass" : "fail",
-    message: existsSync(validatorPath) ? "canonical validator present" : "canonical validator is missing",
-    fix: "Run: git submodule update --init --recursive wjs"
+    message: existsSync(validatorPath) ? bundledRuntime ? "bundled canonical validator present" : "canonical validator present" : "canonical validator is missing",
+    fix: wjsRepairCommand(wjsRuntime)
   });
 
   const registryPath = resolveFrom(root, "contracts/registry.yaml");
@@ -546,13 +554,13 @@ export function collectEnvironmentDiagnostics(root: string, runtime: Environment
     fix: "Run: npm run scwbs -- wbs candidates"
   });
 
-  const schemaPath = resolveFrom(root, "wjs/schema/wbs-json.schema.json");
+  const schemaPath = wjsRuntime?.wbsSchema ?? resolveFrom(root, "wjs/schema/wbs-json.schema.json");
   diagnostics.push({
     id: "wjs.schema",
     label: "wjs/schema/wbs-json.schema.json exists",
     status: existsSync(schemaPath) ? "pass" : "fail",
     message: existsSync(schemaPath) ? "schema present" : "schema missing",
-    fix: "Re-initialize the wjs submodule: git submodule update --init --recursive wjs"
+    fix: wjsRepairCommand(wjsRuntime)
   });
 
   diagnostics.push(dependencyGraphDiagnostic(root, runtime));
@@ -641,7 +649,7 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
 
   const contractIssues = [
     ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-    ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
   ];
 
   const lines: string[] = ["SC-WBS Doctor", ""];
@@ -699,7 +707,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
       const diagnostics = collectEnvironmentDiagnostics(root);
       const contractIssues = [
         ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
-        ...collectHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
       ];
       const envHasFailure = diagnostics.some((d) => d.status === "fail");
       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");

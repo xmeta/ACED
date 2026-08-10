@@ -1,10 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import path from "node:path";
 import { listActiveTasks } from "../core/contracts.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { hasErrors, printIssues } from "../core/report.js";
-import { readWbs, runWjsValidate } from "../core/wbs.js";
+import { readWbs, resolveWjsRuntime, runWjsValidate } from "../core/wbs.js";
 import type { WbsDocument, WbsNode } from "../core/types.js";
 
 export function runWbsValidate(root: string): number {
@@ -18,10 +17,9 @@ export function runWbsValidate(root: string): number {
 }
 
 export function runWbsApply(root: string, changeSetPath: string, options: { force: boolean; output?: string }): number {
-  const wjsRoot = path.resolve(root, "wjs");
-  const applyTool = path.resolve(root, "wjs/tools/apply.ts");
-  if (!existsSync(applyTool)) {
-    console.error("wjs/tools/apply.ts does not exist");
+  const runtime = resolveWjsRuntime(root, "apply");
+  if (!runtime) {
+    console.error("WJS runtime is unavailable: install the scwbs package or initialize the wjs submodule");
     return 1;
   }
 
@@ -29,6 +27,15 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
   if (options.output) toolArgs.push("-o", resolveFrom(root, options.output));
   if (options.force) toolArgs.push("--force");
 
+  const result = runtime.kind === "bundled"
+    ? spawnSync(process.execPath, ["--experimental-strip-types", runtime.apply, ...toolArgs], { cwd: runtime.root, encoding: "utf8" })
+    : runSubmoduleApply(runtime.root, runtime.apply, toolArgs);
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  return result.status ?? 1;
+}
+
+function runSubmoduleApply(wjsRoot: string, applyTool: string, toolArgs: string[]) {
   let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "apply", "--", ...toolArgs], {
     cwd: wjsRoot,
     encoding: "utf8"
@@ -39,9 +46,7 @@ export function runWbsApply(root: string, changeSetPath: string, options: { forc
       encoding: "utf8"
     });
   }
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
-  return result.status ?? 1;
+  return result;
 }
 
 function normalizeJson(value: unknown): string {

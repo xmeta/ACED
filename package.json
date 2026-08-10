@@ -23,7 +23,7 @@
     "build": "tsc -p tsconfig.json",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.{js,mjs,ts}\" \"*.{js,json,md,ts,yaml,yml}\" \".github/**/*.yml\" \"docs/**/*.{json,md,yaml,yml}\"",
     "lint": "eslint src tests scripts --max-warnings=0",
-    "prepack": "npm run build",
+    "prepack": "npm run build && node scripts/build-wjs-runtime.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json && tsc -p scripts/tsconfig.json",
     "test": "vitest run tests/unit",
     "test:coverage": "vitest run tests/unit --coverage",

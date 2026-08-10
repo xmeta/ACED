@@ -54,7 +54,7 @@ jobs:
           script: |
             const fs = require("fs");
             const candidate = JSON.parse(fs.readFileSync(process.env.CANDIDATE_FILE, "utf8"));
-            const required = ["core", "integration", "wjs", "validate"];
+            const required = ["core", "integration", "wjs", "distribution", "validate"];
             const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
             const runIdFrom = (url) => Number(/\/actions\/runs\/(\d+)/.exec(url ?? "")?.[1] ?? 0) || null;
             const commits = Array.from(new Set([
@@ -351,6 +351,20 @@ jobs:
       - name: WJS tests
         run: npm run test:wjs
 
+  distribution:
+    needs: plan
+    if: always() && needs.plan.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bootstrap local action checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up repository and Node.js toolchain
+        uses: ./.github/actions/setup-toolchain
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Packed artifact standalone smoke test
+        run: node scripts/distribution-smoke.mjs
+
   validate:
     if: ${{ always() }}
     needs:
@@ -358,6 +372,7 @@ jobs:
       - core
       - integration
       - wjs
+      - distribution
       - minimum-node
     runs-on: ubuntu-latest
     steps:
@@ -368,6 +383,7 @@ jobs:
           CORE_RESULT: ${{ needs.core.result }}
           INTEGRATION_RESULT: ${{ needs.integration.result }}
           WJS_RESULT: ${{ needs.wjs.result }}
+          DISTRIBUTION_RESULT: ${{ needs.distribution.result }}
           MINIMUM_NODE_RESULT: ${{ needs.minimum-node.result }}
         run: |
           test "$PLAN_RESULT" = "success"
@@ -375,11 +391,13 @@ jobs:
             test "$CORE_RESULT" = "skipped"
             test "$INTEGRATION_RESULT" = "skipped"
             test "$WJS_RESULT" = "skipped"
+            test "$DISTRIBUTION_RESULT" = "skipped"
             test "$MINIMUM_NODE_RESULT" = "skipped"
           else
             test "$MODE" = "full"
             test "$CORE_RESULT" = "success"
             test "$INTEGRATION_RESULT" = "success"
             test "$WJS_RESULT" = "success"
+            test "$DISTRIBUTION_RESULT" = "success"
             test "$MINIMUM_NODE_RESULT" = "success"
           fi

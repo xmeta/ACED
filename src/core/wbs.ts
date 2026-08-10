@@ -1,11 +1,49 @@
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { readJsonFile } from "./json.js";
 import { defaultWbsPath, resolveFrom } from "./paths.js";
 import { asWbsDocument, validateWbsShape } from "./schema.js";
 import { classifyDecisionReadiness } from "./discovery.js";
 import type { Issue, WbsDocument, WbsNode } from "./types.js";
+
+export type WjsRuntime = {
+  kind: "bundled" | "submodule";
+  root: string;
+  validator: string;
+  apply: string;
+  wbsSchema: string;
+  operationsSchema: string;
+};
+
+type WjsRuntimePurpose = "validate" | "apply";
+
+function runtimeFromRoot(kind: WjsRuntime["kind"], root: string, purpose: WjsRuntimePurpose): WjsRuntime | undefined {
+  const extension = kind === "bundled" ? ".mjs" : ".ts";
+  const validator = path.join(root, `tools/validate${extension}`);
+  const apply = path.join(root, `tools/apply${extension}`);
+  const schemaRoot = path.join(root, "schema");
+  const wbsSchema = path.join(schemaRoot, "wbs-json.schema.json");
+  const operationsSchema = path.join(schemaRoot, "wbs-operations.schema.json");
+  const required = [purpose === "validate" ? validator : apply];
+  if (kind === "bundled") required.push(wbsSchema, operationsSchema);
+  if (!required.every(existsSync)) return undefined;
+  return { kind, root, validator, apply, wbsSchema, operationsSchema };
+}
+
+export function resolveWjsRuntime(projectRoot: string, purpose: WjsRuntimePurpose = "validate"): WjsRuntime | undefined {
+  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+  const bundled = runtimeFromRoot("bundled", path.resolve(moduleDirectory, "../wjs-runtime"), purpose);
+  if (bundled) return bundled;
+  return runtimeFromRoot("submodule", path.resolve(projectRoot, "wjs"), purpose);
+}
+
+export function wjsRepairCommand(runtime?: WjsRuntime): string {
+  return runtime?.kind === "bundled"
+    ? "Reinstall the scwbs package so its bundled WJS runtime is restored"
+    : "Run: git submodule update --init --recursive wjs";
+}
 
 export function readWbs(root: string, relativePath = defaultWbsPath): WbsDocument {
   return readJsonFile<WbsDocument>(resolveFrom(root, relativePath));
@@ -121,14 +159,14 @@ export function validateWbsDocument(root: string, relativePath = defaultWbsPath)
   return issues;
 }
 
-const WJS_REPAIR_COMMAND = "git submodule update --init --recursive wjs";
-
-function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string): Issue {
+function wjsValidatorUnavailable(kind: "wbs" | "operations", target: string, reason: string, runtime?: WjsRuntime): Issue {
   return {
     severity: "error",
     code: "wjs.validator.unavailable",
     message: `canonical WJS ${kind} validator is unavailable for ${target}: ${reason}`,
-    fixCommand: WJS_REPAIR_COMMAND
+    fixCommand: runtime?.kind === "bundled"
+      ? "Reinstall the scwbs package so its bundled WJS runtime is restored"
+      : "git submodule update --init --recursive wjs"
   };
 }
 
@@ -138,28 +176,20 @@ function isWjsRuntimeUnavailable(result: { error?: Error; stderr?: string; stdou
 }
 
 export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind: "wbs" | "operations" = "wbs"): Issue[] {
-  const wjsRoot = path.resolve(root, "wjs");
-  const validator = path.resolve(wjsRoot, "tools/validate.ts");
+  const runtime = resolveWjsRuntime(root);
   const target = resolveFrom(root, relativePath);
-  if (!existsSync(validator)) {
+  if (!runtime) {
     return kind === "operations"
-      ? [wjsValidatorUnavailable(kind, relativePath, "wjs/tools/validate.ts is missing")]
+      ? [wjsValidatorUnavailable(kind, relativePath, "bundled runtime and wjs submodule are missing")]
       : validateWbsDocument(root, relativePath);
   }
 
-  let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
-    cwd: wjsRoot,
-    encoding: "utf8"
-  });
-  if (result.status !== 0 && /missing script: validate/i.test(result.stderr ?? "")) {
-    result = spawnSync(process.execPath, ["--experimental-strip-types", "tools/validate.ts", `--${kind}`, target], {
-      cwd: wjsRoot,
-      encoding: "utf8"
-    });
-  }
+  const result = runtime.kind === "bundled"
+    ? spawnSync(process.execPath, ["--experimental-strip-types", runtime.validator, `--${kind}`, target], { cwd: runtime.root, encoding: "utf8" })
+    : runSubmoduleValidator(runtime, kind, target);
   if (result.status !== 0 && isWjsRuntimeUnavailable(result)) {
     return kind === "operations"
-      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed")]
+      ? [wjsValidatorUnavailable(kind, relativePath, "validator runtime or dependencies could not be executed", runtime)]
       : validateWbsDocument(root, relativePath);
   }
 
@@ -169,4 +199,18 @@ export function runWjsValidate(root: string, relativePath = defaultWbsPath, kind
     return [{ severity: "error", code: "wjs.validate", message: `${relativePath} failed WJS ${kind} validation` }];
   }
   return lines.map((line) => ({ severity: "error", code: "wjs.validate", message: line }));
+}
+
+function runSubmoduleValidator(runtime: WjsRuntime, kind: "wbs" | "operations", target: string) {
+  let result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "validate", "--", `--${kind}`, target], {
+    cwd: runtime.root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0 && /missing script: validate/i.test(result.stderr ?? "")) {
+    result = spawnSync(process.execPath, ["--experimental-strip-types", runtime.validator, `--${kind}`, target], {
+      cwd: runtime.root,
+      encoding: "utf8"
+    });
+  }
+  return result;
 }

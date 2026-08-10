@@ -1,0 +1,22 @@
+id: SPEC-LITE-MSMD8D3O
+type: spec-contract
+featureId: F-MSMD8D3O
+title: "Issue #483 Phase 2: bundled WJS runtime and GitHub Release artifact"
+status: approved
+version: 0.1.0
+summary: "Make the scwbs packed artifact self-contained for WJS validation and apply, verify it in CI, and publish only through a GitHub Release artifact while preserving contributor submodule development."
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:00:00+09:00"
+sourceIssue: 483
+acceptanceCriteria:
+  - WJS validator and apply runtime resolve from the packed scwbs artifact without an ACED checkout or wjs submodule
+  - the packed artifact includes all required WJS runtime tools and schemas and scwbs --version remains sourced from package.json
+  - standalone smoke coverage exercises init, doctor, check, validation, and apply in a fresh fixture project
+  - CI installs and exercises the packed artifact in a fresh fixture project
+  - GitHub Release workflow produces a self-contained artifact and does not publish to npm
+  - README, CONTRIBUTING, CHANGELOG, and distribution documentation state consumer installation, contributor setup, Node compatibility, and release policy
+  - WJS ownership remains with the submodule and no repository visibility, registry credential, or npm publication setting changes
+nonGoals:
+  - npmjs.com publication or repository visibility changes
+  - changing files or ownership inside wjs/**
+  - auto-update functionality or external service integration

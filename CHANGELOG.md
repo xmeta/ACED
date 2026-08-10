@@ -10,6 +10,9 @@ and this project uses [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Project security-reporting and release-history entry points.
+- Standalone distribution artifacts now include the WJS runtime and are
+  validated in a fresh consumer fixture; GitHub Release is the supported
+  distribution path.
 
 Future user-visible changes should be added under `Unreleased` and moved to a
 versioned section when a release is published. Historical implementation work
