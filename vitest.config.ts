@@ -11,7 +11,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      reportsDirectory: "./coverage"
+      reportsDirectory: "./coverage",
+      thresholds: {
+        "src/core/ci-plan-domain.ts": { statements: 50 },
+        "src/core/health-domain.ts": { statements: 50 },
+        "src/core/metrics-domain.ts": { statements: 50 }
+      }
     }
   }
 });
