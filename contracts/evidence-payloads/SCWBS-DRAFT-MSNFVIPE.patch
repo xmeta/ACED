@@ -1,0 +1,181 @@
+diff --git a/contracts/specs/SPEC-LITE-MSNFVIPE.yaml b/contracts/specs/SPEC-LITE-MSNFVIPE.yaml
+new file mode 100644
+index 0000000..2787de6
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSNFVIPE.yaml
+@@ -0,0 +1,16 @@
++id: SPEC-LITE-MSNFVIPE
++type: spec-contract
++featureId: F-MSNFVIPE
++title: "Reject unexpected CLI positional arguments"
++status: approved
++approvedBy: user-requested-issue-510
++approvedAt: "2026-08-11T00:00:00Z"
++version: 0.1.0
++summary: "CLI rootのglobal allowExcessArgumentsを廃止し、可変引数が必要なcommandだけ明示的なargument syntaxで受理する。"
++acceptanceCriteria:
++  - root parser uses Commander strict excess-argument behavior
++  - status, health, and finish reject unexpected positional arguments with non-zero usage errors
++  - block, task new, lite task, and other declared variadic commands preserve intended inputs
++  - approval request legacy trailing note behavior is made explicit or fails closed for a human decision
++  - table-driven CLI registration tests preserve unknown-option suggestion behavior
++  - CLI reference no longer documents implicit trailing arguments as accepted syntax
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml b/contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
+new file mode 100644
+index 0000000..b01d482
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
+@@ -0,0 +1,62 @@
++id: SCWBS-DRAFT-MSNFVIPE
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-510
++approvedAt: "2026-08-11T00:00:00Z"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSNFVIPE
++branchName: task/SCWBS-DRAFT-MSNFVIPE-issue-510-reject-unexpected-cli-positional-argum
++allowedPaths:
++  - src/cli.ts
++  - src/cli/register-governance.ts
++  - src/cli/register-task.ts
++  - tests/integration/cli-registration.test.ts
++  - docs/scwbs/cli-reference.md
++  - contracts/specs/SPEC-LITE-MSNFVIPE.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - package or CI policy change required
++  - scope outside allowed paths
++  - security or external service change required
++  - legacy CLI syntax decision required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - root Commander strict parsing rejects unexpected positional arguments without a global allowExcessArguments override
++  - intended variadic command syntax remains accepted for block, task new, lite task, and other explicitly declared arguments
++  - approval request trailing note compatibility is represented by formal argument syntax or is explicitly blocked as a legacy decision
++  - status/health/finish unexpected positional arguments return non-zero usage errors while unknown option suggestions remain intact
++  - table-driven CLI registration regression tests and CLI reference examples cover the strict boundary
++  - 'Complete Issue #510: reject unexpected CLI positional arguments'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
++  - contracts/specs/SPEC-LITE-MSNFVIPE.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSNFVIPE.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSNFVIPE.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSNFVIPE.patch
++  - contracts/approvals/SCWBS-DRAFT-MSNFVIPE.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSNFVIPE.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:107d68ecfe95c4259b467671fc9b3d61ef4e3f5dc59f436e0e28a35ac32055fa
++  createdAt: "2026-08-10T16:22:37.727Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 624f87f..00d7ce3 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1861,3 +1861,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-10T13:09:17.721Z"
++  - id: SCWBS-DRAFT-MSNFVIPE
++    path: contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
++    branchName: task/SCWBS-DRAFT-MSNFVIPE-issue-510-reject-unexpected-cli-positional-argum
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 8b58316..d1f690f 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -406,6 +406,8 @@ notes:
+ 
+ `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+ 
++`approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
++
+ ### Human GateとDelegated Approvalの違い
+ 
+ `--actor delegated-ai` は、Task Contractの `approvalPolicy.mode: delegated` で明示的に委譲されたTaskだけに使える。`--scope human-gate|post-finish` は必須で、policyの `scopes`、UTC `expiresAt`、`tokenSha256` と32 bytes以上の環境変数 `SCWBS_APPROVAL_DELEGATION_TOKEN` を検証する。policy未指定、`human-only`、token欠落・不一致、弱いtoken、期限切れ、scope不一致はすべてfail-closedになる。tokenは出力・永続化せず、成功時は `approvalMode: delegated`、`delegationSource`、`delegatedBy`、`executedBy: ai-agent`、`delegationScope`、`delegationProof` を記録してHuman Approvalと**明確に区別する**。consumerもHMAC proofを再検証し、Human Gateでは`human-gate`、completionでは`post-finish`だけを受理する。
+diff --git a/src/cli.ts b/src/cli.ts
+index 741b91d..c313406 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -213,8 +213,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .version(packageVersion())
+     .exitOverride()
+     .showHelpAfterError(true)
+-    .showSuggestionAfterError(true)
+-    .allowExcessArguments(true);
++    .showSuggestionAfterError(true);
+ 
+   const commandContext: CommandContext = {
+     root,
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 4d3b8cb..9e43784 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -269,18 +269,18 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+   approval
+     .command("request")
+     .description("Request task approval")
++    .argument("[note...]")
+     .option("--task <id>", "task id")
+     .option("--pull-request <id>", "pull request id")
+     .option("--note <text>", "approval note")
+     .option("--force", "force request")
+-    .action(function (this: Command, options) {
++    .action((noteParts: string[], options) => {
+       if (!options.task) {
+         console.error("Missing --task <task-id>");
+         setExitCode(2);
+         return;
+       }
+-      const trailing = (this.args as string[]).filter((argument) => !argument.startsWith("-"));
+-      const note = trailing.length > 0 ? [options.note, ...trailing].filter(Boolean).join(" ") : options.note;
++      const note = noteParts.length > 0 ? [options.note, ...noteParts].filter(Boolean).join(" ") : options.note;
+       setExitCode(
+         runApprovalRequest(root, options.task, {
+           pullRequest: options.pullRequest,
+diff --git a/tests/integration/cli-registration.test.ts b/tests/integration/cli-registration.test.ts
+index 3c63359..357bde2 100644
+--- a/tests/integration/cli-registration.test.ts
++++ b/tests/integration/cli-registration.test.ts
+@@ -56,4 +56,19 @@ describe("domain CLI registration", () => {
+     expect(captureHelp(["wbs", "verify-changesets", "--help"], root).stdout).toContain("--changeset <path>");
+     expect(captureHelp(["wbs", "apply", "--help"], root).stdout).toContain("-o <file>");
+   });
++
++  test("rejects unexpected positional arguments for strict commands", () => {
++    const root = makeTempRepo();
++    for (const command of ["status", "health", "finish"]) {
++      expect(captureHelp([command, "unexpected"], root).exitCode, command).not.toBe(0);
++    }
++  });
++
++  test("documents intended variadic arguments", () => {
++    const root = makeTempRepo();
++    expect(captureHelp(["block", "--help"], root).stdout).toContain("[reason...]");
++    expect(captureHelp(["task", "new", "--help"], root).stdout).toContain("[title...]");
++    expect(captureHelp(["lite", "task", "--help"], root).stdout).toContain("[title...]");
++    expect(captureHelp(["approval", "request", "--help"], root).stdout).toContain("[note...]");
++  });
+ });

@@ -1,0 +1,72 @@
+id: EVD-SCWBS-DRAFT-MSNFVIPE
+type: evidence
+taskId: SCWBS-DRAFT-MSNFVIPE
+commit: cd74bab9e5004da3d862376b5efd1b532b054d0a
+subjectHeadCommit: cd74bab9e5004da3d862376b5efd1b532b054d0a
+diffHash: sha256:41080dda0040e3face524ff3d03f057e014c43f2b3eba05eae085ee14e8fabe7
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: cd74bab9e5004da3d862376b5efd1b532b054d0a
+    treeHash: f8f7e0c63961a753de7030b4780105644cf79e74
+    diffHash: sha256:41080dda0040e3face524ff3d03f057e014c43f2b3eba05eae085ee14e8fabe7
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSNFVIPE.patch
+    manifestHash: sha256:41080dda0040e3face524ff3d03f057e014c43f2b3eba05eae085ee14e8fabe7
+git:
+  branch: task/SCWBS-DRAFT-MSNFVIPE-issue-510-reject-unexpected-cli-positional-argum
+  base: origin/main
+  baseCommit: 4345f2b6d352f5c7ed0e1b73d3329fe7fb60036a
+  changedFilesBasis: branch-diff
+  pullRequest: "520"
+  subjectHeadCommit: cd74bab9e5004da3d862376b5efd1b532b054d0a
+  diffHash: sha256:41080dda0040e3face524ff3d03f057e014c43f2b3eba05eae085ee14e8fabe7
+  headCommit: cd74bab9e5004da3d862376b5efd1b532b054d0a
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNFVIPE.patch
+  - contracts/evidence/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSNFVIPE.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/cli/register-governance.ts
+  - tests/integration/cli-registration.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:9b20ac917758086dd7cac01b84ee2a75423bffe98cabce1f94b0eaa4ac719196
+    durationMilliseconds: 16689
+    executedAt: "2026-08-10T16:32:22.040Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9267fa23c675dd47c0c7e0e64902c8f415592e8bc1d121fd08c173fd2cb010a5
+    durationMilliseconds: 11096
+    executedAt: "2026-08-10T16:32:33.140Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:cddf9b6a355fa052247a4bea259a5300b9a4aadaf7bfa498401eacae26778fc1
+    durationMilliseconds: 4647
+    executedAt: "2026-08-10T16:32:37.792Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2c4d9e60b993f0e65afc127279f9f802e0921199a0df2fba640f71afa5103d1a
+    durationMilliseconds: 316864
+    executedAt: "2026-08-10T16:37:54.661Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Regression coverage for strict rejection of unexpected positional arguments and explicit variadic command help syntax
