@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 
 const DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
 const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
+const reporterWorkflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs-readiness-reporter.yml"), "utf8");
 const setupAction = readFileSync(path.join(process.cwd(), ".github/actions/setup-toolchain/action.yml"), "utf8");
 
 describe("workflow secret isolation", () => {
@@ -25,5 +26,25 @@ describe("workflow secret isolation", () => {
     );
 
     expect(observed).toBe("");
+  });
+
+  test("readiness reporting is isolated to the trusted workflow_run reporter", () => {
+    expect(workflow).not.toContain("\n  workflow_run:");
+    expect(workflow).not.toContain("readiness-reporter:");
+    expect(reporterWorkflow).toContain("workflow_run:");
+    expect(reporterWorkflow).toContain("readiness-reporter:");
+    expect(reporterWorkflow).toContain("pull-requests: write");
+    const reporter = reporterWorkflow;
+    expect(reporter).not.toContain("actions/checkout@");
+    expect(reporter).toContain("actions/download-artifact@");
+    expect(reporter).toContain("scwbs-pr-readiness-v1");
+    expect(reporter).toContain("does not create Approval, Review, or merge transitions");
+    expect(reporter).toContain("updateComment");
+    expect(reporter).toContain("createComment");
+  });
+
+  test("pull_request execution retains read-only workflow permissions", () => {
+    expect(workflow).toContain("permissions:\n  contents: read\n  checks: read\n  actions: read");
+    expect(workflow).not.toContain("SCWBS_APPROVAL_DELEGATION_TOKEN");
   });
 });

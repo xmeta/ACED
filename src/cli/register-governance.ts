@@ -20,7 +20,7 @@ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js
 import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
 import { runCompletionApply } from "../commands/completion.js";
 import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
-import { runEvidenceCollect, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
+import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
 import { runProfileSet, runProfileShow } from "../commands/profile.js";
 import { runRegistryRebuild } from "../commands/registry-rebuild.js";
 import {
@@ -392,6 +392,21 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
           output: options.output
         })
       );
+    });
+
+  evidence
+    .command("import-ci")
+    .description("Import provenance-verified CI Evidence from a readiness artifact")
+    .requiredOption("--task <id>", "task id")
+    .requiredOption("--readiness <path>", "PR readiness artifact JSON")
+    .requiredOption("--ci-receipt <path>", "verified CI receipt JSON")
+    .option("--coverage-receipt <path>", "verified CI coverage receipt JSON")
+    .action((options) => {
+      setExitCode(runEvidenceImportCi(root, options.task, {
+        readiness: options.readiness,
+        ciReceipt: options.ciReceipt,
+        coverageReceipt: options.coverageReceipt
+      }));
     });
 
   evidence

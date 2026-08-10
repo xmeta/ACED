@@ -1,0 +1,100 @@
+id: EVD-SCWBS-DRAFT-MSNMNSJ2
+type: evidence
+taskId: SCWBS-DRAFT-MSNMNSJ2
+commit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+subjectHeadCommit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+diffHash: sha256:f67999ce67361cdaec619fdc18d2ce66d4bda0f304f8190ef480abfd07fe3aaf
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+    treeHash: 9d9c3e893f76dec41f3d8f28ee2ee2687b0089f1
+    diffHash: sha256:f67999ce67361cdaec619fdc18d2ce66d4bda0f304f8190ef480abfd07fe3aaf
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSNMNSJ2.patch
+    manifestHash: sha256:f67999ce67361cdaec619fdc18d2ce66d4bda0f304f8190ef480abfd07fe3aaf
+git:
+  branch: task/SCWBS-DRAFT-MSNMNSJ2-issue-512-safe-pr-readiness-feedback-and-verifie
+  base: origin/main
+  baseCommit: ae116d8ee81f2a8cd424bf173456ae1eab0647ce
+  changedFilesBasis: branch-diff
+  pullRequest: "526"
+  subjectHeadCommit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+  diffHash: sha256:f67999ce67361cdaec619fdc18d2ce66d4bda0f304f8190ef480abfd07fe3aaf
+  headCommit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+changedFiles:
+  - .github/workflows/scwbs-readiness-reporter.yml
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/discovery/PROBE-issue-512-pr-readiness-evidence.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNMNSJ2.patch
+  - contracts/evidence/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSNMNSJ2.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/ci-readiness.schema.json
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - tests/integration/ci-readiness.test.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/integration/evidence-import-ci.test.ts
+  - tests/integration/workflow-security.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: ae116d8ee81f2a8cd424bf173456ae1eab0647ce
+    headCommit: 9a195b0757a31a9d1979fee849ee11e36bff8a45
+    diffHash: sha256:f67999ce67361cdaec619fdc18d2ce66d4bda0f304f8190ef480abfd07fe3aaf
+  tests:
+    filesAdded: 2
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:55d170d92f74444b66442f3a3a6cd5b933a45abd8d43fe4abda4c5c5a1d17717
+    durationMilliseconds: 16573
+    executedAt: "2026-08-10T21:25:28.409Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:99b0155f6a37da657a205a29641c63bbd2f49c88273bd32b07a53726dab56307
+    durationMilliseconds: 9984
+    executedAt: "2026-08-10T21:25:38.396Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6d36c04d72ea7189b0ca6155b3bb804ccedee75c13b5419894931d595a5a2a4f
+    durationMilliseconds: 4350
+    executedAt: "2026-08-10T21:25:42.750Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:2a73edf53b51114e86eeeffee064ab299526d0c525ab01d7504c62792ca0b45c
+    durationMilliseconds: 303993
+    executedAt: "2026-08-10T21:30:46.747Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added provenance, tamper, stale-head, CLI, and workflow isolation regression coverage

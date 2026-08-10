@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -13,6 +14,7 @@ import { evaluateWorkingTreeGuard } from "./check-diff.js";
 import { syncRegistry } from "./registry-rebuild.js";
 import { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest } from "../core/evidence/build.js";
 import type { TestQualityOptions } from "../core/evidence/build.js";
+import { CI_WORKFLOW_PATH, isRecord, originRepository, validRunUrl } from "../core/evidence/ci-receipt.js";
 
 export { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest };
 export type { EvidenceBuildOptions, TestQualityOptions } from "../core/evidence/build.js";
@@ -156,6 +158,135 @@ export function runEvidenceCollect(root: string, taskId: string, options: Eviden
       }
     }
     return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export const CI_READINESS_SCHEMA_VERSION = "1.0.0" as const;
+export const CI_READINESS_TYPE = "scwbs.pr-readiness.v1" as const;
+
+export type CiReadinessArtifact = {
+  schemaVersion: typeof CI_READINESS_SCHEMA_VERSION;
+  type: typeof CI_READINESS_TYPE;
+  repository: string;
+  pullRequest: string;
+  taskId: string;
+  headCommit: string;
+  baseRef: string;
+  baseCommit: string;
+  diffHash: string;
+  authorityFingerprint: string;
+  workflowPath: typeof CI_WORKFLOW_PATH;
+  workflowRunId: string;
+  workflowRunUrl: string;
+  artifactName: string;
+  artifactDigest: string;
+  validateStatus: "success" | "failure" | "cancelled" | "unknown";
+  nextAction: {
+    owner: "human" | "ai" | "user" | "external";
+    kind: "guidance" | "wait" | "command";
+    message: string;
+  };
+  mergeReadiness: {
+    status: "ready" | "not-ready" | "unknown";
+    reasonCodes: string[];
+  };
+  generatedAt: string;
+};
+
+export type CiReadinessExpected = {
+  taskId: string;
+  pullRequest: string;
+  headCommit: string;
+  workflowRunId?: string;
+};
+
+export function sha256Bytes(bytes: Uint8Array): string {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function readinessNonEmpty(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function readinessPullRequestNumber(value: string): string {
+  return value.replace(/^#/, "");
+}
+
+export function verifyCiReadinessArtifact(
+  root: string,
+  value: unknown,
+  expected: CiReadinessExpected,
+  ciReceiptBytes: Uint8Array
+): CiReadinessArtifact {
+  const failures: string[] = [];
+  if (!isRecord(value)) throw new Error("PR readiness artifact rejected: JSON root must be an object");
+  const artifact = value as Partial<CiReadinessArtifact>;
+  for (const key of [
+    "repository", "pullRequest", "taskId", "headCommit", "baseRef", "baseCommit", "diffHash",
+    "authorityFingerprint", "workflowPath", "workflowRunId", "workflowRunUrl", "artifactName",
+    "artifactDigest", "validateStatus", "generatedAt"
+  ] as const) {
+    if (!readinessNonEmpty(artifact[key])) failures.push(`${key} is missing`);
+  }
+  if (artifact.schemaVersion !== CI_READINESS_SCHEMA_VERSION) failures.push("schemaVersion is unsupported");
+  if (artifact.type !== CI_READINESS_TYPE) failures.push("type is unsupported");
+  if (artifact.taskId !== expected.taskId) failures.push("taskId does not match the current Task");
+  if (readinessPullRequestNumber(artifact.pullRequest ?? "") !== readinessPullRequestNumber(expected.pullRequest)) failures.push("pullRequest does not match the requested PR");
+  if (artifact.headCommit !== expected.headCommit) failures.push("headCommit is stale or does not match the current subject");
+  if (expected.workflowRunId && artifact.workflowRunId !== expected.workflowRunId) failures.push("workflowRunId does not match the triggering workflow");
+  if (artifact.workflowPath !== CI_WORKFLOW_PATH) failures.push(`workflowPath must be ${CI_WORKFLOW_PATH}`);
+  if (artifact.validateStatus !== "success") failures.push("validateStatus is not success");
+  if (typeof artifact.workflowRunId === "string" && !validRunUrl(artifact.workflowRunUrl, artifact.workflowRunId)) failures.push("workflowRunUrl is invalid or does not identify workflowRunId");
+  if (typeof artifact.artifactDigest === "string" && artifact.artifactDigest !== sha256Bytes(ciReceiptBytes)) failures.push("artifactDigest does not match the CI receipt bytes");
+  if (!artifact.nextAction || !["human", "ai", "user", "external"].includes(artifact.nextAction.owner) || !["guidance", "wait", "command"].includes(artifact.nextAction.kind) || !readinessNonEmpty(artifact.nextAction.message)) failures.push("nextAction is incomplete");
+  if (!artifact.mergeReadiness || !["ready", "not-ready", "unknown"].includes(artifact.mergeReadiness.status) || !Array.isArray(artifact.mergeReadiness.reasonCodes) || artifact.mergeReadiness.reasonCodes.some((code) => typeof code !== "string")) failures.push("mergeReadiness is incomplete");
+  if (typeof artifact.generatedAt === "string" && Number.isNaN(Date.parse(artifact.generatedAt))) failures.push("generatedAt is invalid");
+  try {
+    if (artifact.repository !== originRepository(root)) failures.push("repository does not match origin");
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message.replace(/^CI receipt rejected:\s*/, "") : "origin repository cannot be verified");
+  }
+  if (failures.length > 0) throw new Error(`PR readiness artifact rejected:\n- ${failures.join("\n- ")}`);
+  return artifact as CiReadinessArtifact;
+}
+
+export function buildCiReadinessArtifact(input: Omit<CiReadinessArtifact, "schemaVersion" | "type">): CiReadinessArtifact {
+  return { schemaVersion: CI_READINESS_SCHEMA_VERSION, type: CI_READINESS_TYPE, ...input };
+}
+
+export type EvidenceImportCiOptions = {
+  readiness: string;
+  ciReceipt: string;
+  coverageReceipt?: string;
+};
+
+function readEvidenceImportJson(root: string, file: string): unknown {
+  const fullPath = path.isAbsolute(file) ? file : resolveFrom(root, file);
+  return JSON.parse(readFileSync(fullPath, "utf8")) as unknown;
+}
+
+function readEvidenceImportBytes(root: string, file: string): Uint8Array {
+  const fullPath = path.isAbsolute(file) ? file : resolveFrom(root, file);
+  return readFileSync(fullPath);
+}
+
+export function runEvidenceImportCi(root: string, taskId: string, options: EvidenceImportCiOptions): number {
+  try {
+    const readiness = readEvidenceImportJson(root, options.readiness) as { pullRequest?: string; taskId?: string; workflowRunId?: string; baseRef?: string };
+    const headCommit = resolveCommit(root, "HEAD");
+    if (!headCommit) throw new Error("CI Evidence import rejected: HEAD cannot be resolved");
+    if (!readiness.pullRequest || !readiness.workflowRunId || readiness.taskId !== taskId || !readiness.baseRef) throw new Error("CI Evidence import rejected: readiness artifact is missing task, PR, run, or base provenance");
+    verifyCiReadinessArtifact(root, readiness, { taskId, pullRequest: readiness.pullRequest, headCommit, workflowRunId: readiness.workflowRunId }, readEvidenceImportBytes(root, options.ciReceipt));
+    return runEvidenceCollect(root, taskId, {
+      force: true,
+      pullRequest: readiness.pullRequest,
+      baseRef: readiness.baseRef,
+      ciReceipt: path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt),
+      coverageReceipt: options.coverageReceipt ? path.isAbsolute(options.coverageReceipt) ? options.coverageReceipt : resolveFrom(root, options.coverageReceipt) : undefined
+    });
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;

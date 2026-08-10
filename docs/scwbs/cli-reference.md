@@ -261,6 +261,8 @@ npm run scwbs -- evidence collect --task SCWBS-001 --test-assertions-added true 
 npm run scwbs -- evidence collect --task SCWBS-001 --json --force
 npm run scwbs -- evidence collect --task SCWBS-001 --verbose --force
 npm run scwbs -- evidence collect --task SCWBS-001 --output - --force
+npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json
+npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json --coverage-receipt /tmp/coverage-receipt.json
 npm run scwbs -- checks run --task SCWBS-001
 npm run scwbs -- checks run --task SCWBS-001 --json
 npm run scwbs -- checks run --task SCWBS-001 --rerun-checks
@@ -282,6 +284,16 @@ is an explicit bulk migration and must not be used as an implicit repair.
 `profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
 
 `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
+
+`evidence import-ci` は、`.github/workflows/scwbs.yml` の `pull_request` 実行が生成した
+versioned `scwbs.pr-readiness.v1` artifact と、同じartifact digestで束ねられた
+provenance-verified CI receiptを、tracked Evidenceへ取り込む入口である。readinessの
+repository、Task、PR、HEAD、workflow run、workflow path、validate status、receipt
+digestを検証し、続けて既存のCI receipt検証とEvidence/Registryのatomic更新を行う。
+artifactはcheckout外の一時ディレクトリへダウンロードして指定すること。PRコードを
+実行するjobはread-only権限であり、`workflow_run` のtrusted reporterだけがboundedな
+PR commentをupsertする。commentは状態表示のみで、Approval、Review、mergeを作成・実行
+しない。fork、HEAD変更、workflow変更、receipt改変、digest不一致はfail-closedになる。
 
 `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
 

@@ -1,0 +1,92 @@
+id: SCWBS-DRAFT-MSNMNSJ2
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-512
+approvedAt: "2026-08-11T00:00:00Z"
+sourceIssue: 512
+wbsNodeId: node-governance-maintenance
+featureId: F-MSNMNSJ2
+branchName: task/SCWBS-DRAFT-MSNMNSJ2-issue-512-safe-pr-readiness-feedback-and-verifie
+allowedPaths:
+  - .github/workflows/scwbs.yml
+  - .github/workflows/scwbs-readiness-reporter.yml
+  - contracts/discovery/PROBE-issue-512-pr-readiness-evidence.yaml
+  - src/commands/evidence-import-ci.ts
+  - src/core/ci-readiness.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - scripts/coverage-evidence.mjs
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/ci-readiness.schema.json
+  - docs/implementation-gaps.md
+  - tests/integration/evidence-import-ci.test.ts
+  - tests/integration/ci-readiness.test.ts
+  - tests/integration/cli-registration.test.ts
+  - tests/integration/workflow-security.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/actions/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/scwbs.yml
+stopIf:
+  - DB schema
+  - migration
+  - authentication or approval-policy design
+  - external credential or billing change
+  - unsafe PR write token
+  - automatic merge
+  - scope expansion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - pull_request CI emits a bounded versioned PR readiness artifact containing repository, PR, head commit, workflow run, Task ID, validate status, next owner, and merge readiness
+  - trusted reporter behavior is isolated from untrusted PR execution and never exposes write, approval delegation, or Human Approval authority to the pull_request job
+  - reporter provenance validation requires the expected repository, workflow path, workflow run, artifact identity, and PR head before any PR feedback mutation
+  - PR feedback is upserted or otherwise bounded per PR and never creates unbounded comments or annotations on every push
+  - evidence import command validates repository, PR, head, workflow run, artifact digest, Task subject, and diff provenance before writing tracked Evidence; mismatch and tamper cases fail closed without tracked writes
+  - imported CI receipt preserves the exact verified check and artifact provenance and synchronizes Registry atomically with the Evidence update
+  - Human Gate and delegated-approval boundaries remain unchanged; no command creates Human Approval or Review records automatically
+  - fork and same-repository permission behavior, secret isolation, artifact tampering, head mismatch, workflow mismatch, and bounded feedback are covered by regression tests
+  - CLI reference and implementation-gap documentation describe the read-only artifact, trusted reporter, import command, provenance checks, and non-goals
+  - all changed implementation paths remain classified and required checks remain derived from classification
+  - 'Complete Issue #512: safe PR readiness feedback and verified CI Evidence import'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/specs/SPEC-LITE-MSNMNSJ2.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNMNSJ2.patch
+  - contracts/approvals/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSNMNSJ2.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7be93a4d3473fbbed67d7d2c56ae3c7385e93e6ce4830a90bfd07cdf061a1235
+  createdAt: "2026-08-10T21:01:24.844Z"

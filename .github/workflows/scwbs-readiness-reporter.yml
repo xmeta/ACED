@@ -1,0 +1,69 @@
+name: scwbs-readiness-reporter
+
+on:
+  workflow_run:
+    workflows: ["scwbs"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  readiness-reporter:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified readiness artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: scwbs-readiness-${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Verify provenance and upsert PR readiness comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
+        with:
+          script: |
+            const fs = require("fs");
+            const crypto = require("crypto");
+            const readiness = JSON.parse(fs.readFileSync("pr-readiness.json", "utf8"));
+            const ciBytes = fs.readFileSync("ci-receipt.json");
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            if (readiness.repository !== expectedRepository) throw new Error("readiness repository provenance mismatch");
+            if (readiness.workflowRunId !== String(process.env.WORKFLOW_RUN_ID)) throw new Error("readiness workflow run mismatch");
+            if (readiness.headCommit !== process.env.WORKFLOW_HEAD_SHA) throw new Error("readiness head provenance mismatch");
+            if (readiness.workflowPath !== ".github/workflows/scwbs.yml" || process.env.WORKFLOW_PATH !== readiness.workflowPath) throw new Error("readiness workflow path mismatch");
+            const digest = `sha256:${crypto.createHash("sha256").update(ciBytes).digest("hex")}`;
+            if (readiness.artifactDigest !== digest) throw new Error("readiness artifact digest mismatch");
+            const pullRequest = Number(readiness.pullRequest);
+            if (!Number.isInteger(pullRequest) || pullRequest <= 0) throw new Error("readiness pull request is invalid");
+            const pullRequestData = (await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest
+            })).data;
+            if (pullRequestData.head?.sha !== readiness.headCommit) throw new Error("readiness PR head does not match the verified artifact");
+            if (pullRequestData.base?.repo?.full_name !== expectedRepository) throw new Error("readiness PR base repository mismatch");
+            const marker = "<!-- scwbs-pr-readiness-v1 -->";
+            const body = `${marker}\n## SC-WBS readiness\n\n- Task: \`${readiness.taskId}\`\n- Head: \`${readiness.headCommit}\`\n- Validate: ✅ ${readiness.validateStatus}\n- Merge readiness: ${readiness.mergeReadiness.status === "ready" ? "✅ ready" : "⚠ not ready"}\n- Next owner: **${readiness.nextAction.owner}** — ${readiness.nextAction.message}\n- Workflow: [${readiness.workflowRunId}](${readiness.workflowRunUrl})\n\nProvenance was verified by the trusted reporter; this comment does not create Approval, Review, or merge transitions.`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => typeof comment.body === "string" && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pullRequest, body });
+            }
