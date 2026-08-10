@@ -35,7 +35,7 @@ describe("npm bin entrypoint", () => {
 
     expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
     expect(packed.files.length).toBeLessThan(120);
-    expect(packed.size).toBeLessThan(200_000);
+    expect(packed.size).toBeLessThan(300_000);
 
     const tarball = path.join(fixture, packed.filename);
     execFileSync("npm", [

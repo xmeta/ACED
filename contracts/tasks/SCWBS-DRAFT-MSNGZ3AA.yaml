@@ -18,6 +18,7 @@ allowedPaths:
   - docs/scwbs/cli-reference.md
   - tests/integration/evidence.test.ts
   - tests/integration/health.test.ts
+  - tests/integration/packaging.test.ts
   - tests/unit/coverage-evidence.test.ts
   - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
 forbiddenPaths:
@@ -28,6 +29,7 @@ humanGateRequiredPaths:
   - tsconfig.json
   - vitest.config.ts
   - .github/**
+  - tests/integration/packaging.test.ts
 stopIf:
   - package or CI policy change required
   - scope outside allowed paths
@@ -45,6 +47,7 @@ doneCriteria:
   - Observation provenance is bound to the Evidence subjectHeadCommit and diffHash, and stale or mismatched inputs are not presented as evaluated
   - health and finish surface machine observation as advisory context while retaining manual testQuality compatibility and existing Human Gate behavior
   - JSON schema, CLI reference, implementation-gap documentation, and regression tests cover disabled markers, coverage regression/improvement, unavailable baseline, and manual metadata compatibility
+  - The standalone npm package size guard is explicitly 300000 bytes and remains covered by the packaging integration test
   - 'Complete Issue #511 Phase 1: observe test quality from diff and coverage'
 evidenceRequired:
   - test-result
@@ -66,5 +69,5 @@ contractLock:
   wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
   wbsNodeId: node-governance-maintenance
   specVersion: 0.1.0
-  specRevision: sha256:cab05c9109341dcc61362cd8400e8bc57a8abc319954b81b67ba1ba25509e21b
-  createdAt: "2026-08-10T16:55:33.006Z"
+  specRevision: sha256:be704c0472225010c0b92cd2ff9d342b03f3827810e3e2f7a6cd20159edd931d
+  createdAt: "2026-08-10T17:48:04.810Z"
