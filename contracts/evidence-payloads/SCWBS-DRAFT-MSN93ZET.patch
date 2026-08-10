@@ -302,7 +302,7 @@ index 7534bfb..88e4ca4 100644
      ...collectEvidenceGateIssues(root, task, options.evidence),
      ...collectCurrentPullRequestIssues(root, task, options.evidence),
 diff --git a/src/commands/check.ts b/src/commands/check.ts
-index b7d725c..4a32a4b 100644
+index b7d725c..6833874 100644
 --- a/src/commands/check.ts
 +++ b/src/commands/check.ts
 @@ -7,7 +7,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
@@ -314,20 +314,17 @@ index b7d725c..4a32a4b 100644
  import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
  import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
  import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
-@@ -341,9 +341,10 @@ export type CheckJsonOutput = {
- export function runCheck(root: string, options: CheckOptions = {}): number {
-   const issues = collectCheckIssues(root);
+@@ -343,7 +343,7 @@ export function runCheck(root: string, options: CheckOptions = {}): number {
    if (options.json) {
-+        const outputIssues = remediate(issues);
      const output: CheckJsonOutput = {
        status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
 -      issues
-+      issues: outputIssues
++      issues: remediate(issues)
      };
      console.log(JSON.stringify(output, null, 2));
      return hasErrors(issues) ? 1 : 0;
 diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
-index 79dbdae..d6160b2 100644
+index 79dbdae..ebd4aae 100644
 --- a/src/commands/doctor.ts
 +++ b/src/commands/doctor.ts
 @@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
@@ -349,28 +346,44 @@ index 79dbdae..d6160b2 100644
  export type DoctorDiagnostic = {
    id: string;
    label: string;
-@@ -648,8 +653,8 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
-   const envHasFailure = diagnostics.some((d) => d.status === "fail");
+@@ -622,6 +627,13 @@ function suggestedFix(issue: Issue): string {
  
-   const contractIssues = [
--    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
--    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+ type DoctorContractIssue = { source: "check" | "health"; issue: Issue };
+ 
++function collectDoctorContractIssues(root: string): DoctorContractIssue[] {
++  return [
 +    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
 +    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
-   ];
++  ];
++}
++
+ function doctorIssuePriority(issue: Issue): number {
+   if (issue.severity === "error") return 0;
+   if (/humanGate|approval/i.test(issue.code)) return 1;
+@@ -647,10 +659,7 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
+   const diagnostics = collectEnvironmentDiagnostics(root);
+   const envHasFailure = diagnostics.some((d) => d.status === "fail");
+ 
+-  const contractIssues = [
+-    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
+-    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
+-  ];
++  const contractIssues = collectDoctorContractIssues(root);
  
    const lines: string[] = ["SC-WBS Doctor", ""];
-@@ -706,8 +711,8 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
+ 
+@@ -705,10 +714,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
+   try {
      if (options.json) {
        const diagnostics = collectEnvironmentDiagnostics(root);
-       const contractIssues = [
+-      const contractIssues = [
 -        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue })),
 -        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue }))
-+        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
-+        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
-       ];
+-      ];
++      const contractIssues = collectDoctorContractIssues(root);
        const envHasFailure = diagnostics.some((d) => d.status === "fail");
        const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
+       const output: DoctorJsonOutput = {
 diff --git a/src/commands/finish.ts b/src/commands/finish.ts
 index 67b98b0..8938ec1 100644
 --- a/src/commands/finish.ts
@@ -488,77 +501,144 @@ index d4805d3..c2d0184 100644
    };
  }
  
-diff --git a/src/core/health-domain.ts b/src/core/health-domain.ts
-index f54f12b..19c76ce 100644
---- a/src/core/health-domain.ts
-+++ b/src/core/health-domain.ts
-@@ -14,7 +14,7 @@ export type HealthIssueSummary = {
- function issuePriority(issue: Issue): number {
-   if (issue.severity === "error") return 0;
-   if (/humanGate|approval/i.test(issue.code)) return 1;
--  if (issue.fixCommand) return 2;
-+  if (issue.fixCommand || issue.remediation) return 2;
-   return 3;
- }
- 
 diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
-index 3ba5299..df3d7c6 100644
+index 3ba5299..51def34 100644
 --- a/src/core/human-gate.ts
 +++ b/src/core/human-gate.ts
 @@ -6,6 +6,8 @@ import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskCont
  
  export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
  
-+const humanCommand = (argv: string[]) => ({ kind: "command" as const, owner: "human" as const, argv, safeToAutoRun: false });
++const humanCommand = (c: string) => ({ kind: "command" as const, owner: "human" as const, argv: c.match(/"[^"]+"|\S+/g)!.map((a) => a.replaceAll('"', "")), safeToAutoRun: false });
 +
  export type DelegatedApproval = {
    approvalMode: "delegated";
    approvedBy: string;
-@@ -168,7 +170,9 @@ export function validateHumanGateApproval(
-     return { required: false, requiredFiles, approved: true, issues: [] };
-   }
- 
-+  const approvalRequestCommand = `npm run scwbs -- approval request --task ${task.id}`;
-   const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
-+  const approvalRemediation = humanCommand(approvalCommand.replaceAll('"', "").split(" "));
-   if (!approval) {
-     return {
-       required: true,
-@@ -178,7 +182,8 @@ export function validateHumanGateApproval(
+@@ -178,7 +180,8 @@ export function validateHumanGateApproval(
          severity: "error",
          code: "approval.missing",
          message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
 -        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
-+        fixCommand: approvalRequestCommand,
-+        remediation: humanCommand(approvalRequestCommand.split(" "))
++        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
++        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id}`)
        }]
      };
    }
-@@ -192,7 +197,8 @@ export function validateHumanGateApproval(
+@@ -192,12 +195,14 @@ export function validateHumanGateApproval(
          severity: "error",
          code: "approval.status",
          message: `${task.id} changes Human Gate files but approval status is ${approval.status}`,
 -        fixCommand: approvalCommand
 +        fixCommand: approvalCommand,
-+        remediation: approvalRemediation
++        remediation: humanCommand(approvalCommand)
        }]
      };
    }
-@@ -249,6 +255,9 @@ export function validateHumanGateApproval(
-       fixCommand: approvalCommand
-     });
+ 
+   const issues: Issue[] = [];
++  const addApprovalIssue = (code: string, message: string) => issues.push({ severity: "error", code, message, fixCommand: approvalCommand });
+   issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
+   if (approval.approvalMode === "delegated") {
+     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
+@@ -206,12 +211,7 @@ export function validateHumanGateApproval(
+   const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
+   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
+   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
+-    issues.push({
+-      severity: "error",
+-      code: "approval.scope.headCommit",
+-      message: `${task.id} approval and Evidence must record matching headCommit scope`,
+-      fixCommand: approvalCommand
+-    });
++    addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);
+   } else if (approval.headCommit && subjectHead && approval.headCommit !== subjectHead) {
+     let metadataOnlyDescendant = false;
+     const matchingAuditableDiff = !legacyUnscoped
+@@ -226,28 +226,16 @@ export function validateHumanGateApproval(
+       }
+     }
+     if (!metadataOnlyDescendant) {
+-      issues.push({
+-        severity: "error",
+-        code: "approval.scope.headCommit",
+-        message: `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`,
+-        fixCommand: approvalCommand
+-      });
++      addApprovalIssue("approval.scope.headCommit", `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`);
+     }
    }
-+  for (const issue of issues) {
-+    if (issue.fixCommand === approvalCommand) issue.remediation = approvalRemediation;
+   if ((!approval.diffHash || !subjectDiffHash) && !legacyUnscoped) {
+-    issues.push({
+-      severity: "error",
+-      code: "approval.scope.diffHash",
+-      message: `${task.id} approval and Evidence must record matching diffHash scope`,
+-      fixCommand: approvalCommand
+-    });
++    addApprovalIssue("approval.scope.diffHash", `${task.id} approval and Evidence must record matching diffHash scope`);
+   } else if (approval.diffHash && subjectDiffHash && approval.diffHash !== subjectDiffHash) {
+-    issues.push({
+-      severity: "error",
+-      code: "approval.scope.diffHash",
+-      message: `${task.id} approved diffHash does not match Evidence diffHash`,
+-      fixCommand: approvalCommand
+-    });
++    addApprovalIssue("approval.scope.diffHash", `${task.id} approved diffHash does not match Evidence diffHash`);
 +  }
++  for (const issue of issues) {
++    if (issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
+   }
  
    return {
-     required: true,
 diff --git a/src/core/report.ts b/src/core/report.ts
-index 5e5c9be..9ad979d 100644
+index 5e5c9be..82865db 100644
 --- a/src/core/report.ts
 +++ b/src/core/report.ts
-@@ -48,13 +48,7 @@ export function printIssues(issues: Issue[], reporter: Reporter = createConsoleR
+@@ -6,56 +6,17 @@ export type Reporter = {
+   write(chunk: string | Uint8Array): void;
+ };
+ 
+-export function createConsoleReporter(): Reporter {
+-  return {
+-    log: (message) => console.log(message),
+-    error: (message) => console.error(message),
+-    write: (chunk) => {
+-      process.stdout.write(chunk);
+-    }
+-  };
+-}
++export const createConsoleReporter = (): Reporter => ({ log: console.log.bind(console), error: console.error.bind(console), write: process.stdout.write.bind(process.stdout) });
+ 
+-export function createBufferedStdoutReporter(): { reporter: Reporter; output: () => string } {
+-  let stdout = "";
+-  const consoleReporter = createConsoleReporter();
+-  return {
+-    reporter: {
+-      log: (message) => {
+-        stdout += `${String(message)}\n`;
+-      },
+-      error: consoleReporter.error,
+-      write: (chunk) => {
+-        stdout += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+-      }
+-    },
+-    output: () => stdout
+-  };
+-}
++export const createBufferedStdoutReporter = (): { reporter: Reporter; output: () => string } => { let stdout = ""; return { reporter: { log: (message) => { stdout += `${String(message)}\n`; }, error: console.error.bind(console), write: (chunk) => { stdout += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString(); } }, output: () => stdout }; };
+ 
+-export function printIssues(issues: Issue[], reporter: Reporter = createConsoleReporter()): void {
+-  for (const item of issues) {
+-    const prefix = item.severity === "error" ? "ERROR" : "WARN";
+-    reporter.log(`${prefix} ${item.code}: ${item.message}`);
+-    if (item.severity === "error" && item.fixCommand) {
+-      reporter.log(`  fixCommand: ${item.fixCommand}`);
+-    }
+-  }
+-}
++export const printIssues = (issues: Issue[], reporter: Reporter = createConsoleReporter()): void => issues.forEach((item) => { const prefix = item.severity === "error" ? "ERROR" : "WARN"; reporter.log(`${prefix} ${item.code}: ${item.message}`); if (item.severity === "error" && item.fixCommand) reporter.log(`  fixCommand: ${item.fixCommand}`); });
+ 
+ /**
+  * M2-022: every Error must show a fixCommand. Call sites are encouraged to
   * set a specific fixCommand, but this backstop guarantees one is always
   * present so a caller never sees an Error with no next action.
   */
@@ -569,10 +649,12 @@ index 5e5c9be..9ad979d 100644
 -      : issue
 -  );
 -}
-+export const withDefaultFixCommand = (issues: Issue[], defaultFixCommand?: string): Issue[] => issues.map((issue) => issue.remediation || !issue.fixCommand ? defaultFixCommand && issue.severity === "error" && !issue.fixCommand ? { ...issue, fixCommand: defaultFixCommand } : issue : { ...issue, remediation: { kind: "guidance", owner: "user", message: issue.fixCommand } });
++export const withDefaultFixCommand = (a: Issue[], d?: string): Issue[] => a.map((i) => i.remediation ? i : i.fixCommand ? { ...i, remediation: { kind: "guidance", owner: "user", message: i.fixCommand } } : d && i.severity === "error" ? { ...i, fixCommand: d } : i);
  
- export function hasErrors(issues: Issue[]): boolean {
-   return issues.some((item) => item.severity === "error");
+-export function hasErrors(issues: Issue[]): boolean {
+-  return issues.some((item) => item.severity === "error");
+-}
++export const hasErrors = (issues: Issue[]): boolean => issues.some((item) => item.severity === "error");
 diff --git a/src/core/types.ts b/src/core/types.ts
 index 4473599..8874003 100644
 --- a/src/core/types.ts
