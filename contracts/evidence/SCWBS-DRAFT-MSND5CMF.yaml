@@ -1,0 +1,62 @@
+id: EVD-SCWBS-DRAFT-MSND5CMF
+type: evidence
+taskId: SCWBS-DRAFT-MSND5CMF
+commit: b817bc304d744020686869718bc093cc099db27a
+subjectHeadCommit: b817bc304d744020686869718bc093cc099db27a
+diffHash: sha256:677872648ca3ff09f736447e4aaff8e683bae82615f137d99e1f0795db304839
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: b817bc304d744020686869718bc093cc099db27a
+    treeHash: d987ed897e3d5308a1b23f5e748cdb2bdbc35c4e
+    diffHash: sha256:677872648ca3ff09f736447e4aaff8e683bae82615f137d99e1f0795db304839
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSND5CMF.patch
+    manifestHash: sha256:677872648ca3ff09f736447e4aaff8e683bae82615f137d99e1f0795db304839
+git:
+  branch: task/SCWBS-DRAFT-MSND5CMF-issue-509-include-custom-task-ids-in-github-acti
+  base: origin/main
+  baseCommit: 4345f2b6d352f5c7ed0e1b73d3329fe7fb60036a
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: b817bc304d744020686869718bc093cc099db27a
+  diffHash: sha256:677872648ca3ff09f736447e4aaff8e683bae82615f137d99e1f0795db304839
+  headCommit: b817bc304d744020686869718bc093cc099db27a
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSND5CMF.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSND5CMF.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/core/github-actions.ts
+  - tests/integration/metrics.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ce59954e007f4ea161edfc25d61eb6fd0d0296a1b359850507e82d3e21a9834a
+    durationMilliseconds: 15078
+    executedAt: "2026-08-10T15:33:28.540Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:d8c13b874a9e564b9fcbbc76b34addd2e4276f45d935322144d51ae02ee63940
+    durationMilliseconds: 9615
+    executedAt: "2026-08-10T15:33:38.161Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:08761f859ed6896c27511e591a2696bd46237fa447cc8cbe48e2c4f6dd40a447
+    durationMilliseconds: 4020
+    executedAt: "2026-08-10T15:33:42.186Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:02e0e7918909037653ef521c8f35911617942884a6604e78918394e083d6b9d6
+    durationMilliseconds: 305528
+    executedAt: "2026-08-10T15:38:47.718Z"
