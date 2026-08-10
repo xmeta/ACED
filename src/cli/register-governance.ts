@@ -269,18 +269,18 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
   approval
     .command("request")
     .description("Request task approval")
+    .argument("[note...]")
     .option("--task <id>", "task id")
     .option("--pull-request <id>", "pull request id")
     .option("--note <text>", "approval note")
     .option("--force", "force request")
-    .action(function (this: Command, options) {
+    .action((noteParts: string[], options) => {
       if (!options.task) {
         console.error("Missing --task <task-id>");
         setExitCode(2);
         return;
       }
-      const trailing = (this.args as string[]).filter((argument) => !argument.startsWith("-"));
-      const note = trailing.length > 0 ? [options.note, ...trailing].filter(Boolean).join(" ") : options.note;
+      const note = noteParts.length > 0 ? [options.note, ...noteParts].filter(Boolean).join(" ") : options.note;
       setExitCode(
         runApprovalRequest(root, options.task, {
           pullRequest: options.pullRequest,

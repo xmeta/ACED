@@ -27,6 +27,59 @@ const coverageCountsSchema = {
   }
 };
 
+const testQualityObservationSchema = {
+  type: "object",
+  required: ["version", "status", "subject", "tests", "coverage", "assertionDelta"],
+  additionalProperties: false,
+  properties: {
+    version: { const: "1" },
+    status: { enum: ["evaluated", "not-evaluated"] },
+    subject: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        baseCommit: { type: "string", minLength: 1 },
+        headCommit: { type: "string", minLength: 1 },
+        diffHash: { type: "string", minLength: 1 }
+      }
+    },
+    tests: {
+      type: "object",
+      required: ["filesAdded", "filesModified", "filesDeleted", "skippedMarkersAdded"],
+      additionalProperties: false,
+      properties: {
+        filesAdded: { type: "integer", minimum: 0 },
+        filesModified: { type: "integer", minimum: 0 },
+        filesDeleted: { type: "integer", minimum: 0 },
+        skippedMarkersAdded: { type: "integer", minimum: 0 }
+      }
+    },
+    coverage: {
+      type: "object",
+      required: ["status"],
+      additionalProperties: false,
+      properties: {
+        status: { enum: ["evaluated", "not-evaluated"] },
+        baselineSubjectHeadCommit: { type: "string", minLength: 1 },
+        baselineLines: { type: "number", minimum: 0, maximum: 100 },
+        subjectLines: { type: "number", minimum: 0, maximum: 100 },
+        deltaLines: { type: "number" },
+        source: { const: "coverage-receipt" },
+        reason: { type: "string", minLength: 1 }
+      }
+    },
+    assertionDelta: {
+      type: "object",
+      required: ["status", "method"],
+      additionalProperties: false,
+      properties: {
+        status: { const: "not-evaluated" },
+        method: { const: "phase-2-out-of-scope" }
+      }
+    }
+  }
+};
+
 const requirementEvidenceSchema = {
   type: "object",
   required: ["requirementId", "status", "references"],
@@ -254,6 +307,7 @@ const evidenceSchema = {
         notes: stringArraySchema
       }
     },
+    testQualityObservation: testQualityObservationSchema,
     notes: stringArraySchema
   }
 };
@@ -472,6 +526,9 @@ export function validateEvidence(value: unknown, filePath = "evidence"): Issue[]
         issues.push(issue("evidence.testQuality", `${filePath}.testQuality.notes must be a string array when present`));
       }
     }
+  }
+  if (value.testQualityObservation !== undefined && !isObject(value.testQualityObservation)) {
+    issues.push(issue("evidence.testQualityObservation", `${filePath}.testQualityObservation must be an object when present`));
   }
   return issues;
 }

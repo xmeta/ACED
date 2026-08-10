@@ -1,5 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
 import { buildCoverageReceipt, buildEvidenceSnapshot } from "../../scripts/coverage-evidence.mjs";
+import { buildTestQualityObservation } from "../../src/core/evidence/test-quality-observation.js";
+import type { CoverageReceipt } from "../../src/core/types.js";
+import { makeTempRepo, writeText } from "../helpers.js";
 
 const coverageSummary = {
   total: {
@@ -85,5 +89,62 @@ describe("coverage Evidence receipt", () => {
         environment
       })
     ).toThrow(/test result counts do not add up/);
+  });
+
+  test("observes changed test files, added disabled markers, and coverage improvement", () => {
+    const root = makeTempRepo();
+    writeText(root, "tests/example.test.ts", "test('old', () => expect(true).toBe(true));\n");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: root });
+    const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+    const disabledMarker = ["test", "only"].join(".") + "('old', () => expect(true).toBe(true));\n";
+    writeText(root, "tests/example.test.ts", disabledMarker);
+    writeText(root, "tests/new.test.ts", "test('new', () => expect(true).toBe(true));\n");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "subject"], { cwd: root });
+    const subjectHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+    const observation = buildTestQualityObservation({
+      root,
+      baseCommit,
+      subjectHead,
+      diffHash: "sha256:diff",
+      changedFiles: ["tests/example.test.ts", "tests/new.test.ts"],
+      baselineCoverage: { subjectHeadCommit: baseCommit, metrics: { lines: { percent: 78 } } } as unknown as CoverageReceipt,
+      currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 79.5 } } } as unknown as CoverageReceipt
+    });
+
+    expect(observation).toMatchObject({
+      status: "evaluated",
+      tests: { filesAdded: 1, filesModified: 1, filesDeleted: 0, skippedMarkersAdded: 1 },
+      coverage: { status: "evaluated", baselineLines: 78, subjectLines: 79.5, deltaLines: 1.5 }
+    });
+    const regressed = buildTestQualityObservation({
+      root,
+      baseCommit,
+      subjectHead,
+      diffHash: "sha256:diff",
+      changedFiles: ["tests/example.test.ts", "tests/new.test.ts"],
+      baselineCoverage: { subjectHeadCommit: baseCommit, metrics: { lines: { percent: 78 } } } as unknown as CoverageReceipt,
+      currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 76 } } } as unknown as CoverageReceipt
+    });
+    expect(regressed.coverage.deltaLines).toBe(-2);
+  });
+
+  test("does not invent coverage values when a verified baseline is unavailable", () => {
+    const root = makeTempRepo();
+    const observation = buildTestQualityObservation({
+      root,
+      baseCommit: "a".repeat(40),
+      subjectHead: "b".repeat(40),
+      diffHash: "sha256:diff",
+      changedFiles: ["tests/example.test.ts"]
+    });
+
+    expect(observation.coverage).toEqual({
+      status: "not-evaluated",
+      reason: "verified base and subject coverage receipts are both required"
+    });
+    expect(observation.coverage.baselineLines).toBeUndefined();
+    expect(observation.coverage.deltaLines).toBeUndefined();
   });
 });

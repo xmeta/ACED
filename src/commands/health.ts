@@ -388,6 +388,36 @@ export function collectEvidenceTrustIssues(
         });
       }
     }
+    const observation = evidence.testQualityObservation;
+    if (!observation) {
+      issues.push({
+        severity: "warn",
+        code: "health.evidence.testQualityObservation.missing",
+        message: `${task.id} changes tests but evidence has no machine test quality observation`
+      });
+    } else {
+      if (observation.status === "not-evaluated") {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQualityObservation.notEvaluated",
+          message: `${task.id} machine test quality observation could not be evaluated from verified provenance`
+        });
+      }
+      if (observation.tests.skippedMarkersAdded > 0) {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQualityObservation.disabled",
+          message: `${task.id} diff adds ${observation.tests.skippedMarkersAdded} skip/only/todo test marker(s)`
+        });
+      }
+      if (observation.coverage.status === "evaluated" && (observation.coverage.deltaLines ?? 0) < 0) {
+        issues.push({
+          severity: "warn",
+          code: "health.evidence.testQualityObservation.coverage",
+          message: `${task.id} observed line coverage decreased by ${Math.abs(observation.coverage.deltaLines ?? 0)} points`
+        });
+      }
+    }
   }
 
   return issues;

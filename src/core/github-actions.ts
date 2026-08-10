@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readTaskIndex } from "./task-index.js";
 
 export type GithubActionsRun = {
   id: number;
@@ -10,6 +11,15 @@ export type GithubActionsRun = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type GithubActionsTaskIndex = {
+  status: "available";
+  entries: Array<{ id: string; branchName: string }>;
+} | {
+  status: "unavailable";
+};
+
+type GithubActionsTaskResolutionSource = "task-index" | "scwbs-regex";
 
 export type GithubActionsDurationSummary = {
   status: "available";
@@ -29,9 +39,15 @@ export type GithubActionsDurationSummary = {
     limit: 20;
     totalCount: number;
     truncated: boolean;
+    completeness: {
+      attributionPercentage: number | null;
+      taskIndex: "available" | "unavailable";
+    };
+    unmatched: { count: number; items: Array<{ headBranch: string; runCount: number }> };
     items: Array<{
       taskId: string;
       headBranches: string[];
+      resolutionSource: GithubActionsTaskResolutionSource;
       runCount: number;
       completedRunCount: number;
       successfulRunCount: number;
@@ -56,6 +72,15 @@ function taskIdFromBranch(branch: string): string | undefined {
   return branch.match(/^task\/(SCWBS-(?:DRAFT-)?[A-Z0-9]+(?:-[A-Z0-9]+)*)/)?.[1];
 }
 
+function resolveTaskBranch(branch: string, taskIndex: GithubActionsTaskIndex): [string, GithubActionsTaskResolutionSource] | undefined {
+  if (taskIndex.status === "available") {
+    const indexed = taskIndex.entries.find((entry) => entry.branchName === branch);
+    if (indexed) return [indexed.id, "task-index"];
+  }
+  const fallback = taskIdFromBranch(branch);
+  return fallback ? [fallback, "scwbs-regex"] : undefined;
+}
+
 function githubRepository(remote: string): string | undefined {
   const match = remote.trim().match(/(?:github\.com[/:])([^/]+\/[^/]+?)(?:\.git)?$/);
   return match?.[1];
@@ -77,13 +102,21 @@ function toRun(value: Record<string, unknown>): GithubActionsRun | undefined {
   };
 }
 
-export function summarizeGithubActionsRuns(repository: string, runs: GithubActionsRun[], retrievedRunLimit: number): GithubActionsDurationSummary {
+export function summarizeGithubActionsRuns(
+  repository: string,
+  runs: GithubActionsRun[],
+  retrievedRunLimit: number,
+  taskIndex: GithubActionsTaskIndex = { status: "unavailable" }
+): GithubActionsDurationSummary {
   const completed = runs.filter((run) => run.status === "completed" && !Number.isNaN(Date.parse(run.createdAt)) && !Number.isNaN(Date.parse(run.updatedAt)));
   const durations = completed.map((run) => Math.max(0, Date.parse(run.updatedAt) - Date.parse(run.createdAt)));
   const workflows: GithubActionsDurationSummary["workflows"] = {};
   const events: GithubActionsDurationSummary["events"] = {};
   const branches: GithubActionsDurationSummary["branches"] = {};
   const taskPullRequests = new Map<string, GithubActionsDurationSummary["taskPullRequests"]["items"][number]>();
+  const unmatched: Record<string, number> = {};
+  let candidateRunCount = 0;
+  let attributedRunCount = 0;
   for (const run of runs) {
     const existing = workflows[run.name] ?? { runCount: 0, completedRunCount: 0, durationMilliseconds: 0 };
     existing.runCount += 1;
@@ -101,20 +134,28 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
     branch.runCount += 1;
     if (duration >= 0) branch.completedRunCount += 1;
     branches[run.headBranch] = branch;
-    const taskId = run.event === "pull_request" ? taskIdFromBranch(run.headBranch) : undefined;
-    if (taskId) {
-      const item = taskPullRequests.get(taskId) ?? {
-        taskId,
-        headBranches: [],
-        runCount: 0,
-        completedRunCount: 0,
-        successfulRunCount: 0,
-        failedRunCount: 0,
-        otherCompletedRunCount: 0,
-        incompleteRunCount: 0,
-        durationMilliseconds: 0,
-        latestUpdatedAt: run.updatedAt
-      };
+    if (run.event !== "pull_request" || !run.headBranch.startsWith("task/")) continue;
+    candidateRunCount += 1;
+    const resolution = resolveTaskBranch(run.headBranch, taskIndex);
+    if (!resolution) {
+      unmatched[run.headBranch] = (unmatched[run.headBranch] ?? 0) + 1;
+      continue;
+    }
+    attributedRunCount += 1;
+    const [taskId, resolutionSource] = resolution;
+    const item = taskPullRequests.get(taskId) ?? {
+      taskId,
+      headBranches: [],
+      resolutionSource,
+      runCount: 0,
+      completedRunCount: 0,
+      successfulRunCount: 0,
+      failedRunCount: 0,
+      otherCompletedRunCount: 0,
+      incompleteRunCount: 0,
+      durationMilliseconds: 0,
+      latestUpdatedAt: run.updatedAt
+    };
       item.runCount += 1;
       if (!item.headBranches.includes(run.headBranch)) item.headBranches.push(run.headBranch);
       if (duration >= 0) {
@@ -127,13 +168,14 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
         item.incompleteRunCount += 1;
       }
       if (run.updatedAt > item.latestUpdatedAt) item.latestUpdatedAt = run.updatedAt;
-      taskPullRequests.set(taskId, item);
-    }
+    taskPullRequests.set(taskId, item);
   }
   const total = durations.reduce((sum, value) => sum + value, 0);
   const taskItems = [...taskPullRequests.values()]
     .map((item) => ({ ...item, headBranches: item.headBranches.sort() }))
     .sort((left, right) => right.latestUpdatedAt.localeCompare(left.latestUpdatedAt) || left.taskId.localeCompare(right.taskId));
+  const unmatchedItems = Object.entries(unmatched)
+    .map(([headBranch, runCount]) => ({ headBranch, runCount }));
   return {
     status: "available",
     source: "github-actions",
@@ -157,6 +199,14 @@ export function summarizeGithubActionsRuns(repository: string, runs: GithubActio
       limit: 20,
       totalCount: taskItems.length,
       truncated: taskItems.length > 20,
+      completeness: {
+        attributionPercentage: candidateRunCount === 0 ? null : Math.round((attributedRunCount / candidateRunCount) * 10000) / 100,
+        taskIndex: taskIndex.status
+      },
+      unmatched: {
+        count: unmatchedItems.length,
+        items: unmatchedItems.slice(0, 20)
+      },
       items: taskItems.slice(0, 20)
     }
   };
@@ -176,7 +226,11 @@ export function readGithubActionsHistory(root: string, limit = 100): GithubActio
     const payload = JSON.parse(result.stdout) as { workflow_runs?: unknown[] };
     if (!Array.isArray(payload.workflow_runs)) throw new Error("GitHub Actions response has no workflow_runs array");
     const runs = payload.workflow_runs.map((value) => toRun(value as Record<string, unknown>)).filter((value): value is GithubActionsRun => Boolean(value));
-    return summarizeGithubActionsRuns(repository, runs, limit);
+    const taskIndex = readTaskIndex(root);
+    const indexResolution: GithubActionsTaskIndex = taskIndex.index && taskIndex.issues.length === 0
+      ? { status: "available", entries: taskIndex.index.tasks.map((entry) => ({ id: entry.id, branchName: entry.branchName })) }
+      : { status: "unavailable" };
+    return summarizeGithubActionsRuns(repository, runs, limit, indexResolution);
   } catch (error) {
     return { status: "unavailable", source: "github-actions", reason: error instanceof Error ? error.message : String(error) };
   }

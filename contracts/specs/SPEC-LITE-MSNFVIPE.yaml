@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSNFVIPE
+type: spec-contract
+featureId: F-MSNFVIPE
+title: "Reject unexpected CLI positional arguments"
+status: approved
+approvedBy: user-requested-issue-510
+approvedAt: "2026-08-11T00:00:00Z"
+version: 0.1.0
+summary: "CLI rootのglobal allowExcessArgumentsを廃止し、可変引数が必要なcommandだけ明示的なargument syntaxで受理する。"
+acceptanceCriteria:
+  - root parser uses Commander strict excess-argument behavior
+  - status, health, and finish reject unexpected positional arguments with non-zero usage errors
+  - block, task new, lite task, and other declared variadic commands preserve intended inputs
+  - approval request legacy trailing note behavior is made explicit or fails closed for a human decision
+  - table-driven CLI registration tests preserve unknown-option suggestion behavior
+  - CLI reference no longer documents implicit trailing arguments as accepted syntax

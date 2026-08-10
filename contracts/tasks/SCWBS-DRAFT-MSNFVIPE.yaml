@@ -1,0 +1,62 @@
+id: SCWBS-DRAFT-MSNFVIPE
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-510
+approvedAt: "2026-08-11T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSNFVIPE
+branchName: task/SCWBS-DRAFT-MSNFVIPE-issue-510-reject-unexpected-cli-positional-argum
+allowedPaths:
+  - src/cli.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-task.ts
+  - tests/integration/cli-registration.test.ts
+  - docs/scwbs/cli-reference.md
+  - contracts/specs/SPEC-LITE-MSNFVIPE.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or CI policy change required
+  - scope outside allowed paths
+  - security or external service change required
+  - legacy CLI syntax decision required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - root Commander strict parsing rejects unexpected positional arguments without a global allowExcessArguments override
+  - intended variadic command syntax remains accepted for block, task new, lite task, and other explicitly declared arguments
+  - approval request trailing note compatibility is represented by formal argument syntax or is explicitly blocked as a legacy decision
+  - status/health/finish unexpected positional arguments return non-zero usage errors while unknown option suggestions remain intact
+  - table-driven CLI registration regression tests and CLI reference examples cover the strict boundary
+  - 'Complete Issue #510: reject unexpected CLI positional arguments'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/specs/SPEC-LITE-MSNFVIPE.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNFVIPE.patch
+  - contracts/approvals/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSNFVIPE.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:107d68ecfe95c4259b467671fc9b3d61ef4e3f5dc59f436e0e28a35ac32055fa
+  createdAt: "2026-08-10T16:22:37.727Z"

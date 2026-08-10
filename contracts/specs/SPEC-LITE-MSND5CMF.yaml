@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSND5CMF
+type: spec-contract
+featureId: F-MSND5CMF
+title: "Include custom Task IDs in GitHub Actions metrics"
+status: approved
+approvedBy: user-requested-issue-509
+approvedAt: "2026-08-11T00:00:00Z"
+version: 0.1.0
+summary: "GitHub ActionsのPRブランチをrepository-local Task Indexで解決し、標準形式以外のTask IDと未解決候補を欠落なくboundedに可視化する。"
+acceptanceCriteria:
+  - contracts/tasks/index.yamlのcurrent/archived Task branchName exact matchでcustom Task IDを集計する
+  - indexで解決できないhistorical branchはSCWBS形式の後方互換fallbackを使い、JSONにresolution sourceを出す
+  - task-likeだが未解決のPR branchはcount/items(headBranch/runCount)としてboundedに報告する
+  - candidate attribution percentageとindex unavailable時のincompletenessをJSONで明示する
+  - standard SCWBS aggregation and bounded multi-branch aggregation remain unchanged
+  - CLI documentation removes the consumer workaround to patch taskIdFromBranch regex
