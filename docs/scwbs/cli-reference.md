@@ -484,7 +484,7 @@ archived Task候補を表示するread-only inventoryである。候補はretent
 自動選択せず、`--apply` は常にfail closedする。保持期限、外部archiveの耐久性、
 payload削除後の監査trust、Git履歴の書換えはHuman Decisionと新しいTask Contractが必要である。
 
-`evidence annotate` は既存Evidenceの `git.pullRequest` と `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
+`evidence annotate` は既存Evidenceの `git.pullRequest` と手動の `testQuality` だけを更新し、`commit`、`subjectHeadCommit`、`diffHash`、`changedFiles`、`checks`、`testQualityObservation` を保持する。merge後のbranchやmetadata-only branchで元の実装Evidenceへ注記する場合は再収集ではなくこのコマンドを使う。既存のbranch-diff Evidenceが実装ファイルを記録しているのに、Task branch外の空差分から `evidence collect` しようとした場合、CLIはprovenance上書きを拒否する。
 
 `finish` はrequired checks実行前にcontract lockとtestQuality metadataをpreflightし、check結果をまずcandidate Evidenceとしてmemory上に構築する。failed checkまたはHuman Gate以外のcheck-diff違反ではcandidateを破棄するため、既存payload、Evidence、Registryを上書きしない。検証済みcandidateはpayload、Evidence、Registryを同じrollback unitとして置換し、Human Gate待ちはこの整合checkpointを保存して `awaiting-human-approval` を返す。checkpoint途中の書き込み失敗は全fileを開始前の内容へ戻す。
 
@@ -623,7 +623,7 @@ finish / evidence collect / checks run
 
 For a changed submodule gitlink, `evidence collect` records nested changed files, old/new commits, repository, and whether the new commit is an ancestor of the configured upstream merge-target ref. Configure dependent PR, `upstreamRef`, and upstream check metadata in the Task Contract's `submoduleDependencies`. Packet and `review-queue` then show the required order: merge the dependent PR before the parent PR. `check-diff` blocks unreachable submodule heads and non-passed submodule checks; collection fails instead of treating an unavailable nested diff as empty.
 
-When task changes include tests, record test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Forced Evidence refreshes preserve existing `testQuality` metadata when no replacement values are supplied.
+When task changes include tests, record manual test quality metadata with `--test-assertions-added`, `--tests-disabled`, `--coverage-decreased`, and `--test-quality-note`. Evidence collection separately records versioned `testQualityObservation` data from the branch diff. It counts added/modified/deleted test files and newly added `skip`/`only`/`todo` markers; when the previous Evidence coverage receipt is verified at the current base commit, it also records the line coverage delta. Missing or mismatched baseline provenance is `not-evaluated` and never becomes a false `0` or `false`. Forced Evidence refreshes preserve existing manual `testQuality` metadata when no replacement values are supplied.
 
 ## Mutation / Read-only 一覧
 

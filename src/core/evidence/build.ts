@@ -32,6 +32,7 @@ import {
 } from "../required-check-run.js";
 import { verifyCiReceipt } from "./ci-receipt.js";
 import { verifyCoverageReceipt } from "./coverage-receipt.js";
+import { buildTestQualityObservation } from "./test-quality-observation.js";
 
 export type TestQualityOptions = NonNullable<Evidence["testQuality"]>;
 
@@ -188,6 +189,20 @@ export function buildCollectedEvidence(root: string, taskId: string, options: Ev
         || existingEvidence.coverageReceipt.pullRequest.replace(/^#/, "") === pullRequest.replace(/^#/, ""))
       ? existingEvidence.coverageReceipt
       : undefined;
+  const baselineCoverageReceipt = existingEvidence?.coverageReceipt
+    && baseCommit
+    && existingEvidence.coverageReceipt.subjectHeadCommit === baseCommit
+    ? existingEvidence.coverageReceipt
+    : undefined;
+  const testQualityObservation = buildTestQualityObservation({
+    root,
+    baseCommit,
+    subjectHead,
+    diffHash,
+    changedFiles,
+    currentCoverage: coverageReceipt,
+    baselineCoverage: baselineCoverageReceipt
+  });
   const cacheSubject = task.requiredChecks.length > 0
     ? buildCheckCacheSubject(root, { baseRef, excludedMetadataFiles: postEvidenceMetadataFiles(taskId) })
     : undefined;
@@ -289,6 +304,7 @@ export function buildCollectedEvidence(root: string, taskId: string, options: Ev
     ...(submodules.length > 0 ? { submodules } : {}),
     ...(ciReceipt ? { ciReceipt } : {}),
     ...(coverageReceipt ? { coverageReceipt } : {}),
+    testQualityObservation,
     checks,
     ...(testQuality ? { testQuality } : {})
   };

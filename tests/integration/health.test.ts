@@ -751,6 +751,36 @@ describe("health", () => {
     expect(issues.some((issue) => issue.code === "health.evidence.testQuality.assertions")).toBe(false);
   });
 
+  test("health surfaces machine observation warnings without replacing manual test quality", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "completed");
+    writeYaml(
+      root,
+      "contracts/evidence/WBS-001-004.yaml",
+      sampleEvidence({
+        changedFiles: ["tests/features/api/api.test.ts"],
+        testQuality: {
+          assertionsAdded: true,
+          testsDisabled: false,
+          coverageDecreased: false,
+          notes: ["Manual review recorded regression coverage."]
+        },
+        testQualityObservation: {
+          version: "1",
+          status: "evaluated",
+          subject: { baseCommit: "a".repeat(40), headCommit: "b".repeat(40), diffHash: "sha256:diff" },
+          tests: { filesAdded: 0, filesModified: 1, filesDeleted: 0, skippedMarkersAdded: 1 },
+          coverage: { status: "evaluated", baselineLines: 80, subjectLines: 78, deltaLines: -2, source: "coverage-receipt" },
+          assertionDelta: { status: "not-evaluated", method: "phase-2-out-of-scope" }
+        }
+      }) as unknown as Record<string, unknown>
+    );
+    const issues = collectHealthIssues(root);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQualityObservation.disabled")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQualityObservation.coverage")).toBe(true);
+    expect(issues.some((issue) => issue.code === "health.evidence.testQuality.missing")).toBe(false);
+  });
+
   test("health warns when test changes add no assertions without rationale", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "completed");
