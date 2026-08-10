@@ -394,7 +394,7 @@ index eb27946..fa8d47d 100644
      "test:coverage": "vitest run tests/unit --coverage",
 diff --git a/scripts/build-wjs-runtime.mjs b/scripts/build-wjs-runtime.mjs
 new file mode 100644
-index 0000000..4c018db
+index 0000000..1d7e11e
 --- /dev/null
 +++ b/scripts/build-wjs-runtime.mjs
 @@ -0,0 +1,103 @@
@@ -430,13 +430,13 @@ index 0000000..4c018db
 +  return require(require.resolve("esbuild", { paths: [wjsRoot, root] }));
 +}
 +
-+function compactSchema(value) {
-+  if (Array.isArray(value)) return value.map(compactSchema);
++function compactSchema(value, preservePropertyNames = false) {
++  if (Array.isArray(value)) return value.map((item) => compactSchema(item));
 +  if (!value || typeof value !== "object") return value;
 +  const omitted = new Set(["$schema", "title", "description", "default", "examples"]);
 +  return Object.fromEntries(Object.entries(value)
-+    .filter(([key]) => !omitted.has(key))
-+    .map(([key, item]) => [key, compactSchema(item)]));
++    .filter(([key]) => preservePropertyNames || !omitted.has(key))
++    .map(([key, item]) => [key, compactSchema(item, key === "properties")]));
 +}
 +
 +async function buildRuntime() {
