@@ -304,6 +304,35 @@ export type CoverageReceipt = {
   generatedAt: string;
 };
 
+export type TestQualityObservation = {
+  version: "1";
+  status: "evaluated" | "not-evaluated";
+  subject: {
+    baseCommit?: string;
+    headCommit?: string;
+    diffHash?: string;
+  };
+  tests: {
+    filesAdded: number;
+    filesModified: number;
+    filesDeleted: number;
+    skippedMarkersAdded: number;
+  };
+  coverage: {
+    status: "evaluated" | "not-evaluated";
+    baselineSubjectHeadCommit?: string;
+    baselineLines?: number;
+    subjectLines?: number;
+    deltaLines?: number;
+    source?: "coverage-receipt";
+    reason?: string;
+  };
+  assertionDelta: {
+    status: "not-evaluated";
+    method: "phase-2-out-of-scope";
+  };
+};
+
 export type Evidence = {
   id: string;
   type: "evidence";
@@ -339,6 +368,7 @@ export type Evidence = {
   changedFiles: string[];
   ciReceipt?: CiReceipt;
   coverageReceipt?: CoverageReceipt;
+  testQualityObservation?: TestQualityObservation;
   submodules?: Array<{
     path: string;
     repository: string;
