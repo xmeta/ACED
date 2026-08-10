@@ -79,7 +79,6 @@ export type AgentDecision = {
   action: AgentDecisionAction;
   agent?: Agent;
   path?: string;
-  reason?: string;
 };
 
 function isAgent(value: unknown): value is Agent {
@@ -137,24 +136,21 @@ function readAgentManifest(root: string): ManifestState {
   if (!existsSync(fullPath)) return { version: "none" };
   try {
     const parsed = JSON.parse(readFileSync(fullPath, "utf8")) as Record<string, unknown>;
-    if (parsed.schemaVersion === "1" && isAgent(parsed.agent) && Array.isArray(parsed.files)) {
-      const files = parsed.files.filter((entry): entry is { path: string; sha256: string } => {
-        if (!entry || typeof entry !== "object") return false;
-        const candidate = entry as Record<string, unknown>;
-        return typeof candidate.path === "string" && typeof candidate.sha256 === "string";
-      });
-      if (files.length !== parsed.files.length) return { version: "invalid" };
-      return { version: "1", manifest: { schemaVersion: "1", agent: parsed.agent, files } };
+    const files = Array.isArray(parsed.files) ? parsed.files : [];
+    const validV1 = files.every((entry) => {
+      const candidate = entry as Record<string, unknown>;
+      return entry !== null && typeof entry === "object" && typeof candidate.path === "string" && typeof candidate.sha256 === "string";
+    });
+    if (parsed.schemaVersion === "1" && isAgent(parsed.agent) && validV1) {
+      return { version: "1", manifest: { schemaVersion: "1", agent: parsed.agent, files: files as AgentManifestV1["files"] } };
     }
-    if (parsed.schemaVersion === "2" && isAgent(parsed.primaryAgent) && Array.isArray(parsed.agents) && Array.isArray(parsed.files)) {
-      const agents = parsed.agents.filter(isAgent);
-      const files = parsed.files.filter((entry): entry is AgentManifestFile => {
-        if (!entry || typeof entry !== "object") return false;
-        const candidate = entry as Record<string, unknown>;
-        return typeof candidate.path === "string" && isAgent(candidate.owner) && typeof candidate.sha256 === "string";
-      });
-      if (agents.length !== parsed.agents.length || files.length !== parsed.files.length || agents.length === 0) return { version: "invalid" };
-      return { version: "2", manifest: { schemaVersion: "2", primaryAgent: parsed.primaryAgent, agents: uniqueAgents(agents), files } };
+    const agents = Array.isArray(parsed.agents) ? parsed.agents.filter(isAgent) : [];
+    const validV2 = files.every((entry) => {
+      const candidate = entry as Record<string, unknown>;
+      return entry !== null && typeof entry === "object" && typeof candidate.path === "string" && isAgent(candidate.owner) && typeof candidate.sha256 === "string";
+    });
+    if (parsed.schemaVersion === "2" && isAgent(parsed.primaryAgent) && agents.length === (Array.isArray(parsed.agents) ? parsed.agents.length : 0) && agents.length > 0 && validV2) {
+      return { version: "2", manifest: { schemaVersion: "2", primaryAgent: parsed.primaryAgent, agents: uniqueAgents(agents), files: files as AgentManifestV2["files"] } };
     }
     return { version: "invalid" };
   } catch {
@@ -200,21 +196,14 @@ function readProjectSettings(root: string): { wbs: WbsDocument; settings: ScwbsS
 }
 
 function projectAgents(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: Language } {
-  const configured = [
-    ...(Array.isArray(settings.agents) ? settings.agents.filter(isAgent) : []),
-    ...(isAgent(settings.agent) ? [settings.agent] : []),
-    ...(isAgent(settings.primaryAgent) ? [settings.primaryAgent] : [])
-  ];
-  if (manifestState.manifest?.schemaVersion === "1") configured.push(manifestState.manifest.agent);
-  if (manifestState.manifest?.schemaVersion === "2") configured.push(...manifestState.manifest.agents, manifestState.manifest.primaryAgent);
+  const manifestAgents = manifestState.manifest?.schemaVersion === "1"
+    ? [manifestState.manifest.agent]
+    : manifestState.manifest?.schemaVersion === "2"
+      ? [...manifestState.manifest.agents, manifestState.manifest.primaryAgent]
+      : [];
+  const configured = [ ...(settings.agents ?? []), settings.agent, settings.primaryAgent, ...manifestAgents ].filter(isAgent);
   const agents = uniqueAgents(configured.length > 0 ? configured : ["codex"]);
-  const primaryAgent = isAgent(settings.primaryAgent)
-    ? settings.primaryAgent
-    : isAgent(settings.agent)
-      ? settings.agent
-      : manifestState.manifest?.schemaVersion === "2"
-        ? manifestState.manifest.primaryAgent
-        : agents[0];
+  const primaryAgent = [settings.primaryAgent, settings.agent, ...manifestAgents, agents[0]].find(isAgent) ?? agents[0];
   return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: settings.lang === "en" ? "en" : "ja" };
 }
 
@@ -244,7 +233,7 @@ function decisionsOutput(decisions: AgentDecision[], json: boolean | undefined):
   }
   for (const decision of decisions) {
     const target = [decision.agent, decision.path].filter(Boolean).join(" ");
-    console.log(`${decision.action} ${target}${decision.reason ? ` (${decision.reason})` : ""}`.trim());
+    console.log(`${decision.action} ${target}`.trim());
   }
 }
 
@@ -275,7 +264,7 @@ function syncAgentFiles(
     }
     const current = readFileSync(fullPath, "utf8");
     if (!previous) {
-      decisions.push({ action: "preserved", agent, path: file.path, reason: "existing file has no matching managed ownership" });
+      decisions.push({ action: "preserved", agent, path: file.path });
       continue;
     }
     const matchesRecorded = sha256(current) === previous.sha256;
@@ -285,7 +274,7 @@ function syncAgentFiles(
       continue;
     }
     if (!matchesRecorded) {
-      decisions.push({ action: "divergent", agent, path: file.path, reason: "current content differs from recorded generated hash" });
+      decisions.push({ action: "divergent", agent, path: file.path });
       continue;
     }
     if (matchesGenerated) {
@@ -314,7 +303,7 @@ function prepareProject(root: string, requestedAgent: Agent): { state: ManifestS
 
 function migrationDecision(state: ManifestState): AgentDecision[] {
   return state.version === "1"
-    ? [{ action: "migrate", path: agentManifestPath, reason: "schema v1 ownership converted to per-file schema v2" }]
+    ? [{ action: "migrate", path: agentManifestPath }]
     : [];
 }
 
@@ -421,7 +410,7 @@ export function runAgentAdd(root: string, value: string, options: AgentOperation
     return 2;
   }
   const synced = syncAgentFiles(root, prepared.manifest, agent, prepared.language, false, options.dryRun ?? false);
-  const decisions = [...migrationDecision(prepared.state), ...synced.decisions, { action: "move" as const, agent, reason: "agent added to project ownership set" }];
+  const decisions = [...migrationDecision(prepared.state), ...synced.decisions, { action: "move" as const, agent }];
   if (!(options.dryRun ?? false)) {
     writeProjectAgentSettings(root, synced.manifest.agents, prepared.primaryAgent);
     writeAgentManifest(root, synced.manifest);
@@ -445,7 +434,7 @@ export function runAgentSetPrimary(root: string, value: string, options: AgentOp
     return 2;
   }
   const next = { ...prepared.manifest, primaryAgent: agent };
-  const decisions: AgentDecision[] = [{ action: "move", agent, reason: "primary agent changed" }];
+  const decisions: AgentDecision[] = [{ action: "move", agent }];
   if (!(options.dryRun ?? false)) {
     writeProjectAgentSettings(root, next.agents, agent);
     writeAgentManifest(root, next);
@@ -488,7 +477,7 @@ export function runAgentRemove(root: string, value: string, options: AgentOperat
     const fullPath = resolveFrom(root, file.path);
     const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
     if (current !== undefined && sha256(current) !== file.sha256) {
-      decisions.push({ action: "preserved", agent, path: file.path, reason: "divergent user file is never deleted" });
+      decisions.push({ action: "preserved", agent, path: file.path });
     } else {
       decisions.push({ action: options.dryRun ? "remove" : "removed", agent, path: file.path });
       if (!options.dryRun && current !== undefined) unlinkSync(fullPath);
