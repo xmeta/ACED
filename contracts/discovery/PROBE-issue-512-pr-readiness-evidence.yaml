@@ -1,0 +1,45 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-512-pr-readiness-evidence
+type: discovery-probe
+status: concluded
+question: Which bounded ACED-side design safely publishes verified SC-WBS readiness to PR UI and imports CI Evidence without exposing write or approval secrets to untrusted PR code?
+hypotheses:
+  - pull_request read-only artifact is sufficient
+  - workflow_run reporter can revalidate provenance
+  - verified receipt import can remain fail-closed
+activities:
+  - inspect existing workflow permissions
+  - inspect Evidence and health JSON contracts
+  - define reporter and import boundaries
+  - add acceptance and non-goals
+evidenceExpected:
+  - allowed path inventory
+  - permission boundary
+  - provenance fields
+  - import mismatch cases
+unknowns:
+  - GitHub API comment/check update capability
+  - artifact download contract
+  - external workflow permissions
+timebox: bounded
+costLimit: one repository-local discovery pass
+exitConditions:
+  - bounded Task scope identified
+  - Human Gate paths explicit
+  - unsafe write-token design rejected
+nextDecision: create and lock one delivery Task with .github Human Gate paths and fail-closed CI receipt import
+deliveryTaskId: SCWBS-DRAFT-MSNMNSJ2
+createdAt: "2026-08-10T19:29:47.873Z"
+startedAt: "2026-08-10T19:30:03.100Z"
+concludedAt: "2026-08-10T19:31:05.192Z"
+exitConditionsMet: true
+factsLearned:
+  - 'Issue #488 already unifies local finish merge readiness'
+  - 'Issue #512 remains independent because PR UI reporter and verified CI Evidence import are still missing'
+  - read-only pull_request plus trusted workflow_run provenance is the bounded safe architecture
+  - Human Gate is required for .github workflow permission and external GitHub write paths
+hypothesesRejected:
+  - write token in untrusted pull_request job
+  - automatic merge or Human Approval generation
+remainingUnknowns:
+  - GitHub API comment/check upsert capability and artifact download details require implementation-time verification

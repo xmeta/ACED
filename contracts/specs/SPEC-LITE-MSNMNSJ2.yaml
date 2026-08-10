@@ -1,0 +1,26 @@
+id: SPEC-LITE-MSNMNSJ2
+type: spec-contract
+featureId: F-MSNMNSJ2
+title: "Issue #512: safe PR readiness feedback and verified CI Evidence import"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-512
+approvedAt: "2026-08-11T00:00:00Z"
+summary: "Expose bounded read-only SC-WBS readiness to PR consumers and import only provenance-verified CI Evidence without granting untrusted PR code write or approval authority."
+acceptanceCriteria:
+  - "pull_request CI writes a versioned readiness artifact with repository, PR number, head SHA, workflow run identity, Task ID, validate status, next owner, and merge readiness"
+  - "trusted reporting never checks out or executes PR head code and validates repository, workflow, head, workflow run, and artifact provenance before PR feedback mutation"
+  - "untrusted PR execution receives no contents write permission, approval delegation token, or Human Approval authority"
+  - "PR feedback is bounded and upserted per PR rather than creating unbounded comments or annotations"
+  - "evidence import validates artifact digest and Task Evidence subject/diff provenance and fails closed without tracked writes on mismatch or tamper"
+  - "same-repository and fork permission behavior plus secret isolation and tamper cases have regression coverage"
+  - "Human Approval, Human Review, and merge remain human/protected operations and are never generated automatically"
+nonGoals:
+  - "automatic merge or automatic Human Approval"
+  - "executing arbitrary shell text from readiness feedback"
+  - "passing write credentials or approval delegation secrets to untrusted PR code"
+  - "unbounded GitHub history traversal or per-push comment spam"
+  - "changing the meaning of existing Evidence subject or diff provenance"
+scopeNotes:
+  - "The GitHub workflow path is Human Gate scope and must remain least-privilege."
+  - "External GitHub API behavior is validated through bounded adapters and fail-closed tests; no new credential or billing integration is introduced."
