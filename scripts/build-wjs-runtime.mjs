@@ -30,13 +30,13 @@ function resolveEsbuild() {
   return require(require.resolve("esbuild", { paths: [wjsRoot, root] }));
 }
 
-function compactSchema(value) {
-  if (Array.isArray(value)) return value.map(compactSchema);
+function compactSchema(value, preservePropertyNames = false) {
+  if (Array.isArray(value)) return value.map((item) => compactSchema(item));
   if (!value || typeof value !== "object") return value;
   const omitted = new Set(["$schema", "title", "description", "default", "examples"]);
   return Object.fromEntries(Object.entries(value)
-    .filter(([key]) => !omitted.has(key))
-    .map(([key, item]) => [key, compactSchema(item)]));
+    .filter(([key]) => preservePropertyNames || !omitted.has(key))
+    .map(([key, item]) => [key, compactSchema(item, key === "properties")]));
 }
 
 async function buildRuntime() {
