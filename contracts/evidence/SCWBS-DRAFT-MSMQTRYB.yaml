@@ -1,0 +1,95 @@
+id: EVD-SCWBS-DRAFT-MSMQTRYB
+type: evidence
+taskId: SCWBS-DRAFT-MSMQTRYB
+commit: 15359929df85dc3207c9f42cc5d012fb1a11b940
+subjectHeadCommit: 15359929df85dc3207c9f42cc5d012fb1a11b940
+diffHash: sha256:fe64f5b4fd16f286ab179aa81cbcae2e54b94483d6af383a8226a80f35606ca5
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 15359929df85dc3207c9f42cc5d012fb1a11b940
+    treeHash: a878f5d465b42a27bc0ccac504ff3954c2e26821
+    diffHash: sha256:fe64f5b4fd16f286ab179aa81cbcae2e54b94483d6af383a8226a80f35606ca5
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSMQTRYB.patch
+    manifestHash: sha256:fe64f5b4fd16f286ab179aa81cbcae2e54b94483d6af383a8226a80f35606ca5
+git:
+  branch: task/SCWBS-DRAFT-MSMQTRYB-issue-474-phase-1-domain-logic-and-unit-coverage
+  base: origin/main
+  baseCommit: 48ff8e5795a67551679d72a788aa747b6e881079
+  changedFilesBasis: branch-diff
+  pullRequest: "505"
+  subjectHeadCommit: 15359929df85dc3207c9f42cc5d012fb1a11b940
+  diffHash: sha256:fe64f5b4fd16f286ab179aa81cbcae2e54b94483d6af383a8226a80f35606ca5
+  headCommit: 15359929df85dc3207c9f42cc5d012fb1a11b940
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - contracts/approvals/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/check-coverage.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSMQTRYB.patch
+  - contracts/evidence/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSMQTRYB.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSMQTRYB.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/ci-plan.ts
+  - src/commands/health.ts
+  - src/commands/metrics.ts
+  - src/core/ci-plan-domain.ts
+  - src/core/health-domain.ts
+  - src/core/metrics-domain.ts
+  - tests/unit/ci-plan-domain.test.ts
+  - tests/unit/health-domain.test.ts
+  - tests/unit/metrics-domain.test.ts
+  - vitest.config.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:bc2e63b0bd20edd3f1a124a6d379dc984a0002f2db2e1613617d8a7879d65736
+    durationMilliseconds: 15555
+    executedAt: "2026-08-10T04:42:25.907Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:27e59bfad6adcbe14cee948a3d05d3661a4717f442a4646fe17700ceadfb369f
+    durationMilliseconds: 9849
+    executedAt: "2026-08-10T04:42:35.761Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:cdfc4f88c3c445154e9ef25d31f87595e96fc291f74dbd05c145629e2a5d4066
+    durationMilliseconds: 4019
+    executedAt: "2026-08-10T04:42:39.784Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:140f07acbda3b4cfde456dbc69602b7dd1ec58fbbec29aeb7b597475bd7aeea5
+    durationMilliseconds: 9358
+    executedAt: "2026-08-10T04:42:49.146Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:eef0f94af392573a37ccee8c67fcce794fdf8dd3544884c141198872ba6a11a8
+    durationMilliseconds: 302514
+    executedAt: "2026-08-10T04:47:51.666Z"
+  - name: test:wjs
+    status: passed
+    source: local
+    command: npm run test:wjs
+    cacheKey: sha256:2845cbd3d21a34893c4a7173a8188c09e84572ba462f0d0fb59242f4ec5a6ca7
+    durationMilliseconds: 5158
+    executedAt: "2026-08-10T04:47:56.840Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added domain unit tests and unit coverage thresholds; no test assertions were removed or disabled.

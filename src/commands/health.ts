@@ -18,6 +18,8 @@ import { buildGovernanceCostSummary } from "./metrics.js";
 import type { GovernanceWarningBudgets } from "../core/governance-warning-budget.js";
 import { verifyPatchArtifact } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+import { summarizeHealthIssues } from "../core/health-domain.js";
+export { sortHealthIssues } from "../core/health-domain.js";
 
 export type CurrentPullRequest = {
   number: number;
@@ -705,13 +707,6 @@ export function collectHealthIssues(root: string): Issue[] {
   return issues;
 }
 
-function issuePriority(issue: Issue): number {
-  if (issue.severity === "error") return 0;
-  if (/humanGate|approval/i.test(issue.code)) return 1;
-  if (issue.fixCommand) return 2;
-  return 3;
-}
-
 function collectTimestampDriftIssues(task: TaskContract, tracked: string[], timestamps: Map<string, number>): Issue[] {
   const sourceFiles = tracked.filter((file) => !file.startsWith("contracts/") && matchesAny(file, task.allowedPaths));
   const contractFiles = tracked.filter((file) => file === taskPath(task.id) || matchesManagedContractPath(task, file));
@@ -728,38 +723,20 @@ function collectTimestampDriftIssues(task: TaskContract, tracked: string[], time
   }];
 }
 
-export function sortHealthIssues(issues: Issue[]): Issue[] {
-  return [...issues].sort((left, right) =>
-    issuePriority(left) - issuePriority(right)
-    || left.code.localeCompare(right.code)
-    || left.message.localeCompare(right.message)
-  );
-}
-
 export function buildHealthJsonOutput(root: string, issues = collectHealthIssues(root)): HealthJsonOutput {
-  const sorted = sortHealthIssues(issues);
-  const byCode = new Map<string, { code: string; severity: Issue["severity"]; count: number }>();
-  for (const issue of sorted) {
-    const existing = byCode.get(issue.code);
-    if (existing) existing.count += 1;
-    else byCode.set(issue.code, { code: issue.code, severity: issue.severity, count: 1 });
-  }
-  const errors = sorted.filter((issue) => issue.severity === "error").length;
+  const domain = summarizeHealthIssues(issues);
   const shallow = isShallowRepository(root);
   return {
     version: "scwbs.health.v1",
-    status: errors > 0 ? "fail" : sorted.length > 0 ? "warn" : "pass",
+    status: domain.status,
     repository: {
       shallow,
       commitReachability: shallow ? "not-evaluated" : "evaluated"
     },
     summary: {
-      total: sorted.length,
-      errors,
-      warnings: sorted.length - errors,
-      byCode: [...byCode.values()]
+      ...domain.summary
     },
-    issues: sorted
+    issues: domain.issues
   };
 }
 
