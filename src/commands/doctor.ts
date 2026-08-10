@@ -9,7 +9,7 @@ import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
-import { withLegacyRemediations } from "../core/remediation.js";
+import { withLegacyRemediations } from "../core/report.js";
 import type { Issue } from "../core/types.js";
 
 export type EnvironmentRuntime = {

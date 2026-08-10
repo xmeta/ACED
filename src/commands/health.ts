@@ -19,7 +19,7 @@ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget
 import { verifyPatchArtifact } from "../core/git.js";
 import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { summarizeHealthIssues } from "../core/health-domain.js";
-import { withLegacyRemediations } from "../core/remediation.js";
+import { withLegacyRemediations } from "../core/report.js";
 export { sortHealthIssues } from "../core/health-domain.js";
 
 export type CurrentPullRequest = {

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createBufferedStdoutReporter, printIssues, type Reporter } from "../../src/core/report.js";
-import { commandRemediation, withLegacyRemediations } from "../../src/core/remediation.js";
+import { commandRemediation, createBufferedStdoutReporter, printIssues, type Reporter, withLegacyRemediations } from "../../src/core/report.js";
 
 describe("Reporter", () => {
   test("buffers stdout without replacing global output functions", () => {

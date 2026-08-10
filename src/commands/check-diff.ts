@@ -5,8 +5,7 @@ import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensi
 import { validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
-import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand } from "../core/report.js";
-import { withLegacyRemediations } from "../core/remediation.js";
+import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand, withLegacyRemediations } from "../core/report.js";
 import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
 import type { Evidence, Issue, TaskContract } from "../core/types.js";
 import { runWjsValidate } from "../core/wbs.js";

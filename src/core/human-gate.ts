@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { matchesAny } from "./glob.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
-import { commandRemediation } from "./remediation.js";
+import { commandRemediation } from "./report.js";
 import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
