@@ -1,0 +1,79 @@
+id: EVD-SCWBS-DRAFT-MSN93ZET
+type: evidence
+taskId: SCWBS-DRAFT-MSN93ZET
+commit: 460d9b46b8dc58c8d8df35febeb5cc23dd3bbd32
+subjectHeadCommit: 460d9b46b8dc58c8d8df35febeb5cc23dd3bbd32
+diffHash: sha256:a2c82633acfd0b6b3a05a5879b2d7966861c923862cbfcff3a7d48c03769165b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 460d9b46b8dc58c8d8df35febeb5cc23dd3bbd32
+    treeHash: cff6d02262ddb482c0c87517601842c136cfe8cd
+    diffHash: sha256:a2c82633acfd0b6b3a05a5879b2d7966861c923862cbfcff3a7d48c03769165b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSN93ZET.patch
+    manifestHash: sha256:a2c82633acfd0b6b3a05a5879b2d7966861c923862cbfcff3a7d48c03769165b
+git:
+  branch: task/SCWBS-DRAFT-MSN93ZET-issue-remediation-contract-for-typed-command-gui
+  base: origin/main
+  baseCommit: 4345f2b6d352f5c7ed0e1b73d3329fe7fb60036a
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 460d9b46b8dc58c8d8df35febeb5cc23dd3bbd32
+  diffHash: sha256:a2c82633acfd0b6b3a05a5879b2d7966861c923862cbfcff3a7d48c03769165b
+  headCommit: 460d9b46b8dc58c8d8df35febeb5cc23dd3bbd32
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSN93ZET.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSN93ZET.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/finish-summary.schema.json
+  - docs/scwbs/schemas/remediation.schema.json
+  - src/commands/check-diff.ts
+  - src/commands/check.ts
+  - src/commands/doctor.ts
+  - src/commands/finish.ts
+  - src/commands/health.ts
+  - src/core/health-domain.ts
+  - src/core/human-gate.ts
+  - src/core/report.ts
+  - src/core/types.ts
+  - tests/unit/human-gate.test.ts
+  - tests/unit/report.test.ts
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:7fbec300c3199fa98c6810b9cc0caa0806a238546fc9051e5bea4f3a293db0d4
+    durationMilliseconds: 15098
+    executedAt: "2026-08-10T13:50:52.786Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:6b06b2341657841056f9f2f793925bafba01b411e6cc029980e365c23e869c69
+    durationMilliseconds: 9108
+    executedAt: "2026-08-10T13:51:01.898Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a1516105ef05548d02220a3a73b63c65a7eccd7162b1760cdde563991311a835
+    durationMilliseconds: 3747
+    executedAt: "2026-08-10T13:51:05.648Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:a84ab5f5ae667fb7ee1bc017aa67d2dcd3596cdd81ce721e087b549055fbdc91
+    durationMilliseconds: 281014
+    executedAt: "2026-08-10T13:55:46.668Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added remediation argv guidance and Human Gate auto-run regression coverage
