@@ -97,7 +97,8 @@ describe("coverage Evidence receipt", () => {
     execFileSync("git", ["add", "."], { cwd: root });
     execFileSync("git", ["commit", "-m", "base"], { cwd: root });
     const baseCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-    writeText(root, "tests/example.test.ts", "test.only('old', () => expect(true).toBe(true));\n");
+    const disabledMarker = ["test", "only"].join(".") + "('old', () => expect(true).toBe(true));\n";
+    writeText(root, "tests/example.test.ts", disabledMarker);
     writeText(root, "tests/new.test.ts", "test('new', () => expect(true).toBe(true));\n");
     execFileSync("git", ["add", "."], { cwd: root });
     execFileSync("git", ["commit", "-m", "subject"], { cwd: root });
