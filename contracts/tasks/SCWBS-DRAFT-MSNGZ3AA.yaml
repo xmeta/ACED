@@ -1,0 +1,70 @@
+id: SCWBS-DRAFT-MSNGZ3AA
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-511-phase1
+approvedAt: "2026-08-11T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSNGZ3AA
+branchName: task/SCWBS-DRAFT-MSNGZ3AA-issue-511-phase-1-observe-test-quality-from-diff
+allowedPaths:
+  - src/commands/evidence-collect.ts
+  - src/commands/evidence-annotate.ts
+  - src/commands/health.ts
+  - src/core/contracts.ts
+  - src/core/evidence
+  - src/core/types.ts
+  - scripts/coverage-evidence.mjs
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - tests/integration/evidence.test.ts
+  - tests/integration/health.test.ts
+  - tests/unit/coverage-evidence.test.ts
+  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - package or CI policy change required
+  - scope outside allowed paths
+  - security or external service change required
+  - unsupported coverage framework or provenance decision required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Evidence preserves existing manually supplied testQuality metadata and records a separate versioned testQualityObservation when diff observation is available
+  - Diff observation reports added, modified, and deleted test files plus newly added skip, only, and todo markers without treating unsupported syntax as a passing result
+  - Coverage observation compares verified base and subject coverage receipt line percentages when both are available, reports delta and status, and uses not-evaluated without inventing zero or false values when a baseline is unavailable
+  - Observation provenance is bound to the Evidence subjectHeadCommit and diffHash, and stale or mismatched inputs are not presented as evaluated
+  - health and finish surface machine observation as advisory context while retaining manual testQuality compatibility and existing Human Gate behavior
+  - JSON schema, CLI reference, implementation-gap documentation, and regression tests cover disabled markers, coverage regression/improvement, unavailable baseline, and manual metadata compatibility
+  - 'Complete Issue #511 Phase 1: observe test quality from diff and coverage'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/specs/SPEC-LITE-MSNGZ3AA.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNGZ3AA.patch
+  - contracts/approvals/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSNGZ3AA.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:cab05c9109341dcc61362cd8400e8bc57a8abc319954b81b67ba1ba25509e21b
+  createdAt: "2026-08-10T16:55:33.006Z"

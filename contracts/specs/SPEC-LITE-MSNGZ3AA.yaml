@@ -1,0 +1,19 @@
+id: SPEC-LITE-MSNGZ3AA
+type: spec-contract
+featureId: F-MSNGZ3AA
+title: "Observe test quality from diff and verified coverage"
+status: approved
+approvedBy: user-requested-issue-511-phase1
+approvedAt: "2026-08-11T00:00:00Z"
+version: 0.1.0
+summary: Add fail-safe machine observations to Evidence without replacing manually declared testQuality metadata.
+acceptanceCriteria:
+  - Evidence supports a separate versioned testQualityObservation with subject provenance and an evaluated or not-evaluated status.
+  - Diff observation counts changed test files and newly added skip, only, and todo markers without false passing conclusions.
+  - Verified base and subject coverage summaries produce a line coverage delta; absent or unverified baselines remain not-evaluated.
+  - Health and finish expose observation context while preserving manually supplied testQuality fields and existing provenance checks.
+  - Documentation and regression tests describe disabled tests, coverage regression/improvement, unavailable baselines, and compatibility behavior.
+nonGoals:
+  - AST assertion counting or framework-specific semantic test analysis
+  - Changing package-size or CI policy thresholds
+  - Replacing human-authored testQuality metadata
