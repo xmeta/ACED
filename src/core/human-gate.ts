@@ -6,7 +6,7 @@ import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskCont
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
 
-const humanCommand = (argv: string[]) => ({ kind: "command" as const, owner: "human" as const, argv, safeToAutoRun: false });
+const humanCommand = (c: string) => ({ kind: "command" as const, owner: "human" as const, argv: c.match(/"[^"]+"|\S+/g)!.map((a) => a.replaceAll('"', "")), safeToAutoRun: false });
 
 export type DelegatedApproval = {
   approvalMode: "delegated";
@@ -170,9 +170,7 @@ export function validateHumanGateApproval(
     return { required: false, requiredFiles, approved: true, issues: [] };
   }
 
-  const approvalRequestCommand = `npm run scwbs -- approval request --task ${task.id}`;
   const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
-  const approvalRemediation = humanCommand(approvalCommand.replaceAll('"', "").split(" "));
   if (!approval) {
     return {
       required: true,
@@ -182,8 +180,8 @@ export function validateHumanGateApproval(
         severity: "error",
         code: "approval.missing",
         message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
-        fixCommand: approvalRequestCommand,
-        remediation: humanCommand(approvalRequestCommand.split(" "))
+        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
+        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id}`)
       }]
     };
   }
@@ -198,12 +196,13 @@ export function validateHumanGateApproval(
         code: "approval.status",
         message: `${task.id} changes Human Gate files but approval status is ${approval.status}`,
         fixCommand: approvalCommand,
-        remediation: approvalRemediation
+        remediation: humanCommand(approvalCommand)
       }]
     };
   }
 
   const issues: Issue[] = [];
+  const addApprovalIssue = (code: string, message: string) => issues.push({ severity: "error", code, message, fixCommand: approvalCommand });
   issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
   if (approval.approvalMode === "delegated") {
     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
@@ -212,12 +211,7 @@ export function validateHumanGateApproval(
   const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
-    issues.push({
-      severity: "error",
-      code: "approval.scope.headCommit",
-      message: `${task.id} approval and Evidence must record matching headCommit scope`,
-      fixCommand: approvalCommand
-    });
+    addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);
   } else if (approval.headCommit && subjectHead && approval.headCommit !== subjectHead) {
     let metadataOnlyDescendant = false;
     const matchingAuditableDiff = !legacyUnscoped
@@ -232,31 +226,16 @@ export function validateHumanGateApproval(
       }
     }
     if (!metadataOnlyDescendant) {
-      issues.push({
-        severity: "error",
-        code: "approval.scope.headCommit",
-        message: `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`,
-        fixCommand: approvalCommand
-      });
+      addApprovalIssue("approval.scope.headCommit", `${task.id} approved headCommit is not a metadata-only ancestor of Evidence subjectHeadCommit`);
     }
   }
   if ((!approval.diffHash || !subjectDiffHash) && !legacyUnscoped) {
-    issues.push({
-      severity: "error",
-      code: "approval.scope.diffHash",
-      message: `${task.id} approval and Evidence must record matching diffHash scope`,
-      fixCommand: approvalCommand
-    });
+    addApprovalIssue("approval.scope.diffHash", `${task.id} approval and Evidence must record matching diffHash scope`);
   } else if (approval.diffHash && subjectDiffHash && approval.diffHash !== subjectDiffHash) {
-    issues.push({
-      severity: "error",
-      code: "approval.scope.diffHash",
-      message: `${task.id} approved diffHash does not match Evidence diffHash`,
-      fixCommand: approvalCommand
-    });
+    addApprovalIssue("approval.scope.diffHash", `${task.id} approved diffHash does not match Evidence diffHash`);
   }
   for (const issue of issues) {
-    if (issue.fixCommand === approvalCommand) issue.remediation = approvalRemediation;
+    if (issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
   }
 
   return {

@@ -341,10 +341,9 @@ export type CheckJsonOutput = {
 export function runCheck(root: string, options: CheckOptions = {}): number {
   const issues = collectCheckIssues(root);
   if (options.json) {
-        const outputIssues = remediate(issues);
     const output: CheckJsonOutput = {
       status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
-      issues: outputIssues
+      issues: remediate(issues)
     };
     console.log(JSON.stringify(output, null, 2));
     return hasErrors(issues) ? 1 : 0;

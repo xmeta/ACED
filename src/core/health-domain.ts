@@ -14,7 +14,7 @@ export type HealthIssueSummary = {
 function issuePriority(issue: Issue): number {
   if (issue.severity === "error") return 0;
   if (/humanGate|approval/i.test(issue.code)) return 1;
-  if (issue.fixCommand || issue.remediation) return 2;
+  if (issue.fixCommand) return 2;
   return 3;
 }
 

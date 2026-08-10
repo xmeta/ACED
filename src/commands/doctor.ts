@@ -627,6 +627,13 @@ function suggestedFix(issue: Issue): string {
 
 type DoctorContractIssue = { source: "check" | "health"; issue: Issue };
 
+function collectDoctorContractIssues(root: string): DoctorContractIssue[] {
+  return [
+    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
+    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
+  ];
+}
+
 function doctorIssuePriority(issue: Issue): number {
   if (issue.severity === "error") return 0;
   if (/humanGate|approval/i.test(issue.code)) return 1;
@@ -652,10 +659,7 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
   const diagnostics = collectEnvironmentDiagnostics(root);
   const envHasFailure = diagnostics.some((d) => d.status === "fail");
 
-  const contractIssues = [
-    ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
-    ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
-  ];
+  const contractIssues = collectDoctorContractIssues(root);
 
   const lines: string[] = ["SC-WBS Doctor", ""];
 
@@ -710,10 +714,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
   try {
     if (options.json) {
       const diagnostics = collectEnvironmentDiagnostics(root);
-      const contractIssues = [
-        ...collectCheckIssues(root).map((issue) => ({ source: "check" as const, issue: decorateIssue(issue) })),
-        ...collectDoctorHealthIssues(root).map((issue) => ({ source: "health" as const, issue: decorateIssue(issue) }))
-      ];
+      const contractIssues = collectDoctorContractIssues(root);
       const envHasFailure = diagnostics.some((d) => d.status === "fail");
       const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
       const output: DoctorJsonOutput = {
