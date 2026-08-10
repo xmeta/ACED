@@ -227,8 +227,7 @@ jobs:
             reasons: verified ? candidate.reasons : fallbackReasons
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/ci-plan.json`, `${JSON.stringify(plan, null, 2)}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            const trustedChecksOutput = JSON.stringify(plan.trustedChecks ?? []);
+          const trustedChecksOutput = JSON.stringify(plan.trustedChecks ?? []);
             fs.appendFileSync(process.env.GITHUB_OUTPUT,
               `mode=${plan.mode}\ntask_id=${plan.taskId ?? ""}\nsubject=${plan.subjectHeadCommit ?? ""}\nhead_commit=${plan.headCommit ?? ""}\nbase_commit=${plan.baseCommit ?? ""}\ndiff_hash=${plan.diffHash ?? ""}\nauthority_fingerprint=${plan.authorityFingerprint ?? ""}\ntrusted_commit=${plan.trustedCommit ?? ""}\ntrusted_workflow_run_id=${plan.trustedWorkflowRunId ?? ""}\ntrusted_checks=${trustedChecksOutput}\n`);
           process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
