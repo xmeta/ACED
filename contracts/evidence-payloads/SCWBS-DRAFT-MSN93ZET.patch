@@ -259,7 +259,7 @@ index 0000000..1404933
 +  ]
 +}
 diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
-index 7534bfb..ddbfd60 100644
+index 7534bfb..88e4ca4 100644
 --- a/src/commands/check-diff.ts
 +++ b/src/commands/check-diff.ts
 @@ -5,7 +5,7 @@ import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensi
@@ -267,7 +267,7 @@ index 7534bfb..ddbfd60 100644
  import { collectCheckCoverageIssues } from "../core/check-coverage.js";
  import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 -import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand } from "../core/report.js";
-+import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand, withLegacyRemediations } from "../core/report.js";
++import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
  import { buildTaskAuthorityRepairPreflights, collectTaskAuthorityIssues, type TaskAuthorityRepairPreflight } from "../core/task-authority.js";
  import type { Evidence, Issue, TaskContract } from "../core/types.js";
  import { runWjsValidate } from "../core/wbs.js";
@@ -276,16 +276,16 @@ index 7534bfb..ddbfd60 100644
    const { task, issues } = readTask(root, taskId);
    if (!task) {
 -    const taskIssues = withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
-+    const taskIssues = withLegacyRemediations(withDefaultFixCommand(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`));
++    const taskIssues = remediate(issues, `Create the task contract: npm run scwbs -- task new "<title>" (or fix contracts/tasks/${taskId}.yaml)`);
      if (options.json) reporter.log(JSON.stringify({ status: "fail", taskId, issues: taskIssues }, null, 2));
      else printIssues(taskIssues, reporter);
      return 1;
-@@ -326,24 +326,24 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+@@ -326,17 +326,17 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
        ...workingTreeChangedFiles(root).filter((file) => /^contracts\/tasks\/[^/]+\.ya?ml$/.test(file))
      ]));
    } catch (error) {
 -    const baseIssues = [{
-+    const baseIssues = withLegacyRemediations([{
++    const baseIssues = remediate([{
        severity: "error",
        code: "diff.git.base",
        message: error instanceof Error ? error.message : String(error),
@@ -297,20 +297,12 @@ index 7534bfb..ddbfd60 100644
      return 1;
    }
 -  const diffIssues = withDefaultFixCommand([
-+  const diffIssues = withLegacyRemediations(withDefaultFixCommand([
++  const diffIssues = remediate([
      ...collectBranchIssues(task, currentBranch(root)),
      ...collectEvidenceGateIssues(root, task, options.evidence),
      ...collectCurrentPullRequestIssues(root, task, options.evidence),
-     ...workingTreeIssues,
-     ...collectTaskAuthorityIssues(root, task, baseRef, authorityFiles),
-     ...collectDiffIssues(root, task, files, options.evidence)
--  ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`);
-+  ], `npm run scwbs -- check-diff --task ${taskId} --base ${baseRef}`));
-   const authorityRepairPreflights = diffIssues.some((issue) => issue.code === "diff.taskAuthority.change")
-     ? buildTaskAuthorityRepairPreflights(root, baseRef, authorityFiles)
-     : [];
 diff --git a/src/commands/check.ts b/src/commands/check.ts
-index b7d725c..8452030 100644
+index b7d725c..4a32a4b 100644
 --- a/src/commands/check.ts
 +++ b/src/commands/check.ts
 @@ -7,7 +7,7 @@ import { validateHumanGateApproval } from "../core/human-gate.js";
@@ -318,7 +310,7 @@ index b7d725c..8452030 100644
  import { defaultWbsPath, resolveFrom } from "../core/paths.js";
  import { readProfile } from "./profile.js";
 -import { hasErrors, printIssues } from "../core/report.js";
-+import { hasErrors, printIssues, withLegacyRemediations } from "../core/report.js";
++import { hasErrors, printIssues, withDefaultFixCommand as remediate } from "../core/report.js";
  import type { Evidence, Issue, Profile, Registry, RegistryContract, SpecContract, TaskContract, WbsDocument } from "../core/types.js";
  import { isDoneNode, readWbs, runWjsValidate, validateWbsDocument } from "../core/wbs.js";
  import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
@@ -326,7 +318,7 @@ index b7d725c..8452030 100644
  export function runCheck(root: string, options: CheckOptions = {}): number {
    const issues = collectCheckIssues(root);
    if (options.json) {
-+    const outputIssues = withLegacyRemediations(issues);
++        const outputIssues = remediate(issues);
      const output: CheckJsonOutput = {
        status: issues.length === 0 ? "pass" : (hasErrors(issues) ? "fail" : "warn"),
 -      issues
@@ -335,14 +327,14 @@ index b7d725c..8452030 100644
      console.log(JSON.stringify(output, null, 2));
      return hasErrors(issues) ? 1 : 0;
 diff --git a/src/commands/doctor.ts b/src/commands/doctor.ts
-index 79dbdae..a6e8e64 100644
+index 79dbdae..d6160b2 100644
 --- a/src/commands/doctor.ts
 +++ b/src/commands/doctor.ts
 @@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
  import { collectHealthIssues } from "./health.js";
  import { resolveFrom } from "../core/paths.js";
  import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
-+import { withLegacyRemediations } from "../core/report.js";
++import { withDefaultFixCommand as remediate } from "../core/report.js";
  import type { Issue } from "../core/types.js";
  
  export type EnvironmentRuntime = {
@@ -351,7 +343,7 @@ index 79dbdae..a6e8e64 100644
  };
  
 +function decorateIssue(issue: Issue): Issue {
-+  return withLegacyRemediations([issue])[0]!;
++  return remediate([issue])[0]!;
 +}
 +
  export type DoctorDiagnostic = {
@@ -380,7 +372,7 @@ index 79dbdae..a6e8e64 100644
        const envHasFailure = diagnostics.some((d) => d.status === "fail");
        const hasContractErrors = contractIssues.some(({ issue }) => issue.severity === "error");
 diff --git a/src/commands/finish.ts b/src/commands/finish.ts
-index 67b98b0..29bce72 100644
+index 67b98b0..8938ec1 100644
 --- a/src/commands/finish.ts
 +++ b/src/commands/finish.ts
 @@ -12,10 +12,10 @@ import { buildCollectedEvidence } from "./evidence-collect.js";
@@ -392,7 +384,7 @@ index 67b98b0..29bce72 100644
  import { collectTaskHealthIssues } from "./health.js";
  import { taskRefreshReasons } from "./task-refresh.js";
 -import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter } from "../core/report.js";
-+import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter, withLegacyRemediations } from "../core/report.js";
++import { createBufferedStdoutReporter, createConsoleReporter, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
  import { buildFinishLifecycleEvent, recordFinishLifecycleEvent, type FinishLifecycleTerminalOutput } from "../core/finish-lifecycle.js";
  import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
  import {
@@ -410,7 +402,7 @@ index 67b98b0..29bce72 100644
  }
  
 +function readinessWarnings(issues: Issue[]): FinishJsonOutput["readinessWarnings"] {
-+  return withLegacyRemediations(issues).map(({ code, message, fixCommand, remediation }) => ({
++  return remediate(issues).map(({ code, message, fixCommand, remediation }) => ({
 +    code,
 +    message,
 +    ...(fixCommand ? { fixCommand } : {}),
@@ -476,14 +468,14 @@ index 67b98b0..29bce72 100644
      }), json);
      return 1;
 diff --git a/src/commands/health.ts b/src/commands/health.ts
-index d4805d3..3953ca7 100644
+index d4805d3..c2d0184 100644
 --- a/src/commands/health.ts
 +++ b/src/commands/health.ts
 @@ -19,6 +19,7 @@ import type { GovernanceWarningBudgets } from "../core/governance-warning-budget
  import { verifyPatchArtifact } from "../core/git.js";
  import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
  import { summarizeHealthIssues } from "../core/health-domain.js";
-+import { withLegacyRemediations } from "../core/report.js";
++import { withDefaultFixCommand as remediate } from "../core/report.js";
  export { sortHealthIssues } from "../core/health-domain.js";
  
  export type CurrentPullRequest = {
@@ -492,7 +484,7 @@ index d4805d3..3953ca7 100644
        ...domain.summary
      },
 -    issues: domain.issues
-+    issues: withLegacyRemediations(domain.issues)
++    issues: remediate(domain.issues)
    };
  }
  
@@ -510,43 +502,39 @@ index f54f12b..19c76ce 100644
  }
  
 diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
-index 3ba5299..f9459a7 100644
+index 3ba5299..df3d7c6 100644
 --- a/src/core/human-gate.ts
 +++ b/src/core/human-gate.ts
-@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
- import { matchesAny } from "./glob.js";
- import { changedFilesBetween, isCommitAncestor } from "./git.js";
- import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
-+import { commandRemediation } from "./report.js";
- import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
+@@ -6,6 +6,8 @@ import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskCont
  
  export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
-@@ -169,6 +170,14 @@ export function validateHumanGateApproval(
+ 
++const humanCommand = (argv: string[]) => ({ kind: "command" as const, owner: "human" as const, argv, safeToAutoRun: false });
++
+ export type DelegatedApproval = {
+   approvalMode: "delegated";
+   approvedBy: string;
+@@ -168,7 +170,9 @@ export function validateHumanGateApproval(
+     return { required: false, requiredFiles, approved: true, issues: [] };
    }
  
++  const approvalRequestCommand = `npm run scwbs -- approval request --task ${task.id}`;
    const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
-+  const approvalRequestRemediation = commandRemediation(
-+    ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id],
-+    { owner: "human", safeToAutoRun: false }
-+  );
-+  const approvalRemediation = commandRemediation(
-+    ["npm", "run", "scwbs", "--", "approval", "approve", "--task", task.id, "--actor", "human", "--reason", "Evidence and diff reviewed"],
-+    { owner: "human", safeToAutoRun: false }
-+  );
++  const approvalRemediation = humanCommand(approvalCommand.replaceAll('"', "").split(" "));
    if (!approval) {
      return {
        required: true,
-@@ -178,7 +187,8 @@ export function validateHumanGateApproval(
+@@ -178,7 +182,8 @@ export function validateHumanGateApproval(
          severity: "error",
          code: "approval.missing",
          message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
 -        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
-+        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
-+        remediation: approvalRequestRemediation
++        fixCommand: approvalRequestCommand,
++        remediation: humanCommand(approvalRequestCommand.split(" "))
        }]
      };
    }
-@@ -192,7 +202,8 @@ export function validateHumanGateApproval(
+@@ -192,7 +197,8 @@ export function validateHumanGateApproval(
          severity: "error",
          code: "approval.status",
          message: `${task.id} changes Human Gate files but approval status is ${approval.status}`,
@@ -556,41 +544,35 @@ index 3ba5299..f9459a7 100644
        }]
      };
    }
-@@ -254,6 +265,6 @@ export function validateHumanGateApproval(
+@@ -249,6 +255,9 @@ export function validateHumanGateApproval(
+       fixCommand: approvalCommand
+     });
+   }
++  for (const issue of issues) {
++    if (issue.fixCommand === approvalCommand) issue.remediation = approvalRemediation;
++  }
+ 
+   return {
      required: true,
-     requiredFiles,
-     approved: issues.length === 0,
--    issues
-+    issues: issues.map((issue) => issue.fixCommand === approvalCommand ? { ...issue, remediation: approvalRemediation } : issue)
-   };
- }
 diff --git a/src/core/report.ts b/src/core/report.ts
-index 5e5c9be..c081530 100644
+index 5e5c9be..9ad979d 100644
 --- a/src/core/report.ts
 +++ b/src/core/report.ts
-@@ -1,4 +1,21 @@
--import type { Issue } from "./types.js";
-+import type { Issue, Remediation } from "./types.js";
-+
-+export function commandRemediation(
-+  argv: string[],
-+  options: { owner?: "ai" | "human" | "user"; safeToAutoRun?: boolean } = {}
-+): Remediation {
-+  return {
-+    kind: "command",
-+    owner: options.owner ?? "user",
-+    argv,
-+    safeToAutoRun: options.safeToAutoRun ?? false
-+  };
-+}
-+
-+/** Compatibility adapter: legacy fixCommand text is guidance until a producer supplies argv explicitly. */
-+export const withLegacyRemediations = (issues: Issue[]): Issue[] => issues.map((issue) =>
-+  issue.remediation || !issue.fixCommand ? issue : { ...issue, remediation: { kind: "guidance", owner: "user", message: issue.fixCommand } }
-+);
+@@ -48,13 +48,7 @@ export function printIssues(issues: Issue[], reporter: Reporter = createConsoleR
+  * set a specific fixCommand, but this backstop guarantees one is always
+  * present so a caller never sees an Error with no next action.
+  */
+-export function withDefaultFixCommand(issues: Issue[], defaultFixCommand: string): Issue[] {
+-  return issues.map((issue) =>
+-    issue.severity === "error" && !issue.fixCommand
+-      ? { ...issue, fixCommand: defaultFixCommand }
+-      : issue
+-  );
+-}
++export const withDefaultFixCommand = (issues: Issue[], defaultFixCommand?: string): Issue[] => issues.map((issue) => issue.remediation || !issue.fixCommand ? defaultFixCommand && issue.severity === "error" && !issue.fixCommand ? { ...issue, fixCommand: defaultFixCommand } : issue : { ...issue, remediation: { kind: "guidance", owner: "user", message: issue.fixCommand } });
  
- export type Reporter = {
-   log(message?: unknown): void;
+ export function hasErrors(issues: Issue[]): boolean {
+   return issues.some((item) => item.severity === "error");
 diff --git a/src/core/types.ts b/src/core/types.ts
 index 4473599..8874003 100644
 --- a/src/core/types.ts
@@ -647,30 +629,24 @@ index e595e2e..646f370 100644
      const root = makeTempRepo();
      writeText(root, "README.md", "base\n");
 diff --git a/tests/unit/report.test.ts b/tests/unit/report.test.ts
-index f9e0e7f..ced4c3b 100644
+index f9e0e7f..f21fbec 100644
 --- a/tests/unit/report.test.ts
 +++ b/tests/unit/report.test.ts
 @@ -1,5 +1,5 @@
  import { describe, expect, test } from "vitest";
 -import { createBufferedStdoutReporter, printIssues, type Reporter } from "../../src/core/report.js";
-+import { commandRemediation, createBufferedStdoutReporter, printIssues, type Reporter, withLegacyRemediations } from "../../src/core/report.js";
++import { createBufferedStdoutReporter, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../../src/core/report.js";
  
  describe("Reporter", () => {
    test("buffers stdout without replacing global output functions", () => {
-@@ -36,4 +36,16 @@ describe("Reporter", () => {
+@@ -36,4 +36,10 @@ describe("Reporter", () => {
        "  fixCommand: npm run fix"
      ]);
    });
 +
 +  test("legacy fixCommand becomes non-runnable guidance while argv remains explicit", () => {
-+    expect(withLegacyRemediations([{ severity: "error", code: "guidance", message: "review", fixCommand: "npm run scwbs -- approval approve" }])[0]?.remediation).toEqual(
++    expect(remediate([{ severity: "error", code: "guidance", message: "review", fixCommand: "npm run scwbs -- approval approve" }])[0]?.remediation).toEqual(
 +      { kind: "guidance", owner: "user", message: "npm run scwbs -- approval approve" }
 +    );
-+    expect(commandRemediation(["npm", "run", "scwbs", "--", "approval", "approve"], { owner: "human", safeToAutoRun: false })).toMatchObject({
-+      kind: "command",
-+      owner: "human",
-+      argv: ["npm", "run", "scwbs", "--", "approval", "approve"],
-+      safeToAutoRun: false
-+    });
 +  });
  });
