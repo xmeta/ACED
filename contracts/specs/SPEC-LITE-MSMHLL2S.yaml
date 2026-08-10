@@ -1,0 +1,22 @@
+id: SPEC-LITE-MSMHLL2S
+type: spec-contract
+featureId: F-MSMHLL2S
+title: "Issue #474 Phase 1: domain logic and unit coverage"
+status: approved
+version: 0.1.0
+summary: "Extract pure decision and aggregation logic from the ci-plan, health, and metrics commands into unit-testable core modules, classify the new paths, and publish unit/integration coverage in CI."
+approvedBy: xmeta
+approvedAt: "2026-08-10T00:25:00+09:00"
+sourceIssue: 474
+acceptanceCriteria:
+  - ci-plan, health, and metrics command orchestration delegates decision or aggregation logic to dedicated src/core/*-domain.ts modules
+  - Unit tests cover the extracted domain modules' success, boundary, and error paths, and each of the three target modules reaches at least 50 percent statement coverage under npm run test:coverage
+  - contracts/check-coverage.yaml classifies the new domain and unit-test paths without weakening unrelated fail-closed coverage rules
+  - CI reports both unit coverage and combined unit/integration coverage for pull requests
+  - npm run test:all, typecheck, build, lint, and SC-WBS validation remain green
+  - No database, authentication, breaking API, WBS authority, or external service changes are introduced
+nonGoals:
+  - broad refactoring of unrelated commands or core modules
+  - changing the WBS project or adding a WBS changeset
+  - lowering global coverage thresholds or excluding target domain modules from coverage
+  - changing package publication, repository visibility, or credentials
