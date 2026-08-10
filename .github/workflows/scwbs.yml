@@ -275,6 +275,15 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test
+      - name: Unit coverage
+        run: npm run test:coverage
+      - name: Upload unit coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-unit-${{ github.sha }}
+          path: coverage
+          if-no-files-found: warn
       - name: Combined unit and integration coverage
         run: npm run test:coverage:all
       - name: Resolve implementation subject head
