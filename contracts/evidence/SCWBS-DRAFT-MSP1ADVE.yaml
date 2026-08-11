@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MSP1ADVE
+type: evidence
+taskId: SCWBS-DRAFT-MSP1ADVE
+commit: 79c1dc869596919c670dee35d67429529543ca09
+subjectHeadCommit: 79c1dc869596919c670dee35d67429529543ca09
+diffHash: sha256:68773f7416a89c9c5c3a723becd1deefbeeb7a0c1c0d7bbb1acdced5512fec50
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 79c1dc869596919c670dee35d67429529543ca09
+    treeHash: fdd1c839867425428b6efc7f8f4127c4f2fa587a
+    diffHash: sha256:68773f7416a89c9c5c3a723becd1deefbeeb7a0c1c0d7bbb1acdced5512fec50
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSP1ADVE.patch
+    manifestHash: sha256:68773f7416a89c9c5c3a723becd1deefbeeb7a0c1c0d7bbb1acdced5512fec50
+git:
+  branch: task/SCWBS-DRAFT-MSP1ADVE-issue-538-read-only-github-issue-intake-into-dis
+  base: origin/main
+  baseCommit: cf6295141ce65b909138e6f2abea48d1d23e0c22
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 79c1dc869596919c670dee35d67429529543ca09
+  diffHash: sha256:68773f7416a89c9c5c3a723becd1deefbeeb7a0c1c0d7bbb1acdced5512fec50
+  headCommit: 79c1dc869596919c670dee35d67429529543ca09
+changedFiles:
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/intake.md
+  - src/cli/register-discovery.ts
+  - src/cli/register-governance.ts
+  - src/commands/discovery.ts
+  - src/commands/intake.ts
+  - src/core/github-issue.ts
+  - tests/fixtures/github-issue/available.json
+  - tests/fixtures/github-issue/updated.json
+  - tests/integration/cli-help.test.ts
+  - tests/integration/intake.test.ts
+  - tests/unit/github-issue.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: cf6295141ce65b909138e6f2abea48d1d23e0c22
+    headCommit: 79c1dc869596919c670dee35d67429529543ca09
+    diffHash: sha256:68773f7416a89c9c5c3a723becd1deefbeeb7a0c1c0d7bbb1acdced5512fec50
+  tests:
+    filesAdded: 4
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:2789a3e79a6ceca5b3d35443e812c162072fc36c4c0f2ffff8907c500edb5e78
+    durationMilliseconds: 19079
+    executedAt: "2026-08-11T19:27:21.032Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:f59f42e46aa836970a831edca5c957bcfdd8f46e46c2a704ce47e6cc346b617c
+    durationMilliseconds: 11112
+    executedAt: "2026-08-11T19:27:32.154Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:eb496205e2730b7c81ee0bf4f4472a130870f39c62e5a73e5915317e74e31a3e
+    durationMilliseconds: 4861
+    executedAt: "2026-08-11T19:27:37.019Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:73c625c3993be1edafed6760cf9022238e5b88eb4a53b2433bcdf2e206c18bbd
+    durationMilliseconds: 319675
+    executedAt: "2026-08-11T19:32:56.697Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added GitHub Issue intake unit and integration regression coverage for normalization, digest/stale classification, unavailable GitHub, untrusted body, bounded output, and no-write/no-auto-approval behavior.
