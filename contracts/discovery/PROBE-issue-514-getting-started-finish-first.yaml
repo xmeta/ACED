@@ -1,0 +1,50 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-514-getting-started-finish-first
+type: discovery-probe
+status: concluded
+question: Which smallest documentation and distribution-smoke changes make the consumer finish-first path canonical without weakening contributor governance?
+hypotheses:
+  - existing distribution smoke can validate installed CLI commands
+  - README and CLI Reference already define finish-first
+  - contributor setup can remain in CONTRIBUTING.md
+activities:
+  - inspect README and Getting Started
+  - inspect CONTRIBUTING and distribution smoke
+  - inspect CLI command help and integration harness
+  - check duplicate tasks and docs ownership
+evidenceExpected:
+  - current consumer install path
+  - current finish command path
+  - current contributor path
+  - current distribution smoke assertions
+  - allowed file candidates
+unknowns:
+  - whether quickstart should replace or supplement Getting Started
+  - whether command fixture needs a new schema
+  - whether Human Gate paths are touched
+timebox: 90 minutes
+costLimit: one bounded docs and smoke-test task
+exitConditions:
+  - consumer and contributor audiences have explicit entrypoints
+  - finish-first command list is testable
+  - manual flow remains discoverable
+  - scope fits one Task Contract
+nextDecision: Create one docs and distribution-smoke Task covering quickstart entrypoints and command drift checks
+createdAt: "2026-08-11T01:47:03.233Z"
+startedAt: "2026-08-11T01:47:20.165Z"
+concludedAt: "2026-08-11T01:48:53.951Z"
+exitConditionsMet: true
+factsLearned:
+  - README already documents tarball install
+  - Getting Started is contributor and AI oriented
+  - CONTRIBUTING already owns contributor setup
+  - distribution smoke validates installed version init doctor check and WJS apply
+  - finish and next help are available in installed CLI
+  - CLI Reference documents finish and advanced flow
+  - consumer quickstart can use docs/scwbs/quickstart.md plus a machine-readable command fixture without changing package or workflow files
+hypothesesRejected:
+  - Replacing CONTRIBUTING.md with consumer content
+  - removing the advanced manual flow
+  - adding workflow or package policy changes
+remainingUnknowns:
+  - exact quickstart wording and fixture schema
