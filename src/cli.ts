@@ -22,6 +22,7 @@ import { runMerge } from "./commands/merge.js";
 import { runMetricsGovernance } from "./commands/metrics.js";
 import { runNext } from "./commands/next.js";
 import { runPlan } from "./commands/plan.js";
+import { runPackInfo, runPackInstall, runPackInspect, runPackList, runPackRemove, runPackSearch, runPackUpdate } from "./commands/pack.js";
 import { runReviewQueue } from "./commands/review-queue.js";
 import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
@@ -292,6 +293,43 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         process.exitCode = 1;
       });
     });
+
+  const pack = program.command("pack").description("Inspect and install signed-by-digest Governance Packs without executable hooks");
+  pack.command("inspect")
+    .argument("<source>")
+    .option("--ref <ref>", "pinned local Git ref")
+    .option("--json")
+    .action((source: string, opts) => { exitCode = runPackInspect(root, source, { ref: opts.ref, json: opts.json ?? false }); });
+  pack.command("install")
+    .argument("<source>")
+    .option("--ref <ref>", "pinned local Git ref")
+    .option("--pin", "require digest-pinned installation")
+    .option("--dry-run", "show changes without writing")
+    .option("--json")
+    .action((source: string, opts) => { exitCode = runPackInstall(root, source, { ref: opts.ref, pin: opts.pin ?? false, dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
+  pack.command("list")
+    .option("--json")
+    .action((opts) => { exitCode = runPackList(root, opts); });
+  pack.command("search")
+    .argument("<term>")
+    .option("--json")
+    .action((term: string, opts) => { exitCode = runPackSearch(root, term, opts); });
+  pack.command("info")
+    .argument("<id>")
+    .option("--json")
+    .action((id: string, opts) => { exitCode = runPackInfo(root, id, opts); });
+  pack.command("update")
+    .argument("<id>")
+    .option("--source <source>", "replacement local pack source")
+    .option("--ref <ref>", "pinned local Git ref")
+    .option("--dry-run", "show changes without writing")
+    .option("--json")
+    .action((id: string, opts) => { exitCode = runPackUpdate(root, id, { source: opts.source, ref: opts.ref, pin: true, dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
+  pack.command("remove")
+    .argument("<id>")
+    .option("--dry-run", "show policy impact without writing")
+    .option("--json")
+    .action((id: string, opts) => { exitCode = runPackRemove(root, id, { dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
 
   const agent = program.command("agent");
   agent
