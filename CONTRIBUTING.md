@@ -100,7 +100,8 @@ npm run scwbs -- merge --pr <number>
 
 ## 参照先
 
-- [利用者向けGetting Started](docs/scwbs/getting-started.md)
+- [Contributor/advanced Getting Started](docs/scwbs/getting-started.md)
+- [利用者向けConsumer Quickstart](docs/scwbs/quickstart.md)
 - [AIエージェント向けガイド](docs/scwbs/ai-agent-guide.md)
 - [リポジトリ固有の実行ルール](AGENTS.md)
 - [CLIのリファレンス](docs/scwbs/cli-reference.md)

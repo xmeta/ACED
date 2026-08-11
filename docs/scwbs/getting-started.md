@@ -1,8 +1,9 @@
 # Getting Started With scwbs
 
-This guide is for a first-time user working in this repository. It focuses on
-the current ACED CLI behavior, not future shorthand described in draft design
-documents.
+This page is the repository contributor and advanced troubleshooting guide. For
+the first-use consumer path, start with the [Consumer Quickstart](quickstart.md),
+which uses the installed CLI and the finish-first workflow. Contributor setup
+is documented separately in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## The Mental Model
 
@@ -15,7 +16,11 @@ SC-WBS work has three layers:
 An AI can implement within a contract, but it should not decide the contract's
 scope for itself after work has started.
 
-## First Commands
+## Advanced Repository Setup
+
+The commands below assume an ACED checkout and are retained for contributors,
+debugging, and maintenance. They are not required for a consumer using the
+release tarball.
 
 Use Node.js `>=22.12.0` and npm `>=10`. This repository pins npm `10.9.0`
 through `packageManager`, so enable Corepack before installing dependencies.
