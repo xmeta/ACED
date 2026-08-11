@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSP1ADVE
+type: spec-contract
+featureId: F-MSP1ADVE
+title: "Issue #538: read-only GitHub Issue intake into Discovery"
+status: approved
+version: 0.1.0
+summary: "bounded GitHub Issue snapshot and dry-run Discovery projection with provenance and no authority promotion"
+approvedBy: user-requested-issue-538
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "intake github-issue <number> --json produces versioned bounded normalized output with exact repository/number, title, untrusted body, labels, author, created/updated timestamps, source URL, SHA-256 snapshot digest, observedAt, and unavailable/error status when GitHub cannot be read."
+  - "discovery from-github-issue <number> --dry-run --json produces a Discovery candidate with source.kind github-issue and provenance, never creates or approves a delivery Task Contract, and does not mutate GitHub or local authority artifacts in dry-run mode."
+  - "Imported snapshot freshness is deterministic: the same canonical issue fields produce the same digest, and changed content is reported stale rather than silently reused as current provenance."
+  - "Issue text is untrusted data. Prompt-injection-shaped content, labels, author text, and foreign/fork repository identifiers cannot alter policy, execute commands, create approval records, or bypass Human Gates."
+  - "GitHub invocation uses structured arguments with bounded output and no shell command strings; missing gh, unavailable network, malformed JSON, unauthorized access, oversized body, and foreign repository cases fail closed without breaking local workflows."
+  - "Source metadata remains traceable through Discovery and later Spec/Task/PR/Evidence metadata projections without changing existing approval, review, finish, merge, or Issue-close authority."
+  - "No GitHub write-back, workflow/dependency/authentication/token change, external credential policy, Task auto-creation/approval, or WBS change is included; those decisions remain Human Gate scope."

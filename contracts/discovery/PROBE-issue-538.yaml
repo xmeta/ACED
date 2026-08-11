@@ -1,0 +1,47 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-538
+type: discovery-probe
+status: concluded
+question: Can a read-only GitHub Issue snapshot be normalized into a Discovery candidate with provenance and stale detection without granting Issue text authority or creating/approving a Task Contract?
+hypotheses:
+  - gh structured JSON is sufficient
+  - Issue digest detects updates
+  - Discovery output can carry provenance without changing authority semantics
+activities:
+  - inspect discovery schema and lifecycle
+  - inspect GitHub capability helpers
+  - define normalized snapshot and mock fixtures
+  - trace source metadata boundaries
+evidenceExpected:
+  - command map
+  - provenance schema
+  - stale rule
+  - untrusted-input boundary
+  - offline fallback
+unknowns:
+  - repository resolution
+  - body size bound
+  - foreign/fork issue behavior
+timebox: 2h
+costLimit: low
+exitConditions:
+  - acceptance mapped
+  - write/token scope excluded
+  - delivery paths bounded
+nextDecision: create one bounded Task Contract for read-only GitHub Issue intake and dry-run Discovery projection; Human Gate external write/auth/token changes
+createdAt: "2026-08-11T19:07:50.122Z"
+startedAt: "2026-08-11T19:08:14.128Z"
+concludedAt: "2026-08-11T19:08:29.715Z"
+exitConditionsMet: true
+factsLearned:
+  - existing Discovery Probe schema is extensible only through approved code paths
+  - gh structured JSON can be invoked with argument arrays and bounded output
+  - Issue body must remain untrusted data
+  - GitHub unavailable can map to unavailable output without mutating local authority
+hypothesesRejected:
+  - Issue text as authority
+  - automatic Task creation or approval
+  - GitHub write-back
+  - credential/token persistence
+remainingUnknowns:
+  - exact repository resolution and stale snapshot storage shape need Task-level fixtures

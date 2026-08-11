@@ -1,0 +1,89 @@
+id: SCWBS-DRAFT-MSP1ADVE
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSP1ADVE
+branchName: task/SCWBS-DRAFT-MSP1ADVE-issue-538-read-only-github-issue-intake-into-dis
+allowedPaths:
+  - src/core/github-issue.ts
+  - src/commands/intake.ts
+  - src/commands/discovery.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-discovery.ts
+  - src/core/discovery.ts
+  - src/core/schema/discovery.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+  - contracts/discovery/**
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/intake.md
+  - docs/implementation-gaps.md
+  - tests/unit/github-issue.test.ts
+  - tests/integration/intake.test.ts
+  - tests/integration/cli-help.test.ts
+  - tests/fixtures/github-issue/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/github-issue.ts
+  - src/commands/intake.ts
+  - src/commands/discovery.ts
+  - src/cli/register-governance.ts
+  - src/cli/register-discovery.ts
+  - src/core/discovery.ts
+  - src/core/schema/discovery.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+stopIf:
+  - Human Gate for GitHub write-back
+  - authentication/token scope
+  - dependency or workflow changes
+  - Task Contract auto-creation or approval
+  - Issue body instruction authority
+  - external repository or credential policy changes
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - intake github-issue <number> --json returns bounded scwbs.github-issue-intake.v1 data with repository, number, title, untrusted body, labels, author, timestamps, source URL, digest, observedAt, and availability status.
+  - discovery from-github-issue <number> --dry-run --json returns a Discovery candidate only; it never creates, approves, starts, or locks a delivery Task Contract.
+  - Source provenance includes exact repository, issue number, source URL, snapshot digest, and observedAt; a changed fixture digest is classified stale and cannot be treated as current authority.
+  - Issue body is untrusted data and is never interpreted as policy, approval, tool instruction, or authority; foreign/fork repository context is explicit and credentials/tokens are never emitted or persisted.
+  - GitHub unavailable, malformed, oversized, or unauthorized responses fail closed with bounded machine-readable status while local Discovery/Task workflows remain usable.
+  - Issue to Discovery to Spec/Task to PR to Evidence source metadata can be traced without changing existing approval, review, finish, or merge authority.
+  - Unit and integration fixtures cover normalized intake, digest/stale detection, foreign repository, prompt-injection-shaped body, unavailable GitHub, bounded output, and no-write/no-auto-approval behavior.
+  - No GitHub write-back, workflow/dependency/authentication change, external credential policy, Task auto-creation/approval, or WBS change is included in this Task.
+specPath: contracts/specs/SPEC-LITE-MSP1ADVE.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSP1ADVE.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSP1ADVE.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSP1ADVE.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP1ADVE.patch
+  - contracts/approvals/SCWBS-DRAFT-MSP1ADVE.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSP1ADVE.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:7b54e50ba0dcc2d047722cf276c21508bb6d78d56bea46ff2c43fbf2ee76dc81
+  createdAt: "2026-08-11T19:09:44.993Z"
