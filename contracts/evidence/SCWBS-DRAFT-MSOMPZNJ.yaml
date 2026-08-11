@@ -1,0 +1,87 @@
+id: EVD-SCWBS-DRAFT-MSOMPZNJ
+type: evidence
+taskId: SCWBS-DRAFT-MSOMPZNJ
+commit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+subjectHeadCommit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+diffHash: sha256:1b4298a9d46d721227d27143a2294f6a3ea7f29b6492f3b1cee4c3902aefb7ad
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+    treeHash: 92ce29774d754e2a22181129eeba76bc4e4df807
+    diffHash: sha256:1b4298a9d46d721227d27143a2294f6a3ea7f29b6492f3b1cee4c3902aefb7ad
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOMPZNJ.patch
+    manifestHash: sha256:1b4298a9d46d721227d27143a2294f6a3ea7f29b6492f3b1cee4c3902aefb7ad
+git:
+  branch: task/SCWBS-DRAFT-MSOMPZNJ-issue-530-governance-pack-and-catalog
+  base: origin/main
+  baseCommit: a685d298082b6837c7388128463d334663217219
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+  diffHash: sha256:1b4298a9d46d721227d27143a2294f6a3ea7f29b6492f3b1cee4c3902aefb7ad
+  headCommit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/governance-pack.schema.json
+  - src/cli.ts
+  - src/commands/pack.ts
+  - src/core/packs.ts
+  - tests/integration/pack.test.ts
+  - tests/unit/packs.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: a685d298082b6837c7388128463d334663217219
+    headCommit: d61fa72a654cd5ef42a184e75cde8f3f62ccd39f
+    diffHash: sha256:1b4298a9d46d721227d27143a2294f6a3ea7f29b6492f3b1cee4c3902aefb7ad
+  tests:
+    filesAdded: 2
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:42889b94975d5a8f45d3701b7243564357a072b01d483983d769da80218fd1a2
+    durationMilliseconds: 16979
+    executedAt: "2026-08-11T12:42:41.335Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:aebe9cff6ed05cb6c3851dafe6d97ef9dd482ff072bf20d07419d390c0aa74d2
+    durationMilliseconds: 10464
+    executedAt: "2026-08-11T12:42:51.803Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:3f8f7ccd8aafb726359499b6616efbf666c20ee6b73fe6a764e5c5c8b5f73c9e
+    durationMilliseconds: 4292
+    executedAt: "2026-08-11T12:42:56.099Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:abce9a7a727c786a6d5b6bb632ac4318ceb640e77cd18ed8759c906b335b3d6c
+    durationMilliseconds: 315620
+    executedAt: "2026-08-11T12:48:11.722Z"

@@ -1,0 +1,836 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml b/contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml
+new file mode 100644
+index 0000000..17905b6
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSOMPZNJ
++type: block
++taskId: SCWBS-DRAFT-MSOMPZNJ
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: "Task Contract authority repair required: add .scwbs/packs.lock.json and pack install paths to allowedPaths before implementing Issue #530"
++createdAt: "2026-08-11T12:23:57.848Z"
++history:
++  - status: blocked
++    at: "2026-08-11T12:23:57.848Z"
++    reason: "Task Contract authority repair required: add .scwbs/packs.lock.json and pack install paths to allowedPaths before implementing Issue #530"
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-11T12:25:00.294Z"
++    reason: "Human approved authority repair: add .scwbs/packs.lock.json and .scwbs/packs/** to allowedPaths for Issue #530"
++    by: human
++resolvedAt: "2026-08-11T12:25:00.294Z"
++resolvedBy: human
++resolution: "Human approved authority repair: add .scwbs/packs.lock.json and .scwbs/packs/** to allowedPaths for Issue #530"
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 0e2555a..3c514d6 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -46,6 +46,7 @@ rules:
+       - src/commands/merge.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
++      - src/commands/pack.ts
+       - src/commands/profile.ts
+       - src/commands/registry-rebuild.ts
+       - src/commands/review-queue.ts
+@@ -80,6 +81,7 @@ rules:
+       - src/core/check-receipt.ts
+       - src/core/check-coverage.ts
+       - src/core/agent-adapters.ts
++      - src/core/packs.ts
+       - src/core/ci-plan-domain.ts
+       - src/core/code-context.ts
+       - src/core/document-lifecycle.ts
+diff --git a/contracts/specs/SPEC-LITE-MSOMPZNJ.yaml b/contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
+new file mode 100644
+index 0000000..7e88642
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSOMPZNJ
++type: spec-contract
++featureId: F-MSOMPZNJ
++title: "Issue #530: Governance Pack and Catalog"
++status: approved
++version: 0.1.0
++summary: "安全な Governance Pack の検査・固定・dry-run install/update/remove と、信頼根拠にならない Catalog 発見機能を追加する"
++approvedBy: user-requested-issue-530
++approvedAt: "2026-08-11T00:00:00+09:00"
++acceptanceCriteria:
++  - "scwbs.pack.v1 schema and JSON Schema define bounded metadata, contents, compatibility, and executable-code prohibition."
++  - "Local path and pinned Git ref are supported as pack sources; source digest and installed files are recorded in .scwbs/packs.lock.json."
++  - "install, update, and remove expose --dry-run --json and show effective policy delta before mutation."
++  - "Pack merge fails closed for required-check, Human Gate, or forbidden-path downgrade and never executes arbitrary shell or JavaScript."
++  - "Divergent user-owned files are preserved; stale, digest mismatch, unsupported version, missing source, offline, and policy weakening are diagnosed."
++  - "Catalog search/info are discovery-only and do not become a trust root or mutate authority."
++  - "Core profiles remain unchanged without an installed pack."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml b/contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
+new file mode 100644
+index 0000000..6d6f3d5
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
+@@ -0,0 +1,74 @@
++id: SCWBS-DRAFT-MSOMPZNJ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSOMPZNJ
++branchName: task/SCWBS-DRAFT-MSOMPZNJ-issue-530-governance-pack-and-catalog
++allowedPaths:
++  - src/cli.ts
++  - src/commands/pack.ts
++  - src/core/packs.ts
++  - src/core/types.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++  - docs/scwbs/schemas/governance-pack.schema.json
++  - contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
++  - .scwbs/packs.lock.json
++  - .scwbs/packs/**
++  - tests/unit/**
++  - tests/integration/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/cli.ts
++  - src/commands/pack.ts
++  - src/core/packs.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/schemas/governance-pack.schema.json
++stopIf:
++  - Human Gate required
++  - additional paths
++  - policy downgrade
++  - external trust root or release source
++  - dependency or auth change
++  - arbitrary executable hook
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Governance Pack v1 schema and JSON Schema validate bounded pack metadata and reject executable hooks.
++  - Local path and pinned Git ref inspection/install paths produce dry-run JSON with source, digest, installed files, and effective policy delta.
++  - '`.scwbs/packs.lock.json` fixes pack id, version, source, digest, installed files, compatibility, and policy fingerprint.'
++  - Pack composition can add safeguards but fails closed on required-check, Human Gate, or forbidden-path downgrade and preserves divergent user files.
++  - Catalog search/info are discovery-only and cannot establish trust or mutate repository authority.
++  - Pack install, update, remove, stale/digest mismatch, offline, and no-executable-hook behavior have unit and integration coverage.
++  - 'Complete Issue #530 Governance Pack and Catalog'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
++  - contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSOMPZNJ.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSOMPZNJ.patch
++  - contracts/approvals/SCWBS-DRAFT-MSOMPZNJ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSOMPZNJ.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:869e14a04c2ae447684e630f14bef01582f56a66f6cea7a09308a54b2c57e3a5
++  createdAt: "2026-08-11T12:25:52.411Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 7e06cb8..7578bcf 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1938,3 +1938,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T12:19:16.707Z"
++  - id: SCWBS-DRAFT-MSOMPZNJ
++    path: contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
++    branchName: task/SCWBS-DRAFT-MSOMPZNJ-issue-530-governance-pack-and-catalog
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 5cd452f..9fb3ebe 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -28,6 +28,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Dependency-aware planned-task candidate listing for simple queue handoff
+ - Priority-aware planned-task candidate listing through `ai next-task`
+ - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
++- Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
+ - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 478f559..16058e2 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -59,6 +59,13 @@ npm run scwbs -- update --dry-run --json
+ npm run scwbs -- agent list --json
+ npm run scwbs -- agent inspect gemini --json
+ npm run scwbs -- agent doctor --all --json
++npm run scwbs -- pack inspect ./packs/secure-node --json
++npm run scwbs -- pack install ./packs/secure-node --pin --dry-run --json
++npm run scwbs -- pack list --json
++npm run scwbs -- pack search security --json
++npm run scwbs -- pack info org.example.secure-node --json
++npm run scwbs -- pack update org.example.secure-node --dry-run --json
++npm run scwbs -- pack remove org.example.secure-node --dry-run --json
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
+@@ -100,6 +107,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
+ 
+ `task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
+ 
++`pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
++
+ ### Navigation JSON contracts
+ 
+ `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
+diff --git a/docs/scwbs/schemas/governance-pack.schema.json b/docs/scwbs/schemas/governance-pack.schema.json
+new file mode 100644
+index 0000000..1b516ad
+--- /dev/null
++++ b/docs/scwbs/schemas/governance-pack.schema.json
+@@ -0,0 +1,57 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://scwbs.dev/schemas/governance-pack.v1.json",
++  "title": "SC-WBS Governance Pack v1",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "id", "version", "contents", "security"],
++  "properties": {
++    "schemaVersion": { "const": "scwbs.pack.v1" },
++    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{1,63}$" },
++    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
++    "description": { "type": "string", "maxLength": 1000 },
++    "requires": { "type": "object", "additionalProperties": { "type": "string" } },
++    "contents": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "files": {
++          "type": "array",
++          "maxItems": 200,
++          "items": {
++            "oneOf": [
++              { "type": "string", "pattern": "^(?!/)(?!.*(^|/)\\.\\.(?:/|$)).+" },
++              {
++                "type": "object",
++                "additionalProperties": false,
++                "required": ["source"],
++                "properties": {
++                  "source": { "type": "string" },
++                  "target": { "type": "string" }
++                }
++              }
++            ]
++          }
++        }
++      }
++    },
++    "policy": {
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "requiredChecks": { "type": "array", "items": { "type": "string" } },
++        "humanGatePaths": { "type": "array", "items": { "type": "string" } },
++        "forbiddenPaths": { "type": "array", "items": { "type": "string" } },
++        "removeRequiredChecks": { "type": "array", "items": { "type": "string" } },
++        "removeHumanGatePaths": { "type": "array", "items": { "type": "string" } },
++        "removeForbiddenPaths": { "type": "array", "items": { "type": "string" } }
++      }
++    },
++    "security": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["allowExecutableCode"],
++      "properties": { "allowExecutableCode": { "const": false } }
++    }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 6cd23b0..36c20b4 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -22,6 +22,7 @@ import { runMerge } from "./commands/merge.js";
+ import { runMetricsGovernance } from "./commands/metrics.js";
+ import { runNext } from "./commands/next.js";
+ import { runPlan } from "./commands/plan.js";
++import { runPackInfo, runPackInstall, runPackInspect, runPackList, runPackRemove, runPackSearch, runPackUpdate } from "./commands/pack.js";
+ import { runReviewQueue } from "./commands/review-queue.js";
+ import { runStart } from "./commands/start.js";
+ import { runStatus } from "./commands/status.js";
+@@ -293,6 +294,43 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
++  const pack = program.command("pack").description("Inspect and install signed-by-digest Governance Packs without executable hooks");
++  pack.command("inspect")
++    .argument("<source>")
++    .option("--ref <ref>", "pinned local Git ref")
++    .option("--json")
++    .action((source: string, opts) => { exitCode = runPackInspect(root, source, { ref: opts.ref, json: opts.json ?? false }); });
++  pack.command("install")
++    .argument("<source>")
++    .option("--ref <ref>", "pinned local Git ref")
++    .option("--pin", "require digest-pinned installation")
++    .option("--dry-run", "show changes without writing")
++    .option("--json")
++    .action((source: string, opts) => { exitCode = runPackInstall(root, source, { ref: opts.ref, pin: opts.pin ?? false, dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
++  pack.command("list")
++    .option("--json")
++    .action((opts) => { exitCode = runPackList(root, opts); });
++  pack.command("search")
++    .argument("<term>")
++    .option("--json")
++    .action((term: string, opts) => { exitCode = runPackSearch(root, term, opts); });
++  pack.command("info")
++    .argument("<id>")
++    .option("--json")
++    .action((id: string, opts) => { exitCode = runPackInfo(root, id, opts); });
++  pack.command("update")
++    .argument("<id>")
++    .option("--source <source>", "replacement local pack source")
++    .option("--ref <ref>", "pinned local Git ref")
++    .option("--dry-run", "show changes without writing")
++    .option("--json")
++    .action((id: string, opts) => { exitCode = runPackUpdate(root, id, { source: opts.source, ref: opts.ref, pin: true, dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
++  pack.command("remove")
++    .argument("<id>")
++    .option("--dry-run", "show policy impact without writing")
++    .option("--json")
++    .action((id: string, opts) => { exitCode = runPackRemove(root, id, { dryRun: opts.dryRun ?? false, json: opts.json ?? false }); });
++
+   const agent = program.command("agent");
+   agent
+     .command("list")
+diff --git a/src/commands/pack.ts b/src/commands/pack.ts
+new file mode 100644
+index 0000000..ad57028
+--- /dev/null
++++ b/src/commands/pack.ts
+@@ -0,0 +1,50 @@
++import { infoPack, installPack, inspectPack, listPacks, removePack, searchPacks, updatePack } from "../core/packs.js";
++
++type PackOutputOptions = { json?: boolean };
++type PackSourceOptions = PackOutputOptions & { source?: string; ref?: string; dryRun?: boolean; pin?: boolean };
++
++function printResult(result: Record<string, unknown>, json: boolean | undefined): number {
++  if (json) {
++    console.log(JSON.stringify(result, null, 2));
++    return 0;
++  }
++  console.log(JSON.stringify(result, null, 2));
++  return 0;
++}
++
++function run(action: () => Record<string, unknown>, json: boolean | undefined): number {
++  try {
++    return printResult(action(), json);
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function runPackInspect(root: string, source: string, options: PackSourceOptions = {}): number {
++  return run(() => inspectPack(root, source, options.ref), options.json);
++}
++
++export function runPackList(root: string, options: PackOutputOptions = {}): number {
++  return run(() => listPacks(root), options.json);
++}
++
++export function runPackSearch(root: string, term: string, options: PackOutputOptions = {}): number {
++  return run(() => searchPacks(root, term), options.json);
++}
++
++export function runPackInfo(root: string, id: string, options: PackOutputOptions = {}): number {
++  return run(() => infoPack(root, id), options.json);
++}
++
++export function runPackInstall(root: string, source: string, options: PackSourceOptions = {}): number {
++  return run(() => installPack(root, source, options), options.json);
++}
++
++export function runPackUpdate(root: string, id: string, options: PackSourceOptions = {}): number {
++  return run(() => updatePack(root, id, options), options.json);
++}
++
++export function runPackRemove(root: string, id: string, options: PackOutputOptions & { dryRun?: boolean } = {}): number {
++  return run(() => removePack(root, id, options), options.json);
++}
+diff --git a/src/core/packs.ts b/src/core/packs.ts
+new file mode 100644
+index 0000000..015347e
+--- /dev/null
++++ b/src/core/packs.ts
+@@ -0,0 +1,321 @@
++import { createHash } from "node:crypto";
++import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
++import { execFileSync } from "node:child_process";
++import path from "node:path";
++import { parseSimpleYaml } from "./yaml.js";
++
++export const PACK_SCHEMA_VERSION = "scwbs.pack.v1" as const;
++export const PACK_LOCK_SCHEMA_VERSION = "scwbs.packs-lock.v1" as const;
++const lockPath = ".scwbs/packs.lock.json";
++const maxPackBytes = 256_000;
++const maxFiles = 200;
++
++type PackFile = { source: string; target: string };
++type PackPolicy = {
++  requiredChecks: string[];
++  humanGatePaths: string[];
++  forbiddenPaths: string[];
++  removed: string[];
++};
++export type GovernancePack = {
++  schemaVersion: typeof PACK_SCHEMA_VERSION;
++  id: string;
++  version: string;
++  description: string;
++  requires: Record<string, string>;
++  files: PackFile[];
++  policy: PackPolicy;
++  allowExecutableCode: boolean;
++};
++
++export type PackLockEntry = {
++  id: string;
++  version: string;
++  source: string;
++  digest: string;
++  installedFiles: Array<{ path: string; sha256: string }>;
++  policyFingerprint: string;
++  installedAt: string;
++};
++
++type PackLock = { schemaVersion: typeof PACK_LOCK_SCHEMA_VERSION; packs: PackLockEntry[] };
++type PackSource = {
++  locator: string;
++  read(relativePath: string): string;
++};
++
++function sha256(value: string | Buffer): string {
++  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
++}
++
++function fail(message: string): never {
++  throw new Error(message);
++}
++
++function safeRelative(relativePath: string): string {
++  if (!relativePath || relativePath.includes("\0") || relativePath.includes("\\") || path.isAbsolute(relativePath)) {
++    fail(`Unsafe pack path: ${relativePath}`);
++  }
++  const normalized = path.posix.normalize(relativePath);
++  if (normalized !== relativePath || normalized === "." || normalized === ".." || normalized.startsWith("../")) {
++    fail(`Unsafe pack path: ${relativePath}`);
++  }
++  return normalized;
++}
++
++function safeRef(ref: string): string {
++  if (!ref || ref.startsWith("-") || ref.includes("..") || !/^[A-Za-z0-9._/-]+$/.test(ref)) fail(`Invalid pinned Git ref: ${ref}`);
++  return ref;
++}
++
++function safeRepositoryPath(root: string, candidate: string): string {
++  const rootPath = realpathSync(root);
++  const resolved = path.resolve(root, candidate);
++  const relative = path.relative(rootPath, resolved);
++  if (relative.startsWith(".." + path.sep) || relative === ".." || path.isAbsolute(relative)) fail(`Pack source must be inside the repository: ${candidate}`);
++  if (existsSync(resolved)) {
++    const real = realpathSync(resolved);
++    const realRelative = path.relative(rootPath, real);
++    if (realRelative.startsWith(".." + path.sep) || realRelative === ".." || path.isAbsolute(realRelative)) fail(`Pack source crosses a symlink boundary: ${candidate}`);
++  }
++  return resolved;
++}
++
++function safeWritePath(root: string, relativePath: string): string {
++  const normalized = safeRelative(relativePath);
++  const rootPath = realpathSync(root);
++  const target = path.resolve(rootPath, ...normalized.split("/"));
++  const relative = path.relative(rootPath, target);
++  if (relative.startsWith(".." + path.sep) || relative === ".." || path.isAbsolute(relative)) fail(`Unsafe pack path: ${relativePath}`);
++  let current = rootPath;
++  for (const segment of normalized.split("/")) {
++    current = path.join(current, segment);
++    if (existsSync(current) && lstatSync(current).isSymbolicLink()) fail(`Pack path crosses symlink: ${relativePath}`);
++  }
++  return target;
++}
++
++function text(value: unknown, field: string, max = 512): string {
++  if (typeof value !== "string" || value.length === 0 || value.length > max) fail(`Invalid pack ${field}`);
++  return value;
++}
++
++function stringList(value: unknown, field: string): string[] {
++  if (value === undefined) return [];
++  if (!Array.isArray(value) || value.length > maxFiles || value.some((item) => typeof item !== "string" || item.length > 512)) fail(`Invalid pack ${field}`);
++  return value.map((item) => item as string);
++}
++
++function mapRecord(value: unknown): Record<string, unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
++}
++
++function parsePack(value: unknown): GovernancePack {
++  const input = mapRecord(value);
++  if (input.schemaVersion !== PACK_SCHEMA_VERSION) fail("Unsupported Governance Pack schemaVersion");
++  const id = text(input.id, "id", 64);
++  if (!/^[a-z0-9][a-z0-9.-]{1,63}$/.test(id)) fail(`Invalid pack id: ${id}`);
++  const version = text(input.version, "version", 32);
++  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) fail(`Invalid pack version: ${version}`);
++  const contents = mapRecord(input.contents);
++  const rawFiles = contents.files;
++  if (rawFiles !== undefined && !Array.isArray(rawFiles)) fail("Invalid pack contents.files");
++  const files = (rawFiles as unknown[] | undefined ?? []).map((item) => {
++    if (typeof item === "string") {
++      const source = safeRelative(item);
++      return { source, target: source };
++    }
++    const record = mapRecord(item);
++    const source = safeRelative(text(record.source, "contents.files.source", 512));
++    const target = safeRelative(typeof record.target === "string" ? record.target : source);
++    return { source, target };
++  });
++  if (files.length > maxFiles) fail("Governance Pack contains too many files");
++  const policyInput = mapRecord(input.policy);
++  const removed = [
++    ...stringList(policyInput.removeRequiredChecks, "policy.removeRequiredChecks"),
++    ...stringList(policyInput.removeHumanGatePaths, "policy.removeHumanGatePaths"),
++    ...stringList(policyInput.removeForbiddenPaths, "policy.removeForbiddenPaths")
++  ];
++  const security = mapRecord(input.security);
++  const allowExecutableCode = security.allowExecutableCode === true || input.allowExecutableCode === true;
++  if (allowExecutableCode || Object.keys(contents).some((key) => /^(hooks|scripts|executables|commands)$/.test(key))) fail("Governance Pack executable code is forbidden");
++  if (files.some((file) => /\.(?:js|mjs|cjs|sh|bash|zsh|ps1|bat|cmd)$/i.test(file.source))) fail("Governance Pack executable file is forbidden");
++  return {
++    schemaVersion: PACK_SCHEMA_VERSION,
++    id,
++    version,
++    description: typeof input.description === "string" ? input.description.slice(0, 1000) : "",
++    requires: Object.fromEntries(Object.entries(mapRecord(input.requires)).filter((entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string")),
++    files,
++    policy: {
++      requiredChecks: stringList(policyInput.requiredChecks, "policy.requiredChecks"),
++      humanGatePaths: stringList(policyInput.humanGatePaths, "policy.humanGatePaths"),
++      forbiddenPaths: stringList(policyInput.forbiddenPaths, "policy.forbiddenPaths"),
++      removed
++    },
++    allowExecutableCode
++  };
++}
++
++function localSource(root: string, source: string): PackSource {
++  const sourcePath = safeRepositoryPath(root, source);
++  const packPath = existsSync(sourcePath) && lstatSync(sourcePath).isDirectory() ? path.join(sourcePath, "pack.yaml") : sourcePath;
++  if (!existsSync(packPath)) fail(`Pack source is missing: ${source}`);
++  return {
++    locator: path.relative(root, path.dirname(packPath)).replaceAll(path.sep, "/") || ".",
++    read(relativePath) {
++      const resolved = safeRepositoryPath(path.dirname(packPath), relativePath);
++      return readFileSync(resolved, "utf8");
++    }
++  };
++}
++
++function gitSource(root: string, repository: string, ref: string): PackSource {
++  const repositoryPath = safeRepositoryPath(root, repository);
++  safeRef(ref);
++  const read = (relativePath: string): string => {
++    safeRelative(relativePath);
++    try {
++      return execFileSync("git", ["-C", repositoryPath, "show", `${ref}:${relativePath}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
++    } catch {
++      fail(`Pinned Git pack file is missing: ${relativePath}`);
++    }
++  };
++  return { locator: `${path.relative(root, repositoryPath).replaceAll(path.sep, "/") || "."}#${ref}`, read };
++}
++
++function loadSource(root: string, source: string, ref?: string): { source: PackSource; pack: GovernancePack; fileContent: Map<string, string> } {
++  const sourceValue = text(source, "source", 512);
++  const hashIndex = sourceValue.lastIndexOf("#");
++  const embeddedRef = hashIndex > 0 ? sourceValue.slice(hashIndex + 1) : undefined;
++  const repository = embeddedRef ? sourceValue.slice(0, hashIndex) : sourceValue;
++  const selectedRef = ref ?? embeddedRef;
++  const packSource = selectedRef ? gitSource(root, repository, selectedRef) : localSource(root, sourceValue);
++  const pack = parsePack(parseSimpleYaml(packSource.read("pack.yaml")));
++  const fileContent = new Map<string, string>();
++  for (const file of pack.files) {
++    const content = packSource.read(file.source);
++    if (Buffer.byteLength(content, "utf8") > maxPackBytes) fail(`Pack file is too large: ${file.source}`);
++    fileContent.set(file.source, content);
++  }
++  return { source: packSource, pack, fileContent };
++}
++
++function policyDelta(pack: GovernancePack): { additions: Record<string, string[]>; rejectedDowngrades: string[] } {
++  return {
++    additions: {
++      requiredChecks: [...pack.policy.requiredChecks],
++      humanGatePaths: [...pack.policy.humanGatePaths],
++      forbiddenPaths: [...pack.policy.forbiddenPaths]
++    },
++    rejectedDowngrades: [...pack.policy.removed]
++  };
++}
++
++function policyFingerprint(pack: GovernancePack): string {
++  return sha256(JSON.stringify({ policy: pack.policy, requires: pack.requires, security: { allowExecutableCode: pack.allowExecutableCode } }));
++}
++
++function digestPack(pack: GovernancePack, fileContent: Map<string, string>): string {
++  const parts = [`${pack.schemaVersion}\0${pack.id}\0${pack.version}`];
++  for (const file of [...pack.files].sort((a, b) => a.source.localeCompare(b.source))) parts.push(`${file.source}\0${sha256(fileContent.get(file.source) ?? "")}`);
++  return sha256(parts.join("\0"));
++}
++
++function readLock(root: string): PackLock {
++  const fullPath = safeWritePath(root, lockPath);
++  if (!existsSync(fullPath)) return { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: [] };
++  let parsed: unknown;
++  try { parsed = JSON.parse(readFileSync(fullPath, "utf8")); } catch { fail("Pack lockfile is corrupt"); }
++  const input = mapRecord(parsed);
++  if (input.schemaVersion !== PACK_LOCK_SCHEMA_VERSION || !Array.isArray(input.packs)) fail("Unsupported or corrupt pack lockfile");
++  return { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: input.packs as PackLockEntry[] };
++}
++
++function writeLock(root: string, lock: PackLock): void {
++  const fullPath = safeWritePath(root, lockPath);
++  mkdirSync(path.dirname(fullPath), { recursive: true });
++  writeFileSync(fullPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
++}
++
++export function inspectPack(root: string, source: string, ref?: string): Record<string, unknown> {
++  const loaded = loadSource(root, source, ref);
++  const digest = digestPack(loaded.pack, loaded.fileContent);
++  return {
++    version: "scwbs.pack-inspect.v1",
++    pack: loaded.pack,
++    source: loaded.source.locator,
++    digest,
++    files: loaded.pack.files.map((file) => ({ path: file.target, sha256: sha256(loaded.fileContent.get(file.source) ?? "") })),
++    effectivePolicyDelta: policyDelta(loaded.pack)
++  };
++}
++
++export function listPacks(root: string): Record<string, unknown> {
++  const lock = readLock(root);
++  return { version: "scwbs.pack-list.v1", packs: lock.packs };
++}
++
++export function searchPacks(root: string, term: string): Record<string, unknown> {
++  const query = term.toLowerCase();
++  const lock = readLock(root);
++  const matches = lock.packs.filter((pack) => `${pack.id} ${pack.version} ${pack.source}`.toLowerCase().includes(query));
++  return { version: "scwbs.pack-search.v1", query: term, trust: "discovery-only", packs: matches };
++}
++
++export function infoPack(root: string, id: string): Record<string, unknown> {
++  const lock = readLock(root);
++  const pack = lock.packs.find((item) => item.id === id);
++  if (!pack) fail(`Pack is not installed: ${id}`);
++  return { version: "scwbs.pack-info.v1", trust: "discovery-only", pack };
++}
++
++export function installPack(root: string, source: string, options: { ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
++  if (!options.pin) fail("pack install requires --pin");
++  const loaded = loadSource(root, source, options.ref);
++  const digest = digestPack(loaded.pack, loaded.fileContent);
++  const delta = policyDelta(loaded.pack);
++  if (delta.rejectedDowngrades.length > 0) fail(`Pack policy downgrade rejected: ${delta.rejectedDowngrades.join(", ")}`);
++  const lock = readLock(root);
++  const existing = lock.packs.find((item) => item.id === loaded.pack.id);
++  if (existing && (existing.digest !== digest || existing.version !== loaded.pack.version)) fail(`Pack ${loaded.pack.id} is already installed; use pack update`);
++  const decisions: Array<{ action: string; path: string }> = [];
++  const installedFiles = loaded.pack.files.map((file) => {
++    const targetRelative = `.scwbs/packs/${loaded.pack.id}/${loaded.pack.version}/${file.target}`;
++    const target = safeWritePath(root, targetRelative);
++    const content = loaded.fileContent.get(file.source) ?? "";
++    const contentHash = sha256(content);
++    if (!existsSync(target)) decisions.push({ action: "create", path: targetRelative });
++    else if (sha256(readFileSync(target)) === contentHash) decisions.push({ action: "unchanged", path: targetRelative });
++    else decisions.push({ action: "divergent-preserved", path: targetRelative });
++    if (!options.dryRun && !existsSync(target)) {
++      mkdirSync(path.dirname(target), { recursive: true });
++      writeFileSync(target, content, "utf8");
++    }
++    return { path: targetRelative, sha256: contentHash };
++  });
++  if (!options.dryRun) {
++    const next: PackLock = {
++      schemaVersion: PACK_LOCK_SCHEMA_VERSION,
++      packs: [...lock.packs.filter((item) => item.id !== loaded.pack.id), { id: loaded.pack.id, version: loaded.pack.version, source: loaded.source.locator, digest, installedFiles, policyFingerprint: policyFingerprint(loaded.pack), installedAt: options.now ?? new Date().toISOString() }]
++    };
++    writeLock(root, next);
++  }
++  return { version: "scwbs.pack-operation.v1", operation: "install", dryRun: options.dryRun ?? false, source: loaded.source.locator, digest, effectivePolicyDelta: delta, decisions };
++}
++
++export function updatePack(root: string, id: string, options: { source?: string; ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
++  const installed = readLock(root).packs.find((pack) => pack.id === id);
++  if (!installed) fail(`Pack is not installed: ${id}`);
++  return installPack(root, options.source ?? installed.source.split("#")[0], { ref: options.ref ?? installed.source.split("#")[1], dryRun: options.dryRun, pin: options.pin ?? true, now: options.now });
++}
++
++export function removePack(root: string, id: string, options: { dryRun?: boolean } = {}): Record<string, unknown> {
++  const lock = readLock(root);
++  const installed = lock.packs.find((pack) => pack.id === id);
++  if (!installed) fail(`Pack is not installed: ${id}`);
++  const decision = { action: "policy-downgrade-blocked", id, reason: "Removing a Governance Pack can weaken effective policy; Human Gate is required." };
++  if (!options.dryRun) fail(decision.reason);
++  return { version: "scwbs.pack-operation.v1", operation: "remove", dryRun: true, decisions: [decision], pack: installed };
++}
+diff --git a/tests/integration/pack.test.ts b/tests/integration/pack.test.ts
+new file mode 100644
+index 0000000..d5fc9c1
+--- /dev/null
++++ b/tests/integration/pack.test.ts
+@@ -0,0 +1,32 @@
++import { mkdirSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo } from "../helpers.js";
++
++function capture(root: string, args: string[]): { exitCode: number; stdout: string } {
++  const output: string[] = [];
++  const originalLog = console.log;
++  const originalError = console.error;
++  console.log = ((...values: unknown[]) => output.push(`${values.join(" ")}\n`)) as typeof console.log;
++  console.error = ((...values: unknown[]) => output.push(`${values.join(" ")}\n`)) as typeof console.error;
++  try { return { exitCode: main(args, root), stdout: output.join("") }; }
++  finally { console.log = originalLog; console.error = originalError; }
++}
++
++describe("pack CLI", () => {
++  test("inspect/install/list/search/info/remove expose bounded JSON and no execution hook", () => {
++    const root = makeTempRepo();
++    mkdirSync(path.join(root, "fixture/guidance"), { recursive: true });
++    writeFileSync(path.join(root, "fixture/pack.yaml"), `schemaVersion: scwbs.pack.v1\nid: org.example.cli\nversion: 1.0.0\ncontents:\n  files:\n    - source: guidance/common.md\nsecurity:\n  allowExecutableCode: false\n`, "utf8");
++    writeFileSync(path.join(root, "fixture/guidance/common.md"), "safe\n", "utf8");
++    expect(capture(root, ["pack", "inspect", "fixture", "--json"]).exitCode).toBe(0);
++    expect(capture(root, ["pack", "install", "fixture", "--pin", "--json"]).exitCode).toBe(0);
++    expect(JSON.parse(capture(root, ["pack", "list", "--json"]).stdout)).toMatchObject({ version: "scwbs.pack-list.v1", packs: [{ id: "org.example.cli" }] });
++    expect(JSON.parse(capture(root, ["pack", "search", "cli", "--json"]).stdout)).toMatchObject({ version: "scwbs.pack-search.v1", trust: "discovery-only" });
++    expect(capture(root, ["pack", "info", "org.example.cli", "--json"]).exitCode).toBe(0);
++    const remove = capture(root, ["pack", "remove", "org.example.cli", "--dry-run", "--json"]);
++    expect(remove.exitCode).toBe(0);
++    expect(JSON.parse(remove.stdout)).toMatchObject({ version: "scwbs.pack-operation.v1", operation: "remove", dryRun: true });
++  });
++});
+diff --git a/tests/unit/packs.test.ts b/tests/unit/packs.test.ts
+new file mode 100644
+index 0000000..08310ed
+--- /dev/null
++++ b/tests/unit/packs.test.ts
+@@ -0,0 +1,87 @@
++import { execFileSync } from "node:child_process";
++import { mkdirSync, readFileSync, symlinkSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { installPack, inspectPack, listPacks, removePack, searchPacks, updatePack } from "../../src/core/packs.js";
++import { makeTempRepo, writeText } from "../helpers.js";
++
++function packYaml(extra = ""): string {
++  return `schemaVersion: scwbs.pack.v1
++id: org.example.secure-node
++version: 1.2.0
++description: Secure Node baseline
++contents:
++  files:
++    - source: guidance/common.md
++      target: guidance/common.md
++policy:
++  requiredChecks:
++    - security
++  humanGatePaths:
++    - src/security/**
++  forbiddenPaths:
++    - secrets/**
++security:
++  allowExecutableCode: false
++${extra}`;
++}
++
++describe("Governance Pack v1", () => {
++  test("inspects and installs a pinned local pack with a rebuildable lock", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml());
++    writeText(root, "fixture/guidance/common.md", "# Secure guidance\n");
++
++    const inspected = inspectPack(root, "fixture");
++    expect(inspected).toMatchObject({ version: "scwbs.pack-inspect.v1", pack: { id: "org.example.secure-node", version: "1.2.0" }, effectivePolicyDelta: { additions: { requiredChecks: ["security"] }, rejectedDowngrades: [] } });
++    const dryRun = installPack(root, "fixture", { pin: true, dryRun: true });
++    expect(dryRun).toMatchObject({ version: "scwbs.pack-operation.v1", dryRun: true, decisions: [{ action: "create" }] });
++    expect(installPack(root, "fixture", { pin: true, now: "2026-08-11T00:00:00Z" })).toMatchObject({ operation: "install", dryRun: false });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md"), "utf8")).toContain("Secure guidance");
++    expect(JSON.parse(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8"))).toMatchObject({ schemaVersion: "scwbs.packs-lock.v1", packs: [{ id: "org.example.secure-node", digest: expect.stringMatching(/^sha256:/) }] });
++    expect(listPacks(root)).toMatchObject({ version: "scwbs.pack-list.v1", packs: [{ id: "org.example.secure-node" }] });
++    expect(searchPacks(root, "secure-node")).toMatchObject({ version: "scwbs.pack-search.v1", trust: "discovery-only", packs: [{ id: "org.example.secure-node" }] });
++    expect(updatePack(root, "org.example.secure-node", { dryRun: true })).toMatchObject({ operation: "install", dryRun: true });
++    expect(removePack(root, "org.example.secure-node", { dryRun: true })).toMatchObject({ operation: "remove", dryRun: true, decisions: [{ action: "policy-downgrade-blocked" }] });
++  });
++
++  test("supports a pinned local Git ref without executing pack content", () => {
++    const root = makeTempRepo();
++    writeText(root, "pack.yaml", packYaml());
++    writeText(root, "guidance/common.md", "# Git guidance\n");
++    execFileSync("git", ["add", "pack.yaml", "guidance/common.md"], { cwd: root });
++    execFileSync("git", ["commit", "-m", "pack fixture"], { cwd: root, stdio: "ignore" });
++    expect(inspectPack(root, ".", "HEAD")).toMatchObject({ source: ".#HEAD", digest: expect.stringMatching(/^sha256:/) });
++  });
++
++  test.each([
++    ["executable hook", "contents:\n  scripts:\n    - run.sh\n"],
++    ["policy downgrade", "policy:\n  removeRequiredChecks:\n    - test\n"]
++  ])("fails closed for %s", (_name, extra) => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml(extra));
++    writeText(root, "fixture/guidance/common.md", "safe\n");
++    expect(() => inspectPack(root, "fixture")).toThrow();
++  });
++
++  test("preserves divergent user-owned installed files", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml());
++    writeText(root, "fixture/guidance/common.md", "generated\n");
++    installPack(root, "fixture", { pin: true });
++    writeText(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md", "user-owned\n");
++    const result = installPack(root, "fixture", { pin: true });
++    expect(result).toMatchObject({ decisions: [{ action: "divergent-preserved" }] });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md"), "utf8")).toBe("user-owned\n");
++  });
++
++  test("rejects source traversal and symlink escape", () => {
++    const root = makeTempRepo();
++    expect(() => inspectPack(root, "../outside")).toThrow("inside the repository");
++    const outside = path.join(path.dirname(root), "scwbs-pack-outside");
++    mkdirSync(outside, { recursive: true });
++    writeText(outside, "pack.yaml", packYaml());
++    symlinkSync(outside, path.join(root, "linked-pack"), "dir");
++    expect(() => inspectPack(root, "linked-pack")).toThrow("symlink boundary");
++  });
++});
