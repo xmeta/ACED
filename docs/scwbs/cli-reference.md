@@ -59,6 +59,13 @@ npm run scwbs -- update --dry-run --json
 npm run scwbs -- agent list --json
 npm run scwbs -- agent inspect gemini --json
 npm run scwbs -- agent doctor --all --json
+npm run scwbs -- pack inspect ./packs/secure-node --json
+npm run scwbs -- pack install ./packs/secure-node --pin --dry-run --json
+npm run scwbs -- pack list --json
+npm run scwbs -- pack search security --json
+npm run scwbs -- pack info org.example.secure-node --json
+npm run scwbs -- pack update org.example.secure-node --dry-run --json
+npm run scwbs -- pack remove org.example.secure-node --dry-run --json
 npm run scwbs -- check
 npm run scwbs -- fix
 npm run scwbs -- doctor
@@ -99,6 +106,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
 
 `task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
+
+`pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
 
 ### Navigation JSON contracts
 
