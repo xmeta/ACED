@@ -68,7 +68,7 @@ describe("CLI help lifecycle semantics", () => {
     const topLevel = captureHelp(["--help"], root);
     const topLevelText = topLevel.stdout.replace(/\s+/g, " ");
     expect(topLevelText).toContain("ui Show the text dashboard");
-    expect(topLevelText).toContain("serve Report that the reserved API server is unavailable");
+      expect(topLevelText).toContain("serve [options] Start the localhost read-only dashboard");
     expect(topLevelText).not.toContain("Start web UI");
     expect(topLevelText).not.toContain("Start API server");
 

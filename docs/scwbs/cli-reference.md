@@ -666,7 +666,13 @@ npm run scwbs -- mcp --stdio
 
 `ui` is a text dashboard.
 
-`serve` is a **reserved, not-yet-implemented command**. It intentionally does nothing until a dependency change passes Human Gate; it is not a running feature you can rely on today. Do not add `serve` to production scripts or CI pipelines.
+`serve` starts an offline, localhost-only, read-only dashboard using Node's standard HTTP server. It binds to `127.0.0.1` and accepts `--port 0` to select a free local port:
+
+```bash
+npm run scwbs -- serve --port 0
+```
+
+The dashboard exposes only GET projections under `/api/v1/`: `health`, `dashboard`, and `trace?task=<id>`. It reuses the existing `ui --json` and `trace --json` evaluators, includes bounded Risk summaries, and never exposes approval/review/mutation operations or arbitrary repository files. The HTML and JSON responses are bounded, offline, CSP-protected, and do not render secrets or delegation tokens. Remote bind, authentication, dependencies, and write APIs remain outside this Task and require a separate Human Gate.
 
 `mcp --stdio` is the supported local integration surface. It fixes the repository root at startup and rejects alternate cwd, traversal, unknown resources, invalid Task IDs, and unbounded messages. It does not expose a remote server or accept shell command strings.
 

@@ -1,0 +1,393 @@
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 97ae952..0e80ae1 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -50,6 +50,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+ - Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
+ - Versioned Risk Register v1 now provides bounded `risk list/show/add/update/accept`, fixed likelihood × impact scoring, Strict fail-closed treatment/acceptance checks, Evidence-bound acceptance freshness, and trace relations; risk acceptance remains Human-only
++- Local read-only `scwbs serve` now provides an offline localhost dashboard that projects existing UI/trace evaluators with bounded GET routes, CSP, secret filtering, and no write authority
+ - docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
+ 
+ ## Still Missing
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 838cc68..5e37683 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -666,7 +666,13 @@ npm run scwbs -- mcp --stdio
+ 
+ `ui` is a text dashboard.
+ 
+-`serve` is a **reserved, not-yet-implemented command**. It intentionally does nothing until a dependency change passes Human Gate; it is not a running feature you can rely on today. Do not add `serve` to production scripts or CI pipelines.
++`serve` starts an offline, localhost-only, read-only dashboard using Node's standard HTTP server. It binds to `127.0.0.1` and accepts `--port 0` to select a free local port:
++
++```bash
++npm run scwbs -- serve --port 0
++```
++
++The dashboard exposes only GET projections under `/api/v1/`: `health`, `dashboard`, and `trace?task=<id>`. It reuses the existing `ui --json` and `trace --json` evaluators, includes bounded Risk summaries, and never exposes approval/review/mutation operations or arbitrary repository files. The HTML and JSON responses are bounded, offline, CSP-protected, and do not render secrets or delegation tokens. Remote bind, authentication, dependencies, and write APIs remain outside this Task and require a separate Human Gate.
+ 
+ `mcp --stdio` is the supported local integration surface. It fixes the repository root at startup and rejects alternate cwd, traversal, unknown resources, invalid Task IDs, and unbounded messages. It does not expose a remote server or accept shell command strings.
+ 
+diff --git a/docs/scwbs/serve.md b/docs/scwbs/serve.md
+new file mode 100644
+index 0000000..87c7e15
+--- /dev/null
++++ b/docs/scwbs/serve.md
+@@ -0,0 +1,21 @@
++# Local read-only dashboard
++
++`scwbs serve` is a local projection of existing SC-WBS evaluators for reviewers who do not use the CLI directly.
++
++```bash
++npm run scwbs -- serve --port 0
++```
++
++The server binds only to `127.0.0.1`. Port `0` asks the operating system to choose a free port; the selected URL is printed after the listener is ready. No daemon installation, external CDN, telemetry, or network service is required.
++
++## Read-only API
++
++Only these GET routes are available:
++
++- `/api/v1/health` — bounded server status and read-only capability.
++- `/api/v1/dashboard` — `scwbs.dashboard.v1`, projecting `ui --json` plus bounded open-risk summaries.
++- `/api/v1/trace?task=<id>` — the existing `scwbs.trace.v1` graph for one validated Task ID.
++
++Other paths, mutation methods, invalid Task IDs, traversal attempts, and oversized requests fail closed. The server does not provide approval, review, block, finish, merge, policy, file-browser, or source-content endpoints.
++
++The static page uses a restrictive Content Security Policy and writes fetched data with `textContent`. Responses include `nosniff`, `no-store`, and a bounded response size. Remote bind, authentication, dependency changes, and write APIs are intentionally excluded and require a separately approved Task.
+diff --git a/src/cli.ts b/src/cli.ts
+index c95248f..c54432d 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -535,8 +535,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+ 
+   program
+     .command("serve")
+-    .description("Report that the reserved API server is unavailable")
+-    .action(() => { exitCode = runServe(); });
++    .description("Start the localhost read-only dashboard")
++    .option("--port <port>", "bind to 127.0.0.1 on a port from 0 to 65535 (0 selects a free port)")
++    .action((opts) => { exitCode = runServe(root, { port: opts.port === undefined ? undefined : Number(opts.port) }); });
+ 
+   program
+     .command("mcp")
+diff --git a/src/commands/ui.ts b/src/commands/ui.ts
+index 84d8b4f..f79e176 100644
+--- a/src/commands/ui.ts
++++ b/src/commands/ui.ts
+@@ -4,6 +4,10 @@ import { buildReviewQueue, buildReviewQueueSummary, type ReviewQueueSummary } fr
+ import { buildStatus, buildStatusJsonOutput, type StatusJsonOutput } from "./status.js";
+ import { collectCheckIssues } from "./check.js";
+ import { collectHealthIssues } from "./health.js";
++import { createDashboardServer, parseServePort } from "../core/serve.js";
++import { listRisks } from "../core/contracts.js";
++import { summarizeRisk } from "../core/risk.js";
++import { buildTraceJson } from "./trace.js";
+ 
+ export type UiJsonOutput = {
+   version: "scwbs.ui.v1";
+@@ -61,7 +65,26 @@ ${buildDoctorReport(root)}`);
+   }
+ }
+ 
+-export function runServe(): number {
+-  console.error("scwbs serve is not implemented yet. Web UI requires a Human Gate decision for dependencies.");
+-  return 1;
++export function runServe(root: string, options: { port?: number } = {}): number {
++  try {
++    const server = createDashboardServer({
++      buildDashboard: () => ({
++        ui: buildUiJsonOutput(root),
++        openRisks: listRisks(root).slice(0, 50).flatMap((entry) => entry.risk ? [summarizeRisk(root, entry.risk)] : [])
++      }),
++      buildTrace: (taskId) => buildTraceJson(root, taskId)
++    }, { port: parseServePort(options.port) });
++    server.once("listening", () => {
++      const address = server.address();
++      const port = typeof address === "object" && address ? address.port : options.port ?? 0;
++      process.stdout.write(`scwbs serve listening on http://127.0.0.1:${port}\n`);
++    });
++    server.once("error", () => {
++      process.stderr.write("scwbs serve failed to start\n");
++    });
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
+ }
+diff --git a/src/core/serve.ts b/src/core/serve.ts
+new file mode 100644
+index 0000000..329f181
+--- /dev/null
++++ b/src/core/serve.ts
+@@ -0,0 +1,161 @@
++import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
++import { isValidTaskId } from "./paths.js";
++
++export const DASHBOARD_VERSION = "scwbs.dashboard.v1" as const;
++export const SERVE_VERSION = "scwbs.serve.v1" as const;
++export const MAX_DASHBOARD_RESPONSE_BYTES = 512 * 1024;
++const MAX_REQUEST_URL_LENGTH = 2048;
++const MAX_TASK_QUERY_LENGTH = 128;
++
++export type DashboardProjection = {
++  buildDashboard: () => unknown;
++  buildTrace: (taskId: string) => unknown;
++};
++
++export type DashboardServerOptions = {
++  port?: number;
++};
++
++export function parseServePort(value: number | string | undefined): number {
++  if (value === undefined || value === "") return 0;
++  const port = typeof value === "number" ? value : Number(value);
++  if (!Number.isInteger(port) || port < 0 || port > 65535) {
++    throw new Error("serve.port.invalid: port must be an integer from 0 to 65535");
++  }
++  return port;
++}
++
++function securityHeaders(contentType: string): Record<string, string> {
++  return {
++    "Content-Type": contentType,
++    "Content-Security-Policy": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
++    "X-Content-Type-Options": "nosniff",
++    "Referrer-Policy": "no-referrer",
++    "Cache-Control": "no-store"
++  };
++}
++
++function send(response: ServerResponse, statusCode: number, body: string, contentType: string): void {
++  const size = Buffer.byteLength(body, "utf8");
++  if (size > MAX_DASHBOARD_RESPONSE_BYTES) {
++    response.writeHead(500, securityHeaders("application/json; charset=utf-8"));
++    response.end(JSON.stringify({ version: "scwbs.dashboard-error.v1", status: "fail", code: "dashboard.response.bounded" }));
++    return;
++  }
++  response.writeHead(statusCode, { ...securityHeaders(contentType), "Content-Length": String(size) });
++  response.end(body);
++}
++
++function sendJson(response: ServerResponse, statusCode: number, value: unknown): void {
++  send(response, statusCode, `${JSON.stringify(value)}\n`, "application/json; charset=utf-8");
++}
++
++function sendError(response: ServerResponse, statusCode: number, code: string): void {
++  sendJson(response, statusCode, { version: "scwbs.dashboard-error.v1", status: "fail", code });
++}
++
++function rawPath(request: IncomingMessage): string {
++  return (request.url ?? "").split("?", 1)[0] ?? "";
++}
++
++function hasTraversal(pathname: string): boolean {
++  if (/(?:^|\/)(?:\.\.|%2e%2e)(?:\/|$)/i.test(pathname)) return true;
++  try {
++    return decodeURIComponent(pathname).split("/").some((segment) => segment === "..");
++  } catch {
++    return true;
++  }
++}
++
++function dashboardHtml(): string {
++  return `<!doctype html>
++<html lang="en">
++<head>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1">
++  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'">
++  <title>SC-WBS Dashboard</title>
++  <style>body{font:16px system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;background:#f7f7f5;color:#202124}pre{white-space:pre-wrap;background:#fff;border:1px solid #ddd;padding:1rem;overflow:auto}code{font-family:ui-monospace,monospace}</style>
++</head>
++<body>
++  <h1>SC-WBS Dashboard</h1>
++  <p>Local read-only projection. No approval, review, mutation, or file browser is available.</p>
++  <pre id="dashboard">Loading dashboard…</pre>
++  <script>
++    fetch('/api/v1/dashboard', {credentials:'same-origin'})
++      .then(function(response){ if(!response.ok) throw new Error('dashboard unavailable'); return response.json(); })
++      .then(function(value){ document.getElementById('dashboard').textContent = JSON.stringify(value, null, 2); })
++      .catch(function(){ document.getElementById('dashboard').textContent = 'Dashboard unavailable'; });
++  </script>
++</body>
++</html>
++`;
++}
++
++function route(request: IncomingMessage, response: ServerResponse, projection: DashboardProjection): void {
++  const requestUrl = request.url ?? "";
++  if (requestUrl.length === 0 || requestUrl.length > MAX_REQUEST_URL_LENGTH) {
++    sendError(response, 414, "serve.request.too-large");
++    return;
++  }
++  if (request.method !== "GET") {
++    sendError(response, 405, "serve.method.read-only");
++    return;
++  }
++  const pathname = rawPath(request);
++  if (hasTraversal(pathname)) {
++    sendError(response, 400, "serve.path.traversal");
++    return;
++  }
++  let parsed: URL;
++  try {
++    parsed = new URL(requestUrl, "http://127.0.0.1");
++  } catch {
++    sendError(response, 400, "serve.request.invalid");
++    return;
++  }
++  if (parsed.pathname === "/") {
++    send(response, 200, dashboardHtml(), "text/html; charset=utf-8");
++    return;
++  }
++  if (parsed.pathname === "/api/v1/health") {
++    sendJson(response, 200, { version: SERVE_VERSION, status: "pass", readOnly: true, bind: "127.0.0.1" });
++    return;
++  }
++  if (parsed.pathname === "/api/v1/dashboard") {
++    try {
++      sendJson(response, 200, { version: DASHBOARD_VERSION, readOnly: true, dashboard: projection.buildDashboard() });
++    } catch {
++      sendError(response, 500, "dashboard.projection.failed");
++    }
++    return;
++  }
++  if (parsed.pathname === "/api/v1/trace") {
++    const taskId = parsed.searchParams.get("task") ?? "";
++    if (taskId.length === 0 || taskId.length > MAX_TASK_QUERY_LENGTH || !isValidTaskId(taskId)) {
++      sendError(response, 400, "serve.task.invalid");
++      return;
++    }
++    try {
++      sendJson(response, 200, projection.buildTrace(taskId));
++    } catch {
++      sendError(response, 404, "serve.trace.unavailable");
++    }
++    return;
++  }
++  sendError(response, 404, "serve.route.not-found");
++}
++
++export function createDashboardServer(projection: DashboardProjection, options: DashboardServerOptions = {}): Server {
++  const port = parseServePort(options.port);
++  const server = createServer((request, response) => route(request, response, projection));
++  server.on("error", () => {
++    // The CLI owns user-facing error reporting; the server never exposes error details.
++  });
++  server.listen(port, "127.0.0.1");
++  return server;
++}
++
++export function dashboardHtmlForTest(): string {
++  return dashboardHtml();
++}
+diff --git a/tests/integration/cli-help.test.ts b/tests/integration/cli-help.test.ts
+index bb6b8d9..e556f7d 100644
+--- a/tests/integration/cli-help.test.ts
++++ b/tests/integration/cli-help.test.ts
+@@ -68,7 +68,7 @@ describe("CLI help lifecycle semantics", () => {
+     const topLevel = captureHelp(["--help"], root);
+     const topLevelText = topLevel.stdout.replace(/\s+/g, " ");
+     expect(topLevelText).toContain("ui Show the text dashboard");
+-    expect(topLevelText).toContain("serve Report that the reserved API server is unavailable");
++      expect(topLevelText).toContain("serve [options] Start the localhost read-only dashboard");
+     expect(topLevelText).not.toContain("Start web UI");
+     expect(topLevelText).not.toContain("Start API server");
+ 
+diff --git a/tests/integration/serve.test.ts b/tests/integration/serve.test.ts
+new file mode 100644
+index 0000000..00db1fc
+--- /dev/null
++++ b/tests/integration/serve.test.ts
+@@ -0,0 +1,62 @@
++import { describe, expect, test } from "vitest";
++import { request } from "node:http";
++import type { Server } from "node:http";
++import { buildTraceJson } from "../../src/commands/trace.js";
++import { buildUiJsonOutput } from "../../src/commands/ui.js";
++import { createDashboardServer } from "../../src/core/serve.js";
++import { makeTempRepo, writeScwbsProject } from "../helpers.js";
++
++function fetch(server: Server, path: string, method = "GET"): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
++  const address = server.address();
++  if (!address || typeof address === "string") throw new Error("server is not listening");
++  return new Promise((resolve, reject) => {
++    const response = request({ hostname: "127.0.0.1", port: address.port, path, method }, (res) => {
++      const chunks: Buffer[] = [];
++      res.on("data", (chunk: Buffer) => chunks.push(chunk));
++      res.on("end", () => resolve({ status: res.statusCode ?? 0, headers: res.headers, body: Buffer.concat(chunks).toString("utf8") }));
++    });
++    response.on("error", reject);
++    response.end();
++  });
++}
++
++describe("read-only dashboard HTTP projection", () => {
++  test("serves bounded dashboard and trace projections on localhost only", async () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const server = createDashboardServer({
++      buildDashboard: () => ({ ui: buildUiJsonOutput(root), openRisks: [] }),
++      buildTrace: (taskId) => buildTraceJson(root, taskId)
++    }, { port: 0 });
++    await new Promise<void>((resolve) => server.once("listening", () => resolve()));
++    try {
++      const page = await fetch(server, "/");
++      expect(page.status).toBe(200);
++      expect(page.headers["content-security-policy"]).toContain("default-src 'none'");
++      expect(page.body).toContain("SC-WBS Dashboard");
++
++      const dashboard = await fetch(server, "/api/v1/dashboard");
++      expect(dashboard.status).toBe(200);
++      expect(JSON.parse(dashboard.body)).toMatchObject({ version: "scwbs.dashboard.v1", readOnly: true });
++
++      const trace = await fetch(server, "/api/v1/trace?task=WBS-001-004");
++      expect(trace.status).toBe(200);
++      expect(JSON.parse(trace.body)).toMatchObject({ version: "scwbs.trace.v1", taskId: "WBS-001-004" });
++    } finally {
++      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
++    }
++  });
++
++  test("rejects mutation methods, traversal, unknown routes, and invalid tasks", async () => {
++    const server = createDashboardServer({ buildDashboard: () => ({}), buildTrace: () => ({}) }, { port: 0 });
++    await new Promise<void>((resolve) => server.once("listening", () => resolve()));
++    try {
++      expect((await fetch(server, "/api/v1/dashboard", "POST")).status).toBe(405);
++      expect((await fetch(server, "/%2e%2e/package.json")).status).toBe(400);
++      expect((await fetch(server, "/unknown")).status).toBe(404);
++      expect((await fetch(server, "/api/v1/trace?task=../../etc/passwd")).status).toBe(400);
++    } finally {
++      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
++    }
++  });
++});
+diff --git a/tests/unit/serve.test.ts b/tests/unit/serve.test.ts
+new file mode 100644
+index 0000000..abafa14
+--- /dev/null
++++ b/tests/unit/serve.test.ts
+@@ -0,0 +1,20 @@
++import { describe, expect, test } from "vitest";
++import { dashboardHtmlForTest, parseServePort } from "../../src/core/serve.js";
++
++describe("localhost dashboard server", () => {
++  test("bounds and validates ports", () => {
++    expect(parseServePort(undefined)).toBe(0);
++    expect(parseServePort("0")).toBe(0);
++    expect(parseServePort(65535)).toBe(65535);
++    expect(() => parseServePort("65536")).toThrow("serve.port.invalid");
++    expect(() => parseServePort("remote")).toThrow("serve.port.invalid");
++  });
++
++  test("ships an offline page with no external origins and escaped text rendering", () => {
++    const html = dashboardHtmlForTest();
++    expect(html).toContain("Content-Security-Policy");
++    expect(html).toContain("connect-src 'self'");
++    expect(html).toContain("textContent");
++    expect(html).not.toMatch(/https?:\/\//);
++  });
++});

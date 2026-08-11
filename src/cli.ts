@@ -535,8 +535,9 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
 
   program
     .command("serve")
-    .description("Report that the reserved API server is unavailable")
-    .action(() => { exitCode = runServe(); });
+    .description("Start the localhost read-only dashboard")
+    .option("--port <port>", "bind to 127.0.0.1 on a port from 0 to 65535 (0 selects a free port)")
+    .action((opts) => { exitCode = runServe(root, { port: opts.port === undefined ? undefined : Number(opts.port) }); });
 
   program
     .command("mcp")
