@@ -27,7 +27,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - AI blocked-task change-set generation
 - Dependency-aware planned-task candidate listing for simple queue handoff
 - Priority-aware planned-task candidate listing through `ai next-task`
-- Safe AI tool adapter generation and divergence-aware updates through `init` / `update`
+- Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
 - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
