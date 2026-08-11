@@ -50,6 +50,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
 - Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
 - Versioned Risk Register v1 now provides bounded `risk list/show/add/update/accept`, fixed likelihood × impact scoring, Strict fail-closed treatment/acceptance checks, Evidence-bound acceptance freshness, and trace relations; risk acceptance remains Human-only
+- Local read-only `scwbs serve` now provides an offline localhost dashboard that projects existing UI/trace evaluators with bounded GET routes, CSP, secret filtering, and no write authority
 - docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
 
 ## Still Missing

@@ -4,6 +4,10 @@ import { buildReviewQueue, buildReviewQueueSummary, type ReviewQueueSummary } fr
 import { buildStatus, buildStatusJsonOutput, type StatusJsonOutput } from "./status.js";
 import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
+import { createDashboardServer, parseServePort } from "../core/serve.js";
+import { listRisks } from "../core/contracts.js";
+import { summarizeRisk } from "../core/risk.js";
+import { buildTraceJson } from "./trace.js";
 
 export type UiJsonOutput = {
   version: "scwbs.ui.v1";
@@ -61,7 +65,26 @@ ${buildDoctorReport(root)}`);
   }
 }
 
-export function runServe(): number {
-  console.error("scwbs serve is not implemented yet. Web UI requires a Human Gate decision for dependencies.");
-  return 1;
+export function runServe(root: string, options: { port?: number } = {}): number {
+  try {
+    const server = createDashboardServer({
+      buildDashboard: () => ({
+        ui: buildUiJsonOutput(root),
+        openRisks: listRisks(root).slice(0, 50).flatMap((entry) => entry.risk ? [summarizeRisk(root, entry.risk)] : [])
+      }),
+      buildTrace: (taskId) => buildTraceJson(root, taskId)
+    }, { port: parseServePort(options.port) });
+    server.once("listening", () => {
+      const address = server.address();
+      const port = typeof address === "object" && address ? address.port : options.port ?? 0;
+      process.stdout.write(`scwbs serve listening on http://127.0.0.1:${port}\n`);
+    });
+    server.once("error", () => {
+      process.stderr.write("scwbs serve failed to start\n");
+    });
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
