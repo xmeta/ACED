@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "scwbs.sdd-benchmark.fixture.v1",
+  "id": "docs-only",
+  "title": "Small documentation-only change",
+  "input": "Clarify one user-facing command without changing runtime behavior.",
+  "expected": {
+    "changeClass": "docs-only",
+    "mustNotModify": ["src/**", "package.json", ".github/**"],
+    "signals": ["install-or-init-command", "generated-artifact-count", "human-actions", "completion-command"]
+  }
+}

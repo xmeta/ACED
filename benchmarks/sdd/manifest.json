@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "scwbs.sdd-benchmark.manifest.v1",
+  "suiteId": "aced-sdd-replay",
+  "runnerVersion": "1.0.0",
+  "mode": "manual-or-opt-in",
+  "tools": [
+    {
+      "id": "aced",
+      "name": "ACED",
+      "repository": "xmeta/ACED",
+      "version": "0.1.0",
+      "commit": "ed690419928639eba8ae47d2eed8dc0ea4cc7a34",
+      "adapter": "local-scwbs"
+    },
+    {
+      "id": "openspec",
+      "name": "OpenSpec",
+      "repository": "Fission-AI/OpenSpec",
+      "version": "commit-pinned",
+      "commit": "e50bd0983dc8dc48250e3181f36e28450542f2ab",
+      "adapter": "manual-record"
+    },
+    {
+      "id": "spec-kit",
+      "name": "GitHub Spec Kit",
+      "repository": "github/spec-kit",
+      "version": "commit-pinned",
+      "commit": "bd595cf838cc200f84fee9e9327b643dfe277d2c",
+      "adapter": "manual-record"
+    },
+    {
+      "id": "cc-sdd",
+      "name": "cc-sdd",
+      "repository": "gotalab/cc-sdd",
+      "version": "commit-pinned",
+      "commit": "29aee950f4addc36f9aeecb9881c46540e71ecc9",
+      "adapter": "manual-record"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "docs-only",
+      "fixture": "fixtures/docs-only.json",
+      "purpose": "first-run friction",
+      "expectedSignals": ["bootstrap", "artifact-count", "human-actions", "completion"]
+    },
+    {
+      "id": "ordinary-feature",
+      "fixture": "fixtures/ordinary-feature.json",
+      "purpose": "spec to task to implementation to verify",
+      "expectedSignals": ["spec", "task", "implementation", "verification"]
+    },
+    {
+      "id": "dangerous-auth-config",
+      "fixture": "fixtures/dangerous-auth-config.json",
+      "purpose": "boundary enforcement",
+      "expectedSignals": ["out-of-scope-edit", "required-check-omission", "self-approval", "stale-evidence"]
+    }
+  ],
+  "limits": {
+    "maxCommandLogEntries": 24,
+    "maxArgCount": 32,
+    "maxTextBytes": 8192,
+    "maxReportBytes": 262144
+  },
+  "policy": {
+    "defaultExecution": "plan-only",
+    "externalExecution": "manual-or-opt-in",
+    "roadmapGeneration": false,
+    "competitorMutation": false,
+    "safetyGuaranteeClaim": false
+  }
+}
