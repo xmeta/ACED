@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSOUH2SL
+type: spec-contract
+featureId: F-MSOUH2SL
+title: "Issue #536: Risk Register v1 with Strict risk treatment"
+status: approved
+version: 0.1.0
+summary: "versioned migration-free Risk Register artifacts with fixed scoring, Human-only acceptance, Strict reporting, and trace relations"
+approvedBy: user-requested-issue-536
+approvedAt: "2026-08-12T00:30:00+09:00"
+acceptanceCriteria:
+  - "A versioned scwbs.risk.v1 YAML artifact is validated under contracts/risks/ and stores likelihood, impact, score, level, owner, treatment, residual risk, and Task/Spec/Requirement relations."
+  - "risk list --json, risk show <id> --json, risk add, risk update, and risk accept expose bounded structured operations; risk acceptance is Human-only and fail-closed."
+  - "Risk level is calculated as likelihood multiplied by impact using the fixed Low 1-4, Medium 5-9, High 10-16, Critical 17-25 mapping; repository code cannot weaken this baseline."
+  - "Strict profile reports active linked High/Critical risks without treatment and stale or missing Human acceptance as machine-readable errors; Lean and Standard happy paths remain unchanged."
+  - "Risk acceptance freshness is bound to the accepted Evidence subject head and diff hash and becomes stale when the risk-driving subject or diff changes."
+  - "trace --json exposes Risk relations to Requirement, Spec, Task, Evidence, and Approval without treating Risk artifacts as authority for completion or approval."
+  - "Existing repositories continue to work without migration, hosted database, or new dependency."

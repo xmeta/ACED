@@ -1,0 +1,98 @@
+id: SCWBS-DRAFT-MSOUH2SL
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOUH2SL
+branchName: task/SCWBS-DRAFT-MSOUH2SL-issue-536-risk-register-v1-with-strict-risk-trea
+allowedPaths:
+  - src/core/risk.ts
+  - src/commands/risk.ts
+  - src/commands/check.ts
+  - src/commands/trace.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/schema/registries.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - contracts/risks/**
+  - contracts/check-coverage.yaml
+  - contracts/specs/SPEC-LITE-MSOUH2SL.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/scwbs/schemas/risk.schema.json
+  - tests/unit/**
+  - tests/integration/**
+  - tests/fixtures/risk/**
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/risks/**
+  - src/core/risk.ts
+  - src/commands/risk.ts
+  - src/commands/check.ts
+  - src/commands/trace.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/contracts.ts
+  - src/core/paths.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/schema/registries.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/schemas/risk.schema.json
+stopIf:
+  - Human Gate required
+  - additional path required
+  - database or migration required
+  - remote hosted service required
+  - authentication or permission change
+  - AI risk acceptance
+  - unbounded output
+  - policy downgrade
+  - destructive source artifact deletion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - A versioned scwbs.risk.v1 YAML artifact is validated under contracts/risks/ and stores likelihood, impact, score, level, owner, treatment, residual risk, and Task/Spec/Requirement relations.
+  - risk list --json, risk show <id> --json, risk add, risk update, and risk accept expose bounded structured operations; risk acceptance is Human-only and fail-closed.
+  - Risk level is calculated as likelihood multiplied by impact using the fixed Low 1-4, Medium 5-9, High 10-16, Critical 17-25 mapping; repository code cannot weaken this baseline.
+  - Strict profile reports active linked High/Critical risks without treatment and stale or missing Human acceptance as machine-readable errors; Lean and Standard happy paths remain unchanged.
+  - Risk acceptance freshness is bound to the accepted Evidence subject head and diff hash and becomes stale when the risk-driving subject or diff changes.
+  - trace --json exposes Risk relations to Requirement, Spec, Task, Evidence, and Approval without treating Risk artifacts as authority for completion or approval.
+  - Existing repositories continue to work without migration, hosted database, or new dependency.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOUH2SL.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOUH2SL.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOUH2SL.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOUH2SL.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOUH2SL.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOUH2SL.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:374b3cdbd52f7b640cd8bc45737198452be2a2bbe88b09c2435bd13d0920115b
+  createdAt: "2026-08-11T15:59:58.123Z"
