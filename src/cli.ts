@@ -233,7 +233,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .description("Initialize a new project")
     .option("--profile <profile>", "profile lean|standard|strict")
     .option("--agent <agent>", "agent type")
-    .option("--lang <lang>", "language ja|en")
+    .option("--lang <lang>", "locale id (ja, en, or a bundled locale; fallback is deterministic)")
     .action((opts) => { exitCode = runInit(root, opts); });
 
   program

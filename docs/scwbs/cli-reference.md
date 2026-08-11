@@ -107,6 +107,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 
 `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, `copilot`, `gemini`, or `opencode`). The versioned `scwbs.agent-adapter.v1` registry keeps file paths, lifecycle status, MCP capability, and locale keys in data rather than a command switch. Gemini CLI and OpenCode are preview fixtures. Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
 
+`init --lang <locale>` uses the versioned `scwbs.locale.v1` bundle for generated guidance. `ja-jp` and `en-us` normalize to `ja` and `en`; unknown valid locale ids deterministically fall back to `en`. Stable error codes, JSON schema field names, and authority semantics are never translated. Bundle key and placeholder validation fails closed before generated files are written.
+
 `agent list --json` and `agent inspect <id> --json` expose bounded registry metadata. `agent doctor --all --json` checks every registered adapter's repository-relative paths and reports `ready`, `preview`, or `error`. Absolute paths, traversal, and symlink escapes fail closed; these commands never execute an agent or shell command.
 
 `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.

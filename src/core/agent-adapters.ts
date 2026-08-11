@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import path from "node:path";
-import type { Agent, Language } from "./types.js";
+import { renderAgentGuidance } from "./locales.js";
+import type { Agent } from "./types.js";
 
 export const AGENT_ADAPTER_SCHEMA_VERSION = "scwbs.agent-adapter.v1" as const;
 
@@ -30,11 +31,6 @@ export type AgentAdapterDiagnostic = {
   adapterStatus: AgentAdapterStatus;
   files: Array<{ path: string; safe: boolean; present: boolean }>;
   issues: string[];
-};
-
-const commonGuidance = (language: Language): string => {
-  const languageLine = language === "ja" ? "Use Japanese for handoffs when practical." : "Use English for handoffs.";
-  return `<!-- scwbs; keep customizations separate. -->\n\n# SC-WBS\n\nFollow AGENTS.md and Task Contract.\n${languageLine}\n\n- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions.\n`;
 };
 
 const adapters: AgentAdapter[] = [
@@ -104,11 +100,10 @@ export function agentNames(): string {
   return adapters.filter((adapter) => adapter.status !== "unsupported").map((adapter) => adapter.id).join(", ");
 }
 
-export function renderAgentFiles(id: Agent, language: Language): AgentAdapterFile[] {
+export function renderAgentFiles(id: Agent, language: string): AgentAdapterFile[] {
   const adapter = getAgentAdapter(id);
   if (!adapter || adapter.status === "unsupported") throw new Error(`Unsupported agent adapter: ${id}`);
-  const common = commonGuidance(language);
-  return adapter.files.map((file) => ({ path: file.path, guidance: `${common}\n${file.guidance}\n` }));
+  return adapter.files.map((file) => ({ path: file.path, guidance: `<!-- scwbs; keep customizations separate. -->\n\n${renderAgentGuidance(language, file.guidance)}` }));
 }
 
 export function assertSafeAgentPath(root: string, relativePath: string): string {
