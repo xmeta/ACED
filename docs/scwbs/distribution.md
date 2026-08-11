@@ -29,6 +29,22 @@ packed artifact の境界は CI の `distribution` job と
 `scripts/distribution-smoke.mjs` で検証します。検証対象は `--version`、
 `init`、`doctor`、`check`、WJS validation/apply、必要 asset、submodule 不在です。
 
+## Version lifecycle
+
+インストール済み CLI は release manifest を read-only に解決し、package version、
+CLI version、release tag、commit、tarball digest を同じ subject として確認します。
+
+```bash
+npx scwbs version
+npx scwbs version check --json
+npx scwbs upgrade --dry-run --json
+```
+
+GitHub に接続できない環境では、取得済みの `release-manifest.json` と tarball を
+指定して検証できます。`upgrade` は `--dry-run` が必須で、consumer の dependency
+pin を自動変更しません。npm registry 公開や unattended upgrade の有効化は人間の
+配布判断を必要とします。
+
 ## Release policy
 
 Release は main から手動 dispatch する `.github/workflows/release.yml` が

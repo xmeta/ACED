@@ -1,0 +1,805 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSOJKBKL.yaml b/contracts/blocks/SCWBS-DRAFT-MSOJKBKL.yaml
+new file mode 100644
+index 0000000..2ba577a
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSOJKBKL.yaml
+@@ -0,0 +1,29 @@
++id: BLK-SCWBS-DRAFT-MSOJKBKL
++type: block
++taskId: SCWBS-DRAFT-MSOJKBKL
++status: resolved
++category: unknown
++level: 1
++requiredHumanDecision: Clarify the blocking decision before implementation continues.
++reason: Coverage policy classification is missing for src/commands/version.ts and src/core/distribution.ts; contract scope repair required before Evidence
++createdAt: "2026-08-11T11:14:52.796Z"
++history:
++  - status: blocked
++    at: "2026-08-11T11:09:06.586Z"
++    reason: Human Gate required for src/cli.ts CLI registration; no delegated approval token is available
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-11T11:10:47.581Z"
++    reason: Human Gate reviewed and approved
++    by: human
++  - status: blocked
++    at: "2026-08-11T11:14:52.796Z"
++    reason: Coverage policy classification is missing for src/commands/version.ts and src/core/distribution.ts; contract scope repair required before Evidence
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-11T11:17:41.130Z"
++    reason: Coverage policy classification and Task scope repair approved
++    by: human
++resolvedAt: "2026-08-11T11:17:41.130Z"
++resolvedBy: human
++resolution: Coverage policy classification and Task scope repair approved
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 734b618..673f936 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -59,6 +59,7 @@ rules:
+       - src/commands/task-refresh.ts
+       - src/commands/trace.ts
+       - src/commands/ui.ts
++      - src/commands/version.ts
+       - src/commands/wbs.ts
+     requires:
+       - test:integration
+@@ -82,6 +83,7 @@ rules:
+       - src/core/code-context.ts
+       - src/core/document-lifecycle.ts
+       - src/core/discovery.ts
++      - src/core/distribution.ts
+       - src/core/planning.ts
+       - src/core/contracts.ts
+       - src/core/git.ts
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOJKBKL.yaml b/contracts/tasks/SCWBS-DRAFT-MSOJKBKL.yaml
+new file mode 100644
+index 0000000..c9e7ea6
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSOJKBKL.yaml
+@@ -0,0 +1,60 @@
++id: SCWBS-DRAFT-MSOJKBKL
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSOJKBKL
++branchName: task/SCWBS-DRAFT-MSOJKBKL-issue-533-install-version-and-upgrade-ux
++allowedPaths:
++  - src/cli.ts
++  - src/commands/version.ts
++  - src/core/distribution.ts
++  - scripts/distribution-smoke.mjs
++  - contracts/check-coverage.yaml
++  - tests/unit/**
++  - tests/integration/**
++  - docs/scwbs/quickstart.md
++  - docs/scwbs/distribution.md
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/cli.ts
++  - src/core/distribution.ts
++  - scripts/distribution-smoke.mjs
++  - contracts/check-coverage.yaml
++stopIf:
++  - Human Gate required
++  - additional paths
++  - release or distribution decision
++  - dependency or auth change
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #533 install version and upgrade UX'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSOJKBKL.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSOJKBKL.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSOJKBKL.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSOJKBKL.patch
++  - contracts/approvals/SCWBS-DRAFT-MSOJKBKL.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSOJKBKL.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-11T11:18:39.635Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 9c1c990..4176a91 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1924,3 +1924,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T10:49:28.018Z"
++  - id: SCWBS-DRAFT-MSOJKBKL
++    path: contracts/tasks/SCWBS-DRAFT-MSOJKBKL.yaml
++    branchName: task/SCWBS-DRAFT-MSOJKBKL-issue-533-install-version-and-upgrade-ux
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index d341c21..2c31dd1 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -40,6 +40,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
+ - Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
+ - Bounded AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, a versioned Phase 2 debugger/remediation receipt with a two-round cap, stale resume validation, shell-free adapter invocation, provider capability validation, bounded advisory learned notes, local execution cost metrics, and fail-closed authority/Human Gate boundaries; PR and merge automation remain excluded
++- First-class release lifecycle UX for exact version checks, release-manifest subject/digest verification, offline tarball verification, and read-only upgrade proposals; npm publication and unattended upgrade remain human decisions
+ - WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
+ - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
+ - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 28b4e01..e7b336f 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -81,6 +81,12 @@ npm run scwbs -- policy explain src/auth/session.ts --json
+ 
+ The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quickstart.md): install the release tarball, run `npx scwbs init`, use `npx scwbs doctor` and `npx scwbs next`, create a narrowly scoped Task, and complete it with `npx scwbs finish --task <task-id>`. The manual Evidence/registry/check-diff sequence below remains available for contributor troubleshooting. The machine-readable command fixture at `docs/scwbs/quickstart-commands.json` is exercised by the distribution smoke test so command and option drift fails validation.
+ 
++`scwbs version` prints the installed exact version. `scwbs version check --json`
++verifies the installed/current-stable release subject and supports `--manifest <path>`
++plus `--artifact <path>` for offline digest verification. `scwbs upgrade --dry-run --json`
++emits an exact artifact proposal without mutating the consumer; upgrade without
++`--dry-run` is rejected.
++
+ `doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
+ 
+ `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index 3534444..3999071 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -29,6 +29,22 @@ packed artifact の境界は CI の `distribution` job と
+ `scripts/distribution-smoke.mjs` で検証します。検証対象は `--version`、
+ `init`、`doctor`、`check`、WJS validation/apply、必要 asset、submodule 不在です。
+ 
++## Version lifecycle
++
++インストール済み CLI は release manifest を read-only に解決し、package version、
++CLI version、release tag、commit、tarball digest を同じ subject として確認します。
++
++```bash
++npx scwbs version
++npx scwbs version check --json
++npx scwbs upgrade --dry-run --json
++```
++
++GitHub に接続できない環境では、取得済みの `release-manifest.json` と tarball を
++指定して検証できます。`upgrade` は `--dry-run` が必須で、consumer の dependency
++pin を自動変更しません。npm registry 公開や unattended upgrade の有効化は人間の
++配布判断を必要とします。
++
+ ## Release policy
+ 
+ Release は main から手動 dispatch する `.github/workflows/release.yml` が
+diff --git a/docs/scwbs/quickstart.md b/docs/scwbs/quickstart.md
+index 9430a72..b425694 100644
+--- a/docs/scwbs/quickstart.md
++++ b/docs/scwbs/quickstart.md
+@@ -11,12 +11,24 @@ The supported consumer artifact is the self-contained tarball attached to a
+ GitHub Release. It includes the WJS validator and does not require an ACED
+ checkout or the `wjs` submodule.
+ 
++The release lifecycle commands resolve and verify the current stable manifest;
++they do not enable npm publication or unattended upgrades.
++
+ ```bash
+ SCWBS_VERSION=0.1.0
+ npm install --save-dev "https://github.com/xmeta/ACED/releases/download/v${SCWBS_VERSION}/scwbs-${SCWBS_VERSION}.tgz"
+ npx scwbs --version
+ ```
+ 
++For an installed consumer, use the read-only version check. It reports the exact
++package version, release tag, subject commit, and tarball digest. The manifest
++and artifact options keep the same verification available offline.
++
++```bash
++npx scwbs version check --json
++npx scwbs version check --manifest ./release-manifest.json --artifact ./scwbs-0.1.0.tgz --json
++```
++
+ For a local smoke test, build and pack the repository first, then install the
+ resulting `.tgz` into an empty consumer project as described in
+ [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+@@ -33,7 +45,20 @@ npx scwbs next --json
+ `doctor` diagnoses the local installation. `next` is the canonical navigation
+ command when the next step is unclear; use `--json` for an IDE or automation.
+ 
+-## 3. Create, edit, and finish one small task
++## 3. Propose an upgrade
++
++Upgrade is read-only by default. Generate an exact artifact proposal and review
++the migration impact before changing a consumer pin:
++
++```bash
++npx scwbs upgrade --dry-run --json
++npx scwbs upgrade --dry-run --manifest ./next-release-manifest.json --json
++```
++
++`upgrade` without `--dry-run` is rejected fail-closed and does not mutate
++`package.json`, lockfiles, Task Contracts, or generated files.
++
++## 4. Create, edit, and finish one small task
+ 
+ Create a Task Contract with the smallest allowed scope, then use the exact
+ branch name printed by `task new`:
+@@ -57,7 +82,7 @@ against the contract, and verifies the registry. Follow its typed next action
+ for PR metadata, review, approval, and merge. Do not reconstruct that ceremony
+ from a long manual command chain unless troubleshooting requires it.
+ 
+-## 4. Human Gate boundary
++## 5. Human Gate boundary
+ 
+ If `finish` reports that a Human Gate is required, an AI must stop. A human
+ reviews the current diff and Evidence, then runs the exact approval command
+@@ -74,7 +99,7 @@ npx scwbs approval approve \
+ An AI must not substitute `--actor human`, approve its own work, or broaden a
+ Task Contract to avoid the gate.
+ 
+-## 5. Contributor and advanced paths
++## 6. Contributor and advanced paths
+ 
+ This quickstart is for an installed consumer. Contributors working in the ACED
+ repository should use [`CONTRIBUTING.md`](../../CONTRIBUTING.md), then read the
+diff --git a/scripts/distribution-smoke.mjs b/scripts/distribution-smoke.mjs
+index 2ecd72f..c342279 100644
+--- a/scripts/distribution-smoke.mjs
++++ b/scripts/distribution-smoke.mjs
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env node
+ import assert from "node:assert/strict";
+-import { execFileSync } from "node:child_process";
++import { createHash } from "node:crypto";
++import { execFileSync, spawnSync } from "node:child_process";
+ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+@@ -41,6 +42,38 @@ export function runDistributionSmoke(repository = process.cwd()) {
+   assert(existsSync(bin), "installed scwbs bin is missing");
+   assert.equal(runScwbs(bin, ["--version"], consumer), packageJson.version);
+ 
++  const tarballDigest = createHash("sha256").update(readFileSync(tarball)).digest("hex");
++  const currentManifest = path.join(fixture, "release-manifest.json");
++  writeFileSync(currentManifest, `${JSON.stringify({
++    schemaVersion: "1.0.0",
++    packageVersion: packageJson.version,
++    tag: `v${packageJson.version}`,
++    commit: run("git", ["rev-parse", "HEAD"], repository).trim(),
++    tarball: packed.filename,
++    sha256: tarballDigest,
++    validation: { workflow: ".github/workflows/scwbs.yml", workflowRunId: 1, checks: [] }
++  }, null, 2)}\n`, "utf8");
++  const versionCheck = JSON.parse(runScwbs(bin, ["version", "check", "--manifest", currentManifest, "--artifact", tarball, "--json"], consumer));
++  assert.equal(versionCheck.status, "pass", `version check failed: ${JSON.stringify(versionCheck)}`);
++  assert.equal(versionCheck.support, "current");
++
++  const nextManifest = path.join(fixture, "next-release-manifest.json");
++  writeFileSync(nextManifest, `${JSON.stringify({
++    schemaVersion: "1.0.0",
++    packageVersion: "0.1.1",
++    tag: "v0.1.1",
++    commit: "0123456789abcdef0123456789abcdef01234567",
++    tarball: "scwbs-0.1.1.tgz",
++    sha256: "a".repeat(64),
++    validation: { workflow: ".github/workflows/scwbs.yml", workflowRunId: 2, checks: [] }
++  }, null, 2)}\n`, "utf8");
++  const upgrade = JSON.parse(runScwbs(bin, ["upgrade", "--dry-run", "--manifest", nextManifest, "--json"], consumer));
++  assert.equal(upgrade.status, "pass", `upgrade dry-run failed: ${JSON.stringify(upgrade)}`);
++  assert.equal(upgrade.proposed.packageVersion, "0.1.1");
++  const unattended = spawnSync(bin, ["upgrade", "--json"], { cwd: consumer, encoding: "utf8" });
++  assert.equal(unattended.status, 2);
++  assert.equal(JSON.parse(unattended.stdout).status, "blocked");
++
+   for (const command of quickstartCommands.commands) {
+     assert(["help", "run"].includes(command.mode), `quickstart command has an invalid mode: ${command.id}`);
+     const output = runScwbs(bin, command.argv, consumer);
+diff --git a/src/cli.ts b/src/cli.ts
+index 7f752b6..cb38298 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -27,6 +27,7 @@ import { runStart } from "./commands/start.js";
+ import { runStatus } from "./commands/status.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
++import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
+ import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
+ import { registerDiscoveryCommands } from "./cli/register-discovery.js";
+ import { registerGovernanceCommands } from "./cli/register-governance.js";
+@@ -237,6 +238,61 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json")
+     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
+ 
++  const version = program.command("version").description("Show the installed scwbs version and release status");
++  version
++    .command("check")
++    .description("Compare the installed version with the verified current stable release")
++    .option("--manifest <path>", "use a local release-manifest.json for offline verification")
++    .option("--artifact <path>", "verify a local tarball against the manifest SHA-256")
++    .option("--repo <owner/name>", "GitHub repository used to find the latest release")
++    .option("--timeout-ms <milliseconds>", "release lookup timeout")
++    .option("--json", "output a versioned JSON report")
++    .action((options) => {
++      void runVersionCheck(root, {
++        manifestPath: options.manifest,
++        artifactPath: options.artifact,
++        repository: options.repo,
++        timeoutMs: options.timeoutMs ? Number(options.timeoutMs) : undefined,
++        json: options.json ?? false
++      }).then((code) => {
++        exitCode = code;
++        process.exitCode = code;
++      }).catch((error: unknown) => {
++        console.error(error instanceof Error ? error.message : String(error));
++        exitCode = 1;
++        process.exitCode = 1;
++      });
++    });
++  version.action((options) => { exitCode = runVersion(root, { json: options.json ?? false }); });
++  version.option("--json", "output a versioned JSON report");
++
++  program
++    .command("upgrade")
++    .description("Propose an exact release artifact upgrade without mutating the consumer")
++    .option("--dry-run", "required: generate a read-only upgrade proposal")
++    .option("--manifest <path>", "use a local release-manifest.json for offline verification")
++    .option("--artifact <path>", "verify a local tarball against the manifest SHA-256")
++    .option("--repo <owner/name>", "GitHub repository used to find the latest release")
++    .option("--timeout-ms <milliseconds>", "release lookup timeout")
++    .option("--json", "output a versioned JSON report")
++    .action((options) => {
++      void runUpgrade(root, {
++        dryRun: options.dryRun ?? false,
++        manifestPath: options.manifest,
++        artifactPath: options.artifact,
++        repository: options.repo,
++        timeoutMs: options.timeoutMs ? Number(options.timeoutMs) : undefined,
++        json: options.json ?? false
++      }).then((code) => {
++        exitCode = code;
++        process.exitCode = code;
++      }).catch((error: unknown) => {
++        console.error(error instanceof Error ? error.message : String(error));
++        exitCode = 1;
++        process.exitCode = 1;
++      });
++    });
++
+   const agent = program.command("agent");
+   agent
+     .command("add")
+@@ -641,5 +697,5 @@ if (
+   realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
+ ) {
+   const exitCode = main();
+-  process.exit(exitCode);
++  process.exitCode = exitCode;
+ }
+diff --git a/src/commands/version.ts b/src/commands/version.ts
+new file mode 100644
+index 0000000..c40a0d1
+--- /dev/null
++++ b/src/commands/version.ts
+@@ -0,0 +1,77 @@
++import { existsSync, readFileSync } from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import {
++  buildUpgradeDryRunOutput,
++  buildVersionCheckOutput,
++  installedPackageFromJson,
++  resolveReleaseManifest,
++  verifyReleaseArtifact,
++  type DistributionReason,
++  type ReleaseResolverOptions
++} from "../core/distribution.js";
++
++export type VersionCommandOptions = ReleaseResolverOptions & { json?: boolean };
++
++function cliPackageJson(): unknown {
++  const packagePath = fileURLToPath(new URL("../../package.json", import.meta.url));
++  return JSON.parse(readFileSync(packagePath, "utf8"));
++}
++
++function print(value: unknown, json: boolean): void {
++  console.log(json ? JSON.stringify(value) : JSON.stringify(value, null, 2));
++}
++
++function packageJsonAt(root: string): unknown {
++  const packagePath = path.join(root, "package.json");
++  if (!existsSync(packagePath)) return {};
++  try {
++    return JSON.parse(readFileSync(packagePath, "utf8"));
++  } catch {
++    return {};
++  }
++}
++
++function appendResolverReasons<T extends { reasons: DistributionReason[] }>(result: T, reasons: DistributionReason[]): T {
++  if (reasons.length === 0) return result;
++  return { ...result, reasons: [...result.reasons, ...reasons] };
++}
++
++export function runVersion(root: string, options: VersionCommandOptions = {}): number {
++  const installed = installedPackageFromJson(cliPackageJson());
++  if (options.json) {
++    print({ version: "scwbs.version.v1", status: "pass", packageVersion: installed.packageVersion, cliVersion: installed.cliVersion }, true);
++  } else {
++    console.log(installed.cliVersion);
++  }
++  return installed.integrity === "pass" ? 0 : 1;
++}
++
++export async function runVersionCheck(root: string, options: VersionCommandOptions = {}): Promise<number> {
++  const installed = installedPackageFromJson(cliPackageJson());
++  const resolved = await resolveReleaseManifest(options);
++  const artifactReasons = resolved.manifest && options.artifactPath ? verifyReleaseArtifact(resolved.manifest, options.artifactPath) : [];
++  const output = appendResolverReasons(buildVersionCheckOutput(installed, resolved.manifest), [...resolved.reasons, ...artifactReasons]);
++  print(output, options.json ?? false);
++  return output.status === "pass" ? 0 : 1;
++}
++
++export async function runUpgrade(root: string, options: VersionCommandOptions & { dryRun?: boolean } = {}): Promise<number> {
++  if (!options.dryRun) {
++    const output = {
++      version: "scwbs.upgrade-dry-run.v1",
++      status: "blocked",
++      dryRun: false,
++      unattendedUpgrade: "disabled",
++      mutations: [],
++      reasons: [{ code: "upgrade.unattended.disabled", message: "upgrade requires --dry-run; unattended mutation is disabled" }]
++    };
++    print(output, options.json ?? false);
++    return 2;
++  }
++  const installed = installedPackageFromJson(cliPackageJson());
++  const resolved = await resolveReleaseManifest(options);
++  const output = buildUpgradeDryRunOutput(packageJsonAt(root), installed, resolved.manifest, resolved.reasons);
++  print(output, options.json ?? false);
++  return output.status === "pass" ? 0 : 1;
++}
+diff --git a/src/core/distribution.ts b/src/core/distribution.ts
+new file mode 100644
+index 0000000..40743f6
+--- /dev/null
++++ b/src/core/distribution.ts
+@@ -0,0 +1,272 @@
++import { createHash } from "node:crypto";
++import { existsSync, readFileSync } from "node:fs";
++import path from "node:path";
++
++export const VERSION_CHECK_VERSION = "scwbs.version-check.v1" as const;
++export const UPGRADE_DRY_RUN_VERSION = "scwbs.upgrade-dry-run.v1" as const;
++export const DEFAULT_RELEASE_REPOSITORY = "xmeta/ACED";
++
++export type ReleaseManifest = {
++  schemaVersion: string;
++  packageVersion: string;
++  tag: string;
++  commit: string;
++  tarball: string;
++  sha256: string;
++  validation?: {
++    workflow?: string;
++    workflowRunId?: number;
++    checks?: Array<{ name?: string; conclusion?: string; detailsUrl?: string | null }>;
++  };
++};
++
++export type DistributionReason = { code: string; message: string };
++
++export type ReleaseIntegrity = {
++  status: "pass" | "fail";
++  packageVersion: string;
++  tag: string;
++  tarball: string;
++  digest: string;
++  reasons: DistributionReason[];
++};
++
++export type VersionCheckOutput = {
++  version: typeof VERSION_CHECK_VERSION;
++  status: "pass" | "unavailable" | "fail";
++  installed: {
++    packageVersion: string;
++    cliVersion: string;
++    integrity: "pass" | "fail";
++  };
++  currentStable: {
++    packageVersion: string | null;
++    tag: string | null;
++    commit: string | null;
++    digest: string | null;
++    source: "release-manifest" | "unavailable";
++  };
++  support: "current" | "upgrade-available" | "unavailable";
++  reasons: DistributionReason[];
++};
++
++export type UpgradeDryRunOutput = {
++  version: typeof UPGRADE_DRY_RUN_VERSION;
++  status: "pass" | "unavailable" | "blocked" | "fail";
++  dryRun: true;
++  unattendedUpgrade: "disabled";
++  current: {
++    packageSpec: string | null;
++    packageVersion: string;
++  };
++  proposed: {
++    packageSpec: string | null;
++    packageVersion: string | null;
++    artifactUrl: string | null;
++    releaseTag: string | null;
++    digest: string | null;
++  };
++  migrationImpact: Array<{
++    id: "node-compatibility" | "schema-migration" | "generated-agent-delta" | "stale-task-locks";
++    status: "pass" | "not-evaluated" | "unknown";
++    message: string;
++  }>;
++  mutations: [];
++  reasons: DistributionReason[];
++};
++
++export type ReleaseResolverOptions = {
++  manifestPath?: string;
++  artifactPath?: string;
++  repository?: string;
++  timeoutMs?: number;
++  fetchImpl?: typeof fetch;
++};
++
++function reason(code: string, message: string): DistributionReason {
++  return { code, message };
++}
++
++function parseSemver(value: string): [number, number, number] | undefined {
++  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(value.trim());
++  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : undefined;
++}
++
++function compareVersions(left: string, right: string): number {
++  const a = parseSemver(left);
++  const b = parseSemver(right);
++  if (!a || !b) return 0;
++  for (let index = 0; index < a.length; index += 1) {
++    if (a[index]! !== b[index]!) return a[index]! > b[index]! ? 1 : -1;
++  }
++  return 0;
++}
++
++export function installedPackageFromJson(packageJson: unknown): { packageVersion: string; cliVersion: string; integrity: "pass" | "fail" } {
++  const value = packageJson as { version?: unknown };
++  const packageVersion = typeof value?.version === "string" ? value.version : "";
++  return {
++    packageVersion,
++    cliVersion: packageVersion,
++    integrity: parseSemver(packageVersion) ? "pass" : "fail"
++  };
++}
++
++export function validateReleaseManifest(manifest: unknown): ReleaseIntegrity {
++  const value = manifest as Partial<ReleaseManifest>;
++  const packageVersion = typeof value?.packageVersion === "string" ? value.packageVersion : "";
++  const tag = typeof value?.tag === "string" ? value.tag : "";
++  const tarball = typeof value?.tarball === "string" ? value.tarball : "";
++  const digest = typeof value?.sha256 === "string" ? value.sha256 : "";
++  const reasons: DistributionReason[] = [];
++  if (value?.schemaVersion !== "1.0.0") reasons.push(reason("release.manifest.schema", "release manifest schemaVersion must be 1.0.0"));
++  if (!parseSemver(packageVersion)) reasons.push(reason("release.version.invalid", "release manifest packageVersion must be semantic version"));
++  if (tag !== `v${packageVersion}`) reasons.push(reason("release.subject.tag-mismatch", "release tag must equal v<packageVersion>"));
++  if (tarball !== `scwbs-${packageVersion}.tgz`) reasons.push(reason("release.subject.tarball-mismatch", "tarball filename must bind to packageVersion"));
++  if (!/^[0-9a-f]{64}$/.test(digest)) reasons.push(reason("release.digest.invalid", "release manifest sha256 must be a 64 character lowercase hex digest"));
++  if (typeof value?.commit !== "string" || !/^[0-9a-f]{7,64}$/.test(value.commit)) reasons.push(reason("release.subject.commit-missing", "release manifest commit must be a commit SHA"));
++  return {
++    status: reasons.length === 0 ? "pass" : "fail",
++    packageVersion,
++    tag,
++    tarball,
++    digest,
++    reasons
++  };
++}
++
++export function verifyReleaseArtifact(manifest: unknown, artifactPath: string): DistributionReason[] {
++  const integrity = validateReleaseManifest(manifest);
++  if (integrity.status !== "pass") return integrity.reasons;
++  try {
++    const actual = sha256File(artifactPath);
++    return actual === integrity.digest
++      ? []
++      : [reason("release.digest.mismatch", `artifact digest ${actual} does not match release manifest ${integrity.digest}`)];
++  } catch (error) {
++    return [reason("release.artifact.read-failed", error instanceof Error ? error.message : String(error))];
++  }
++}
++
++export function buildVersionCheckOutput(installed: { packageVersion: string; cliVersion: string; integrity: "pass" | "fail" }, manifest?: unknown): VersionCheckOutput {
++  const reasons: DistributionReason[] = [];
++  if (installed.integrity !== "pass" || installed.packageVersion !== installed.cliVersion) {
++    reasons.push(reason("installed.subject.version-mismatch", "installed package version and CLI version are not a valid exact subject"));
++  }
++  if (!manifest) {
++    reasons.push(reason("release.manifest.unavailable", "current stable release manifest is unavailable; use --manifest for offline verification"));
++    return {
++      version: VERSION_CHECK_VERSION,
++      status: "unavailable",
++      installed,
++      currentStable: { packageVersion: null, tag: null, commit: null, digest: null, source: "unavailable" },
++      support: "unavailable",
++      reasons
++    };
++  }
++  const integrity = validateReleaseManifest(manifest);
++  if (integrity.status !== "pass") reasons.push(...integrity.reasons);
++  const support = integrity.status !== "pass"
++    ? "unavailable"
++    : compareVersions(installed.packageVersion, integrity.packageVersion) === 0 ? "current" : "upgrade-available";
++  if (support === "upgrade-available") reasons.push(reason("release.upgrade-available", `current stable is ${integrity.packageVersion}`));
++  return {
++    version: VERSION_CHECK_VERSION,
++    status: reasons.some((item) => item.code.startsWith("installed.")) || integrity.status === "fail" ? "fail" : "pass",
++    installed,
++    currentStable: {
++      packageVersion: integrity.packageVersion || null,
++      tag: integrity.tag || null,
++      commit: typeof (manifest as ReleaseManifest).commit === "string" ? (manifest as ReleaseManifest).commit : null,
++      digest: integrity.digest || null,
++      source: "release-manifest"
++    },
++    support,
++    reasons
++  };
++}
++
++function readJson(filePath: string): unknown {
++  return JSON.parse(readFileSync(filePath, "utf8"));
++}
++
++export async function resolveReleaseManifest(options: ReleaseResolverOptions = {}): Promise<{ manifest?: ReleaseManifest; reasons: DistributionReason[] }> {
++  if (options.manifestPath) {
++    try {
++      const manifest = readJson(path.resolve(options.manifestPath)) as ReleaseManifest;
++      return { manifest, reasons: [] };
++    } catch (error) {
++      return { reasons: [reason("release.manifest.read-failed", error instanceof Error ? error.message : String(error))] };
++    }
++  }
++  const repository = options.repository ?? DEFAULT_RELEASE_REPOSITORY;
++  if (!/^[^/]+\/[^/]+$/.test(repository)) return { reasons: [reason("release.repository.invalid", "repository must be owner/name")] };
++  const fetchImpl = options.fetchImpl ?? fetch;
++  const controller = new AbortController();
++  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 5_000);
++  try {
++    const release = await fetchImpl(`https://api.github.com/repos/${repository}/releases/latest`, {
++      headers: { accept: "application/vnd.github+json", "user-agent": "scwbs-version-check" },
++      signal: controller.signal
++    });
++    if (!release.ok) return { reasons: [reason("release.lookup.failed", `GitHub latest release lookup returned HTTP ${release.status}`)] };
++    const releaseJson = await release.json() as { assets?: Array<{ name?: string; browser_download_url?: string }> };
++    const asset = releaseJson.assets?.find((candidate) => candidate.name === "release-manifest.json");
++    if (!asset?.browser_download_url) return { reasons: [reason("release.manifest.missing", "latest release does not contain release-manifest.json")] };
++    const manifestResponse = await fetchImpl(asset.browser_download_url, {
++      headers: { accept: "application/json", "user-agent": "scwbs-version-check" },
++      signal: controller.signal
++    });
++    if (!manifestResponse.ok) return { reasons: [reason("release.manifest.fetch-failed", `release manifest fetch returned HTTP ${manifestResponse.status}`)] };
++    return { manifest: await manifestResponse.json() as ReleaseManifest, reasons: [] };
++  } catch (error) {
++    return { reasons: [reason("release.lookup.unavailable", error instanceof Error ? error.message : String(error))] };
++  } finally {
++    clearTimeout(timeout);
++  }
++}
++
++function dependencySpec(packageJson: unknown): string | null {
++  const value = packageJson as { dependencies?: Record<string, unknown>; devDependencies?: Record<string, unknown>; optionalDependencies?: Record<string, unknown> };
++  for (const group of [value?.dependencies, value?.devDependencies, value?.optionalDependencies]) {
++    if (typeof group?.scwbs === "string") return group.scwbs;
++  }
++  return null;
++}
++
++export function buildUpgradeDryRunOutput(
++  packageJson: unknown,
++  installed: { packageVersion: string; cliVersion: string; integrity: "pass" | "fail" },
++  manifest?: unknown,
++  manifestReasons: DistributionReason[] = []
++): UpgradeDryRunOutput {
++  const currentSpec = dependencySpec(packageJson);
++  const integrity = manifest ? validateReleaseManifest(manifest) : undefined;
++  const reasons = [...manifestReasons, ...(integrity?.reasons ?? [])];
++  const packageVersion = integrity?.status === "pass" ? integrity.packageVersion : null;
++  const artifactUrl = packageVersion ? `https://github.com/${DEFAULT_RELEASE_REPOSITORY}/releases/download/v${packageVersion}/scwbs-${packageVersion}.tgz` : null;
++  if (!manifest) reasons.push(reason("release.manifest.unavailable", "upgrade proposal requires a verified release manifest"));
++  if (installed.integrity !== "pass") reasons.push(reason("installed.subject.invalid", "installed package subject is not a valid semantic version"));
++  const migrationImpact: UpgradeDryRunOutput["migrationImpact"] = [
++    { id: "node-compatibility", status: "pass", message: "package engines are preserved by the immutable release artifact" },
++    { id: "schema-migration", status: "not-evaluated", message: "schema migration requires a release-specific migration note" },
++    { id: "generated-agent-delta", status: "not-evaluated", message: "generated agent delta is not changed by a dry-run proposal" },
++    { id: "stale-task-locks", status: "not-evaluated", message: "consumer Task locks are not mutated or evaluated by this command" }
++  ];
++  return {
++    version: UPGRADE_DRY_RUN_VERSION,
++    status: reasons.length === 0 ? "pass" : manifest ? "fail" : "unavailable",
++    dryRun: true,
++    unattendedUpgrade: "disabled",
++    current: { packageSpec: currentSpec, packageVersion: installed.packageVersion },
++    proposed: { packageSpec: artifactUrl, packageVersion, artifactUrl, releaseTag: packageVersion ? `v${packageVersion}` : null, digest: integrity?.status === "pass" ? integrity.digest : null },
++    migrationImpact,
++    mutations: [],
++    reasons
++  };
++}
++
++export function sha256File(filePath: string): string {
++  if (!existsSync(filePath)) throw new Error(`artifact does not exist: ${filePath}`);
++  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
++}
+diff --git a/tests/unit/distribution.test.ts b/tests/unit/distribution.test.ts
+new file mode 100644
+index 0000000..4966747
+--- /dev/null
++++ b/tests/unit/distribution.test.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, test } from "vitest";
++import {
++  buildUpgradeDryRunOutput,
++  buildVersionCheckOutput,
++  installedPackageFromJson,
++  validateReleaseManifest
++} from "../../src/core/distribution.js";
++
++const manifest = {
++  schemaVersion: "1.0.0",
++  packageVersion: "0.1.1",
++  tag: "v0.1.1",
++  commit: "0123456789abcdef0123456789abcdef01234567",
++  tarball: "scwbs-0.1.1.tgz",
++  sha256: "a".repeat(64),
++  validation: { workflow: ".github/workflows/scwbs.yml", workflowRunId: 42, checks: [] }
++};
++
++describe("distribution lifecycle", () => {
++  test("validates the release subject and digest shape", () => {
++    expect(validateReleaseManifest(manifest)).toMatchObject({ status: "pass", packageVersion: "0.1.1", tag: "v0.1.1" });
++    expect(validateReleaseManifest({ ...manifest, tag: "latest" }).reasons).toContainEqual(expect.objectContaining({ code: "release.subject.tag-mismatch" }));
++  });
++
++  test("reports current and upgrade-available states without mutating anything", () => {
++    const installed = installedPackageFromJson({ version: "0.1.0" });
++    expect(buildVersionCheckOutput(installed, { ...manifest, packageVersion: "0.1.0", tag: "v0.1.0", tarball: "scwbs-0.1.0.tgz" })).toMatchObject({
++      status: "pass",
++      support: "current"
++    });
++    const proposal = buildUpgradeDryRunOutput(
++      { name: "consumer", devDependencies: { scwbs: "https://old.example/scwbs-0.1.0.tgz" } },
++      installed,
++      manifest
++    );
++    expect(proposal).toMatchObject({
++      version: "scwbs.upgrade-dry-run.v1",
++      status: "pass",
++      dryRun: true,
++      unattendedUpgrade: "disabled",
++      proposed: { packageVersion: "0.1.1", releaseTag: "v0.1.1" },
++      mutations: []
++    });
++  });
++});
