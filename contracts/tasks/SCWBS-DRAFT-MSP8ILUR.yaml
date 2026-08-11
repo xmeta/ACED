@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MSP8ILUR
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSP8ILUR
+branchName: task/SCWBS-DRAFT-MSP8ILUR-issue-556-approval-request-versioned-json-respon
+status: approved
+approvedBy: user-requested-issue-556
+approvedAt: "2026-08-12T00:00:00+09:00"
+allowedPaths:
+  - contracts/discovery/PROBE-issue-556.yaml
+  - contracts/specs/**
+  - src/commands/approval-request.ts
+  - src/cli/register-governance.ts
+  - tests/integration/approval.test.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/approval-request.schema.json
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/commands/approval-request.ts
+  - src/cli/register-governance.ts
+stopIf:
+  - approval record schema or provenance semantics change
+  - AI or delegated approval behavior change
+  - review or merge or repository permission change
+  - dependency or workflow or distribution change
+  - unbounded JSON output or scope expansion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+doneCriteria:
+  - approval request --json emits exactly one bounded scwbs.approval-request.v1 JSON document with stable approval id, task id, status, requestedAt, notes, nextActionOwner, and nextAction fields
+  - --pull-request, --force, existing Evidence/current-PR checks, requested-only status, and plain YAML output remain unchanged
+  - unknown options fail closed and AI, delegated approval, Human Gate provenance, review, merge, permissions, dependencies, workflows, and distribution remain unchanged
+  - schema fixture and unit/integration tests cover JSON shape, bounded notes, plain output, option compatibility, and no auto-approval
+specPath: contracts/specs/SPEC-LITE-MSP8ILUR.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/specs/SPEC-LITE-MSP8ILUR.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP8ILUR.patch
+  - contracts/approvals/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:d3123af285bba089412df8d78e3f7ae00ec3030fa05c8beed0193b7913159ddd
+  createdAt: "2026-08-11T22:48:15.235Z"
