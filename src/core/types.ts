@@ -389,6 +389,7 @@ export type Evidence = {
   changedFiles: string[];
   ciReceipt?: CiReceipt;
   coverageReceipt?: CoverageReceipt;
+  attestationVerification?: import("./attestation.js").AttestationVerificationRecord;
   testQualityObservation?: TestQualityObservation;
   submodules?: Array<{
     path: string;
