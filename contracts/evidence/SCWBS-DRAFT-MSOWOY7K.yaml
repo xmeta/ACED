@@ -1,0 +1,98 @@
+id: EVD-SCWBS-DRAFT-MSOWOY7K
+type: evidence
+taskId: SCWBS-DRAFT-MSOWOY7K
+commit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+subjectHeadCommit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+diffHash: sha256:6aa2e28965d6f3dc0feb6e037b9fa2a1d236eab18f5aaa8990c95bf1aa0e2b3f
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+    treeHash: 98c88d369deeaeafa7853630222a2f8b08025071
+    diffHash: sha256:6aa2e28965d6f3dc0feb6e037b9fa2a1d236eab18f5aaa8990c95bf1aa0e2b3f
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOWOY7K.patch
+    manifestHash: sha256:6aa2e28965d6f3dc0feb6e037b9fa2a1d236eab18f5aaa8990c95bf1aa0e2b3f
+git:
+  branch: task/SCWBS-DRAFT-MSOWOY7K-issue-537-bounded-external-attestation-verifier-
+  base: origin/main
+  baseCommit: 5c5063190d3dae62ae4528a80c10cdeb1cd7f1d8
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+  diffHash: sha256:6aa2e28965d6f3dc0feb6e037b9fa2a1d236eab18f5aaa8990c95bf1aa0e2b3f
+  headCommit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/scwbs/schemas/attestation.schema.json
+  - src/cli/register-governance.ts
+  - src/commands/evidence-collect.ts
+  - src/core/attestation.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/fixtures/attestation/invalid.stderr
+  - tests/fixtures/attestation/missing.stderr
+  - tests/fixtures/attestation/subject-mismatch.json
+  - tests/fixtures/attestation/verified.json
+  - tests/integration/attestation.test.ts
+  - tests/unit/attestation.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 5c5063190d3dae62ae4528a80c10cdeb1cd7f1d8
+    headCommit: 28656f8cb18fed0cf0263447d0a047ff174f5e09
+    diffHash: sha256:6aa2e28965d6f3dc0feb6e037b9fa2a1d236eab18f5aaa8990c95bf1aa0e2b3f
+  tests:
+    filesAdded: 6
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:1f43a03d065835b70e2c6c96641eb4bc21ab4fa509788859603b75925b41f516
+    durationMilliseconds: 20325
+    executedAt: "2026-08-11T18:03:36.656Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:4371c1b36b980326ddfea7ca35191a9c621b3f8121f472c1777947d07c625ea6
+    durationMilliseconds: 11188
+    executedAt: "2026-08-11T18:03:47.847Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:d8e1dbdb6572debbc6e6cf4c0e84deb556fa5f565173093e1fd1cbf9ccbb3515
+    durationMilliseconds: 4754
+    executedAt: "2026-08-11T18:03:52.606Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:66d1f9e4542d5678c948afc4fa8156945a8ede6b623f809581dcc4609c5dfcda
+    durationMilliseconds: 329361
+    executedAt: "2026-08-11T18:09:21.970Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added attestation verifier unit and integration regression coverage for status classification, subject binding, offline inputs, and bounded Evidence summaries.
