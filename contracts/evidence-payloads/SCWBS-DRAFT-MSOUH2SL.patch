@@ -1,0 +1,1000 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index d2527f6..783dfd2 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -47,6 +47,7 @@ rules:
+       - src/commands/mcp.ts
+       - src/commands/local-index.ts
+       - src/commands/query.ts
++      - src/commands/risk.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
+       - src/commands/pack.ts
+@@ -111,6 +112,7 @@ rules:
+       - src/core/node-utils.ts
+       - src/core/paths.ts
+       - src/core/report.ts
++      - src/core/risk.ts
+       - src/core/required-check-run.ts
+       - src/core/schema.ts
+       - src/core/schema/check-coverage.ts
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 5a34ac2..0b1d3fb 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -49,6 +49,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+ - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+ - Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
++- Versioned Risk Register v1 now provides bounded `risk list/show/add/update/accept`, fixed likelihood × impact scoring, Strict fail-closed treatment/acceptance checks, Evidence-bound acceptance freshness, and trace relations; risk acceptance remains Human-only
+ - docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
+ 
+ ## Still Missing
+@@ -56,7 +57,6 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Area                     | Missing Piece                                               | Why It Matters                                                                                                                                                                                                                  |
+ | ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+ | Change control           | Spec Change Proposal command and workflow enforcement       | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated                                                                                                                                         |
+-| Risk management          | Risk Register format and command                            | Strict workflows still need a formal risk log                                                                                                                                                                                   |
+ | Evidence trust           | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope                                                                                                                       |
+ | Evidence diff basis      | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` now verifies the bounded PR readiness artifact, CI receipt digest, repository/Task/PR/HEAD/workflow provenance, and atomically updates Evidence/Registry; independent external signatures and automatic promotion remain out of scope |
+ | Test quality             | Diff-aware assertion and coverage inspection                | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope                  |
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index d79c751..5930ab2 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -430,6 +430,20 @@ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "R
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
+ ```
+ 
++### Risk Register v1
++
++Risk artifactは `contracts/risks/*.yaml` に保存され、`schemaVersion: scwbs.risk.v1` を要求する。likelihood/impact はそれぞれ1〜5、scoreは固定の積で、1–4がLow、5–9がMedium、10–16がHigh、17–25がCriticalである。scoreやlevelを手入力して基準を弱めることはできない。
++
++```bash
++npm run scwbs -- risk list --json
++npm run scwbs -- risk show RISK-EXAMPLE --json
++npm run scwbs -- risk add --id RISK-EXAMPLE --title "Example risk" --likelihood 3 --impact 4 --owner team --actions "Add control" --tasks TASK-001 --json
++npm run scwbs -- risk update RISK-EXAMPLE --actions "Verify control" --json
++npm run scwbs -- risk accept RISK-EXAMPLE --actor human --reason "CONFIRM TTY RISK RISK-EXAMPLE <subjectHeadCommit> <diffHash>" --json
++```
++
++`risk list/show/add/update` のJSONはboundedで、add/updateは `--dry-run` でartifactを書かずに結果を確認できる。`risk accept` はHuman-onlyで、リンクされたEvidenceの現在のsubjectHeadCommitとdiffHashを含むexact TTY confirmationが必要である。Strict profileの `scwbs check --json` は、リンクされた未closedのHigh/Critical riskについて、treatment actionの欠落、Human acceptanceの欠落、またはEvidence変更後のstale acceptanceをmachine-readable errorとして返す。Lean/StandardではこのRisk Register gateを追加しない。
++
+ ### Core alias: `request-approval` / `approve`
+ 
+ `approval request` と `approval approve` には、top-levelのCore alias `request-approval` と `approve` がある。artifactを作る内部関数は共通だが、option parsingは完全には同一でない。top-level aliasはどちらも `--pr` と `--pull-request` を受け付け、`approval request` / `approval approve` は `--pull-request` だけを受け付ける。複数語のnote/reasonは、どちらの形式でも引用符または `--note=...` / `--reason=...` を使う。
+diff --git a/docs/scwbs/operations-profile-and-specs.md b/docs/scwbs/operations-profile-and-specs.md
+index 09d8c35..8b092dd 100644
+--- a/docs/scwbs/operations-profile-and-specs.md
++++ b/docs/scwbs/operations-profile-and-specs.md
+@@ -14,9 +14,9 @@ Source: docs/sc-wbs-development.md split reference.
+ 
+ プロファイルを明示しない場合はStandardを適用する。
+ 
+-上表の「方法論上の要求」と「現行CLIが機械的に強制する範囲」は同一ではない。現行実装のStrictは `contracts/specs/` と `contracts/spec-changes/` を追加し、LeanではSpec/Spec Changeのrepository-wide検証を省略する。Risk Registerと監査ログのscaffold/schema/check、Profile別Review種別の強制は未実装である。`contracts/reviews/` のrecordはTask別のreview/completion flowで検証されるが、`scwbs check` が全Review recordをProfile別に列挙して強制するわけではない。
++上表の「方法論上の要求」と「現行CLIが機械的に強制する範囲」は同一ではない。Strictは `contracts/specs/` と `contracts/spec-changes/` を追加し、LeanではSpec/Spec Changeのrepository-wide検証を省略する。Risk Register v1 は `contracts/risks/` の `scwbs.risk.v1` artifact、固定スコア、Strictの未処理High/Critical検出、Evidence subject/diffに束縛されたHuman受入れ鮮度を検証する。監査ログとProfile別Review種別の強制は別スコープである。`contracts/reviews/` のrecordはTask別のreview/completion flowで検証されるが、`scwbs check` が全Review recordをProfile別に列挙して強制するわけではない。
+ 
+-したがって `init --profile strict` や `profile set strict` の表示だけを、Risk Register、監査ログ、Human Reviewまで完備した証明として扱ってはならない。実装済みの強制範囲を広げる場合は、schema・check・migrationを別Taskで追加する。
++したがって `init --profile strict` や `profile set strict` の表示だけを、監査ログやHuman Reviewまで完備した証明として扱ってはならない。Risk Registerの受入れはCLIからもHuman-onlyであり、AIの判断やRisk artifactだけをTask完了・Approvalの根拠にはできない。
+ 
+ AI Work Packet にはプロファイル情報とアクティブなアーティファクトディレクトリ一覧が含まれる。
+ 
+@@ -44,7 +44,6 @@ Human Gateで責任ある判断を制御する。
+ 
+ 次段階の正式候補は以下である。
+ 
+-* Strict Profile向けにRisk Registerの形式を定義する
+ 
+ ## 17. Subtree Phase
+ 
+diff --git a/docs/scwbs/schemas/risk.schema.json b/docs/scwbs/schemas/risk.schema.json
+new file mode 100644
+index 0000000..a66ad3c
+--- /dev/null
++++ b/docs/scwbs/schemas/risk.schema.json
+@@ -0,0 +1,65 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "scwbs.risk.v1",
++  "title": "SC-WBS Risk Register v1",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "id", "type", "title", "status", "scope", "assessment", "treatment", "residualRisk", "createdAt"],
++  "properties": {
++    "schemaVersion": { "const": "scwbs.risk.v1" },
++    "id": { "type": "string", "pattern": "^RISK-[A-Z0-9][A-Z0-9._-]*$" },
++    "type": { "const": "risk" },
++    "title": { "type": "string", "minLength": 1 },
++    "status": { "enum": ["open", "mitigated", "accepted", "closed"] },
++    "scope": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["tasks", "specs", "requirements"],
++      "properties": {
++        "tasks": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
++        "specs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
++        "requirements": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 }
++      }
++    },
++    "assessment": { "$ref": "#/$defs/assessment" },
++    "treatment": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["strategy", "owner", "actions", "verification"],
++      "properties": {
++        "strategy": { "enum": ["avoid", "mitigate", "transfer", "accept"] },
++        "owner": { "type": "string", "minLength": 1 },
++        "actions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
++        "verification": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 }
++      }
++    },
++    "residualRisk": { "$ref": "#/$defs/assessment" },
++    "acceptance": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
++      "properties": {
++        "acceptedBy": { "const": "human" },
++        "acceptedAt": { "type": "string", "minLength": 1 },
++        "subjectHeadCommit": { "type": "string", "minLength": 1 },
++        "diffHash": { "type": "string", "minLength": 1 },
++        "reason": { "type": "string", "minLength": 1 }
++      }
++    },
++    "createdAt": { "type": "string", "minLength": 1 },
++    "updatedAt": { "type": "string", "minLength": 1 }
++  },
++  "$defs": {
++    "assessment": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["likelihood", "impact", "score", "level"],
++      "properties": {
++        "likelihood": { "type": "integer", "minimum": 1, "maximum": 5 },
++        "impact": { "type": "integer", "minimum": 1, "maximum": 5 },
++        "score": { "type": "integer", "minimum": 1, "maximum": 25 },
++        "level": { "enum": ["low", "medium", "high", "critical"] }
++      }
++    }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 9c2b794..c95248f 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -32,6 +32,7 @@ import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
+ import { runMcpStdio } from "./commands/mcp.js";
+ import { runIndexRebuild, runIndexStatus, runIndexVerify } from "./commands/local-index.js";
+ import { runQuery } from "./commands/query.js";
++import { runRiskAccept, runRiskAdd, runRiskList, runRiskShow, runRiskUpdate } from "./commands/risk.js";
+ import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
+ import { registerDiscoveryCommands } from "./cli/register-discovery.js";
+ import { registerGovernanceCommands } from "./cli/register-governance.js";
+@@ -368,6 +369,50 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--json")
+     .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
+ 
++  const risk = program.command("risk").description("Manage the versioned Risk Register");
++  risk.command("list")
++    .option("--limit <count>", "maximum number of risks")
++    .option("--json")
++    .action((opts) => { exitCode = runRiskList(root, opts); });
++  risk.command("show")
++    .argument("<id>")
++    .option("--json")
++    .action((id: string, opts) => { exitCode = runRiskShow(root, id, opts); });
++  const riskFields = (command: Command, update = false) => {
++    if (!update) {
++      command.requiredOption("--id <id>")
++        .requiredOption("--title <title>")
++        .requiredOption("--likelihood <1-5>")
++        .requiredOption("--impact <1-5>")
++        .requiredOption("--owner <owner>");
++    } else {
++      command.option("--title <title>")
++        .option("--likelihood <1-5>")
++        .option("--impact <1-5>")
++        .option("--owner <owner>");
++    }
++    return command
++      .option("--strategy <strategy>", "avoid|mitigate|transfer|accept")
++      .option("--actions <items>", "comma-separated treatment actions")
++      .option("--verification <items>", "comma-separated verification steps")
++      .option("--tasks <ids>", "comma-separated Task IDs")
++      .option("--specs <ids>", "comma-separated Spec IDs")
++      .option("--requirements <ids>", "comma-separated Requirement IDs")
++      .option("--status <status>", "open|mitigated|accepted|closed")
++      .option("--dry-run")
++      .option("--json");
++  };
++  riskFields(risk.command("add"))
++    .action((opts) => { exitCode = runRiskAdd(root, opts); });
++  riskFields(risk.command("update").argument("<id>"), true)
++    .action((id: string, opts) => { exitCode = runRiskUpdate(root, id, opts); });
++  risk.command("accept")
++    .argument("<id>")
++    .requiredOption("--actor <actor>", "must be human")
++    .requiredOption("--reason <reason>", "exact TTY confirmation")
++    .option("--json")
++    .action((id: string, opts) => { exitCode = runRiskAccept(root, id, opts); });
++
+   program
+     .command("check")
+     .description("Check repository contracts")
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 6833874..8b0e160 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -14,6 +14,7 @@ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
+ import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
+ import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
+ import { discoveryIssues } from "../core/discovery.js";
++import { collectRiskIssues } from "../core/risk.js";
+ 
+ function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
+   if (!evidence) return [];
+@@ -271,6 +272,7 @@ export function collectCheckIssues(root: string): Issue[] {
+   }
+   issues.push(...discoveryIssues(root));
+   const profile: Profile = readProfile(root);
++  issues.push(...collectRiskIssues(root, profile));
+   const coverage = readCheckCoveragePolicy(root);
+   issues.push(...coverage.issues);
+   if (coverage.issues.length === 0) issues.push(...collectCheckCoveragePolicyIssues(root, coverage.policy));
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index c8c281e..50bc0dc 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -1,5 +1,5 @@
+ import { existsSync, readFileSync, writeFileSync } from "node:fs";
+-import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
++import { listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+ import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+@@ -124,6 +124,10 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
+     if (!block) continue;
+     contracts.push({ id: block.id, type: "block", path, status: block.status, relatedTask: block.taskId });
+   }
++  for (const { risk, path } of listRisks(root)) {
++    if (!risk) continue;
++    contracts.push({ id: risk.id, type: "risk", path, status: risk.status });
++  }
+   for (const { review, path } of listReviews(root)) {
+     if (!review) continue;
+     contracts.push({ id: review.id, type: "review", path, status: review.status, relatedTask: review.taskId });
+diff --git a/src/commands/risk.ts b/src/commands/risk.ts
+new file mode 100644
+index 0000000..7b009da
+--- /dev/null
++++ b/src/commands/risk.ts
+@@ -0,0 +1,92 @@
++import { listRisks } from "../core/contracts.js";
++import { acceptRisk, addRisk, riskAcceptanceStatus, summarizeRisk, updateRisk, type RiskInput } from "../core/risk.js";
++import type { RiskStatus, RiskTreatmentStrategy } from "../core/types.js";
++
++type OutputOptions = { json?: boolean };
++
++function output(value: unknown, json = false): number {
++  if (json) {
++    console.log(JSON.stringify(value, null, 2));
++  } else {
++    console.log(JSON.stringify(value, null, 2));
++  }
++  return 0;
++}
++
++function run(action: () => unknown, options: OutputOptions): number {
++  try {
++    return output(action(), options.json ?? false);
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error);
++    if (options.json) console.log(JSON.stringify({ version: "scwbs.risk-error.v1", status: "error", error: message }));
++    else console.error(message);
++    return 1;
++  }
++}
++
++export function runRiskList(root: string, options: OutputOptions & { limit?: string } = {}): number {
++  return run(() => {
++    const limit = Math.max(1, Math.min(100, Number(options.limit ?? 100) || 100));
++    const entries = listRisks(root).slice(0, limit);
++    return {
++      version: "scwbs.risk-list.v1",
++      risks: entries.filter((entry) => entry.risk).map((entry) => summarizeRisk(root, entry.risk!)),
++      issues: entries.flatMap((entry) => entry.issues)
++    };
++  }, options);
++}
++
++export function runRiskShow(root: string, id: string, options: OutputOptions = {}): number {
++  return run(() => {
++    const entry = listRisks(root).find((candidate) => candidate.risk?.id === id);
++    if (!entry?.risk) throw new Error(`${id} was not found or is invalid`);
++    return { version: "scwbs.risk-show.v1", risk: entry.risk, summary: summarizeRisk(root, entry.risk), acceptanceStatus: riskAcceptanceStatus(root, entry.risk), issues: entry.issues };
++  }, options);
++}
++
++function parseNumber(value: string | undefined, name: string, fallback?: number): number {
++  const parsed = value === undefined ? fallback : Number(value);
++  if (!Number.isInteger(parsed) || parsed === undefined) throw new Error(`${name} must be an integer`);
++  return parsed;
++}
++
++function parseInput(options: Record<string, unknown>, id?: string): RiskInput {
++  const value = (key: string) => options[key] as string | undefined;
++  const input: RiskInput = {
++    id: id ?? value("id") ?? "",
++    title: value("title") ?? "",
++    likelihood: parseNumber(value("likelihood"), "--likelihood"),
++    impact: parseNumber(value("impact"), "--impact"),
++    owner: value("owner") ?? "",
++    strategy: value("strategy") as RiskTreatmentStrategy | undefined,
++    actions: value("actions"),
++    verification: value("verification"),
++    tasks: value("tasks"),
++    specs: value("specs"),
++    requirements: value("requirements"),
++    status: value("status") as RiskStatus | undefined
++  };
++  if (!input.id || !input.title || !input.owner) throw new Error("--id, --title, and --owner are required");
++  return input;
++}
++
++export function runRiskAdd(root: string, options: Record<string, unknown> & OutputOptions): number {
++  return run(() => ({ version: "scwbs.risk-operation.v1", operation: "add", dryRun: Boolean(options.dryRun), risk: addRisk(root, parseInput(options), Boolean(options.dryRun)) }), options);
++}
++
++export function runRiskUpdate(root: string, id: string, options: Record<string, unknown> & OutputOptions): number {
++  const current = listRisks(root).find((entry) => entry.risk?.id === id)?.risk;
++  if (!current) return run(() => { throw new Error(`${id} was not found or is invalid`); }, options);
++  const merged = {
++    ...options,
++    title: options.title ?? current.title,
++    likelihood: options.likelihood ?? String(current.assessment.likelihood),
++    impact: options.impact ?? String(current.assessment.impact),
++    owner: options.owner ?? current.treatment.owner
++  };
++  return run(() => ({ version: "scwbs.risk-operation.v1", operation: "update", dryRun: Boolean(options.dryRun), risk: updateRisk(root, id, parseInput(merged, id), Boolean(options.dryRun)) }), options);
++}
++
++export function runRiskAccept(root: string, id: string, options: OutputOptions & { actor?: string; reason?: string }): number {
++  return run(() => ({ version: "scwbs.risk-operation.v1", operation: "accept", risk: acceptRisk(root, id, options.actor ?? "", options.reason ?? "") }), options);
++}
+diff --git a/src/commands/trace.ts b/src/commands/trace.ts
+index 9c7c4ee..7f6bd80 100644
+--- a/src/commands/trace.ts
++++ b/src/commands/trace.ts
+@@ -1,10 +1,11 @@
+-import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
++import { listRisks, readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
+ import { readWbs } from "../core/wbs.js";
++import { summarizeRisk } from "../core/risk.js";
+ import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+ 
+ export type TraceJsonNode = {
+   id: string;
+-  kind: "spec" | "wbs" | "task" | "evidence" | "review" | "approval";
++  kind: "spec" | "wbs" | "task" | "evidence" | "review" | "approval" | "risk" | "requirement";
+   status: string;
+   label?: string;
+   code?: string;
+@@ -59,6 +60,26 @@ export function buildTraceJson(root: string, taskId: string): TraceJsonOutput {
+     nodes.push({ id, kind: item.kind, status: item.status, label: item.value.id });
+     edges.push({ from: taskNodeId, to: id, kind: item.relation });
+   }
++  const riskEntries = listRisks(root).filter((entry) => entry.risk && (
++    entry.risk.scope.tasks.includes(task.id)
++    || (spec !== undefined && entry.risk.scope.specs.includes(spec.id))
++  ));
++  for (const entry of riskEntries) {
++    if (!entry.risk) continue;
++    const risk = entry.risk;
++    const riskNodeId = `risk:${risk.id}`;
++    const summary = summarizeRisk(root, risk);
++    nodes.push({ id: riskNodeId, kind: "risk", status: risk.status, label: risk.title, code: `${summary.level}:${summary.acceptanceStatus}` });
++    edges.push({ from: taskNodeId, to: riskNodeId, kind: "risk" });
++    if (spec && risk.scope.specs.includes(spec.id)) edges.push({ from: `spec:${spec.id}`, to: riskNodeId, kind: "risk" });
++    for (const requirementId of risk.scope.requirements.slice(0, 50)) {
++      const requirementNodeId = `requirement:${requirementId}`;
++      if (!nodes.some((node) => node.id === requirementNodeId)) nodes.push({ id: requirementNodeId, kind: "requirement", status: "linked", label: requirementId });
++      edges.push({ from: requirementNodeId, to: riskNodeId, kind: "risk" });
++    }
++    if (evidence) edges.push({ from: riskNodeId, to: `evidence:${evidence.id}`, kind: "evidences" });
++    if (approval) edges.push({ from: riskNodeId, to: `approval:${approval.id}`, kind: "accepts" });
++  }
+   return { version: "scwbs.trace.v1", taskId: task.id, nodes, edges };
+ }
+ 
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index e95dfd6..ad6e1eb 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -13,6 +13,7 @@ import {
+   defaultEvidenceDir,
+   defaultRegistryPath,
+   defaultReviewsDir,
++  defaultRisksDir,
+   defaultSpecChangesDir,
+   defaultSpecsDir,
+   defaultTasksDir,
+@@ -64,8 +65,10 @@ import type {
+   SpecChangeProposal,
+   SpecContract,
+   SpecRequirement,
+-  TaskContract
++  TaskContract,
++  RiskRecord
+ } from "./types.js";
++import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+@@ -272,6 +275,19 @@ export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: I
+     });
+ }
+ 
++export function listRisks(root: string): Array<{ risk?: RiskRecord; issues: Issue[]; path: string }> {
++  const dir = resolveFrom(root, defaultRisksDir);
++  if (!existsSync(dir)) return [];
++  return readdirSync(dir)
++    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
++    .map((file) => {
++      const relativePath = `${defaultRisksDir}/${file}`;
++      const value = readYamlFile<unknown>(resolveFrom(root, relativePath));
++      const issues = [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)];
++      return { risk: issues.length === 0 ? asRiskRecord(value) : undefined, issues, path: relativePath };
++    });
++}
++
+ export function matchingSpecContract(registry: Registry | undefined, task: TaskContract): RegistryContract | undefined {
+   return registry?.contracts.find((contract) => {
+     if (contract.type !== "spec") return false;
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index c58c48c..f21bbe0 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -11,6 +11,7 @@ export const defaultEvidencePayloadsDir = "contracts/evidence-payloads";
+ export const defaultApprovalsDir = "contracts/approvals";
+ export const defaultReviewsDir = "contracts/reviews";
+ export const defaultBlocksDir = "contracts/blocks";
++export const defaultRisksDir = "contracts/risks";
+ export const defaultChangesetsDir = "contracts/changesets";
+ export const defaultCheckCoveragePath = "contracts/check-coverage.yaml";
+ export const taskIdPatternSource = "^[A-Za-z0-9][A-Za-z0-9._-]*$";
+diff --git a/src/core/risk.ts b/src/core/risk.ts
+new file mode 100644
+index 0000000..504488c
+--- /dev/null
++++ b/src/core/risk.ts
+@@ -0,0 +1,219 @@
++import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { listRisks, readEvidence } from "./contracts.js";
++import { defaultRisksDir, resolveFrom } from "./paths.js";
++import { stringifySimpleYaml } from "./yaml.js";
++import type { Evidence, Issue, Profile, RiskAcceptance, RiskLevel, RiskRecord, RiskStatus, RiskTreatmentStrategy } from "./types.js";
++
++export const riskSchemaVersion = "scwbs.risk.v1" as const;
++export const riskLevels: Readonly<Record<RiskLevel, { minimum: number; maximum: number }>> = {
++  low: { minimum: 1, maximum: 4 },
++  medium: { minimum: 5, maximum: 9 },
++  high: { minimum: 10, maximum: 16 },
++  critical: { minimum: 17, maximum: 25 }
++};
++
++const MAX_RISKS = 100;
++const MAX_ITEMS = 50;
++
++export type RiskAcceptanceStatus = "valid" | "missing" | "stale";
++
++export function riskScore(likelihood: number, impact: number): number {
++  if (!Number.isInteger(likelihood) || likelihood < 1 || likelihood > 5) throw new Error("Risk likelihood must be an integer from 1 to 5");
++  if (!Number.isInteger(impact) || impact < 1 || impact > 5) throw new Error("Risk impact must be an integer from 1 to 5");
++  return likelihood * impact;
++}
++
++export function riskLevel(score: number): RiskLevel {
++  if (!Number.isInteger(score) || score < 1 || score > 25) throw new Error("Risk score must be an integer from 1 to 25");
++  if (score <= 4) return "low";
++  if (score <= 9) return "medium";
++  if (score <= 16) return "high";
++  return "critical";
++}
++
++function evidenceSubject(evidence: Evidence | undefined): { subjectHeadCommit?: string; diffHash?: string } {
++  return {
++    subjectHeadCommit: evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit,
++    diffHash: evidence?.diffHash ?? evidence?.git?.diffHash
++  };
++}
++
++function linkedEvidence(root: string, risk: RiskRecord): Evidence | undefined {
++  for (const taskId of risk.scope.tasks.slice(0, MAX_ITEMS)) {
++    const result = readEvidence(root, taskId);
++    if (result.evidence) return result.evidence;
++  }
++  return undefined;
++}
++
++export function riskAcceptanceStatus(root: string, risk: RiskRecord): RiskAcceptanceStatus {
++  if (!risk.acceptance) return "missing";
++  const subject = evidenceSubject(linkedEvidence(root, risk));
++  if (!subject.subjectHeadCommit || !subject.diffHash) return "stale";
++  return risk.acceptance.subjectHeadCommit === subject.subjectHeadCommit && risk.acceptance.diffHash === subject.diffHash ? "valid" : "stale";
++}
++
++export function riskCurrentSubject(root: string, risk: RiskRecord): { subjectHeadCommit?: string; diffHash?: string } {
++  return evidenceSubject(linkedEvidence(root, risk));
++}
++
++export type RiskSummary = {
++  id: string;
++  title: string;
++  status: RiskStatus;
++  score: number;
++  level: RiskLevel;
++  residualScore: number;
++  residualLevel: RiskLevel;
++  owner: string;
++  treatment: RiskTreatmentStrategy;
++  acceptanceStatus: RiskAcceptanceStatus;
++  scope: RiskRecord["scope"];
++};
++
++export function summarizeRisk(root: string, risk: RiskRecord): RiskSummary {
++  return {
++    id: risk.id,
++    title: risk.title,
++    status: risk.status,
++    score: risk.assessment.score,
++    level: risk.assessment.level,
++    residualScore: risk.residualRisk.score,
++    residualLevel: risk.residualRisk.level,
++    owner: risk.treatment.owner,
++    treatment: risk.treatment.strategy,
++    acceptanceStatus: riskAcceptanceStatus(root, risk),
++    scope: risk.scope
++  };
++}
++
++export function collectRiskIssues(root: string, profile: Profile): Issue[] {
++  if (profile !== "Strict") return [];
++  const issues: Issue[] = [];
++  for (const entry of listRisks(root).slice(0, MAX_RISKS)) {
++    issues.push(...entry.issues);
++    if (!entry.risk || entry.issues.length > 0 || entry.risk.status === "closed") continue;
++    const risk = entry.risk;
++    const linked = risk.scope.tasks.length + risk.scope.specs.length + risk.scope.requirements.length > 0;
++    if (!linked) continue;
++    if ((risk.assessment.level === "high" || risk.assessment.level === "critical") && risk.treatment.actions.length === 0) {
++      issues.push({
++        severity: "error",
++        code: "risk.treatment.required",
++        message: `${risk.id} is ${risk.assessment.level} and has no treatment action`,
++        fixCommand: `npm run scwbs -- risk update ${risk.id} --actions "<treatment action>" --json`
++      });
++    }
++    if ((risk.residualRisk.level === "high" || risk.residualRisk.level === "critical") && riskAcceptanceStatus(root, risk) !== "valid") {
++      const status = riskAcceptanceStatus(root, risk);
++      issues.push({
++        severity: "error",
++        code: status === "stale" ? "risk.acceptance.stale" : "risk.acceptance.required",
++        message: `${risk.id} residual risk is ${risk.residualRisk.level} and Human acceptance is ${status}`,
++        remediation: { kind: "guidance", owner: "human", message: `Review the current Evidence subject and accept ${risk.id} as a human if appropriate.` }
++      });
++    }
++  }
++  return issues;
++}
++
++function safeRiskPath(id: string): string {
++  if (!/^RISK-[A-Z0-9][A-Z0-9._-]*$/.test(id)) throw new Error("Invalid risk id");
++  return `${defaultRisksDir}/${id}.yaml`;
++}
++
++function list(value: string | string[] | undefined): string[] {
++  const values = Array.isArray(value) ? value : value ? [value] : [];
++  return Array.from(new Set(values.flatMap((item) => item.split(",").map((part) => part.trim()).filter(Boolean)))).slice(0, MAX_ITEMS);
++}
++
++export type RiskInput = {
++  id: string;
++  title: string;
++  likelihood: number;
++  impact: number;
++  owner: string;
++  strategy?: RiskTreatmentStrategy;
++  actions?: string | string[];
++  verification?: string | string[];
++  tasks?: string | string[];
++  specs?: string | string[];
++  requirements?: string | string[];
++  status?: RiskStatus;
++  now?: string;
++};
++
++function buildRisk(input: RiskInput, previous?: RiskRecord): RiskRecord {
++  const score = riskScore(input.likelihood, input.impact);
++  const priorResidual = previous?.residualRisk;
++  const treatment: RiskRecord["treatment"] = {
++    strategy: input.strategy ?? previous?.treatment.strategy ?? "mitigate",
++    owner: input.owner.trim() || previous?.treatment.owner || "unassigned",
++    actions: list(input.actions ?? previous?.treatment.actions),
++    verification: list(input.verification ?? previous?.treatment.verification)
++  };
++  const residualLikelihood = priorResidual?.likelihood ?? input.likelihood;
++  const residualImpact = priorResidual?.impact ?? input.impact;
++  const residualScore = riskScore(residualLikelihood, residualImpact);
++  return {
++    schemaVersion: riskSchemaVersion,
++    id: input.id,
++    type: "risk",
++    title: input.title.trim() || previous?.title || input.id,
++    status: input.status ?? previous?.status ?? "open",
++    scope: {
++      tasks: list(input.tasks ?? previous?.scope.tasks),
++      specs: list(input.specs ?? previous?.scope.specs),
++      requirements: list(input.requirements ?? previous?.scope.requirements)
++    },
++    assessment: { likelihood: input.likelihood as 1 | 2 | 3 | 4 | 5, impact: input.impact as 1 | 2 | 3 | 4 | 5, score, level: riskLevel(score) },
++    treatment,
++    residualRisk: {
++      likelihood: residualLikelihood as 1 | 2 | 3 | 4 | 5,
++      impact: residualImpact as 1 | 2 | 3 | 4 | 5,
++      score: residualScore,
++      level: riskLevel(residualScore)
++    },
++    ...(previous?.acceptance ? { acceptance: previous.acceptance } : {}),
++    createdAt: previous?.createdAt ?? input.now ?? new Date().toISOString(),
++    ...(previous ? { updatedAt: input.now ?? new Date().toISOString() } : {})
++  };
++}
++
++export function addRisk(root: string, input: RiskInput, dryRun = false): RiskRecord {
++  const relativePath = safeRiskPath(input.id);
++  const fullPath = resolveFrom(root, relativePath);
++  if (existsSync(fullPath)) throw new Error(`${relativePath} already exists; use risk update`);
++  const risk = buildRisk(input);
++  if (!dryRun) {
++    mkdirSync(path.dirname(fullPath), { recursive: true });
++    writeFileSync(fullPath, stringifySimpleYaml(risk as unknown as Record<string, unknown>), "utf8");
++  }
++  return risk;
++}
++
++export function updateRisk(root: string, id: string, input: Omit<RiskInput, "id">, dryRun = false): RiskRecord {
++  const relativePath = safeRiskPath(id);
++  const entry = listRisks(root).find((candidate) => candidate.path === relativePath);
++  if (!entry?.risk) throw new Error(`${relativePath} does not exist or is invalid`);
++  const risk = buildRisk({ ...input, id }, entry.risk);
++  if (!dryRun) writeFileSync(resolveFrom(root, relativePath), stringifySimpleYaml(risk as unknown as Record<string, unknown>), "utf8");
++  return risk;
++}
++
++export function acceptRisk(root: string, id: string, actor: string, reason: string, now = new Date().toISOString()): RiskRecord {
++  if (actor !== "human") throw new Error("risk.accept.human-only: only a human actor may accept a risk");
++  const relativePath = safeRiskPath(id);
++  const entry = listRisks(root).find((candidate) => candidate.path === relativePath);
++  if (!entry?.risk) throw new Error(`${relativePath} does not exist or is invalid`);
++  const risk = entry.risk;
++  const subject = riskCurrentSubject(root, risk);
++  if (!subject.subjectHeadCommit || !subject.diffHash) throw new Error("risk.accept.subject-missing: linked current Evidence subjectHeadCommit and diffHash are required");
++  const expected = `CONFIRM TTY RISK ${id} ${subject.subjectHeadCommit} ${subject.diffHash}`;
++  if (reason !== expected) throw new Error(`risk.accept.confirmation-required: exact reason required: ${expected}`);
++  const acceptance: RiskAcceptance = { acceptedBy: "human", acceptedAt: now, subjectHeadCommit: subject.subjectHeadCommit, diffHash: subject.diffHash, reason };
++  const updated: RiskRecord = { ...risk, status: "accepted", acceptance, updatedAt: now };
++  writeFileSync(resolveFrom(root, relativePath), stringifySimpleYaml(updated as unknown as Record<string, unknown>), "utf8");
++  return updated;
++}
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index a28e2c0..47ec0fd 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -1,5 +1,5 @@
+ import type { ErrorObject } from "ajv";
+-import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from "../types.js";
++import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord, RiskRecord } from "../types.js";
+ import { taskIdPatternSource } from "../paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+ 
+@@ -411,10 +411,81 @@ const reviewRecordSchema = {
+   }
+ };
+ 
++const riskRecordSchema = {
++  type: "object",
++  required: ["schemaVersion", "id", "type", "title", "status", "scope", "assessment", "treatment", "residualRisk", "createdAt"],
++  additionalProperties: false,
++  properties: {
++    schemaVersion: { const: "scwbs.risk.v1" },
++    id: { type: "string", pattern: "^RISK-[A-Z0-9][A-Z0-9._-]*$" },
++    type: { const: "risk" },
++    title: { type: "string", minLength: 1 },
++    status: { enum: ["open", "mitigated", "accepted", "closed"] },
++    scope: {
++      type: "object",
++      required: ["specs", "tasks", "requirements"],
++      additionalProperties: false,
++      properties: {
++        specs: { type: "array", items: { type: "string", minLength: 1 } },
++        tasks: { type: "array", items: { type: "string", minLength: 1 } },
++        requirements: { type: "array", items: { type: "string", minLength: 1 } }
++      }
++    },
++    assessment: {
++      type: "object",
++      required: ["likelihood", "impact", "score", "level"],
++      additionalProperties: false,
++      properties: {
++        likelihood: { type: "integer", minimum: 1, maximum: 5 },
++        impact: { type: "integer", minimum: 1, maximum: 5 },
++        score: { type: "integer", minimum: 1, maximum: 25 },
++        level: { enum: ["low", "medium", "high", "critical"] }
++      }
++    },
++    treatment: {
++      type: "object",
++      required: ["strategy", "owner", "actions", "verification"],
++      additionalProperties: false,
++      properties: {
++        strategy: { enum: ["avoid", "mitigate", "transfer", "accept"] },
++        owner: { type: "string", minLength: 1 },
++        actions: { type: "array", items: { type: "string", minLength: 1 } },
++        verification: { type: "array", items: { type: "string", minLength: 1 } }
++      }
++    },
++    residualRisk: {
++      type: "object",
++      required: ["likelihood", "impact", "score", "level"],
++      additionalProperties: false,
++      properties: {
++        likelihood: { type: "integer", minimum: 1, maximum: 5 },
++        impact: { type: "integer", minimum: 1, maximum: 5 },
++        score: { type: "integer", minimum: 1, maximum: 25 },
++        level: { enum: ["low", "medium", "high", "critical"] }
++      }
++    },
++    acceptance: {
++      type: "object",
++      required: ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
++      additionalProperties: false,
++      properties: {
++        acceptedBy: { const: "human" },
++        acceptedAt: { type: "string", minLength: 1 },
++        subjectHeadCommit: { type: "string", minLength: 1 },
++        diffHash: { type: "string", minLength: 1 },
++        reason: { type: "string", minLength: 1 }
++      }
++    },
++    createdAt: { type: "string", minLength: 1 },
++    updatedAt: { type: "string", minLength: 1 }
++  }
++};
++
+ const validateEvidenceAjv = ajv.compile(evidenceSchema);
+ const validateApprovalAjv = ajv.compile(approvalRecordSchema);
+ const validateBlockAjv = ajv.compile(blockRecordSchema);
+ const validateReviewAjv = ajv.compile(reviewRecordSchema);
++const validateRiskAjv = ajv.compile(riskRecordSchema);
+ 
+ function schemaIssues(validate: ReturnType<typeof ajv.compile>, kind: string, value: unknown, filePath: string): Issue[] {
+   if (validate(value)) return [];
+@@ -716,3 +787,43 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
+   }
+   return issues;
+ }
++
++/* ── Risk Register ── */
++
++export function validateRiskRecordSchema(value: unknown, filePath = "risk"): Issue[] {
++  return schemaIssues(validateRiskAjv, "risk", value, filePath);
++}
++
++export function asRiskRecord(value: unknown): RiskRecord {
++  return value as RiskRecord;
++}
++
++function riskLevelForScore(score: number): string {
++  if (score <= 4) return "low";
++  if (score <= 9) return "medium";
++  if (score <= 16) return "high";
++  return "critical";
++}
++
++export function validateRiskRecord(value: unknown, filePath = "risk"): Issue[] {
++  const issues = validateRiskRecordSchema(value, filePath);
++  if (!isObject(value)) return issues;
++  const assessment = isObject(value.assessment) ? value.assessment : undefined;
++  const residual = isObject(value.residualRisk) ? value.residualRisk : undefined;
++  for (const [name, section] of [["assessment", assessment], ["residualRisk", residual]] as const) {
++    if (!section) continue;
++    const likelihood = Number(section.likelihood);
++    const impact = Number(section.impact);
++    const score = Number(section.score);
++    if (Number.isInteger(likelihood) && Number.isInteger(impact) && score !== likelihood * impact) {
++      issues.push(issue("risk.score.mismatch", `${filePath}.${name}.score must equal likelihood * impact`));
++    }
++    if (Number.isInteger(score) && section.level !== riskLevelForScore(score)) {
++      issues.push(issue("risk.level.mismatch", `${filePath}.${name}.level does not match the fixed risk level algorithm`));
++    }
++  }
++  if (isObject(value.acceptance) && value.acceptance.acceptedBy !== "human") {
++    issues.push(issue("risk.acceptance.human-only", `${filePath}.acceptance.acceptedBy must be human`));
++  }
++  return issues;
++}
+diff --git a/src/core/schema/registries.ts b/src/core/schema/registries.ts
+index 9f93e39..a352892 100644
+--- a/src/core/schema/registries.ts
++++ b/src/core/schema/registries.ts
+@@ -16,7 +16,7 @@ const registrySchema = {
+         additionalProperties: true,
+         properties: {
+           id: { type: "string", minLength: 1 },
+-          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
++          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "risk", "adr"] },
+           path: { type: "string", minLength: 1 },
+           status: { type: "string" },
+           active: { type: "boolean" },
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 2a35d20..e670575 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -29,7 +29,7 @@ export type Issue = {
+ };
+ 
+ export type RegistryContractType =
+-  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
++  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "risk" | "adr";
+ 
+ export type RegistryContract = {
+   id: string;
+@@ -509,6 +509,52 @@ export type ReviewRecord = {
+ 
+ export type Profile = "Lean" | "Standard" | "Strict";
+ 
++export type RiskLevel = "low" | "medium" | "high" | "critical";
++export type RiskStatus = "open" | "mitigated" | "accepted" | "closed";
++export type RiskTreatmentStrategy = "avoid" | "mitigate" | "transfer" | "accept";
++
++export type RiskAcceptance = {
++  acceptedBy: "human";
++  acceptedAt: string;
++  subjectHeadCommit: string;
++  diffHash: string;
++  reason: string;
++};
++
++export type RiskRecord = {
++  schemaVersion: "scwbs.risk.v1";
++  id: string;
++  type: "risk";
++  title: string;
++  status: RiskStatus;
++  scope: {
++    specs: string[];
++    tasks: string[];
++    requirements: string[];
++  };
++  assessment: {
++    likelihood: 1 | 2 | 3 | 4 | 5;
++    impact: 1 | 2 | 3 | 4 | 5;
++    score: number;
++    level: RiskLevel;
++  };
++  treatment: {
++    strategy: RiskTreatmentStrategy;
++    owner: string;
++    actions: string[];
++    verification: string[];
++  };
++  residualRisk: {
++    likelihood: 1 | 2 | 3 | 4 | 5;
++    impact: 1 | 2 | 3 | 4 | 5;
++    score: number;
++    level: RiskLevel;
++  };
++  acceptance?: RiskAcceptance;
++  createdAt: string;
++  updatedAt?: string;
++};
++
+ export type Agent = "codex" | "claude" | "cursor" | "copilot" | "gemini" | "opencode";
+ 
+ export type Language = "ja" | "en";
+diff --git a/tests/integration/risk.test.ts b/tests/integration/risk.test.ts
+new file mode 100644
+index 0000000..856b7b0
+--- /dev/null
++++ b/tests/integration/risk.test.ts
+@@ -0,0 +1,29 @@
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { makeTempRepo } from "../helpers.js";
++
++function capture(root: string, args: string[]): { exitCode: number; stdout: string } {
++  const output: string[] = [];
++  const originalLog = console.log;
++  const originalError = console.error;
++  console.log = ((...values: unknown[]) => output.push(`${values.join(" ")}\n`)) as typeof console.log;
++  console.error = ((...values: unknown[]) => output.push(`${values.join(" ")}\n`)) as typeof console.error;
++  try { return { exitCode: main(args, root), stdout: output.join("") }; }
++  finally { console.log = originalLog; console.error = originalError; }
++}
++
++describe("risk CLI", () => {
++  test("supports bounded add/list/show/update JSON and rejects non-human acceptance", () => {
++    const root = makeTempRepo();
++    const added = capture(root, ["risk", "add", "--id", "RISK-CLI", "--title", "CLI risk", "--likelihood", "3", "--impact", "4", "--owner", "team", "--actions", "control", "--tasks", "TASK-001", "--json"]);
++    expect(added.exitCode).toBe(0);
++    expect(JSON.parse(added.stdout)).toMatchObject({ version: "scwbs.risk-operation.v1", risk: { id: "RISK-CLI", assessment: { score: 12, level: "high" } } });
++    expect(capture(root, ["risk", "list", "--json"]).stdout).toContain("scwbs.risk-list.v1");
++    expect(capture(root, ["risk", "show", "RISK-CLI", "--json"]).exitCode).toBe(0);
++    const updated = capture(root, ["risk", "update", "RISK-CLI", "--actions", "verify", "--json"]);
++    expect(updated.exitCode).toBe(0);
++    const rejected = capture(root, ["risk", "accept", "RISK-CLI", "--actor", "ai-agent", "--reason", "anything", "--json"]);
++    expect(rejected.exitCode).toBe(1);
++    expect(JSON.parse(rejected.stdout)).toMatchObject({ version: "scwbs.risk-error.v1", status: "error" });
++  });
++});
+diff --git a/tests/unit/risk.test.ts b/tests/unit/risk.test.ts
+new file mode 100644
+index 0000000..8dda51e
+--- /dev/null
++++ b/tests/unit/risk.test.ts
+@@ -0,0 +1,54 @@
++import { describe, expect, test } from "vitest";
++import { collectRiskIssues, riskAcceptanceStatus, riskLevel, riskScore } from "../../src/core/risk.js";
++import { listRisks } from "../../src/core/contracts.js";
++import { writeYaml, makeTempRepo, sampleEvidence } from "../helpers.js";
++
++function risk(overrides: Record<string, unknown> = {}): Record<string, unknown> {
++  return {
++    schemaVersion: "scwbs.risk.v1",
++    id: "RISK-AUTH",
++    type: "risk",
++    title: "Authentication risk",
++    status: "open",
++    scope: { tasks: ["TASK-001"], specs: ["SPEC-001"], requirements: ["REQ-001"] },
++    assessment: { likelihood: 4, impact: 4, score: 16, level: "high" },
++    treatment: { strategy: "mitigate", owner: "security", actions: ["Add control"], verification: ["Run check"] },
++    residualRisk: { likelihood: 4, impact: 4, score: 16, level: "high" },
++    createdAt: "2026-08-12T00:00:00+09:00",
++    ...overrides
++  };
++}
++
++describe("Risk Register v1", () => {
++  test("uses the non-configurable product score and level boundaries", () => {
++    expect(riskScore(1, 1)).toBe(1);
++    expect(riskScore(2, 2)).toBe(4);
++    expect(riskScore(3, 3)).toBe(9);
++    expect(riskScore(4, 4)).toBe(16);
++    expect(riskScore(5, 5)).toBe(25);
++    expect(riskLevel(4)).toBe("low");
++    expect(riskLevel(5)).toBe("medium");
++    expect(riskLevel(10)).toBe("high");
++    expect(riskLevel(17)).toBe("critical");
++  });
++
++  test("fails Strict high risk without treatment and acceptance, but leaves Standard unchanged", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/risks/RISK-AUTH.yaml", risk({ treatment: { strategy: "mitigate", owner: "security", actions: [], verification: [] } }));
++    const strict = collectRiskIssues(root, "Strict");
++    expect(strict.map((item) => item.code)).toEqual(expect.arrayContaining(["risk.treatment.required", "risk.acceptance.required"]));
++    expect(collectRiskIssues(root, "Standard")).toEqual([]);
++    expect(collectRiskIssues(root, "Lean")).toEqual([]);
++  });
++
++  test("marks acceptance stale when the linked Evidence subject changes", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/TASK-001.yaml", sampleEvidence({ taskId: "TASK-001", subjectHeadCommit: "head-1", diffHash: "sha256:one" }));
++    writeYaml(root, "contracts/risks/RISK-AUTH.yaml", risk({ acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", subjectHeadCommit: "head-1", diffHash: "sha256:one", reason: "reviewed" } }));
++    const entry = listRisks(root)[0];
++    expect(entry?.risk).toBeDefined();
++    expect(riskAcceptanceStatus(root, entry!.risk!)).toBe("valid");
++    writeYaml(root, "contracts/evidence/TASK-001.yaml", sampleEvidence({ taskId: "TASK-001", subjectHeadCommit: "head-2", diffHash: "sha256:two" }));
++    expect(riskAcceptanceStatus(root, entry!.risk!)).toBe("stale");
++  });
++});
