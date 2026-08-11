@@ -111,7 +111,7 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 
 `agent list --json` and `agent inspect <id> --json` expose bounded registry metadata. `agent doctor --all --json` checks every registered adapter's repository-relative paths and reports `ready`, `preview`, or `error`. Absolute paths, traversal, and symlink escapes fail closed; these commands never execute an agent or shell command.
 
-`update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+`update` refreshes all managed agents, or one with `--agent`. `update --lang <locale>` explicitly switches the generated guidance locale and `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics; divergent user-owned files are never overwritten.
 
 `task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
 

@@ -13,7 +13,18 @@ const commonKeys = [
   "agent.header",
   "agent.intro",
   "agent.handoff",
-  "agent.rules"
+  "agent.rules",
+  "agent.guidance.common"
+] as const;
+
+export const LOCALE_MESSAGE_KEYS = [
+  ...commonKeys,
+  "agent.guidance.codex",
+  "agent.guidance.claude",
+  "agent.guidance.cursor",
+  "agent.guidance.copilot",
+  "agent.guidance.gemini",
+  "agent.guidance.opencode"
 ] as const;
 
 const bundles: readonly LocaleBundle[] = [
@@ -25,7 +36,14 @@ const bundles: readonly LocaleBundle[] = [
       "agent.header": "# SC-WBS",
       "agent.intro": "Follow AGENTS.md and Task Contract.",
       "agent.handoff": "Use English for handoffs.",
-      "agent.rules": "- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions."
+      "agent.rules": "- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions.",
+      "agent.guidance.common": "Use the SC-WBS workflow.",
+      "agent.guidance.codex": "Use scwbs packet --task <id>.",
+      "agent.guidance.claude": "Use npm run scwbs -- packet --task <id>.",
+      "agent.guidance.cursor": "Use the Task Contract for every edit.",
+      "agent.guidance.copilot": "Use SC-WBS CLI commands through npm.",
+      "agent.guidance.gemini": "Use npm run scwbs -- packet --task <id>.",
+      "agent.guidance.opencode": "Use the Task Contract for every edit."
     }
   },
   {
@@ -34,9 +52,16 @@ const bundles: readonly LocaleBundle[] = [
     fallback: "en",
     messages: {
       "agent.header": "# SC-WBS",
-      "agent.intro": "Follow AGENTS.md and Task Contract.",
+      "agent.intro": "AGENTS.md と Task Contract に従ってください。",
       "agent.handoff": "Use Japanese for handoffs when practical.",
-      "agent.rules": "- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions."
+      "agent.rules": "- 許可されたパス内に留まってください。\n- チェックを実行し、Evidence を収集してください。\n- Human Gate、スキーマ、依存関係、認証、リリースに関する判断では停止してください。",
+      "agent.guidance.common": "SC-WBS のワークフローを使用してください。",
+      "agent.guidance.codex": "scwbs packet --task <id> を使用してください。",
+      "agent.guidance.claude": "npm run scwbs -- packet --task <id> を使用してください。",
+      "agent.guidance.cursor": "すべての編集で Task Contract を使用してください。",
+      "agent.guidance.copilot": "SC-WBS CLI コマンドは npm 経由で実行してください。",
+      "agent.guidance.gemini": "npm run scwbs -- packet --task <id> を使用してください。",
+      "agent.guidance.opencode": "すべての編集で Task Contract を使用してください。"
     }
   },
   {
@@ -47,7 +72,14 @@ const bundles: readonly LocaleBundle[] = [
       "agent.header": "# SC-WBS",
       "agent.intro": "Suivez AGENTS.md et le Task Contract.",
       "agent.handoff": "Utilisez le français pour les transmissions lorsque c'est possible.",
-      "agent.rules": "- Restez dans les chemins autorisés.\n- Exécutez les vérifications et collectez les Evidence.\n- Arrêtez-vous pour un Human Gate ou une décision de schéma, dépendance, authentification ou publication."
+      "agent.rules": "- Restez dans les chemins autorisés.\n- Exécutez les vérifications et collectez les Evidence.\n- Arrêtez-vous pour un Human Gate ou une décision de schéma, dépendance, authentification ou publication.",
+      "agent.guidance.common": "Utilisez le workflow SC-WBS.",
+      "agent.guidance.codex": "Utilisez scwbs packet --task <id>.",
+      "agent.guidance.claude": "Utilisez npm run scwbs -- packet --task <id>.",
+      "agent.guidance.cursor": "Utilisez le Task Contract pour chaque modification.",
+      "agent.guidance.copilot": "Utilisez les commandes CLI SC-WBS via npm.",
+      "agent.guidance.gemini": "Utilisez npm run scwbs -- packet --task <id>.",
+      "agent.guidance.opencode": "Utilisez le Task Contract pour chaque modification."
     }
   }
 ];
@@ -97,6 +129,11 @@ export function validateLocaleBundle(bundle: unknown, reference: LocaleBundle = 
   return issues;
 }
 
+export function validateLocaleKeys(keys: readonly string[]): string[] {
+  const available = new Set<string>(LOCALE_MESSAGE_KEYS);
+  return [...new Set(keys.filter((key) => !available.has(key)).map((key) => `locale.key.unknown:${key}`))];
+}
+
 export function validateLocaleBundles(input: readonly LocaleBundle[] = bundles): string[] {
   const issues: string[] = [];
   const ids = new Set<string>();
@@ -128,10 +165,15 @@ export function localeMessage(locale: string | undefined, key: string): string {
   return message;
 }
 
-export function renderAgentGuidance(locale: string | undefined, adapterGuidance: string): string {
+export function renderAgentGuidance(locale: string | undefined, adapterGuidance: string, adapterLocaleKey?: string): string {
   const resolved = resolveLocale(locale);
+  const bundleIssues = validateLocaleBundles();
+  if (bundleIssues.length > 0) throw new Error(`Invalid locale bundles: ${bundleIssues.join(",")}`);
   for (const key of commonKeys) if (!resolved.bundle.messages[key]) throw new Error(`Missing locale message: ${key}`);
-  return `${resolved.bundle.messages["agent.header"]}\n\n${resolved.bundle.messages["agent.intro"]}\n${resolved.bundle.messages["agent.handoff"]}\n\n${resolved.bundle.messages["agent.rules"]}\n\n${adapterGuidance}\n`;
+  if (adapterLocaleKey && validateLocaleKeys([adapterLocaleKey]).length > 0) throw new Error(`Unknown locale key: ${adapterLocaleKey}`);
+  const localizedAdapterGuidance = adapterLocaleKey ? resolved.bundle.messages[adapterLocaleKey] : adapterGuidance;
+  if (!localizedAdapterGuidance) throw new Error(`Missing locale message: ${adapterLocaleKey ?? "adapter guidance"}`);
+  return `${resolved.bundle.messages["agent.header"]}\n\n${resolved.bundle.messages["agent.intro"]}\n${resolved.bundle.messages["agent.handoff"]}\n\n${resolved.bundle.messages["agent.rules"]}\n\n${resolved.bundle.messages["agent.guidance.common"]}\n${localizedAdapterGuidance}\n`;
 }
 
 export function localeMetadata(language: string): string {

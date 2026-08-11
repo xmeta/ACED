@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import path from "node:path";
-import { renderAgentGuidance } from "./locales.js";
+import { renderAgentGuidance, validateLocaleKeys } from "./locales.js";
 import type { Agent } from "./types.js";
 
 export const AGENT_ADAPTER_SCHEMA_VERSION = "scwbs.agent-adapter.v1" as const;
@@ -103,7 +103,10 @@ export function agentNames(): string {
 export function renderAgentFiles(id: Agent, language: string): AgentAdapterFile[] {
   const adapter = getAgentAdapter(id);
   if (!adapter || adapter.status === "unsupported") throw new Error(`Unsupported agent adapter: ${id}`);
-  return adapter.files.map((file) => ({ path: file.path, guidance: `<!-- scwbs; keep customizations separate. -->\n\n${renderAgentGuidance(language, file.guidance)}` }));
+  const localeIssues = validateLocaleKeys(adapter.capabilities.localeKeys);
+  if (localeIssues.length > 0) throw new Error(`Invalid locale metadata for ${id}: ${localeIssues.join(",")}`);
+  const adapterLocaleKey = adapter.capabilities.localeKeys.find((key) => key !== "agent.guidance.common");
+  return adapter.files.map((file) => ({ path: file.path, guidance: `<!-- scwbs; keep customizations separate. -->\n\n${renderAgentGuidance(language, file.guidance, adapterLocaleKey)}` }));
 }
 
 export function assertSafeAgentPath(root: string, relativePath: string): string {
