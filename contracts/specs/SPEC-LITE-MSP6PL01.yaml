@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSP6PL01
+type: spec-contract
+featureId: F-MSP6PL01
+title: "Issue #554: localization correctness follow-up"
+status: approved
+version: 0.1.0
+summary: "complete generated guidance localization and provide safe existing-project locale switching with adapter key integrity"
+approvedBy: user-requested-issue-554
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "The ja bundle translates agent.intro and agent.rules into Japanese; stable identifiers such as SC-WBS, AGENTS.md, Task Contract, Evidence, and Human Gate are not translated when that preserves operational meaning."
+  - "Existing-project locale selection is deterministic: init --lang does not silently ignore an explicit locale request, and an explicit agent update locale path is available with dry-run/JSON decisions."
+  - "Locale changes only update files that are absent or still match the recorded managed hash; divergent and user-owned files are preserved."
+  - "Adapter-declared locale keys are validated against the bundle key registry and fail closed on missing or unknown keys; adapter-specific guidance is either localized by bundle or explicitly classified as stable non-translatable command text."
+  - "ja/en/fr rendered guidance, existing-project locale switching, fallback, malformed locale input, adapter key integrity, and divergent-file protection are covered by regression tests."
+  - "Stable JSON schema fields, machine error codes, authority/Human Gate semantics, dependencies, workflows, and distribution are unchanged."
