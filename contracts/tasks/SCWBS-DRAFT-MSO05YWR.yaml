@@ -1,0 +1,78 @@
+id: SCWBS-DRAFT-MSO05YWR
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSO05YWR
+branchName: task/SCWBS-DRAFT-MSO05YWR-issue-514-consumer-finish-first-quickstart-and-c
+allowedPaths:
+  - README.md
+  - CONTRIBUTING.md
+  - docs/scwbs/quickstart.md
+  - docs/scwbs/quickstart-commands.json
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/cli-reference.md
+  - scripts/distribution-smoke.mjs
+  - contracts/discovery/PROBE-issue-514-getting-started-finish-first.yaml
+  - contracts/specs/SPEC-LITE-MSO05YWR.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - src/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+stopIf:
+  - CLI behavior or release policy change required
+  - package or workflow change required
+  - methodology or contributor governance policy change required
+  - distribution policy or external release decision required
+  - scope expansion beyond consumer documentation and command smoke
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+status: approved
+approvedBy: user-requested-issue-514
+approvedAt: "2026-08-11T00:00:00+09:00"
+acceptanceCriteria:
+  - consumer quickstart is the primary first-use entrypoint and uses the installed CLI form such as npx scwbs rather than repository npm scripts
+  - README, Getting Started, and CLI Reference agree on the finish-first happy path and point to next for navigation when uncertain
+  - contributor setup remains explicitly separated in CONTRIBUTING.md and the advanced manual Evidence/registry/check-diff flow remains available for troubleshooting
+  - the quickstart documents GitHub Release tarball installation without requiring an ACED checkout or WJS submodule
+  - the quickstart includes a Human Gate example that tells AI to stop and routes approval to a human
+  - a versioned machine-readable quickstart command fixture is exercised by the existing distribution smoke against the installed tarball so command and option drift fails CI
+  - no package, workflow, CLI behavior, release policy, WBS, source, or dependency changes are introduced
+doneCriteria:
+  - 'Complete Issue #514: consumer finish-first quickstart and command smoke'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSO05YWR.yaml
+  - contracts/specs/SPEC-LITE-MSO05YWR.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSO05YWR.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSO05YWR.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSO05YWR.patch
+  - contracts/approvals/SCWBS-DRAFT-MSO05YWR.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSO05YWR.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0350ed6bb9322fd99c8809d2195236c39f76f43992c96eb38238e91b25a3c500
+  createdAt: "2026-08-11T01:51:34.265Z"

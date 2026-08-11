@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSO05YWR
+type: spec-contract
+featureId: F-MSO05YWR
+title: "Issue #514: consumer finish-first quickstart and command smoke"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-514
+approvedAt: "2026-08-11T00:00:00+09:00"
+summary: "consumer向けの配布tarball導入とfinish-first完了経路を最初の導線へ集約し、installed CLIのcommand driftをdistribution smokeで検出する"
+acceptanceCriteria:
+  - consumer quickstart is the primary first-use entrypoint and uses the installed CLI form such as npx scwbs rather than repository npm scripts
+  - README, Getting Started, and CLI Reference agree on the finish-first happy path and point to next for navigation when uncertain
+  - contributor setup remains explicitly separated in CONTRIBUTING.md and the advanced manual Evidence/registry/check-diff flow remains available for troubleshooting
+  - the quickstart documents GitHub Release tarball installation without requiring an ACED checkout or WJS submodule
+  - the quickstart includes a Human Gate example that tells AI to stop and routes approval to a human
+  - a versioned machine-readable quickstart command fixture is exercised by the existing distribution smoke against the installed tarball
+  - no package, workflow, CLI behavior, release policy, WBS, source, or dependency changes are introduced
+nonGoals:
+  - changing the distribution channel or publishing to npm
+  - changing CLI behavior or adding new commands
+  - deleting contributor or advanced governance documentation
