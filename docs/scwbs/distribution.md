@@ -20,7 +20,7 @@ ACED はその実行資産を配布用に変換して保持します。
 
 ## 互換性
 
-- Node.js: `>=22.12.0`
+- Node.js: `>=22.13.0` (required for the built-in `node:sqlite` module used by the local index)
 - npm: `>=10`（repository build と contributor setup）
 - standalone consumer はインストール済み scwbs package の Node engine を検査する
 - contributor は `git submodule update --init --recursive wjs` 後に repository の workspace を install する

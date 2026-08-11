@@ -22,7 +22,7 @@ The commands below assume an ACED checkout and are retained for contributors,
 debugging, and maintenance. They are not required for a consumer using the
 release tarball.
 
-Use Node.js `>=22.12.0` and npm `>=10`. This repository pins npm `10.9.0`
+Use Node.js `>=22.13.0` and npm `>=10`. This repository pins npm `10.9.0`
 through `packageManager`, so enable Corepack before installing dependencies.
 
 Install dependencies once:
