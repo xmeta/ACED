@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MSOLARUL
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOLARUL
+branchName: task/SCWBS-DRAFT-MSOLARUL-issue-532-data-driven-agent-adapters
+allowedPaths:
+  - src/cli.ts
+  - src/commands/init.ts
+  - src/core/agent-adapters.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+  - tests/unit/**
+  - tests/integration/**
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/cli.ts
+  - src/core/agent-adapters.ts
+  - contracts/check-coverage.yaml
+stopIf:
+  - Human Gate required
+  - additional paths
+  - agent policy or adapter schema decision
+  - dependency or auth change
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - 'Complete Issue #532 data-driven agent adapters'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOLARUL.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-11T11:41:49.413Z"
