@@ -55,6 +55,12 @@ describe("init + WBS validation", () => {
     ]));
   });
 
+  test("all adapter locale metadata points to validated bundle keys", () => {
+    const adapters = listAgentAdapters();
+    expect(adapters.every((adapter) => adapter.capabilities.localeKeys.includes("agent.guidance.common"))).toBe(true);
+    expect(adapters.every((adapter) => adapter.capabilities.localeKeys.includes(`agent.guidance.${adapter.id}`))).toBe(true);
+  });
+
   test("agent adapter paths fail closed for traversal and symlink escape", () => {
     const root = makeTempRepo();
     expect(() => assertSafeAgentPath(root, "../outside.md")).toThrow("Unsafe agent adapter path");

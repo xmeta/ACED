@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { listLocaleBundles, renderAgentGuidance, resolveLocale, validateLocaleBundle, validateLocaleBundles } from "../../src/core/locales.js";
+import { listLocaleBundles, renderAgentGuidance, resolveLocale, validateLocaleBundle, validateLocaleBundles, validateLocaleKeys } from "../../src/core/locales.js";
 
 describe("locale bundles", () => {
   test("bundles are versioned, complete, and include an extensibility fixture", () => {
@@ -15,6 +15,19 @@ describe("locale bundles", () => {
     expect(resolveLocale("en-US")).toMatchObject({ id: "en", fallbackUsed: false });
     expect(resolveLocale("unknown-locale")).toMatchObject({ id: "en", fallbackUsed: true });
     expect(renderAgentGuidance("fr", "Use scwbs packet --task <id>.")).toContain("Use scwbs packet --task <id>.");
+  });
+
+  test("Japanese guidance translates prose while retaining stable project terms", () => {
+    const guidance = renderAgentGuidance("ja", "Use scwbs packet --task <id>.", "agent.guidance.codex");
+    expect(guidance).toContain("AGENTS.md と Task Contract に従ってください。");
+    expect(guidance).toContain("許可されたパス内に留まってください。");
+    expect(guidance).toContain("scwbs packet --task <id>");
+    expect(guidance).not.toContain("Follow AGENTS.md and Task Contract.");
+  });
+
+  test("adapter locale metadata rejects unknown message keys", () => {
+    expect(validateLocaleKeys(["agent.guidance.codex", "agent.guidance.common"])).toEqual([]);
+    expect(validateLocaleKeys(["agent.guidance.missing"])).toEqual(["locale.key.unknown:agent.guidance.missing"]);
   });
 
   test("missing keys and placeholder mismatches fail closed", () => {

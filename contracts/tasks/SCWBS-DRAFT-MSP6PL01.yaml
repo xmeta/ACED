@@ -1,0 +1,79 @@
+id: SCWBS-DRAFT-MSP6PL01
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-554
+approvedAt: "2026-08-12T00:00:00+09:00"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSP6PL01
+branchName: task/SCWBS-DRAFT-MSP6PL01-issue-554-localization-correctness-follow-up
+allowedPaths:
+  - contracts/discovery/**
+  - contracts/specs/**
+  - src/core/locales.ts
+  - src/core/agent-adapters.ts
+  - src/commands/init.ts
+  - src/cli.ts
+  - docs/scwbs/localization.md
+  - docs/scwbs/cli-reference.md
+  - tests/fixtures/locales/**
+  - tests/unit/locales.test.ts
+  - tests/unit/init.test.ts
+  - tests/integration/localization.test.ts
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/locales.ts
+  - src/core/agent-adapters.ts
+  - src/commands/init.ts
+  - src/cli.ts
+stopIf:
+  - authority or stable JSON schema changes
+  - translation of machine error codes
+  - locale-specific policy semantics
+  - overwriting divergent user-owned files
+  - dependency or workflow changes
+  - scope expansion beyond localization correctness
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+doneCriteria:
+  - Japanese generated guidance translates user-facing prose while retaining stable project identifiers and machine-facing terms where required.
+  - Existing-project locale selection is explicit and deterministic; init/update locale switching preserves managed hashes and divergent-file protection.
+  - Adapter locale metadata and bundle message keys are cross-validated fail-closed, and adapter-specific guidance follows the documented localization policy.
+  - ja/en/fr rendered guidance, fallback, locale switching, adapter key integrity, and user-owned preservation have unit/integration regression coverage.
+  - Stable JSON schema fields, machine error codes, authority semantics, Human Gate semantics, dependencies, workflows, and distribution remain unchanged.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/specs/SPEC-LITE-MSP6PL01.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP6PL01.patch
+  - contracts/approvals/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:9316374ce333537ef4bfebb0c89c488292384d6d589b3de9a5be935a66252824
+  createdAt: "2026-08-11T21:42:44.793Z"

@@ -1,0 +1,47 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-554
+type: discovery-probe
+status: concluded
+question: ja/en/fr の generated guidance と既存 project locale lifecycle を、adapter metadata 整合性を含めて安全に修正できるか
+hypotheses:
+  - ja prose is incomplete
+  - existing init ignores requested locale
+  - adapter locale keys are not validated
+activities:
+  - inspect locale bundles and generated guidance
+  - trace init/update language state
+  - compare adapter localeKeys with bundle keys
+  - add read-only reproduction evidence
+evidenceExpected:
+  - reproduction of ja English prose
+  - existing-project lang behavior
+  - adapter key mismatch
+  - duplicate issue search
+unknowns:
+  - whether init --lang should mutate existing project settings or whether update --lang is the sole switch
+  - whether adapter-specific guidance needs translated bundles
+timebox: 1h
+costLimit: low
+exitConditions:
+  - acceptance boundaries recorded
+  - no authority or policy semantics changed
+  - delivery scope is bounded
+nextDecision: Create a delivery Task for localized ja prose, explicit existing-project locale switching, and fail-closed adapter locale-key integrity without changing authority or stable JSON semantics
+deliveryTaskId: SCWBS-DRAFT-MSP6PL01
+createdAt: "2026-08-11T21:38:54.916Z"
+startedAt: "2026-08-11T21:39:13.064Z"
+concludedAt: "2026-08-11T21:40:00.613Z"
+exitConditionsMet: true
+factsLearned:
+  - fallback en is a stable machine locale id and is intentional
+  - ja agent.intro and agent.rules remain English and are rendered to users
+  - existing init with --lang ignores the requested locale because sync uses existingConfig.language
+  - agent update has no explicit locale switch
+  - adapter localeKeys are not cross-validated with bundle keys and adapter guidance remains English
+  - tests do not assert Japanese prose existing-project switch or adapter key integrity
+  - duplicate issue search found no separate follow-up
+hypothesesRejected:
+  - fallback en should be translated
+remainingUnknowns:
+  - choose whether init --lang and agent update --lang share one explicit locale-switch behavior
+  - define whether adapter-specific guidance is fully localized or only declared as stable English

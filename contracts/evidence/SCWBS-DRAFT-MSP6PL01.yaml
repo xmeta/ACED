@@ -1,0 +1,105 @@
+id: EVD-SCWBS-DRAFT-MSP6PL01
+type: evidence
+taskId: SCWBS-DRAFT-MSP6PL01
+commit: 870074e8242ef950e09590c94dceaddbdf7d0771
+subjectHeadCommit: 870074e8242ef950e09590c94dceaddbdf7d0771
+diffHash: sha256:4329fcff7d89e43268b0edcc2d7bbc7c6625f1d18ee163d9c0f2bde67df4ebad
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 870074e8242ef950e09590c94dceaddbdf7d0771
+    treeHash: 05ff7b75d1daaef18c53daed2a98b7f28629624e
+    diffHash: sha256:4329fcff7d89e43268b0edcc2d7bbc7c6625f1d18ee163d9c0f2bde67df4ebad
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSP6PL01.patch
+    manifestHash: sha256:4329fcff7d89e43268b0edcc2d7bbc7c6625f1d18ee163d9c0f2bde67df4ebad
+git:
+  branch: task/SCWBS-DRAFT-MSP6PL01-issue-554-localization-correctness-follow-up
+  base: origin/main
+  baseCommit: ef0c38e812220642e80cc68d210ae4402156e554
+  changedFilesBasis: branch-diff
+  pullRequest: "555"
+  subjectHeadCommit: 870074e8242ef950e09590c94dceaddbdf7d0771
+  diffHash: sha256:4329fcff7d89e43268b0edcc2d7bbc7c6625f1d18ee163d9c0f2bde67df4ebad
+  headCommit: 870074e8242ef950e09590c94dceaddbdf7d0771
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/discovery/PROBE-issue-554.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP6PL01.patch
+  - contracts/evidence/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSP6PL01.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP6PL01.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/localization.md
+  - src/cli.ts
+  - src/commands/init.ts
+  - src/core/agent-adapters.ts
+  - src/core/locales.ts
+  - tests/fixtures/locales/fr.json
+  - tests/integration/localization.test.ts
+  - tests/unit/init.test.ts
+  - tests/unit/locales.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: ef0c38e812220642e80cc68d210ae4402156e554
+    headCommit: 870074e8242ef950e09590c94dceaddbdf7d0771
+    diffHash: sha256:4329fcff7d89e43268b0edcc2d7bbc7c6625f1d18ee163d9c0f2bde67df4ebad
+  tests:
+    filesAdded: 0
+    filesModified: 4
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:6b7fb884e78ea0c2f77d187f3dc568c1a045847f5549fde243ecb2fe43f3979a
+    durationMilliseconds: 22780
+    executedAt: "2026-08-11T21:58:59.518Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:9b6a2375af1671542dce77918ff20d39fed32f10ecab0663203eb6c6b9cc44ad
+    durationMilliseconds: 12662
+    executedAt: "2026-08-11T21:59:12.185Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:7a4654a12504d9ebaf08008237bf395c1ae6cb7a0f0ae8904ff27a4cafd4af15
+    durationMilliseconds: 5446
+    executedAt: "2026-08-11T21:59:17.635Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:8c07b88ec656cd1605c221ba7e88cc5f866f457e4e6a7da98fe0c0bfb1b1d8bc
+    durationMilliseconds: 9996
+    executedAt: "2026-08-11T21:59:27.636Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:c83479228718c38dfb77295007b5c59bc9641864dd6639ee91efc8f9ec3f8c38
+    durationMilliseconds: 362192
+    executedAt: "2026-08-11T22:05:29.832Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Completed Japanese guidance prose, localized adapter guidance keys, explicit existing-project init locale switching, agent update --lang with dry-run JSON decisions, normalized locale metadata validation, and divergent-file preservation regression coverage.

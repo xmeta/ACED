@@ -26,6 +26,7 @@ export type InitOptions = {
 
 export type AgentUpdateOptions = {
   agent?: string;
+  lang?: string;
   dryRun?: boolean;
   json?: boolean;
 };
@@ -194,17 +195,19 @@ function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { age
   return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: resolveLocale(settings.lang).id };
 }
 
-function writeSettings(root: string, agents: Agent[], primaryAgent: Agent): void {
+function writeSettings(root: string, agents: Agent[], primaryAgent: Agent, language?: LocaleId): void {
   const current = project(root);
   if (!current) throw new Error("Cannot update agent settings: invalid WBS");
   const nextSettings: ScwbsSettings = {
     ...current.settings,
     agent: primaryAgent,
     primaryAgent,
-    agents: uniqueAgents(agents)
+    agents: uniqueAgents(agents),
+    ...(language ? { lang: language } : {})
   };
   const nextWbs: WbsDocument = {
     ...current.wbs,
+    ...(language ? { metadata: { ...(current.wbs.metadata ?? {}), language: localeMetadata(language) } } : {}),
     extensions: {
       ...(current.wbs.extensions ?? {}),
       scwbs: nextSettings
@@ -321,6 +324,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
   const existingConfig = existing ? agentsFor(existing.settings, existingState) : { agents: [agent], primaryAgent: agent, language: lang };
   const agents = uniqueAgents([...existingConfig.agents, agent]);
   const primaryAgent = existing ? existingConfig.primaryAgent : agent;
+  const language = existing && options.lang === undefined ? existingConfig.language : lang;
   const wbs: WbsDocument = existing?.wbs ?? {
     schemaVersion: "0.1.0",
     id: "scwbs-project",
@@ -338,8 +342,8 @@ export function runInit(root: string, options: InitOptions = {}): number {
     writeIfMissing(root, defaultRegistryPath, stringifySimpleYaml({ projectId: "scwbs-project", contracts: [] }));
   }
   const manifest = asV2(existingState, agents, primaryAgent);
-  const synced = sync(root, manifest, agent, existing ? existingConfig.language : lang, false, false);
-  writeSettings(root, agents, primaryAgent);
+  const synced = sync(root, manifest, agent, language, Boolean(existing && options.lang !== undefined), false);
+  writeSettings(root, agents, primaryAgent, existing && options.lang !== undefined ? language : undefined);
   writeManifest(root, synced.manifest);
   for (const decision of synced.decisions) console.log(`${decision.action} ${decision.path ?? ""}`.trim());
   if (!existing) console.log(`created ${defaultWbsPath}`);
@@ -351,6 +355,11 @@ export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): 
   const requested = options.agent ? normalizeAgent(options.agent) : undefined;
   if (options.agent && !requested) {
     console.error(agentError);
+    return 2;
+  }
+  const requestedLanguage = normalizeLocaleId(options.lang);
+  if (options.lang !== undefined && !requestedLanguage) {
+    console.error("Language must be a supported locale id");
     return 2;
   }
   const current = project(root);
@@ -365,17 +374,18 @@ export function runAgentUpdate(root: string, options: AgentUpdateOptions = {}): 
   }
   const config = agentsFor(current.settings, state);
   const selected = requested ? [requested] : config.agents;
+  const language = requestedLanguage ?? config.language;
   const agents = uniqueAgents([...config.agents, ...selected]);
   const manifest = asV2(state, agents, config.primaryAgent);
   let next = manifest;
   const decisions = migration(state);
   for (const agent of selected) {
-    const synced = sync(root, next, agent, config.language, true, dryRun);
+    const synced = sync(root, next, agent, language, true, dryRun);
     next = synced.manifest;
     decisions.push(...synced.decisions);
   }
   if (!dryRun) {
-    writeSettings(root, next.agents, config.primaryAgent);
+    writeSettings(root, next.agents, config.primaryAgent, requestedLanguage);
     writeManifest(root, next);
   }
   output(decisions, options.json);

@@ -239,6 +239,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
   program
     .command("update")
     .option("--agent <agent>")
+    .option("--lang <lang>", "switch generated guidance locale")
     .option("--dry-run")
     .option("--json")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
