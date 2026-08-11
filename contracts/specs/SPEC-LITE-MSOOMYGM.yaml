@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSOOMYGM
+type: spec-contract
+featureId: F-MSOOMYGM
+title: "Issue #531: stdio-only MCP server"
+status: approved
+version: 0.1.0
+summary: "既存の versioned JSON builder と authority evaluator を再利用し、stdio-only MCP surface を安全に提供する"
+approvedBy: user-requested-issue-531
+approvedAt: "2026-08-11T00:00:00+09:00"
+acceptanceCriteria:
+  - "scwbs mcp --stdio starts a dependency-free MCP-compatible JSON-RPC server with stdout reserved for protocol messages and logs sent to stderr."
+  - "Versioned status, next, packet, trace, evidence, and review-queue resources reuse existing JSON/domain builders and return bounded structured output."
+  - "Task preflight, check, finish, and block tools validate structured input and reuse existing authority evaluators without exposing approval, review transition, policy downgrade, destructive prune, or merge bypass operations."
+  - "Current repository root is fixed at startup; alternate cwd, path traversal, invalid Task IDs, stale Evidence, Human Gate, and forbidden-path requests fail closed."
+  - "MCP input/output schemas are deterministic and versioned; arbitrary shell strings, secrets, delegation tokens, and network listeners are not exposed."
+  - "MCP unavailable fallback preserves the existing CLI workflow and agent adapters can declare MCP capability metadata without changing their safety semantics."
+  - "Unit and integration tests cover protocol framing, stdout pollution, resource/tool schemas, evaluator parity, Human-only boundaries, invalid input, and fallback behavior."
