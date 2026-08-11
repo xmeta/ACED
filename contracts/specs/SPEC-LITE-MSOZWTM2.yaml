@@ -1,0 +1,16 @@
+id: SPEC-LITE-MSOZWTM2
+type: spec-contract
+featureId: F-MSOZWTM2
+title: "Issue #534: localhost read-only dashboard for Task, Evidence, Gate, and Trace"
+status: approved
+version: 0.1.0
+summary: "offline localhost dashboard that projects existing SC-WBS evaluators without adding write authority or arbitrary file access"
+approvedBy: user-requested-issue-534
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "scwbs serve binds to 127.0.0.1 by default, supports an explicit bounded port including port 0, and does not expose a remote listener or require a daemon installation."
+  - "The dashboard reuses the existing versioned ui --json and trace --json builders and presents task status, next owner/action, Human Gate, Evidence freshness, required checks, trace graph, and open risks in a bounded projection."
+  - "The HTTP surface is read-only: only an explicit GET route allowlist is served, mutation methods and unknown routes fail closed, and no browser action can approve, review, block, finish, prune, merge, or change policy."
+  - "Static assets and API responses work offline, use no external CDN or telemetry, emit a restrictive CSP, escape untrusted data, reject traversal/encoded traversal, bound response size, and never render secrets, delegation tokens, or arbitrary repository file contents."
+  - "Unit and integration tests cover route and method allowlists, localhost binding, port lifecycle, bounded output, CSP/XSS/path traversal defenses, offline operation, and the CLI command/help contract."
+  - "No package/dependency, workflow permission, distribution channel, authentication, remote bind, WBS, or authority evaluator change is part of the automated scope; those remain Human Gate decisions."

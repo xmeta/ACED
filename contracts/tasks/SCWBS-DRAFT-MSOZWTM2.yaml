@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MSOZWTM2
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOZWTM2
+branchName: task/SCWBS-DRAFT-MSOZWTM2-issue-534-localhost-read-only-dashboard-for-task
+allowedPaths:
+  - src/core/serve.ts
+  - src/commands/ui.ts
+  - src/cli.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/serve.md
+  - docs/implementation-gaps.md
+  - tests/unit/serve.test.ts
+  - tests/integration/serve.test.ts
+  - tests/integration/cli-help.test.ts
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/serve.ts
+  - src/commands/ui.ts
+  - src/cli.ts
+  - contracts/check-coverage.yaml
+stopIf:
+  - Human Gate for dependencies or package/CI/distribution changes
+  - remote bind or authentication
+  - write API or destructive operation
+  - secret/token exposure or arbitrary file read
+  - any change to existing authority evaluator semantics
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - scwbs serve starts a localhost-only read-only HTTP dashboard with a bounded port option and offline static assets.
+  - Dashboard JSON projections reuse the existing ui and trace evaluators and expose task status, next owner/action, Human Gate, Evidence freshness, required checks, trace graph, and open risks without new authority logic.
+  - No POST/PUT/PATCH/DELETE or mutation endpoint exists; unknown routes, traversal paths, oversized requests, and remote bind attempts fail closed.
+  - Responses are versioned and bounded, secrets/delegation tokens and arbitrary repository file contents are not rendered, and HTML uses CSP plus escaped data rendering.
+  - Unit and integration tests cover localhost binding, route allowlist, read-only behavior, bounded output, CSP/XSS/path traversal protections, offline operation, and CLI lifecycle.
+  - No package/dependency, workflow, distribution channel, authentication, remote bind, WBS, or authority evaluator change is included in this Task.
+specPath: contracts/specs/SPEC-LITE-MSOZWTM2.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOZWTM2.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOZWTM2.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOZWTM2.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOZWTM2.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOZWTM2.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOZWTM2.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0cf37b012cd284de1c4644db912902b45f0e5474f9823dbea4309ae10468f364
+  createdAt: "2026-08-11T18:33:15.225Z"

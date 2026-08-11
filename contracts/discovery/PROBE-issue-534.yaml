@@ -1,0 +1,45 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-534
+type: discovery-probe
+status: concluded
+question: Can scwbs serve project existing versioned UI and trace evaluators as an offline localhost read-only dashboard without exposing write operations, secrets, or arbitrary files?
+hypotheses:
+  - existing ui and trace builders can be projected
+  - Node standard HTTP is sufficient
+  - static assets can remain dependency-free
+activities:
+  - inspect ui and trace builders
+  - inspect CLI registration and distribution
+  - design bounded routes and security tests
+evidenceExpected:
+  - command map
+  - allowed paths
+  - asset strategy
+  - security boundaries
+unknowns:
+  - asset size limits
+  - port lifecycle
+  - existing HTTP test harness
+timebox: 2h
+costLimit: low
+exitConditions:
+  - acceptance and non-goals mapped
+  - Human Gate paths identified
+  - delivery contract can be bounded
+nextDecision: create one bounded Task Contract for localhost read-only serve using existing evaluators and Node standard HTTP; Human Gate any dependency,remote bind,or distribution change
+createdAt: "2026-08-11T18:28:57.295Z"
+startedAt: "2026-08-11T18:29:10.117Z"
+concludedAt: "2026-08-11T18:29:39.261Z"
+exitConditionsMet: true
+factsLearned:
+  - ui and trace already expose versioned JSON builders
+  - serve is a reserved stub
+  - Node standard HTTP can serve bounded static assets without new dependency
+  - write operations and arbitrary file reads remain excluded
+hypothesesRejected:
+  - remote bind
+  - write API
+  - repository source browser
+  - external CDN or telemetry
+remainingUnknowns:
+  - final asset size cap and port selection need Task-level tests
