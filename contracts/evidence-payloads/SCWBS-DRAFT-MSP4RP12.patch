@@ -1,0 +1,614 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index c4d713c..aef5e9a 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -139,6 +139,7 @@ rules:
+       - src/core/attestation.ts
+       - src/core/serve.ts
+       - src/core/github-issue.ts
++      - src/core/locales.ts
+     requires:
+       - test:integration
+   - id: core-types-unit-only
+diff --git a/contracts/discovery/PROBE-issue-539.yaml b/contracts/discovery/PROBE-issue-539.yaml
+new file mode 100644
+index 0000000..4c185dc
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-539.yaml
+@@ -0,0 +1,57 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-539
++type: discovery-probe
++status: concluded
++question: Can generated agent guidance and selected CLI messages use versioned locale bundles with deterministic fallback while preserving ja/en meaning, stable machine codes, adapter/locale orthogonality, and user-owned files?
++hypotheses:
++  - locale bundles can be data-driven without language-union growth
++  - template placeholders can be validated in CI
++  - ja/en meaning and stable JSON fields can remain unchanged
++  - one additional locale can prove extension without authority changes
++activities:
++  - inspect init guidance and CLI language handling
++  - define bundle and fallback schema
++  - extract templates from adapters
++  - add placeholder and missing-key validation
++  - exercise user-owned preservation and third-locale fixture
++evidenceExpected:
++  - locale bundle files
++  - template separation
++  - ja/en regression fixtures
++  - additional locale fixture
++  - missing-key and placeholder checks
++  - fallback and user-owned preservation tests
++unknowns:
++  - complete message inventory
++  - template placeholder syntax
++  - scope of CLI help translation
++  - legacy user-owned file migration behavior
++timebox: one implementation cycle
++costLimit: bounded local bundle fixtures and deterministic validation
++exitConditions:
++  - locale schema is versioned and bounded
++  - ja/en generated guidance meaning is preserved
++  - stable codes and JSON fields remain locale-independent
++  - missing or invalid translations fail closed
++  - user-owned files are not overwritten
++nextDecision: implement a versioned locale bundle schema, template and locale separation, deterministic fallback, placeholder validation, an additional locale fixture, and preservation tests under one bounded Task Contract
++createdAt: "2026-08-11T20:45:04.504Z"
++startedAt: "2026-08-11T20:45:13.808Z"
++concludedAt: "2026-08-11T20:45:32.809Z"
++exitConditionsMet: true
++factsLearned:
++  - agent adapter guidance is generated through renderAgentFiles and can be separated into templates plus locale data
++  - ja/en output and stable JSON fields need regression fixtures rather than translated schemas
++  - missing keys and placeholder mismatches should fail closed before writing files
++  - user-owned divergent files already have preservation semantics that localization must retain
++  - an additional locale fixture can validate bundle extensibility without changing the Language union
++hypothesesRejected:
++  - translating stable JSON schema fields or error codes
++  - locale-specific authority semantics
++  - overwriting divergent user-owned files
++  - requiring a TypeScript union change for every locale
++remainingUnknowns:
++  - complete CLI message inventory
++  - placeholder syntax for future templates
++  - scope of help translation beyond selected guidance
++  - legacy user-owned file migration behavior
+diff --git a/contracts/specs/SPEC-LITE-MSP4RP12.yaml b/contracts/specs/SPEC-LITE-MSP4RP12.yaml
+new file mode 100644
+index 0000000..e661bd3
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSP4RP12.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSP4RP12
++type: spec-contract
++featureId: F-MSP4RP12
++title: "Issue #539: versioned localization bundles for guidance and CLI UX"
++status: approved
++version: 0.1.0
++summary: "data-driven locale bundles and templates with deterministic fallback, stable machine fields, placeholder validation, and user-owned file preservation"
++approvedBy: user-requested-issue-539
++approvedAt: "2026-08-12T00:00:00+09:00"
++acceptanceCriteria:
++  - "Locale bundles use scwbs.locale.v1 with an extensible locale id, deterministic fallback, bounded messages, and no authority or policy semantics in translations."
++  - "Generated agent guidance separates templates from locale data and preserves the existing ja/en meaning while allowing an additional locale fixture without changing a TypeScript language union."
++  - "Missing keys, invalid placeholders, duplicate keys, unsupported fallback, and malformed bundles fail closed before generated files are written."
++  - "Stable error codes, JSON schema field names, and machine-readable output remain untranslated and identical across locales."
++  - "Existing managed hash and divergent-file protections remain effective; user-owned translated files are preserved and never overwritten by update."
++  - "Selected CLI UX language normalization and fallback are deterministic, while full diagnostics translation and authority semantics remain out of scope."
++  - "Unit and integration fixtures cover ja/en meaning, an additional locale, fallback, placeholder validation, stable JSON fields, and user-owned preservation."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml b/contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml
+new file mode 100644
+index 0000000..27cda50
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml
+@@ -0,0 +1,85 @@
++id: SCWBS-DRAFT-MSP4RP12
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-539
++approvedAt: "2026-08-12T00:00:00+09:00"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSP4RP12
++branchName: task/SCWBS-DRAFT-MSP4RP12-p2-i18n-add-versioned-localization-bundles-for-g
++allowedPaths:
++  - contracts/discovery/**
++  - contracts/specs/**
++  - contracts/check-coverage.yaml
++  - src/core/locales.ts
++  - src/core/agent-adapters.ts
++  - src/commands/init.ts
++  - src/cli.ts
++  - docs/scwbs/localization.md
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++  - tests/fixtures/locales/**
++  - tests/unit/locales.test.ts
++  - tests/integration/localization.test.ts
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - .scwbs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/locales.ts
++  - src/core/agent-adapters.ts
++  - src/commands/init.ts
++  - src/cli.ts
++stopIf:
++  - authority or stable JSON schema changes
++  - translation of machine error codes
++  - locale-specific policy semantics
++  - overwriting divergent user-owned files
++  - dependency or workflow changes
++  - scope expansion beyond guidance selected CLI UX and bundle validation
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - Locale bundles implement scwbs.locale.v1 with extensible ids, deterministic fallback, bounded messages, and no policy semantics.
++  - Agent guidance templates and locale data are separate; existing ja/en meaning is preserved and an additional locale fixture works without a language-union change.
++  - Missing keys, invalid placeholders, duplicate keys, unsupported fallback, and malformed bundles fail closed before writes.
++  - Stable error codes, JSON schema field names, and machine-readable output remain untranslated and locale-independent.
++  - Managed hashes, divergent-file protection, and user-owned translated-file preservation remain effective during update.
++  - Selected CLI UX language normalization and fallback are deterministic; full diagnostics translation is not included.
++  - Unit and integration tests cover ja/en, additional locale, fallback, placeholder validation, stable JSON fields, and user-owned preservation.
++  - No authority, dependency, workflow, WBS, machine-code translation, or locale-specific policy change is included.
++specPath: contracts/specs/SPEC-LITE-MSP4RP12.yaml
++specVersion: 0.1.0
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/specs/SPEC-LITE-MSP4RP12.yaml
++  - contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSP4RP12.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSP4RP12.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSP4RP12.patch
++  - contracts/approvals/SCWBS-DRAFT-MSP4RP12.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSP4RP12.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:6af206b03bc17239974aa340f31bc9ce05bd21026324517633817a607abf87ac
++  createdAt: "2026-08-11T20:47:15.914Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 62019f9..5b8aa95 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1994,3 +1994,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T20:43:21.853Z"
++  - id: SCWBS-DRAFT-MSP4RP12
++    path: contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml
++    branchName: task/SCWBS-DRAFT-MSP4RP12-p2-i18n-add-versioned-localization-bundles-for-g
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 52e886c..328bc85 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -107,6 +107,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
+ 
+ `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, `copilot`, `gemini`, or `opencode`). The versioned `scwbs.agent-adapter.v1` registry keeps file paths, lifecycle status, MCP capability, and locale keys in data rather than a command switch. Gemini CLI and OpenCode are preview fixtures. Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+ 
++`init --lang <locale>` uses the versioned `scwbs.locale.v1` bundle for generated guidance. `ja-jp` and `en-us` normalize to `ja` and `en`; unknown valid locale ids deterministically fall back to `en`. Stable error codes, JSON schema field names, and authority semantics are never translated. Bundle key and placeholder validation fails closed before generated files are written.
++
+ `agent list --json` and `agent inspect <id> --json` expose bounded registry metadata. `agent doctor --all --json` checks every registered adapter's repository-relative paths and reports `ready`, `preview`, or `error`. Absolute paths, traversal, and symlink escapes fail closed; these commands never execute an agent or shell command.
+ 
+ `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+diff --git a/docs/scwbs/localization.md b/docs/scwbs/localization.md
+new file mode 100644
+index 0000000..e0429e3
+--- /dev/null
++++ b/docs/scwbs/localization.md
+@@ -0,0 +1,11 @@
++# Localization bundles
++
++ACED uses versioned `scwbs.locale.v1` bundles for generated agent guidance and selected CLI UX. Locale data is separate from agent adapters and templates. Stable JSON schema field names, machine error codes, approval semantics, and authority policy are never translated.
++
++The built-in bundles are `ja`, `en`, and an additional `fr` fixture. `ja-jp` and `en-us` normalize deterministically to `ja` and `en`. An unknown valid locale falls back to `en`; malformed locale ids are rejected before initialization writes files.
++
++Every bundle must contain the same bounded message keys as the reference bundle and use the same `{placeholder}` names. Missing keys, unknown keys, invalid placeholders, duplicate ids, and missing fallback targets fail closed. Bundle validation is covered by unit and integration tests.
++
++`init --lang <locale>` renders localized guidance. Existing managed hashes and divergent-file protection remain authoritative: `agent update` preserves user-owned files and never overwrites a divergent translation.
++
++Adding a locale does not require editing a TypeScript union. A bundle must be reviewed and validated as data, and locale changes must not modify authority semantics.
+diff --git a/src/cli.ts b/src/cli.ts
+index c54432d..a3e63ac 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -233,7 +233,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .description("Initialize a new project")
+     .option("--profile <profile>", "profile lean|standard|strict")
+     .option("--agent <agent>", "agent type")
+-    .option("--lang <lang>", "language ja|en")
++    .option("--lang <lang>", "locale id (ja, en, or a bundled locale; fallback is deterministic)")
+     .action((opts) => { exitCode = runInit(root, opts); });
+ 
+   program
+diff --git a/src/commands/init.ts b/src/commands/init.ts
+index b932e7e..c17772b 100644
+--- a/src/commands/init.ts
++++ b/src/commands/init.ts
+@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "
+ import { dirname } from "node:path";
+ import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
+ import { agentNames as supportedAgentNames, assertSafeAgentPath, diagnoseAgentAdapters, getAgentAdapter, isAgentId, listAgentAdapters, renderAgentFiles } from "../core/agent-adapters.js";
++import { localeMetadata, normalizeLocaleId, resolveLocale, type LocaleId } from "../core/locales.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
++import type { Agent, Profile, WbsDocument } from "../core/types.js";
+ 
+ const agentManifestPath = ".scwbs/agent-files.json";
+ const agentError = `Unknown agent (${supportedAgentNames()})`;
+@@ -74,7 +75,7 @@ type ScwbsSettings = {
+   agent?: Agent;
+   primaryAgent?: Agent;
+   agents?: Agent[];
+-  lang?: Language;
++  lang?: LocaleId;
+   [key: string]: unknown;
+ };
+ 
+@@ -109,19 +110,11 @@ function normalizeAgent(value: string | undefined): Agent | undefined {
+   return isAgent(lowered) ? lowered : undefined;
+ }
+ 
+-function normalizeLanguage(value: string | undefined): Language | undefined {
+-  if (value === undefined) return "ja";
+-  const lowered = value.toLowerCase();
+-  if (lowered === "ja" || lowered === "ja-jp") return "ja";
+-  if (lowered === "en" || lowered === "en-us") return "en";
+-  return undefined;
+-}
+-
+ function sha256(content: string): string {
+   return createHash("sha256").update(content, "utf8").digest("hex");
+ }
+ 
+-function agentFiles(agent: Agent, language: Language): AgentFile[] {
++function agentFiles(agent: Agent, language: LocaleId): AgentFile[] {
+   return renderAgentFiles(agent, language).map((file) => ({ path: file.path, content: file.guidance }));
+ }
+ 
+@@ -189,7 +182,7 @@ function project(root: string): { wbs: WbsDocument; settings: ScwbsSettings } |
+   }
+ }
+ 
+-function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: Language } {
++function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: LocaleId } {
+   const manifestAgents = manifestState.manifest?.schemaVersion === "1"
+     ? [manifestState.manifest.agent]
+     : manifestState.manifest?.schemaVersion === "2"
+@@ -198,7 +191,7 @@ function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { age
+   const configured = [ ...(settings.agents ?? []), settings.agent, settings.primaryAgent, ...manifestAgents ].filter(isAgent);
+   const agents = uniqueAgents(configured.length > 0 ? configured : ["codex"]);
+   const primaryAgent = [settings.primaryAgent, settings.agent, ...manifestAgents, agents[0]].find(isAgent) ?? agents[0];
+-  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: settings.lang === "en" ? "en" : "ja" };
++  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: resolveLocale(settings.lang).id };
+ }
+ 
+ function writeSettings(root: string, agents: Agent[], primaryAgent: Agent): void {
+@@ -235,7 +228,7 @@ function sync(
+   root: string,
+   manifest: AgentManifestV2,
+   agent: Agent,
+-  language: Language,
++  language: LocaleId,
+   update: boolean,
+   dryRun: boolean
+ ): { manifest: AgentManifestV2; decisions: AgentDecision[] } {
+@@ -284,7 +277,7 @@ function sync(
+   return { manifest: next, decisions };
+ }
+ 
+-function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: Language; manifest: AgentManifestV2 } | undefined {
++function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: LocaleId; manifest: AgentManifestV2 } | undefined {
+   const current = project(root);
+   if (!current) return undefined;
+   const state = readManifest(root);
+@@ -312,9 +305,9 @@ export function runInit(root: string, options: InitOptions = {}): number {
+     console.error(agentError);
+     return 2;
+   }
+-  const lang = normalizeLanguage(options.lang);
++  const lang = normalizeLocaleId(options.lang);
+   if (!lang) {
+-    console.error("Language must be ja or en");
++    console.error("Language must be a supported locale id");
+     return 2;
+   }
+ 
+@@ -337,7 +330,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
+     relations: [],
+     resources: [{ id: "resource-human", name: "Human", type: "role" }, { id: "resource-ai", name: "AI Agent", type: "role" }],
+     artifacts: [],
+-    metadata: { createdBy: "scwbs", language: lang === "ja" ? "ja-JP" : "en-US" },
++    metadata: { createdBy: "scwbs", language: localeMetadata(lang) },
+     extensions: { scwbs: { profile, agent: primaryAgent, primaryAgent, agents, lang } }
+   };
+   if (!existing) {
+diff --git a/src/core/agent-adapters.ts b/src/core/agent-adapters.ts
+index ec132f5..5aff70f 100644
+--- a/src/core/agent-adapters.ts
++++ b/src/core/agent-adapters.ts
+@@ -1,6 +1,7 @@
+ import { existsSync, lstatSync, realpathSync } from "node:fs";
+ import path from "node:path";
+-import type { Agent, Language } from "./types.js";
++import { renderAgentGuidance } from "./locales.js";
++import type { Agent } from "./types.js";
+ 
+ export const AGENT_ADAPTER_SCHEMA_VERSION = "scwbs.agent-adapter.v1" as const;
+ 
+@@ -32,11 +33,6 @@ export type AgentAdapterDiagnostic = {
+   issues: string[];
+ };
+ 
+-const commonGuidance = (language: Language): string => {
+-  const languageLine = language === "ja" ? "Use Japanese for handoffs when practical." : "Use English for handoffs.";
+-  return `<!-- scwbs; keep customizations separate. -->\n\n# SC-WBS\n\nFollow AGENTS.md and Task Contract.\n${languageLine}\n\n- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions.\n`;
+-};
+-
+ const adapters: AgentAdapter[] = [
+   {
+     id: "codex",
+@@ -104,11 +100,10 @@ export function agentNames(): string {
+   return adapters.filter((adapter) => adapter.status !== "unsupported").map((adapter) => adapter.id).join(", ");
+ }
+ 
+-export function renderAgentFiles(id: Agent, language: Language): AgentAdapterFile[] {
++export function renderAgentFiles(id: Agent, language: string): AgentAdapterFile[] {
+   const adapter = getAgentAdapter(id);
+   if (!adapter || adapter.status === "unsupported") throw new Error(`Unsupported agent adapter: ${id}`);
+-  const common = commonGuidance(language);
+-  return adapter.files.map((file) => ({ path: file.path, guidance: `${common}\n${file.guidance}\n` }));
++  return adapter.files.map((file) => ({ path: file.path, guidance: `<!-- scwbs; keep customizations separate. -->\n\n${renderAgentGuidance(language, file.guidance)}` }));
+ }
+ 
+ export function assertSafeAgentPath(root: string, relativePath: string): string {
+diff --git a/src/core/locales.ts b/src/core/locales.ts
+new file mode 100644
+index 0000000..ed716c8
+--- /dev/null
++++ b/src/core/locales.ts
+@@ -0,0 +1,141 @@
++export const LOCALE_BUNDLE_SCHEMA_VERSION = "scwbs.locale.v1" as const;
++
++export type LocaleId = string;
++
++export type LocaleBundle = {
++  schemaVersion: typeof LOCALE_BUNDLE_SCHEMA_VERSION;
++  id: LocaleId;
++  fallback: LocaleId;
++  messages: Record<string, string>;
++};
++
++const commonKeys = [
++  "agent.header",
++  "agent.intro",
++  "agent.handoff",
++  "agent.rules"
++] as const;
++
++const bundles: readonly LocaleBundle[] = [
++  {
++    schemaVersion: LOCALE_BUNDLE_SCHEMA_VERSION,
++    id: "en",
++    fallback: "en",
++    messages: {
++      "agent.header": "# SC-WBS",
++      "agent.intro": "Follow AGENTS.md and Task Contract.",
++      "agent.handoff": "Use English for handoffs.",
++      "agent.rules": "- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions."
++    }
++  },
++  {
++    schemaVersion: LOCALE_BUNDLE_SCHEMA_VERSION,
++    id: "ja",
++    fallback: "en",
++    messages: {
++      "agent.header": "# SC-WBS",
++      "agent.intro": "Follow AGENTS.md and Task Contract.",
++      "agent.handoff": "Use Japanese for handoffs when practical.",
++      "agent.rules": "- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions."
++    }
++  },
++  {
++    schemaVersion: LOCALE_BUNDLE_SCHEMA_VERSION,
++    id: "fr",
++    fallback: "en",
++    messages: {
++      "agent.header": "# SC-WBS",
++      "agent.intro": "Suivez AGENTS.md et le Task Contract.",
++      "agent.handoff": "Utilisez le français pour les transmissions lorsque c'est possible.",
++      "agent.rules": "- Restez dans les chemins autorisés.\n- Exécutez les vérifications et collectez les Evidence.\n- Arrêtez-vous pour un Human Gate ou une décision de schéma, dépendance, authentification ou publication."
++    }
++  }
++];
++
++function placeholders(value: string): string[] {
++  return [...value.matchAll(/\{([A-Za-z0-9_.-]+)\}/g)].map((match) => match[1]).sort();
++}
++
++function isRecord(value: unknown): value is Record<string, unknown> {
++  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
++}
++
++export function listLocaleBundles(): LocaleBundle[] {
++  return bundles.map((bundle) => ({ ...bundle, messages: { ...bundle.messages } }));
++}
++
++export function normalizeLocaleId(value: string | undefined): LocaleId | undefined {
++  if (value === undefined) return "ja";
++  const normalized = value.trim().toLowerCase().replace(/_/g, "-");
++  if (!/^[a-z]{2,3}(?:-[a-z]{2,4})?$/.test(normalized)) return undefined;
++  if (normalized === "ja-jp") return "ja";
++  if (normalized === "en-us") return "en";
++  return normalized;
++}
++
++export function validateLocaleBundle(bundle: unknown, reference: LocaleBundle = bundles[0]): string[] {
++  if (!isRecord(bundle)) return ["locale.bundle.object"];
++  const issues: string[] = [];
++  if (bundle.schemaVersion !== LOCALE_BUNDLE_SCHEMA_VERSION) issues.push("locale.bundle.schemaVersion");
++  if (typeof bundle.id !== "string" || !normalizeLocaleId(bundle.id)) issues.push("locale.bundle.id");
++  if (typeof bundle.fallback !== "string" || !normalizeLocaleId(bundle.fallback)) issues.push("locale.bundle.fallback");
++  if (!isRecord(bundle.messages)) return [...issues, "locale.bundle.messages"];
++  const messages = bundle.messages;
++  for (const key of commonKeys) {
++    if (typeof messages[key] !== "string" || messages[key].length === 0) issues.push(`locale.message.missing:${key}`);
++  }
++  for (const key of Object.keys(messages)) {
++    if (typeof messages[key] !== "string" || messages[key].length > 8192) issues.push(`locale.message.invalid:${key}`);
++    if (!(key in reference.messages)) issues.push(`locale.message.unknown:${key}`);
++    else if (typeof messages[key] === "string" && JSON.stringify(placeholders(messages[key])) !== JSON.stringify(placeholders(reference.messages[key]))) {
++      issues.push(`locale.placeholder.mismatch:${key}`);
++    }
++  }
++  for (const key of Object.keys(reference.messages)) {
++    if (!(key in messages)) issues.push(`locale.message.missing:${key}`);
++  }
++  return issues;
++}
++
++export function validateLocaleBundles(input: readonly LocaleBundle[] = bundles): string[] {
++  const issues: string[] = [];
++  const ids = new Set<string>();
++  const reference = input.find((bundle) => bundle.id === "en") ?? input[0];
++  if (!reference) return ["locale.bundle.empty"];
++  for (const bundle of input) {
++    if (ids.has(bundle.id)) issues.push(`locale.bundle.duplicate:${bundle.id}`);
++    ids.add(bundle.id);
++    issues.push(...validateLocaleBundle(bundle, reference));
++  }
++  for (const bundle of input) {
++    if (!ids.has(bundle.fallback)) issues.push(`locale.fallback.missing:${bundle.id}:${bundle.fallback}`);
++  }
++  return [...new Set(issues)];
++}
++
++export function resolveLocale(value: string | undefined): { requested: LocaleId; id: LocaleId; fallbackUsed: boolean; bundle: LocaleBundle } {
++  const requested = value === undefined ? "ja" : normalizeLocaleId(value) ?? value.trim().toLowerCase();
++  const selected = bundles.find((bundle) => bundle.id === requested);
++  if (selected) return { requested, id: selected.id, fallbackUsed: false, bundle: { ...selected, messages: { ...selected.messages } } };
++  const fallback = bundles.find((bundle) => bundle.id === "en") ?? bundles[0];
++  return { requested, id: fallback.id, fallbackUsed: true, bundle: { ...fallback, messages: { ...fallback.messages } } };
++}
++
++export function localeMessage(locale: string | undefined, key: string): string {
++  const resolved = resolveLocale(locale);
++  const message = resolved.bundle.messages[key];
++  if (!message) throw new Error(`Missing locale message: ${key}`);
++  return message;
++}
++
++export function renderAgentGuidance(locale: string | undefined, adapterGuidance: string): string {
++  const resolved = resolveLocale(locale);
++  for (const key of commonKeys) if (!resolved.bundle.messages[key]) throw new Error(`Missing locale message: ${key}`);
++  return `${resolved.bundle.messages["agent.header"]}\n\n${resolved.bundle.messages["agent.intro"]}\n${resolved.bundle.messages["agent.handoff"]}\n\n${resolved.bundle.messages["agent.rules"]}\n\n${adapterGuidance}\n`;
++}
++
++export function localeMetadata(language: string): string {
++  if (language === "ja") return "ja-JP";
++  if (language === "en") return "en-US";
++  return language;
++}
+diff --git a/tests/fixtures/locales/fr.json b/tests/fixtures/locales/fr.json
+new file mode 100644
+index 0000000..d6bc662
+--- /dev/null
++++ b/tests/fixtures/locales/fr.json
+@@ -0,0 +1,11 @@
++{
++  "schemaVersion": "scwbs.locale.v1",
++  "id": "fr",
++  "fallback": "en",
++  "messages": {
++    "agent.header": "# SC-WBS",
++    "agent.intro": "Suivez AGENTS.md et le Task Contract.",
++    "agent.handoff": "Utilisez le français pour les transmissions lorsque c'est possible.",
++    "agent.rules": "- Restez dans les chemins autorisés.\n- Exécutez les vérifications et collectez les Evidence.\n- Arrêtez-vous pour un Human Gate ou une décision de schéma, dépendance, authentification ou publication."
++  }
++}
+diff --git a/tests/integration/localization.test.ts b/tests/integration/localization.test.ts
+new file mode 100644
+index 0000000..9b9bd3d
+--- /dev/null
++++ b/tests/integration/localization.test.ts
+@@ -0,0 +1,24 @@
++import { readFileSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { runAgentUpdate, runInit } from "../../src/commands/init.js";
++import { makeTempRepo } from "../helpers.js";
++
++describe("localization integration", () => {
++  test("init renders an additional locale and preserves stable adapter commands", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "codex", lang: "fr" })).toBe(0);
++    const guidance = readFileSync(path.join(root, "AGENTS.md"), "utf8");
++    expect(guidance).toContain("Suivez AGENTS.md");
++    expect(guidance).toContain("Use scwbs packet --task <id>.");
++  });
++
++  test("locale update never overwrites a user-owned divergent file", () => {
++    const root = makeTempRepo();
++    expect(runInit(root, { agent: "codex", lang: "ja" })).toBe(0);
++    const file = path.join(root, "AGENTS.md");
++    writeFileSync(file, "# user-owned translation\n", "utf8");
++    expect(runAgentUpdate(root, { agent: "codex" })).toBe(0);
++    expect(readFileSync(file, "utf8")).toBe("# user-owned translation\n");
++  });
++});
+diff --git a/tests/unit/locales.test.ts b/tests/unit/locales.test.ts
+new file mode 100644
+index 0000000..fe19e7e
+--- /dev/null
++++ b/tests/unit/locales.test.ts
+@@ -0,0 +1,27 @@
++import { readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { listLocaleBundles, renderAgentGuidance, resolveLocale, validateLocaleBundle, validateLocaleBundles } from "../../src/core/locales.js";
++
++describe("locale bundles", () => {
++  test("bundles are versioned, complete, and include an extensibility fixture", () => {
++    expect(validateLocaleBundles()).toEqual([]);
++    const fixture = JSON.parse(readFileSync(path.join(process.cwd(), "tests/fixtures/locales/fr.json"), "utf8"));
++    expect(validateLocaleBundle(fixture)).toEqual([]);
++    expect(listLocaleBundles().map((bundle) => bundle.id)).toEqual(expect.arrayContaining(["ja", "en", "fr"]));
++  });
++
++  test("fallback is deterministic and machine-facing keys are not translated by guidance rendering", () => {
++    expect(resolveLocale("en-US")).toMatchObject({ id: "en", fallbackUsed: false });
++    expect(resolveLocale("unknown-locale")).toMatchObject({ id: "en", fallbackUsed: true });
++    expect(renderAgentGuidance("fr", "Use scwbs packet --task <id>.")).toContain("Use scwbs packet --task <id>.");
++  });
++
++  test("missing keys and placeholder mismatches fail closed", () => {
++    const reference = listLocaleBundles()[0];
++    const missing = { ...reference, id: "xx", messages: { "agent.header": "# x" } };
++    expect(validateLocaleBundle(missing)).toEqual(expect.arrayContaining(["locale.message.missing:agent.intro"]));
++    const placeholder = { ...reference, id: "xx", messages: { ...reference.messages, "agent.header": "# {name}" } };
++    expect(validateLocaleBundle(placeholder)).toEqual(expect.arrayContaining(["locale.placeholder.mismatch:agent.header"]));
++  });
++});
