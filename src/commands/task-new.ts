@@ -1,15 +1,16 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { listTasks } from "../core/contracts.js";
-import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
+import { checkCoverageRequirementsForPaths, completeCheckCoverageRequirements } from "../core/check-coverage.js";
 import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
 import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
 import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
-import { BROAD_ALLOWED_PATH_PATTERNS, standardHumanGatePaths } from "../core/governance-path-policy.js";
+import { BROAD_ALLOWED_PATH_PATTERNS, GOVERNANCE_PATH_POLICY_VERSION, governancePathImpacts, standardHumanGatePaths } from "../core/governance-path-policy.js";
 import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { findNode, readWbs } from "../core/wbs.js";
-import type { TaskContract } from "../core/types.js";
+import type { Profile, TaskContract } from "../core/types.js";
+import { readProfile } from "./profile.js";
 import { syncRegistry } from "./registry-rebuild.js";
 
 
@@ -115,6 +116,195 @@ export function buildCoreTaskNew(title: string, options: {
     managedContractPaths: taskBootstrapManagedContractPaths(id)
   };
   return { task, fallback, invalidChecks: normalizedChecks.invalid };
+}
+
+export type TaskPreflightOutput = {
+  version: "scwbs.task-preflight.v1";
+  status: "pass" | "review-required" | "fail";
+  profile: Profile;
+  input: { title: string; paths: string[] };
+  derived: {
+    requiredChecks: string[];
+    evidence: string[];
+    allowedPaths: string[];
+    forbiddenPaths: string[];
+    humanGatePaths: string[];
+  };
+  estimatedCeremony: { humanActions: number; requiredCheckCount: number };
+  policy: {
+    version: string;
+    reasons: Array<{
+      path: string;
+      source: string;
+      classification: string;
+      reasonCode: string;
+      reason: string;
+    }>;
+  };
+  reasons: Array<{ code: string; message: string }>;
+};
+
+export type PolicyExplainOutput = {
+  version: "scwbs.policy-explain.v1";
+  status: "pass" | "review-required" | "fail";
+  path: string;
+  policyVersion: string;
+  matches: Array<{
+    pattern: string;
+    classification: string;
+    reasonCode: string;
+    reason: string;
+    humanGate: boolean;
+  }>;
+  derived: TaskPreflightOutput["derived"];
+  reasons: Array<{ code: string; message: string }>;
+};
+
+type PathPolicyFacts = Pick<TaskPreflightOutput, "derived" | "policy" | "reasons" | "status">;
+
+function normalizePreflightProfile(root: string, value: string | undefined): Profile | undefined {
+  if (value === undefined) return readProfile(root);
+  const normalized = value.toLowerCase();
+  if (normalized === "lean") return "Lean";
+  if (normalized === "standard") return "Standard";
+  if (normalized === "strict") return "Strict";
+  return undefined;
+}
+
+function isForbiddenPath(file: string): boolean {
+  const normalized = file.replace(/\\/g, "/").replace(/^\.\//, "");
+  return normalized === "wjs" || normalized.startsWith("wjs/");
+}
+
+function buildPathPolicyFacts(root: string, paths: string[]): PathPolicyFacts {
+  const normalizedPaths = [...new Set(paths.map((value) => value.trim()).filter(Boolean))].sort();
+  const coverage = checkCoverageRequirementsForPaths(root, normalizedPaths);
+  const policyReasons: TaskPreflightOutput["policy"]["reasons"] = [];
+  const humanGatePaths = new Set<string>();
+  const reasons: Array<{ code: string; message: string }> = [];
+
+  for (const file of normalizedPaths) {
+    for (const impact of governancePathImpacts(file)) {
+      policyReasons.push({
+        path: file,
+        source: "src/core/governance-path-policy.ts",
+        classification: impact.classification,
+        reasonCode: impact.reasonCode,
+        reason: impact.reason
+      });
+      if (impact.newTaskHumanGate || impact.critical) humanGatePaths.add(file);
+    }
+    if (isForbiddenPath(file)) {
+      reasons.push({
+        code: "policy.path.forbidden",
+        message: `${file} matches the repository forbidden path policy wjs/**`
+      });
+    }
+  }
+
+  for (const issue of coverage.issues) {
+    reasons.push({ code: issue.code, message: issue.message });
+  }
+
+  const requiredChecks = coverage.requiredChecks;
+  const evidence = coverage.evidenceRequired;
+  const derived = {
+    requiredChecks,
+    evidence,
+    allowedPaths: normalizedPaths,
+    forbiddenPaths: ["wjs/**"],
+    humanGatePaths: [...humanGatePaths].sort()
+  };
+  const status = reasons.length > 0 ? "fail" : derived.humanGatePaths.length > 0 ? "review-required" : "pass";
+  return {
+    status,
+    derived,
+    policy: { version: GOVERNANCE_PATH_POLICY_VERSION, reasons: policyReasons },
+    reasons
+  };
+}
+
+export function buildTaskPreflightOutput(root: string, options: { title?: string; paths?: string[]; profile?: string }): TaskPreflightOutput {
+  const title = options.title?.trim() ?? "";
+  const paths = [...new Set((options.paths ?? []).map((value) => value.trim()).filter(Boolean))].sort();
+  const profile = normalizePreflightProfile(root, options.profile);
+  const reasons: Array<{ code: string; message: string }> = [];
+  if (!title) reasons.push({ code: "task.preflight.title.missing", message: "A non-empty --title is required" });
+  if (paths.length === 0) reasons.push({ code: "task.preflight.paths.missing", message: "At least one --paths entry is required" });
+  if (!profile) reasons.push({ code: "task.preflight.profile.invalid", message: "Profile must be lean, standard, or strict" });
+
+  const facts = buildPathPolicyFacts(root, paths);
+  reasons.push(...facts.reasons);
+  const status = reasons.length > 0 ? "fail" : facts.status;
+  return {
+    version: "scwbs.task-preflight.v1",
+    status,
+    profile: profile ?? "Standard",
+    input: { title, paths },
+    derived: facts.derived,
+    estimatedCeremony: {
+      humanActions: facts.derived.humanGatePaths.length > 0 ? 1 : 0,
+      requiredCheckCount: facts.derived.requiredChecks.length
+    },
+    policy: facts.policy,
+    reasons
+  };
+}
+
+export function runTaskPreflight(root: string, options: { title?: string; paths?: string; profile?: string; json?: boolean }): number {
+  try {
+    const result = buildTaskPreflightOutput(root, {
+      title: options.title,
+      paths: options.paths?.split(","),
+      profile: options.profile
+    });
+    if (options.json) {
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+    } else {
+      process.stdout.write(`Task preflight: ${result.status}\nProfile: ${result.profile}\nRequired checks: ${result.derived.requiredChecks.join(", ") || "none"}\nEvidence: ${result.derived.evidence.join(", ") || "none"}\nHuman Gate paths: ${result.derived.humanGatePaths.join(", ") || "none"}\n`);
+      for (const reason of result.reasons) process.stdout.write(`Reason ${reason.code}: ${reason.message}\n`);
+    }
+    return result.status === "fail" ? 1 : 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function buildPolicyExplainOutput(root: string, inputPath: string): PolicyExplainOutput {
+  const pathValue = inputPath.trim();
+  const facts = buildPathPolicyFacts(root, [pathValue]);
+  const matches = governancePathImpacts(pathValue).map((impact) => ({
+    pattern: impact.pattern,
+    classification: impact.classification,
+    reasonCode: impact.reasonCode,
+    reason: impact.reason,
+    humanGate: Boolean(impact.newTaskHumanGate || impact.critical)
+  }));
+  return {
+    version: "scwbs.policy-explain.v1",
+    status: facts.status,
+    path: pathValue,
+    policyVersion: GOVERNANCE_PATH_POLICY_VERSION,
+    matches,
+    derived: facts.derived,
+    reasons: facts.reasons
+  };
+}
+
+export function runPolicyExplain(root: string, inputPath: string, options: { json?: boolean } = {}): number {
+  try {
+    const result = buildPolicyExplainOutput(root, inputPath);
+    if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
+    else {
+      process.stdout.write(`Policy: ${result.status}\nPath: ${result.path}\nHuman Gate: ${result.derived.humanGatePaths.length > 0 ? "required" : "not required"}\nRequired checks: ${result.derived.requiredChecks.join(", ") || "none"}\n`);
+      for (const reason of result.reasons) process.stdout.write(`Reason ${reason.code}: ${reason.message}\n`);
+    }
+    return result.status === "fail" ? 1 : 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
 
 export function runTaskNew(root: string, title: string, options: {
