@@ -1,0 +1,44 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-556
+type: discovery-probe
+status: concluded
+question: approval request の bounded versioned JSON summary を、既存 text/YAML output と Human Approval semantics を変えずに追加できるか
+hypotheses:
+  - approval request currently lacks --json
+  - existing versioned summary schema patterns can be reused
+  - request side effects and policy checks can remain unchanged
+activities:
+  - inspect approval request command and CLI registration
+  - compare versioned JSON summary schemas
+  - inspect approval request tests
+  - reproduce unknown option without mutation
+evidenceExpected:
+  - unknown --json reproduction
+  - current request output shape
+  - reusable schema conventions
+  - no approval auto-generation
+unknowns:
+  - exact stable field names for owner/action
+  - whether requestedAt and notes need bounded limits
+timebox: 45m
+costLimit: low
+exitConditions:
+  - response schema and bounds defined
+  - existing output/policy semantics remain unchanged
+  - delivery scope is limited to request response
+nextDecision: Create one delivery Task for scwbs.approval-request.v1 JSON response and schema regression coverage
+createdAt: "2026-08-11T22:27:51.538Z"
+startedAt: "2026-08-11T22:28:05.408Z"
+concludedAt: "2026-08-11T22:30:22.070Z"
+exitConditionsMet: true
+factsLearned:
+  - approval request has no json option and currently emits YAML only
+  - runApprovalRequest already creates requested-only approval and preserves pull-request force and evidence PR checks
+  - versioned JSON schema fixtures live under docs/scwbs/schemas and existing nextActionOwner human convention is reusable
+  - CLI parser joins note arguments before request and JSON projection can bound notes without changing stored YAML or plain output
+hypothesesRejected:
+  - AI approval automation
+  - Human Gate or delegated token semantics changes
+  - review merge repository permissions changes
+remainingUnknowns:
+  - none within the bounded request-response scope
