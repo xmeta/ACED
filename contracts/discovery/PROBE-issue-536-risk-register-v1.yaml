@@ -1,0 +1,52 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-536-risk-register-v1
+type: discovery-probe
+status: concluded
+question: What is the smallest migration-free Risk Register v1 that preserves Lean/Standard happy paths while making Strict high/critical risk treatment and Human-only acceptance machine-readable?
+hypotheses:
+  - Existing artifact/schema/registry infrastructure can host risks without a database migration
+  - Human-only acceptance can reuse current approval provenance
+  - Strict-only enforcement can remain opt-in
+activities:
+  - inspect existing artifact schemas and profile checks
+  - define risk schema and level algorithm
+  - define acceptance freshness semantics
+  - design CLI and trace integration
+  - identify fixtures and fail-closed boundaries
+evidenceExpected:
+  - 'live Issue #536 and duplicate scan'
+  - allowedPaths and forbiddenPaths proposal
+  - versioned schema proposal
+  - Strict/Standard behavior matrix
+  - Human-only acceptance boundary
+  - fixture and test plan
+unknowns:
+  - exact existing profile validation extension point
+  - canonical relation locator shape
+  - how acceptance freshness should bind subjectHeadCommit and diffHash
+timebox: 1 day
+costLimit: repository-only, no new hosted service or dependency
+exitConditions:
+  - schema and command slice is bounded
+  - no migration or hosted database is required
+  - Human Gate boundaries are explicit
+  - acceptance criteria are testable
+nextDecision: Create a bounded Risk Register v1 Task Contract with migration-free artifact/schema/CLI/Strict/trace/docs/tests scope and explicit Human Gate for risk acceptance.
+createdAt: "2026-08-11T15:55:52.137Z"
+startedAt: "2026-08-11T15:56:06.897Z"
+concludedAt: "2026-08-11T15:57:00.068Z"
+exitConditionsMet: true
+factsLearned:
+  - Risk data can use versioned YAML artifacts and existing registry indexing
+  - Strict enforcement belongs in check/report paths and must not affect Lean/Standard
+  - approval freshness can bind accepted subjectHeadCommit and diffHash
+  - trace can extend existing task graph with risk nodes and edges
+  - Human-only acceptance can reuse approval command boundaries without delegated default
+hypothesesRejected:
+  - remote database is necessary
+  - AI acceptance is acceptable
+  - CI-only risk records are sufficient
+remainingUnknowns:
+  - exact risk artifact directory and registry entry shape
+  - precise strict treatment status vocabulary
+  - compatibility of risk relation fields with current trace consumers
