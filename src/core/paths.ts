@@ -11,6 +11,7 @@ export const defaultEvidencePayloadsDir = "contracts/evidence-payloads";
 export const defaultApprovalsDir = "contracts/approvals";
 export const defaultReviewsDir = "contracts/reviews";
 export const defaultBlocksDir = "contracts/blocks";
+export const defaultRisksDir = "contracts/risks";
 export const defaultChangesetsDir = "contracts/changesets";
 export const defaultCheckCoveragePath = "contracts/check-coverage.yaml";
 export const taskIdPatternSource = "^[A-Za-z0-9][A-Za-z0-9._-]*$";

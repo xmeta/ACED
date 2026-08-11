@@ -430,6 +430,20 @@ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "R
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
 ```
 
+### Risk Register v1
+
+Risk artifactは `contracts/risks/*.yaml` に保存され、`schemaVersion: scwbs.risk.v1` を要求する。likelihood/impact はそれぞれ1〜5、scoreは固定の積で、1–4がLow、5–9がMedium、10–16がHigh、17–25がCriticalである。scoreやlevelを手入力して基準を弱めることはできない。
+
+```bash
+npm run scwbs -- risk list --json
+npm run scwbs -- risk show RISK-EXAMPLE --json
+npm run scwbs -- risk add --id RISK-EXAMPLE --title "Example risk" --likelihood 3 --impact 4 --owner team --actions "Add control" --tasks TASK-001 --json
+npm run scwbs -- risk update RISK-EXAMPLE --actions "Verify control" --json
+npm run scwbs -- risk accept RISK-EXAMPLE --actor human --reason "CONFIRM TTY RISK RISK-EXAMPLE <subjectHeadCommit> <diffHash>" --json
+```
+
+`risk list/show/add/update` のJSONはboundedで、add/updateは `--dry-run` でartifactを書かずに結果を確認できる。`risk accept` はHuman-onlyで、リンクされたEvidenceの現在のsubjectHeadCommitとdiffHashを含むexact TTY confirmationが必要である。Strict profileの `scwbs check --json` は、リンクされた未closedのHigh/Critical riskについて、treatment actionの欠落、Human acceptanceの欠落、またはEvidence変更後のstale acceptanceをmachine-readable errorとして返す。Lean/StandardではこのRisk Register gateを追加しない。
+
 ### Core alias: `request-approval` / `approve`
 
 `approval request` と `approval approve` には、top-levelのCore alias `request-approval` と `approve` がある。artifactを作る内部関数は共通だが、option parsingは完全には同一でない。top-level aliasはどちらも `--pr` と `--pull-request` を受け付け、`approval request` / `approval approve` は `--pull-request` だけを受け付ける。複数語のnote/reasonは、どちらの形式でも引用符または `--note=...` / `--reason=...` を使う。

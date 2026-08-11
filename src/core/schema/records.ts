@@ -1,5 +1,5 @@
 import type { ErrorObject } from "ajv";
-import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord } from "../types.js";
+import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord, RiskRecord } from "../types.js";
 import { taskIdPatternSource } from "../paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
@@ -411,10 +411,81 @@ const reviewRecordSchema = {
   }
 };
 
+const riskRecordSchema = {
+  type: "object",
+  required: ["schemaVersion", "id", "type", "title", "status", "scope", "assessment", "treatment", "residualRisk", "createdAt"],
+  additionalProperties: false,
+  properties: {
+    schemaVersion: { const: "scwbs.risk.v1" },
+    id: { type: "string", pattern: "^RISK-[A-Z0-9][A-Z0-9._-]*$" },
+    type: { const: "risk" },
+    title: { type: "string", minLength: 1 },
+    status: { enum: ["open", "mitigated", "accepted", "closed"] },
+    scope: {
+      type: "object",
+      required: ["specs", "tasks", "requirements"],
+      additionalProperties: false,
+      properties: {
+        specs: { type: "array", items: { type: "string", minLength: 1 } },
+        tasks: { type: "array", items: { type: "string", minLength: 1 } },
+        requirements: { type: "array", items: { type: "string", minLength: 1 } }
+      }
+    },
+    assessment: {
+      type: "object",
+      required: ["likelihood", "impact", "score", "level"],
+      additionalProperties: false,
+      properties: {
+        likelihood: { type: "integer", minimum: 1, maximum: 5 },
+        impact: { type: "integer", minimum: 1, maximum: 5 },
+        score: { type: "integer", minimum: 1, maximum: 25 },
+        level: { enum: ["low", "medium", "high", "critical"] }
+      }
+    },
+    treatment: {
+      type: "object",
+      required: ["strategy", "owner", "actions", "verification"],
+      additionalProperties: false,
+      properties: {
+        strategy: { enum: ["avoid", "mitigate", "transfer", "accept"] },
+        owner: { type: "string", minLength: 1 },
+        actions: { type: "array", items: { type: "string", minLength: 1 } },
+        verification: { type: "array", items: { type: "string", minLength: 1 } }
+      }
+    },
+    residualRisk: {
+      type: "object",
+      required: ["likelihood", "impact", "score", "level"],
+      additionalProperties: false,
+      properties: {
+        likelihood: { type: "integer", minimum: 1, maximum: 5 },
+        impact: { type: "integer", minimum: 1, maximum: 5 },
+        score: { type: "integer", minimum: 1, maximum: 25 },
+        level: { enum: ["low", "medium", "high", "critical"] }
+      }
+    },
+    acceptance: {
+      type: "object",
+      required: ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
+      additionalProperties: false,
+      properties: {
+        acceptedBy: { const: "human" },
+        acceptedAt: { type: "string", minLength: 1 },
+        subjectHeadCommit: { type: "string", minLength: 1 },
+        diffHash: { type: "string", minLength: 1 },
+        reason: { type: "string", minLength: 1 }
+      }
+    },
+    createdAt: { type: "string", minLength: 1 },
+    updatedAt: { type: "string", minLength: 1 }
+  }
+};
+
 const validateEvidenceAjv = ajv.compile(evidenceSchema);
 const validateApprovalAjv = ajv.compile(approvalRecordSchema);
 const validateBlockAjv = ajv.compile(blockRecordSchema);
 const validateReviewAjv = ajv.compile(reviewRecordSchema);
+const validateRiskAjv = ajv.compile(riskRecordSchema);
 
 function schemaIssues(validate: ReturnType<typeof ajv.compile>, kind: string, value: unknown, filePath: string): Issue[] {
   if (validate(value)) return [];
@@ -713,6 +784,46 @@ export function validateReviewRecord(value: unknown, filePath = "review"): Issue
   }
   if (value.findings !== undefined && !isStringArray(value.findings)) {
     issues.push(issue("review.findings", `${filePath}.findings must be a string array when present`));
+  }
+  return issues;
+}
+
+/* ── Risk Register ── */
+
+export function validateRiskRecordSchema(value: unknown, filePath = "risk"): Issue[] {
+  return schemaIssues(validateRiskAjv, "risk", value, filePath);
+}
+
+export function asRiskRecord(value: unknown): RiskRecord {
+  return value as RiskRecord;
+}
+
+function riskLevelForScore(score: number): string {
+  if (score <= 4) return "low";
+  if (score <= 9) return "medium";
+  if (score <= 16) return "high";
+  return "critical";
+}
+
+export function validateRiskRecord(value: unknown, filePath = "risk"): Issue[] {
+  const issues = validateRiskRecordSchema(value, filePath);
+  if (!isObject(value)) return issues;
+  const assessment = isObject(value.assessment) ? value.assessment : undefined;
+  const residual = isObject(value.residualRisk) ? value.residualRisk : undefined;
+  for (const [name, section] of [["assessment", assessment], ["residualRisk", residual]] as const) {
+    if (!section) continue;
+    const likelihood = Number(section.likelihood);
+    const impact = Number(section.impact);
+    const score = Number(section.score);
+    if (Number.isInteger(likelihood) && Number.isInteger(impact) && score !== likelihood * impact) {
+      issues.push(issue("risk.score.mismatch", `${filePath}.${name}.score must equal likelihood * impact`));
+    }
+    if (Number.isInteger(score) && section.level !== riskLevelForScore(score)) {
+      issues.push(issue("risk.level.mismatch", `${filePath}.${name}.level does not match the fixed risk level algorithm`));
+    }
+  }
+  if (isObject(value.acceptance) && value.acceptance.acceptedBy !== "human") {
+    issues.push(issue("risk.acceptance.human-only", `${filePath}.acceptance.acceptedBy must be human`));
   }
   return issues;
 }

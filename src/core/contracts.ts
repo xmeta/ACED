@@ -13,6 +13,7 @@ import {
   defaultEvidenceDir,
   defaultRegistryPath,
   defaultReviewsDir,
+  defaultRisksDir,
   defaultSpecChangesDir,
   defaultSpecsDir,
   defaultTasksDir,
@@ -64,8 +65,10 @@ import type {
   SpecChangeProposal,
   SpecContract,
   SpecRequirement,
-  TaskContract
+  TaskContract,
+  RiskRecord
 } from "./types.js";
+import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
@@ -269,6 +272,19 @@ export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: I
       const value = readYamlFile<unknown>(resolveFrom(root, path));
       const issues = [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)];
       return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues, path };
+    });
+}
+
+export function listRisks(root: string): Array<{ risk?: RiskRecord; issues: Issue[]; path: string }> {
+  const dir = resolveFrom(root, defaultRisksDir);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
+    .map((file) => {
+      const relativePath = `${defaultRisksDir}/${file}`;
+      const value = readYamlFile<unknown>(resolveFrom(root, relativePath));
+      const issues = [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)];
+      return { risk: issues.length === 0 ? asRiskRecord(value) : undefined, issues, path: relativePath };
     });
 }
 

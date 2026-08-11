@@ -14,9 +14,9 @@ Source: docs/sc-wbs-development.md split reference.
 
 プロファイルを明示しない場合はStandardを適用する。
 
-上表の「方法論上の要求」と「現行CLIが機械的に強制する範囲」は同一ではない。現行実装のStrictは `contracts/specs/` と `contracts/spec-changes/` を追加し、LeanではSpec/Spec Changeのrepository-wide検証を省略する。Risk Registerと監査ログのscaffold/schema/check、Profile別Review種別の強制は未実装である。`contracts/reviews/` のrecordはTask別のreview/completion flowで検証されるが、`scwbs check` が全Review recordをProfile別に列挙して強制するわけではない。
+上表の「方法論上の要求」と「現行CLIが機械的に強制する範囲」は同一ではない。Strictは `contracts/specs/` と `contracts/spec-changes/` を追加し、LeanではSpec/Spec Changeのrepository-wide検証を省略する。Risk Register v1 は `contracts/risks/` の `scwbs.risk.v1` artifact、固定スコア、Strictの未処理High/Critical検出、Evidence subject/diffに束縛されたHuman受入れ鮮度を検証する。監査ログとProfile別Review種別の強制は別スコープである。`contracts/reviews/` のrecordはTask別のreview/completion flowで検証されるが、`scwbs check` が全Review recordをProfile別に列挙して強制するわけではない。
 
-したがって `init --profile strict` や `profile set strict` の表示だけを、Risk Register、監査ログ、Human Reviewまで完備した証明として扱ってはならない。実装済みの強制範囲を広げる場合は、schema・check・migrationを別Taskで追加する。
+したがって `init --profile strict` や `profile set strict` の表示だけを、監査ログやHuman Reviewまで完備した証明として扱ってはならない。Risk Registerの受入れはCLIからもHuman-onlyであり、AIの判断やRisk artifactだけをTask完了・Approvalの根拠にはできない。
 
 AI Work Packet にはプロファイル情報とアクティブなアーティファクトディレクトリ一覧が含まれる。
 
@@ -44,7 +44,6 @@ Human Gateで責任ある判断を制御する。
 
 次段階の正式候補は以下である。
 
-* Strict Profile向けにRisk Registerの形式を定義する
 
 ## 17. Subtree Phase
 

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scwbs.risk.v1",
+  "title": "SC-WBS Risk Register v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "type", "title", "status", "scope", "assessment", "treatment", "residualRisk", "createdAt"],
+  "properties": {
+    "schemaVersion": { "const": "scwbs.risk.v1" },
+    "id": { "type": "string", "pattern": "^RISK-[A-Z0-9][A-Z0-9._-]*$" },
+    "type": { "const": "risk" },
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["open", "mitigated", "accepted", "closed"] },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tasks", "specs", "requirements"],
+      "properties": {
+        "tasks": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
+        "specs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
+        "requirements": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 }
+      }
+    },
+    "assessment": { "$ref": "#/$defs/assessment" },
+    "treatment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "owner", "actions", "verification"],
+      "properties": {
+        "strategy": { "enum": ["avoid", "mitigate", "transfer", "accept"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "actions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 },
+        "verification": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 50 }
+      }
+    },
+    "residualRisk": { "$ref": "#/$defs/assessment" },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
+      "properties": {
+        "acceptedBy": { "const": "human" },
+        "acceptedAt": { "type": "string", "minLength": 1 },
+        "subjectHeadCommit": { "type": "string", "minLength": 1 },
+        "diffHash": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["likelihood", "impact", "score", "level"],
+      "properties": {
+        "likelihood": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "impact": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "score": { "type": "integer", "minimum": 1, "maximum": 25 },
+        "level": { "enum": ["low", "medium", "high", "critical"] }
+      }
+    }
+  }
+}
