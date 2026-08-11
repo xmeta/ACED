@@ -27,6 +27,7 @@ import { runStart } from "./commands/start.js";
 import { runStatus } from "./commands/status.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
+import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
 import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
 import { registerDiscoveryCommands } from "./cli/register-discovery.js";
 import { registerGovernanceCommands } from "./cli/register-governance.js";
@@ -236,6 +237,61 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--dry-run")
     .option("--json")
     .action((opts) => { exitCode = runAgentUpdate(root, opts); });
+
+  const version = program.command("version").description("Show the installed scwbs version and release status");
+  version
+    .command("check")
+    .description("Compare the installed version with the verified current stable release")
+    .option("--manifest <path>", "use a local release-manifest.json for offline verification")
+    .option("--artifact <path>", "verify a local tarball against the manifest SHA-256")
+    .option("--repo <owner/name>", "GitHub repository used to find the latest release")
+    .option("--timeout-ms <milliseconds>", "release lookup timeout")
+    .option("--json", "output a versioned JSON report")
+    .action((options) => {
+      void runVersionCheck(root, {
+        manifestPath: options.manifest,
+        artifactPath: options.artifact,
+        repository: options.repo,
+        timeoutMs: options.timeoutMs ? Number(options.timeoutMs) : undefined,
+        json: options.json ?? false
+      }).then((code) => {
+        exitCode = code;
+        process.exitCode = code;
+      }).catch((error: unknown) => {
+        console.error(error instanceof Error ? error.message : String(error));
+        exitCode = 1;
+        process.exitCode = 1;
+      });
+    });
+  version.action((options) => { exitCode = runVersion(root, { json: options.json ?? false }); });
+  version.option("--json", "output a versioned JSON report");
+
+  program
+    .command("upgrade")
+    .description("Propose an exact release artifact upgrade without mutating the consumer")
+    .option("--dry-run", "required: generate a read-only upgrade proposal")
+    .option("--manifest <path>", "use a local release-manifest.json for offline verification")
+    .option("--artifact <path>", "verify a local tarball against the manifest SHA-256")
+    .option("--repo <owner/name>", "GitHub repository used to find the latest release")
+    .option("--timeout-ms <milliseconds>", "release lookup timeout")
+    .option("--json", "output a versioned JSON report")
+    .action((options) => {
+      void runUpgrade(root, {
+        dryRun: options.dryRun ?? false,
+        manifestPath: options.manifest,
+        artifactPath: options.artifact,
+        repository: options.repo,
+        timeoutMs: options.timeoutMs ? Number(options.timeoutMs) : undefined,
+        json: options.json ?? false
+      }).then((code) => {
+        exitCode = code;
+        process.exitCode = code;
+      }).catch((error: unknown) => {
+        console.error(error instanceof Error ? error.message : String(error));
+        exitCode = 1;
+        process.exitCode = 1;
+      });
+    });
 
   const agent = program.command("agent");
   agent
@@ -641,5 +697,5 @@ if (
   realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
 ) {
   const exitCode = main();
-  process.exit(exitCode);
+  process.exitCode = exitCode;
 }

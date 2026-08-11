@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -40,6 +41,38 @@ export function runDistributionSmoke(repository = process.cwd()) {
   const bin = path.join(consumer, "node_modules", ".bin", "scwbs");
   assert(existsSync(bin), "installed scwbs bin is missing");
   assert.equal(runScwbs(bin, ["--version"], consumer), packageJson.version);
+
+  const tarballDigest = createHash("sha256").update(readFileSync(tarball)).digest("hex");
+  const currentManifest = path.join(fixture, "release-manifest.json");
+  writeFileSync(currentManifest, `${JSON.stringify({
+    schemaVersion: "1.0.0",
+    packageVersion: packageJson.version,
+    tag: `v${packageJson.version}`,
+    commit: run("git", ["rev-parse", "HEAD"], repository).trim(),
+    tarball: packed.filename,
+    sha256: tarballDigest,
+    validation: { workflow: ".github/workflows/scwbs.yml", workflowRunId: 1, checks: [] }
+  }, null, 2)}\n`, "utf8");
+  const versionCheck = JSON.parse(runScwbs(bin, ["version", "check", "--manifest", currentManifest, "--artifact", tarball, "--json"], consumer));
+  assert.equal(versionCheck.status, "pass", `version check failed: ${JSON.stringify(versionCheck)}`);
+  assert.equal(versionCheck.support, "current");
+
+  const nextManifest = path.join(fixture, "next-release-manifest.json");
+  writeFileSync(nextManifest, `${JSON.stringify({
+    schemaVersion: "1.0.0",
+    packageVersion: "0.1.1",
+    tag: "v0.1.1",
+    commit: "0123456789abcdef0123456789abcdef01234567",
+    tarball: "scwbs-0.1.1.tgz",
+    sha256: "a".repeat(64),
+    validation: { workflow: ".github/workflows/scwbs.yml", workflowRunId: 2, checks: [] }
+  }, null, 2)}\n`, "utf8");
+  const upgrade = JSON.parse(runScwbs(bin, ["upgrade", "--dry-run", "--manifest", nextManifest, "--json"], consumer));
+  assert.equal(upgrade.status, "pass", `upgrade dry-run failed: ${JSON.stringify(upgrade)}`);
+  assert.equal(upgrade.proposed.packageVersion, "0.1.1");
+  const unattended = spawnSync(bin, ["upgrade", "--json"], { cwd: consumer, encoding: "utf8" });
+  assert.equal(unattended.status, 2);
+  assert.equal(JSON.parse(unattended.stdout).status, "blocked");
 
   for (const command of quickstartCommands.commands) {
     assert(["help", "run"].includes(command.mode), `quickstart command has an invalid mode: ${command.id}`);
