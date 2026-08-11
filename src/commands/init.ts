@@ -2,12 +2,12 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
+import { agentNames as supportedAgentNames, assertSafeAgentPath, diagnoseAgentAdapters, getAgentAdapter, isAgentId, listAgentAdapters, renderAgentFiles } from "../core/agent-adapters.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
 
-const agentNames: Agent[] = ["codex", "claude", "cursor", "copilot"];
 const agentManifestPath = ".scwbs/agent-files.json";
-const agentError = "Unknown agent (codex, claude, cursor, copilot)";
+const agentError = `Unknown agent (${supportedAgentNames()})`;
 const manifestError = "Invalid agent manifest";
 
 function writeIfMissing(root: string, relativePath: string, content: string): void {
@@ -30,6 +30,11 @@ export type AgentUpdateOptions = {
 };
 
 export type AgentOperationOptions = {
+  json?: boolean;
+};
+
+export type AgentDoctorOptions = {
+  all?: boolean;
   json?: boolean;
 };
 
@@ -82,7 +87,7 @@ export type AgentDecision = {
 };
 
 function isAgent(value: unknown): value is Agent {
-  return typeof value === "string" && agentNames.includes(value as Agent);
+  return isAgentId(value);
 }
 
 function uniqueAgents(values: Agent[]): Agent[] {
@@ -117,18 +122,7 @@ function sha256(content: string): string {
 }
 
 function agentFiles(agent: Agent, language: Language): AgentFile[] {
-  const languageLine = language === "ja" ? "Use Japanese for handoffs when practical." : "Use English for handoffs.";
-  const common = `<!-- scwbs; keep customizations separate. -->\n\n# SC-WBS\n\nFollow AGENTS.md and Task Contract.\n${languageLine}\n\n- Stay in allowed paths.\n- Run checks and collect Evidence.\n- Stop for Human Gate or schema, dependency, auth, release decisions.\n`;
-  switch (agent) {
-    case "codex":
-      return [{ path: "AGENTS.md", content: `${common}\nUse scwbs packet --task <id>.\n` }];
-    case "claude":
-      return [{ path: ".claude/commands/scwbs.md", content: `${common}\nUse npm run scwbs -- packet --task <id>.\n` }];
-    case "cursor":
-      return [{ path: ".cursor/rules/scwbs.mdc", content: `${common}\nUse the Task Contract for every edit.\n` }];
-    case "copilot":
-      return [{ path: ".github/copilot-instructions.md", content: `${common}\nUse SC-WBS CLI commands through npm.\n` }];
-  }
+  return renderAgentFiles(agent, language).map((file) => ({ path: file.path, content: file.guidance }));
 }
 
 function readManifest(root: string): ManifestState {
@@ -247,8 +241,9 @@ function sync(
 ): { manifest: AgentManifestV2; decisions: AgentDecision[] } {
   const next = { ...manifest, agents: [...manifest.agents], files: manifest.files.map((file) => ({ ...file })) };
   const decisions: AgentDecision[] = [];
-  for (const file of agentFiles(agent, language)) {
-    const fullPath = resolveFrom(root, file.path);
+  const files = agentFiles(agent, language);
+  for (const file of files) {
+    const fullPath = assertSafeAgentPath(root, file.path);
     const previous = next.files.find((entry) => entry.path === file.path && entry.owner === agent);
     const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
     if (current === undefined) {
@@ -466,7 +461,7 @@ export function runAgentRemove(root: string, value: string, options: AgentOperat
       retained.push(file);
       continue;
     }
-    const fullPath = resolveFrom(root, file.path);
+    const fullPath = assertSafeAgentPath(root, file.path);
     const current = existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
     if (current !== undefined && sha256(current) !== file.sha256) {
       decisions.push({ action: "preserved", agent, path: file.path });
@@ -480,4 +475,54 @@ export function runAgentRemove(root: string, value: string, options: AgentOperat
   writeManifest(root, next);
   output(decisions, options.json);
   return 0;
+}
+
+export function runAgentList(options: AgentOperationOptions = {}): number {
+  const adapters = listAgentAdapters().map((adapter) => ({
+    id: adapter.id,
+    displayName: adapter.displayName,
+    version: adapter.version,
+    status: adapter.status,
+    capabilities: adapter.capabilities,
+    files: adapter.files.map((file) => file.path)
+  }));
+  if (options.json) {
+    console.log(JSON.stringify({ version: "scwbs.agent-list.v1", adapters }, null, 2));
+  } else {
+    for (const adapter of adapters) console.log(`${adapter.id}\t${adapter.status}\t${adapter.displayName}`);
+  }
+  return 0;
+}
+
+export function runAgentInspect(value: string, options: AgentOperationOptions = {}): number {
+  const adapter = getAgentAdapter(value.toLowerCase());
+  if (!adapter) {
+    console.error(agentError);
+    return 2;
+  }
+  const result = {
+    id: adapter.id,
+    displayName: adapter.displayName,
+    version: adapter.version,
+    status: adapter.status,
+    capabilities: adapter.capabilities,
+    files: adapter.files
+  };
+  if (options.json) console.log(JSON.stringify({ version: "scwbs.agent-inspect.v1", adapter: result }, null, 2));
+  else console.log(`${adapter.id} ${adapter.status} ${adapter.displayName}`);
+  return 0;
+}
+
+export function runAgentDoctor(root: string, options: AgentDoctorOptions = {}): number {
+  if (!options.all) {
+    console.error("agent doctor requires --all");
+    return 2;
+  }
+  const diagnostics = diagnoseAgentAdapters(root);
+  if (options.json) {
+    console.log(JSON.stringify({ version: "scwbs.agent-doctor.v1", diagnostics }, null, 2));
+  } else {
+    for (const diagnostic of diagnostics) console.log(`${diagnostic.id}\t${diagnostic.status}\t${diagnostic.issues.join("; ")}`.trim());
+  }
+  return diagnostics.some((diagnostic) => diagnostic.status === "error") ? 1 : 0;
 }

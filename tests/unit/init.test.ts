@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "../../src/commands/init.js";
+import { assertSafeAgentPath, listAgentAdapters } from "../../src/core/agent-adapters.js";
 import { validateWbsDocument } from "../../src/core/wbs.js";
 import { type WbsDocument } from "../../src/core/types.js";
 import { makeTempRepo, sampleWbs, writeJson } from "../helpers.js";
@@ -32,6 +33,34 @@ describe("init + WBS validation", () => {
     expect(runInit(root, { agent: "claude", lang: "en" })).toBe(0);
     expect(readFileSync(path.join(root, ".claude/commands/scwbs.md"), "utf8")).toContain("Use English");
     expect(readFileSync(path.join(root, ".scwbs/agent-files.json"), "utf8")).toContain("claude");
+  });
+
+  test.each([
+    ["codex", "AGENTS.md"],
+    ["claude", ".claude/commands/scwbs.md"],
+    ["cursor", ".cursor/rules/scwbs.mdc"],
+    ["copilot", ".github/copilot-instructions.md"],
+    ["gemini", ".gemini/commands/scwbs.md"],
+    ["opencode", ".opencode/commands/scwbs.md"]
+  ] as const)("renders the data-driven %s adapter fixture", (agent, relativePath) => {
+    const root = makeTempRepo();
+    expect(runInit(root, { agent })).toBe(0);
+    expect(readFileSync(path.join(root, relativePath), "utf8")).toContain("# SC-WBS");
+  });
+
+  test("registry exposes versioned capabilities and locale metadata", () => {
+    expect(listAgentAdapters()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "gemini", status: "preview", capabilities: expect.objectContaining({ mcp: true, localeKeys: expect.any(Array) }) }),
+      expect.objectContaining({ id: "opencode", status: "preview" })
+    ]));
+  });
+
+  test("agent adapter paths fail closed for traversal and symlink escape", () => {
+    const root = makeTempRepo();
+    expect(() => assertSafeAgentPath(root, "../outside.md")).toThrow("Unsafe agent adapter path");
+    mkdirSync(path.join(root, "external"));
+    symlinkSync(path.join(root, "external"), path.join(root, ".gemini"), "dir");
+    expect(() => runInit(root, { agent: "gemini" })).toThrow("symlink");
   });
 
   test("update preserves a divergent generated file", () => {

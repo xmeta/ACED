@@ -16,7 +16,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runFinish } from "./commands/finish.js";
 import { runFix } from "./commands/fix.js";
 import { runHealth } from "./commands/health.js";
-import { runAgentAdd, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "./commands/init.js";
+import { runAgentAdd, runAgentDoctor, runAgentInspect, runAgentList, runAgentRemove, runAgentSetPrimary, runAgentUpdate, runInit } from "./commands/init.js";
 import { runPromote } from "./commands/lite.js";
 import { runMerge } from "./commands/merge.js";
 import { runMetricsGovernance } from "./commands/metrics.js";
@@ -294,6 +294,23 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     });
 
   const agent = program.command("agent");
+  agent
+    .command("list")
+    .description("List versioned agent adapters")
+    .option("--json")
+    .action((opts) => { exitCode = runAgentList(opts); });
+  agent
+    .command("inspect")
+    .argument("<agent>")
+    .description("Inspect one agent adapter")
+    .option("--json")
+    .action((agentName: string, opts) => { exitCode = runAgentInspect(agentName, opts); });
+  agent
+    .command("doctor")
+    .description("Validate all agent adapter paths")
+    .option("--all", "check every registered adapter")
+    .option("--json")
+    .action((opts) => { exitCode = runAgentDoctor(root, opts); });
   agent
     .command("add")
     .argument("<agent>")

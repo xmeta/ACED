@@ -22,6 +22,22 @@ function capture(root: string, args: string[]): { exitCode: number; stdout: stri
 }
 
 describe("multi-agent consumer lifecycle", () => {
+  test("lists, inspects, and diagnoses the versioned adapter registry", () => {
+    const root = makeTempRepo();
+    const list = capture(root, ["agent", "list", "--json"]);
+    expect(list.exitCode).toBe(0);
+    expect(JSON.parse(list.stdout)).toMatchObject({
+      version: "scwbs.agent-list.v1",
+      adapters: expect.arrayContaining([expect.objectContaining({ id: "gemini", status: "preview" })])
+    });
+    const inspect = capture(root, ["agent", "inspect", "opencode", "--json"]);
+    expect(inspect.exitCode).toBe(0);
+    expect(JSON.parse(inspect.stdout)).toMatchObject({ version: "scwbs.agent-inspect.v1", adapter: { id: "opencode", capabilities: { mcp: true } } });
+    const doctor = capture(root, ["agent", "doctor", "--all", "--json"]);
+    expect(doctor.exitCode).toBe(0);
+    expect(JSON.parse(doctor.stdout)).toMatchObject({ version: "scwbs.agent-doctor.v1", diagnostics: expect.arrayContaining([expect.objectContaining({ id: "codex", status: "ready" })]) });
+  });
+
   test("install, add, dry-run update, primary change, and remove converge idempotently", () => {
     const root = makeTempRepo();
     expect(capture(root, ["init", "--agent", "codex"]).exitCode).toBe(0);

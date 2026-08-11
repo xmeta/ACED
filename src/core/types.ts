@@ -509,7 +509,7 @@ export type ReviewRecord = {
 
 export type Profile = "Lean" | "Standard" | "Strict";
 
-export type Agent = "codex" | "claude" | "cursor" | "copilot";
+export type Agent = "codex" | "claude" | "cursor" | "copilot" | "gemini" | "opencode";
 
 export type Language = "ja" | "en";
 

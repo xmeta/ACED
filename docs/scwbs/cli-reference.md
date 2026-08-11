@@ -56,6 +56,9 @@ npm run scwbs -- init --profile lean --agent codex --lang ja
 npm run scwbs -- agent add claude
 npm run scwbs -- agent set-primary codex
 npm run scwbs -- update --dry-run --json
+npm run scwbs -- agent list --json
+npm run scwbs -- agent inspect gemini --json
+npm run scwbs -- agent doctor --all --json
 npm run scwbs -- check
 npm run scwbs -- fix
 npm run scwbs -- doctor
@@ -89,7 +92,9 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 
 `doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
 
-`init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+`init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, `copilot`, `gemini`, or `opencode`). The versioned `scwbs.agent-adapter.v1` registry keeps file paths, lifecycle status, MCP capability, and locale keys in data rather than a command switch. Gemini CLI and OpenCode are preview fixtures. Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+
+`agent list --json` and `agent inspect <id> --json` expose bounded registry metadata. `agent doctor --all --json` checks every registered adapter's repository-relative paths and reports `ready`, `preview`, or `error`. Absolute paths, traversal, and symlink escapes fail closed; these commands never execute an agent or shell command.
 
 `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
 
