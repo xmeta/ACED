@@ -16,7 +16,7 @@ const registrySchema = {
         additionalProperties: true,
         properties: {
           id: { type: "string", minLength: 1 },
-          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "adr"] },
+          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "block", "risk", "adr"] },
           path: { type: "string", minLength: 1 },
           status: { type: "string" },
           active: { type: "boolean" },

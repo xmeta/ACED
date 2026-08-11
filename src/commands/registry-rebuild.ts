@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { listApprovals, listBlocks, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+import { listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
 import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
@@ -123,6 +123,10 @@ export function buildRegistryYaml(root: string, options: { evidence?: Evidence }
   for (const { block, path } of listBlocks(root)) {
     if (!block) continue;
     contracts.push({ id: block.id, type: "block", path, status: block.status, relatedTask: block.taskId });
+  }
+  for (const { risk, path } of listRisks(root)) {
+    if (!risk) continue;
+    contracts.push({ id: risk.id, type: "risk", path, status: risk.status });
   }
   for (const { review, path } of listReviews(root)) {
     if (!review) continue;

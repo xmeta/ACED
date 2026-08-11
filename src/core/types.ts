@@ -29,7 +29,7 @@ export type Issue = {
 };
 
 export type RegistryContractType =
-  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "adr";
+  "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "block" | "risk" | "adr";
 
 export type RegistryContract = {
   id: string;
@@ -508,6 +508,52 @@ export type ReviewRecord = {
 };
 
 export type Profile = "Lean" | "Standard" | "Strict";
+
+export type RiskLevel = "low" | "medium" | "high" | "critical";
+export type RiskStatus = "open" | "mitigated" | "accepted" | "closed";
+export type RiskTreatmentStrategy = "avoid" | "mitigate" | "transfer" | "accept";
+
+export type RiskAcceptance = {
+  acceptedBy: "human";
+  acceptedAt: string;
+  subjectHeadCommit: string;
+  diffHash: string;
+  reason: string;
+};
+
+export type RiskRecord = {
+  schemaVersion: "scwbs.risk.v1";
+  id: string;
+  type: "risk";
+  title: string;
+  status: RiskStatus;
+  scope: {
+    specs: string[];
+    tasks: string[];
+    requirements: string[];
+  };
+  assessment: {
+    likelihood: 1 | 2 | 3 | 4 | 5;
+    impact: 1 | 2 | 3 | 4 | 5;
+    score: number;
+    level: RiskLevel;
+  };
+  treatment: {
+    strategy: RiskTreatmentStrategy;
+    owner: string;
+    actions: string[];
+    verification: string[];
+  };
+  residualRisk: {
+    likelihood: 1 | 2 | 3 | 4 | 5;
+    impact: 1 | 2 | 3 | 4 | 5;
+    score: number;
+    level: RiskLevel;
+  };
+  acceptance?: RiskAcceptance;
+  createdAt: string;
+  updatedAt?: string;
+};
 
 export type Agent = "codex" | "claude" | "cursor" | "copilot" | "gemini" | "opencode";
 

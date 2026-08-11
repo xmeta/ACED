@@ -1,10 +1,11 @@
-import { readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
+import { listRisks, readApproval, readEvidence, readRegistry, readReview, readTask, resolveSpecForTask } from "../core/contracts.js";
 import { readWbs } from "../core/wbs.js";
+import { summarizeRisk } from "../core/risk.js";
 import { taskWbsAssociation } from "../core/task-wbs-policy.js";
 
 export type TraceJsonNode = {
   id: string;
-  kind: "spec" | "wbs" | "task" | "evidence" | "review" | "approval";
+  kind: "spec" | "wbs" | "task" | "evidence" | "review" | "approval" | "risk" | "requirement";
   status: string;
   label?: string;
   code?: string;
@@ -58,6 +59,26 @@ export function buildTraceJson(root: string, taskId: string): TraceJsonOutput {
     const id = `${item.kind}:${item.value.id}`;
     nodes.push({ id, kind: item.kind, status: item.status, label: item.value.id });
     edges.push({ from: taskNodeId, to: id, kind: item.relation });
+  }
+  const riskEntries = listRisks(root).filter((entry) => entry.risk && (
+    entry.risk.scope.tasks.includes(task.id)
+    || (spec !== undefined && entry.risk.scope.specs.includes(spec.id))
+  ));
+  for (const entry of riskEntries) {
+    if (!entry.risk) continue;
+    const risk = entry.risk;
+    const riskNodeId = `risk:${risk.id}`;
+    const summary = summarizeRisk(root, risk);
+    nodes.push({ id: riskNodeId, kind: "risk", status: risk.status, label: risk.title, code: `${summary.level}:${summary.acceptanceStatus}` });
+    edges.push({ from: taskNodeId, to: riskNodeId, kind: "risk" });
+    if (spec && risk.scope.specs.includes(spec.id)) edges.push({ from: `spec:${spec.id}`, to: riskNodeId, kind: "risk" });
+    for (const requirementId of risk.scope.requirements.slice(0, 50)) {
+      const requirementNodeId = `requirement:${requirementId}`;
+      if (!nodes.some((node) => node.id === requirementNodeId)) nodes.push({ id: requirementNodeId, kind: "requirement", status: "linked", label: requirementId });
+      edges.push({ from: requirementNodeId, to: riskNodeId, kind: "risk" });
+    }
+    if (evidence) edges.push({ from: riskNodeId, to: `evidence:${evidence.id}`, kind: "evidences" });
+    if (approval) edges.push({ from: riskNodeId, to: `approval:${approval.id}`, kind: "accepts" });
   }
   return { version: "scwbs.trace.v1", taskId: task.id, nodes, edges };
 }

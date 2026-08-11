@@ -14,6 +14,7 @@ import { wbsGlobalRevision, wbsScopeRevision } from "../core/wbs-lock.js";
 import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { collectDocumentLifecycleIssues, documentLifecyclePath } from "../core/document-lifecycle.js";
 import { discoveryIssues } from "../core/discovery.js";
+import { collectRiskIssues } from "../core/risk.js";
 
 function validateRequiredChecks(task: TaskContract, evidence?: Evidence): Issue[] {
   if (!evidence) return [];
@@ -271,6 +272,7 @@ export function collectCheckIssues(root: string): Issue[] {
   }
   issues.push(...discoveryIssues(root));
   const profile: Profile = readProfile(root);
+  issues.push(...collectRiskIssues(root, profile));
   const coverage = readCheckCoveragePolicy(root);
   issues.push(...coverage.issues);
   if (coverage.issues.length === 0) issues.push(...collectCheckCoveragePolicyIssues(root, coverage.policy));

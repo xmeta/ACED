@@ -12,7 +12,8 @@ export {
   validateEvidenceSchema, asEvidence, validateEvidence,
   validateApprovalRecordSchema, asApprovalRecord, validateApprovalRecord,
   validateBlockRecordSchema, asBlockRecord, validateBlockRecord,
-  validateReviewRecordSchema, asReviewRecord, validateReviewRecord
+  validateReviewRecordSchema, asReviewRecord, validateReviewRecord,
+  validateRiskRecordSchema, asRiskRecord, validateRiskRecord
 } from "./schema/records.js";
 
 export {

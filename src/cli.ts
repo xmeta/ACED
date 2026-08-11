@@ -32,6 +32,7 @@ import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
 import { runMcpStdio } from "./commands/mcp.js";
 import { runIndexRebuild, runIndexStatus, runIndexVerify } from "./commands/local-index.js";
 import { runQuery } from "./commands/query.js";
+import { runRiskAccept, runRiskAdd, runRiskList, runRiskShow, runRiskUpdate } from "./commands/risk.js";
 import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
 import { registerDiscoveryCommands } from "./cli/register-discovery.js";
 import { registerGovernanceCommands } from "./cli/register-governance.js";
@@ -367,6 +368,50 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .argument("<agent>")
     .option("--json")
     .action((agentName: string, opts) => { exitCode = runAgentSetPrimary(root, agentName, opts); });
+
+  const risk = program.command("risk").description("Manage the versioned Risk Register");
+  risk.command("list")
+    .option("--limit <count>", "maximum number of risks")
+    .option("--json")
+    .action((opts) => { exitCode = runRiskList(root, opts); });
+  risk.command("show")
+    .argument("<id>")
+    .option("--json")
+    .action((id: string, opts) => { exitCode = runRiskShow(root, id, opts); });
+  const riskFields = (command: Command, update = false) => {
+    if (!update) {
+      command.requiredOption("--id <id>")
+        .requiredOption("--title <title>")
+        .requiredOption("--likelihood <1-5>")
+        .requiredOption("--impact <1-5>")
+        .requiredOption("--owner <owner>");
+    } else {
+      command.option("--title <title>")
+        .option("--likelihood <1-5>")
+        .option("--impact <1-5>")
+        .option("--owner <owner>");
+    }
+    return command
+      .option("--strategy <strategy>", "avoid|mitigate|transfer|accept")
+      .option("--actions <items>", "comma-separated treatment actions")
+      .option("--verification <items>", "comma-separated verification steps")
+      .option("--tasks <ids>", "comma-separated Task IDs")
+      .option("--specs <ids>", "comma-separated Spec IDs")
+      .option("--requirements <ids>", "comma-separated Requirement IDs")
+      .option("--status <status>", "open|mitigated|accepted|closed")
+      .option("--dry-run")
+      .option("--json");
+  };
+  riskFields(risk.command("add"))
+    .action((opts) => { exitCode = runRiskAdd(root, opts); });
+  riskFields(risk.command("update").argument("<id>"), true)
+    .action((id: string, opts) => { exitCode = runRiskUpdate(root, id, opts); });
+  risk.command("accept")
+    .argument("<id>")
+    .requiredOption("--actor <actor>", "must be human")
+    .requiredOption("--reason <reason>", "exact TTY confirmation")
+    .option("--json")
+    .action((id: string, opts) => { exitCode = runRiskAccept(root, id, opts); });
 
   program
     .command("check")
