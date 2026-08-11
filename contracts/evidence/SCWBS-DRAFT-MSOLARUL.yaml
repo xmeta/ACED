@@ -1,0 +1,85 @@
+id: EVD-SCWBS-DRAFT-MSOLARUL
+type: evidence
+taskId: SCWBS-DRAFT-MSOLARUL
+commit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+subjectHeadCommit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+diffHash: sha256:f025ff82314e988107e9891523328939b963023e704ed64ca43b392f9fe7a862
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+    treeHash: a89c0cacd0a6817bab95d0711243c438ae45a630
+    diffHash: sha256:f025ff82314e988107e9891523328939b963023e704ed64ca43b392f9fe7a862
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOLARUL.patch
+    manifestHash: sha256:f025ff82314e988107e9891523328939b963023e704ed64ca43b392f9fe7a862
+git:
+  branch: task/SCWBS-DRAFT-MSOLARUL-issue-532-data-driven-agent-adapters
+  base: origin/main
+  baseCommit: 045581a503fbbb576131dfacd31d783928d436f8
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+  diffHash: sha256:f025ff82314e988107e9891523328939b963023e704ed64ca43b392f9fe7a862
+  headCommit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+changedFiles:
+  - contracts/check-coverage.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSOLARUL.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/cli.ts
+  - src/commands/init.ts
+  - src/core/agent-adapters.ts
+  - src/core/types.ts
+  - tests/integration/multi-agent.test.ts
+  - tests/unit/init.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 045581a503fbbb576131dfacd31d783928d436f8
+    headCommit: 414ffbbef59ff9dea51d2d7f2d34e5a1c09777a7
+    diffHash: sha256:f025ff82314e988107e9891523328939b963023e704ed64ca43b392f9fe7a862
+  tests:
+    filesAdded: 0
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:7ca731eb87a333c8727124e5f6f7c31190d338c3596b92ac8503691ee5ab0a38
+    durationMilliseconds: 20245
+    executedAt: "2026-08-11T11:54:52.582Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e555d0fec3fefc4133c954ca9de7b3ea30f8da58ddec6d59193e7f0c4f61b171
+    durationMilliseconds: 12043
+    executedAt: "2026-08-11T11:55:04.632Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:9efb9104fe01198687ef5152e4a69d798cc2c31f0b3e6b1a8d92da6e09861466
+    durationMilliseconds: 4909
+    executedAt: "2026-08-11T11:55:09.547Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:e0b37d43963e232ef9479244f0dff4fb33e957f312cca5a3892bd60f87b40c8f
+    durationMilliseconds: 323217
+    executedAt: "2026-08-11T12:00:32.768Z"
