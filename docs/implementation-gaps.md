@@ -30,6 +30,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
 - Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
 - Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
+- Rebuildable Node SQLite local index with provenance-aware status, bounded cross-artifact query, stale/corrupt recovery, and non-authoritative cache semantics
 - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
