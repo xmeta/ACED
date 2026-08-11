@@ -1,0 +1,248 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 47be9f9..9d7f39f 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -100,7 +100,8 @@ npm run scwbs -- merge --pr <number>
+ 
+ ## 参照先
+ 
+-- [利用者向けGetting Started](docs/scwbs/getting-started.md)
++- [Contributor/advanced Getting Started](docs/scwbs/getting-started.md)
++- [利用者向けConsumer Quickstart](docs/scwbs/quickstart.md)
+ - [AIエージェント向けガイド](docs/scwbs/ai-agent-guide.md)
+ - [リポジトリ固有の実行ルール](AGENTS.md)
+ - [CLIのリファレンス](docs/scwbs/cli-reference.md)
+diff --git a/README.md b/README.md
+index 134b90e..042fec7 100644
+--- a/README.md
++++ b/README.md
+@@ -19,7 +19,7 @@ a separate dependency and retains its own licensing terms.
+ 
+ | Reader | Read this first |
+ |---|---|
+-| New human user | `docs/scwbs/getting-started.md` |
++| New human user | `docs/scwbs/quickstart.md` |
+ | Human contributor | `CONTRIBUTING.md` |
+ | Security reporter | [SECURITY.md](SECURITY.md) |
+ | Release history | [CHANGELOG.md](CHANGELOG.md) |
+@@ -40,7 +40,9 @@ Evidence, and sends risky work back to Human Gate.
+ 
+ ## 2. Consumer Installation
+ 
+-For a local, clone-free smoke test, build and pack the CLI, then install the
++For first use, follow the [consumer quickstart](docs/scwbs/quickstart.md).
++It is the canonical clone-free, finish-first path using the installed CLI.
++For a local distribution smoke test, build and pack the CLI, then install the
+ tarball into an empty consumer project:
+ 
+ ```bash
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index f86e23b..848d7c8 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -74,6 +74,10 @@ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+ 
++### Consumer first-use path
++
++The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quickstart.md): install the release tarball, run `npx scwbs init`, use `npx scwbs doctor` and `npx scwbs next`, create a narrowly scoped Task, and complete it with `npx scwbs finish --task <task-id>`. The manual Evidence/registry/check-diff sequence below remains available for contributor troubleshooting. The machine-readable command fixture at `docs/scwbs/quickstart-commands.json` is exercised by the distribution smoke test so command and option drift fails validation.
++
+ `doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
+ 
+ `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index 5d63bde..79e46d5 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -1,8 +1,9 @@
+ # Getting Started With scwbs
+ 
+-This guide is for a first-time user working in this repository. It focuses on
+-the current ACED CLI behavior, not future shorthand described in draft design
+-documents.
++This page is the repository contributor and advanced troubleshooting guide. For
++the first-use consumer path, start with the [Consumer Quickstart](quickstart.md),
++which uses the installed CLI and the finish-first workflow. Contributor setup
++is documented separately in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+ 
+ ## The Mental Model
+ 
+@@ -15,7 +16,11 @@ SC-WBS work has three layers:
+ An AI can implement within a contract, but it should not decide the contract's
+ scope for itself after work has started.
+ 
+-## First Commands
++## Advanced Repository Setup
++
++The commands below assume an ACED checkout and are retained for contributors,
++debugging, and maintenance. They are not required for a consumer using the
++release tarball.
+ 
+ Use Node.js `>=22.12.0` and npm `>=10`. This repository pins npm `10.9.0`
+ through `packageManager`, so enable Corepack before installing dependencies.
+diff --git a/docs/scwbs/quickstart-commands.json b/docs/scwbs/quickstart-commands.json
+new file mode 100644
+index 0000000..38d051c
+--- /dev/null
++++ b/docs/scwbs/quickstart-commands.json
+@@ -0,0 +1,37 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://example.org/schemas/scwbs/quickstart-commands.schema.json",
++  "schemaVersion": "1.0.0",
++  "description": "Canonical installed-CLI commands exercised by the consumer quickstart smoke test.",
++  "commands": [
++    {
++      "id": "init",
++      "argv": ["init", "--profile", "lean", "--agent", "codex", "--lang", "en"],
++      "mode": "run"
++    },
++    {
++      "id": "doctor-json",
++      "argv": ["doctor", "--json"],
++      "mode": "run",
++      "expectJson": true
++    },
++    {
++      "id": "next-json",
++      "argv": ["next", "--json"],
++      "mode": "run",
++      "expectJson": true
++    },
++    {
++      "id": "task-new-options",
++      "argv": ["task", "new", "--help"],
++      "mode": "help",
++      "expectContains": ["--paths", "--stop"]
++    },
++    {
++      "id": "finish-options",
++      "argv": ["finish", "--help"],
++      "mode": "help",
++      "expectContains": ["--task", "--pr", "--preflight"]
++    }
++  ]
++}
+diff --git a/docs/scwbs/quickstart.md b/docs/scwbs/quickstart.md
+new file mode 100644
+index 0000000..9430a72
+--- /dev/null
++++ b/docs/scwbs/quickstart.md
+@@ -0,0 +1,84 @@
++# scwbs Consumer Quickstart
++
++This is the clone-free, finish-first path for a first-time consumer. It uses
++the installed `scwbs` CLI and keeps repository contributor setup separate. A
++small docs-only task can reach its first governed completion in about ten
++minutes.
++
++## 1. Install the release tarball
++
++The supported consumer artifact is the self-contained tarball attached to a
++GitHub Release. It includes the WJS validator and does not require an ACED
++checkout or the `wjs` submodule.
++
++```bash
++SCWBS_VERSION=0.1.0
++npm install --save-dev "https://github.com/xmeta/ACED/releases/download/v${SCWBS_VERSION}/scwbs-${SCWBS_VERSION}.tgz"
++npx scwbs --version
++```
++
++For a local smoke test, build and pack the repository first, then install the
++resulting `.tgz` into an empty consumer project as described in
++[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
++
++## 2. Initialize and orient yourself
++
++```bash
++npx scwbs init --profile lean --agent codex --lang en
++npx scwbs doctor
++npx scwbs next
++npx scwbs next --json
++```
++
++`doctor` diagnoses the local installation. `next` is the canonical navigation
++command when the next step is unclear; use `--json` for an IDE or automation.
++
++## 3. Create, edit, and finish one small task
++
++Create a Task Contract with the smallest allowed scope, then use the exact
++branch name printed by `task new`:
++
++```bash
++npx scwbs task new "Improve a consumer-facing document" \
++  --paths "docs/example.md" \
++  --stop "source or schema change required"
++npx scwbs task start <task-id>
++```
++
++Make the change, inspect it, and commit the implementation. The standard
++completion command is:
++
++```bash
++npx scwbs finish --task <task-id>
++```
++
++`finish` runs the Task's required checks, collects Evidence, checks the diff
++against the contract, and verifies the registry. Follow its typed next action
++for PR metadata, review, approval, and merge. Do not reconstruct that ceremony
++from a long manual command chain unless troubleshooting requires it.
++
++## 4. Human Gate boundary
++
++If `finish` reports that a Human Gate is required, an AI must stop. A human
++reviews the current diff and Evidence, then runs the exact approval command
++shown by the CLI. Lean tasks may require copying an exact TTY confirmation into
++`--reason`:
++
++```bash
++npx scwbs approval approve \
++  --task <task-id> \
++  --actor human \
++  --reason "<exact confirmation printed by scwbs>"
++```
++
++An AI must not substitute `--actor human`, approve its own work, or broaden a
++Task Contract to avoid the gate.
++
++## 5. Contributor and advanced paths
++
++This quickstart is for an installed consumer. Contributors working in the ACED
++repository should use [`CONTRIBUTING.md`](../../CONTRIBUTING.md), then read the
++advanced repository flow in [`getting-started.md`](getting-started.md) when
++needed. That flow intentionally retains manual checks, Evidence/registry
++repair, `check-diff`, review, and troubleshooting details for diagnosis and
++maintenance; it is not the first-use happy path.
+diff --git a/scripts/distribution-smoke.mjs b/scripts/distribution-smoke.mjs
+index 5e067fc..2ecd72f 100644
+--- a/scripts/distribution-smoke.mjs
++++ b/scripts/distribution-smoke.mjs
+@@ -20,6 +20,8 @@ export function runDistributionSmoke(repository = process.cwd()) {
+   mkdirSync(consumer);
+ 
+   const packageJson = JSON.parse(readFileSync(path.join(repository, "package.json"), "utf8"));
++  const quickstartCommands = JSON.parse(readFileSync(path.join(repository, "docs/scwbs/quickstart-commands.json"), "utf8"));
++  assert.equal(quickstartCommands.schemaVersion, "1.0.0");
+   const packed = JSON.parse(run("npm", ["pack", "--json", "--pack-destination", fixture], repository))[0];
+   const packedPaths = new Set(packed.files.map((file) => file.path));
+   for (const required of [
+@@ -39,7 +41,17 @@ export function runDistributionSmoke(repository = process.cwd()) {
+   assert(existsSync(bin), "installed scwbs bin is missing");
+   assert.equal(runScwbs(bin, ["--version"], consumer), packageJson.version);
+ 
+-  runScwbs(bin, ["init", "--profile", "lean", "--agent", "codex", "--lang", "en"], consumer);
++  for (const command of quickstartCommands.commands) {
++    assert(["help", "run"].includes(command.mode), `quickstart command has an invalid mode: ${command.id}`);
++    const output = runScwbs(bin, command.argv, consumer);
++    assert(output.length > 0, `quickstart command produced no output: ${command.id}`);
++    if (command.expectJson) {
++      assert.doesNotThrow(() => JSON.parse(output), `quickstart command returned invalid JSON: ${command.id}`);
++    }
++    for (const expected of command.expectContains ?? []) {
++      assert(output.includes(expected), `quickstart command ${command.id} omitted ${expected}`);
++    }
++  }
+   const doctor = JSON.parse(runScwbs(bin, ["doctor", "--json"], consumer));
+   assert.equal(doctor.status, "pass", `standalone doctor failed: ${JSON.stringify(doctor)}`);
+   runScwbs(bin, ["check"], consumer);

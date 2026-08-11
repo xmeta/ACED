@@ -1,0 +1,86 @@
+id: EVD-SCWBS-DRAFT-MSO05YWR
+type: evidence
+taskId: SCWBS-DRAFT-MSO05YWR
+commit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+subjectHeadCommit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+diffHash: sha256:bf09099b591e6869fe7da187f9cecc7ee777978faf4ae0e4589626be3d6f8e7a
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+    treeHash: 7d00247c963544c090a0decd8bbc4ddbaf24c3e5
+    diffHash: sha256:bf09099b591e6869fe7da187f9cecc7ee777978faf4ae0e4589626be3d6f8e7a
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSO05YWR.patch
+    manifestHash: sha256:bf09099b591e6869fe7da187f9cecc7ee777978faf4ae0e4589626be3d6f8e7a
+git:
+  branch: task/SCWBS-DRAFT-MSO05YWR-issue-514-consumer-finish-first-quickstart-and-c
+  base: origin/main
+  baseCommit: abdce6bb9a13658caed46d5f71367f5c7e8b56c4
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+  diffHash: sha256:bf09099b591e6869fe7da187f9cecc7ee777978faf4ae0e4589626be3d6f8e7a
+  headCommit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+changedFiles:
+  - CONTRIBUTING.md
+  - README.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/quickstart-commands.json
+  - docs/scwbs/quickstart.md
+  - scripts/distribution-smoke.mjs
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: abdce6bb9a13658caed46d5f71367f5c7e8b56c4
+    headCommit: 5eab3d20783d49d51c1e0d953fca89ae338d387d
+    diffHash: sha256:bf09099b591e6869fe7da187f9cecc7ee777978faf4ae0e4589626be3d6f8e7a
+  tests:
+    filesAdded: 0
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:bee9fd3fd95152b68f334775a5301cf0996c0bfa64fc31d31a6ba2534770a10d
+    durationMilliseconds: 16826
+    executedAt: "2026-08-11T02:05:02.942Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:97a2ab881c68a6717ef7a1e50766dfe985c152995b4237c1fecdce46a72b788c
+    durationMilliseconds: 10888
+    executedAt: "2026-08-11T02:05:13.834Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:daee19bd6e16222626fc9b94de9327fe1e8ee97a3512a3d24cca1faaa293d334
+    durationMilliseconds: 4480
+    executedAt: "2026-08-11T02:05:18.319Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:f7c038d76b05f8bc9f16587fd929de251301ec18dc24c1e96255ac28b104c8f1
+    durationMilliseconds: 303250
+    executedAt: "2026-08-11T02:10:21.572Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Documentation and distribution smoke fixture change; no test assertion files changed.
