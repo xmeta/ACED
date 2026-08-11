@@ -1,0 +1,72 @@
+id: SCWBS-DRAFT-MSOMPZNJ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOMPZNJ
+branchName: task/SCWBS-DRAFT-MSOMPZNJ-issue-530-governance-pack-and-catalog
+allowedPaths:
+  - src/cli.ts
+  - src/commands/pack.ts
+  - src/core/packs.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/implementation-gaps.md
+  - docs/scwbs/schemas/governance-pack.schema.json
+  - contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
+  - tests/unit/**
+  - tests/integration/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/cli.ts
+  - src/commands/pack.ts
+  - src/core/packs.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/schemas/governance-pack.schema.json
+stopIf:
+  - Human Gate required
+  - additional paths
+  - policy downgrade
+  - external trust root or release source
+  - dependency or auth change
+  - arbitrary executable hook
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Governance Pack v1 schema and JSON Schema validate bounded pack metadata and reject executable hooks.
+  - Local path and pinned Git ref inspection/install paths produce dry-run JSON with source, digest, installed files, and effective policy delta.
+  - '`.scwbs/packs.lock.json` fixes pack id, version, source, digest, installed files, compatibility, and policy fingerprint.'
+  - Pack composition can add safeguards but fails closed on required-check, Human Gate, or forbidden-path downgrade and preserves divergent user files.
+  - Catalog search/info are discovery-only and cannot establish trust or mutate repository authority.
+  - Pack install, update, remove, stale/digest mismatch, offline, and no-executable-hook behavior have unit and integration coverage.
+  - 'Complete Issue #530 Governance Pack and Catalog'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/specs/SPEC-LITE-MSOMPZNJ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOMPZNJ.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOMPZNJ.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:869e14a04c2ae447684e630f14bef01582f56a66f6cea7a09308a54b2c57e3a5
+  createdAt: "2026-08-11T12:22:42.981Z"

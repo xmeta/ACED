@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSOMPZNJ
+type: spec-contract
+featureId: F-MSOMPZNJ
+title: "Issue #530: Governance Pack and Catalog"
+status: approved
+version: 0.1.0
+summary: "安全な Governance Pack の検査・固定・dry-run install/update/remove と、信頼根拠にならない Catalog 発見機能を追加する"
+approvedBy: user-requested-issue-530
+approvedAt: "2026-08-11T00:00:00+09:00"
+acceptanceCriteria:
+  - "scwbs.pack.v1 schema and JSON Schema define bounded metadata, contents, compatibility, and executable-code prohibition."
+  - "Local path and pinned Git ref are supported as pack sources; source digest and installed files are recorded in .scwbs/packs.lock.json."
+  - "install, update, and remove expose --dry-run --json and show effective policy delta before mutation."
+  - "Pack merge fails closed for required-check, Human Gate, or forbidden-path downgrade and never executes arbitrary shell or JavaScript."
+  - "Divergent user-owned files are preserved; stale, digest mismatch, unsupported version, missing source, offline, and policy weakening are diagnosed."
+  - "Catalog search/info are discovery-only and do not become a trust root or mutate authority."
+  - "Core profiles remain unchanged without an installed pack."
