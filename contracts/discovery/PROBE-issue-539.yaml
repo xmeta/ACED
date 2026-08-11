@@ -1,0 +1,57 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-539
+type: discovery-probe
+status: concluded
+question: Can generated agent guidance and selected CLI messages use versioned locale bundles with deterministic fallback while preserving ja/en meaning, stable machine codes, adapter/locale orthogonality, and user-owned files?
+hypotheses:
+  - locale bundles can be data-driven without language-union growth
+  - template placeholders can be validated in CI
+  - ja/en meaning and stable JSON fields can remain unchanged
+  - one additional locale can prove extension without authority changes
+activities:
+  - inspect init guidance and CLI language handling
+  - define bundle and fallback schema
+  - extract templates from adapters
+  - add placeholder and missing-key validation
+  - exercise user-owned preservation and third-locale fixture
+evidenceExpected:
+  - locale bundle files
+  - template separation
+  - ja/en regression fixtures
+  - additional locale fixture
+  - missing-key and placeholder checks
+  - fallback and user-owned preservation tests
+unknowns:
+  - complete message inventory
+  - template placeholder syntax
+  - scope of CLI help translation
+  - legacy user-owned file migration behavior
+timebox: one implementation cycle
+costLimit: bounded local bundle fixtures and deterministic validation
+exitConditions:
+  - locale schema is versioned and bounded
+  - ja/en generated guidance meaning is preserved
+  - stable codes and JSON fields remain locale-independent
+  - missing or invalid translations fail closed
+  - user-owned files are not overwritten
+nextDecision: implement a versioned locale bundle schema, template and locale separation, deterministic fallback, placeholder validation, an additional locale fixture, and preservation tests under one bounded Task Contract
+createdAt: "2026-08-11T20:45:04.504Z"
+startedAt: "2026-08-11T20:45:13.808Z"
+concludedAt: "2026-08-11T20:45:32.809Z"
+exitConditionsMet: true
+factsLearned:
+  - agent adapter guidance is generated through renderAgentFiles and can be separated into templates plus locale data
+  - ja/en output and stable JSON fields need regression fixtures rather than translated schemas
+  - missing keys and placeholder mismatches should fail closed before writing files
+  - user-owned divergent files already have preservation semantics that localization must retain
+  - an additional locale fixture can validate bundle extensibility without changing the Language union
+hypothesesRejected:
+  - translating stable JSON schema fields or error codes
+  - locale-specific authority semantics
+  - overwriting divergent user-owned files
+  - requiring a TypeScript union change for every locale
+remainingUnknowns:
+  - complete CLI message inventory
+  - placeholder syntax for future templates
+  - scope of help translation beyond selected guidance
+  - legacy user-owned file migration behavior

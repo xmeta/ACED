@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "
 import { dirname } from "node:path";
 import { defaultRegistryPath, defaultWbsPath, profileRequiredDirs, resolveFrom } from "../core/paths.js";
 import { agentNames as supportedAgentNames, assertSafeAgentPath, diagnoseAgentAdapters, getAgentAdapter, isAgentId, listAgentAdapters, renderAgentFiles } from "../core/agent-adapters.js";
+import { localeMetadata, normalizeLocaleId, resolveLocale, type LocaleId } from "../core/locales.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { Agent, Language, Profile, WbsDocument } from "../core/types.js";
+import type { Agent, Profile, WbsDocument } from "../core/types.js";
 
 const agentManifestPath = ".scwbs/agent-files.json";
 const agentError = `Unknown agent (${supportedAgentNames()})`;
@@ -74,7 +75,7 @@ type ScwbsSettings = {
   agent?: Agent;
   primaryAgent?: Agent;
   agents?: Agent[];
-  lang?: Language;
+  lang?: LocaleId;
   [key: string]: unknown;
 };
 
@@ -109,19 +110,11 @@ function normalizeAgent(value: string | undefined): Agent | undefined {
   return isAgent(lowered) ? lowered : undefined;
 }
 
-function normalizeLanguage(value: string | undefined): Language | undefined {
-  if (value === undefined) return "ja";
-  const lowered = value.toLowerCase();
-  if (lowered === "ja" || lowered === "ja-jp") return "ja";
-  if (lowered === "en" || lowered === "en-us") return "en";
-  return undefined;
-}
-
 function sha256(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
 }
 
-function agentFiles(agent: Agent, language: Language): AgentFile[] {
+function agentFiles(agent: Agent, language: LocaleId): AgentFile[] {
   return renderAgentFiles(agent, language).map((file) => ({ path: file.path, content: file.guidance }));
 }
 
@@ -189,7 +182,7 @@ function project(root: string): { wbs: WbsDocument; settings: ScwbsSettings } | 
   }
 }
 
-function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: Language } {
+function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { agents: Agent[]; primaryAgent: Agent; language: LocaleId } {
   const manifestAgents = manifestState.manifest?.schemaVersion === "1"
     ? [manifestState.manifest.agent]
     : manifestState.manifest?.schemaVersion === "2"
@@ -198,7 +191,7 @@ function agentsFor(settings: ScwbsSettings, manifestState: ManifestState): { age
   const configured = [ ...(settings.agents ?? []), settings.agent, settings.primaryAgent, ...manifestAgents ].filter(isAgent);
   const agents = uniqueAgents(configured.length > 0 ? configured : ["codex"]);
   const primaryAgent = [settings.primaryAgent, settings.agent, ...manifestAgents, agents[0]].find(isAgent) ?? agents[0];
-  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: settings.lang === "en" ? "en" : "ja" };
+  return { agents, primaryAgent: agents.includes(primaryAgent) ? primaryAgent : agents[0], language: resolveLocale(settings.lang).id };
 }
 
 function writeSettings(root: string, agents: Agent[], primaryAgent: Agent): void {
@@ -235,7 +228,7 @@ function sync(
   root: string,
   manifest: AgentManifestV2,
   agent: Agent,
-  language: Language,
+  language: LocaleId,
   update: boolean,
   dryRun: boolean
 ): { manifest: AgentManifestV2; decisions: AgentDecision[] } {
@@ -284,7 +277,7 @@ function sync(
   return { manifest: next, decisions };
 }
 
-function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: Language; manifest: AgentManifestV2 } | undefined {
+function prepare(root: string, requestedAgent: Agent): { state: ManifestState; agents: Agent[]; primaryAgent: Agent; language: LocaleId; manifest: AgentManifestV2 } | undefined {
   const current = project(root);
   if (!current) return undefined;
   const state = readManifest(root);
@@ -312,9 +305,9 @@ export function runInit(root: string, options: InitOptions = {}): number {
     console.error(agentError);
     return 2;
   }
-  const lang = normalizeLanguage(options.lang);
+  const lang = normalizeLocaleId(options.lang);
   if (!lang) {
-    console.error("Language must be ja or en");
+    console.error("Language must be a supported locale id");
     return 2;
   }
 
@@ -337,7 +330,7 @@ export function runInit(root: string, options: InitOptions = {}): number {
     relations: [],
     resources: [{ id: "resource-human", name: "Human", type: "role" }, { id: "resource-ai", name: "AI Agent", type: "role" }],
     artifacts: [],
-    metadata: { createdBy: "scwbs", language: lang === "ja" ? "ja-JP" : "en-US" },
+    metadata: { createdBy: "scwbs", language: localeMetadata(lang) },
     extensions: { scwbs: { profile, agent: primaryAgent, primaryAgent, agents, lang } }
   };
   if (!existing) {

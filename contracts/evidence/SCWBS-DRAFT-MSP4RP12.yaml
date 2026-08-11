@@ -1,0 +1,105 @@
+id: EVD-SCWBS-DRAFT-MSP4RP12
+type: evidence
+taskId: SCWBS-DRAFT-MSP4RP12
+commit: c5d696b175b810df30b66ab8beba80b873731153
+subjectHeadCommit: c5d696b175b810df30b66ab8beba80b873731153
+diffHash: sha256:3a678743523ca312944076a518eca150141afb5106ddbfaadfeb6582845b46ce
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: c5d696b175b810df30b66ab8beba80b873731153
+    treeHash: cd2491c0fe2b469ea71a77cc52d73590a1b3ee6f
+    diffHash: sha256:3a678743523ca312944076a518eca150141afb5106ddbfaadfeb6582845b46ce
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSP4RP12.patch
+    manifestHash: sha256:3a678743523ca312944076a518eca150141afb5106ddbfaadfeb6582845b46ce
+git:
+  branch: task/SCWBS-DRAFT-MSP4RP12-p2-i18n-add-versioned-localization-bundles-for-g
+  base: origin/main
+  baseCommit: 357f7327f1ece207bf316d49852930db7bac41e2
+  changedFilesBasis: branch-diff
+  pullRequest: "553"
+  subjectHeadCommit: c5d696b175b810df30b66ab8beba80b873731153
+  diffHash: sha256:3a678743523ca312944076a518eca150141afb5106ddbfaadfeb6582845b46ce
+  headCommit: c5d696b175b810df30b66ab8beba80b873731153
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSP4RP12.yaml
+  - contracts/check-coverage.yaml
+  - contracts/discovery/PROBE-issue-539.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP4RP12.patch
+  - contracts/evidence/SCWBS-DRAFT-MSP4RP12.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSP4RP12.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP4RP12.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/localization.md
+  - src/cli.ts
+  - src/commands/init.ts
+  - src/core/agent-adapters.ts
+  - src/core/locales.ts
+  - tests/fixtures/locales/fr.json
+  - tests/integration/localization.test.ts
+  - tests/unit/locales.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 357f7327f1ece207bf316d49852930db7bac41e2
+    headCommit: c5d696b175b810df30b66ab8beba80b873731153
+    diffHash: sha256:3a678743523ca312944076a518eca150141afb5106ddbfaadfeb6582845b46ce
+  tests:
+    filesAdded: 3
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:374a64e36ba9fe7519555329b7a70f60b0b30abceaa530e42a0e204169d32aee
+    durationMilliseconds: 26622
+    executedAt: "2026-08-11T21:10:35.298Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:09cf18dac3832196d79b997adbe2f7b9f4e5823b683a85f4197fc424138f4a1d
+    durationMilliseconds: 15233
+    executedAt: "2026-08-11T21:10:50.536Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:537086e262420af16753095245fc83dcd26fa598b5e2688fe283eb2a56659971
+    durationMilliseconds: 6735
+    executedAt: "2026-08-11T21:10:57.276Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:b2691736d5f435a823570b0bd665a97fa0ef856d85636dfe2a6c84b29bd0f5af
+    durationMilliseconds: 13550
+    executedAt: "2026-08-11T21:11:10.829Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:17af69d7c6acf6ed4d2b4551eb540ef5f6d2aa170750adaf2017e1b9758cfd6d
+    durationMilliseconds: 357199
+    executedAt: "2026-08-11T21:17:08.036Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added versioned locale bundle validation, deterministic fallback, template and locale separation, an additional locale fixture, stable guidance command preservation, user-owned divergent-file preservation, and coverage classification regression coverage.

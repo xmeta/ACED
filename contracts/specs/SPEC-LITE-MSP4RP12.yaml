@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSP4RP12
+type: spec-contract
+featureId: F-MSP4RP12
+title: "Issue #539: versioned localization bundles for guidance and CLI UX"
+status: approved
+version: 0.1.0
+summary: "data-driven locale bundles and templates with deterministic fallback, stable machine fields, placeholder validation, and user-owned file preservation"
+approvedBy: user-requested-issue-539
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "Locale bundles use scwbs.locale.v1 with an extensible locale id, deterministic fallback, bounded messages, and no authority or policy semantics in translations."
+  - "Generated agent guidance separates templates from locale data and preserves the existing ja/en meaning while allowing an additional locale fixture without changing a TypeScript language union."
+  - "Missing keys, invalid placeholders, duplicate keys, unsupported fallback, and malformed bundles fail closed before generated files are written."
+  - "Stable error codes, JSON schema field names, and machine-readable output remain untranslated and identical across locales."
+  - "Existing managed hash and divergent-file protections remain effective; user-owned translated files are preserved and never overwritten by update."
+  - "Selected CLI UX language normalization and fallback are deterministic, while full diagnostics translation and authority semantics remain out of scope."
+  - "Unit and integration fixtures cover ja/en meaning, an additional locale, fallback, placeholder validation, stable JSON fields, and user-owned preservation."
