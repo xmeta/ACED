@@ -68,7 +68,7 @@ import type {
   TaskContract,
   RiskRecord
 } from "./types.js";
-import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema.js";
+import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
 
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
