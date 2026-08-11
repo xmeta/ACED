@@ -20,6 +20,8 @@ Source: docs/sc-wbs-development.md split reference.
 
 AI Work Packet にはプロファイル情報とアクティブなアーティファクトディレクトリ一覧が含まれる。
 
+外部 attestation は `scwbs.attestation-verification.v1` の bounded summary として Evidence に記録できる。検証は指定された artifact digest、repository、signer workflow、predicate、source commit/ref に束縛し、missing / invalid / subject-mismatch / untrusted / unavailable を区別する。attestation 本文、秘密鍵、token、trusted root は保存・自動採用しない。workflow の `id-token` / `attestations` 権限、issuer/trust-root の採用、fork/untrusted PR の署名境界、release 公開は Human Gate の対象である。
+
 ---
 
 ## 16. 中核原則

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scwbs.attestation-verification.v1",
+  "title": "SC-WBS External Attestation Verification v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "taskId", "status", "artifact", "attestation", "verifier", "reasonCodes", "verifiedAt", "policy"],
+  "properties": {
+    "schemaVersion": { "const": "scwbs.attestation-verification.v1" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["verified", "missing", "invalid", "subject-mismatch", "untrusted", "unavailable"] },
+    "artifact": {
+      "type": "object", "additionalProperties": false, "required": ["locator", "digest"],
+      "properties": { "locator": { "type": "string", "minLength": 1, "maxLength": 256 }, "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } }
+    },
+    "attestation": {
+      "type": "object", "additionalProperties": false, "required": ["locator"],
+      "properties": {
+        "locator": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "bundle": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "trustedRoot": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "signerWorkflow": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "predicateType": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceCommit": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "issuer": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "verifier": {
+      "type": "object", "additionalProperties": false, "required": ["name"],
+      "properties": { "name": { "const": "gh attestation verify" }, "exitStatus": { "type": "integer", "minimum": 0, "maximum": 255 } }
+    },
+    "reasonCodes": { "type": "array", "maxItems": 12, "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
+    "verifiedAt": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "signerWorkflow": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "predicateType": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceCommit": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    }
+  }
+}

@@ -80,6 +80,58 @@ const testQualityObservationSchema = {
   }
 };
 
+const attestationVerificationSchema = {
+  type: "object",
+  required: ["schemaVersion", "status", "artifact", "attestation", "verifier", "reasonCodes", "verifiedAt"],
+  additionalProperties: false,
+  properties: {
+    schemaVersion: { const: "scwbs.attestation-verification.v1" },
+    status: { enum: ["verified", "missing", "invalid", "subject-mismatch", "untrusted", "unavailable"] },
+    artifact: {
+      type: "object",
+      required: ["locator", "digest"],
+      additionalProperties: false,
+      properties: {
+        locator: { type: "string", minLength: 1, maxLength: 256 },
+        digest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    attestation: {
+      type: "object",
+      required: ["locator"],
+      additionalProperties: false,
+      properties: {
+        locator: { type: "string", minLength: 1, maxLength: 256 },
+        bundle: { type: "string", minLength: 1, maxLength: 256 },
+        trustedRoot: { type: "string", minLength: 1, maxLength: 256 }
+      }
+    },
+    identity: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        repository: { type: "string", minLength: 1, maxLength: 256 },
+        signerWorkflow: { type: "string", minLength: 1, maxLength: 256 },
+        predicateType: { type: "string", minLength: 1, maxLength: 256 },
+        sourceCommit: { type: "string", minLength: 1, maxLength: 128 },
+        sourceRef: { type: "string", minLength: 1, maxLength: 256 },
+        issuer: { type: "string", minLength: 1, maxLength: 256 }
+      }
+    },
+    verifier: {
+      type: "object",
+      required: ["name"],
+      additionalProperties: false,
+      properties: {
+        name: { const: "gh attestation verify" },
+        exitStatus: { type: "integer", minimum: 0, maximum: 255 }
+      }
+    },
+    reasonCodes: { type: "array", maxItems: 12, items: { type: "string", minLength: 1, maxLength: 128 } },
+    verifiedAt: { type: "string", minLength: 1, maxLength: 64 }
+  }
+};
+
 const requirementEvidenceSchema = {
   type: "object",
   required: ["requirementId", "status", "references"],
@@ -227,6 +279,7 @@ const evidenceSchema = {
         generatedAt: { type: "string", minLength: 1 }
       }
     },
+    attestationVerification: attestationVerificationSchema,
     changedFiles: stringArraySchema,
     requirementEvidence: { type: "array", uniqueItems: true, items: requirementEvidenceSchema },
     submodules: {

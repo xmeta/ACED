@@ -15,6 +15,7 @@ import { syncRegistry } from "./registry-rebuild.js";
 import { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest } from "../core/evidence/build.js";
 import type { TestQualityOptions } from "../core/evidence/build.js";
 import { CI_WORKFLOW_PATH, isRecord, originRepository, validRunUrl } from "../core/evidence/ci-receipt.js";
+import { toAttestationEvidence, verifyAttestation } from "../core/attestation.js";
 
 export { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest };
 export type { EvidenceBuildOptions, TestQualityOptions } from "../core/evidence/build.js";
@@ -287,6 +288,69 @@ export function runEvidenceImportCi(root: string, taskId: string, options: Evide
       ciReceipt: path.isAbsolute(options.ciReceipt) ? options.ciReceipt : resolveFrom(root, options.ciReceipt),
       coverageReceipt: options.coverageReceipt ? path.isAbsolute(options.coverageReceipt) ? options.coverageReceipt : resolveFrom(root, options.coverageReceipt) : undefined
     });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export type EvidenceVerifyAttestationOptions = {
+  artifact: string;
+  repository?: string;
+  signerWorkflow?: string;
+  predicateType?: string;
+  sourceRef?: string;
+  sourceCommit?: string;
+  bundle?: string;
+  customTrustedRoot?: string;
+  json?: boolean;
+};
+
+export function runEvidenceVerifyAttestation(root: string, taskId: string, options: EvidenceVerifyAttestationOptions): number {
+  try {
+    const evidenceResult = readEvidence(root, taskId);
+    let repository = options.repository;
+    let origin: string | undefined;
+    if (!repository) {
+      try {
+        origin = originRepository(root);
+        repository = origin;
+      } catch {
+        repository = undefined;
+      }
+    } else {
+      try {
+        origin = originRepository(root);
+        if (origin !== repository) repository = undefined;
+      } catch {
+        // A caller-provided repository is usable for an isolated/offline fixture only
+        // when no origin is available; the verifier still binds it to the attestation.
+      }
+    }
+    const result = verifyAttestation(root, {
+      root,
+      taskId,
+      artifact: options.artifact,
+      evidence: evidenceResult.evidence,
+      repository,
+      signerWorkflow: options.signerWorkflow,
+      predicateType: options.predicateType,
+      sourceRef: options.sourceRef,
+      sourceCommit: options.sourceCommit,
+      bundle: options.bundle,
+      customTrustedRoot: options.customTrustedRoot
+    });
+    if (evidenceResult.evidence) {
+      const updated: Evidence = {
+        ...evidenceResult.evidence,
+        attestationVerification: toAttestationEvidence(result)
+      };
+      writeFileSync(resolveFrom(root, evidencePath(taskId)), stringifySimpleYaml(updated as unknown as Record<string, unknown>), "utf8");
+      syncRegistry(root);
+    }
+    if (options.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    else process.stdout.write(`attestation: ${result.status}\nreasonCodes: ${result.reasonCodes.join(", ") || "none"}\n`);
+    return result.status === "verified" ? 0 : 1;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;

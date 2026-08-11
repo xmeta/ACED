@@ -20,7 +20,7 @@ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js
 import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
 import { runCompletionApply } from "../commands/completion.js";
 import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
-import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
+import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain, runEvidenceVerifyAttestation } from "../commands/evidence-collect.js";
 import { runProfileSet, runProfileShow } from "../commands/profile.js";
 import { runRegistryRebuild } from "../commands/registry-rebuild.js";
 import {
@@ -406,6 +406,33 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         readiness: options.readiness,
         ciReceipt: options.ciReceipt,
         coverageReceipt: options.coverageReceipt
+      }));
+    });
+
+  evidence
+    .command("verify-attestation")
+    .description("Verify a release or CI artifact attestation without trusting local provenance alone")
+    .requiredOption("--task <id>", "task id")
+    .requiredOption("--artifact <path>", "artifact path")
+    .option("--repository <owner/repo>", "expected GitHub repository")
+    .option("--signer-workflow <path>", "expected signer workflow path")
+    .option("--predicate-type <uri>", "expected predicate type")
+    .option("--source-ref <ref>", "expected source ref")
+    .option("--source-commit <commit>", "expected source commit")
+    .option("--bundle <path>", "offline attestation bundle")
+    .option("--custom-trusted-root <path>", "offline trusted root; never adopted implicitly")
+    .option("--json", "print bounded JSON result")
+    .action((options) => {
+      setExitCode(runEvidenceVerifyAttestation(root, options.task, {
+        artifact: options.artifact,
+        repository: options.repository,
+        signerWorkflow: options.signerWorkflow,
+        predicateType: options.predicateType,
+        sourceRef: options.sourceRef,
+        sourceCommit: options.sourceCommit,
+        bundle: options.bundle,
+        customTrustedRoot: options.customTrustedRoot,
+        json: options.json ?? false
       }));
     });
 

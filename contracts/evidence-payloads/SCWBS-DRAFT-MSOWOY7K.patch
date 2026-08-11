@@ -1,0 +1,1042 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MSOWOY7K.yaml b/contracts/blocks/SCWBS-DRAFT-MSOWOY7K.yaml
+new file mode 100644
+index 0000000..80bd541
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MSOWOY7K.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MSOWOY7K
++type: block
++taskId: SCWBS-DRAFT-MSOWOY7K
++status: resolved
++category: auth
++level: 2
++requiredHumanDecision: Decide authentication or permission design before implementation continues.
++reason: Exact nested command evidence verify-attestation requires editing src/cli/register-governance.ts, but that file is outside this locked Task Contract allowedPaths; stop before implementation and require a human-authorized contract scope expansion.
++createdAt: "2026-08-11T17:05:23.397Z"
++history:
++  - status: blocked
++    at: "2026-08-11T17:05:23.397Z"
++    reason: Exact nested command evidence verify-attestation requires editing src/cli/register-governance.ts, but that file is outside this locked Task Contract allowedPaths; stop before implementation and require a human-authorized contract scope expansion.
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-11T17:11:20.464Z"
++    reason: Human approved contract scope expansion to include src/cli/register-governance.ts for the exact evidence verify-attestation subcommand; implementation may resume within the revised Task Contract.
++    by: human
++resolvedAt: "2026-08-11T17:11:20.464Z"
++resolvedBy: human
++resolution: Human approved contract scope expansion to include src/cli/register-governance.ts for the exact evidence verify-attestation subcommand; implementation may resume within the revised Task Contract.
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 783dfd2..80d52fc 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -135,6 +135,7 @@ rules:
+       - src/core/evidence/ci-receipt.ts
+       - src/core/evidence/coverage-receipt.ts
+       - src/core/evidence/test-quality-observation.ts
++      - src/core/attestation.ts
+     requires:
+       - test:integration
+   - id: core-types-unit-only
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml b/contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml
+index 295e6e2..e9c0c22 100644
+--- a/contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml
++++ b/contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml
+@@ -9,6 +9,8 @@ allowedPaths:
+   - src/core/schema/records.ts
+   - src/core/types.ts
+   - src/cli.ts
++  - src/cli/register-governance.ts
++  - contracts/check-coverage.yaml
+   - docs/scwbs/schemas/attestation.schema.json
+   - docs/scwbs/attestation.md
+   - docs/scwbs/cli-reference.md
+@@ -33,6 +35,8 @@ humanGateRequiredPaths:
+   - src/core/schema/records.ts
+   - src/core/types.ts
+   - src/cli.ts
++  - src/cli/register-governance.ts
++  - contracts/check-coverage.yaml
+   - docs/scwbs/schemas/attestation.schema.json
+ stopIf:
+   - Human Gate required for workflow permissions and trust root adoption
+@@ -75,4 +79,4 @@ contractLock:
+   wbsNodeId: node-governance-maintenance
+   specVersion: 0.1.0
+   specRevision: sha256:722fd7ddb7f73f29a4c5fa142c2aacfa2ab28192f2fdd3dcb378123b91618d24
+-  createdAt: "2026-08-11T17:01:23.998Z"
++  createdAt: "2026-08-11T17:45:50.304Z"
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 0b1d3fb..97ae952 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -57,11 +57,11 @@ This document tracks the pieces that are intentionally still missing from the cu
+ | Area                     | Missing Piece                                               | Why It Matters                                                                                                                                                                                                                  |
+ | ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+ | Change control           | Spec Change Proposal command and workflow enforcement       | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated                                                                                                                                         |
+-| Evidence trust           | External artifact signatures and independent CI attestation | Tracked patch retention now reconstructs subject trees locally, but artifact signing remains out of scope                                                                                                                       |
+-| Evidence diff basis      | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` now verifies the bounded PR readiness artifact, CI receipt digest, repository/Task/PR/HEAD/workflow provenance, and atomically updates Evidence/Registry; independent external signatures and automatic promotion remain out of scope |
++| Evidence trust           | External artifact signatures and independent CI attestation | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only |
++| Evidence diff basis      | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope |
+ | Test quality             | Diff-aware assertion and coverage inspection                | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope                  |
+ | Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
+-| CI integration           | Independent attestation and automatic promotion             | Trusted `workflow_run` reporting now provides bounded PR feedback and a verified CI receipt import path; independent attestation, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded |
++| CI integration           | Independent attestation and automatic promotion             | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded |
+ | Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
+ | WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
+ 
+@@ -72,4 +72,4 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+ - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+ - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
+-- Extend the readiness artifact with an independently verifiable external attestation only after a separately approved security design.
++- Add release workflow permissions and attestation generation only after a separately approved threat model, repository-plan review, and Human Gate; this Task deliberately changes no `.github` workflow.
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 5930ab2..838cc68 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -309,6 +309,8 @@ npm run scwbs -- evidence collect --task SCWBS-001 --verbose --force
+ npm run scwbs -- evidence collect --task SCWBS-001 --output - --force
+ npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json
+ npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json --coverage-receipt /tmp/coverage-receipt.json
++npm run scwbs -- evidence verify-attestation --task SCWBS-001 --artifact dist/release.tar.gz --json
++npm run scwbs -- evidence verify-attestation --task SCWBS-001 --artifact /tmp/release.tar.gz --bundle /tmp/attestation.bundle.json --custom-trusted-root /tmp/trusted-root.json --json
+ npm run scwbs -- checks run --task SCWBS-001
+ npm run scwbs -- checks run --task SCWBS-001 --json
+ npm run scwbs -- checks run --task SCWBS-001 --rerun-checks
+@@ -341,6 +343,16 @@ artifactはcheckout外の一時ディレクトリへダウンロードして指
+ PR commentをupsertする。commentは状態表示のみで、Approval、Review、mergeを作成・実行
+ しない。fork、HEAD変更、workflow変更、receipt改変、digest不一致はfail-closedになる。
+ 
++`evidence verify-attestation --task <id> --artifact <path> --json` は、artifact の SHA-256
++digestと既存 Evidence の subject、repository、signer workflow、predicate、source commit/ref
++を束縛して `gh attestation verify` を構造化引数で呼び出す。結果は
++`scwbs.attestation-verification.v1` の `verified`、`missing`、`invalid`、
++`subject-mismatch`、`untrusted`、`unavailable` に限定され、本文・鍵・token は保存しない。
++Evidenceにはlocator、digest、identity summary、reason codeだけを記録する。offline検証は
++`--bundle` と `--custom-trusted-root` の明示指定を要求し、trust rootを自動取得・追加しない。
++workflow権限、issuer/trust rootの採用、fork/untrusted PRの署名境界、release公開はこのCLIの
++対象外でありHuman Gateで停止する。
++
+ `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
+ 
+ | Option              | 対応するTask Contract field |
+diff --git a/docs/scwbs/operations-profile-and-specs.md b/docs/scwbs/operations-profile-and-specs.md
+index 8b092dd..3612745 100644
+--- a/docs/scwbs/operations-profile-and-specs.md
++++ b/docs/scwbs/operations-profile-and-specs.md
+@@ -20,6 +20,8 @@ Source: docs/sc-wbs-development.md split reference.
+ 
+ AI Work Packet にはプロファイル情報とアクティブなアーティファクトディレクトリ一覧が含まれる。
+ 
++外部 attestation は `scwbs.attestation-verification.v1` の bounded summary として Evidence に記録できる。検証は指定された artifact digest、repository、signer workflow、predicate、source commit/ref に束縛し、missing / invalid / subject-mismatch / untrusted / unavailable を区別する。attestation 本文、秘密鍵、token、trusted root は保存・自動採用しない。workflow の `id-token` / `attestations` 権限、issuer/trust-root の採用、fork/untrusted PR の署名境界、release 公開は Human Gate の対象である。
++
+ ---
+ 
+ ## 16. 中核原則
+diff --git a/docs/scwbs/schemas/attestation.schema.json b/docs/scwbs/schemas/attestation.schema.json
+new file mode 100644
+index 0000000..39fb648
+--- /dev/null
++++ b/docs/scwbs/schemas/attestation.schema.json
+@@ -0,0 +1,52 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "scwbs.attestation-verification.v1",
++  "title": "SC-WBS External Attestation Verification v1",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "taskId", "status", "artifact", "attestation", "verifier", "reasonCodes", "verifiedAt", "policy"],
++  "properties": {
++    "schemaVersion": { "const": "scwbs.attestation-verification.v1" },
++    "taskId": { "type": "string", "minLength": 1 },
++    "status": { "enum": ["verified", "missing", "invalid", "subject-mismatch", "untrusted", "unavailable"] },
++    "artifact": {
++      "type": "object", "additionalProperties": false, "required": ["locator", "digest"],
++      "properties": { "locator": { "type": "string", "minLength": 1, "maxLength": 256 }, "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } }
++    },
++    "attestation": {
++      "type": "object", "additionalProperties": false, "required": ["locator"],
++      "properties": {
++        "locator": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "bundle": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "trustedRoot": { "type": "string", "minLength": 1, "maxLength": 256 }
++      }
++    },
++    "identity": {
++      "type": "object", "additionalProperties": false,
++      "properties": {
++        "repository": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "signerWorkflow": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "predicateType": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "sourceCommit": { "type": "string", "minLength": 1, "maxLength": 128 },
++        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "issuer": { "type": "string", "minLength": 1, "maxLength": 256 }
++      }
++    },
++    "verifier": {
++      "type": "object", "additionalProperties": false, "required": ["name"],
++      "properties": { "name": { "const": "gh attestation verify" }, "exitStatus": { "type": "integer", "minimum": 0, "maximum": 255 } }
++    },
++    "reasonCodes": { "type": "array", "maxItems": 12, "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
++    "verifiedAt": { "type": "string", "minLength": 1, "maxLength": 64 },
++    "policy": {
++      "type": "object", "additionalProperties": false,
++      "properties": {
++        "repository": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "signerWorkflow": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "predicateType": { "type": "string", "minLength": 1, "maxLength": 256 },
++        "sourceCommit": { "type": "string", "minLength": 1, "maxLength": 128 },
++        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 256 }
++      }
++    }
++  }
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 20f7871..680be18 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -20,7 +20,7 @@ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js
+ import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
+ import { runCompletionApply } from "../commands/completion.js";
+ import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
+-import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain } from "../commands/evidence-collect.js";
++import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain, runEvidenceVerifyAttestation } from "../commands/evidence-collect.js";
+ import { runProfileSet, runProfileShow } from "../commands/profile.js";
+ import { runRegistryRebuild } from "../commands/registry-rebuild.js";
+ import {
+@@ -409,6 +409,33 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       }));
+     });
+ 
++  evidence
++    .command("verify-attestation")
++    .description("Verify a release or CI artifact attestation without trusting local provenance alone")
++    .requiredOption("--task <id>", "task id")
++    .requiredOption("--artifact <path>", "artifact path")
++    .option("--repository <owner/repo>", "expected GitHub repository")
++    .option("--signer-workflow <path>", "expected signer workflow path")
++    .option("--predicate-type <uri>", "expected predicate type")
++    .option("--source-ref <ref>", "expected source ref")
++    .option("--source-commit <commit>", "expected source commit")
++    .option("--bundle <path>", "offline attestation bundle")
++    .option("--custom-trusted-root <path>", "offline trusted root; never adopted implicitly")
++    .option("--json", "print bounded JSON result")
++    .action((options) => {
++      setExitCode(runEvidenceVerifyAttestation(root, options.task, {
++        artifact: options.artifact,
++        repository: options.repository,
++        signerWorkflow: options.signerWorkflow,
++        predicateType: options.predicateType,
++        sourceRef: options.sourceRef,
++        sourceCommit: options.sourceCommit,
++        bundle: options.bundle,
++        customTrustedRoot: options.customTrustedRoot,
++        json: options.json ?? false
++      }));
++    });
++
+   evidence
+     .command("annotate")
+     .description("Update Evidence metadata without changing subject provenance or checks")
+diff --git a/src/commands/evidence-collect.ts b/src/commands/evidence-collect.ts
+index 7035105..5bbdfd5 100644
+--- a/src/commands/evidence-collect.ts
++++ b/src/commands/evidence-collect.ts
+@@ -15,6 +15,7 @@ import { syncRegistry } from "./registry-rebuild.js";
+ import { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest } from "../core/evidence/build.js";
+ import type { TestQualityOptions } from "../core/evidence/build.js";
+ import { CI_WORKFLOW_PATH, isRecord, originRepository, validRunUrl } from "../core/evidence/ci-receipt.js";
++import { toAttestationEvidence, verifyAttestation } from "../core/attestation.js";
+ 
+ export { buildCollectedEvidence, buildCollectedEvidenceYaml, detectOpenPullRequest };
+ export type { EvidenceBuildOptions, TestQualityOptions } from "../core/evidence/build.js";
+@@ -293,6 +294,69 @@ export function runEvidenceImportCi(root: string, taskId: string, options: Evide
+   }
+ }
+ 
++export type EvidenceVerifyAttestationOptions = {
++  artifact: string;
++  repository?: string;
++  signerWorkflow?: string;
++  predicateType?: string;
++  sourceRef?: string;
++  sourceCommit?: string;
++  bundle?: string;
++  customTrustedRoot?: string;
++  json?: boolean;
++};
++
++export function runEvidenceVerifyAttestation(root: string, taskId: string, options: EvidenceVerifyAttestationOptions): number {
++  try {
++    const evidenceResult = readEvidence(root, taskId);
++    let repository = options.repository;
++    let origin: string | undefined;
++    if (!repository) {
++      try {
++        origin = originRepository(root);
++        repository = origin;
++      } catch {
++        repository = undefined;
++      }
++    } else {
++      try {
++        origin = originRepository(root);
++        if (origin !== repository) repository = undefined;
++      } catch {
++        // A caller-provided repository is usable for an isolated/offline fixture only
++        // when no origin is available; the verifier still binds it to the attestation.
++      }
++    }
++    const result = verifyAttestation(root, {
++      root,
++      taskId,
++      artifact: options.artifact,
++      evidence: evidenceResult.evidence,
++      repository,
++      signerWorkflow: options.signerWorkflow,
++      predicateType: options.predicateType,
++      sourceRef: options.sourceRef,
++      sourceCommit: options.sourceCommit,
++      bundle: options.bundle,
++      customTrustedRoot: options.customTrustedRoot
++    });
++    if (evidenceResult.evidence) {
++      const updated: Evidence = {
++        ...evidenceResult.evidence,
++        attestationVerification: toAttestationEvidence(result)
++      };
++      writeFileSync(resolveFrom(root, evidencePath(taskId)), stringifySimpleYaml(updated as unknown as Record<string, unknown>), "utf8");
++      syncRegistry(root);
++    }
++    if (options.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
++    else process.stdout.write(`attestation: ${result.status}\nreasonCodes: ${result.reasonCodes.join(", ") || "none"}\n`);
++    return result.status === "verified" ? 0 : 1;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
+ function retainedSubjectHead(evidence: Evidence): string | undefined {
+   return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+ }
+diff --git a/src/core/attestation.ts b/src/core/attestation.ts
+new file mode 100644
+index 0000000..0fe9f33
+--- /dev/null
++++ b/src/core/attestation.ts
+@@ -0,0 +1,329 @@
++import { createHash } from "node:crypto";
++import { existsSync, readFileSync, statSync } from "node:fs";
++import path from "node:path";
++import { spawnSync } from "node:child_process";
++import type { Evidence } from "./types.js";
++
++export const ATTESTATION_SCHEMA_VERSION = "scwbs.attestation-verification.v1" as const;
++export const DEFAULT_ATTESTATION_PREDICATE = "https://slsa.dev/provenance/v1" as const;
++
++export type AttestationVerificationStatus =
++  | "verified"
++  | "missing"
++  | "invalid"
++  | "subject-mismatch"
++  | "untrusted"
++  | "unavailable";
++
++export type AttestationIdentitySummary = {
++  repository?: string;
++  signerWorkflow?: string;
++  predicateType?: string;
++  sourceCommit?: string;
++  sourceRef?: string;
++  issuer?: string;
++};
++
++export type AttestationVerificationRecord = {
++  schemaVersion: typeof ATTESTATION_SCHEMA_VERSION;
++  status: AttestationVerificationStatus;
++  artifact: {
++    locator: string;
++    digest: string;
++  };
++  attestation: {
++    locator: string;
++    bundle?: string;
++    trustedRoot?: string;
++  };
++  identity?: AttestationIdentitySummary;
++  verifier: {
++    name: "gh attestation verify";
++    exitStatus?: number;
++  };
++  reasonCodes: string[];
++  verifiedAt: string;
++};
++
++export type AttestationVerificationResult = AttestationVerificationRecord & {
++  taskId: string;
++  policy: {
++    repository?: string;
++    signerWorkflow?: string;
++    predicateType?: string;
++    sourceCommit?: string;
++    sourceRef?: string;
++  };
++};
++
++export type AttestationVerificationContext = {
++  root?: string;
++  taskId: string;
++  artifact: string;
++  evidence?: Evidence;
++  repository?: string;
++  signerWorkflow?: string;
++  predicateType?: string;
++  sourceRef?: string;
++  sourceCommit?: string;
++  bundle?: string;
++  customTrustedRoot?: string;
++  now?: string;
++};
++
++type GhResult = {
++  status: number | null;
++  stdout: string;
++  stderr: string;
++  error?: Error;
++};
++
++type ParsedAttestation = {
++  identity: AttestationIdentitySummary;
++  subjectDigests: string[];
++  verificationResult?: string;
++};
++
++function bounded(value: string, maximum = 160): string {
++  return value.length <= maximum ? value : `${value.slice(0, maximum - 1)}…`;
++}
++
++function boundedOptional(value: string | undefined, maximum = 256): string | undefined {
++  return value === undefined ? undefined : bounded(value, maximum);
++}
++
++function safeLocator(root: string, absolutePath: string, outside = "external-artifact"): string {
++  const relative = path.relative(root, absolutePath).replaceAll("\\", "/");
++  if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) return `repo:${relative}`;
++  return outside;
++}
++
++function digestFile(absolutePath: string): string {
++  return `sha256:${createHash("sha256").update(readFileSync(absolutePath)).digest("hex")}`;
++}
++
++function normalizeRepository(value: string | undefined): string | undefined {
++  if (!value) return undefined;
++  const trimmed = value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
++  const match = trimmed.match(/^([^/]+\/[^/]+)$/);
++  return match?.[1];
++}
++
++function normalizeWorkflow(value: string | undefined): string | undefined {
++  if (!value) return undefined;
++  const match = value.trim().match(/(\.github\/workflows\/[^@\s]+)(?:@.*)?$/);
++  return match?.[1] ?? value.trim();
++}
++
++function normalizeDigest(value: string | undefined): string | undefined {
++  if (!value) return undefined;
++  const match = value.trim().match(/^(?:sha256:)?([0-9a-f]{64})$/i);
++  return match ? `sha256:${match[1].toLowerCase()}` : undefined;
++}
++
++function collectEntries(value: unknown, keyPath: string[] = [], entries: Array<{ key: string; value: string; path: string }> = []): Array<{ key: string; value: string; path: string }> {
++  if (Array.isArray(value)) {
++    value.forEach((item, index) => collectEntries(item, [...keyPath, String(index)], entries));
++  } else if (value && typeof value === "object") {
++    for (const [key, child] of Object.entries(value)) {
++      const nextPath = [...keyPath, key];
++      if (typeof child === "string") entries.push({ key, value: child, path: nextPath.join(".") });
++      else collectEntries(child, nextPath, entries);
++    }
++  }
++  return entries;
++}
++
++function firstEntry(entries: Array<{ key: string; value: string; path: string }>, keys: string[]): string | undefined {
++  const wanted = new Set(keys.map((key) => key.toLowerCase()));
++  return entries.find((entry) => wanted.has(entry.key.toLowerCase()))?.value;
++}
++
++function parseVerifierOutput(stdout: string): ParsedAttestation | undefined {
++  let parsed: unknown;
++  try {
++    parsed = JSON.parse(stdout);
++  } catch {
++    return undefined;
++  }
++  const entries = collectEntries(parsed);
++  const identity: AttestationIdentitySummary = {
++    repository: boundedOptional(normalizeRepository(firstEntry(entries, ["repository", "sourceRepository"]))),
++    signerWorkflow: boundedOptional(normalizeWorkflow(firstEntry(entries, ["workflow", "signerWorkflow", "workflowPath"]))),
++    predicateType: boundedOptional(firstEntry(entries, ["predicateType"])),
++    sourceCommit: boundedOptional(firstEntry(entries, ["sourceRepositoryDigest", "sourceDigest", "sourceCommit"]), 128),
++    sourceRef: boundedOptional(firstEntry(entries, ["sourceRepositoryRef", "sourceRef", "ref"])),
++    issuer: boundedOptional(firstEntry(entries, ["issuer"]))
++  };
++  const subjectDigests = entries
++    .filter((entry) => ["sha256", "digest"].includes(entry.key.toLowerCase()))
++    .map((entry) => normalizeDigest(entry.value))
++    .filter((value): value is string => Boolean(value));
++  return {
++    identity,
++    subjectDigests,
++    verificationResult: firstEntry(entries, ["verificationResult", "result", "status"])
++  };
++}
++
++function classifyFailure(stderr: string, stdout: string): { status: AttestationVerificationStatus; reasonCodes: string[] } {
++  const text = `${stderr}\n${stdout}`.toLowerCase();
++  if (/no attestation|not found|could not find.*attestation|does not have.*attestation/.test(text)) {
++    return { status: "missing", reasonCodes: ["attestation.missing"] };
++  }
++  if (/subject|digest|source.*mismatch|does not match/.test(text)) {
++    return { status: "subject-mismatch", reasonCodes: ["attestation.subject-mismatch"] };
++  }
++  if (/untrusted|trust root|certificate|issuer|identity|repository|workflow/.test(text)) {
++    return { status: "untrusted", reasonCodes: ["attestation.identity-untrusted"] };
++  }
++  if (/invalid|signature|verification failed|failed to verify/.test(text)) {
++    return { status: "invalid", reasonCodes: ["attestation.invalid"] };
++  }
++  return { status: "invalid", reasonCodes: ["attestation.verifier-failed"] };
++}
++
++function runGh(args: string[], cwd: string): GhResult {
++  try {
++    const result = spawnSync("gh", args, {
++      cwd,
++      encoding: "utf8",
++      shell: false,
++      timeout: 30_000,
++      windowsHide: true,
++      maxBuffer: 256 * 1024
++    });
++    return {
++      status: result.status,
++      stdout: bounded(result.stdout ?? "", 256 * 1024),
++      stderr: bounded(result.stderr ?? "", 4_000),
++      error: result.error
++    };
++  } catch (error) {
++    return { status: null, stdout: "", stderr: "", error: error instanceof Error ? error : new Error(String(error)) };
++  }
++}
++
++function policyFromContext(context: AttestationVerificationContext): AttestationVerificationResult["policy"] {
++  return {
++    repository: normalizeRepository(context.repository),
++    signerWorkflow: normalizeWorkflow(context.signerWorkflow),
++    predicateType: context.predicateType ?? DEFAULT_ATTESTATION_PREDICATE,
++    sourceCommit: context.sourceCommit,
++    sourceRef: context.sourceRef
++  };
++}
++
++function baseResult(
++  context: AttestationVerificationContext,
++  artifactLocator: string,
++  artifactDigest: string,
++  policy: AttestationVerificationResult["policy"],
++  status: AttestationVerificationStatus,
++  reasonCodes: string[],
++  exitStatus?: number,
++  identity?: AttestationIdentitySummary
++): AttestationVerificationResult {
++  const root = context.root ?? process.cwd();
++  return {
++    schemaVersion: ATTESTATION_SCHEMA_VERSION,
++    taskId: context.taskId,
++    status,
++    artifact: { locator: artifactLocator, digest: artifactDigest },
++    attestation: {
++      locator: context.bundle ? safeLocator(root, path.resolve(root, context.bundle), "offline-bundle") : "github:artifact-attestation",
++      ...(context.bundle ? { bundle: safeLocator(root, path.resolve(root, context.bundle), "offline-bundle") } : {}),
++      ...(context.customTrustedRoot ? { trustedRoot: safeLocator(root, path.resolve(root, context.customTrustedRoot), "offline-trusted-root") } : {})
++    },
++    ...(identity ? { identity } : {}),
++    verifier: { name: "gh attestation verify", ...(exitStatus !== undefined ? { exitStatus } : {}) },
++    reasonCodes: [...new Set(reasonCodes)].slice(0, 12),
++    verifiedAt: context.now ?? new Date().toISOString(),
++    policy
++  };
++}
++
++export function verifyAttestation(root: string, context: AttestationVerificationContext): AttestationVerificationResult {
++  const artifactPath = path.resolve(root, context.artifact);
++  const artifactLocator = safeLocator(root, artifactPath);
++  const policy = policyFromContext(context);
++  if (!existsSync(artifactPath) || !statSync(artifactPath).isFile()) {
++    return baseResult(context, artifactLocator, "sha256:" + "0".repeat(64), policy, "unavailable", ["artifact.unavailable"]);
++  }
++  const artifactDigest = digestFile(artifactPath);
++  if (!context.evidence) {
++    return baseResult(context, artifactLocator, artifactDigest, policy, "unavailable", ["evidence.missing"]);
++  }
++  const evidenceSubject = context.evidence.subjectHeadCommit ?? context.evidence.git?.subjectHeadCommit ?? context.evidence.commit;
++  const evidenceRef = context.evidence.git?.branch;
++  const repository = policy.repository;
++  const signerWorkflow = policy.signerWorkflow ?? normalizeWorkflow(context.evidence.ciReceipt?.workflowPath);
++  const sourceCommit = context.sourceCommit ?? evidenceSubject;
++  const sourceRef = context.sourceRef ?? evidenceRef;
++  const effectivePolicy = { ...policy, repository, signerWorkflow, sourceCommit, sourceRef };
++  const evidenceBindingMismatches: string[] = [];
++  if (context.sourceCommit && evidenceSubject && context.sourceCommit !== evidenceSubject) evidenceBindingMismatches.push("policy.source-commit-mismatch");
++  if (context.sourceRef && evidenceRef && context.sourceRef !== evidenceRef) evidenceBindingMismatches.push("policy.source-ref-mismatch");
++  if (context.evidence.git?.subjectHeadCommit && evidenceSubject !== context.evidence.git.subjectHeadCommit) evidenceBindingMismatches.push("evidence.subject-internal-mismatch");
++  if (context.evidence.ciReceipt?.headCommit && evidenceSubject !== context.evidence.ciReceipt.headCommit) evidenceBindingMismatches.push("evidence.ci-subject-mismatch");
++  if (evidenceBindingMismatches.length > 0) {
++    return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, "subject-mismatch", evidenceBindingMismatches);
++  }
++  const missingPolicy: string[] = [];
++  if (!repository) missingPolicy.push("policy.repository.unknown");
++  if (!signerWorkflow) missingPolicy.push("policy.signer-workflow.unknown");
++  if (!sourceCommit) missingPolicy.push("policy.source-commit.unknown");
++  if (!sourceRef) missingPolicy.push("policy.source-ref.unknown");
++  if (context.bundle && !context.customTrustedRoot) missingPolicy.push("offline.trusted-root.required");
++  if (context.customTrustedRoot && !context.bundle) missingPolicy.push("offline.bundle.required");
++  if (missingPolicy.length > 0) {
++    return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, "untrusted", missingPolicy);
++  }
++  const args = [
++    "attestation", "verify", artifactPath,
++    "--format", "json",
++    "--repo", repository!,
++    "--signer-workflow", signerWorkflow!,
++    "--predicate-type", effectivePolicy.predicateType!,
++    "--source-digest", sourceCommit!,
++    "--source-ref", sourceRef!
++  ];
++  if (context.bundle) args.push("--bundle", path.resolve(root, context.bundle), "--custom-trusted-root", path.resolve(root, context.customTrustedRoot!));
++  const command = runGh(args, root);
++  if (command.error && command.status === null) {
++    return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, "unavailable", ["verifier.unavailable"], undefined);
++  }
++  if (command.status !== 0) {
++    const failure = classifyFailure(command.stderr, command.stdout);
++    return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, failure.status, failure.reasonCodes, command.status ?? undefined);
++  }
++  const parsed = parseVerifierOutput(command.stdout);
++  if (!parsed) return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, "invalid", ["verifier.output.invalid"], command.status ?? undefined);
++  const identity = parsed.identity;
++  const reasons: string[] = [];
++  if (identity.repository !== repository) reasons.push("attestation.repository-mismatch");
++  if (identity.signerWorkflow !== signerWorkflow) reasons.push("attestation.workflow-mismatch");
++  if (identity.predicateType !== effectivePolicy.predicateType) reasons.push("attestation.predicate-mismatch");
++  if (identity.sourceCommit !== sourceCommit) reasons.push("attestation.source-commit-mismatch");
++  if (identity.sourceRef !== sourceRef) reasons.push("attestation.source-ref-mismatch");
++  if (!parsed.subjectDigests.includes(artifactDigest)) reasons.push("attestation.artifact-digest-mismatch");
++  if (parsed.verificationResult && !["passed", "verified", "success"].includes(parsed.verificationResult.toLowerCase())) reasons.push("attestation.verification-failed");
++  if (reasons.length > 0) {
++    const subjectReason = reasons.some((reason) => reason.includes("digest") || reason.includes("source") || reason.includes("artifact"));
++    return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, subjectReason ? "subject-mismatch" : "untrusted", reasons, command.status ?? undefined, identity);
++  }
++  return baseResult(context, artifactLocator, artifactDigest, effectivePolicy, "verified", [], command.status ?? undefined, identity);
++}
++
++export function toAttestationEvidence(record: AttestationVerificationResult): AttestationVerificationRecord {
++  return {
++    schemaVersion: record.schemaVersion,
++    status: record.status,
++    artifact: record.artifact,
++    attestation: record.attestation,
++    ...(record.identity ? { identity: record.identity } : {}),
++    verifier: record.verifier,
++    reasonCodes: record.reasonCodes,
++    verifiedAt: record.verifiedAt
++  };
++}
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 47ec0fd..cde7866 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -80,6 +80,58 @@ const testQualityObservationSchema = {
+   }
+ };
+ 
++const attestationVerificationSchema = {
++  type: "object",
++  required: ["schemaVersion", "status", "artifact", "attestation", "verifier", "reasonCodes", "verifiedAt"],
++  additionalProperties: false,
++  properties: {
++    schemaVersion: { const: "scwbs.attestation-verification.v1" },
++    status: { enum: ["verified", "missing", "invalid", "subject-mismatch", "untrusted", "unavailable"] },
++    artifact: {
++      type: "object",
++      required: ["locator", "digest"],
++      additionalProperties: false,
++      properties: {
++        locator: { type: "string", minLength: 1, maxLength: 256 },
++        digest: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" }
++      }
++    },
++    attestation: {
++      type: "object",
++      required: ["locator"],
++      additionalProperties: false,
++      properties: {
++        locator: { type: "string", minLength: 1, maxLength: 256 },
++        bundle: { type: "string", minLength: 1, maxLength: 256 },
++        trustedRoot: { type: "string", minLength: 1, maxLength: 256 }
++      }
++    },
++    identity: {
++      type: "object",
++      additionalProperties: false,
++      properties: {
++        repository: { type: "string", minLength: 1, maxLength: 256 },
++        signerWorkflow: { type: "string", minLength: 1, maxLength: 256 },
++        predicateType: { type: "string", minLength: 1, maxLength: 256 },
++        sourceCommit: { type: "string", minLength: 1, maxLength: 128 },
++        sourceRef: { type: "string", minLength: 1, maxLength: 256 },
++        issuer: { type: "string", minLength: 1, maxLength: 256 }
++      }
++    },
++    verifier: {
++      type: "object",
++      required: ["name"],
++      additionalProperties: false,
++      properties: {
++        name: { const: "gh attestation verify" },
++        exitStatus: { type: "integer", minimum: 0, maximum: 255 }
++      }
++    },
++    reasonCodes: { type: "array", maxItems: 12, items: { type: "string", minLength: 1, maxLength: 128 } },
++    verifiedAt: { type: "string", minLength: 1, maxLength: 64 }
++  }
++};
++
+ const requirementEvidenceSchema = {
+   type: "object",
+   required: ["requirementId", "status", "references"],
+@@ -227,6 +279,7 @@ const evidenceSchema = {
+         generatedAt: { type: "string", minLength: 1 }
+       }
+     },
++    attestationVerification: attestationVerificationSchema,
+     changedFiles: stringArraySchema,
+     requirementEvidence: { type: "array", uniqueItems: true, items: requirementEvidenceSchema },
+     submodules: {
+diff --git a/src/core/types.ts b/src/core/types.ts
+index e670575..ad0d495 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -389,6 +389,7 @@ export type Evidence = {
+   changedFiles: string[];
+   ciReceipt?: CiReceipt;
+   coverageReceipt?: CoverageReceipt;
++  attestationVerification?: import("./attestation.js").AttestationVerificationRecord;
+   testQualityObservation?: TestQualityObservation;
+   submodules?: Array<{
+     path: string;
+diff --git a/tests/fixtures/attestation/invalid.stderr b/tests/fixtures/attestation/invalid.stderr
+new file mode 100644
+index 0000000..129fc73
+--- /dev/null
++++ b/tests/fixtures/attestation/invalid.stderr
+@@ -0,0 +1 @@
++attestation signature verification failed
+diff --git a/tests/fixtures/attestation/missing.stderr b/tests/fixtures/attestation/missing.stderr
+new file mode 100644
+index 0000000..78290ab
+--- /dev/null
++++ b/tests/fixtures/attestation/missing.stderr
+@@ -0,0 +1 @@
++no attestation found for the supplied artifact
+diff --git a/tests/fixtures/attestation/subject-mismatch.json b/tests/fixtures/attestation/subject-mismatch.json
+new file mode 100644
+index 0000000..877ccf5
+--- /dev/null
++++ b/tests/fixtures/attestation/subject-mismatch.json
+@@ -0,0 +1,11 @@
++[
++  {
++    "verificationResult": "PASSED",
++    "repository": "xmeta/ACED",
++    "workflow": "xmeta/ACED/.github/workflows/release.yml@refs/heads/main",
++    "predicateType": "https://slsa.dev/provenance/v1",
++    "sourceRepositoryDigest": "1111111111111111111111111111111111111111",
++    "sourceRepositoryRef": "refs/heads/main",
++    "subject": [{ "digest": { "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } }]
++  }
++]
+diff --git a/tests/fixtures/attestation/verified.json b/tests/fixtures/attestation/verified.json
+new file mode 100644
+index 0000000..1140709
+--- /dev/null
++++ b/tests/fixtures/attestation/verified.json
+@@ -0,0 +1,12 @@
++[
++  {
++    "verificationResult": "PASSED",
++    "repository": "xmeta/ACED",
++    "workflow": "xmeta/ACED/.github/workflows/release.yml@refs/heads/main",
++    "predicateType": "https://slsa.dev/provenance/v1",
++    "sourceRepositoryDigest": "1111111111111111111111111111111111111111",
++    "sourceRepositoryRef": "refs/heads/main",
++    "subject": [{ "digest": { "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } }],
++    "certificate": { "issuer": "https://token.actions.githubusercontent.com" }
++  }
++]
+diff --git a/tests/integration/attestation.test.ts b/tests/integration/attestation.test.ts
+new file mode 100644
+index 0000000..9e35268
+--- /dev/null
++++ b/tests/integration/attestation.test.ts
+@@ -0,0 +1,115 @@
++import { createHash } from "node:crypto";
++import { chmodSync, mkdirSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { readEvidence } from "../../src/core/contracts.js";
++import { makeTempRepo, sampleEvidence, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
++
++function captureCli(args: string[], root: string): { code: number; stdout: string; stderr: string } {
++  const stdout: string[] = [];
++  const stderr: string[] = [];
++  const originalWrite = process.stdout.write;
++  const originalError = console.error;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout.push(String(chunk));
++    return true;
++  }) as typeof process.stdout.write;
++  console.error = (...items: unknown[]) => stderr.push(items.map(String).join(" "));
++  try {
++    return { code: main(args, root), stdout: stdout.join(""), stderr: stderr.join("\n") };
++  } finally {
++    process.stdout.write = originalWrite;
++    console.error = originalError;
++  }
++}
++
++function prepareCliRepo(): { root: string; artifact: string; digest: string; subject: string } {
++  const root = makeTempRepo();
++  writeScwbsProject(root);
++  writeYaml(root, "contracts/tasks/WBS-001-004.yaml", sampleTask({ requiredChecks: [] }) as unknown as Record<string, unknown>);
++  const content = "integration release artifact\n";
++  writeText(root, "release.tar.gz", content);
++  const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
++  const subject = "1111111111111111111111111111111111111111";
++  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++    subjectHeadCommit: subject,
++    git: { branch: "refs/heads/main", subjectHeadCommit: subject }
++  }) as unknown as Record<string, unknown>);
++  writeJson(root, "verified.json", [{
++    verificationResult: "PASSED",
++    repository: "xmeta/ACED",
++    workflow: "xmeta/ACED/.github/workflows/release.yml@refs/heads/main",
++    predicateType: "https://slsa.dev/provenance/v1",
++    sourceRepositoryDigest: subject,
++    sourceRepositoryRef: "refs/heads/main",
++    subject: [{ digest: { sha256: digest.slice("sha256:".length) } }]
++  }]);
++  const bin = path.join(root, "bin");
++  mkdirSync(bin, { recursive: true });
++  writeText(root, "bin/gh", "#!/bin/sh\ncat \"$GH_FIXTURE\"\nexit \"${GH_EXIT:-0}\"\n");
++  chmodSync(path.join(bin, "gh"), 0o755);
++  return { root, artifact: "release.tar.gz", digest, subject };
++}
++
++describe("evidence verify-attestation CLI", () => {
++  test("records only the bounded verification summary in Evidence", () => {
++    const prepared = prepareCliRepo();
++    const previousPath = process.env.PATH;
++    const previousFixture = process.env.GH_FIXTURE;
++    const previousExit = process.env.GH_EXIT;
++    process.env.PATH = `${path.join(prepared.root, "bin")}:${previousPath ?? ""}`;
++    process.env.GH_FIXTURE = path.join(prepared.root, "verified.json");
++    process.env.GH_EXIT = "0";
++    try {
++      const result = captureCli([
++        "evidence", "verify-attestation", "--task", "WBS-001-004", "--artifact", prepared.artifact,
++        "--repository", "xmeta/ACED", "--signer-workflow", ".github/workflows/release.yml",
++        "--source-commit", prepared.subject, "--source-ref", "refs/heads/main", "--json"
++      ], prepared.root);
++      expect(result.code).toBe(0);
++      const output = JSON.parse(result.stdout) as { status: string; artifact: { digest: string } };
++      expect(output.status).toBe("verified");
++      expect(output.artifact.digest).toBe(prepared.digest);
++      const evidence = readEvidence(prepared.root, "WBS-001-004").evidence!;
++      expect(evidence.attestationVerification?.status).toBe("verified");
++      expect(JSON.stringify(evidence.attestationVerification)).not.toContain("verificationResult");
++      expect(JSON.stringify(evidence.attestationVerification)).not.toContain("certificate");
++    } finally {
++      if (previousPath === undefined) delete process.env.PATH;
++      else process.env.PATH = previousPath;
++      if (previousFixture === undefined) delete process.env.GH_FIXTURE;
++      else process.env.GH_FIXTURE = previousFixture;
++      if (previousExit === undefined) delete process.env.GH_EXIT;
++      else process.env.GH_EXIT = previousExit;
++    }
++  });
++
++  test("returns bounded JSON and nonzero for missing attestation", () => {
++    const prepared = prepareCliRepo();
++    const missing = path.join(prepared.root, "missing.stderr");
++    writeText(prepared.root, "missing.stderr", "no attestation found\n");
++    const previousPath = process.env.PATH;
++    const previousFixture = process.env.GH_FIXTURE;
++    const previousExit = process.env.GH_EXIT;
++    process.env.PATH = `${path.join(prepared.root, "bin")}:${previousPath ?? ""}`;
++    process.env.GH_FIXTURE = missing;
++    process.env.GH_EXIT = "1";
++    try {
++      const result = captureCli([
++        "evidence", "verify-attestation", "--task", "WBS-001-004", "--artifact", prepared.artifact,
++        "--repository", "xmeta/ACED", "--signer-workflow", ".github/workflows/release.yml",
++        "--source-commit", prepared.subject, "--source-ref", "refs/heads/main", "--json"
++      ], prepared.root);
++      expect(result.code).toBe(1);
++      expect(JSON.parse(result.stdout)).toMatchObject({ schemaVersion: "scwbs.attestation-verification.v1", status: "missing" });
++    } finally {
++      if (previousPath === undefined) delete process.env.PATH;
++      else process.env.PATH = previousPath;
++      if (previousFixture === undefined) delete process.env.GH_FIXTURE;
++      else process.env.GH_FIXTURE = previousFixture;
++      if (previousExit === undefined) delete process.env.GH_EXIT;
++      else process.env.GH_EXIT = previousExit;
++    }
++  });
++});
+diff --git a/tests/unit/attestation.test.ts b/tests/unit/attestation.test.ts
+new file mode 100644
+index 0000000..0c01512
+--- /dev/null
++++ b/tests/unit/attestation.test.ts
+@@ -0,0 +1,126 @@
++import { createHash } from "node:crypto";
++import { chmodSync, mkdirSync, readFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { toAttestationEvidence, verifyAttestation } from "../../src/core/attestation.js";
++import { validateEvidenceSchema } from "../../src/core/schema/records.js";
++import type { Evidence } from "../../src/core/types.js";
++import { makeTempRepo, sampleEvidence, writeJson, writeText } from "../helpers.js";
++
++const fixtureRoot = path.resolve("tests/fixtures/attestation");
++const sourceCommit = "1111111111111111111111111111111111111111";
++
++function withFakeGh<T>(root: string, fixture: string, status: number, action: () => T): T {
++  const bin = path.join(root, "bin");
++  mkdirSync(bin, { recursive: true });
++  const gh = path.join(bin, "gh");
++  writeText(root, "bin/gh", `#!/bin/sh\nif [ -n "$GH_ARGS_FILE" ]; then printf '%s\\n' "$@" > "$GH_ARGS_FILE"; fi\ncat "$GH_FIXTURE"\nexit "${status}"\n`);
++  chmodSync(gh, 0o755);
++  const previousPath = process.env.PATH;
++  const previousFixture = process.env.GH_FIXTURE;
++  const previousArgs = process.env.GH_ARGS_FILE;
++  process.env.PATH = `${bin}:${previousPath ?? ""}`;
++  process.env.GH_FIXTURE = fixture;
++  delete process.env.GH_ARGS_FILE;
++  try {
++    return action();
++  } finally {
++    if (previousPath === undefined) delete process.env.PATH;
++    else process.env.PATH = previousPath;
++    if (previousFixture === undefined) delete process.env.GH_FIXTURE;
++    else process.env.GH_FIXTURE = previousFixture;
++    if (previousArgs === undefined) delete process.env.GH_ARGS_FILE;
++    else process.env.GH_ARGS_FILE = previousArgs;
++  }
++}
++
++function prepare(root: string): { artifact: string; evidence: Evidence; digest: string } {
++  const content = "release artifact\n";
++  writeText(root, "release.tar.gz", content);
++  const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
++  const fixture = JSON.parse(readFileSync(path.join(fixtureRoot, "verified.json"), "utf8")) as Array<Record<string, unknown>>;
++  const subject = fixture[0].subject as Array<{ digest: { sha256: string } }>;
++  subject[0].digest.sha256 = digest.slice("sha256:".length);
++  writeJson(root, "verified.json", fixture);
++  const evidence = sampleEvidence({
++    taskId: "WBS-001-004",
++    subjectHeadCommit: sourceCommit,
++    git: { branch: "refs/heads/main", subjectHeadCommit: sourceCommit }
++  });
++  return { artifact: "release.tar.gz", evidence, digest };
++}
++
++function context(root: string, artifact: string, evidence: Evidence) {
++  return {
++    root,
++    taskId: evidence.taskId,
++    artifact,
++    evidence,
++    repository: "xmeta/ACED",
++    signerWorkflow: ".github/workflows/release.yml",
++    sourceCommit,
++    sourceRef: "refs/heads/main",
++    now: "2026-08-12T00:00:00.000Z"
++  };
++}
++
++describe("external attestation verifier", () => {
++  test("returns a bounded verified result and matches the exact artifact digest", () => {
++    const root = makeTempRepo();
++    const prepared = prepare(root);
++    const result = withFakeGh(root, path.join(root, "verified.json"), 0, () => verifyAttestation(root, context(root, prepared.artifact, prepared.evidence)));
++    expect(result.status).toBe("verified");
++    expect(result.artifact.digest).toBe(prepared.digest);
++    expect(result.identity).toMatchObject({ repository: "xmeta/ACED", signerWorkflow: ".github/workflows/release.yml" });
++    expect(JSON.stringify(result)).not.toContain("verificationResult");
++    expect(JSON.stringify(result)).not.toContain("certificate");
++    expect(validateEvidenceSchema({ ...prepared.evidence, attestationVerification: toAttestationEvidence(result) })).toEqual([]);
++  });
++
++  test.each([
++    ["missing", "missing.stderr", 1],
++    ["invalid", "invalid.stderr", 1]
++  ] as const)("distinguishes %s verifier failures", (status, fixtureName, exitStatus) => {
++    const root = makeTempRepo();
++    const prepared = prepare(root);
++    const result = withFakeGh(root, path.join(fixtureRoot, fixtureName), exitStatus, () => verifyAttestation(root, context(root, prepared.artifact, prepared.evidence)));
++    expect(result.status).toBe(status);
++    expect(result.reasonCodes.length).toBeGreaterThan(0);
++  });
++
++  test("fails closed for subject mismatch and unknown policy", () => {
++    const root = makeTempRepo();
++    const prepared = prepare(root);
++    const mismatch = withFakeGh(root, path.join(fixtureRoot, "subject-mismatch.json"), 0, () => verifyAttestation(root, context(root, prepared.artifact, prepared.evidence)));
++    expect(mismatch.status).toBe("subject-mismatch");
++    const staleSubject = verifyAttestation(root, { ...context(root, prepared.artifact, prepared.evidence), sourceCommit: "2222222222222222222222222222222222222222" });
++    expect(staleSubject.status).toBe("subject-mismatch");
++    const unknownPolicy = verifyAttestation(root, {
++      ...context(root, prepared.artifact, prepared.evidence),
++      signerWorkflow: undefined,
++      sourceRef: undefined,
++      evidence: { ...prepared.evidence, git: undefined }
++    });
++    expect(unknownPolicy.status).toBe("untrusted");
++    expect(unknownPolicy.reasonCodes).toEqual(expect.arrayContaining(["policy.signer-workflow.unknown", "policy.source-ref.unknown"]));
++  });
++
++  test("requires explicit offline bundle and trusted root and passes structured arguments", () => {
++    const root = makeTempRepo();
++    const prepared = prepare(root);
++    const argsFile = path.join(root, "args.txt");
++    const result = withFakeGh(root, path.join(root, "verified.json"), 0, () => {
++      process.env.GH_ARGS_FILE = argsFile;
++      return verifyAttestation(root, {
++        ...context(root, prepared.artifact, prepared.evidence),
++        bundle: "bundle.json",
++        customTrustedRoot: "trusted-root.json"
++      });
++    });
++    expect(result.status).toBe("verified");
++    const args = readFileSync(argsFile, "utf8");
++    expect(args).toContain("--bundle");
++    expect(args).toContain("--custom-trusted-root");
++    expect(verifyAttestation(root, { ...context(root, prepared.artifact, prepared.evidence), bundle: "bundle.json" }).status).toBe("untrusted");
++  });
++});

@@ -309,6 +309,8 @@ npm run scwbs -- evidence collect --task SCWBS-001 --verbose --force
 npm run scwbs -- evidence collect --task SCWBS-001 --output - --force
 npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json
 npm run scwbs -- evidence import-ci --task SCWBS-001 --readiness /tmp/pr-readiness.json --ci-receipt /tmp/ci-receipt.json --coverage-receipt /tmp/coverage-receipt.json
+npm run scwbs -- evidence verify-attestation --task SCWBS-001 --artifact dist/release.tar.gz --json
+npm run scwbs -- evidence verify-attestation --task SCWBS-001 --artifact /tmp/release.tar.gz --bundle /tmp/attestation.bundle.json --custom-trusted-root /tmp/trusted-root.json --json
 npm run scwbs -- checks run --task SCWBS-001
 npm run scwbs -- checks run --task SCWBS-001 --json
 npm run scwbs -- checks run --task SCWBS-001 --rerun-checks
@@ -340,6 +342,16 @@ artifactはcheckout外の一時ディレクトリへダウンロードして指�
 実行するjobはread-only権限であり、`workflow_run` のtrusted reporterだけがboundedな
 PR commentをupsertする。commentは状態表示のみで、Approval、Review、mergeを作成・実行
 しない。fork、HEAD変更、workflow変更、receipt改変、digest不一致はfail-closedになる。
+
+`evidence verify-attestation --task <id> --artifact <path> --json` は、artifact の SHA-256
+digestと既存 Evidence の subject、repository、signer workflow、predicate、source commit/ref
+を束縛して `gh attestation verify` を構造化引数で呼び出す。結果は
+`scwbs.attestation-verification.v1` の `verified`、`missing`、`invalid`、
+`subject-mismatch`、`untrusted`、`unavailable` に限定され、本文・鍵・token は保存しない。
+Evidenceにはlocator、digest、identity summary、reason codeだけを記録する。offline検証は
+`--bundle` と `--custom-trusted-root` の明示指定を要求し、trust rootを自動取得・追加しない。
+workflow権限、issuer/trust rootの採用、fork/untrusted PRの署名境界、release公開はこのCLIの
+対象外でありHuman Gateで停止する。
 
 `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
 
