@@ -657,6 +657,17 @@ npm run scwbs -- promote --task SCWBS-001
 
 ## Trace And UI
 
+## GitHub Issue intake
+
+```bash
+npm run scwbs -- intake github-issue 123 --json
+npm run scwbs -- discovery from-github-issue 123 --dry-run --json
+```
+
+`intake github-issue` performs a read-only, structured GitHub Issue lookup and returns `scwbs.github-issue-intake.v1`. The normalized snapshot contains bounded untrusted issue fields and provenance (`repository`, number, source URL, digest, and `observedAt`). `--expected-digest` reports changed content as `stale`.
+
+`discovery from-github-issue` requires `--dry-run` and returns a Discovery-only candidate. It never creates or approves a Task Contract, writes to GitHub, interprets Issue prose as policy, or persists credentials/tokens. Missing `gh`, unavailable GitHub, malformed payloads, and unauthorized access fail closed without changing local workflow authority.
+
 ```bash
 npm run scwbs -- trace --task SCWBS-001
 npm run scwbs -- ui

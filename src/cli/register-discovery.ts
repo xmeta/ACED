@@ -1,11 +1,20 @@
 import type { Command } from "commander";
-import { runDiscoveryConclude, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
+import { runDiscoveryConclude, runDiscoveryFromGithubIssue, runDiscoveryGoalStart, runDiscoveryNew, runDiscoveryStart } from "../commands/discovery.js";
 import { runDiscoveryRoute } from "../core/discovery.js";
 import { parseBool, type CommandContext } from "./command-context.js";
 
 export function registerDiscoveryCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
   const discovery = program.command("discovery").description("Manage bounded Discovery Probes");
+  discovery
+    .command("from-github-issue")
+    .description("Project a GitHub Issue into a read-only Discovery candidate")
+    .argument("<number>", "GitHub Issue number")
+    .option("--repository <owner/repo>", "explicit GitHub repository")
+    .option("--expected-digest <digest>", "classify the snapshot as stale when the digest differs")
+    .option("--dry-run", "required; never writes a Discovery Probe or Task Contract")
+    .option("--json", "output versioned JSON")
+    .action((number: string, options) => setExitCode(runDiscoveryFromGithubIssue(root, number, options)));
   discovery
     .command("route")
     .description("Produce a read-only, versioned route proposal")

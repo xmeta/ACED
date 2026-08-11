@@ -4,6 +4,7 @@ import {
   type DiscoveryProbe,
   type DiscoveryStatus
 } from "../core/discovery.js";
+import { buildDiscoveryFromGithubIssue, buildGithubIssueIntake } from "../core/github-issue.js";
 
 export type DiscoveryOutput = {
   version: "scwbs.discovery.v1";
@@ -202,6 +203,19 @@ export function runDiscoveryConclude(root: string, id: string, options: {
       nextAction
     }, options.json);
     return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export function runDiscoveryFromGithubIssue(root: string, issueNumber: string, options: { repository?: string; expectedDigest?: string; dryRun?: boolean; json?: boolean }): number {
+  try {
+    if (options.dryRun !== true) throw new Error("discovery.from-github-issue.dry-run-required: use --dry-run");
+    const result = buildDiscoveryFromGithubIssue(buildGithubIssueIntake(root, Number(issueNumber), options));
+    if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
+    else process.stdout.write(`Discovery candidate: ${String(result.status)}\n`);
+    return result.status === "candidate" || result.status === "stale" ? 0 : 1;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;

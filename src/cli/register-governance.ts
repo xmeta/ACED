@@ -31,6 +31,7 @@ import {
   runReviewRoute
 } from "../commands/review-request.js";
 import { parseTestQuality, type CommandContext } from "./command-context.js";
+import { runGithubIssueIntake } from "../commands/intake.js";
 
 type SpecChangeNewOptions = {
   id?: string;
@@ -102,6 +103,16 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
 
 export function registerGovernanceCommands(program: Command, context: CommandContext): void {
   const { root, setExitCode } = context;
+  program
+    .command("intake")
+    .description("Read external inputs into bounded discovery candidates")
+    .command("github-issue")
+    .description("Read a GitHub Issue without granting it authority")
+    .argument("<number>", "GitHub Issue number")
+    .option("--repository <owner/repo>", "explicit GitHub repository")
+    .option("--expected-digest <digest>", "classify the snapshot as stale when the digest differs")
+    .option("--json", "output versioned JSON")
+    .action((number: string, options) => setExitCode(runGithubIssueIntake(root, number, options)));
   const validate = program.command("validate").description("Validate cross-Task feature completion");
   validate
     .command("feature")
