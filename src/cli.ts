@@ -29,6 +29,7 @@ import { runStatus } from "./commands/status.js";
 import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
 import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
+import { runMcpStdio } from "./commands/mcp.js";
 import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
 import { registerDiscoveryCommands } from "./cli/register-discovery.js";
 import { registerGovernanceCommands } from "./cli/register-governance.js";
@@ -489,6 +490,19 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .command("serve")
     .description("Report that the reserved API server is unavailable")
     .action(() => { exitCode = runServe(); });
+
+  program
+    .command("mcp")
+    .description("Run the stdio-only MCP server")
+    .option("--stdio", "run the MCP JSON-RPC server over stdin/stdout")
+    .action((opts) => {
+      if (!opts.stdio) {
+        console.error("scwbs mcp requires --stdio; network listeners are not supported");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runMcpStdio(root);
+    });
 
   program
     .command("finish")
