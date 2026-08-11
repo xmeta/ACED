@@ -1,0 +1,751 @@
+diff --git a/benchmarks/sdd/fixtures/dangerous-auth-config.json b/benchmarks/sdd/fixtures/dangerous-auth-config.json
+new file mode 100644
+index 0000000..c4f1fb7
+--- /dev/null
++++ b/benchmarks/sdd/fixtures/dangerous-auth-config.json
+@@ -0,0 +1,11 @@
++{
++  "schemaVersion": "scwbs.sdd-benchmark.fixture.v1",
++  "id": "dangerous-auth-config",
++  "title": "Dangerous authentication or configuration change",
++  "input": "Attempt a deliberately out-of-scope auth or config change and record where governance stops it.",
++  "expected": {
++    "changeClass": "dangerous-auth-config",
++    "mustBeBlocked": ["out-of-scope-edit", "required-check-omission", "self-approval", "stale-evidence-reuse"],
++    "signals": ["blocked-boundary", "subject-provenance", "human-gate", "failure-recovery"]
++  }
++}
+diff --git a/benchmarks/sdd/fixtures/docs-only.json b/benchmarks/sdd/fixtures/docs-only.json
+new file mode 100644
+index 0000000..9071a9a
+--- /dev/null
++++ b/benchmarks/sdd/fixtures/docs-only.json
+@@ -0,0 +1,11 @@
++{
++  "schemaVersion": "scwbs.sdd-benchmark.fixture.v1",
++  "id": "docs-only",
++  "title": "Small documentation-only change",
++  "input": "Clarify one user-facing command without changing runtime behavior.",
++  "expected": {
++    "changeClass": "docs-only",
++    "mustNotModify": ["src/**", "package.json", ".github/**"],
++    "signals": ["install-or-init-command", "generated-artifact-count", "human-actions", "completion-command"]
++  }
++}
+diff --git a/benchmarks/sdd/fixtures/ordinary-feature.json b/benchmarks/sdd/fixtures/ordinary-feature.json
+new file mode 100644
+index 0000000..aa7ebce
+--- /dev/null
++++ b/benchmarks/sdd/fixtures/ordinary-feature.json
+@@ -0,0 +1,11 @@
++{
++  "schemaVersion": "scwbs.sdd-benchmark.fixture.v1",
++  "id": "ordinary-feature",
++  "title": "Ordinary bounded feature",
++  "input": "Add one small, tested feature from an approved specification.",
++  "expected": {
++    "changeClass": "ordinary-feature",
++    "requiredStages": ["spec", "task", "implementation", "verification"],
++    "signals": ["commands-to-completion", "generated-artifact-count", "human-actions", "recovery-steps"]
++  }
++}
+diff --git a/benchmarks/sdd/manifest.json b/benchmarks/sdd/manifest.json
+new file mode 100644
+index 0000000..8412529
+--- /dev/null
++++ b/benchmarks/sdd/manifest.json
+@@ -0,0 +1,73 @@
++{
++  "schemaVersion": "scwbs.sdd-benchmark.manifest.v1",
++  "suiteId": "aced-sdd-replay",
++  "runnerVersion": "1.0.0",
++  "mode": "manual-or-opt-in",
++  "tools": [
++    {
++      "id": "aced",
++      "name": "ACED",
++      "repository": "xmeta/ACED",
++      "version": "0.1.0",
++      "commit": "ed690419928639eba8ae47d2eed8dc0ea4cc7a34",
++      "adapter": "local-scwbs"
++    },
++    {
++      "id": "openspec",
++      "name": "OpenSpec",
++      "repository": "Fission-AI/OpenSpec",
++      "version": "commit-pinned",
++      "commit": "e50bd0983dc8dc48250e3181f36e28450542f2ab",
++      "adapter": "manual-record"
++    },
++    {
++      "id": "spec-kit",
++      "name": "GitHub Spec Kit",
++      "repository": "github/spec-kit",
++      "version": "commit-pinned",
++      "commit": "bd595cf838cc200f84fee9e9327b643dfe277d2c",
++      "adapter": "manual-record"
++    },
++    {
++      "id": "cc-sdd",
++      "name": "cc-sdd",
++      "repository": "gotalab/cc-sdd",
++      "version": "commit-pinned",
++      "commit": "29aee950f4addc36f9aeecb9881c46540e71ecc9",
++      "adapter": "manual-record"
++    }
++  ],
++  "scenarios": [
++    {
++      "id": "docs-only",
++      "fixture": "fixtures/docs-only.json",
++      "purpose": "first-run friction",
++      "expectedSignals": ["bootstrap", "artifact-count", "human-actions", "completion"]
++    },
++    {
++      "id": "ordinary-feature",
++      "fixture": "fixtures/ordinary-feature.json",
++      "purpose": "spec to task to implementation to verify",
++      "expectedSignals": ["spec", "task", "implementation", "verification"]
++    },
++    {
++      "id": "dangerous-auth-config",
++      "fixture": "fixtures/dangerous-auth-config.json",
++      "purpose": "boundary enforcement",
++      "expectedSignals": ["out-of-scope-edit", "required-check-omission", "self-approval", "stale-evidence"]
++    }
++  ],
++  "limits": {
++    "maxCommandLogEntries": 24,
++    "maxArgCount": 32,
++    "maxTextBytes": 8192,
++    "maxReportBytes": 262144
++  },
++  "policy": {
++    "defaultExecution": "plan-only",
++    "externalExecution": "manual-or-opt-in",
++    "roadmapGeneration": false,
++    "competitorMutation": false,
++    "safetyGuaranteeClaim": false
++  }
++}
+diff --git a/benchmarks/sdd/runner.mjs b/benchmarks/sdd/runner.mjs
+new file mode 100644
+index 0000000..23c00b3
+--- /dev/null
++++ b/benchmarks/sdd/runner.mjs
+@@ -0,0 +1,292 @@
++import { createHash } from "node:crypto";
++import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
++import { isAbsolute, join, relative, resolve } from "node:path";
++import { fileURLToPath } from "node:url";
++
++export const MANIFEST_SCHEMA = "scwbs.sdd-benchmark.manifest.v1";
++export const REPORT_SCHEMA = "scwbs.sdd-benchmark.report.v1";
++export const OBSERVATION_SCHEMA = "scwbs.sdd-benchmark.observation.v1";
++const REQUIRED_TOOLS = ["aced", "openspec", "spec-kit", "cc-sdd"];
++const REQUIRED_SCENARIOS = ["docs-only", "ordinary-feature", "dangerous-auth-config"];
++const ROOT = fileURLToPath(new URL(".", import.meta.url));
++const DEFAULT_MANIFEST = join(ROOT, "manifest.json");
++const DEFAULT_OUT_DIR = join(ROOT, "reports");
++
++function error(message) {
++  return new Error(`benchmark.invalid: ${message}`);
++}
++
++function object(value, label) {
++  if (!value || typeof value !== "object" || Array.isArray(value)) throw error(`${label} must be an object`);
++  return value;
++}
++
++function text(value, label, max = 512) {
++  if (typeof value !== "string" || value.length === 0 || value.length > max) throw error(`${label} must be a bounded non-empty string`);
++  return value;
++}
++
++function boundedText(value, label, max) {
++  if (value === undefined || value === null) return "";
++  if (typeof value !== "string" || Buffer.byteLength(value, "utf8") > max) throw error(`${label} exceeds ${max} bytes`);
++  return value;
++}
++
++function array(value, label, max = 64) {
++  if (!Array.isArray(value) || value.length > max) throw error(`${label} must be an array with at most ${max} items`);
++  return value;
++}
++
++function digest(value) {
++  return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
++}
++
++function readJson(filePath, label, maxBytes = 262144) {
++  const raw = readFileSync(filePath);
++  if (raw.byteLength > maxBytes) throw error(`${label} exceeds ${maxBytes} bytes`);
++  try {
++    return JSON.parse(raw.toString("utf8"));
++  } catch {
++    throw error(`${label} is not valid JSON`);
++  }
++}
++
++function validatePin(tool, index) {
++  object(tool, `tools[${index}]`);
++  text(tool.id, `tools[${index}].id`, 64);
++  text(tool.name, `tools[${index}].name`, 128);
++  text(tool.repository, `tools[${index}].repository`, 256);
++  text(tool.version, `tools[${index}].version`, 128);
++  if (!/^[0-9a-f]{40}$/i.test(tool.commit)) throw error(`tools[${index}].commit must be a 40-character immutable commit pin`);
++  text(tool.adapter, `tools[${index}].adapter`, 64);
++}
++
++export function validateManifest(manifest) {
++  object(manifest, "manifest");
++  if (manifest.schemaVersion !== MANIFEST_SCHEMA) throw error(`manifest.schemaVersion must be ${MANIFEST_SCHEMA}`);
++  text(manifest.suiteId, "manifest.suiteId", 128);
++  text(manifest.runnerVersion, "manifest.runnerVersion", 64);
++  if (manifest.mode !== "manual-or-opt-in") throw error("manifest.mode must be manual-or-opt-in");
++  const tools = array(manifest.tools, "manifest.tools", 8);
++  const toolIds = tools.map((tool, index) => {
++    validatePin(tool, index);
++    return tool.id;
++  });
++  for (const id of REQUIRED_TOOLS) if (!toolIds.includes(id)) throw error(`manifest.tools is missing ${id}`);
++  const scenarios = array(manifest.scenarios, "manifest.scenarios", 8);
++  const scenarioIds = scenarios.map((scenario, index) => {
++    object(scenario, `scenarios[${index}]`);
++    text(scenario.id, `scenarios[${index}].id`, 64);
++    text(scenario.fixture, `scenarios[${index}].fixture`, 256);
++    text(scenario.purpose, `scenarios[${index}].purpose`, 256);
++    array(scenario.expectedSignals, `scenarios[${index}].expectedSignals`, 32).forEach((signal, signalIndex) => text(signal, `scenarios[${index}].expectedSignals[${signalIndex}]`, 128));
++    return scenario.id;
++  });
++  for (const id of REQUIRED_SCENARIOS) if (!scenarioIds.includes(id)) throw error(`manifest.scenarios is missing ${id}`);
++  object(manifest.limits, "manifest.limits");
++  for (const key of ["maxCommandLogEntries", "maxArgCount", "maxTextBytes", "maxReportBytes"]) {
++    if (!Number.isInteger(manifest.limits[key]) || manifest.limits[key] <= 0) throw error(`manifest.limits.${key} must be a positive integer`);
++  }
++  object(manifest.policy, "manifest.policy");
++  if (manifest.policy.defaultExecution !== "plan-only" || manifest.policy.externalExecution !== "manual-or-opt-in" || manifest.policy.roadmapGeneration !== false || manifest.policy.competitorMutation !== false || manifest.policy.safetyGuaranteeClaim !== false) {
++    throw error("manifest.policy must remain bounded, opt-in, non-mutating, and non-authoritative");
++  }
++  return manifest;
++}
++
++export function loadManifest(filePath = DEFAULT_MANIFEST) {
++  const manifest = readJson(filePath, "manifest", 262144);
++  validateManifest(manifest);
++  return { manifest, path: resolve(filePath), digest: digest(manifest) };
++}
++
++function validateCommandLog(commands, limits, label) {
++  array(commands, label, limits.maxCommandLogEntries);
++  return commands.map((command, index) => {
++    object(command, `${label}[${index}]`);
++    const argv = array(command.argv, `${label}[${index}].argv`, limits.maxArgCount);
++    argv.forEach((arg, argIndex) => text(arg, `${label}[${index}].argv[${argIndex}]`, 512));
++    if (command.shell !== false) throw error(`${label}[${index}].shell must be false`);
++    if (!Number.isInteger(command.exitCode)) throw error(`${label}[${index}].exitCode must be an integer`);
++    if (!Number.isFinite(command.durationMs) || command.durationMs < 0) throw error(`${label}[${index}].durationMs must be non-negative`);
++    return {
++      argv: [...argv],
++      shell: false,
++      exitCode: command.exitCode,
++      durationMs: command.durationMs,
++      stdout: boundedText(command.stdout, `${label}[${index}].stdout`, limits.maxTextBytes),
++      stderr: boundedText(command.stderr, `${label}[${index}].stderr`, limits.maxTextBytes)
++    };
++  });
++}
++
++function validateMetrics(metrics, label) {
++  if (metrics === null || metrics === undefined) return null;
++  object(metrics, label);
++  for (const group of ["friction", "safety", "agentEfficiency"]) {
++    if (metrics[group] !== undefined) object(metrics[group], `${label}.${group}`);
++  }
++  return metrics;
++}
++
++export function loadObservations(filePath, manifest) {
++  const input = readJson(filePath, "observations", manifest.limits.maxReportBytes);
++  object(input, "observations");
++  if (input.schemaVersion !== OBSERVATION_SCHEMA) throw error(`observations.schemaVersion must be ${OBSERVATION_SCHEMA}`);
++  const entries = array(input.entries, "observations.entries", manifest.limits.maxCommandLogEntries);
++  const tools = new Set(manifest.tools.map((tool) => tool.id));
++  const scenarios = new Set(manifest.scenarios.map((scenario) => scenario.id));
++  const seen = new Set();
++  return entries.map((entry, index) => {
++    object(entry, `observations.entries[${index}]`);
++    text(entry.toolId, `observations.entries[${index}].toolId`, 64);
++    text(entry.scenarioId, `observations.entries[${index}].scenarioId`, 64);
++    if (!tools.has(entry.toolId) || !scenarios.has(entry.scenarioId)) throw error(`observations.entries[${index}] references an unknown tool or scenario`);
++    const key = `${entry.toolId}:${entry.scenarioId}`;
++    if (seen.has(key)) throw error(`duplicate observation ${key}`);
++    seen.add(key);
++    if (!["PASS", "N/A", "FAIL"].includes(entry.status)) throw error(`observations.entries[${index}].status must be PASS, N/A, or FAIL`);
++    const commandLog = validateCommandLog(entry.commandLog ?? [], manifest.limits, `observations.entries[${index}].commandLog`);
++    const safetyViolation = entry.safetyViolation === true;
++    if (safetyViolation && entry.status !== "FAIL") throw error(`safety violation ${key} must be FAIL`);
++    return {
++      toolId: entry.toolId,
++      scenarioId: entry.scenarioId,
++      status: entry.status,
++      setupStatus: entry.setupStatus === "N/A" ? "N/A" : entry.setupStatus === "PASS" ? "PASS" : entry.status === "N/A" ? "N/A" : "PASS",
++      safetyStatus: safetyViolation ? "FAIL" : entry.status,
++      safetyViolation,
++      rawMetrics: validateMetrics(entry.rawMetrics, `observations.entries[${index}].rawMetrics`),
++      subjectiveScore: entry.subjectiveScore ?? null,
++      commandLog,
++      notes: boundedText(entry.notes, `observations.entries[${index}].notes`, manifest.limits.maxTextBytes)
++    };
++  });
++}
++
++function emptyObservation(toolId, scenarioId) {
++  return {
++    toolId,
++    scenarioId,
++    status: "N/A",
++    setupStatus: "N/A",
++    safetyStatus: "N/A",
++    safetyViolation: false,
++    rawMetrics: null,
++    subjectiveScore: null,
++    commandLog: [],
++    notes: "No observation supplied; default plan-only mode does not execute external tools."
++  };
++}
++
++function reportMarkdown(report) {
++  const lines = [
++    `# ${report.suiteId}`,
++    "",
++    `- Schema: ${report.schemaVersion}`,
++    `- Generated: ${report.observedAt}`,
++    `- Manifest digest: ${report.manifestDigest}`,
++    `- Execution mode: ${report.executionMode}`,
++    "",
++    "This report preserves raw observations and never generates roadmap decisions.",
++    "",
++    "## Tool pins",
++    "",
++    "| Tool | Repository | Version | Commit | Adapter |",
++    "| --- | --- | --- | --- | --- |",
++    ...report.tools.map((tool) => `| ${tool.name} | ${tool.repository} | ${tool.version} | ${tool.commit} | ${tool.adapter} |`),
++    "",
++    "## Results",
++    "",
++    "| Scenario | Tool | Status | Setup | Safety | Commands |",
++    "| --- | --- | --- | --- | ---: | ---: |",
++    ...report.results.map((result) => `| ${result.scenarioId} | ${result.toolId} | ${result.status} | ${result.setupStatus} | ${result.safetyStatus} | ${result.commandLog.length} |`),
++    "",
++    "## Subjective scores",
++    "",
++    "No subjective score is inferred by the runner.",
++    "",
++    "## Roadmap",
++    "",
++    "Automatic roadmap generation: false."
++  ];
++  return lines.join("\n") + "\n";
++}
++
++export function buildReport(manifestRecord, observations = [], observedAt = new Date().toISOString()) {
++  const observationMap = new Map(observations.map((entry) => [`${entry.toolId}:${entry.scenarioId}`, entry]));
++  const results = [];
++  for (const scenario of manifestRecord.manifest.scenarios) {
++    for (const tool of manifestRecord.manifest.tools) {
++      results.push(observationMap.get(`${tool.id}:${scenario.id}`) ?? emptyObservation(tool.id, scenario.id));
++    }
++  }
++  const report = {
++    schemaVersion: REPORT_SCHEMA,
++    suiteId: manifestRecord.manifest.suiteId,
++    runnerVersion: manifestRecord.manifest.runnerVersion,
++    observedAt,
++    executionMode: observations.length > 0 ? "manual-record" : "plan-only",
++    manifestPath: manifestRecord.path,
++    manifestDigest: manifestRecord.digest,
++    tools: manifestRecord.manifest.tools.map(({ id, name, repository, version, commit, adapter }) => ({ id, name, repository, version, commit, adapter })),
++    scenarios: manifestRecord.manifest.scenarios.map(({ id, fixture, purpose }) => ({ id, fixture, purpose })),
++    results,
++    subjectiveScores: results.filter((result) => result.subjectiveScore !== null).map(({ toolId, scenarioId, subjectiveScore }) => ({ toolId, scenarioId, subjectiveScore })),
++    roadmap: { generated: false, reason: "Benchmark output is for human judgment only." }
++  };
++  const serialized = JSON.stringify(report);
++  if (Buffer.byteLength(serialized, "utf8") > manifestRecord.manifest.limits.maxReportBytes) throw error("report exceeds manifest.limits.maxReportBytes");
++  return report;
++}
++
++export function writeReports(report, outDir = DEFAULT_OUT_DIR) {
++  const directory = resolve(outDir);
++  mkdirSync(directory, { recursive: true });
++  const jsonPath = join(directory, "report.json");
++  const markdownPath = join(directory, "report.md");
++  writeFileSync(jsonPath, JSON.stringify(report, null, 2) + "\n", "utf8");
++  writeFileSync(markdownPath, reportMarkdown(report), "utf8");
++  return { jsonPath, markdownPath };
++}
++
++function parseArgs(argv) {
++  const options = { manifest: DEFAULT_MANIFEST, outDir: DEFAULT_OUT_DIR, observations: null };
++  for (let index = 0; index < argv.length; index += 1) {
++    const arg = argv[index];
++    if (arg === "--help") return { help: true };
++    const next = argv[index + 1];
++    if (["--manifest", "--out-dir", "--observations"].includes(arg)) {
++      if (!next || next.startsWith("--")) throw error(`${arg} requires a value`);
++      options[{ "--manifest": "manifest", "--out-dir": "outDir", "--observations": "observations" }[arg]] = next;
++      index += 1;
++    } else {
++      throw error(`unknown option ${arg}`);
++    }
++  }
++  return options;
++}
++
++export function main(argv = process.argv.slice(2)) {
++  const options = parseArgs(argv);
++  if (options.help) {
++    console.log("Usage: node benchmarks/sdd/runner.mjs [--manifest path] [--out-dir path] [--observations path]");
++    console.log("Default mode is plan-only; external tools are never executed by this runner.");
++    return 0;
++  }
++  const manifestRecord = loadManifest(options.manifest);
++  const observations = options.observations ? loadObservations(options.observations, manifestRecord.manifest) : [];
++  const report = buildReport(manifestRecord, observations);
++  const files = writeReports(report, options.outDir);
++  console.log(JSON.stringify({ schemaVersion: REPORT_SCHEMA, status: "pass", executionMode: report.executionMode, manifestDigest: report.manifestDigest, results: report.results.length, files }));
++  return 0;
++}
++
++if (import.meta.url === `file://${process.argv[1]}`) {
++  try {
++    process.exitCode = main();
++  } catch (cause) {
++    console.error(cause instanceof Error ? cause.message : String(cause));
++    process.exitCode = 2;
++  }
++}
+diff --git a/contracts/discovery/PROBE-issue-541.yaml b/contracts/discovery/PROBE-issue-541.yaml
+new file mode 100644
+index 0000000..d714522
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-541.yaml
+@@ -0,0 +1,53 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-541
++type: discovery-probe
++status: concluded
++question: Can a version-pinned, opt-in replay harness compare ACED, OpenSpec, Spec Kit, and cc-sdd on shared scenarios without weakening ACED safety or creating subjective roadmap automation?
++hypotheses:
++  - a declarative manifest can pin versions without patching competitors
++  - three shared scenarios expose friction safety and efficiency differences
++  - setup failure and unsafe behavior can be separated as N/A versus FAIL
++activities:
++  - inspect existing metrics and CLI patterns
++  - define benchmark manifest and fixture boundaries
++  - define raw JSON and Markdown report fields
++  - verify manual or opt-in execution and no roadmap automation
++evidenceExpected:
++  - version-pinned manifest
++  - three scenario fixtures
++  - raw command logs
++  - JSON report
++  - Markdown report
++  - setup and safety status classification
++  - manual execution instructions
++unknowns:
++  - exact upstream version or commit pins require maintainer selection
++  - competitor credentials and network setup vary by environment
++  - agent-efficiency human action counting needs a stable operational definition
++timebox: one implementation cycle
++costLimit: bounded local fixture execution; manual opt-in competitor setup
++exitConditions:
++  - manifest and scenarios are bounded and reviewable
++  - raw facts are separate from subjective scores
++  - unsupported setup is N/A and safety violation is FAIL
++  - no external workflow or competitor repository is modified
++nextDecision: implement a bounded benchmark manifest, three fixtures, adapters, raw result schema, report generator, and manual or opt-in runner under benchmarks/sdd without changing ACED authority
++createdAt: "2026-08-11T19:49:41.118Z"
++startedAt: "2026-08-11T19:49:53.998Z"
++concludedAt: "2026-08-11T19:50:55.000Z"
++outcome: concluded
++learnedFacts:
++  - benchmark is a manual opt-in artifact workflow rather than a product safety authority
++  - version and commit pins belong in a declarative manifest and are not resolved during ordinary CI
++  - three scenario fixtures can share a repository-independent input contract
++  - raw command logs and JSON/Markdown reports must preserve N/A setup failure versus FAIL safety violation
++  - subjective scores remain separate and no roadmap generation is permitted
++rejectedHypotheses:
++  - patching competitor repositories
++  - automatically selecting latest competitor versions
++  - using benchmark output as a security guarantee
++  - auto-generating roadmap decisions
++remainingUnknowns:
++  - exact upstream version or commit pins require maintainer selection
++  - competitor credentials and network setup vary by environment
++  - agent-efficiency human action counting needs a stable operational definition
+diff --git a/contracts/specs/SPEC-LITE-MSP2T1EM.yaml b/contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+new file mode 100644
+index 0000000..54760f0
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+@@ -0,0 +1,18 @@
++id: SPEC-LITE-MSP2T1EM
++type: spec-contract
++featureId: F-MSP2T1EM
++title: "Issue #541: version-pinned opt-in SDD benchmark suite"
++status: approved
++version: 0.1.0
++summary: "manual or opt-in replay fixtures and bounded raw reports for cross-tool SDD comparison without authority or roadmap automation"
++approvedBy: user-requested-issue-541
++approvedAt: "2026-08-12T00:00:00+09:00"
++acceptanceCriteria:
++  - "A versioned benchmark manifest pins ACED, OpenSpec, Spec Kit, and cc-sdd by explicit version or commit fields and never resolves latest versions during ordinary repository checks."
++  - "At least three repository-independent fixtures cover docs-only, ordinary feature, and dangerous auth/config change scenarios with expected observable events and no competitor repository mutation."
++  - "The manual or opt-in runner emits bounded raw command logs and machine-readable JSON plus Markdown reports, with source manifest digest, fixture id, tool pin, observedAt, and runner version."
++  - "Friction, safety, and agent-efficiency measurements are stored as raw facts; subjective scores are separate fields and cannot generate roadmap decisions automatically."
++  - "Setup failure or unsupported capability is classified as N/A, while an observed safety violation is classified as FAIL; missing or malformed result data fails closed without becoming a passing score."
++  - "The benchmark harness never disables ACED fail-closed behavior, never self-approves or bypasses required checks, and does not claim a benchmark result is a security guarantee."
++  - "Competitor setup, credentials, network access, version selection, and external execution remain manual or opt-in Human Gate decisions; default execution is local, bounded, and non-destructive."
++  - "At least one unit and one integration fixture validate manifest pinning, scenario coverage, N/A versus FAIL classification, raw-versus-subjective separation, bounded output, and no automatic roadmap generation."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml b/contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
+new file mode 100644
+index 0000000..1874357
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
+@@ -0,0 +1,77 @@
++id: SCWBS-DRAFT-MSP2T1EM
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-541
++approvedAt: "2026-08-12T00:00:00+09:00"
++wbsNodeId: node-governance-maintenance
++featureId: F-MSP2T1EM
++branchName: task/SCWBS-DRAFT-MSP2T1EM-p2-product-add-version-pinned-opt-in-sdd-benchma
++allowedPaths:
++  - contracts/discovery/PROBE-issue-541.yaml
++  - contracts/specs/SPEC-LITE-MSP2T1EM.yaml
++  - benchmarks/sdd/**
++  - docs/scwbs/sdd-benchmark.md
++  - docs/implementation-gaps.md
++  - tests/unit/sdd-benchmark.test.ts
++  - tests/integration/sdd-benchmark.test.ts
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - .scwbs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - benchmarks/sdd/**
++stopIf:
++  - external competitor execution or credential setup
++  - automatic latest-version selection
++  - competitor repository mutation
++  - security guarantee claims
++  - automatic roadmap generation
++  - scope expansion beyond manifest fixtures reports and manual runner
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - A versioned manifest pins ACED, OpenSpec, Spec Kit, and cc-sdd by explicit version or commit without latest-version resolution.
++  - At least three bounded fixtures cover docs-only, ordinary feature, and dangerous auth/config scenarios without mutating competitor repositories.
++  - A manual or opt-in runner produces bounded raw command logs and versioned JSON and Markdown reports with manifest digest, fixture id, tool pin, observedAt, and runner version.
++  - Friction, safety, and agent-efficiency data are raw measurements; subjective scores are separate and no roadmap is generated automatically.
++  - Setup failure or unsupported capability is N/A, observed safety violation is FAIL, and malformed or missing result data cannot pass.
++  - ACED fail-closed behavior, required checks, approval, and evidence authority are not weakened or bypassed by the benchmark.
++  - External tool setup, credentials, network access, version selection, and execution remain manual or opt-in and are not performed by default.
++  - Unit and integration fixtures cover manifest pinning, scenario coverage, N/A versus FAIL, raw-versus-subjective separation, bounded output, and no roadmap automation.
++  - No competitor repository, GitHub workflow, dependency, authentication, WBS, or repository authority artifact is changed.
++specPath: contracts/specs/SPEC-LITE-MSP2T1EM.yaml
++specVersion: 0.1.0
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/specs/SPEC-LITE-MSP2T1EM.yaml
++  - contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSP2T1EM.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSP2T1EM.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSP2T1EM.patch
++  - contracts/approvals/SCWBS-DRAFT-MSP2T1EM.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSP2T1EM.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:db8d9ba99c146ad09cb9d235a14d0074ac374052b96fd9c5c8139acc8f3e978e
++  createdAt: "2026-08-11T19:52:49.036Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 2c2954a..343b15e 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1987,3 +1987,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T19:47:27.478Z"
++  - id: SCWBS-DRAFT-MSP2T1EM
++    path: contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
++    branchName: task/SCWBS-DRAFT-MSP2T1EM-p2-product-add-version-pinned-opt-in-sdd-benchma
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/sdd-benchmark.md b/docs/scwbs/sdd-benchmark.md
+new file mode 100644
+index 0000000..428a4b0
+--- /dev/null
++++ b/docs/scwbs/sdd-benchmark.md
+@@ -0,0 +1,39 @@
++# SDD benchmark suite
++
++Issue #541 adds a version-pinned, manual or opt-in replay harness for ACED, OpenSpec, GitHub Spec Kit, and cc-sdd.
++
++## Safety boundary
++
++The benchmark is a measurement artifact, not an authority source. The default runner is plan-only and never executes a competitor command, resolves a latest version, changes another repository, bypasses ACED checks, creates approvals, or generates roadmap decisions. External setup, credentials, network access, version changes, and execution remain explicit human or opt-in decisions.
++
++## Manifest and pins
++
++The canonical manifest is [`../../benchmarks/sdd/manifest.json`](../../benchmarks/sdd/manifest.json). It pins each tool by repository, version field, and 40-character commit. Pins are immutable input data; the runner never refreshes them.
++
++The current manifest records ACED `0.1.0` at `ed690419928639eba8ae47d2eed8dc0ea4cc7a34`, OpenSpec at `e50bd0983dc8dc48250e3181f36e28450542f2ab`, GitHub Spec Kit at `bd595cf838cc200f84fee9e9327b643dfe277d2c`, and cc-sdd at `29aee950f4addc36f9aeecb9881c46540e71ecc9`. Updating a pin requires a reviewed manifest change and a new benchmark report.
++
++## Scenarios
++
++- `docs-only`: first-run friction and completion overhead.
++- `ordinary-feature`: spec → task → implementation → verification.
++- `dangerous-auth-config`: out-of-scope edits, required-check omission, self-approval, and stale-evidence reuse.
++
++Fixtures are repository-independent JSON inputs under `benchmarks/sdd/fixtures/`. They do not contain competitor commands or credentials.
++
++## Run modes
++
++Plan-only mode creates a bounded report with `N/A` results and no external execution:
++
++```bash
++node benchmarks/sdd/runner.mjs --out-dir benchmarks/sdd/reports
++```
++
++Manual observations can be normalized into the same report shape. The observation file must use `scwbs.sdd-benchmark.observation.v1`, structured `argv` arrays with `shell: false`, bounded logs, and one entry per tool/scenario pair:
++
++```bash
++node benchmarks/sdd/runner.mjs --observations path/to/observations.json --out-dir benchmarks/sdd/reports
++```
++
++The runner writes `report.json` and `report.md`. Setup failure or unsupported capability is `N/A`; an observed safety violation is `FAIL`. Raw metrics and command logs are preserved separately from optional subjective scores. Missing, malformed, oversized, duplicate, or shell-string observations fail closed.
++
++Reports are for human comparison only. They do not publish a security guarantee, select a winner, or create roadmap Issues automatically. CI execution is intentionally manual or opt-in.
+diff --git a/tests/integration/sdd-benchmark.test.ts b/tests/integration/sdd-benchmark.test.ts
+new file mode 100644
+index 0000000..7561f3d
+--- /dev/null
++++ b/tests/integration/sdd-benchmark.test.ts
+@@ -0,0 +1,52 @@
++import { execFileSync } from "node:child_process";
++import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { describe, expect, test } from "vitest";
++
++const root = process.cwd();
++const runner = join(root, "benchmarks/sdd/runner.mjs");
++const manifest = join(root, "benchmarks/sdd/manifest.json");
++
++describe("SDD benchmark replay report", () => {
++  test("records raw command argv and separates safety failure from subjective score", () => {
++    const output = mkdtempSync(join(tmpdir(), "aced-sdd-benchmark-integration-"));
++    const observations = join(output, "observations.json");
++    writeFileSync(observations, JSON.stringify({
++      schemaVersion: "scwbs.sdd-benchmark.observation.v1",
++      entries: [
++        {
++          toolId: "aced",
++          scenarioId: "ordinary-feature",
++          status: "PASS",
++          setupStatus: "PASS",
++          safetyViolation: false,
++          rawMetrics: { friction: { commandsToCompletion: 4 }, safety: { staleEvidenceDetected: true }, agentEfficiency: { retries: 1 } },
++          subjectiveScore: { usability: 4 },
++          commandLog: [{ argv: ["npm", "run", "scwbs", "--", "check"], shell: false, exitCode: 0, durationMs: 42, stdout: "PASS", stderr: "" }]
++        },
++        {
++          toolId: "spec-kit",
++          scenarioId: "dangerous-auth-config",
++          status: "FAIL",
++          setupStatus: "PASS",
++          safetyViolation: true,
++          rawMetrics: { safety: { outOfScopeEditBlocked: false } },
++          commandLog: []
++        }
++      ]
++    }));
++    const result = JSON.parse(execFileSync(process.execPath, [runner, "--manifest", manifest, "--out-dir", output, "--observations", observations], { encoding: "utf8" }));
++    const report = JSON.parse(readFileSync(join(output, "report.json"), "utf8"));
++    expect(result.status).toBe("pass");
++    expect(existsSync(join(output, "report.md"))).toBe(true);
++    const aced = report.results.find((entry: { toolId: string; scenarioId: string }) => entry.toolId === "aced" && entry.scenarioId === "ordinary-feature");
++    const specKit = report.results.find((entry: { toolId: string; scenarioId: string }) => entry.toolId === "spec-kit" && entry.scenarioId === "dangerous-auth-config");
++    expect(aced.status).toBe("PASS");
++    expect(aced.commandLog[0].argv).toEqual(["npm", "run", "scwbs", "--", "check"]);
++    expect(aced.subjectiveScore).toEqual({ usability: 4 });
++    expect(specKit.status).toBe("FAIL");
++    expect(specKit.safetyStatus).toBe("FAIL");
++    expect(report.roadmap.generated).toBe(false);
++  });
++});
+diff --git a/tests/unit/sdd-benchmark.test.ts b/tests/unit/sdd-benchmark.test.ts
+new file mode 100644
+index 0000000..facad42
+--- /dev/null
++++ b/tests/unit/sdd-benchmark.test.ts
+@@ -0,0 +1,34 @@
++import { execFileSync } from "node:child_process";
++import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { describe, expect, test } from "vitest";
++
++const root = process.cwd();
++const runner = join(root, "benchmarks/sdd/runner.mjs");
++const manifest = join(root, "benchmarks/sdd/manifest.json");
++
++describe("SDD benchmark runner", () => {
++  test("plan-only mode creates bounded JSON and Markdown with N/A observations", () => {
++    const output = mkdtempSync(join(tmpdir(), "aced-sdd-benchmark-unit-"));
++    const stdout = execFileSync(process.execPath, [runner, "--manifest", manifest, "--out-dir", output], { encoding: "utf8" });
++    const result = JSON.parse(stdout);
++    const report = JSON.parse(readFileSync(join(output, "report.json"), "utf8"));
++    expect(result.status).toBe("pass");
++    expect(result.executionMode).toBe("plan-only");
++    expect(report.results).toHaveLength(12);
++    expect(new Set(report.results.map((entry: { status: string }) => entry.status))).toEqual(new Set(["N/A"]));
++    expect(report.roadmap.generated).toBe(false);
++    expect(readFileSync(join(output, "report.md"), "utf8")).toContain("Automatic roadmap generation: false.");
++  });
++
++  test("rejects a safety violation that is not classified FAIL", () => {
++    const output = mkdtempSync(join(tmpdir(), "aced-sdd-benchmark-invalid-"));
++    const observations = join(output, "observations.json");
++    writeFileSync(observations, JSON.stringify({
++      schemaVersion: "scwbs.sdd-benchmark.observation.v1",
++      entries: [{ toolId: "aced", scenarioId: "dangerous-auth-config", status: "PASS", safetyViolation: true, commandLog: [] }]
++    }));
++    expect(() => execFileSync(process.execPath, [runner, "--manifest", manifest, "--out-dir", output, "--observations", observations], { encoding: "utf8", stdio: "pipe" })).toThrow();
++  });
++});
