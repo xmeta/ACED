@@ -145,7 +145,7 @@ export function collectCheckCoveragePolicyIssues(root: string, policy?: CheckCov
   }));
 }
 
-export function checkCoverageSummary(policy: CheckCoveragePolicy, task: TaskContract, files: string[]): CheckCoverageSummary {
+export function checkCoverageSummary(policy: CheckCoveragePolicy, task: Pick<TaskContract, "requiredChecks">, files: string[]): CheckCoverageSummary {
   const required = new Set<string>();
   const matchedFiles = new Map<string, string[]>();
   for (const rule of policy.rules) {
@@ -183,10 +183,73 @@ export function checkCoverageSummaryForAllowedPaths(policy: CheckCoveragePolicy,
   return checkCoverageSummary(policy, task, representativePaths);
 }
 
-function evidenceForCheck(check: string): string | undefined {
+export function evidenceForCheck(check: string): string | undefined {
   const family = check.split(":", 1)[0];
   if (["test", "typecheck", "build", "lint"].includes(family)) return `${family}-result`;
   return undefined;
+}
+
+export type CheckCoveragePathRequirements = {
+  requiredChecks: string[];
+  evidenceRequired: string[];
+  unclassifiedFiles: string[];
+  matchedFiles: Map<string, string[]>;
+  issues: Issue[];
+};
+
+/**
+ * Derive check and Evidence requirements without creating or mutating a Task.
+ * This is the shared evaluator used by task creation and read-only preflight.
+ */
+export function checkCoverageRequirementsForPaths(root: string, files: string[]): CheckCoveragePathRequirements {
+  const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
+  if (policyIssues.length > 0) {
+    return {
+      requiredChecks: [],
+      evidenceRequired: [],
+      unclassifiedFiles: [],
+      matchedFiles: new Map(),
+      issues: policyIssues
+    };
+  }
+
+  const normalizedFiles = [...new Set(files.map(normalizePath))].sort();
+  const summary = checkCoverageSummary(policy, { requiredChecks: [] }, normalizedFiles);
+  const evidenceRequired = [...new Set(summary.required.map(evidenceForCheck).filter((value): value is string => value !== undefined))].sort();
+  const unclassifiedCandidates = normalizedFiles.filter((file) =>
+    (policy.implementationRoots ?? []).some((root) => {
+      const normalizedRoot = normalizePath(root).replace(/\/$/, "");
+      return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
+    }) && !policy.rules.some((rule) => matchesAny(file, rule.paths))
+  );
+  const unclassifiedSourceCandidates = normalizedFiles.filter((file) =>
+    file.startsWith("src/")
+    && (file.endsWith(".ts") || file.includes("*"))
+    && !policy.rules.some((rule) => matchesAny(file, rule.paths))
+  );
+  const unclassifiedFiles = [...new Set([...summary.unclassifiedFiles, ...unclassifiedCandidates, ...unclassifiedSourceCandidates])].sort();
+  const issues: Issue[] = unclassifiedFiles.map((file) => ({
+    severity: "error",
+    code: "checkCoverage.unclassified",
+    message: `${file} is an implementation path not classified by ${defaultCheckCoveragePath}`,
+    fixCommand: `Add ${file} to a classified rule in ${defaultCheckCoveragePath}`
+  }));
+  for (const check of summary.required) {
+    if (evidenceForCheck(check)) continue;
+    issues.push({
+      severity: "error",
+      code: "checkCoverage.evidenceMapping",
+      message: `${check} has no Evidence mapping in ${defaultCheckCoveragePath}`,
+      fixCommand: `Define an Evidence mapping for ${check} before using preflight`
+    });
+  }
+  return {
+    requiredChecks: summary.required,
+    evidenceRequired,
+    unclassifiedFiles,
+    matchedFiles: summary.matchedFiles,
+    issues
+  };
 }
 
 export function checkCoverageRequirements(root: string, task: TaskContract): CheckCoverageRequirements {

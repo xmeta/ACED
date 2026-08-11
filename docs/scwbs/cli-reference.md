@@ -48,6 +48,7 @@ group-specific help for its subcommands and options:
 | `review` | Request and route Task reviews |
 | `lite` | Create lightweight task proposals |
 | `task` | Manage Task Contracts and lifecycle |
+| `policy` | Explain read-only repository policy impact |
 | `wbs` | Validate and apply WBS changes |
 
 ```bash
@@ -70,6 +71,8 @@ npm run scwbs -- status --strict
 npm run scwbs -- next --json
 npm run scwbs -- ui --json
 npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
+npm run scwbs -- task preflight --title "Update auth flow" --paths "src/auth/**" --profile strict --json
+npm run scwbs -- policy explain src/auth/session.ts --json
 ```
 
 `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
@@ -83,6 +86,8 @@ The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quicks
 `init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, or `copilot`). Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
 
 `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+
+`task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
 
 ### Navigation JSON contracts
 

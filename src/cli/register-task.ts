@@ -3,7 +3,7 @@ import { runLiteTask } from "../commands/lite.js";
 import { runTaskGenerate } from "../commands/task-generate.js";
 import { runTaskArchive, runTaskIndexRebuild } from "../commands/task-index.js";
 import { runTaskLock } from "../commands/task-lock.js";
-import { runTaskNew } from "../commands/task-new.js";
+import { runPolicyExplain, runTaskNew, runTaskPreflight } from "../commands/task-new.js";
 import { runTaskRefresh } from "../commands/task-refresh.js";
 import { runStart } from "../commands/start.js";
 import type { CommandContext } from "./command-context.js";
@@ -32,6 +32,27 @@ export function registerTaskCommands(program: Command, context: CommandContext):
     .argument("<task-id>", "existing Task Contract id")
     .action((taskId: string) => {
       setExitCode(runStart(root, taskId));
+    });
+
+  task
+    .command("preflight")
+    .description("Explain task policy cost without creating or mutating a Task Contract")
+    .option("--title <title>", "proposed task title")
+    .option("--paths <paths>", "proposed paths (comma separated)")
+    .option("--profile <profile>", "profile lean|standard|strict")
+    .option("--json", "output a versioned JSON report")
+    .action((options) => {
+      setExitCode(runTaskPreflight(root, options));
+    });
+
+  const policy = program.command("policy").description("Explain repository policy without mutating contracts");
+  policy
+    .command("explain")
+    .description("Explain policy impact for a path")
+    .argument("<path>", "repository-relative path or pattern")
+    .option("--json", "output a versioned JSON report")
+    .action((inputPath: string, options) => {
+      setExitCode(runPolicyExplain(root, inputPath, { json: options.json ?? false }));
     });
 
   task

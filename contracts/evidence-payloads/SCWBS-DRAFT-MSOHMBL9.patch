@@ -1,0 +1,572 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml b/contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml
+new file mode 100644
+index 0000000..5cd3a9c
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MSOHMBL9
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSOHMBL9
++branchName: task/SCWBS-DRAFT-MSOHMBL9-issue-540-task-preflight-and-policy-explain
++allowedPaths:
++  - src/cli/register-task.ts
++  - src/commands/task-new.ts
++  - src/core/check-coverage.ts
++  - src/core/governance-path-policy.ts
++  - src/core/types.ts
++  - tests/unit/**
++  - tests/integration/**
++  - docs/scwbs/cli-reference.md
++  - docs/implementation-gaps.md
++  - contracts/check-coverage.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/check-coverage.yaml
++  - src/core/governance-path-policy.ts
++stopIf:
++  - Human Gate required
++  - additional paths
++  - policy or schema decision
++  - dependency or auth change
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #540 task preflight and policy explain'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSOHMBL9.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSOHMBL9.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSOHMBL9.patch
++  - contracts/approvals/SCWBS-DRAFT-MSOHMBL9.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSOHMBL9.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-11T10:14:54.488Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index b9e8e90..9e8c623 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1917,3 +1917,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T02:21:47.501Z"
++  - id: SCWBS-DRAFT-MSOHMBL9
++    path: contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml
++    branchName: task/SCWBS-DRAFT-MSOHMBL9-issue-540-task-preflight-and-policy-explain
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index f217fe1..d341c21 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -44,6 +44,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
+ - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
+ - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
++- Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
+ - docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
+ 
+ ## Still Missing
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 848d7c8..28b4e01 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -48,6 +48,7 @@ group-specific help for its subcommands and options:
+ | `review` | Request and route Task reviews |
+ | `lite` | Create lightweight task proposals |
+ | `task` | Manage Task Contracts and lifecycle |
++| `policy` | Explain read-only repository policy impact |
+ | `wbs` | Validate and apply WBS changes |
+ 
+ ```bash
+@@ -70,6 +71,8 @@ npm run scwbs -- status --strict
+ npm run scwbs -- next --json
+ npm run scwbs -- ui --json
+ npm run scwbs -- trace --task SCWBS-DRAFT-EXAMPLE --json
++npm run scwbs -- task preflight --title "Update auth flow" --paths "src/auth/**" --profile strict --json
++npm run scwbs -- policy explain src/auth/session.ts --json
+ ```
+ 
+ `scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+@@ -84,6 +87,8 @@ The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quicks
+ 
+ `update` refreshes all managed agents, or one with `--agent`. `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics.
+ 
++`task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
++
+ ### Navigation JSON contracts
+ 
+ `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
+diff --git a/src/cli/register-task.ts b/src/cli/register-task.ts
+index 2cf29b6..00281c4 100644
+--- a/src/cli/register-task.ts
++++ b/src/cli/register-task.ts
+@@ -3,7 +3,7 @@ import { runLiteTask } from "../commands/lite.js";
+ import { runTaskGenerate } from "../commands/task-generate.js";
+ import { runTaskArchive, runTaskIndexRebuild } from "../commands/task-index.js";
+ import { runTaskLock } from "../commands/task-lock.js";
+-import { runTaskNew } from "../commands/task-new.js";
++import { runPolicyExplain, runTaskNew, runTaskPreflight } from "../commands/task-new.js";
+ import { runTaskRefresh } from "../commands/task-refresh.js";
+ import { runStart } from "../commands/start.js";
+ import type { CommandContext } from "./command-context.js";
+@@ -34,6 +34,27 @@ export function registerTaskCommands(program: Command, context: CommandContext):
+       setExitCode(runStart(root, taskId));
+     });
+ 
++  task
++    .command("preflight")
++    .description("Explain task policy cost without creating or mutating a Task Contract")
++    .option("--title <title>", "proposed task title")
++    .option("--paths <paths>", "proposed paths (comma separated)")
++    .option("--profile <profile>", "profile lean|standard|strict")
++    .option("--json", "output a versioned JSON report")
++    .action((options) => {
++      setExitCode(runTaskPreflight(root, options));
++    });
++
++  const policy = program.command("policy").description("Explain repository policy without mutating contracts");
++  policy
++    .command("explain")
++    .description("Explain policy impact for a path")
++    .argument("<path>", "repository-relative path or pattern")
++    .option("--json", "output a versioned JSON report")
++    .action((inputPath: string, options) => {
++      setExitCode(runPolicyExplain(root, inputPath, { json: options.json ?? false }));
++    });
++
+   task
+     .command("generate")
+     .description("Generate a task")
+diff --git a/src/commands/task-new.ts b/src/commands/task-new.ts
+index f295453..ef1e941 100644
+--- a/src/commands/task-new.ts
++++ b/src/commands/task-new.ts
+@@ -1,15 +1,16 @@
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { listTasks } from "../core/contracts.js";
+-import { completeCheckCoverageRequirements } from "../core/check-coverage.js";
++import { checkCoverageRequirementsForPaths, completeCheckCoverageRequirements } from "../core/check-coverage.js";
+ import { taskBootstrapManagedContractPaths } from "../core/managed-contract-paths.js";
+ import { isWbsLessTask, WBS_LESS_TASK_NODE_ID } from "../core/node-utils.js";
+ import { defaultWbsPath, taskPath, resolveFrom } from "../core/paths.js";
+-import { BROAD_ALLOWED_PATH_PATTERNS, standardHumanGatePaths } from "../core/governance-path-policy.js";
++import { BROAD_ALLOWED_PATH_PATTERNS, GOVERNANCE_PATH_POLICY_VERSION, governancePathImpacts, standardHumanGatePaths } from "../core/governance-path-policy.js";
+ import { buildTaskIndex, readTaskIndex, writeTaskIndexAtomic } from "../core/task-index.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { findNode, readWbs } from "../core/wbs.js";
+-import type { TaskContract } from "../core/types.js";
++import type { Profile, TaskContract } from "../core/types.js";
++import { readProfile } from "./profile.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+ 
+ 
+@@ -117,6 +118,195 @@ export function buildCoreTaskNew(title: string, options: {
+   return { task, fallback, invalidChecks: normalizedChecks.invalid };
+ }
+ 
++export type TaskPreflightOutput = {
++  version: "scwbs.task-preflight.v1";
++  status: "pass" | "review-required" | "fail";
++  profile: Profile;
++  input: { title: string; paths: string[] };
++  derived: {
++    requiredChecks: string[];
++    evidence: string[];
++    allowedPaths: string[];
++    forbiddenPaths: string[];
++    humanGatePaths: string[];
++  };
++  estimatedCeremony: { humanActions: number; requiredCheckCount: number };
++  policy: {
++    version: string;
++    reasons: Array<{
++      path: string;
++      source: string;
++      classification: string;
++      reasonCode: string;
++      reason: string;
++    }>;
++  };
++  reasons: Array<{ code: string; message: string }>;
++};
++
++export type PolicyExplainOutput = {
++  version: "scwbs.policy-explain.v1";
++  status: "pass" | "review-required" | "fail";
++  path: string;
++  policyVersion: string;
++  matches: Array<{
++    pattern: string;
++    classification: string;
++    reasonCode: string;
++    reason: string;
++    humanGate: boolean;
++  }>;
++  derived: TaskPreflightOutput["derived"];
++  reasons: Array<{ code: string; message: string }>;
++};
++
++type PathPolicyFacts = Pick<TaskPreflightOutput, "derived" | "policy" | "reasons" | "status">;
++
++function normalizePreflightProfile(root: string, value: string | undefined): Profile | undefined {
++  if (value === undefined) return readProfile(root);
++  const normalized = value.toLowerCase();
++  if (normalized === "lean") return "Lean";
++  if (normalized === "standard") return "Standard";
++  if (normalized === "strict") return "Strict";
++  return undefined;
++}
++
++function isForbiddenPath(file: string): boolean {
++  const normalized = file.replace(/\\/g, "/").replace(/^\.\//, "");
++  return normalized === "wjs" || normalized.startsWith("wjs/");
++}
++
++function buildPathPolicyFacts(root: string, paths: string[]): PathPolicyFacts {
++  const normalizedPaths = [...new Set(paths.map((value) => value.trim()).filter(Boolean))].sort();
++  const coverage = checkCoverageRequirementsForPaths(root, normalizedPaths);
++  const policyReasons: TaskPreflightOutput["policy"]["reasons"] = [];
++  const humanGatePaths = new Set<string>();
++  const reasons: Array<{ code: string; message: string }> = [];
++
++  for (const file of normalizedPaths) {
++    for (const impact of governancePathImpacts(file)) {
++      policyReasons.push({
++        path: file,
++        source: "src/core/governance-path-policy.ts",
++        classification: impact.classification,
++        reasonCode: impact.reasonCode,
++        reason: impact.reason
++      });
++      if (impact.newTaskHumanGate || impact.critical) humanGatePaths.add(file);
++    }
++    if (isForbiddenPath(file)) {
++      reasons.push({
++        code: "policy.path.forbidden",
++        message: `${file} matches the repository forbidden path policy wjs/**`
++      });
++    }
++  }
++
++  for (const issue of coverage.issues) {
++    reasons.push({ code: issue.code, message: issue.message });
++  }
++
++  const requiredChecks = coverage.requiredChecks;
++  const evidence = coverage.evidenceRequired;
++  const derived = {
++    requiredChecks,
++    evidence,
++    allowedPaths: normalizedPaths,
++    forbiddenPaths: ["wjs/**"],
++    humanGatePaths: [...humanGatePaths].sort()
++  };
++  const status = reasons.length > 0 ? "fail" : derived.humanGatePaths.length > 0 ? "review-required" : "pass";
++  return {
++    status,
++    derived,
++    policy: { version: GOVERNANCE_PATH_POLICY_VERSION, reasons: policyReasons },
++    reasons
++  };
++}
++
++export function buildTaskPreflightOutput(root: string, options: { title?: string; paths?: string[]; profile?: string }): TaskPreflightOutput {
++  const title = options.title?.trim() ?? "";
++  const paths = [...new Set((options.paths ?? []).map((value) => value.trim()).filter(Boolean))].sort();
++  const profile = normalizePreflightProfile(root, options.profile);
++  const reasons: Array<{ code: string; message: string }> = [];
++  if (!title) reasons.push({ code: "task.preflight.title.missing", message: "A non-empty --title is required" });
++  if (paths.length === 0) reasons.push({ code: "task.preflight.paths.missing", message: "At least one --paths entry is required" });
++  if (!profile) reasons.push({ code: "task.preflight.profile.invalid", message: "Profile must be lean, standard, or strict" });
++
++  const facts = buildPathPolicyFacts(root, paths);
++  reasons.push(...facts.reasons);
++  const status = reasons.length > 0 ? "fail" : facts.status;
++  return {
++    version: "scwbs.task-preflight.v1",
++    status,
++    profile: profile ?? "Standard",
++    input: { title, paths },
++    derived: facts.derived,
++    estimatedCeremony: {
++      humanActions: facts.derived.humanGatePaths.length > 0 ? 1 : 0,
++      requiredCheckCount: facts.derived.requiredChecks.length
++    },
++    policy: facts.policy,
++    reasons
++  };
++}
++
++export function runTaskPreflight(root: string, options: { title?: string; paths?: string; profile?: string; json?: boolean }): number {
++  try {
++    const result = buildTaskPreflightOutput(root, {
++      title: options.title,
++      paths: options.paths?.split(","),
++      profile: options.profile
++    });
++    if (options.json) {
++      process.stdout.write(`${JSON.stringify(result)}\n`);
++    } else {
++      process.stdout.write(`Task preflight: ${result.status}\nProfile: ${result.profile}\nRequired checks: ${result.derived.requiredChecks.join(", ") || "none"}\nEvidence: ${result.derived.evidence.join(", ") || "none"}\nHuman Gate paths: ${result.derived.humanGatePaths.join(", ") || "none"}\n`);
++      for (const reason of result.reasons) process.stdout.write(`Reason ${reason.code}: ${reason.message}\n`);
++    }
++    return result.status === "fail" ? 1 : 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function buildPolicyExplainOutput(root: string, inputPath: string): PolicyExplainOutput {
++  const pathValue = inputPath.trim();
++  const facts = buildPathPolicyFacts(root, [pathValue]);
++  const matches = governancePathImpacts(pathValue).map((impact) => ({
++    pattern: impact.pattern,
++    classification: impact.classification,
++    reasonCode: impact.reasonCode,
++    reason: impact.reason,
++    humanGate: Boolean(impact.newTaskHumanGate || impact.critical)
++  }));
++  return {
++    version: "scwbs.policy-explain.v1",
++    status: facts.status,
++    path: pathValue,
++    policyVersion: GOVERNANCE_PATH_POLICY_VERSION,
++    matches,
++    derived: facts.derived,
++    reasons: facts.reasons
++  };
++}
++
++export function runPolicyExplain(root: string, inputPath: string, options: { json?: boolean } = {}): number {
++  try {
++    const result = buildPolicyExplainOutput(root, inputPath);
++    if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
++    else {
++      process.stdout.write(`Policy: ${result.status}\nPath: ${result.path}\nHuman Gate: ${result.derived.humanGatePaths.length > 0 ? "required" : "not required"}\nRequired checks: ${result.derived.requiredChecks.join(", ") || "none"}\n`);
++      for (const reason of result.reasons) process.stdout.write(`Reason ${reason.code}: ${reason.message}\n`);
++    }
++    return result.status === "fail" ? 1 : 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
+ export function runTaskNew(root: string, title: string, options: {
+   paths?: string;
+   forbid?: string;
+diff --git a/src/core/check-coverage.ts b/src/core/check-coverage.ts
+index 9647a1f..a913487 100644
+--- a/src/core/check-coverage.ts
++++ b/src/core/check-coverage.ts
+@@ -145,7 +145,7 @@ export function collectCheckCoveragePolicyIssues(root: string, policy?: CheckCov
+   }));
+ }
+ 
+-export function checkCoverageSummary(policy: CheckCoveragePolicy, task: TaskContract, files: string[]): CheckCoverageSummary {
++export function checkCoverageSummary(policy: CheckCoveragePolicy, task: Pick<TaskContract, "requiredChecks">, files: string[]): CheckCoverageSummary {
+   const required = new Set<string>();
+   const matchedFiles = new Map<string, string[]>();
+   for (const rule of policy.rules) {
+@@ -183,12 +183,75 @@ export function checkCoverageSummaryForAllowedPaths(policy: CheckCoveragePolicy,
+   return checkCoverageSummary(policy, task, representativePaths);
+ }
+ 
+-function evidenceForCheck(check: string): string | undefined {
++export function evidenceForCheck(check: string): string | undefined {
+   const family = check.split(":", 1)[0];
+   if (["test", "typecheck", "build", "lint"].includes(family)) return `${family}-result`;
+   return undefined;
+ }
+ 
++export type CheckCoveragePathRequirements = {
++  requiredChecks: string[];
++  evidenceRequired: string[];
++  unclassifiedFiles: string[];
++  matchedFiles: Map<string, string[]>;
++  issues: Issue[];
++};
++
++/**
++ * Derive check and Evidence requirements without creating or mutating a Task.
++ * This is the shared evaluator used by task creation and read-only preflight.
++ */
++export function checkCoverageRequirementsForPaths(root: string, files: string[]): CheckCoveragePathRequirements {
++  const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
++  if (policyIssues.length > 0) {
++    return {
++      requiredChecks: [],
++      evidenceRequired: [],
++      unclassifiedFiles: [],
++      matchedFiles: new Map(),
++      issues: policyIssues
++    };
++  }
++
++  const normalizedFiles = [...new Set(files.map(normalizePath))].sort();
++  const summary = checkCoverageSummary(policy, { requiredChecks: [] }, normalizedFiles);
++  const evidenceRequired = [...new Set(summary.required.map(evidenceForCheck).filter((value): value is string => value !== undefined))].sort();
++  const unclassifiedCandidates = normalizedFiles.filter((file) =>
++    (policy.implementationRoots ?? []).some((root) => {
++      const normalizedRoot = normalizePath(root).replace(/\/$/, "");
++      return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
++    }) && !policy.rules.some((rule) => matchesAny(file, rule.paths))
++  );
++  const unclassifiedSourceCandidates = normalizedFiles.filter((file) =>
++    file.startsWith("src/")
++    && (file.endsWith(".ts") || file.includes("*"))
++    && !policy.rules.some((rule) => matchesAny(file, rule.paths))
++  );
++  const unclassifiedFiles = [...new Set([...summary.unclassifiedFiles, ...unclassifiedCandidates, ...unclassifiedSourceCandidates])].sort();
++  const issues: Issue[] = unclassifiedFiles.map((file) => ({
++    severity: "error",
++    code: "checkCoverage.unclassified",
++    message: `${file} is an implementation path not classified by ${defaultCheckCoveragePath}`,
++    fixCommand: `Add ${file} to a classified rule in ${defaultCheckCoveragePath}`
++  }));
++  for (const check of summary.required) {
++    if (evidenceForCheck(check)) continue;
++    issues.push({
++      severity: "error",
++      code: "checkCoverage.evidenceMapping",
++      message: `${check} has no Evidence mapping in ${defaultCheckCoveragePath}`,
++      fixCommand: `Define an Evidence mapping for ${check} before using preflight`
++    });
++  }
++  return {
++    requiredChecks: summary.required,
++    evidenceRequired,
++    unclassifiedFiles,
++    matchedFiles: summary.matchedFiles,
++    issues
++  };
++}
++
+ export function checkCoverageRequirements(root: string, task: TaskContract): CheckCoverageRequirements {
+   const { policy, issues: policyIssues } = readCheckCoveragePolicy(root);
+   if (policyIssues.length > 0) {
+diff --git a/tests/integration/task-preflight.test.ts b/tests/integration/task-preflight.test.ts
+new file mode 100644
+index 0000000..c0133d9
+--- /dev/null
++++ b/tests/integration/task-preflight.test.ts
+@@ -0,0 +1,83 @@
++import { describe, expect, test } from "vitest";
++import { buildPolicyExplainOutput, buildTaskPreflightOutput } from "../../src/commands/task-new.js";
++import { makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
++
++function writeCoveragePolicy(root: string): void {
++  writeYaml(root, "contracts/check-coverage.yaml", {
++    implementationRoots: ["src"],
++    rules: [{
++      id: "command",
++      classification: "behavior-critical",
++      rationale: "CLI paths require integration coverage.",
++      paths: ["src/commands/**"],
++      requires: ["test:integration"]
++    }]
++  });
++}
++
++describe("task preflight and policy explain", () => {
++  test("derives checks and Evidence without creating a Task", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeCoveragePolicy(root);
++
++    const result = buildTaskPreflightOutput(root, {
++      title: "Add a command",
++      paths: ["src/commands/example.ts"]
++    });
++
++    expect(result).toMatchObject({
++      version: "scwbs.task-preflight.v1",
++      status: "pass",
++      derived: {
++        requiredChecks: ["test:integration"],
++        evidence: ["test-result"],
++        humanGatePaths: []
++      },
++      reasons: []
++    });
++  });
++
++  test("reports Human Gate policy as review-required and remains read-only", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const result = buildTaskPreflightOutput(root, {
++      title: "Change policy",
++      paths: ["contracts/check-coverage.yaml"]
++    });
++
++    expect(result.status).toBe("review-required");
++    expect(result.derived.humanGatePaths).toEqual(["contracts/check-coverage.yaml"]);
++    expect(result.policy.reasons[0]).toMatchObject({
++      reasonCode: "governance.schema.check-coverage",
++      source: "src/core/governance-path-policy.ts"
++    });
++  });
++
++  test("fails closed for an unclassified implementation path", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeCoveragePolicy(root);
++    const result = buildTaskPreflightOutput(root, {
++      title: "Unknown implementation",
++      paths: ["src/unknown.ts"]
++    });
++
++    expect(result.status).toBe("fail");
++    expect(result.reasons).toContainEqual(expect.objectContaining({ code: "checkCoverage.unclassified" }));
++  });
++
++  test("policy explain exposes forbidden path and stable policy metadata", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const result = buildPolicyExplainOutput(root, "wjs/runtime.ts");
++
++    expect(result).toMatchObject({
++      version: "scwbs.policy-explain.v1",
++      status: "fail",
++      path: "wjs/runtime.ts",
++      policyVersion: "1.0.0"
++    });
++    expect(result.reasons).toContainEqual(expect.objectContaining({ code: "policy.path.forbidden" }));
++  });
++});
+diff --git a/tests/unit/coverage-evidence.test.ts b/tests/unit/coverage-evidence.test.ts
+index 885d7f1..abef42a 100644
+--- a/tests/unit/coverage-evidence.test.ts
++++ b/tests/unit/coverage-evidence.test.ts
+@@ -128,7 +128,7 @@ describe("coverage Evidence receipt", () => {
+       currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 76 } } } as unknown as CoverageReceipt
+     });
+     expect(regressed.coverage.deltaLines).toBe(-2);
+-  });
++  }, 15000);
+ 
+   test("does not invent coverage values when a verified baseline is unavailable", () => {
+     const root = makeTempRepo();

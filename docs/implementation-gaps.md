@@ -44,6 +44,7 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
 - Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
 - Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
+- Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
 - docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
 
 ## Still Missing
