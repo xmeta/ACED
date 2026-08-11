@@ -2,6 +2,7 @@ import { chmodSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
 import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
@@ -126,6 +127,45 @@ describe("approval", () => {
     expect(main(["approval", "request", "--task", "WBS-001-004", "--note=Awaiting human review"], root)).toBe(0);
     const actual = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
     expect(actual).toContain("  - Awaiting human review");
+  });
+
+  test("approval request --json emits a bounded versioned requested summary", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const note = "n".repeat(2048);
+    const output = captureOutput(() => main([
+      "approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", note, "--json"
+    ], root));
+
+    expect(output.result).toBe(0);
+    const json = JSON.parse(output.stdout) as Record<string, unknown>;
+    expect(json).toMatchObject({
+      version: "scwbs.approval-request.v1",
+      approvalId: "APR-WBS-001-004",
+      taskId: "WBS-001-004",
+      status: "requested",
+      nextActionOwner: "human",
+      pullRequest: "#42"
+    });
+    expect(json.requestedAt).toEqual(expect.any(String));
+    expect(json.notes).toEqual(["n".repeat(512)]);
+    expect(json.nextAction).toEqual(expect.stringContaining("approval approve --task WBS-001-004 --actor human"));
+    expect(json).not.toHaveProperty("approvedBy");
+    expect(json).not.toHaveProperty("approvedAt");
+    expect(output.stdout.length).toBeLessThan(2048);
+    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/approval-request.schema.json"), "utf8"));
+    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+  });
+
+  test("approval request --json preserves requested side effects and rejects unknown options", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const output = captureOutput(() => main([
+      "approval", "request", "--task", "WBS-001-004", "--json", "--unknown"
+    ], root));
+
+    expect(output.result).toBe(1);
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
   });
 
   test("approval approve writes a human approved record", () => {
