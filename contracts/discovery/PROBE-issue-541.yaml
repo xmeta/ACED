@@ -1,0 +1,53 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-541
+type: discovery-probe
+status: concluded
+question: Can a version-pinned, opt-in replay harness compare ACED, OpenSpec, Spec Kit, and cc-sdd on shared scenarios without weakening ACED safety or creating subjective roadmap automation?
+hypotheses:
+  - a declarative manifest can pin versions without patching competitors
+  - three shared scenarios expose friction safety and efficiency differences
+  - setup failure and unsafe behavior can be separated as N/A versus FAIL
+activities:
+  - inspect existing metrics and CLI patterns
+  - define benchmark manifest and fixture boundaries
+  - define raw JSON and Markdown report fields
+  - verify manual or opt-in execution and no roadmap automation
+evidenceExpected:
+  - version-pinned manifest
+  - three scenario fixtures
+  - raw command logs
+  - JSON report
+  - Markdown report
+  - setup and safety status classification
+  - manual execution instructions
+unknowns:
+  - exact upstream version or commit pins require maintainer selection
+  - competitor credentials and network setup vary by environment
+  - agent-efficiency human action counting needs a stable operational definition
+timebox: one implementation cycle
+costLimit: bounded local fixture execution; manual opt-in competitor setup
+exitConditions:
+  - manifest and scenarios are bounded and reviewable
+  - raw facts are separate from subjective scores
+  - unsupported setup is N/A and safety violation is FAIL
+  - no external workflow or competitor repository is modified
+nextDecision: implement a bounded benchmark manifest, three fixtures, adapters, raw result schema, report generator, and manual or opt-in runner under benchmarks/sdd without changing ACED authority
+createdAt: "2026-08-11T19:49:41.118Z"
+startedAt: "2026-08-11T19:49:53.998Z"
+concludedAt: "2026-08-11T19:50:55.000Z"
+exitConditionsMet: true
+factsLearned:
+  - benchmark is a manual opt-in artifact workflow rather than a product safety authority
+  - version and commit pins belong in a declarative manifest and are not resolved during ordinary CI
+  - three scenario fixtures can share a repository-independent input contract
+  - raw command logs and JSON/Markdown reports must preserve N/A setup failure versus FAIL safety violation
+  - subjective scores remain separate and no roadmap generation is permitted
+hypothesesRejected:
+  - patching competitor repositories
+  - automatically selecting latest competitor versions
+  - using benchmark output as a security guarantee
+  - auto-generating roadmap decisions
+remainingUnknowns:
+  - exact upstream version or commit pins require maintainer selection
+  - competitor credentials and network setup vary by environment
+  - agent-efficiency human action counting needs a stable operational definition

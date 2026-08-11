@@ -1,0 +1,103 @@
+id: EVD-SCWBS-DRAFT-MSP2T1EM
+type: evidence
+taskId: SCWBS-DRAFT-MSP2T1EM
+commit: 16dce815f8708db8adfab6f75ed714548a433f37
+subjectHeadCommit: 16dce815f8708db8adfab6f75ed714548a433f37
+diffHash: sha256:4efa6c89cad2eb770becedaa468444fadc634ca9797becb8750f2a3c70fa3ed8
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 16dce815f8708db8adfab6f75ed714548a433f37
+    treeHash: 817b475edc332900dc28adfeae7723fe0e9e633e
+    diffHash: sha256:4efa6c89cad2eb770becedaa468444fadc634ca9797becb8750f2a3c70fa3ed8
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSP2T1EM.patch
+    manifestHash: sha256:4efa6c89cad2eb770becedaa468444fadc634ca9797becb8750f2a3c70fa3ed8
+git:
+  branch: task/SCWBS-DRAFT-MSP2T1EM-p2-product-add-version-pinned-opt-in-sdd-benchma
+  base: origin/main
+  baseCommit: ed690419928639eba8ae47d2eed8dc0ea4cc7a34
+  changedFilesBasis: branch-diff
+  pullRequest: "552"
+  subjectHeadCommit: 16dce815f8708db8adfab6f75ed714548a433f37
+  diffHash: sha256:4efa6c89cad2eb770becedaa468444fadc634ca9797becb8750f2a3c70fa3ed8
+  headCommit: 16dce815f8708db8adfab6f75ed714548a433f37
+changedFiles:
+  - benchmarks/sdd/fixtures/dangerous-auth-config.json
+  - benchmarks/sdd/fixtures/docs-only.json
+  - benchmarks/sdd/fixtures/ordinary-feature.json
+  - benchmarks/sdd/manifest.json
+  - benchmarks/sdd/runner.mjs
+  - contracts/approvals/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/discovery/PROBE-issue-541.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP2T1EM.patch
+  - contracts/evidence/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/sdd-benchmark.md
+  - tests/integration/sdd-benchmark.test.ts
+  - tests/unit/sdd-benchmark.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: ed690419928639eba8ae47d2eed8dc0ea4cc7a34
+    headCommit: 16dce815f8708db8adfab6f75ed714548a433f37
+    diffHash: sha256:4efa6c89cad2eb770becedaa468444fadc634ca9797becb8750f2a3c70fa3ed8
+  tests:
+    filesAdded: 2
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:8e216e4dd66b48019d7fbc0323261539430f01fe7df885cdea9214b147afd687
+    durationMilliseconds: 20033
+    executedAt: "2026-08-11T20:27:30.646Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:1e31872fc96553512a483b9a563cb3d41db996f084de3fcb10b27e879d07424d
+    durationMilliseconds: 10612
+    executedAt: "2026-08-11T20:27:41.266Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:26131e613b3c5c0428368df55902b6ffe3bbcd68fbf2fcdb2b7d35a54882fbc8
+    durationMilliseconds: 4621
+    executedAt: "2026-08-11T20:27:45.893Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:3c79724e53ad0886cce8b36c0defcb3288f6ccfbf767049470f8c1909dac7876
+    durationMilliseconds: 9015
+    executedAt: "2026-08-11T20:27:54.912Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:4912d7e83a62e906c071e9e73847be22785d74de84c0c84a5ab4c076a00ed6b1
+    durationMilliseconds: 326736
+    executedAt: "2026-08-11T20:33:21.654Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added SDD benchmark manifest, three scenario fixtures, plan-only/manual observation runner, bounded JSON and Markdown report generation, and unit/integration regression coverage for pins, N/A versus FAIL, raw metrics, subjective-score separation, shell-free command logs, and roadmap non-generation; corrected the Discovery Probe to the canonical schema.

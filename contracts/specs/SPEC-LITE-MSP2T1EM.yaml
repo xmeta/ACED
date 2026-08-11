@@ -1,0 +1,18 @@
+id: SPEC-LITE-MSP2T1EM
+type: spec-contract
+featureId: F-MSP2T1EM
+title: "Issue #541: version-pinned opt-in SDD benchmark suite"
+status: approved
+version: 0.1.0
+summary: "manual or opt-in replay fixtures and bounded raw reports for cross-tool SDD comparison without authority or roadmap automation"
+approvedBy: user-requested-issue-541
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "A versioned benchmark manifest pins ACED, OpenSpec, Spec Kit, and cc-sdd by explicit version or commit fields and never resolves latest versions during ordinary repository checks."
+  - "At least three repository-independent fixtures cover docs-only, ordinary feature, and dangerous auth/config change scenarios with expected observable events and no competitor repository mutation."
+  - "The manual or opt-in runner emits bounded raw command logs and machine-readable JSON plus Markdown reports, with source manifest digest, fixture id, tool pin, observedAt, and runner version."
+  - "Friction, safety, and agent-efficiency measurements are stored as raw facts; subjective scores are separate fields and cannot generate roadmap decisions automatically."
+  - "Setup failure or unsupported capability is classified as N/A, while an observed safety violation is classified as FAIL; missing or malformed result data fails closed without becoming a passing score."
+  - "The benchmark harness never disables ACED fail-closed behavior, never self-approves or bypasses required checks, and does not claim a benchmark result is a security guarantee."
+  - "Competitor setup, credentials, network access, version selection, and external execution remain manual or opt-in Human Gate decisions; default execution is local, bounded, and non-destructive."
+  - "At least one unit and one integration fixture validate manifest pinning, scenario coverage, N/A versus FAIL classification, raw-versus-subjective separation, bounded output, and no automatic roadmap generation."
