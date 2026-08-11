@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/scwbs/quickstart-commands.schema.json",
+  "schemaVersion": "1.0.0",
+  "description": "Canonical installed-CLI commands exercised by the consumer quickstart smoke test.",
+  "commands": [
+    {
+      "id": "init",
+      "argv": ["init", "--profile", "lean", "--agent", "codex", "--lang", "en"],
+      "mode": "run"
+    },
+    {
+      "id": "doctor-json",
+      "argv": ["doctor", "--json"],
+      "mode": "run",
+      "expectJson": true
+    },
+    {
+      "id": "next-json",
+      "argv": ["next", "--json"],
+      "mode": "run",
+      "expectJson": true
+    },
+    {
+      "id": "task-new-options",
+      "argv": ["task", "new", "--help"],
+      "mode": "help",
+      "expectContains": ["--paths", "--stop"]
+    },
+    {
+      "id": "finish-options",
+      "argv": ["finish", "--help"],
+      "mode": "help",
+      "expectContains": ["--task", "--pr", "--preflight"]
+    }
+  ]
+}

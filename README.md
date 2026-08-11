@@ -19,7 +19,7 @@ a separate dependency and retains its own licensing terms.
 
 | Reader | Read this first |
 |---|---|
-| New human user | `docs/scwbs/getting-started.md` |
+| New human user | `docs/scwbs/quickstart.md` |
 | Human contributor | `CONTRIBUTING.md` |
 | Security reporter | [SECURITY.md](SECURITY.md) |
 | Release history | [CHANGELOG.md](CHANGELOG.md) |
@@ -40,7 +40,9 @@ Evidence, and sends risky work back to Human Gate.
 
 ## 2. Consumer Installation
 
-For a local, clone-free smoke test, build and pack the CLI, then install the
+For first use, follow the [consumer quickstart](docs/scwbs/quickstart.md).
+It is the canonical clone-free, finish-first path using the installed CLI.
+For a local distribution smoke test, build and pack the CLI, then install the
 tarball into an empty consumer project:
 
 ```bash

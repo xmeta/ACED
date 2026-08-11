@@ -20,6 +20,8 @@ export function runDistributionSmoke(repository = process.cwd()) {
   mkdirSync(consumer);
 
   const packageJson = JSON.parse(readFileSync(path.join(repository, "package.json"), "utf8"));
+  const quickstartCommands = JSON.parse(readFileSync(path.join(repository, "docs/scwbs/quickstart-commands.json"), "utf8"));
+  assert.equal(quickstartCommands.schemaVersion, "1.0.0");
   const packed = JSON.parse(run("npm", ["pack", "--json", "--pack-destination", fixture], repository))[0];
   const packedPaths = new Set(packed.files.map((file) => file.path));
   for (const required of [
@@ -39,7 +41,17 @@ export function runDistributionSmoke(repository = process.cwd()) {
   assert(existsSync(bin), "installed scwbs bin is missing");
   assert.equal(runScwbs(bin, ["--version"], consumer), packageJson.version);
 
-  runScwbs(bin, ["init", "--profile", "lean", "--agent", "codex", "--lang", "en"], consumer);
+  for (const command of quickstartCommands.commands) {
+    assert(["help", "run"].includes(command.mode), `quickstart command has an invalid mode: ${command.id}`);
+    const output = runScwbs(bin, command.argv, consumer);
+    assert(output.length > 0, `quickstart command produced no output: ${command.id}`);
+    if (command.expectJson) {
+      assert.doesNotThrow(() => JSON.parse(output), `quickstart command returned invalid JSON: ${command.id}`);
+    }
+    for (const expected of command.expectContains ?? []) {
+      assert(output.includes(expected), `quickstart command ${command.id} omitted ${expected}`);
+    }
+  }
   const doctor = JSON.parse(runScwbs(bin, ["doctor", "--json"], consumer));
   assert.equal(doctor.status, "pass", `standalone doctor failed: ${JSON.stringify(doctor)}`);
   runScwbs(bin, ["check"], consumer);
