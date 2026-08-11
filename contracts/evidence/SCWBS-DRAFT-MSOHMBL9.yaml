@@ -1,0 +1,83 @@
+id: EVD-SCWBS-DRAFT-MSOHMBL9
+type: evidence
+taskId: SCWBS-DRAFT-MSOHMBL9
+commit: decd9e958e815e483a57ce561f2ce92461c6a729
+subjectHeadCommit: decd9e958e815e483a57ce561f2ce92461c6a729
+diffHash: sha256:d826fae9f5ddd60910760dc1c09babfa37bbc76983541c0656c0239503d76ec4
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: decd9e958e815e483a57ce561f2ce92461c6a729
+    treeHash: 4ff9be531b62216ac2d3beb6335d9ed8636d017e
+    diffHash: sha256:d826fae9f5ddd60910760dc1c09babfa37bbc76983541c0656c0239503d76ec4
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOHMBL9.patch
+    manifestHash: sha256:d826fae9f5ddd60910760dc1c09babfa37bbc76983541c0656c0239503d76ec4
+git:
+  branch: task/SCWBS-DRAFT-MSOHMBL9-issue-540-task-preflight-and-policy-explain
+  base: origin/main
+  baseCommit: d45e14a5de0bfaac36a37ae242617765ae3598a4
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: decd9e958e815e483a57ce561f2ce92461c6a729
+  diffHash: sha256:d826fae9f5ddd60910760dc1c09babfa37bbc76983541c0656c0239503d76ec4
+  headCommit: decd9e958e815e483a57ce561f2ce92461c6a729
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSOHMBL9.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - src/cli/register-task.ts
+  - src/commands/task-new.ts
+  - src/core/check-coverage.ts
+  - tests/integration/task-preflight.test.ts
+  - tests/unit/coverage-evidence.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: d45e14a5de0bfaac36a37ae242617765ae3598a4
+    headCommit: decd9e958e815e483a57ce561f2ce92461c6a729
+    diffHash: sha256:d826fae9f5ddd60910760dc1c09babfa37bbc76983541c0656c0239503d76ec4
+  tests:
+    filesAdded: 1
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:54db47e8c771adfe0122d7205b65c82072106cbe659990f0cc1001ee81f4c398
+    durationMilliseconds: 22221
+    executedAt: "2026-08-11T10:29:50.681Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:d5396dcd40b14cebfb578ffde7cdeb47fe58958b57a1333fbadd0e6003b70933
+    durationMilliseconds: 14030
+    executedAt: "2026-08-11T10:30:04.716Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:3ff98637ee6564d591a0c35f0f0628b2afa6d04cf7db08c4d8f7e348ed7edb46
+    durationMilliseconds: 6231
+    executedAt: "2026-08-11T10:30:10.955Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:62f3d429218fd72050d587cdaecbafc1fa9430286f09dd56bc04fa31b3f3ddf3
+    durationMilliseconds: 397348
+    executedAt: "2026-08-11T10:36:48.311Z"
