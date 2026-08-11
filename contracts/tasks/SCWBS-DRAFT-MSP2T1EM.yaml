@@ -1,0 +1,77 @@
+id: SCWBS-DRAFT-MSP2T1EM
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-541
+approvedAt: "2026-08-12T00:00:00+09:00"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSP2T1EM
+branchName: task/SCWBS-DRAFT-MSP2T1EM-p2-product-add-version-pinned-opt-in-sdd-benchma
+allowedPaths:
+  - contracts/discovery/PROBE-issue-541.yaml
+  - contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+  - benchmarks/sdd/**
+  - docs/scwbs/sdd-benchmark.md
+  - docs/implementation-gaps.md
+  - tests/unit/sdd-benchmark.test.ts
+  - tests/integration/sdd-benchmark.test.ts
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - benchmarks/sdd/**
+stopIf:
+  - external competitor execution or credential setup
+  - automatic latest-version selection
+  - competitor repository mutation
+  - security guarantee claims
+  - automatic roadmap generation
+  - scope expansion beyond manifest fixtures reports and manual runner
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+doneCriteria:
+  - A versioned manifest pins ACED, OpenSpec, Spec Kit, and cc-sdd by explicit version or commit without latest-version resolution.
+  - At least three bounded fixtures cover docs-only, ordinary feature, and dangerous auth/config scenarios without mutating competitor repositories.
+  - A manual or opt-in runner produces bounded raw command logs and versioned JSON and Markdown reports with manifest digest, fixture id, tool pin, observedAt, and runner version.
+  - Friction, safety, and agent-efficiency data are raw measurements; subjective scores are separate and no roadmap is generated automatically.
+  - Setup failure or unsupported capability is N/A, observed safety violation is FAIL, and malformed or missing result data cannot pass.
+  - ACED fail-closed behavior, required checks, approval, and evidence authority are not weakened or bypassed by the benchmark.
+  - External tool setup, credentials, network access, version selection, and execution remain manual or opt-in and are not performed by default.
+  - Unit and integration fixtures cover manifest pinning, scenario coverage, N/A versus FAIL, raw-versus-subjective separation, bounded output, and no roadmap automation.
+  - No competitor repository, GitHub workflow, dependency, authentication, WBS, or repository authority artifact is changed.
+specPath: contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/specs/SPEC-LITE-MSP2T1EM.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSP2T1EM.patch
+  - contracts/approvals/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSP2T1EM.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:db8d9ba99c146ad09cb9d235a14d0074ac374052b96fd9c5c8139acc8f3e978e
+  createdAt: "2026-08-11T19:52:49.036Z"
