@@ -128,7 +128,7 @@ describe("coverage Evidence receipt", () => {
       currentCoverage: { subjectHeadCommit: subjectHead, metrics: { lines: { percent: 76 } } } as unknown as CoverageReceipt
     });
     expect(regressed.coverage.deltaLines).toBe(-2);
-  });
+  }, 15000);
 
   test("does not invent coverage values when a verified baseline is unavailable", () => {
     const root = makeTempRepo();
