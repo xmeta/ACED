@@ -1,0 +1,21 @@
+id: SPEC-LITE-MSNU253P
+type: spec-contract
+featureId: F-MSNU253P
+title: "Issue #515: opt-in GitHub capability readiness diagnostics"
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-515
+approvedAt: "2026-08-11T00:00:00+09:00"
+summary: "doctor --githubでgh・auth・origin・repository・PR・Actionsのreadinessをcredential非表示で診断し、依存commandのunavailable理由から安全に誘導する"
+acceptanceCriteria:
+  - explicit doctor --github probes are optional and do not make local-only doctor fatal
+  - gh availability, authentication, GitHub origin, repository read, PR read, Actions read, and merge readiness have bounded statuses
+  - ready, partial, unavailable, and not-evaluated states are deterministic and machine-readable
+  - token strings, credential fields, raw auth output, and unbounded subprocess output never appear in text or JSON
+  - merge and metrics unavailable messages point to doctor --github while preserving fail-closed behavior
+  - tests cover missing gh, unauthenticated auth, non-GitHub origin, read-only capability, ready capability, and redaction
+  - no authentication flow, token storage, write API, admin permission, or non-GitHub forge is added
+nonGoals:
+  - automated GitHub login or token management
+  - GitHub write operations or merge execution from doctor
+  - support for other forge providers

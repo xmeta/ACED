@@ -1,0 +1,89 @@
+id: SCWBS-DRAFT-MSNU253P
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSNU253P
+branchName: task/SCWBS-DRAFT-MSNU253P-issue-515-add-opt-in-github-capability-readiness
+allowedPaths:
+  - src/commands/doctor.ts
+  - src/cli.ts
+  - src/commands/merge.ts
+  - src/core/github-actions.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/schemas/doctor-github.schema.json
+  - tests/integration/doctor.test.ts
+  - tests/integration/merge.test.ts
+  - tests/integration/metrics.test.ts
+  - contracts/discovery/PROBE-issue-515-github-readiness.yaml
+  - contracts/specs/SPEC-LITE-MSNU253P.yaml
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - src/core/github-actions.ts
+  - src/commands/merge.ts
+stopIf:
+  - DB schema
+  - migration
+  - auth or permission design
+  - credential storage
+  - write-capable GitHub integration
+  - breaking API
+  - security or personal data
+  - external service expansion
+  - release decision
+  - scope expansion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+status: approved
+approvedBy: user-requested-issue-515
+approvedAt: "2026-08-11T00:00:00+09:00"
+acceptanceCriteria:
+  - doctor --github is explicit opt-in and default doctor remains local-only and non-fatal when GitHub is unavailable
+  - capability reporting distinguishes gh missing, unauthenticated, non-GitHub origin, inaccessible repository, read-only capability, partial capability, and ready capability
+  - PR read, Actions read, and merge readiness are reported as bounded feature statuses without write calls or admin-scope requirements
+  - doctor --json exposes a versioned bounded GitHub capability report and never includes tokens, credentials, raw auth output, or unbounded stderr
+  - merge and GitHub Actions metrics unavailable paths guide users to doctor --github without changing local-only behavior
+  - origin parsing accepts GitHub SSH and HTTPS forms and explicitly reports non-GitHub origins
+  - regression fixtures cover gh missing, unauthenticated, non-GitHub origin, read-only auth, ready, and credential-redaction cases
+  - existing Node/npm/Corepack, WJS, registry, WBS, health, and doctor --fix behavior remains intact
+  - CLI and getting-started documentation define the opt-in diagnostic, capability meanings, and safe remediation boundary
+doneCriteria:
+  - 'Complete Issue #515: add opt-in GitHub capability readiness diagnostics with bounded JSON and dependent-command guidance'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/specs/SPEC-LITE-MSNU253P.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSNU253P.patch
+  - contracts/approvals/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSNU253P.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:13435a5e4c822eac102ac4ba54b77c8de50b9d2fd429f9b8cca838b658659673
+  createdAt: "2026-08-10T22:59:36.828Z"

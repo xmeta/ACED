@@ -33,6 +33,19 @@ Check repository health:
 npm run scwbs -- check
 ```
 
+GitHub連携を使う前に、必要な read-only capability だけを確認できます。
+これは認証や権限を自動変更せず、GitHub が使えない環境でもローカル作業を
+妨げません。
+
+```bash
+npm run scwbs -- doctor --github
+npm run scwbs -- doctor --github --json
+```
+
+`gh` CLI、認証、`origin`、repository/PR/Actions の読み取り可否を確認し、
+不足している項目には限定された診断メッセージを返します。merge の事前確認や
+Metrics が GitHub 情報を取得できない場合も、このコマンドを案内します。
+
 Ask what needs attention:
 
 ```bash

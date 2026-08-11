@@ -1,11 +1,12 @@
 import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildGovernanceCostSummary, runMetricsGovernance } from "../../src/commands/metrics.js";
 import { main } from "../../src/cli.js";
 import { checkReceiptPath } from "../../src/core/check-receipt.js";
-import { summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
+import { readGithubActionsHistory, summarizeGithubActionsRuns } from "../../src/core/github-actions.js";
 import { makeTempRepo, sampleWbs, writeJson, writeText, writeYaml } from "../helpers.js";
 
 function captureStdout(action: () => number): { result: number; stdout: string } {
@@ -157,6 +158,24 @@ describe("governance metrics", () => {
         latestUpdatedAt: "2026-07-16T05:00:05Z"
       }]
     });
+  });
+
+  test("guides unavailable GitHub Actions history to the opt-in doctor probe", () => {
+    const root = makeTempRepo();
+    writeText(root, "bin/gh", "#!/bin/sh\nprintf 'not logged in; Token: ghp_secret_should_not_leak\\n' >&2\nexit 1\n");
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${path.join(root, "bin")}:${previousPath ?? ""}`;
+    try {
+      execFileSync("chmod", ["+x", path.join(root, "bin/gh")]);
+      execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+      const history = readGithubActionsHistory(root);
+      expect(history).toMatchObject({ status: "unavailable", source: "github-actions" });
+      if (history.status !== "unavailable") throw new Error("expected unavailable GitHub Actions history");
+      expect(history.reason).toContain("doctor --github");
+      expect(history.reason).not.toContain("ghp_secret");
+    } finally {
+      process.env.PATH = previousPath;
+    }
   });
 
   test("resolves custom and archived Task branches from the index and reports unknown task-like branches", () => {

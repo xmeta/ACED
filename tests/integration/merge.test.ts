@@ -200,10 +200,12 @@ describe("merge preflight", () => {
     try {
       process.env.SCWBS_TEST_GH_VIEW_ERROR = "1";
       expect(main(["merge", "--pr", "42", "--json"], root)).toBe(1);
-      expect(JSON.parse(output.pop()!)).toMatchObject({
+      const unavailable = JSON.parse(output.pop()!);
+      expect(unavailable).toMatchObject({
         status: "blocked",
         violations: [{ code: "merge.github.unavailable" }]
       });
+      expect(unavailable.violations[0].message).toContain("doctor --github");
 
       delete process.env.SCWBS_TEST_GH_VIEW_ERROR;
       process.env.SCWBS_TEST_GH_VIEW = JSON.stringify(successfulView());

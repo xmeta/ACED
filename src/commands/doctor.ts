@@ -9,6 +9,7 @@ import { collectCheckIssues } from "./check.js";
 import { collectHealthIssues } from "./health.js";
 import { resolveFrom } from "../core/paths.js";
 import { resolveWjsRuntime, wjsRepairCommand } from "../core/wbs.js";
+import { probeGithubCapabilities, type GithubCapabilityReport } from "../core/github-actions.js";
 import { withDefaultFixCommand as remediate } from "../core/report.js";
 import type { Issue } from "../core/types.js";
 
@@ -38,12 +39,14 @@ export type DoctorDiagnostic = {
 export type DoctorOptions = {
   fix?: boolean;
   json?: boolean;
+  github?: boolean;
 };
 
 export type DoctorJsonOutput = {
   status: "pass" | "fail";
   diagnostics: DoctorDiagnostic[];
   contractIssues: Array<{ source: "check" | "health"; issue: Issue }>;
+  github?: GithubCapabilityReport;
   fixResults?: Array<{ id: string; status: "ok" | "fail"; message: string }>;
 };
 
@@ -672,6 +675,16 @@ export function buildDoctorReport(root: string, options: DoctorOptions = {}): st
     }
   }
 
+  if (options.github) {
+    const github = probeGithubCapabilities(root);
+    lines.push("", "GitHub capability diagnostics (opt-in, read-only):");
+    lines.push(`  [${github.status.toUpperCase()}] origin=${github.repository ?? "unknown"}`);
+    for (const key of Object.keys(github.capabilities).sort()) {
+      const capability = key as keyof typeof github.capabilities;
+      lines.push(`  [${github.capabilities[capability]}] ${key} -- ${github.messages[key] ?? "not evaluated"}`);
+    }
+  }
+
   lines.push("");
   if (contractIssues.length === 0) {
     lines.push("Contract and health: OK");
@@ -721,6 +734,7 @@ export function runDoctor(root: string, options: DoctorOptions = {}): number {
         status: envHasFailure || hasContractErrors ? "fail" : "pass",
         diagnostics,
         contractIssues,
+        github: options.github ? probeGithubCapabilities(root) : undefined,
         fixResults: options.fix ? applyDoctorFixes(root, diagnostics) : undefined
       };
       console.log(JSON.stringify(output, null, 2));

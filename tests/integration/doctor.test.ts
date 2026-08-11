@@ -1,11 +1,107 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { buildDoctorFixPlan, buildDoctorReport, collectEnvironmentDiagnostics, runDoctor } from "../../src/commands/doctor.js";
+import { probeGithubCapabilities } from "../../src/core/github-actions.js";
 import { makeTempRepo, sampleTask, writeJson, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 
 describe("doctor", () => {
+  function githubFixture(root: string, mode: "ready" | "unauthenticated" | "readonly"): void {
+    writeText(root, "bin/gh", `#!/usr/bin/env node
+const args = process.argv.slice(2).join(" ");
+const mode = process.env.GH_FIXTURE_MODE;
+if (args === "--version") process.stdout.write("gh version 2.0.0\\n");
+else if (args.startsWith("auth status")) {
+  if (mode === "unauthenticated") { process.stderr.write("not logged in; Token: ghp_secret_should_not_leak\\n"); process.exit(1); }
+  process.stdout.write("Logged in to github.com\\n");
+} else if (args.includes("actions/runs")) {
+  if (mode === "readonly") { process.stderr.write("HTTP 403 Forbidden\\n"); process.exit(1); }
+  process.stdout.write(JSON.stringify({ workflow_runs: [] }));
+} else if (args.startsWith("api repos/")) process.stdout.write(JSON.stringify({ full_name: "xmeta/ACED" }));
+else if (args.startsWith("pr list")) process.stdout.write(JSON.stringify([{ number: 1 }]));
+else process.exit(1);
+`);
+    chmodSync(`${root}/bin/gh`, 0o755);
+    try {
+      execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, stdio: "ignore" });
+    } catch {
+      execFileSync("git", ["remote", "add", "origin", "https://github.com/xmeta/ACED.git"], { cwd: root });
+    }
+    process.env.GH_FIXTURE_MODE = mode;
+  }
+
+  test("doctor GitHub probe distinguishes missing gh and never exposes credentials", () => {
+    const root = makeTempRepo();
+    mkdirSync(`${root}/empty-bin`, { recursive: true });
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${root}/empty-bin`;
+    try {
+      const report = probeGithubCapabilities(root);
+      expect(report.status).toBe("unavailable");
+      expect(report.capabilities.gh).toBe("unavailable");
+      expect(JSON.stringify(report)).not.toContain("ghp_");
+    } finally {
+      process.env.PATH = previousPath;
+    }
+  });
+
+  test("doctor GitHub probe distinguishes unauthenticated, non-GitHub, read-only, and ready states", () => {
+    const root = makeTempRepo();
+    const previousPath = process.env.PATH;
+    const previousMode = process.env.GH_FIXTURE_MODE;
+    process.env.PATH = `${root}/bin:${previousPath ?? ""}`;
+    try {
+      githubFixture(root, "unauthenticated");
+      const unauthenticated = probeGithubCapabilities(root);
+      expect(unauthenticated.status).toBe("unavailable");
+      expect(unauthenticated.capabilities.auth).toBe("unavailable");
+      expect(JSON.stringify(unauthenticated)).not.toContain("ghp_secret");
+
+      const nonGithub = makeTempRepo();
+      writeText(nonGithub, "bin/gh", readFileSync(`${root}/bin/gh`, "utf8"));
+      chmodSync(`${nonGithub}/bin/gh`, 0o755);
+      execFileSync("git", ["remote", "add", "origin", "https://gitlab.example/acme/project.git"], { cwd: nonGithub });
+      const nonGitHubReport = probeGithubCapabilities(nonGithub);
+      expect(nonGitHubReport.capabilities.origin).toBe("unavailable");
+
+      githubFixture(root, "readonly");
+      const readonly = probeGithubCapabilities(root);
+      expect(readonly.status).toBe("partial");
+      expect(readonly.capabilities.repositoryRead).toBe("ready");
+      expect(readonly.capabilities.actionsRead).toBe("unavailable");
+
+      githubFixture(root, "ready");
+      const ready = probeGithubCapabilities(root);
+      expect(ready.status).toBe("ready");
+      expect(ready.capabilities.prRead).toBe("ready");
+      expect(ready.capabilities.mergeReadiness).toBe("ready");
+    } finally {
+      process.env.PATH = previousPath;
+      if (previousMode === undefined) delete process.env.GH_FIXTURE_MODE;
+      else process.env.GH_FIXTURE_MODE = previousMode;
+    }
+  });
+
+  test("doctor --github JSON nests optional capability report without changing local status", () => {
+    const root = makeTempRepo();
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (message?: unknown) => output.push(String(message));
+    try {
+      expect(runDoctor(root, { json: true, github: true })).toBe(1);
+    } finally {
+      console.log = originalLog;
+    }
+    const parsed = JSON.parse(output.join("\n"));
+    expect(parsed.status).toBe("fail");
+    expect(parsed.github).toMatchObject({
+      schemaVersion: "1.0.0",
+      status: expect.stringMatching(/ready|partial|unavailable/),
+      capabilities: expect.any(Object)
+    });
+  });
+
   test("doctor validates npm engines, Corepack packageManager pins, and workspace graph", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
