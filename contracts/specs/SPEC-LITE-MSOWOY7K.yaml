@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSOWOY7K
+type: spec-contract
+featureId: F-MSOWOY7K
+title: "Issue #537: bounded external attestation verification and trust boundary"
+status: approved
+version: 0.1.0
+summary: "fail-closed verification metadata for one externally attested artifact or CI receipt without automatic trust-root or workflow permission adoption"
+approvedBy: user-requested-issue-537
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "A versioned scwbs.attestation-verification.v1 result schema is bounded and distinguishes verified, missing, invalid, subject-mismatch, untrusted, and unavailable; attestation bodies, private keys, and tokens are never stored in tracked Evidence."
+  - "evidence verify-attestation --task <id> --artifact <path> --json validates the artifact SHA-256 digest against the expected Evidence subject, exact repository, signer workflow, predicate type, source commit/ref, and freshness; missing policy inputs fail closed."
+  - "Offline verification accepts explicit local bundle and trusted-root material only; it never fetches, replaces, or expands trust roots implicitly and never calls arbitrary shell strings."
+  - "A failed or unavailable external verification never changes existing local provenance to verified-external and never bypasses Human Approval, Review, completion, or merge authority."
+  - "Threat model and policy assumptions document GitHub Artifact Attestation/OIDC candidate roots, issuer identity, signer workflow, release artifact versus PR boundary, fork/untrusted PR restrictions, offline material retention, and the Human Gate for workflow permission changes."
+  - "Unit and integration fixtures cover missing, invalid, identity mismatch, subject digest mismatch, stale source, untrusted fork, offline bundle, and bounded JSON output."
+  - "No workflow permission, repository plan/visibility, credential, release publication, dependency, issuer, or trust-root change is included in the automated implementation scope."

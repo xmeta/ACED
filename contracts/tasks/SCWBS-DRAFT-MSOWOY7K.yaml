@@ -1,0 +1,78 @@
+id: SCWBS-DRAFT-MSOWOY7K
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOWOY7K
+branchName: task/SCWBS-DRAFT-MSOWOY7K-issue-537-bounded-external-attestation-verifier-
+allowedPaths:
+  - src/core/attestation.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - docs/scwbs/schemas/attestation.schema.json
+  - docs/scwbs/attestation.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/implementation-gaps.md
+  - tests/unit/attestation.test.ts
+  - tests/integration/attestation.test.ts
+  - tests/fixtures/attestation/**
+forbiddenPaths:
+  - wjs/**
+  - .github/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/attestation.ts
+  - src/commands/evidence-collect.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - src/cli.ts
+  - docs/scwbs/schemas/attestation.schema.json
+stopIf:
+  - Human Gate required for workflow permissions and trust root adoption
+  - external service integration and release publication
+  - untrusted fork signing boundary
+  - repository plan or credential changes
+  - any attempt to add .github workflow permissions or signing credentials
+  - any trust-root or issuer change not explicitly approved by a human
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - A versioned scwbs.attestation-verification.v1 schema and bounded verifier result distinguish verified, missing, invalid, subject-mismatch, untrusted, and unavailable without storing attestation bodies or key material.
+  - evidence verify-attestation --task <id> --artifact <path> --json validates exact artifact digest, Evidence subject binding, repository, signer workflow, predicate, source commit/ref, and freshness; it fails closed when required policy input is unknown.
+  - Offline bundle and trusted-root inputs are explicit, never fetched or adopted implicitly, and verification failures cannot relabel existing local provenance as externally verified.
+  - Threat model, trust-root/issuer assumptions, fork/untrusted PR boundary, release-vs-PR target, offline material handling, and Human Gate for workflow permission changes are documented.
+  - Missing attestation, cryptographic invalidity, identity mismatch, subject mismatch, and unavailable verifier are covered by unit/integration fixtures with bounded machine-readable output.
+  - No .github workflow, repository visibility/plan, credential, dependency, release, or trust-root change is made by this Task; those decisions remain Human-only.
+specPath: contracts/specs/SPEC-LITE-MSOWOY7K.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOWOY7K.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOWOY7K.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:722fd7ddb7f73f29a4c5fa142c2aacfa2ab28192f2fdd3dcb378123b91618d24
+  createdAt: "2026-08-11T17:01:23.998Z"

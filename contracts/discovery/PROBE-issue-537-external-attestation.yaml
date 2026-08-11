@@ -1,0 +1,50 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-537-external-attestation
+type: discovery-probe
+status: concluded
+question: How can ACED verify one independently attested CI receipt or release artifact without trusting arbitrary issuers or granting signing authority to untrusted PR code?
+hypotheses:
+  - GitHub Artifact Attestations can provide a candidate subject binding
+  - Local verifier can distinguish missing invalid and mismatch without storing attestation bodies
+  - Trusted signing workflow must be isolated from fork and untrusted PR execution
+activities:
+  - inspect existing Evidence and CI receipt provenance
+  - inspect workflow trust boundaries
+  - design offline verification material and statuses
+  - identify Human Gate scope
+evidenceExpected:
+  - threat model and trust root assumptions
+  - versioned verification result schema
+  - subject digest mismatch tests
+  - fork and missing-attestation boundary tests
+unknowns:
+  - exact GitHub attestation API and bundle format
+  - issuer identity and workflow subject values
+  - offline material retention policy
+timebox: bounded design and local verifier
+costLimit: no external service or release cost
+exitConditions:
+  - trust policy assumptions are explicit
+  - one bounded artifact or receipt target is selected
+  - unsafe automatic credential or trust-root changes are excluded
+nextDecision: Create a bounded verifier and schema with Human Gate around workflow permissions and trust-root adoption
+deliveryTaskId: SCWBS-DRAFT-MSOUH2SL
+createdAt: "2026-08-11T16:57:59.791Z"
+startedAt: "2026-08-11T16:58:52.985Z"
+concludedAt: "2026-08-11T16:59:19.987Z"
+exitConditionsMet: true
+factsLearned:
+  - GitHub Artifact Attestations are a candidate for release binaries or manifests
+  - gh attestation verify can enforce repository and signer workflow identity
+  - offline verification needs bundle and trusted-root material
+  - private repository availability depends on GitHub Enterprise Cloud
+  - untrusted fork PRs must not receive attestation permissions
+  - ACED should record locator digest and identity summary only
+hypothesesRejected:
+  - arbitrary issuer trust
+  - attestation body or key storage in tracked Evidence
+  - automatic trust-root changes
+remainingUnknowns:
+  - xmeta/ACED private plan support
+  - exact release signer workflow identity
+  - offline bundle retention locator
