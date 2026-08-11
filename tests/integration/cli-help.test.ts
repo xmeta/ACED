@@ -95,6 +95,7 @@ describe("CLI help lifecycle semantics", () => {
       "lite Create lightweight task proposals",
       "task Manage Task Contracts and lifecycle",
       "wbs Validate and apply WBS changes"
+      ,"intake Read external inputs into bounded discovery candidates"
     ];
     descriptions.forEach((description) => expect(topLevelText).toContain(description));
   });
