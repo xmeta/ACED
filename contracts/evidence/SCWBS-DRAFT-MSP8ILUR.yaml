@@ -1,0 +1,96 @@
+id: EVD-SCWBS-DRAFT-MSP8ILUR
+type: evidence
+taskId: SCWBS-DRAFT-MSP8ILUR
+commit: a5463004bdaa17791855f01ec04db8229f125b57
+subjectHeadCommit: a5463004bdaa17791855f01ec04db8229f125b57
+diffHash: sha256:98fc3f7a1fc64affe38be99388b95e5e965bd5b2f2d8115038da57b85b84b2eb
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: a5463004bdaa17791855f01ec04db8229f125b57
+    treeHash: 94cd92797720fd53f5c2a3c68c75f867b4818357
+    diffHash: sha256:98fc3f7a1fc64affe38be99388b95e5e965bd5b2f2d8115038da57b85b84b2eb
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSP8ILUR.patch
+    manifestHash: sha256:98fc3f7a1fc64affe38be99388b95e5e965bd5b2f2d8115038da57b85b84b2eb
+git:
+  branch: task/SCWBS-DRAFT-MSP8ILUR-issue-556-approval-request-versioned-json-respon
+  base: origin/main
+  baseCommit: 9c35be1c3fa106c23e4f971be6e8d2b820c4ef34
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: a5463004bdaa17791855f01ec04db8229f125b57
+  diffHash: sha256:98fc3f7a1fc64affe38be99388b95e5e965bd5b2f2d8115038da57b85b84b2eb
+  headCommit: a5463004bdaa17791855f01ec04db8229f125b57
+changedFiles:
+  - contracts/discovery/PROBE-issue-556.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSP8ILUR.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/approval-request.schema.json
+  - src/cli/register-governance.ts
+  - src/commands/approval-request.ts
+  - tests/integration/approval.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 9c35be1c3fa106c23e4f971be6e8d2b820c4ef34
+    headCommit: a5463004bdaa17791855f01ec04db8229f125b57
+    diffHash: sha256:98fc3f7a1fc64affe38be99388b95e5e965bd5b2f2d8115038da57b85b84b2eb
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:884856d6a8724462f30fcf194655ae6898d68fd447118142c33fe79b5de8cefa
+    durationMilliseconds: 18594
+    executedAt: "2026-08-11T22:49:45.387Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7c981659afb12b79a6281d03185e8d447143ef812af62bd5ac1d55ca8db59c13
+    durationMilliseconds: 9891
+    executedAt: "2026-08-11T22:49:55.281Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:0720551a13940af3d1397ad46a7c9f3812e9af97bfaaed395429acd6afd34af2
+    durationMilliseconds: 4290
+    executedAt: "2026-08-11T22:49:59.576Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:d89a27c18f8039358aa27055ec5db7ca71650b94665bf2e6251b53e115a367ca
+    durationMilliseconds: 8638
+    executedAt: "2026-08-11T22:50:08.218Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:ed1d190b876251ca641ea0bd758ff4b2cbbebab25dc99870e744adb401cbeae0
+    durationMilliseconds: 311650
+    executedAt: "2026-08-11T22:55:19.873Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added bounded approval request JSON and schema regression assertions; no tests disabled and no coverage decrease observed.
