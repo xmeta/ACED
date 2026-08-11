@@ -67,6 +67,11 @@ npm run scwbs -- pack info org.example.secure-node --json
 npm run scwbs -- pack update org.example.secure-node --dry-run --json
 npm run scwbs -- pack remove org.example.secure-node --dry-run --json
 npm run scwbs -- mcp --stdio
+npm run scwbs -- index rebuild --json
+npm run scwbs -- index status --json
+npm run scwbs -- index verify --json
+npm run scwbs -- query tasks --status blocked --json
+npm run scwbs -- query "auth" --kind spec,task --json
 npm run scwbs -- check
 npm run scwbs -- fix
 npm run scwbs -- doctor
@@ -111,6 +116,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 `pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
 
 `mcp --stdio` は network listener を持たない MCP-compatible JSON-RPC server である。stdout は protocol message 専用、診断は stderr に分離される。`resources/list` / `resources/read` は `status`、`next`、`packet`、`trace`、`evidence`、`review-queue` を read-only resource として公開し、`tools/list` / `tools/call` は `scwbs.task.preflight`、`scwbs.check`、`scwbs.finish`、`scwbs.block` の structured input のみを受け付ける。既存の versioned JSON builder と authority evaluator を再利用するため、Human Approval、Review transition、policy downgrade、Evidence prune、merge bypass は公開されない。能力メタデータの契約は `scwbs.mcp-capabilities.v1` と [`docs/scwbs/schemas/mcp-capabilities.schema.json`](schemas/mcp-capabilities.schema.json) で固定する。MCP が使えない agent は従来の CLI workflow をそのまま利用する。
+
+`index rebuild` は canonical YAML/JSON artifact から `.scwbs/cache/index.sqlite` を完全再構築する。cache は Git 管理外の navigation/search 用 derived data であり、`check`、`finish`、`approval`、`merge` の authority 判定には使わない。`index status --json` / `index verify --json` は missing、ready、stale、corrupt と source hash / repository HEAD provenance を返す。`query --json` は SQL を公開せず、kind、status、bounded text、`--unverified`、`--stale` だけを受け付ける。結果には source path、source hash、schema version、HEAD、canonical locator を含め、出力は最大100件に制限する。corrupt cache は `index rebuild` で安全に再生成できる。
 
 ### Navigation JSON contracts
 
@@ -729,6 +736,8 @@ When task changes include tests, record manual test quality metadata with `--tes
 | `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
 | `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
 | `mcp --stdio`                                                                                                       | read-only resources; tracked-artifact mutation for `finish`/`block`              | MCP JSON-RPC over stdio only。Human-only operationsは公開しない                              |
+| `index rebuild`                                                                                                    | tracked-artifact mutation（`.scwbs/cache`のみ）                                  | canonical artifactからderived SQLite cacheを再構築する                                       |
+| `index status` / `index verify` / `query`                                                                           | repository-content read-only                                                    | stale/corrupt cacheはauthorityに使わず、query結果はbounded                                 |
 
 ## 終了コード
 

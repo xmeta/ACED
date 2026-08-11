@@ -1,0 +1,897 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 7fd459b..5731961 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -251,7 +251,7 @@ jobs:
+     strategy:
+       fail-fast: false
+       matrix:
+-        node-version: ["22.12.0"]
++        node-version: ["22.13.0"]
+     steps:
+       - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+diff --git a/.gitignore b/.gitignore
+index 9ebfc2d..ff49644 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,3 +1,4 @@
+ node_modules/
+ dist/
+ coverage/
++.scwbs/cache/
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 4268834..d2527f6 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -45,6 +45,8 @@ rules:
+       - src/commands/metrics.ts
+       - src/commands/merge.ts
+       - src/commands/mcp.ts
++      - src/commands/local-index.ts
++      - src/commands/query.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
+       - src/commands/pack.ts
+@@ -104,6 +106,7 @@ rules:
+       - src/core/json.ts
+       - src/core/managed-contract-paths.ts
+       - src/core/mcp.ts
++      - src/core/local-index.ts
+       - src/core/merge-preflight.ts
+       - src/core/node-utils.ts
+       - src/core/paths.ts
+diff --git a/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml b/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
+new file mode 100644
+index 0000000..d747cd4
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSOQ7BSA
++type: spec-contract
++featureId: F-MSOQ7BSA
++title: "Issue #535: rebuildable local index and bounded query"
++status: approved
++version: 0.1.1
++summary: "canonical YAML/JSON artifact から再構築できる SQLite navigation cache と bounded query を追加する"
++approvedBy: user-requested-issue-535-ci-compatibility
++approvedAt: "2026-08-12T00:23:01+09:00"
++acceptanceCriteria:
++  - "scwbs index rebuild creates a SQLite cache under .scwbs/cache from canonical YAML/JSON artifacts and can fully rebuild it without treating the cache as authority."
++  - "scwbs index status --json and index verify --json return bounded versioned status with source path, source hash, schema version, indexedAt, and repository HEAD provenance."
++  - "scwbs query --json supports bounded cross-artifact text/kind filters for Task, Spec, Requirement, Evidence, Review, Approval, Block, Discovery, WBS, and Finding records without exposing SQL as a user-facing API."
++  - "Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache."
++  - "Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof."
++  - "A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands."
++  - "The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml b/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
+new file mode 100644
+index 0000000..52cc828
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
+@@ -0,0 +1,85 @@
++id: SCWBS-DRAFT-MSOQ7BSA
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSOQ7BSA
++branchName: task/SCWBS-DRAFT-MSOQ7BSA-p1-indexing-add-a-rebuildable-local-sqlite-index
++allowedPaths:
++  - src/core/local-index.ts
++  - src/commands/local-index.ts
++  - src/commands/query.ts
++  - src/cli.ts
++  - src/core/types.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/query.schema.json
++  - docs/implementation-gaps.md
++  - docs/scwbs/getting-started.md
++  - docs/scwbs/distribution.md
++  - contracts/check-coverage.yaml
++  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
++  - .gitignore
++  - package.json
++  - package-lock.json
++  - .github/workflows/scwbs.yml
++  - tests/unit/**
++  - tests/integration/**
++  - tests/fixtures/local-index/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - .gitignore
++  - src/core/local-index.ts
++  - src/commands/local-index.ts
++  - src/commands/query.ts
++  - src/cli.ts
++  - src/core/types.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/schemas/query.schema.json
++stopIf:
++  - Human Gate required
++  - additional path required
++  - dependency addition or dependency graph change
++  - remote hosted database
++  - stale cache used for authority
++  - destructive source artifact deletion
++  - authentication or permission change
++  - unbounded query output
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - scwbs index rebuild creates a SQLite cache under .scwbs/cache from canonical YAML/JSON artifacts and can fully rebuild it without treating the cache as authority.
++  - scwbs index status --json and index verify --json return bounded versioned status with source path, source hash, schema version, indexedAt, and repository HEAD provenance.
++  - scwbs query --json supports bounded cross-artifact text/kind filters for Task, Spec, Requirement, Evidence, Review, Approval, Block, Discovery, WBS, and Finding records without exposing SQL as a user-facing API.
++  - Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache.
++  - Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof.
++  - A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands.
++  - The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
++  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSOQ7BSA.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSOQ7BSA.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSOQ7BSA.patch
++  - contracts/approvals/SCWBS-DRAFT-MSOQ7BSA.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSOQ7BSA.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.1
++  specRevision: sha256:44fd1c2dce082594a050496ab6cbd8a6ce6d8f78b5e84d06e78a2724b6dc6202
++  createdAt: "2026-08-11T15:23:46.475Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 39ea54a..b8928e4 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1952,3 +1952,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T13:55:39.824Z"
++  - id: SCWBS-DRAFT-MSOQ7BSA
++    path: contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
++    branchName: task/SCWBS-DRAFT-MSOQ7BSA-p1-indexing-add-a-rebuildable-local-sqlite-index
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 19a566b..5a34ac2 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -30,6 +30,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
+ - Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
+ - Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
++- Rebuildable Node SQLite local index with provenance-aware status, bounded cross-artifact query, stale/corrupt recovery, and non-authoritative cache semantics
+ - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 31ecb7c..d79c751 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -67,6 +67,11 @@ npm run scwbs -- pack info org.example.secure-node --json
+ npm run scwbs -- pack update org.example.secure-node --dry-run --json
+ npm run scwbs -- pack remove org.example.secure-node --dry-run --json
+ npm run scwbs -- mcp --stdio
++npm run scwbs -- index rebuild --json
++npm run scwbs -- index status --json
++npm run scwbs -- index verify --json
++npm run scwbs -- query tasks --status blocked --json
++npm run scwbs -- query "auth" --kind spec,task --json
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
+@@ -112,6 +117,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
+ 
+ `mcp --stdio` は network listener を持たない MCP-compatible JSON-RPC server である。stdout は protocol message 専用、診断は stderr に分離される。`resources/list` / `resources/read` は `status`、`next`、`packet`、`trace`、`evidence`、`review-queue` を read-only resource として公開し、`tools/list` / `tools/call` は `scwbs.task.preflight`、`scwbs.check`、`scwbs.finish`、`scwbs.block` の structured input のみを受け付ける。既存の versioned JSON builder と authority evaluator を再利用するため、Human Approval、Review transition、policy downgrade、Evidence prune、merge bypass は公開されない。能力メタデータの契約は `scwbs.mcp-capabilities.v1` と [`docs/scwbs/schemas/mcp-capabilities.schema.json`](schemas/mcp-capabilities.schema.json) で固定する。MCP が使えない agent は従来の CLI workflow をそのまま利用する。
+ 
++`index rebuild` は canonical YAML/JSON artifact から `.scwbs/cache/index.sqlite` を完全再構築する。cache は Git 管理外の navigation/search 用 derived data であり、`check`、`finish`、`approval`、`merge` の authority 判定には使わない。`index status --json` / `index verify --json` は missing、ready、stale、corrupt と source hash / repository HEAD provenance を返す。`query --json` は SQL を公開せず、kind、status、bounded text、`--unverified`、`--stale` だけを受け付ける。結果には source path、source hash、schema version、HEAD、canonical locator を含め、出力は最大100件に制限する。corrupt cache は `index rebuild` で安全に再生成できる。
++
+ ### Navigation JSON contracts
+ 
+ `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
+@@ -729,6 +736,8 @@ When task changes include tests, record manual test quality metadata with `--tes
+ | `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
+ | `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
+ | `mcp --stdio`                                                                                                       | read-only resources; tracked-artifact mutation for `finish`/`block`              | MCP JSON-RPC over stdio only。Human-only operationsは公開しない                              |
++| `index rebuild`                                                                                                    | tracked-artifact mutation（`.scwbs/cache`のみ）                                  | canonical artifactからderived SQLite cacheを再構築する                                       |
++| `index status` / `index verify` / `query`                                                                           | repository-content read-only                                                    | stale/corrupt cacheはauthorityに使わず、query結果はbounded                                 |
+ 
+ ## 終了コード
+ 
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index 3999071..e07b0a2 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -20,7 +20,7 @@ ACED はその実行資産を配布用に変換して保持します。
+ 
+ ## 互換性
+ 
+-- Node.js: `>=22.12.0`
++- Node.js: `>=22.13.0` (required for the built-in `node:sqlite` module used by the local index)
+ - npm: `>=10`（repository build と contributor setup）
+ - standalone consumer はインストール済み scwbs package の Node engine を検査する
+ - contributor は `git submodule update --init --recursive wjs` 後に repository の workspace を install する
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index 79e46d5..493199a 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -22,7 +22,7 @@ The commands below assume an ACED checkout and are retained for contributors,
+ debugging, and maintenance. They are not required for a consumer using the
+ release tarball.
+ 
+-Use Node.js `>=22.12.0` and npm `>=10`. This repository pins npm `10.9.0`
++Use Node.js `>=22.13.0` and npm `>=10`. This repository pins npm `10.9.0`
+ through `packageManager`, so enable Corepack before installing dependencies.
+ 
+ Install dependencies once:
+diff --git a/docs/scwbs/schemas/query.schema.json b/docs/scwbs/schemas/query.schema.json
+new file mode 100644
+index 0000000..bcf00f8
+--- /dev/null
++++ b/docs/scwbs/schemas/query.schema.json
+@@ -0,0 +1,53 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/query.schema.json",
++  "title": "SC-WBS local index query output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "query", "total", "omitted", "results", "reasons"],
++  "properties": {
++    "version": { "const": "scwbs.query.v1" },
++    "status": { "enum": ["ready", "missing", "stale", "corrupt"] },
++    "query": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["kinds", "unverified", "stale", "limit"],
++      "properties": {
++        "text": { "type": "string", "maxLength": 256 },
++        "kinds": { "type": "array", "items": { "type": "string" }, "maxItems": 10, "uniqueItems": true },
++        "status": { "type": "string", "maxLength": 64 },
++        "unverified": { "type": "boolean" },
++        "stale": { "type": "boolean" },
++        "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
++      }
++    },
++    "indexedAt": { "type": "string" },
++    "repositoryHead": { "type": "string" },
++    "total": { "type": "integer", "minimum": 0, "maximum": 100 },
++    "omitted": { "type": "integer", "minimum": 0 },
++    "results": {
++      "type": "array",
++      "maxItems": 100,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["id", "kind", "title", "status", "sourcePath", "sourceHash", "schemaVersion", "indexedAt", "repositoryHead", "locator", "stale", "snippet"],
++        "properties": {
++          "id": { "type": "string" },
++          "kind": { "type": "string" },
++          "title": { "type": "string", "maxLength": 500 },
++          "status": { "type": "string", "maxLength": 64 },
++          "sourcePath": { "type": "string" },
++          "sourceHash": { "type": "string", "pattern": "^sha256:" },
++          "schemaVersion": { "type": "string" },
++          "indexedAt": { "type": "string" },
++          "repositoryHead": { "type": "string" },
++          "locator": { "type": "string" },
++          "stale": { "type": "boolean" },
++          "snippet": { "type": "string", "maxLength": 500 }
++        }
++      }
++    },
++    "reasons": { "type": "array", "items": { "type": "string" }, "maxItems": 20 }
++  }
++}
+diff --git a/package-lock.json b/package-lock.json
+index 89f9b22..2ad0a8d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -33,7 +33,7 @@
+         "vitest": "^4.1.9"
+       },
+       "engines": {
+-        "node": ">=22.12.0",
++        "node": ">=22.13.0",
+         "npm": ">=10"
+       }
+     },
+diff --git a/package.json b/package.json
+index fac9a66..9da36f8 100644
+--- a/package.json
++++ b/package.json
+@@ -5,7 +5,7 @@
+   "private": true,
+   "license": "GPL-3.0-only",
+   "engines": {
+-    "node": ">=22.12.0",
++    "node": ">=22.13.0",
+     "npm": ">=10"
+   },
+   "packageManager": "npm@10.9.0",
+diff --git a/src/cli.ts b/src/cli.ts
+index 1b462d0..9c2b794 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -30,6 +30,8 @@ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+ import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
+ import { runMcpStdio } from "./commands/mcp.js";
++import { runIndexRebuild, runIndexStatus, runIndexVerify } from "./commands/local-index.js";
++import { runQuery } from "./commands/query.js";
+ import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
+ import { registerDiscoveryCommands } from "./cli/register-discovery.js";
+ import { registerGovernanceCommands } from "./cli/register-governance.js";
+@@ -504,6 +506,23 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       exitCode = runMcpStdio(root);
+     });
+ 
++  const index = program.command("index").description("Manage the rebuildable local navigation index");
++  index.command("rebuild").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexRebuild(root, { json: opts.json ?? false }); });
++  index.command("status").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexStatus(root, { json: opts.json ?? false }); });
++  index.command("verify").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexVerify(root, { json: opts.json ?? false }); });
++
++  program
++    .command("query")
++    .description("Search the derived local index without exposing SQL")
++    .argument("[text]", "bounded text or kind alias")
++    .option("--kind <kinds>", "comma-separated record kinds")
++    .option("--status <status>", "exact indexed status")
++    .option("--unverified", "show unverified requirements")
++    .option("--stale", "show records whose source hash changed")
++    .option("--limit <count>", "maximum results", (value) => Math.max(1, Math.min(100, Number(value))))
++    .option("--json", "output a versioned JSON result")
++    .action((text: string | undefined, opts) => { exitCode = runQuery(root, text, { kind: opts.kind, status: opts.status, unverified: opts.unverified ?? false, stale: opts.stale ?? false, limit: opts.limit, json: opts.json ?? false }); });
++
+   program
+     .command("finish")
+     .description("Finish a task")
+diff --git a/src/commands/local-index.ts b/src/commands/local-index.ts
+new file mode 100644
+index 0000000..b5de228
+--- /dev/null
++++ b/src/commands/local-index.ts
+@@ -0,0 +1,27 @@
++import { indexStatus, rebuildIndex, verifyIndex } from "../core/local-index.js";
++
++export function runIndexRebuild(root: string, options: { json?: boolean } = {}): number {
++  try {
++    const result = rebuildIndex(root);
++    if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
++    else process.stdout.write(`PASS index rebuilt (${result.recordCount} records)\n`);
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function runIndexStatus(root: string, options: { json?: boolean } = {}): number {
++  const result = indexStatus(root);
++  if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
++  else process.stdout.write(`Index: ${result.status}\nPath: ${result.path}\n`);
++  return result.status === "corrupt" ? 1 : 0;
++}
++
++export function runIndexVerify(root: string, options: { json?: boolean } = {}): number {
++  const result = verifyIndex(root);
++  if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
++  else process.stdout.write(`Index verification: ${result.status}\n`);
++  return result.status === "corrupt" ? 1 : 0;
++}
+diff --git a/src/commands/query.ts b/src/commands/query.ts
+new file mode 100644
+index 0000000..f0c88e8
+--- /dev/null
++++ b/src/commands/query.ts
+@@ -0,0 +1,17 @@
++import { normalizeQueryKind, queryIndex } from "../core/local-index.js";
++
++export type QueryCommandOptions = { kind?: string; status?: string; unverified?: boolean; stale?: boolean; limit?: number; json?: boolean };
++
++export function runQuery(root: string, value: string | undefined, options: QueryCommandOptions = {}): number {
++  try {
++    const normalized = normalizeQueryKind(value);
++    const kinds = options.kind?.split(",").map((item) => item.trim()).filter(Boolean) ?? normalized.kinds;
++    const result = queryIndex(root, { text: normalized.text, kinds, status: options.status, unverified: options.unverified, stale: options.stale, limit: options.limit });
++    if (options.json) process.stdout.write(`${JSON.stringify(result)}\n`);
++    else for (const item of result.results) process.stdout.write(`${item.kind} ${item.id} | ${item.title} | ${item.locator}\n`);
++    return result.status === "corrupt" ? 1 : 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
+diff --git a/src/core/local-index.ts b/src/core/local-index.ts
+new file mode 100644
+index 0000000..cb05d6f
+--- /dev/null
++++ b/src/core/local-index.ts
+@@ -0,0 +1,388 @@
++import { createHash } from "node:crypto";
++import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
++import { createRequire } from "node:module";
++import path from "node:path";
++import { headCommit } from "./git.js";
++import { fileSha256 } from "./hash.js";
++import { resolveFrom } from "./paths.js";
++import { readJsonFile } from "./json.js";
++import { readYamlFile } from "./yaml.js";
++
++export const LOCAL_INDEX_VERSION = "scwbs.local-index.v1" as const;
++export const QUERY_VERSION = "scwbs.query.v1" as const;
++export const INDEX_STATUS_VERSION = "scwbs.index-status.v1" as const;
++export const INDEX_VERIFY_VERSION = "scwbs.index-verify.v1" as const;
++export const INDEX_REBUILD_VERSION = "scwbs.index-rebuild.v1" as const;
++export const LOCAL_INDEX_PATH = ".scwbs/cache/index.sqlite";
++const MAX_QUERY_RESULTS = 100;
++const MAX_SNIPPET_LENGTH = 500;
++const require = createRequire(import.meta.url);
++type DatabaseOptions = ConstructorParameters<typeof import("node:sqlite").DatabaseSync>[1];
++
++function openDatabase(filePath: string, options?: DatabaseOptions): import("node:sqlite").DatabaseSync {
++  const sqlite = require("node:sqlite") as typeof import("node:sqlite");
++  return options === undefined ? new sqlite.DatabaseSync(filePath) : new sqlite.DatabaseSync(filePath, options);
++}
++
++type JsonObject = Record<string, unknown>;
++type IndexKind = "spec" | "requirement" | "task" | "evidence" | "review" | "approval" | "block" | "discovery" | "wbs" | "finding";
++
++export type IndexedRecord = {
++  id: string;
++  kind: IndexKind;
++  title: string;
++  body: string;
++  status: string;
++  sourcePath: string;
++  sourceHash: string;
++  schemaVersion: string;
++  indexedAt: string;
++  repositoryHead: string;
++  locator: string;
++};
++
++export type IndexStatus = {
++  version: typeof INDEX_STATUS_VERSION;
++  status: "ready" | "missing" | "stale" | "corrupt";
++  path: string;
++  indexedAt?: string;
++  repositoryHead?: string;
++  recordCount?: number;
++  sourceManifestHash?: string;
++  reasons: string[];
++};
++
++export type QueryOptions = {
++  text?: string;
++  kinds?: string[];
++  status?: string;
++  unverified?: boolean;
++  stale?: boolean;
++  limit?: number;
++};
++
++export type QueryOutput = {
++  version: typeof QUERY_VERSION;
++  status: IndexStatus["status"];
++  query: { text?: string; kinds: string[]; status?: string; unverified: boolean; stale: boolean; limit: number };
++  indexedAt?: string;
++  repositoryHead?: string;
++  total: number;
++  omitted: number;
++  results: Array<Omit<IndexedRecord, "body"> & { snippet: string; stale: boolean }>;
++  reasons: string[];
++};
++
++const sourceRoots = [
++  "contracts/specs",
++  "contracts/tasks",
++  "contracts/evidence",
++  "contracts/approvals",
++  "contracts/reviews",
++  "contracts/blocks",
++  "contracts/discovery"
++] as const;
++
++const kindAliases: Record<string, IndexKind> = {
++  spec: "spec", specs: "spec",
++  requirement: "requirement", requirements: "requirement",
++  task: "task", tasks: "task",
++  evidence: "evidence", evidences: "evidence",
++  review: "review", reviews: "review",
++  approval: "approval", approvals: "approval",
++  block: "block", blocks: "block",
++  discovery: "discovery", discoveries: "discovery",
++  wbs: "wbs", finding: "finding", findings: "finding"
++};
++
++function isObject(value: unknown): value is JsonObject {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function safeJson(value: unknown): string {
++  const text = JSON.stringify(value);
++  return text.length > 50_000 ? `${text.slice(0, 49_997)}...` : text;
++}
++
++function textValue(value: unknown, fallback: string): string {
++  return typeof value === "string" && value.trim() ? value.trim() : fallback;
++}
++
++function schemaVersion(value: JsonObject): string {
++  return textValue(value.schemaVersion ?? value.version, "unknown");
++}
++
++function walkFiles(root: string, directory: string): string[] {
++  const full = resolveFrom(root, directory);
++  if (!existsSync(full)) return [];
++  const output: string[] = [];
++  for (const entry of readdirSync(full, { withFileTypes: true })) {
++    const relative = path.posix.join(directory, entry.name);
++    if (entry.isDirectory()) output.push(...walkFiles(root, relative));
++    else if (entry.isFile() && /\.(yaml|yml|json)$/.test(entry.name)) output.push(relative);
++  }
++  return output.sort();
++}
++
++function canonicalSourcePaths(root: string): string[] {
++  return [
++    ...sourceRoots.flatMap((directory) => walkFiles(root, directory)),
++    existsSync(resolveFrom(root, "contracts/tasks/index.yaml")) ? "contracts/tasks/index.yaml" : "",
++    existsSync(resolveFrom(root, "contracts/wbs/project.wbs.json")) ? "contracts/wbs/project.wbs.json" : ""
++  ].filter(Boolean);
++}
++
++function sourceManifest(root: string): { paths: string[]; hash: string } {
++  const paths = canonicalSourcePaths(root);
++  const hash = createHash("sha256");
++  for (const relative of paths) {
++    hash.update(relative);
++    hash.update("\0");
++    try { hash.update(fileSha256(root, relative)); } catch { hash.update("missing"); }
++    hash.update("\n");
++  }
++  return { paths, hash: `sha256:${hash.digest("hex")}` };
++}
++
++function parseCanonical(root: string, relative: string): unknown {
++  const full = resolveFrom(root, relative);
++  return relative.endsWith(".json") ? readJsonFile(full) : readYamlFile(full);
++}
++
++function statusMap(root: string): Map<string, string> {
++  const result = new Map<string, string>();
++  const relative = "contracts/tasks/index.yaml";
++  if (!existsSync(resolveFrom(root, relative))) return result;
++  const value = parseCanonical(root, relative);
++  if (!isObject(value) || !Array.isArray(value.tasks)) return result;
++  for (const item of value.tasks) {
++    if (!isObject(item) || typeof item.id !== "string") continue;
++    if (typeof item.status === "string") result.set(item.id, item.status);
++  }
++  return result;
++}
++
++function sourceKind(relative: string): IndexKind | undefined {
++  if (relative.includes("/specs/")) return "spec";
++  if (relative.includes("/tasks/")) return "task";
++  if (relative.includes("/evidence/")) return "evidence";
++  if (relative.includes("/approvals/")) return "approval";
++  if (relative.includes("/reviews/")) return "review";
++  if (relative.includes("/blocks/")) return "block";
++  if (relative.includes("/discovery/")) return "discovery";
++  if (relative === "contracts/wbs/project.wbs.json") return "wbs";
++  return undefined;
++}
++
++type IndexBuildContext = { indexedAt: string; repositoryHead: string; sourceHash: string };
++
++function baseRecord(relative: string, raw: JsonObject, kind: IndexKind, id: string, title: string, status: string, context: IndexBuildContext, locator = ""): IndexedRecord {
++  return {
++    id,
++    kind,
++    title,
++    body: safeJson(raw),
++    status,
++    sourcePath: relative,
++    sourceHash: context.sourceHash,
++    schemaVersion: schemaVersion(raw),
++    indexedAt: context.indexedAt,
++    repositoryHead: context.repositoryHead,
++    locator: locator || relative
++  };
++}
++
++function recordsForSource(root: string, relative: string, statuses: Map<string, string>, context: Omit<IndexBuildContext, "sourceHash">): IndexedRecord[] {
++  const rawValue = parseCanonical(root, relative);
++  if (!isObject(rawValue)) return [];
++  const kind = sourceKind(relative);
++  if (!kind) return [];
++  const id = textValue(rawValue.id, relative);
++  const title = textValue(rawValue.title ?? rawValue.name ?? rawValue.question ?? rawValue.reason, id);
++  const status = kind === "task" ? statuses.get(id) ?? textValue(rawValue.status, "planned") : textValue(rawValue.status, "unclassified");
++  const buildContext = { ...context, sourceHash: fileSha256(root, relative) };
++  const records = [baseRecord(relative, rawValue, kind, id, title, status, buildContext)];
++
++  if (kind === "spec") {
++    const requirements = Array.isArray(rawValue.requirements) ? rawValue.requirements : Array.isArray(rawValue.acceptanceCriteria) ? rawValue.acceptanceCriteria : [];
++    requirements.forEach((item, index) => {
++      const value = typeof item === "string" ? { statement: item } : isObject(item) ? item : {};
++      const requirementId = textValue(value.id, `${id}:requirement:${index + 1}`);
++      records.push(baseRecord(relative, rawValue, "requirement", requirementId, textValue(value.statement ?? value.title, requirementId), value.verified === true ? "verified" : "unverified", buildContext, `${relative}#/requirements/${index}`));
++    });
++  }
++  if (kind === "wbs" && Array.isArray(rawValue.nodes)) {
++    rawValue.nodes.forEach((item, index) => {
++      if (!isObject(item)) return;
++      const nodeId = textValue(item.id, `${id}:node:${index}`);
++      records.push(baseRecord(relative, rawValue, "wbs", nodeId, textValue(item.name, nodeId), textValue(item.status, "planned"), buildContext, `${relative}#/nodes/${index}`));
++    });
++  }
++  for (const field of ["findings", "issues", "remediations"]) {
++    if (!Array.isArray(rawValue[field])) continue;
++    rawValue[field].forEach((item, index) => {
++      const value = isObject(item) ? item : { message: String(item) };
++      const findingId = textValue(value.id ?? value.code, `${id}:${field}:${index}`);
++      records.push(baseRecord(relative, rawValue, "finding", findingId, textValue(value.message ?? value.title ?? value.reason, findingId), textValue(value.status ?? value.severity, "open"), buildContext, `${relative}#/${field}/${index}`));
++    });
++  }
++  return records;
++}
++
++function databasePath(root: string): string {
++  return resolveFrom(root, LOCAL_INDEX_PATH);
++}
++
++function schemaSql(): string {
++  return `CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
++CREATE TABLE IF NOT EXISTS records (
++  id TEXT PRIMARY KEY,
++  kind TEXT NOT NULL,
++  title TEXT NOT NULL,
++  body TEXT NOT NULL,
++  status TEXT NOT NULL,
++  source_path TEXT NOT NULL,
++  source_hash TEXT NOT NULL,
++  schema_version TEXT NOT NULL,
++  indexed_at TEXT NOT NULL,
++  repository_head TEXT NOT NULL,
++  locator TEXT NOT NULL
++);
++CREATE INDEX IF NOT EXISTS records_kind_idx ON records(kind);
++CREATE INDEX IF NOT EXISTS records_status_idx ON records(status);
++CREATE INDEX IF NOT EXISTS records_title_idx ON records(title);`;
++}
++
++function readMetadata(root: string): Map<string, string> {
++  const db = openDatabase(databasePath(root), { readOnly: true });
++  try {
++    const rows = db.prepare("SELECT key, value FROM metadata").all() as Array<{ key: string; value: string }>;
++    return new Map(rows.map((row) => [row.key, row.value]));
++  } finally {
++    db.close();
++  }
++}
++
++export function indexStatus(root: string): IndexStatus {
++  const pathValue = LOCAL_INDEX_PATH;
++  if (!existsSync(databasePath(root))) return { version: INDEX_STATUS_VERSION, status: "missing", path: pathValue, reasons: ["index.missing"] };
++  try {
++    const metadata = readMetadata(root);
++    if (metadata.get("schemaVersion") !== LOCAL_INDEX_VERSION) return { version: INDEX_STATUS_VERSION, status: "corrupt", path: pathValue, reasons: ["index.schema.invalid"] };
++    const current = sourceManifest(root);
++    const reasons: string[] = [];
++    if (metadata.get("sourceManifestHash") !== current.hash) reasons.push("index.source.stale");
++    const currentHead = headCommit(root) ?? "unavailable";
++    if (metadata.get("repositoryHead") !== currentHead) reasons.push("index.head.stale");
++    const status: IndexStatus["status"] = reasons.length > 0 ? "stale" : "ready";
++    return {
++      version: INDEX_STATUS_VERSION,
++      status,
++      path: pathValue,
++      indexedAt: metadata.get("indexedAt"),
++      repositoryHead: metadata.get("repositoryHead"),
++      recordCount: Number(metadata.get("recordCount") ?? 0),
++      sourceManifestHash: metadata.get("sourceManifestHash"),
++      reasons: reasons.length > 0 ? reasons : ["index.current"]
++    };
++  } catch (error) {
++    return { version: INDEX_STATUS_VERSION, status: "corrupt", path: pathValue, reasons: ["index.corrupt", error instanceof Error ? error.message : String(error)] };
++  }
++}
++
++export function verifyIndex(root: string): JsonObject {
++  const status = indexStatus(root);
++  const statusFields: Omit<IndexStatus, "version"> = {
++    status: status.status,
++    path: status.path,
++    indexedAt: status.indexedAt,
++    repositoryHead: status.repositoryHead,
++    recordCount: status.recordCount,
++    sourceManifestHash: status.sourceManifestHash,
++    reasons: status.reasons
++  };
++  return { version: INDEX_VERIFY_VERSION, ...statusFields, recoverCommand: "scwbs index rebuild --json" };
++}
++
++export function rebuildIndex(root: string): JsonObject {
++  const indexedAt = new Date().toISOString();
++  const repositoryHead = headCommit(root) ?? "unavailable";
++  const manifest = sourceManifest(root);
++  const statuses = statusMap(root);
++  const records = manifest.paths.flatMap((relative) => recordsForSource(root, relative, statuses, { indexedAt, repositoryHead }));
++  const destination = databasePath(root);
++  const directory = path.dirname(destination);
++  mkdirSync(directory, { recursive: true });
++  const temporary = `${destination}.tmp-${process.pid}`;
++  rmSync(temporary, { force: true });
++  const db = openDatabase(temporary);
++  try {
++    db.exec(schemaSql());
++    db.exec("BEGIN");
++    const insert = db.prepare("INSERT INTO records (id, kind, title, body, status, source_path, source_hash, schema_version, indexed_at, repository_head, locator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
++    for (const record of records) insert.run(record.id + ":" + record.kind + ":" + record.locator, record.kind, record.title, record.body, record.status, record.sourcePath, record.sourceHash, record.schemaVersion, indexedAt, repositoryHead, record.locator);
++    const metadata = db.prepare("INSERT INTO metadata (key, value) VALUES (?, ?)");
++    for (const [key, value] of [["schemaVersion", LOCAL_INDEX_VERSION], ["indexedAt", indexedAt], ["repositoryHead", repositoryHead], ["sourceManifestHash", manifest.hash], ["recordCount", String(records.length)]] as const) metadata.run(key, value);
++    db.exec("COMMIT");
++  } catch (error) {
++    try { db.exec("ROLLBACK"); } catch { /* preserve original failure */ }
++    throw error;
++  } finally {
++    db.close();
++  }
++  rmSync(destination, { force: true });
++  renameSync(temporary, destination);
++  return { version: INDEX_REBUILD_VERSION, status: "pass", path: LOCAL_INDEX_PATH, indexedAt, repositoryHead, recordCount: records.length, sourceManifestHash: manifest.hash };
++}
++
++function canonicalKinds(input: string[] | undefined): IndexKind[] {
++  return Array.from(new Set((input ?? []).map((item) => kindAliases[item.trim().toLowerCase()]).filter((item): item is IndexKind => item !== undefined)));
++}
++
++function recordIsStale(root: string, record: { sourcePath: string; sourceHash: string }): boolean {
++  try { return fileSha256(root, record.sourcePath) !== record.sourceHash; } catch { return true; }
++}
++
++export function queryIndex(root: string, options: QueryOptions = {}): QueryOutput {
++  const index = indexStatus(root);
++  const requestedKinds = options.kinds ?? [];
++  const kinds = canonicalKinds(options.kinds);
++  const limit = Math.max(1, Math.min(MAX_QUERY_RESULTS, Math.floor(options.limit ?? MAX_QUERY_RESULTS)));
++  const query = { ...(options.text ? { text: options.text.slice(0, 256) } : {}), kinds: kinds.map((kind) => kind), ...(options.status ? { status: options.status.slice(0, 64) } : {}), unverified: options.unverified === true, stale: options.stale === true, limit };
++  const invalidKinds = requestedKinds.filter((item) => !kindAliases[item.trim().toLowerCase()]);
++  if (index.status === "missing" || index.status === "corrupt" || invalidKinds.length > 0) {
++    return { version: QUERY_VERSION, status: invalidKinds.length > 0 ? "corrupt" : index.status, query, total: 0, omitted: 0, results: [], reasons: invalidKinds.length > 0 ? ["query.kind.invalid"] : index.reasons };
++  }
++  const db = openDatabase(databasePath(root), { readOnly: true });
++  try {
++    const where: string[] = [];
++    const parameters: Array<string> = [];
++    if (kinds.length > 0) { where.push(`kind IN (${kinds.map(() => "?").join(",")})`); parameters.push(...kinds); }
++    if (options.status) { where.push("status = ?"); parameters.push(options.status.slice(0, 64)); }
++    if (options.unverified) where.push("kind = 'requirement' AND status <> 'verified'");
++    if (options.text) { where.push("(lower(title) LIKE lower(?) OR lower(body) LIKE lower(?))"); const text = `%${options.text.slice(0, 256)}%`; parameters.push(text, text); }
++    const sql = `SELECT id, kind, title, body, status, source_path AS sourcePath, source_hash AS sourceHash, schema_version AS schemaVersion, indexed_at AS indexedAt, repository_head AS repositoryHead, locator FROM records${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY kind, id LIMIT ?`;
++    parameters.push(String(limit));
++    const rows = db.prepare(sql).all(...parameters) as Array<IndexedRecord & { sourcePath: string; sourceHash: string; schemaVersion: string; indexedAt: string; repositoryHead: string }>;
++    const filtered = rows.map((record) => ({ ...record, stale: recordIsStale(root, record) })).filter((record) => !options.stale || record.stale);
++    return {
++      version: QUERY_VERSION,
++      status: index.status,
++      query,
++      indexedAt: index.indexedAt,
++      repositoryHead: index.repositoryHead,
++      total: filtered.length,
++      omitted: Math.max(0, (index.recordCount ?? 0) - filtered.length),
++      results: filtered.map(({ body, ...record }) => ({ ...record, snippet: body.slice(0, MAX_SNIPPET_LENGTH) })),
++      reasons: index.reasons
++    };
++  } finally {
++    db.close();
++  }
++}
++
++export function normalizeQueryKind(value: string | undefined): { text?: string; kinds?: string[] } {
++  if (!value) return {};
++  if (kindAliases[value.toLowerCase()]) return { kinds: [value] };
++  return { text: value };
++}
+diff --git a/tests/integration/local-index.test.ts b/tests/integration/local-index.test.ts
+new file mode 100644
+index 0000000..de7ac42
+--- /dev/null
++++ b/tests/integration/local-index.test.ts
+@@ -0,0 +1,32 @@
++import { describe, expect, test } from "vitest";
++import { main } from "../../src/cli.js";
++import { queryIndex, rebuildIndex } from "../../src/core/local-index.js";
++import { makeTempRepo, writeText } from "../helpers.js";
++
++function capture(root: string, args: string[]): { code: number; output: string } {
++  const originalWrite = process.stdout.write;
++  let output = "";
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    output += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8");
++    return true;
++  }) as typeof process.stdout.write;
++  try { return { code: main(args, root), output }; }
++  finally { process.stdout.write = originalWrite; }
++}
++
++describe("local index CLI and scale fixture", () => {
++  test("rebuilds and queries more than 1000 records with bounded JSON", () => {
++    const root = makeTempRepo();
++    for (let index = 0; index < 1_050; index += 1) {
++      writeText(root, `contracts/tasks/TASK-${index}.yaml`, `id: TASK-${index}\ntype: task-contract\nfeatureId: F-${index}\ntitle: auth task ${index}\nstatus: blocked\nallowedPaths: []\nforbiddenPaths: []\nhumanGateRequiredPaths: []\nrequiredChecks: []\ndoneCriteria: []\nevidenceRequired: []\n`);
++    }
++    const rebuilt = rebuildIndex(root) as { recordCount: number };
++    expect(rebuilt.recordCount).toBeGreaterThanOrEqual(1_050);
++    const result = queryIndex(root, { text: "auth", kinds: ["task"], limit: 100 });
++    expect(result.results).toHaveLength(100);
++    expect(result.omitted).toBeGreaterThan(900);
++    const cli = capture(root, ["query", "tasks", "--status", "blocked", "--limit", "2", "--json"]);
++    expect(cli.code).toBe(0);
++    expect(JSON.parse(cli.output)).toMatchObject({ version: "scwbs.query.v1", query: { kinds: ["task"], limit: 2 }, results: expect.any(Array) });
++  }, 60_000);
++});
+diff --git a/tests/unit/local-index.test.ts b/tests/unit/local-index.test.ts
+new file mode 100644
+index 0000000..0e71c8f
+--- /dev/null
++++ b/tests/unit/local-index.test.ts
+@@ -0,0 +1,38 @@
++import { mkdirSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { indexStatus, queryIndex, rebuildIndex, verifyIndex } from "../../src/core/local-index.js";
++import { makeTempRepo, writeText } from "../helpers.js";
++
++describe("local SQLite index", () => {
++  test("rebuilds canonical records with provenance and bounded query output", () => {
++    const root = makeTempRepo();
++    writeText(root, "contracts/specs/SPEC-A.yaml", "id: SPEC-A\ntype: spec-contract\nversion: 1.0.0\ntitle: Auth policy\nstatus: approved\nacceptanceCriteria:\n  - Verify auth\n");
++    const rebuilt = rebuildIndex(root) as { recordCount: number; status: string };
++    expect(rebuilt).toMatchObject({ status: "pass" });
++    expect(rebuilt.recordCount).toBeGreaterThanOrEqual(2);
++    expect(indexStatus(root)).toMatchObject({ status: "ready", path: ".scwbs/cache/index.sqlite" });
++    expect(queryIndex(root, { text: "auth", limit: 1 })).toMatchObject({ version: "scwbs.query.v1", status: "ready", results: [{ sourcePath: "contracts/specs/SPEC-A.yaml", sourceHash: expect.stringMatching(/^sha256:/), locator: expect.stringMatching(/^contracts\/specs\/SPEC-A.yaml/) }] });
++    expect((queryIndex(root, { text: "auth", limit: 100 }).results[0]?.snippet.length ?? 0)).toBeLessThanOrEqual(500);
++    expect(verifyIndex(root)).toMatchObject({ version: "scwbs.index-verify.v1", status: "ready" });
++  });
++
++  test("detects stale sources and recovers corrupt cache by rebuild", () => {
++    const root = makeTempRepo();
++    writeText(root, "contracts/specs/SPEC-A.yaml", "id: SPEC-A\ntype: spec-contract\nversion: 1.0.0\ntitle: Initial\nstatus: approved\nacceptanceCriteria: []\n");
++    rebuildIndex(root);
++    writeText(root, "contracts/specs/SPEC-A.yaml", "id: SPEC-A\ntype: spec-contract\nversion: 1.0.0\ntitle: Changed auth\nstatus: approved\nacceptanceCriteria: []\n");
++    expect(indexStatus(root)).toMatchObject({ status: "stale", reasons: expect.arrayContaining(["index.source.stale"]) });
++    expect(queryIndex(root, { kinds: ["spec"], stale: true }).results).toHaveLength(1);
++    writeFileSync(path.join(root, ".scwbs/cache/index.sqlite"), "corrupt", "utf8");
++    expect(indexStatus(root)).toMatchObject({ status: "corrupt" });
++    expect(rebuildIndex(root)).toMatchObject({ status: "pass" });
++    expect(indexStatus(root)).toMatchObject({ status: "ready" });
++  });
++
++  test("missing cache is a non-authoritative fallback", () => {
++    const root = makeTempRepo();
++    mkdirSync(path.join(root, "contracts"), { recursive: true });
++    expect(queryIndex(root, { text: "anything" })).toMatchObject({ status: "missing", total: 0, results: [] });
++  });
++});

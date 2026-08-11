@@ -30,6 +30,8 @@ import { runTrace } from "./commands/trace.js";
 import { runServe, runUi } from "./commands/ui.js";
 import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
 import { runMcpStdio } from "./commands/mcp.js";
+import { runIndexRebuild, runIndexStatus, runIndexVerify } from "./commands/local-index.js";
+import { runQuery } from "./commands/query.js";
 import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
 import { registerDiscoveryCommands } from "./cli/register-discovery.js";
 import { registerGovernanceCommands } from "./cli/register-governance.js";
@@ -503,6 +505,23 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       }
       exitCode = runMcpStdio(root);
     });
+
+  const index = program.command("index").description("Manage the rebuildable local navigation index");
+  index.command("rebuild").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexRebuild(root, { json: opts.json ?? false }); });
+  index.command("status").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexStatus(root, { json: opts.json ?? false }); });
+  index.command("verify").option("--json", "output a versioned JSON result").action((opts) => { exitCode = runIndexVerify(root, { json: opts.json ?? false }); });
+
+  program
+    .command("query")
+    .description("Search the derived local index without exposing SQL")
+    .argument("[text]", "bounded text or kind alias")
+    .option("--kind <kinds>", "comma-separated record kinds")
+    .option("--status <status>", "exact indexed status")
+    .option("--unverified", "show unverified requirements")
+    .option("--stale", "show records whose source hash changed")
+    .option("--limit <count>", "maximum results", (value) => Math.max(1, Math.min(100, Number(value))))
+    .option("--json", "output a versioned JSON result")
+    .action((text: string | undefined, opts) => { exitCode = runQuery(root, text, { kind: opts.kind, status: opts.status, unverified: opts.unverified ?? false, stale: opts.stale ?? false, limit: opts.limit, json: opts.json ?? false }); });
 
   program
     .command("finish")

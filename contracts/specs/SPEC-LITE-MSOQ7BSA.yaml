@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSOQ7BSA
+type: spec-contract
+featureId: F-MSOQ7BSA
+title: "Issue #535: rebuildable local index and bounded query"
+status: approved
+version: 0.1.1
+summary: "canonical YAML/JSON artifact から再構築できる SQLite navigation cache と bounded query を追加する"
+approvedBy: user-requested-issue-535-ci-compatibility
+approvedAt: "2026-08-12T00:23:01+09:00"
+acceptanceCriteria:
+  - "scwbs index rebuild creates a SQLite cache under .scwbs/cache from canonical YAML/JSON artifacts and can fully rebuild it without treating the cache as authority."
+  - "scwbs index status --json and index verify --json return bounded versioned status with source path, source hash, schema version, indexedAt, and repository HEAD provenance."
+  - "scwbs query --json supports bounded cross-artifact text/kind filters for Task, Spec, Requirement, Evidence, Review, Approval, Block, Discovery, WBS, and Finding records without exposing SQL as a user-facing API."
+  - "Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache."
+  - "Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof."
+  - "A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands."
+  - "The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag."

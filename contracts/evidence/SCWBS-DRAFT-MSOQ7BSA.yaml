@@ -1,0 +1,103 @@
+id: EVD-SCWBS-DRAFT-MSOQ7BSA
+type: evidence
+taskId: SCWBS-DRAFT-MSOQ7BSA
+commit: 74764d675688b51d882a1febc1135fc11d156a7f
+subjectHeadCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 74764d675688b51d882a1febc1135fc11d156a7f
+    treeHash: ce0bae2a375980dccf8b4ebf25ae9b2f751a2605
+    diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOQ7BSA.patch
+    manifestHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+git:
+  branch: task/SCWBS-DRAFT-MSOQ7BSA-p1-indexing-add-a-rebuildable-local-sqlite-index
+  base: origin/main
+  baseCommit: b2cd5b943847f5eac358dfbda57fe522465d257c
+  changedFilesBasis: branch-diff
+  pullRequest: "547"
+  subjectHeadCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+  diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+  headCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+changedFiles:
+  - .github/workflows/scwbs.yml
+  - .gitignore
+  - contracts/approvals/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/check-coverage.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOQ7BSA.patch
+  - contracts/evidence/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/tasks/index.yaml
+  - docs/implementation-gaps.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/distribution.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/schemas/query.schema.json
+  - package-lock.json
+  - package.json
+  - src/cli.ts
+  - src/commands/local-index.ts
+  - src/commands/query.ts
+  - src/core/local-index.ts
+  - tests/integration/local-index.test.ts
+  - tests/unit/local-index.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: b2cd5b943847f5eac358dfbda57fe522465d257c
+    headCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+    diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+  tests:
+    filesAdded: 2
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:588412411db2a61a16a31c2adca7db12aefebe7dfa22d5b29527fd4b83215d6c
+    durationMilliseconds: 17971
+    executedAt: "2026-08-11T15:32:59.113Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e237404927c180ab2ecc06c0247d9c3abf7ed0a90e5c961eb59d871dcc010bc9
+    durationMilliseconds: 10609
+    executedAt: "2026-08-11T15:33:09.725Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:69520492f6c8c4bcefe3d53df368a247e471935986bbefee2aca108f914406f5
+    durationMilliseconds: 4415
+    executedAt: "2026-08-11T15:33:14.145Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:d6999af212613a42f343f140de37132aa5ffd2e2d78e6d42bf5fba85341e8dea
+    durationMilliseconds: 318313
+    executedAt: "2026-08-11T15:38:32.462Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added SQLite rebuild/query, stale/corrupt recovery, provenance, bounded query, 1000+ record fixture coverage, and Node runtime compatibility coverage.

@@ -1,0 +1,85 @@
+id: SCWBS-DRAFT-MSOQ7BSA
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSOQ7BSA
+branchName: task/SCWBS-DRAFT-MSOQ7BSA-p1-indexing-add-a-rebuildable-local-sqlite-index
+allowedPaths:
+  - src/core/local-index.ts
+  - src/commands/local-index.ts
+  - src/commands/query.ts
+  - src/cli.ts
+  - src/core/types.ts
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/query.schema.json
+  - docs/implementation-gaps.md
+  - docs/scwbs/getting-started.md
+  - docs/scwbs/distribution.md
+  - contracts/check-coverage.yaml
+  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
+  - .gitignore
+  - package.json
+  - package-lock.json
+  - .github/workflows/scwbs.yml
+  - tests/unit/**
+  - tests/integration/**
+  - tests/fixtures/local-index/**
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .gitignore
+  - src/core/local-index.ts
+  - src/commands/local-index.ts
+  - src/commands/query.ts
+  - src/cli.ts
+  - src/core/types.ts
+  - contracts/check-coverage.yaml
+  - docs/scwbs/schemas/query.schema.json
+stopIf:
+  - Human Gate required
+  - additional path required
+  - dependency addition or dependency graph change
+  - remote hosted database
+  - stale cache used for authority
+  - destructive source artifact deletion
+  - authentication or permission change
+  - unbounded query output
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - scwbs index rebuild creates a SQLite cache under .scwbs/cache from canonical YAML/JSON artifacts and can fully rebuild it without treating the cache as authority.
+  - scwbs index status --json and index verify --json return bounded versioned status with source path, source hash, schema version, indexedAt, and repository HEAD provenance.
+  - scwbs query --json supports bounded cross-artifact text/kind filters for Task, Spec, Requirement, Evidence, Review, Approval, Block, Discovery, WBS, and Finding records without exposing SQL as a user-facing API.
+  - Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache.
+  - Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof.
+  - A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands.
+  - The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSOQ7BSA.patch
+  - contracts/approvals/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSOQ7BSA.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.1
+  specRevision: sha256:44fd1c2dce082594a050496ab6cbd8a6ce6d8f78b5e84d06e78a2724b6dc6202
+  createdAt: "2026-08-11T15:23:46.475Z"
