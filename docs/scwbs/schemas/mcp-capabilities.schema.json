@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/mcp-capabilities.schema.json",
+  "title": "SC-WBS MCP capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "transport", "readOnly", "mutations", "humanOnly", "networkListener"],
+  "properties": {
+    "version": { "const": "scwbs.mcp-capabilities.v1" },
+    "transport": { "const": "stdio" },
+    "readOnly": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["status", "next", "packet", "trace", "evidence", "review-queue"] },
+      "uniqueItems": true
+    },
+    "mutations": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["task.preflight", "check", "finish", "block"] },
+      "uniqueItems": true
+    },
+    "humanOnly": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["approval.approve", "review.transition", "policy.downgrade", "evidence.prune", "merge.bypass"] },
+      "uniqueItems": true
+    },
+    "networkListener": { "const": false }
+  }
+}

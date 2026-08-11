@@ -1,0 +1,696 @@
+diff --git a/contracts/check-coverage.yaml b/contracts/check-coverage.yaml
+index 3c514d6..4268834 100644
+--- a/contracts/check-coverage.yaml
++++ b/contracts/check-coverage.yaml
+@@ -44,6 +44,7 @@ rules:
+       - src/commands/lite.ts
+       - src/commands/metrics.ts
+       - src/commands/merge.ts
++      - src/commands/mcp.ts
+       - src/commands/next.ts
+       - src/commands/plan.ts
+       - src/commands/pack.ts
+@@ -102,6 +103,7 @@ rules:
+       - src/core/health-lifecycle.ts
+       - src/core/json.ts
+       - src/core/managed-contract-paths.ts
++      - src/core/mcp.ts
+       - src/core/merge-preflight.ts
+       - src/core/node-utils.ts
+       - src/core/paths.ts
+diff --git a/contracts/specs/SPEC-LITE-MSOOMYGM.yaml b/contracts/specs/SPEC-LITE-MSOOMYGM.yaml
+new file mode 100644
+index 0000000..a5236af
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSOOMYGM.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSOOMYGM
++type: spec-contract
++featureId: F-MSOOMYGM
++title: "Issue #531: stdio-only MCP server"
++status: approved
++version: 0.1.0
++summary: "既存の versioned JSON builder と authority evaluator を再利用し、stdio-only MCP surface を安全に提供する"
++approvedBy: user-requested-issue-531
++approvedAt: "2026-08-11T00:00:00+09:00"
++acceptanceCriteria:
++  - "scwbs mcp --stdio starts a dependency-free MCP-compatible JSON-RPC server with stdout reserved for protocol messages and logs sent to stderr."
++  - "Versioned status, next, packet, trace, evidence, and review-queue resources reuse existing JSON/domain builders and return bounded structured output."
++  - "Task preflight, check, finish, and block tools validate structured input and reuse existing authority evaluators without exposing approval, review transition, policy downgrade, destructive prune, or merge bypass operations."
++  - "Current repository root is fixed at startup; alternate cwd, path traversal, invalid Task IDs, stale Evidence, Human Gate, and forbidden-path requests fail closed."
++  - "MCP input/output schemas are deterministic and versioned; arbitrary shell strings, secrets, delegation tokens, and network listeners are not exposed."
++  - "MCP unavailable fallback preserves the existing CLI workflow and agent adapters can declare MCP capability metadata without changing their safety semantics."
++  - "Unit and integration tests cover protocol framing, stdout pollution, resource/tool schemas, evaluator parity, Human-only boundaries, invalid input, and fallback behavior."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSOOMYGM.yaml b/contracts/tasks/SCWBS-DRAFT-MSOOMYGM.yaml
+new file mode 100644
+index 0000000..ab9963a
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSOOMYGM.yaml
+@@ -0,0 +1,75 @@
++id: SCWBS-DRAFT-MSOOMYGM
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSOOMYGM
++branchName: task/SCWBS-DRAFT-MSOOMYGM-p1-integration-expose-versioned-sc-wbs-json-thro
++allowedPaths:
++  - src/core/mcp.ts
++  - src/commands/mcp.ts
++  - src/cli.ts
++  - src/core/types.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/mcp-capabilities.schema.json
++  - docs/implementation-gaps.md
++  - contracts/check-coverage.yaml
++  - contracts/specs/SPEC-LITE-MSOOMYGM.yaml
++  - tests/unit/**
++  - tests/integration/**
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/mcp.ts
++  - src/commands/mcp.ts
++  - src/cli.ts
++  - src/core/types.ts
++  - contracts/check-coverage.yaml
++  - docs/scwbs/schemas/mcp-capabilities.schema.json
++stopIf:
++  - Human Gate required
++  - additional path required
++  - arbitrary shell or JavaScript hook
++  - Human-only operation exposure
++  - policy downgrade
++  - dependency or authentication change
++  - remote network listener
++  - secret or delegation token exposure
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - scwbs mcp --stdio starts a dependency-free MCP-compatible JSON-RPC server with stdout reserved for protocol messages and logs sent to stderr.
++  - Versioned status, next, packet, trace, evidence, and review-queue resources reuse existing JSON/domain builders and return bounded structured output.
++  - Task preflight, check, finish, and block tools validate structured input and reuse existing authority evaluators without exposing approval, review transition, policy downgrade, destructive prune, or merge bypass operations.
++  - Current repository root is fixed at startup; alternate cwd, path traversal, invalid Task IDs, stale Evidence, Human Gate, and forbidden-path requests fail closed.
++  - MCP input/output schemas are deterministic and versioned; arbitrary shell strings, secrets, delegation tokens, and network listeners are not exposed.
++  - MCP unavailable fallback preserves the existing CLI workflow and agent adapters can declare MCP capability metadata without changing their safety semantics.
++  - Unit and integration tests cover protocol framing, stdout pollution, resource/tool schemas, evaluator parity, Human-only boundaries, invalid input, and fallback behavior.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSOOMYGM.yaml
++  - contracts/specs/SPEC-LITE-MSOOMYGM.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSOOMYGM.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSOOMYGM.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSOOMYGM.patch
++  - contracts/approvals/SCWBS-DRAFT-MSOOMYGM.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSOOMYGM.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:23361cbadcc960471bffd33d4c841787f01f1aa6c15f599c1c4b9dd90000724f
++  createdAt: "2026-08-11T13:15:57.701Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 62e1da4..26de1ff 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1945,3 +1945,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T13:10:24.655Z"
++  - id: SCWBS-DRAFT-MSOOMYGM
++    path: contracts/tasks/SCWBS-DRAFT-MSOOMYGM.yaml
++    branchName: task/SCWBS-DRAFT-MSOOMYGM-p1-integration-expose-versioned-sc-wbs-json-thro
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 9fb3ebe..19a566b 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -29,6 +29,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Priority-aware planned-task candidate listing through `ai next-task`
+ - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
+ - Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
++- Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
+ - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 16058e2..31ecb7c 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -66,6 +66,7 @@ npm run scwbs -- pack search security --json
+ npm run scwbs -- pack info org.example.secure-node --json
+ npm run scwbs -- pack update org.example.secure-node --dry-run --json
+ npm run scwbs -- pack remove org.example.secure-node --dry-run --json
++npm run scwbs -- mcp --stdio
+ npm run scwbs -- check
+ npm run scwbs -- fix
+ npm run scwbs -- doctor
+@@ -109,6 +110,8 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
+ 
+ `pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
+ 
++`mcp --stdio` は network listener を持たない MCP-compatible JSON-RPC server である。stdout は protocol message 専用、診断は stderr に分離される。`resources/list` / `resources/read` は `status`、`next`、`packet`、`trace`、`evidence`、`review-queue` を read-only resource として公開し、`tools/list` / `tools/call` は `scwbs.task.preflight`、`scwbs.check`、`scwbs.finish`、`scwbs.block` の structured input のみを受け付ける。既存の versioned JSON builder と authority evaluator を再利用するため、Human Approval、Review transition、policy downgrade、Evidence prune、merge bypass は公開されない。能力メタデータの契約は `scwbs.mcp-capabilities.v1` と [`docs/scwbs/schemas/mcp-capabilities.schema.json`](schemas/mcp-capabilities.schema.json) で固定する。MCP が使えない agent は従来の CLI workflow をそのまま利用する。
++
+ ### Navigation JSON contracts
+ 
+ `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
+@@ -625,12 +628,15 @@ npm run scwbs -- promote --task SCWBS-001
+ npm run scwbs -- trace --task SCWBS-001
+ npm run scwbs -- ui
+ npm run scwbs -- serve
++npm run scwbs -- mcp --stdio
+ ```
+ 
+ `ui` is a text dashboard.
+ 
+ `serve` is a **reserved, not-yet-implemented command**. It intentionally does nothing until a dependency change passes Human Gate; it is not a running feature you can rely on today. Do not add `serve` to production scripts or CI pipelines.
+ 
++`mcp --stdio` is the supported local integration surface. It fixes the repository root at startup and rejects alternate cwd, traversal, unknown resources, invalid Task IDs, and unbounded messages. It does not expose a remote server or accept shell command strings.
++
+ ## WBS
+ 
+ ```bash
+@@ -722,6 +728,7 @@ When task changes include tests, record manual test quality metadata with `--tes
+ | `merge --preflight-only`                                                                                            | external state read                                                             | GitHub PR metadata/checksを読む                                                                    |
+ | `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
+ | `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
++| `mcp --stdio`                                                                                                       | read-only resources; tracked-artifact mutation for `finish`/`block`              | MCP JSON-RPC over stdio only。Human-only operationsは公開しない                              |
+ 
+ ## 終了コード
+ 
+diff --git a/docs/scwbs/schemas/mcp-capabilities.schema.json b/docs/scwbs/schemas/mcp-capabilities.schema.json
+new file mode 100644
+index 0000000..592123c
+--- /dev/null
++++ b/docs/scwbs/schemas/mcp-capabilities.schema.json
+@@ -0,0 +1,28 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/mcp-capabilities.schema.json",
++  "title": "SC-WBS MCP capabilities",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "transport", "readOnly", "mutations", "humanOnly", "networkListener"],
++  "properties": {
++    "version": { "const": "scwbs.mcp-capabilities.v1" },
++    "transport": { "const": "stdio" },
++    "readOnly": {
++      "type": "array",
++      "items": { "type": "string", "enum": ["status", "next", "packet", "trace", "evidence", "review-queue"] },
++      "uniqueItems": true
++    },
++    "mutations": {
++      "type": "array",
++      "items": { "type": "string", "enum": ["task.preflight", "check", "finish", "block"] },
++      "uniqueItems": true
++    },
++    "humanOnly": {
++      "type": "array",
++      "items": { "type": "string", "enum": ["approval.approve", "review.transition", "policy.downgrade", "evidence.prune", "merge.bypass"] },
++      "uniqueItems": true
++    },
++    "networkListener": { "const": false }
++  }
++}
+diff --git a/src/cli.ts b/src/cli.ts
+index 36c20b4..1b462d0 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -29,6 +29,7 @@ import { runStatus } from "./commands/status.js";
+ import { runTrace } from "./commands/trace.js";
+ import { runServe, runUi } from "./commands/ui.js";
+ import { runUpgrade, runVersion, runVersionCheck } from "./commands/version.js";
++import { runMcpStdio } from "./commands/mcp.js";
+ import { parseTestQuality, type CommandContext } from "./cli/command-context.js";
+ import { registerDiscoveryCommands } from "./cli/register-discovery.js";
+ import { registerGovernanceCommands } from "./cli/register-governance.js";
+@@ -490,6 +491,19 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .description("Report that the reserved API server is unavailable")
+     .action(() => { exitCode = runServe(); });
+ 
++  program
++    .command("mcp")
++    .description("Run the stdio-only MCP server")
++    .option("--stdio", "run the MCP JSON-RPC server over stdin/stdout")
++    .action((opts) => {
++      if (!opts.stdio) {
++        console.error("scwbs mcp requires --stdio; network listeners are not supported");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runMcpStdio(root);
++    });
++
+   program
+     .command("finish")
+     .description("Finish a task")
+diff --git a/src/commands/mcp.ts b/src/commands/mcp.ts
+new file mode 100644
+index 0000000..6dab855
+--- /dev/null
++++ b/src/commands/mcp.ts
+@@ -0,0 +1 @@
++export { handleMcpRequest, runMcpStdio } from "../core/mcp.js";
+diff --git a/src/core/mcp.ts b/src/core/mcp.ts
+new file mode 100644
+index 0000000..264b52b
+--- /dev/null
++++ b/src/core/mcp.ts
+@@ -0,0 +1,323 @@
++import { buildTinyPacket } from "../commands/ai-packet.js";
++import { runAiBlock } from "../commands/ai-queue.js";
++import { buildTaskPreflightOutput } from "../commands/task-new.js";
++import { runFinish } from "../commands/finish.js";
++import { collectCheckIssues } from "../commands/check.js";
++import { buildNextJsonOutput } from "../commands/next.js";
++import { buildReviewQueueSummary } from "../commands/review-queue.js";
++import { buildStatusJsonOutput } from "../commands/status.js";
++import { buildTraceJson } from "../commands/trace.js";
++import { readEvidence } from "./contracts.js";
++
++export const MCP_PROTOCOL_VERSION = "2025-06-18" as const;
++export const MCP_SERVER_VERSION = "scwbs.mcp.v1" as const;
++const MAX_MESSAGE_BYTES = 100_000;
++const TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
++
++type JsonObject = Record<string, unknown>;
++type JsonRpcId = string | number | null;
++type JsonRpcRequest = {
++  jsonrpc?: unknown;
++  id?: unknown;
++  method?: unknown;
++  params?: unknown;
++};
++
++type JsonRpcResponse = {
++  jsonrpc: "2.0";
++  id: JsonRpcId;
++  result?: unknown;
++  error?: { code: number; message: string; data?: unknown };
++};
++
++type McpResource = {
++  uri: string;
++  name: string;
++  description: string;
++  mimeType: "application/json" | "text/plain";
++};
++
++type McpTool = {
++  name: string;
++  description: string;
++  inputSchema: JsonObject;
++};
++
++const resources: McpResource[] = [
++  { uri: "scwbs://project/status", name: "project-status", description: "Read-only SC-WBS status", mimeType: "application/json" },
++  { uri: "scwbs://project/next", name: "project-next", description: "Read-only next action", mimeType: "application/json" },
++  { uri: "scwbs://review-queue", name: "review-queue", description: "Read-only review queue", mimeType: "application/json" }
++];
++
++const tools: McpTool[] = [
++  {
++    name: "scwbs.task.preflight",
++    description: "Evaluate a prospective Task Contract without creating authority",
++    inputSchema: {
++      type: "object",
++      properties: {
++        title: { type: "string", minLength: 1, maxLength: 240 },
++        paths: { type: "array", items: { type: "string", minLength: 1, maxLength: 240 }, minItems: 1, maxItems: 100 },
++        profile: { type: "string", enum: ["lean", "standard", "strict", "Lean", "Standard", "Strict"] }
++      },
++      required: ["title", "paths"],
++      additionalProperties: false
++    }
++  },
++  {
++    name: "scwbs.check",
++    description: "Run the existing read-only SC-WBS contract evaluator",
++    inputSchema: { type: "object", properties: {}, additionalProperties: false }
++  },
++  {
++    name: "scwbs.finish",
++    description: "Run the existing Task finish evaluator; Human Gates remain blocking",
++    inputSchema: {
++      type: "object",
++      properties: { taskId: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" } },
++      required: ["taskId"],
++      additionalProperties: false
++    }
++  },
++  {
++    name: "scwbs.block",
++    description: "Record an AI block through the existing evaluator; this cannot resolve a block",
++    inputSchema: {
++      type: "object",
++      properties: {
++        taskId: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
++        reason: { type: "string", minLength: 1, maxLength: 2_000 }
++      },
++      required: ["taskId", "reason"],
++      additionalProperties: false
++    }
++  }
++];
++
++function errorResponse(id: JsonRpcId, code: number, message: string, data?: unknown): JsonRpcResponse {
++  return { jsonrpc: "2.0", id, error: data === undefined ? { code, message } : { code, message, data } };
++}
++
++function successResponse(id: JsonRpcId, result: unknown): JsonRpcResponse {
++  return { jsonrpc: "2.0", id, result };
++}
++
++function requestId(request: JsonRpcRequest): JsonRpcId {
++  return typeof request.id === "string" || typeof request.id === "number" || request.id === null ? request.id : null;
++}
++
++function isObject(value: unknown): value is JsonObject {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
++
++function publicValue(value: unknown, depth = 0): unknown {
++  if (depth > 12) return "[truncated]";
++  if (Array.isArray(value)) return value.slice(0, 200).map((item) => publicValue(item, depth + 1));
++  if (!isObject(value)) return value;
++  const output: JsonObject = {};
++  for (const [key, item] of Object.entries(value)) {
++    if (/secret|token|password|credential|private.?key|authorization/i.test(key)) continue;
++    output[key] = publicValue(item, depth + 1);
++  }
++  return output;
++}
++
++function jsonText(value: unknown): string {
++  const text = JSON.stringify(publicValue(value)) ?? "null";
++  if (Buffer.byteLength(text, "utf8") > MAX_MESSAGE_BYTES) throw new Error("MCP response exceeds bounded output limit");
++  return text;
++}
++
++function textContent(uri: string, value: unknown, mimeType: McpResource["mimeType"]): JsonObject {
++  const text = typeof value === "string" ? value : jsonText(value);
++  if (Buffer.byteLength(text, "utf8") > MAX_MESSAGE_BYTES) throw new Error("MCP resource exceeds bounded output limit");
++  return { contents: [{ uri, mimeType, text }] };
++}
++
++function requireObject(value: unknown): JsonObject {
++  if (!isObject(value)) throw new Error("params must be a JSON object");
++  return value;
++}
++
++function requireString(value: unknown, field: string, maxLength: number): string {
++  if (typeof value !== "string" || value.trim().length === 0 || value.length > maxLength) {
++    throw new Error(`${field} must be a non-empty bounded string`);
++  }
++  return value.trim();
++}
++
++function requireTaskId(value: unknown): string {
++  const taskId = requireString(value, "taskId", 128);
++  if (!TASK_ID_PATTERN.test(taskId) || taskId.includes("..")) throw new Error("taskId contains an invalid path segment");
++  return taskId;
++}
++
++function requireStringArray(value: unknown, field: string): string[] {
++  if (!Array.isArray(value) || value.length === 0 || value.length > 100 || value.some((item) => typeof item !== "string" || item.length === 0 || item.length > 240)) {
++    throw new Error(`${field} must be a bounded non-empty string array`);
++  }
++  return value.map((item) => (item as string).trim());
++}
++
++function parseTaskResource(uri: string): { taskId: string; kind: "packet" | "trace" | "evidence" } | undefined {
++  const match = /^scwbs:\/\/tasks\/([^/]+)\/(packet|trace|evidence)$/.exec(uri);
++  if (!match) return undefined;
++  const taskId = requireTaskId(decodeURIComponent(match[1]));
++  return { taskId, kind: match[2] as "packet" | "trace" | "evidence" };
++}
++
++function captureCommand<T>(fn: () => T): { value: T; stdout: string; stderr: string } {
++  let stdout = "";
++  let stderr = "";
++  const originalStdout = process.stdout.write;
++  const originalStderr = process.stderr.write;
++  process.stdout.write = ((chunk: string | Uint8Array) => {
++    stdout += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8");
++    return true;
++  }) as typeof process.stdout.write;
++  process.stderr.write = ((chunk: string | Uint8Array) => {
++    stderr += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8");
++    return true;
++  }) as typeof process.stderr.write;
++  try {
++    return { value: fn(), stdout, stderr };
++  } finally {
++    process.stdout.write = originalStdout;
++    process.stderr.write = originalStderr;
++  }
++}
++
++function capturedResult(tool: string, exitCode: number, captured: { stdout: string; stderr: string }): JsonObject {
++  const capturedText = captured.stdout.trim();
++  let output: unknown = capturedText;
++  if (capturedText.length > 0) {
++    try { output = JSON.parse(capturedText); } catch { output = capturedText.slice(0, MAX_MESSAGE_BYTES); }
++  }
++  return {
++    version: "scwbs.mcp-tool-result.v1",
++    tool,
++    status: exitCode === 0 ? "pass" : "blocked",
++    exitCode,
++    output: publicValue(output),
++    diagnostics: captured.stderr.trim().slice(0, 20_000)
++  };
++}
++
++function resourceList(): JsonObject {
++  return {
++    resources,
++    resourceTemplates: [
++      { uriTemplate: "scwbs://tasks/{taskId}/packet", name: "task-packet", description: "Read-only bounded Task packet", mimeType: "text/plain" },
++      { uriTemplate: "scwbs://tasks/{taskId}/trace", name: "task-trace", description: "Read-only Task trace graph", mimeType: "application/json" },
++      { uriTemplate: "scwbs://tasks/{taskId}/evidence", name: "task-evidence", description: "Read-only sanitized Task Evidence", mimeType: "application/json" }
++    ]
++  };
++}
++
++function readResource(root: string, uri: string): JsonObject {
++  if (uri === "scwbs://project/status") return textContent(uri, buildStatusJsonOutput(root), "application/json");
++  if (uri === "scwbs://project/next") return textContent(uri, buildNextJsonOutput(root), "application/json");
++  if (uri === "scwbs://review-queue") return textContent(uri, buildReviewQueueSummary(root, 100), "application/json");
++  const taskResource = parseTaskResource(uri);
++  if (!taskResource) throw new Error("Unknown or invalid MCP resource URI");
++  if (taskResource.kind === "packet") return textContent(uri, buildTinyPacket(root, taskResource.taskId), "text/plain");
++  if (taskResource.kind === "trace") return textContent(uri, buildTraceJson(root, taskResource.taskId), "application/json");
++  const { evidence, issues } = readEvidence(root, taskResource.taskId);
++  if (!evidence) throw new Error(issues.map((issue) => issue.message).join("\n") || "Evidence not found");
++  return textContent(uri, evidence, "application/json");
++}
++
++function callTool(root: string, name: string, rawArguments: unknown): JsonObject {
++  const args = requireObject(rawArguments ?? {});
++  if (name === "scwbs.task.preflight") {
++    const title = requireString(args.title, "title", 240);
++    const paths = requireStringArray(args.paths, "paths");
++    const profile = args.profile === undefined ? undefined : requireString(args.profile, "profile", 32);
++    return { version: "scwbs.mcp-tool-result.v1", tool: name, status: "pass", result: buildTaskPreflightOutput(root, { title, paths, profile }) };
++  }
++  if (name === "scwbs.check") {
++    const issues = collectCheckIssues(root);
++    return { version: "scwbs.mcp-tool-result.v1", tool: name, status: issues.some((issue) => issue.severity === "error") ? "fail" : "pass", result: { version: "scwbs.check.v1", status: issues.some((issue) => issue.severity === "error") ? "fail" : "pass", issues: publicValue(issues) } };
++  }
++  if (name === "scwbs.finish") {
++    const taskId = requireTaskId(args.taskId);
++    const captured = captureCommand(() => runFinish(root, { taskId, force: true, json: true }));
++    return capturedResult(name, captured.value, captured);
++  }
++  if (name === "scwbs.block") {
++    const taskId = requireTaskId(args.taskId);
++    const reason = requireString(args.reason, "reason", 2_000);
++    const captured = captureCommand(() => runAiBlock(root, taskId, reason));
++    return capturedResult(name, captured.value, captured);
++  }
++  throw new Error("Unknown MCP tool");
++}
++
++function initializeResult(): JsonObject {
++  return {
++    protocolVersion: MCP_PROTOCOL_VERSION,
++    capabilities: { resources: { listChanged: false, subscribe: false }, tools: { listChanged: false } },
++    serverInfo: { name: "scwbs", version: MCP_SERVER_VERSION },
++    instructions: "stdio-only SC-WBS integration; Human-only operations and authority changes remain outside MCP"
++  };
++}
++
++export function handleMcpRequest(root: string, request: JsonRpcRequest): JsonRpcResponse | undefined {
++  const id = requestId(request);
++  if (request.jsonrpc !== "2.0" || typeof request.method !== "string") return errorResponse(id, -32600, "Invalid JSON-RPC request");
++  try {
++    switch (request.method) {
++      case "initialize": return successResponse(id, initializeResult());
++      case "notifications/initialized":
++      case "notifications/cancelled": return undefined;
++      case "ping": return successResponse(id, {});
++      case "resources/list": return successResponse(id, resourceList());
++      case "resources/read": {
++        const params = requireObject(request.params);
++        return successResponse(id, readResource(root, requireString(params.uri, "uri", 512)));
++      }
++      case "tools/list": return successResponse(id, { tools });
++      case "tools/call": {
++        const params = requireObject(request.params);
++        const name = requireString(params.name, "name", 128);
++        const result = callTool(root, name, params.arguments);
++        return successResponse(id, { content: [{ type: "text", text: jsonText(result), mimeType: "application/json" }], structuredContent: result, isError: result.status === "blocked" || result.status === "fail" });
++      }
++      default: return errorResponse(id, -32601, `Method not found: ${request.method}`);
++    }
++  } catch (error) {
++    return errorResponse(id, -32000, error instanceof Error ? error.message : String(error));
++  }
++}
++
++async function serveStdio(root: string): Promise<void> {
++  let buffer = "";
++  for await (const chunk of process.stdin) {
++    buffer += Buffer.from(chunk).toString("utf8");
++    const lines = buffer.split("\n");
++    buffer = lines.pop() ?? "";
++    for (const line of lines) {
++      if (!line.trim()) continue;
++      let response: JsonRpcResponse | undefined;
++      try {
++        response = handleMcpRequest(root, JSON.parse(line) as JsonRpcRequest);
++      } catch (error) {
++        response = errorResponse(null, -32700, error instanceof Error ? error.message : String(error));
++      }
++      if (response) process.stdout.write(`${JSON.stringify(response)}\n`);
++    }
++  }
++  if (buffer.trim()) {
++    const response = errorResponse(null, -32700, "Incomplete MCP JSON-RPC message");
++    process.stdout.write(`${JSON.stringify(response)}\n`);
++  }
++}
++
++export function runMcpStdio(root: string): number {
++  const fixedRoot = root;
++  void serveStdio(fixedRoot).catch((error) => {
++    process.stderr.write(`scwbs MCP server failed: ${error instanceof Error ? error.message : String(error)}\n`);
++    process.exitCode = 1;
++  });
++  return 0;
++}
+diff --git a/tests/integration/mcp.test.ts b/tests/integration/mcp.test.ts
+new file mode 100644
+index 0000000..8a7c93e
+--- /dev/null
++++ b/tests/integration/mcp.test.ts
+@@ -0,0 +1,33 @@
++import { execFileSync } from "node:child_process";
++import { existsSync } from "node:fs";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++
++describe("stdio MCP server", () => {
++  test("keeps stdout protocol-only and returns structured capabilities", () => {
++    const cli = path.join(process.cwd(), "dist/cli.js");
++    if (!existsSync(cli)) throw new Error("dist/cli.js is required; run the build before integration tests");
++    const input = [
++      JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
++      JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }),
++      JSON.stringify({ jsonrpc: "2.0", id: 3, method: "resources/list" })
++    ].join("\n") + "\n";
++    const output = execFileSync(process.execPath, [cli, "mcp", "--stdio"], { input, encoding: "utf8", cwd: process.cwd() });
++    const messages = output.trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
++    expect(messages).toHaveLength(3);
++    expect(messages[0]).toMatchObject({ jsonrpc: "2.0", id: 1, result: { serverInfo: { name: "scwbs" } } });
++    expect(messages[1]).toMatchObject({ jsonrpc: "2.0", id: 2, result: { tools: expect.any(Array) } });
++    expect(messages[2]).toMatchObject({ jsonrpc: "2.0", id: 3, result: { resources: expect.any(Array), resourceTemplates: expect.any(Array) } });
++    expect(output).not.toContain("scwbs waiting for active command");
++  });
++
++  test("does not expose Human-only or shell-shaped tool inputs", () => {
++    const cli = path.join(process.cwd(), "dist/cli.js");
++    const input = `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })}\n`;
++    const output = execFileSync(process.execPath, [cli, "mcp", "--stdio"], { input, encoding: "utf8", cwd: process.cwd() });
++    const response = JSON.parse(output) as { result: { tools: Array<{ name: string; inputSchema: { properties?: Record<string, unknown> } }> } };
++    const names = response.result.tools.map((tool) => tool.name);
++    expect(names.some((name) => /approval|review|merge|prune/i.test(name))).toBe(false);
++    expect(response.result.tools.flatMap((tool) => Object.keys(tool.inputSchema.properties ?? {}))).not.toContain("command");
++  });
++});
+diff --git a/tests/unit/mcp.test.ts b/tests/unit/mcp.test.ts
+new file mode 100644
+index 0000000..6e11f7c
+--- /dev/null
++++ b/tests/unit/mcp.test.ts
+@@ -0,0 +1,54 @@
++import { describe, expect, test } from "vitest";
++import { handleMcpRequest } from "../../src/core/mcp.js";
++
++describe("MCP protocol surface", () => {
++  test("returns deterministic initialize, resource, and tool capabilities", () => {
++    const initialize = handleMcpRequest(process.cwd(), { jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
++    expect(initialize).toMatchObject({
++      jsonrpc: "2.0",
++      id: 1,
++      result: {
++        protocolVersion: "2025-06-18",
++        capabilities: { resources: { subscribe: false }, tools: { listChanged: false } },
++        serverInfo: { name: "scwbs", version: "scwbs.mcp.v1" }
++      }
++    });
++
++    const resources = handleMcpRequest(process.cwd(), { jsonrpc: "2.0", id: 2, method: "resources/list" });
++    const resourceTemplates = (resources?.result as { resourceTemplates: Array<{ uriTemplate: string }> }).resourceTemplates;
++    expect(resourceTemplates).toEqual(expect.arrayContaining([expect.objectContaining({ uriTemplate: "scwbs://tasks/{taskId}/packet" })]));
++
++    const tools = handleMcpRequest(process.cwd(), { jsonrpc: "2.0", id: 3, method: "tools/list" });
++    const names = ((tools?.result as { tools: Array<{ name: string }> }).tools).map((tool) => tool.name);
++    expect(names).toEqual(["scwbs.task.preflight", "scwbs.check", "scwbs.finish", "scwbs.block"]);
++    expect(names).not.toContain("approval.approve");
++  });
++
++  test("rejects traversal, unknown resources, and unsupported methods", () => {
++    const traversal = handleMcpRequest(process.cwd(), {
++      jsonrpc: "2.0", id: 4, method: "resources/read", params: { uri: "scwbs://tasks/../secret/evidence" }
++    });
++    expect(traversal?.error?.code).toBe(-32000);
++
++    const unknown = handleMcpRequest(process.cwd(), {
++      jsonrpc: "2.0", id: 5, method: "resources/read", params: { uri: "scwbs://project/secret" }
++    });
++    expect(unknown?.error?.code).toBe(-32000);
++
++    const unsupported = handleMcpRequest(process.cwd(), { jsonrpc: "2.0", id: 6, method: "approval/approve" });
++    expect(unsupported?.error?.code).toBe(-32601);
++  });
++
++  test("preflight uses structured input and never creates authority", () => {
++    const result = handleMcpRequest(process.cwd(), {
++      jsonrpc: "2.0",
++      id: 7,
++      method: "tools/call",
++      params: {
++        name: "scwbs.task.preflight",
++        arguments: { title: "MCP integration", paths: ["src/core/mcp.ts"], profile: "standard" }
++      }
++    });
++    expect(result).toMatchObject({ result: { structuredContent: { version: "scwbs.mcp-tool-result.v1", result: { version: "scwbs.task-preflight.v1" } } } });
++  });
++});
