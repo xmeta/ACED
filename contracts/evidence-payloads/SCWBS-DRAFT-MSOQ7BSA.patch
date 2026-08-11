@@ -1,3 +1,16 @@
+diff --git a/.github/workflows/scwbs.yml b/.github/workflows/scwbs.yml
+index 7fd459b..5731961 100644
+--- a/.github/workflows/scwbs.yml
++++ b/.github/workflows/scwbs.yml
+@@ -251,7 +251,7 @@ jobs:
+     strategy:
+       fail-fast: false
+       matrix:
+-        node-version: ["22.12.0"]
++        node-version: ["22.13.0"]
+     steps:
+       - name: Bootstrap local action checkout
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 diff --git a/.gitignore b/.gitignore
 index 9ebfc2d..ff49644 100644
 --- a/.gitignore
@@ -30,19 +43,19 @@ index 4268834..d2527f6 100644
        - src/core/paths.ts
 diff --git a/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml b/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
 new file mode 100644
-index 0000000..954de38
+index 0000000..d747cd4
 --- /dev/null
 +++ b/contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,17 @@
 +id: SPEC-LITE-MSOQ7BSA
 +type: spec-contract
 +featureId: F-MSOQ7BSA
 +title: "Issue #535: rebuildable local index and bounded query"
 +status: approved
-+version: 0.1.0
++version: 0.1.1
 +summary: "canonical YAML/JSON artifact から再構築できる SQLite navigation cache と bounded query を追加する"
-+approvedBy: user-requested-issue-535
-+approvedAt: "2026-08-11T00:00:00+09:00"
++approvedBy: user-requested-issue-535-ci-compatibility
++approvedAt: "2026-08-12T00:23:01+09:00"
 +acceptanceCriteria:
 +  - "scwbs index rebuild creates a SQLite cache under .scwbs/cache from canonical YAML/JSON artifacts and can fully rebuild it without treating the cache as authority."
 +  - "scwbs index status --json and index verify --json return bounded versioned status with source path, source hash, schema version, indexedAt, and repository HEAD provenance."
@@ -50,12 +63,13 @@ index 0000000..954de38
 +  - "Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache."
 +  - "Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof."
 +  - "A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands."
++  - "The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag."
 diff --git a/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml b/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
 new file mode 100644
-index 0000000..88d27e7
+index 0000000..52cc828
 --- /dev/null
 +++ b/contracts/tasks/SCWBS-DRAFT-MSOQ7BSA.yaml
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,85 @@
 +id: SCWBS-DRAFT-MSOQ7BSA
 +type: task-contract
 +wbsNodeId: node-governance-maintenance
@@ -70,9 +84,14 @@ index 0000000..88d27e7
 +  - docs/scwbs/cli-reference.md
 +  - docs/scwbs/schemas/query.schema.json
 +  - docs/implementation-gaps.md
++  - docs/scwbs/getting-started.md
++  - docs/scwbs/distribution.md
 +  - contracts/check-coverage.yaml
 +  - contracts/specs/SPEC-LITE-MSOQ7BSA.yaml
 +  - .gitignore
++  - package.json
++  - package-lock.json
++  - .github/workflows/scwbs.yml
 +  - tests/unit/**
 +  - tests/integration/**
 +  - tests/fixtures/local-index/**
@@ -95,7 +114,7 @@ index 0000000..88d27e7
 +stopIf:
 +  - Human Gate required
 +  - additional path required
-+  - package or dependency change
++  - dependency addition or dependency graph change
 +  - remote hosted database
 +  - stale cache used for authority
 +  - destructive source artifact deletion
@@ -113,6 +132,7 @@ index 0000000..88d27e7
 +  - Stale, missing, or corrupt cache is detected and recoverable by rebuild; check, finish, approval, and merge continue reading canonical artifacts rather than the cache.
 +  - Query results include deterministic canonical artifact locators and never become Task authority, completion proof, or approval proof.
 +  - A 1000-plus record fixture exercises rebuild and query behavior, and no-index fallback preserves existing CLI commands.
++  - The declared Node.js minimum and minimum-node CI version provide node:sqlite without requiring consumers to set an experimental runtime flag.
 +evidenceRequired:
 +  - test-result
 +  - typecheck-result
@@ -132,9 +152,9 @@ index 0000000..88d27e7
 +  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
 +  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
 +  wbsNodeId: node-governance-maintenance
-+  specVersion: 0.1.0
-+  specRevision: sha256:c8790b642ac3ffb09548063ae92b70b4bb858d7184140e0e42d40793938fa4d1
-+  createdAt: "2026-08-11T13:59:29.129Z"
++  specVersion: 0.1.1
++  specRevision: sha256:44fd1c2dce082594a050496ab6cbd8a6ce6d8f78b5e84d06e78a2724b6dc6202
++  createdAt: "2026-08-11T15:23:46.475Z"
 diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
 index 39ea54a..b8928e4 100644
 --- a/contracts/tasks/index.yaml
@@ -195,6 +215,32 @@ index 31ecb7c..d79c751 100644
  
  ## 終了コード
  
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index 3999071..e07b0a2 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -20,7 +20,7 @@ ACED はその実行資産を配布用に変換して保持します。
+ 
+ ## 互換性
+ 
+-- Node.js: `>=22.12.0`
++- Node.js: `>=22.13.0` (required for the built-in `node:sqlite` module used by the local index)
+ - npm: `>=10`（repository build と contributor setup）
+ - standalone consumer はインストール済み scwbs package の Node engine を検査する
+ - contributor は `git submodule update --init --recursive wjs` 後に repository の workspace を install する
+diff --git a/docs/scwbs/getting-started.md b/docs/scwbs/getting-started.md
+index 79e46d5..493199a 100644
+--- a/docs/scwbs/getting-started.md
++++ b/docs/scwbs/getting-started.md
+@@ -22,7 +22,7 @@ The commands below assume an ACED checkout and are retained for contributors,
+ debugging, and maintenance. They are not required for a consumer using the
+ release tarball.
+ 
+-Use Node.js `>=22.12.0` and npm `>=10`. This repository pins npm `10.9.0`
++Use Node.js `>=22.13.0` and npm `>=10`. This repository pins npm `10.9.0`
+ through `packageManager`, so enable Corepack before installing dependencies.
+ 
+ Install dependencies once:
 diff --git a/docs/scwbs/schemas/query.schema.json b/docs/scwbs/schemas/query.schema.json
 new file mode 100644
 index 0000000..bcf00f8
@@ -254,6 +300,32 @@ index 0000000..bcf00f8
 +    "reasons": { "type": "array", "items": { "type": "string" }, "maxItems": 20 }
 +  }
 +}
+diff --git a/package-lock.json b/package-lock.json
+index 89f9b22..2ad0a8d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -33,7 +33,7 @@
+         "vitest": "^4.1.9"
+       },
+       "engines": {
+-        "node": ">=22.12.0",
++        "node": ">=22.13.0",
+         "npm": ">=10"
+       }
+     },
+diff --git a/package.json b/package.json
+index fac9a66..9da36f8 100644
+--- a/package.json
++++ b/package.json
+@@ -5,7 +5,7 @@
+   "private": true,
+   "license": "GPL-3.0-only",
+   "engines": {
+-    "node": ">=22.12.0",
++    "node": ">=22.13.0",
+     "npm": ">=10"
+   },
+   "packageManager": "npm@10.9.0",
 diff --git a/src/cli.ts b/src/cli.ts
 index 1b462d0..9c2b794 100644
 --- a/src/cli.ts

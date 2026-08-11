@@ -1,30 +1,31 @@
 id: EVD-SCWBS-DRAFT-MSOQ7BSA
 type: evidence
 taskId: SCWBS-DRAFT-MSOQ7BSA
-commit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
-subjectHeadCommit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
-diffHash: sha256:cb15665610e958905d5fa4c449fde6db39dc5018bb844f601e694d0537f6a95d
+commit: 74764d675688b51d882a1febc1135fc11d156a7f
+subjectHeadCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
-    treeHash: ae0fcc95738838fc33f782ed9c9c13f53922c7df
-    diffHash: sha256:cb15665610e958905d5fa4c449fde6db39dc5018bb844f601e694d0537f6a95d
+    commit: 74764d675688b51d882a1febc1135fc11d156a7f
+    treeHash: ce0bae2a375980dccf8b4ebf25ae9b2f751a2605
+    diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSOQ7BSA.patch
-    manifestHash: sha256:cb15665610e958905d5fa4c449fde6db39dc5018bb844f601e694d0537f6a95d
+    manifestHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
 git:
   branch: task/SCWBS-DRAFT-MSOQ7BSA-p1-indexing-add-a-rebuildable-local-sqlite-index
   base: origin/main
   baseCommit: b2cd5b943847f5eac358dfbda57fe522465d257c
   changedFilesBasis: branch-diff
   pullRequest: "547"
-  subjectHeadCommit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
-  diffHash: sha256:cb15665610e958905d5fa4c449fde6db39dc5018bb844f601e694d0537f6a95d
-  headCommit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
+  subjectHeadCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+  diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
+  headCommit: 74764d675688b51d882a1febc1135fc11d156a7f
 changedFiles:
+  - .github/workflows/scwbs.yml
   - .gitignore
   - contracts/approvals/SCWBS-DRAFT-MSOQ7BSA.yaml
   - contracts/check-coverage.yaml
@@ -36,7 +37,11 @@ changedFiles:
   - contracts/tasks/index.yaml
   - docs/implementation-gaps.md
   - docs/scwbs/cli-reference.md
+  - docs/scwbs/distribution.md
+  - docs/scwbs/getting-started.md
   - docs/scwbs/schemas/query.schema.json
+  - package-lock.json
+  - package.json
   - src/cli.ts
   - src/commands/local-index.ts
   - src/commands/query.ts
@@ -48,8 +53,8 @@ testQualityObservation:
   status: evaluated
   subject:
     baseCommit: b2cd5b943847f5eac358dfbda57fe522465d257c
-    headCommit: 7f54fb6d6e7dec123dcbd75360c0d0b006a6c0e4
-    diffHash: sha256:cb15665610e958905d5fa4c449fde6db39dc5018bb844f601e694d0537f6a95d
+    headCommit: 74764d675688b51d882a1febc1135fc11d156a7f
+    diffHash: sha256:186e31fb3e1d48e42343a6e7242331fc661b9054e04bf51d152162bb5c545eef
   tests:
     filesAdded: 2
     filesModified: 0
@@ -66,30 +71,30 @@ checks:
     status: passed
     source: local
     command: npm test
-    cacheKey: sha256:c7e51d2c1a4a8dcc67b0792081a277ff392dcb65b327b8f881c068fa06dd102e
-    durationMilliseconds: 17825
-    executedAt: "2026-08-11T14:28:43.676Z"
+    cacheKey: sha256:588412411db2a61a16a31c2adca7db12aefebe7dfa22d5b29527fd4b83215d6c
+    durationMilliseconds: 17971
+    executedAt: "2026-08-11T15:32:59.113Z"
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:c50d8caa02053dba59d898d1d7c29277ae901cc6a5bf103d66507456e51a4484
-    durationMilliseconds: 10953
-    executedAt: "2026-08-11T14:28:54.633Z"
+    cacheKey: sha256:e237404927c180ab2ecc06c0247d9c3abf7ed0a90e5c961eb59d871dcc010bc9
+    durationMilliseconds: 10609
+    executedAt: "2026-08-11T15:33:09.725Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:30a98a3bd1576dc5f5781e9c21a9d4a57418e18a333a707dc7468aaffe2e180d
-    durationMilliseconds: 4616
-    executedAt: "2026-08-11T14:28:59.255Z"
+    cacheKey: sha256:69520492f6c8c4bcefe3d53df368a247e471935986bbefee2aca108f914406f5
+    durationMilliseconds: 4415
+    executedAt: "2026-08-11T15:33:14.145Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:dd95385cf304cdeb2b2738652cab892f53dcf7a4f4b33e8d7231b580ca8dbf53
-    durationMilliseconds: 342127
-    executedAt: "2026-08-11T14:34:41.385Z"
+    cacheKey: sha256:d6999af212613a42f343f140de37132aa5ffd2e2d78e6d42bf5fba85341e8dea
+    durationMilliseconds: 318313
+    executedAt: "2026-08-11T15:38:32.462Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
