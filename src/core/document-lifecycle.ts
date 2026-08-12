@@ -173,7 +173,7 @@ function languageCandidate(line: string): { japanese: boolean; english: boolean 
     const words = segment.toLowerCase().match(/[a-z][a-z'-]*/g) ?? [];
     const meaningfulWords = words.filter((word) => !TECHNICAL_WORDS.has(word));
     const stopWordCount = meaningfulWords.filter((word) => ENGLISH_STOP_WORDS.has(word)).length;
-    if (japanese) return meaningfulWords.length >= 4 && stopWordCount >= 2;
+    if (japanese) return meaningfulWords.length >= 4 && stopWordCount >= 1;
     return meaningfulWords.length >= 2 && (stopWordCount >= 1 || meaningfulWords.length >= 4);
   });
   return { japanese, english };

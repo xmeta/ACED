@@ -342,6 +342,18 @@ describe("docs check", () => {
     expect(enIssues[0].message).toContain("expected language en");
   });
 
+  test("fails an English sentence embedded in Japanese prose", () => {
+    const root = makeTempRepo();
+    const document = documentSet();
+    writeFixture(root, [document]);
+    writeText(root, document.entrypoint, "# current\nこの文書は日本語で管理する。This document intentionally tracks missing pieces.\n");
+
+    const issues = collectDocumentLifecycleIssues(root).issues.filter((issue) => issue.code === "docs.language.mixedProse");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("docs/current/index.md:2");
+    expect(issues[0].message).toContain("detected language en");
+  });
+
   test("allows technical identifiers and Markdown code while checking prose table cells", () => {
     const root = makeTempRepo();
     const document = documentSet();

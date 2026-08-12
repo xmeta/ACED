@@ -4,7 +4,7 @@
 
 `scwbs` は **SC-WBS Development** を運用するための TypeScript CLI である。
 
-> AI-Collaborative Spec Contract and WBS Driven Development（AI協調型のSpec Contract/WBS駆動開発）
+> AIと協調してSpec ContractとWBSを用いる開発手法
 
 このツールは、AI支援作業を明示的なTask Contractの範囲内に保つ。Evidenceを記録し、変更ファイルを契約と照合し、AIが推測して進めるのではなく、危険な変更をHuman Gateへ戻す。
 
@@ -298,16 +298,16 @@ npm run scwbs -- request-approval --task <task-id> --pr <number>
 
 ## 正本
 
-Status: current repository entrypoint。
+状態: 現行リポジトリの入口。
 
-- Current execution rule: `AGENTS.md`とactive Task Contract。
-- Task scope: `contracts/tasks/<task-id>.yaml`。
-- Completion evidence: `contracts/evidence/<task-id>.yaml`。
-- Documentation map: `docs/README.md`。
-- Current Core reference: `docs/sc-wbs-core/00-index.md`。
-- Legacy/detail reference: `docs/scwbs/`。
-- Proposal/design note: `docs/sc-wbs-core-revision/`。
-- Canonical artifact schema: `src/core/schema/records.ts`（AJV JSON Schema）。
+- 現行の実行ルール: `AGENTS.md`とactive Task Contract。
+- Taskの範囲: `contracts/tasks/<task-id>.yaml`。
+- 完了Evidence: `contracts/evidence/<task-id>.yaml`。
+- 文書マップ: `docs/README.md`。
+- 現行Coreのリファレンス: `docs/sc-wbs-core/00-index.md`。
+- Legacy / 詳細リファレンス: `docs/scwbs/`。
+- Proposal / 設計ノート: `docs/sc-wbs-core-revision/`。
+- 正規artifactのschema: `src/core/schema/records.ts`（AJV JSON Schema）。
   - `ApprovalRecord`: top-levelの`pullRequest`、`headCommit`、`diffHash`を持つflat structure（nested `scope`は持たない）。
   - `BlockRecord`: `level`、`category`、`requiredHumanDecision`、`createdAt`を要求し、`history[]`はoptional。
   - Schema versionは`contracts/wbs/project.wbs.json`の`schemaVersion`に従う。
@@ -316,17 +316,17 @@ Status: current repository entrypoint。
 
 ## MVP Scope
 
-v0.1でimplemented:
+v0.1で実装済み:
 
-- Contract、Evidence、WBS、diff、health validation。
-- AI work packet、review queue、approval request、lightweight orchestration helper。
-- packaged runtimeを備えた、WJS-backed WBS validation、semantic operation application、changeset check。
+- Contract、Evidence、WBS、diff、healthの検証。
+- AI work packet、Review queue、Approval request、軽量なorchestration helper。
+- packaged runtimeを備えたWJS-backed WBS validation、semantic operation application、changeset check。
 - WBS-less task index operation、WBS candidate generation、WBS changeset reproduction check。
-- Branch-per-task safeguardとEvidence git metadata。
+- branchごとのTask safeguardとEvidenceのGit metadata。
 - Text-first dashboard、trace、next-action、profile、registry、draft-generation command。
 
 まだ含まれないもの:
 
-- 初期のtext dashboard / `serve` stubを超えるWeb UI。
-- SQLite index。
-- 完全なexternal installer experience。
+- 初期のtext dashboardと`serve` stubを超えるWeb UI。
+- SQLiteによるindex。
+- 外部利用者向けinstaller体験の完全版。
