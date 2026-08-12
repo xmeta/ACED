@@ -2,6 +2,8 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
+This legacy reference is maintained in English; command names and schema fields remain unchanged.
+
 ## 5. WBS-JSON運用
 
 WBS-JSONでは、`nodes[]` がWBS階層の正本である。

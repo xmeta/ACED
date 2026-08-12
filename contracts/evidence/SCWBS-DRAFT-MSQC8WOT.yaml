@@ -1,0 +1,114 @@
+id: EVD-SCWBS-DRAFT-MSQC8WOT
+type: evidence
+taskId: SCWBS-DRAFT-MSQC8WOT
+commit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+subjectHeadCommit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+diffHash: sha256:eab6742abfe6eb0e115faaefe68f8cdeec0e4b5a164376bee10bc0836afe5f74
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+    treeHash: aea38aaae5b338e0fd28a7c6747875aacc1789d1
+    diffHash: sha256:eab6742abfe6eb0e115faaefe68f8cdeec0e4b5a164376bee10bc0836afe5f74
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQC8WOT.patch
+    manifestHash: sha256:eab6742abfe6eb0e115faaefe68f8cdeec0e4b5a164376bee10bc0836afe5f74
+git:
+  branch: task/SCWBS-DRAFT-MSQC8WOT-issue-577-documentation-architecture-and-japanes
+  base: origin/main
+  baseCommit: d49fe63cea758506c752329943843590f1bbd5df
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+  diffHash: sha256:eab6742abfe6eb0e115faaefe68f8cdeec0e4b5a164376bee10bc0836afe5f74
+  headCommit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+changedFiles:
+  - README.md
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQC8WOT.patch
+  - contracts/evidence/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSQC8WOT.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/tasks/index.yaml
+  - docs/README.md
+  - docs/document-lifecycle.json
+  - docs/implementation-gaps.md
+  - docs/sc-wbs-core-revision/00-index.md
+  - docs/sc-wbs-core-revision/03-detailed-design.md
+  - docs/sc-wbs-core-revision/03a-cli-application.md
+  - docs/sc-wbs-core-revision/03b-domain-repository.md
+  - docs/sc-wbs-core-revision/03c-git-process-output.md
+  - docs/sc-wbs-core-revision/03d-errors-state-security.md
+  - docs/sc-wbs-core-revision/08-migration-plan.md
+  - docs/sc-wbs-development.md
+  - docs/scwbs/README.md
+  - docs/scwbs/ai-work-packet.md
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/cli-core-checks.md
+  - docs/scwbs/cli-mutation-output.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/cli-task-evidence.md
+  - docs/scwbs/cli-wbs-github.md
+  - docs/scwbs/contract-enforcement.md
+  - docs/scwbs/evidence-human-gate-review.md
+  - docs/scwbs/merge-protection.md
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/wbs-json.md
+  - docs/wbs-conflict-mitigation.md
+  - src/core/document-lifecycle.ts
+  - tests/integration/docs-check.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: d49fe63cea758506c752329943843590f1bbd5df
+    headCommit: 31be14d17dbdd26bb8499e0aed8e7e5f95fb272a
+    diffHash: sha256:eab6742abfe6eb0e115faaefe68f8cdeec0e4b5a164376bee10bc0836afe5f74
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:67a03aa7601de29ce47405a7c7e555908717c167f7dbb684ba65a17a7fce9c93
+    durationMilliseconds: 22507
+    executedAt: "2026-08-12T17:42:01.888Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:6c485a4530862bd31c5a7d562dc99550778bbd4902bc595d7e29e895138e6539
+    durationMilliseconds: 11831
+    executedAt: "2026-08-12T17:42:13.723Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:761e2c56392055e4e49a965d45a2b476dabb2262aac25a635e010b09c6166da6
+    durationMilliseconds: 5001
+    executedAt: "2026-08-12T17:42:18.728Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:ae4d53cedd7208ae19081b8ac183b710eaf2e206de871661819acaa28e0bb954
+    durationMilliseconds: 325656
+    executedAt: "2026-08-12T17:47:44.389Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added docs lifecycle quality, language, line-limit, exception, link, and split-reference regression assertions.

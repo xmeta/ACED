@@ -1,5 +1,7 @@
 # scwbs
 
+この README はリポジトリの概要、導入手順、標準的な作業入口を日本語で案内する。
+
 `scwbs` is a TypeScript CLI for operating **SC-WBS Development**:
 
 > AI-Collaborative Spec Contract and WBS Driven Development

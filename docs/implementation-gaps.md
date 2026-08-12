@@ -1,5 +1,7 @@
 # Implementation Gaps
 
+この表は、現在の MVP で未完了または継続確認が必要な機能を日本語で管理する。
+
 This document tracks the pieces that are intentionally still missing from the current MVP.
 
 ## Already Implemented

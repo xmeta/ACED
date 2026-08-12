@@ -2,6 +2,8 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
+This legacy reference is maintained in English; command names and schema fields remain unchanged.
+
 ## 7. AI Work Packet
 
 AIに実装を依頼するときは、長い文書一式をそのまま読ませるのではなく、`scwbs` でAI Work Packetを生成する。
@@ -44,4 +46,3 @@ Stop Conditionsに該当する場合、AIは実装せずに停止する。
 * Human Gate対象変更はLevel 0またはLevel 1に見えても停止する必要がある
 
 ---
-

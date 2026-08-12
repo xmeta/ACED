@@ -29,7 +29,7 @@ docs/sc-wbs-core-revision/
 00-index.md
 01-revision-goals.md
 02-implementation-plan.md
-03-detailed-design.md
+03-detailed-design.md（概要）と `03a`〜`03d`（責務別詳細）
 04-cli-design.md
 05-data-model.md
 06-validation-design.md
@@ -244,4 +244,3 @@ scwbs packet --task WBS-001 --deep
 - managedContractPathsが導入されている。
 - Human Gate対象差分が承認なしでPassしない。
 ```
-

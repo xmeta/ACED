@@ -1,0 +1,24 @@
+id: SPEC-LITE-MSQC8WOT
+type: spec-contract
+featureId: F-MSQC8WOT
+title: "Issue #577: documentation architecture and Japanese language quality gates"
+sourceIssue: 577
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-577
+approvedAt: "2026-08-13T00:00:00+09:00"
+summary: "maintained documentation is split into bounded context, declares authoring language, and is checked for size and mixed prose without changing authority semantics"
+acceptanceCriteria:
+  - document lifecycle manifest declares language per document set and a default 500-line quality limit with explicit expiring exceptions
+  - cli-reference.md and 03-detailed-design.md remain reachable overview/index documents while detailed content is split into responsibility-focused files at or below 500 physical lines
+  - proposal documents remain proposal status and all existing command examples, JSON contracts, Human-only boundaries, and semantic claims are preserved
+  - maintained repository-authored prose and standard entrypoints are Japanese; technical identifiers and code examples remain unchanged
+  - docs check emits bounded reason codes for missing language, exceeded size, invalid or expired exceptions, and mixed prose with path/line/expected language diagnostics
+  - language detection ignores fenced/indented code, inline code, URLs, paths, identifiers, Mermaid, JSON, YAML, and shell examples
+  - regression coverage includes 500/501 lines, valid/invalid/expired exceptions, Japanese prose with English identifiers, English prose under ja, independent en fixtures, and split-link reachability
+  - '#572 capability source and validation remain the only implementation-drift authority; no duplicate capability-status logic is added'
+  - no package, CI, WBS, WJS, changeset, external service, authority, Approval, Human Gate, or proposal-promotion change is introduced
+nonGoals:
+  - translating command names, options, schema fields, error codes, paths, URLs, product names, or code examples
+  - changing CLI behavior, authority semantics, Approval/Human Gate semantics, or current/proposal/deprecated status
+  - external translation services or a new Markdown parser dependency

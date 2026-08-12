@@ -1,0 +1,87 @@
+id: SCWBS-DRAFT-MSQC8WOT
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQC8WOT
+branchName: task/SCWBS-DRAFT-MSQC8WOT-issue-577-documentation-architecture-and-japanes
+sourceIssue: 577
+status: approved
+approvedBy: user-requested-issue-577
+approvedAt: "2026-08-13T00:00:00+09:00"
+allowedPaths:
+  - README.md
+  - docs/README.md
+  - docs/document-lifecycle.json
+  - docs/sc-wbs-core/**
+  - docs/scwbs/**
+  - docs/sc-wbs-core-revision/**
+  - docs/implementation-gaps.md
+  - docs/sc-wbs-development.md
+  - docs/wbs-conflict-mitigation.md
+  - docs/scwbs/schemas/document-lifecycle.schema.json
+  - src/core/document-lifecycle.ts
+  - src/commands/docs-check.ts
+  - tests/integration/docs-check.test.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+stopIf:
+  - DB schema or migration
+  - package or CI change
+  - authority outside allowedPaths
+  - Human Gate
+  - external service or credential change
+  - WBS or WJS source change
+  - scope ambiguity
+  - translation changes authority semantics
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - lifecycle document sets declare an explicit authoring language and the current repository policy is machine-readable
+  - maintained Markdown defaults to a 500 physical-line limit and only explicit path/reason/owner/expiry exceptions can pass
+  - cli-reference.md remains a concise index while its command guidance is split into responsibility-focused documents at or below the limit
+  - the proposal detailed design remains a proposal overview while its CLI/application, domain/repository, Git/process/output, and error/state/security sections are split without semantic promotion
+  - standard entrypoints and lifecycle-managed prose are Japanese while commands, options, schema fields, error codes, paths, URLs, and code examples remain unchanged
+  - docs check fails closed for missing language, exceeded size, invalid or expired exceptions, and mixed prose with path/line/expected-language diagnostics
+  - language fixtures do not flag fenced or indented code, inline code, URLs, identifiers, Mermaid, JSON, YAML, or shell examples
+  - split-document entrypoints and internal links remain reachable and the aggregate scwbs check contract remains valid
+  - '#572 capability status validation is reused without duplicate implementation or status changes'
+  - package, CI, WBS, WJS, changesets, external services, authority semantics, Human Gate, Approval, and proposal/current status boundaries remain unchanged
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/specs/SPEC-LITE-MSQC8WOT.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQC8WOT.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQC8WOT.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:6dfc82082ea92d3793bcf3261e7fe218fc559321051cd939c329d02c0719590d
+  createdAt: "2026-08-12T17:07:12.023Z"

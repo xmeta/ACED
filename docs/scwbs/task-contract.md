@@ -2,6 +2,8 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
+This legacy reference is maintained in English; command names and schema fields remain unchanged.
+
 ## Block lifecycle
 
 Blockは `contracts/blocks/<task-id>.yaml` に置くライフサイクル記録であり、使い捨ての停止マーカーではない。現在状態は `blocked` または `resolved` で、`history` に各停止・解決イベントの時刻、理由、実行者を保持する。
