@@ -1,0 +1,20 @@
+id: SPEC-LITE-MSQ0H493
+type: spec-contract
+featureId: F-MSQ0H493
+title: "Evidence-bound Lean Human Approval commands"
+status: approved
+approvedBy: user-requested-issue-565
+approvedAt: "2026-08-12T00:00:00Z"
+version: 0.1.0
+summary: Generate the exact Lean TTY confirmation and Approval command from current Evidence in every Human Gate guidance path.
+acceptanceCriteria:
+  - A shared builder resolves Evidence subjectHeadCommit and diffHash and formats CONFIRM TTY APPROVAL <task> <head> <diffHash>.
+  - check-diff, finish, Human Gate validation, and approval-request JSON use the same current Evidence-bound command.
+  - Missing subjectHeadCommit or diffHash does not produce an executable-looking stale or fabricated approval command.
+  - Head or diffHash changes invalidate previously displayed commands through regenerated output.
+  - Existing --force behavior for approved/rejected records, human-only TTY provenance, and AI approval rejection are preserved.
+  - Regression tests and user-facing documentation cover the exact command contract.
+nonGoals:
+  - Weakening Human Approval provenance or Lean TTY verification.
+  - Allowing AI to create human approved records.
+  - Changing Human Gate action ownership or Approval schema versions.
