@@ -1,8 +1,8 @@
-﻿# SC-WBS Overview And Bootstrap
+﻿# SC-WBS概要とBootstrap
 
-Source: docs/sc-wbs-development.md split reference.
+出典: docs/sc-wbs-development.mdを分割した参照文書。
 
-# SC-WBS Development
+# SC-WBS開発
 
 SC-WBS Development は、人間とAIが協調してソフトウェアを開発するための開発手法である。
 
@@ -16,10 +16,7 @@ AI-Collaborative Spec Contract and WBS Driven Development
 
 この文書は方法論と運用ルールを定義する。CLIの具体的な使い方はルートの `README.md` を参照する。
 
-Spec Contract files live under `contracts/specs/*.yaml`.
-Minimum required fields are `id`, `type: spec-contract`, `featureId`, `title`, `status`, `version`, and `acceptanceCriteria`.
-When `status: approved`, `approvedBy` and `approvedAt` are also required.
-`contracts/registry.yaml` remains the index, but each `type: spec` entry must point to a Spec Contract file whose `id`, `featureId`, `status`, and `version` match the registry metadata.
+Spec Contract fileは`contracts/specs/*.yaml`配下に置く。Minimum required fieldは`id`、`type: spec-contract`、`featureId`、`title`、`status`、`version`、`acceptanceCriteria`である。`status: approved`の場合は`approvedBy`と`approvedAt`もrequiredになる。`contracts/registry.yaml`はindexとして残るが、各`type: spec` entryはregistry metadataと`id`、`featureId`、`status`、`version`が一致するSpec Contract fileを指さなければならない。
 ---
 
 ## 1. 基本方針
@@ -178,4 +175,3 @@ Bootstrap Contractでは、AIは実装してはならない。
 * 実装対象タスクのTask Contractがある
 
 ---
-

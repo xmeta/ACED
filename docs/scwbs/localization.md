@@ -1,11 +1,11 @@
 # Localization bundles
 
-ACED uses versioned `scwbs.locale.v1` bundles for generated agent guidance and selected CLI UX. Locale data is separate from agent adapters and templates. Stable JSON schema field names, machine error codes, approval semantics, and authority policy are never translated.
+ACEDはgenerated agent guidanceとselected CLI UXにversioned `scwbs.locale.v1` bundleを使う。locale dataはagent adapterとtemplateから分離する。stable JSON schema field name、machine error code、approval semantic、authority policyは翻訳しない。
 
-The built-in bundles are `ja`, `en`, and an additional `fr` fixture. `ja-jp` and `en-us` normalize deterministically to `ja` and `en`. An unknown valid locale falls back to `en`; malformed locale ids are rejected before initialization writes files.
+built-in bundleは`ja`、`en`、追加の`fr` fixtureである。`ja-jp`と`en-us`はdeterministically `ja`と`en`へnormalizeする。unknown valid localeは`en`へfallbackし、malformed locale idはinitializationがfileを書き込む前にrejectする。
 
-Every bundle must contain the same bounded message keys as the reference bundle and use the same `{placeholder}` names. Missing keys, unknown keys, invalid placeholders, duplicate ids, and missing fallback targets fail closed. Bundle validation is covered by unit and integration tests.
+各bundleはreference bundleと同じbounded message keyを持ち、同じ`{placeholder}` nameを使う。missing key、unknown key、invalid placeholder、duplicate id、missing fallback targetはfail-closedになる。bundle validationはunit/integration testでcoverageする。
 
-`init --lang <locale>` renders localized guidance for a new project and explicitly switches an existing project. `update --lang <locale>` is the explicit lifecycle switch for all managed agents; both paths update only files whose recorded managed hash still matches and preserve user-owned divergent files. Adapter metadata keys are checked against the bundle key registry before generation.
+`init --lang <locale>`はnew project向けlocalized guidanceをrenderし、既存projectを明示的にswitchする。`update --lang <locale>`はmanaged agent全体のexplicit lifecycle switchである。両pathはrecorded managed hashが一致するfileだけをupdateし、user-owned divergent fileを保持する。adapter metadata keyはgeneration前にbundle key registryと照合する。
 
-Adding a locale does not require editing a TypeScript union. A bundle must be reviewed and validated as data, and locale changes must not modify authority semantics.
+locale追加にTypeScript unionの編集は必要ない。bundleをdataとしてreview・validateし、locale changeでauthority semanticを変更してはならない。

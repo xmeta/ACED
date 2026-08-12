@@ -1,8 +1,8 @@
-# scwbs CLI Reference
+# scwbs CLIリファレンス
 
-This file is the detailed command index for the `scwbs` CLI bundled with ACED (package name `scwbs`). Keep `README.md` short and link here when command examples grow.
+このfileはACEDにbundledされた`scwbs` CLI（package name `scwbs`）のdetailed command indexである。command exampleが増えた場合も`README.md`は短く保ち、ここへlinkする。
 
-Run through the npm script:
+npm script経由で実行する。
 
 ```bash
 npm run scwbs -- --help
@@ -15,7 +15,7 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-## AI Workflow
+## AIのワークフロー
 
 ```bash
 npm run scwbs -- ai packet --task SCWBS-001 --relation-depth 1
@@ -28,15 +28,15 @@ npm run scwbs -- ai next-task
 npm run scwbs -- next
 ```
 
-`ai run` is initially a dry-run orchestrator. It prints the pre-flight checks, implementation stop conditions, and post-flight checks rather than launching an external agent.
+`ai run`はinitially dry-run orchestratorである。external agentをlaunchせず、pre-flight check、implementation stop condition、post-flight checkを表示する。
 
-`ai execute` is the bounded Phase 1/2 runner. It accepts JSON command arrays rather than a shell string, starts exactly one Task iteration, sends a bounded Work Packet to an implementer, runs the Task's existing required checks, and sends a separate fresh-context input to a reviewer. Adapter processes receive `SCWBS_RUNNER_ROLE` and `SCWBS_RUNNER_CONTEXT_ID`; the approval delegation token is removed from their environment. Each adapter must write a versioned JSON result to the output path supplied as its final argument. Optional JSON provider descriptors (`--implementer-provider`, `--reviewer-provider`, and `--debugger-provider`) declare the role, `fresh-context`, and `json-io` capabilities required by that adapter; unsupported declarations fail closed before spawning it. A bounded `--learned-note` carries only a source Task ID, source HEAD SHA, scope, and advisory note. A failed preflight, path/authority check, required check, adapter result, or reviewer decision produces a blocked `scwbs.ai-run-receipt.v1` and skips later stages.
+`ai execute`はbounded Phase 1/2 runnerである。shell stringではなくJSON command arrayを受け付け、ちょうど1つのTask iterationを開始し、bounded Work Packetをimplementerへ送り、Taskの既存required checkを実行し、別fresh-context inputをreviewerへ送る。adapter processには`SCWBS_RUNNER_ROLE`と`SCWBS_RUNNER_CONTEXT_ID`を渡し、approval delegation tokenはenvironmentから削除する。各adapterはfinal argumentで渡されたoutput pathへversioned JSON resultを書かなければならない。optional JSON provider descriptor（`--implementer-provider`、`--reviewer-provider`、`--debugger-provider`）はadapterに必要なrole、`fresh-context`、`json-io` capabilityを宣言し、unsupported declarationはspawn前にfail-closedする。bounded `--learned-note`はsource Task ID、source HEAD SHA、scope、advisory noteだけを持つ。preflight、path/authority check、required check、adapter result、reviewer decisionのfailureはblocked `scwbs.ai-run-receipt.v1`を生成し、後続stageをskipする。
 
-The runner never creates Approval or human-only Review transitions, commits, pull requests, or merges. Phase 2 debugger/remediation remains bounded to two rounds and resume remains fail-closed. By default, receipts are written as derived local state under the git common directory's `scwbs-ai-execution` directory, one latest receipt per Task, and retain wall time, adapter turns, remediation rounds, and required-check reuse rate. The plan, input, result, and receipt shapes are defined in [`ai-execution.schema.json`](schemas/ai-execution.schema.json).
+runnerはApproval、human-only Review transition、commit、pull request、mergeを作成しない。Phase 2 debugger/remediationは2 roundにboundedし、resumeはfail-closedのままである。既定ではreceiptをgit common directoryの`scwbs-ai-execution`配下のderived local stateとして書き、Taskごとに最新1件を保持し、wall time、adapter turn、remediation round、required-check reuse rateを記録する。plan、input、result、receiptのshapeは[`ai-execution.schema.json`](schemas/ai-execution.schema.json)で定義する。
 
-`ai next-task` is a planned-task handoff command. It only lists Task Contracts whose WBS node is `planned`, whose dependencies are complete, and whose Human Gate paths do not require approval before implementation. Eligible candidates are ordered by optional Task Contract `priority` (`high`, `medium`, `low`), then by Task ID; tasks without a priority remain after prioritized tasks and retain the existing Task ID fallback. If it prints `No available planned tasks` but also says follow-up work remains, do not infer that the project is done; run `scwbs next` to get the next Evidence or review action for existing contracts.
+`ai next-task`はplanned-task handoff commandである。WBS nodeが`planned`、dependencyがcomplete、Human Gate pathがimplementation前approvalを要求しないTask Contractだけを列挙する。eligible candidateはoptionalなTask Contract `priority`（`high`、`medium`、`low`）、次にTask IDでorderする。priorityなしtaskはpriorityありの後に残り、既存のTask ID fallbackを維持する。`No available planned tasks`と表示されてもfollow-up workが残ると表示された場合、projectがDoneだと推測せず、`scwbs next`でexisting contractの次のEvidenceまたはreview actionを確認する。
 
-`scwbs next` is the local follow-up command. It prioritizes stale task locks, missing Evidence, and review queue work before falling back to planned-task candidates.
+`scwbs next`はlocal follow-up commandである。planned-task candidateへfallbackする前に、stale task lock、missing Evidence、review queue workを優先する。
 
 ### `packet` と `ai packet` は別コマンドである
 
@@ -49,19 +49,19 @@ The runner never creates Approval or human-only Review transitions, commits, pul
 
 両方とも `--task` を取り、内部で似た情報源を参照するが、出力shapeとformat optionは異なる。通常の作業開始では軽量なtop-level `packet` を優先し、agent別formatや追加関係情報が必要な場合だけ `ai packet` を使う。
 
-### Block lifecycle
+### Blockのライフサイクル
 
-`ai block` and the Core alias `block "<reason>"` create an active Block record. Active Blocks are excluded from `ai next-task` and appear as completion prerequisites in `review-queue`.
+`ai block`とCore alias `block "<reason>"`はactive Block recordを作成する。Active Blockは`ai next-task`から除外され、`review-queue`ではcompletion prerequisiteとして表示される。
 
-Resolving a Block is an explicit human action. After making the required decision, a human runs:
+Blockのresolveはexplicit human actionである。required decisionを行った後、人間が次を実行する。
 
 ```bash
 npm run scwbs -- block resolve --task SCWBS-001 --reason "Human decision and outcome"
 ```
 
-AI agents must not run `block resolve`. The command updates the existing record to `status: resolved`; it does not delete it. The record retains creation and resolution events in `history`, and the registry exposes the current status. A later `ai block` call reactivates the same record while preserving the earlier lifecycle history. Resolved Blocks no longer exclude a task from `ai next-task` and no longer block `review-queue` completion.
+AI agentは`block resolve`を実行してはならない。commandはexisting recordを`status: resolved`へupdateし、deleteはしない。recordはcreation/resolution eventを`history`に保持し、registryはcurrent statusを公開する。後続の`ai block` callは同じrecordをreactivateし、以前のlifecycle historyを保持する。Resolved Blockは`ai next-task`からtaskを除外せず、`review-queue` completionもblockしない。
 
-## Contracts
+## Contract
 
 ```bash
 npm run scwbs -- task new "Fix parser" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema change required" --wbs-node node-parser
@@ -95,16 +95,9 @@ npm run scwbs -- profile show
 npm run scwbs -- profile set lean
 ```
 
-`task refresh` is the bounded stale-lock workflow. The preview reports which lock
-inputs changed (scoped WBS, global policy, referenced node, or Spec lock) and
-classifies the operation as lock metadata only. It does not change
-`allowedPaths`, `forbiddenPaths`, `doneCriteria`, `requiredChecks`, or
-`humanGateRequiredPaths`, and it is not approval for a semantic contract change.
-If the WBS/Spec change requires new authority, stop and use the Human Approval
-or new Task/Spec workflow. `--affected` is always preview-only; `--all --apply`
-is an explicit bulk migration and must not be used as an implicit repair.
+`task refresh`はbounded stale-lock workflowである。previewは変更されたlock input（scoped WBS、global policy、referenced node、Spec lock）を報告し、operationをlock metadata onlyに分類する。`allowedPaths`、`forbiddenPaths`、`doneCriteria`、`requiredChecks`、`humanGateRequiredPaths`を変更せず、semantic contract changeのapprovalでもない。WBS/Spec changeに新しいauthorityが必要ならstopし、Human Approvalまたはnew Task/Spec workflowを使う。`--affected`は常にpreview-onlyであり、`--all --apply`はexplicit bulk migrationで、implicit repairとして使ってはならない。
 
-`profile set` preserves the existing `extensions.scwbs` fields, writes a timestamped `setDocumentExtension` changeset under `contracts/changesets/`, and applies that changeset to the canonical WBS through WJS. It never falls back to a direct WBS write when apply fails. Profile is part of `wbsGlobalRevision`, so inspect `task refresh --affected` afterward and refresh only the intended Task Contracts.
+`profile set`はexisting `extensions.scwbs` fieldをpreserveし、timestamped `setDocumentExtension` changesetを`contracts/changesets/`配下へ書き、WJS経由でcanonical WBSへapplyする。apply failure時もdirect WBS writeへfallbackしない。Profileは`wbsGlobalRevision`の一部なので、後で`task refresh --affected`をinspectし、意図したTask Contractだけをrefreshする。
 
 `task new` はfail-closedである。`--paths` 未指定では `allowedPaths: []`、`--wbs-node` 未指定では `wbsNodeId: wbs-less` を生成する。`--stop` または明示的な `--no-stop-conditions` がなければartifactを書かず失敗する。広範scopeはwarningとTiny Packetの `Scope Risk` で確認できる。
 
@@ -182,11 +175,11 @@ npm run scwbs -- registry rebuild --force --verbose
 npm run scwbs -- registry rebuild --force --output -
 ```
 
-Generated contract commands must refuse to overwrite existing files unless an explicit `--force` option is documented and supplied.
+Generated contract commandは、explicitな`--force` optionがdocumentされ指定されない限りexisting fileのoverwriteを拒否しなければならない。
 
-`task lock` writes a version 2 lock split into a scoped revision and a global revision. The scoped revision covers the referenced WBS node, its ancestors, its transitive `dependsOn` subgraph, and artifacts produced or consumed by those nodes. Unrelated sibling nodes are intentionally excluded. The global revision covers the WBS identity, root identity, schema version, and root `extensions.scwbs` policy.
+`task lock`はscoped revisionとglobal revisionに分けたversion 2 lockを書く。scoped revisionはreferenced WBS node、ancestor、transitive `dependsOn` subgraph、そのnodeがproduce/consumeするartifactを対象とし、unrelated sibling nodeは意図的に除外する。global revisionはWBS identity、root identity、schema version、root `extensions.scwbs` policyを対象とする。
 
-`task refresh --affected` is preview-only and lists Task Contracts whose scoped WBS, global policy, or Spec lock changed. `task refresh --all` previews every Task Contract; add `--apply` only for an explicit bulk migration or refresh. Existing `wbsRevision` whole-file locks remain readable and are reported by `--affected` as legacy locks. Migrate one with `task refresh --task <id> --apply`, or migrate all explicitly with `task refresh --all --apply`.
+`task refresh --affected`はpreview-onlyで、scoped WBS、global policy、Spec lockが変更されたTask Contractを列挙する。`task refresh --all`は全Task Contractをpreviewし、`--apply`はexplicit bulk migrationまたはrefreshの場合だけ追加する。既存の`wbsRevision` whole-file lockはreadableなままlegacy lockとして`--affected`に報告される。1つは`task refresh --task <id> --apply`で、全ては`task refresh --all --apply`で明示的にmigrateする。
 
 ### `--force` の意味はコマンドごとに異なる
 

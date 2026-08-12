@@ -145,22 +145,37 @@ function isIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
-function languageCandidate(line: string): { japanese: boolean; english: boolean } {
-  const withoutCode = line
+const ENGLISH_STOP_WORDS = new Set([
+  "a", "about", "after", "all", "an", "and", "are", "as", "at", "be", "before", "by", "can", "cannot", "does", "for", "from", "has", "have", "if", "in", "into", "is", "it", "may", "must", "no", "not", "of", "on", "only", "or", "should", "that", "the", "their", "then", "there", "these", "this", "to", "use", "when", "with", "without", "you"
+]);
+
+const TECHNICAL_WORDS = new Set([
+  "aced", "adr", "approval", "artifact", "branch", "build", "cli", "code", "command", "commit", "contract", "core", "diff", "document", "docs", "evidence", "field", "file", "gate", "github", "human", "index", "json", "main", "markdown", "mermaid", "option", "output", "packet", "path", "proposal", "registry", "repository", "review", "risk", "schema", "scwbs", "shell", "spec", "status", "task", "test", "tests", "url", "validation", "wbs", "yaml", "wjs"
+]);
+
+function stripNonProseMarkdown(value: string): string {
+  return value
     .replace(/`[^`]*`/g, " ")
-    .replace(/https?:\/\/\S+/g, " ")
-    .replace(/\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/^\s{4,}/, "")
-    .trim();
-  if (!withoutCode || withoutCode.startsWith("#") || /^[-*+]\s+[`<]/.test(withoutCode)) {
-    return { japanese: false, english: false };
-  }
-  const japanese = /[\u3040-\u30ff\u3400-\u9fff]/.test(withoutCode);
-  const words = withoutCode.toLowerCase().match(/[a-z]{3,}/g) ?? [];
-  const englishWords = new Set([
-    "the", "and", "for", "with", "this", "that", "from", "when", "must", "should", "use", "only", "current", "document", "repository", "run", "check", "work", "file", "source", "does", "not", "are", "is"
-  ]);
-  const english = !japanese && (words.filter((word) => englishWords.has(word)).length >= 2 || words.length >= 8);
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\]\(\s*[^)]+\)/g, "]")
+    .replace(/<https?:\/\/[^>]+>/gi, " ")
+    .replace(/<!--.*?-->/g, " ");
+}
+
+function languageCandidate(line: string): { japanese: boolean; english: boolean } {
+  if (/^(?:\t| {4,})/.test(line)) return { japanese: false, english: false };
+  const prose = stripNonProseMarkdown(line).trim();
+  if (!prose || /^\s*<!--/.test(prose)) return { japanese: false, english: false };
+
+  const japanese = /[\u3040-\u30ff\u3400-\u9fff]/.test(prose);
+  const englishSegments = prose.match(/[A-Za-z][A-Za-z'-]*(?:\s+[A-Za-z][A-Za-z'-]*)*/g) ?? [];
+  const english = englishSegments.some((segment) => {
+    const words = segment.toLowerCase().match(/[a-z][a-z'-]*/g) ?? [];
+    const meaningfulWords = words.filter((word) => !TECHNICAL_WORDS.has(word));
+    const stopWordCount = meaningfulWords.filter((word) => ENGLISH_STOP_WORDS.has(word)).length;
+    if (japanese) return meaningfulWords.length >= 4 && stopWordCount >= 2;
+    return meaningfulWords.length >= 2 && (stopWordCount >= 1 || meaningfulWords.length >= 4);
+  });
   return { japanese, english };
 }
 
@@ -211,24 +226,27 @@ function collectDocumentationQualityIssues(root: string, manifest: DocumentLifec
     }
     const declared = languageByPath.get(file);
     if (!declared) continue;
-    let inFence = false;
-    let japaneseLines = 0;
-    let englishLines = 0;
-    for (const line of text.split(/\r?\n/)) {
-      if (/^\s*```/.test(line)) {
-        inFence = !inFence;
+    let fenceMarker: "`" | "~" | undefined;
+    for (const [index, line] of text.split(/\r?\n/).entries()) {
+      const fence = line.match(/^\s*(`{3,}|~{3,})/);
+      if (fence) {
+        const marker = fence[1][0] as "`" | "~";
+        if (!fenceMarker) fenceMarker = marker;
+        else if (fenceMarker === marker) fenceMarker = undefined;
         continue;
       }
-      if (inFence) continue;
+      if (fenceMarker) continue;
       const candidate = languageCandidate(line);
-      if (candidate.japanese) japaneseLines += 1;
-      if (candidate.english) englishLines += 1;
-    }
-    const oppositeDetected = declared === "ja" ? englishLines >= 1 && japaneseLines === 0 : japaneseLines >= 1 && englishLines === 0;
-    if (oppositeDetected) {
-      issues.push(
-        error("docs.language.mixedProse", `${file}:1 declared language ${declared}, expected ${declared} prose; opposite-language prose detected`)
-      );
+      const oppositeDetected = declared === "ja" ? candidate.english : candidate.japanese;
+      if (oppositeDetected) {
+        const detected = declared === "ja" ? "en" : "ja";
+        issues.push(
+          error(
+            "docs.language.mixedProse",
+            `${file}:${index + 1} declared language ${declared}, detected language ${detected}, expected language ${declared}; opposite-language natural prose detected`
+          )
+        );
+      }
     }
   }
   return issues;

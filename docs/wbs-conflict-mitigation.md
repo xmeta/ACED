@@ -1,22 +1,22 @@
-# WBS Conflict Mitigation
+# WBS Conflict Mitigation（WBS競合の緩和）
 
 この文書は、WBS の競合を安全に扱うための方針を日本語で示す。
 
-This note defines the near-term conflict strategy for `contracts/wbs/project.wbs.json`.
+このnoteは`contracts/wbs/project.wbs.json`のnear-term conflict strategyを定義する。
 
-## Problem
+## 問題
 
-`contracts/wbs/project.wbs.json` is the canonical WBS document. A single canonical JSON file is easy to validate, but it can become a merge hotspot when several humans or AI agents add nodes, relations, or artifacts in parallel.
+`contracts/wbs/project.wbs.json`はcanonical WBS documentである。single canonical JSON fileはvalidateしやすいが、複数の人間またはAI agentが並行してnode、relation、artifactを追加するとmerge hotspotになり得る。
 
-The current project should keep the single canonical file for now. Full distributed WBS support is useful, but it is larger than the immediate problem.
+current projectは当面single canonical fileを維持する。Full distributed WBS supportは有用だが、immediate problemより大きい。
 
-The 2026-06-30 PR #15 conflict showed a second hotspot: generated SC-WBS contract paths such as `contracts/tasks/SCWBS-028.yaml` can collide even when the WBS JSON itself is mergeable. The expensive part was not the textual merge; it was reassigning the task ID, refreshing Evidence, rerunning CI, and waiting for GitHub to prove the PR was mergeable again.
+2026-06-30のPR #15 conflictはsecond hotspotを示した。`contracts/tasks/SCWBS-028.yaml`のようなgenerated SC-WBS contract pathは、WBS JSON自体がmergeableでも衝突し得る。高コストなのはtextual mergeではなく、task IDの再割当、Evidenceのrefresh、CIの再実行、PRが再びmergeableであることをGitHubが証明するまでの待機であった。
 
-## Near-Term Strategy
+## Near-Term Strategy（短期戦略）
 
-Use semantic change sets as the preferred collaboration unit.
+preferred collaboration unitとしてsemantic change setを使う。
 
-Agents should not regenerate the whole WBS. They should propose small `wjs` semantic operations, such as:
+agentはWBS全体をregenerateしてはならない。次のような小さい`wjs` semantic operationを提案する。
 
 ```json
 {
@@ -45,16 +45,16 @@ Agents should not regenerate the whole WBS. They should propose small `wjs` sema
 }
 ```
 
-The safe workflow is:
+safe workflowは次のとおりである。
 
 ```bash
 npm run scwbs -- wbs apply change-set.json
 npm run scwbs -- check
 ```
 
-Only after review should the change be applied with `--force --output contracts/wbs/project.wbs.json`.
+review後にだけ`--force --output contracts/wbs/project.wbs.json`でchangeをapplyする。
 
-Before collecting final Evidence or opening a PR, agents should refresh their view of `origin/main` and run:
+final Evidenceをcollectする前、またはPRを開く前に、agentは`origin/main`のviewをrefreshして次を実行する。
 
 ```bash
 git fetch origin
@@ -62,22 +62,22 @@ npm run scwbs -- health
 npm run scwbs -- check-diff --task <task-id>
 ```
 
-`scwbs health` warns when the current branch is behind `origin/main` and when both sides added the same high-cost SC-WBS contract path with different content. Treat these warnings as a stop-and-reassign signal before more Evidence or CI time is spent.
+`scwbs health`はcurrent branchが`origin/main`よりbehindの場合、および両sideが同じhigh-cost SC-WBS contract pathを異なるcontentで追加した場合にwarningを出す。これらのwarningは、追加のEvidenceまたはCI timeを使う前にstop-and-reassignするsignalとして扱う。
 
-## Merge Assistance Roadmap
+## Merge Assistance Roadmap（merge支援のroadmap）
 
-The low-cost implementation path is:
+low-cost implementation pathは次のとおりである。
 
-1. Warn when a branch is behind `origin/main` before final Evidence is collected.
-2. Warn when both sides added the same `contracts/tasks`, `contracts/evidence`, `contracts/approvals`, or `contracts/changesets` path with different content.
-3. Add a `scwbs wbs plan` or `scwbs wbs propose` helper that emits dry-run change-set templates.
-4. Add validation that rejects full-file WBS rewrites when a semantic change set would be sufficient.
-5. Add a semantic merge helper that can replay non-conflicting change sets onto the current WBS.
-6. Consider distributed WBS imports only after semantic change-set workflows prove insufficient.
+1. final Evidence collect前にbranchが`origin/main`よりbehindならwarningを出す。
+2. 両sideが同じ`contracts/tasks`、`contracts/evidence`、`contracts/approvals`、`contracts/changesets` pathを異なるcontentで追加した場合にwarningを出す。
+3. dry-run change-set templateを出力する`scwbs wbs plan`または`scwbs wbs propose` helperを追加する。
+4. semantic change setで十分な場合にfull-file WBS rewriteをrejectするvalidationを追加する。
+5. non-conflicting change setをcurrent WBSへreplayできるsemantic merge helperを追加する。
+6. semantic change-set workflowが不十分だと判明した後にだけdistributed WBS importを検討する。
 
-## Distributed WBS Option
+## Distributed WBS Option（distributed WBSの選択肢）
 
-If the single-file model becomes a real bottleneck, introduce feature-level WBS fragments later:
+single-file modelがreal bottleneckになった場合は、後からfeature-level WBS fragmentを導入する。
 
 ```text
 contracts/wbs/project.wbs.json
@@ -85,14 +85,14 @@ contracts/wbs/features/search.wbs.json
 contracts/wbs/features/auth.wbs.json
 ```
 
-The main WBS would remain the validation entry point. Fragment support must define deterministic import order, ID uniqueness rules, relation resolution, and artifact resolution before it is allowed in Strict workflows.
+main WBSはvalidation entrypointとして残す。fragment supportをStrict workflowで許可する前に、deterministic import order、ID uniqueness rule、relation resolution、artifact resolutionを定義しなければならない。
 
-## Current Rule
+## Current Rule（現行ルール）
 
-Until distributed WBS exists, all WBS updates must preserve these rules:
+distributed WBSが存在するまでは、すべてのWBS updateで次のruleを守る。
 
-* Do not rewrite the whole WBS to add a small change.
-* Prefer semantic operations and dry-run previews.
-* Keep node IDs stable after Task Contracts exist.
-* Regenerate affected Task Contract locks after WBS content changes.
-* If `health.git.addedPathCollision` appears, rename or reassign the task before collecting final Evidence.
+* 小さなchangeを追加するためにWBS全体をrewriteしない。
+* semantic operationとdry-run previewを優先する。
+* Task Contract作成後はnode IDをstableに保つ。
+* WBS content変更後はaffected Task Contract lockをregenerateする。
+* `health.git.addedPathCollision`が出た場合は、final Evidenceをcollectする前にtaskをrenameまたはreassignする。

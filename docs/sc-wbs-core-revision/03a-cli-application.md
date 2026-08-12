@@ -1,4 +1,4 @@
-# 03. Detailed Design
+# 03. 詳細設計
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
@@ -87,7 +87,7 @@ src/
     ai-packet-output.ts
 ```
 
-## CLI Layer
+## CLI層
 
 CLI Layerは、以下だけを担当する。
 
@@ -109,7 +109,7 @@ CLI Layerに以下を置いてはいけない。
 - YAML構築の詳細
 ```
 
-## Application Service Layer
+## Application Service層
 
 ユースケース単位の処理を担当する。
 

@@ -1,18 +1,12 @@
-# scwbs Consumer Quickstart
+# scwbs利用者向けquickstart
 
-This is the clone-free, finish-first path for a first-time consumer. It uses
-the installed `scwbs` CLI and keeps repository contributor setup separate. A
-small docs-only task can reach its first governed completion in about ten
-minutes.
+これはfirst-time consumer向けのclone-free、finish-first pathである。installed `scwbs` CLIを使い、repository contributor setupとは分離する。小さなdocs-only taskなら、最初のgoverned completionまで約10分で到達できる。
 
-## 1. Install the release tarball
+## 1. Release tarballをinstallする
 
-The supported consumer artifact is the self-contained tarball attached to a
-GitHub Release. It includes the WJS validator and does not require an ACED
-checkout or the `wjs` submodule.
+対応するconsumer artifactはGitHub Releaseに添付されたself-contained tarballである。WJS validatorを含み、ACED checkoutや`wjs` submoduleを必要としない。
 
-The release lifecycle commands resolve and verify the current stable manifest;
-they do not enable npm publication or unattended upgrades.
+release lifecycle commandはcurrent stable manifestをresolve・verifyするが、npm publicationやunattended upgradeはenableしない。
 
 ```bash
 SCWBS_VERSION=0.1.0
@@ -20,8 +14,7 @@ npm install --save-dev "https://github.com/xmeta/ACED/releases/download/v${SCWBS
 npx scwbs --version
 ```
 
-For discovery without hand-building the URL, download the release bootstrap asset. It
-verifies the release manifest and tarball digest before writing an exact dependency URL.
+URLを手作業で組み立てずにdiscoveryするにはrelease bootstrap assetをdownloadする。これは`package.json`へexact dependency URLを書き込む前にrelease manifestとtarball digestをverifyする。
 
 ```bash
 curl --fail --silent --show-error --location \
@@ -31,26 +24,20 @@ node /tmp/scwbs-bootstrap.mjs install --save-dev
 npm install --ignore-scripts --no-audit --no-fund
 ```
 
-The bootstrap verifies the release before writing the exact tarball URL to
-`package.json`; the following `npm install` installs that pinned dependency.
+bootstrapはexact tarball URLを`package.json`へ書く前にreleaseをverifyし、後続の`npm install`がそのpinned dependencyをinstallする。
 
-Use `node /tmp/scwbs-bootstrap.mjs install --dry-run --json` to inspect the proposal
-without changing `package.json`.
+`node /tmp/scwbs-bootstrap.mjs install --dry-run --json`を使うと、`package.json`を変更せずproposalを確認できる。
 
-For an installed consumer, use the read-only version check. It reports the exact
-package version, release tag, subject commit, and tarball digest. The manifest
-and artifact options keep the same verification available offline.
+installed consumerではread-only version checkを使う。exact package version、release tag、subject commit、tarball digestを報告し、manifest/artifact optionでoffline verificationも可能にする。
 
 ```bash
 npx scwbs version check --json
 npx scwbs version check --manifest ./release-manifest.json --artifact ./scwbs-0.1.0.tgz --json
 ```
 
-For a local smoke test, build and pack the repository first, then install the
-resulting `.tgz` into an empty consumer project as described in
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+local smoke testでは先にrepositoryをbuild・packし、生成された`.tgz`を空のconsumer projectへinstallする。[`CONTRIBUTING.md`](../../CONTRIBUTING.md)の手順を参照する。
 
-## 2. Initialize and orient yourself
+## 2. Initializeしてorientationする
 
 ```bash
 npx scwbs init --profile lean --agent codex --lang en
@@ -59,26 +46,22 @@ npx scwbs next
 npx scwbs next --json
 ```
 
-`doctor` diagnoses the local installation. `next` is the canonical navigation
-command when the next step is unclear; use `--json` for an IDE or automation.
+`doctor`はlocal installationを診断する。次のstepが不明な場合は`next`をcanonical navigation commandとして使い、IDEまたはautomationでは`--json`を使う。
 
-## 3. Propose an upgrade
+## 3. Upgradeをproposalする
 
-Upgrade is read-only by default. Generate an exact artifact proposal and review
-the migration impact before changing a consumer pin:
+Upgradeは既定でread-onlyである。consumer pinを変更する前にexact artifact proposalを生成し、migration impactをreviewする。
 
 ```bash
 npx scwbs upgrade --dry-run --json
 npx scwbs upgrade --dry-run --manifest ./next-release-manifest.json --json
 ```
 
-`upgrade` without `--dry-run` is rejected fail-closed and does not mutate
-`package.json`, lockfiles, Task Contracts, or generated files.
+`--dry-run`なしの`upgrade`はfail-closedでrejectされ、`package.json`、lockfile、Task Contract、generated fileをmutationしない。
 
-## 4. Create, edit, and finish one small task
+## 4. 1つの小さなtaskをcreate、edit、finishする
 
-Create a Task Contract with the smallest allowed scope, then use the exact
-branch name printed by `task new`:
+最小のallowed scopeでTask Contractを作成し、`task new`が表示するexact branch nameを使う。
 
 ```bash
 npx scwbs task new "Improve a consumer-facing document" \
@@ -87,24 +70,17 @@ npx scwbs task new "Improve a consumer-facing document" \
 npx scwbs task start <task-id>
 ```
 
-Make the change, inspect it, and commit the implementation. The standard
-completion command is:
+変更を行い、inspectしてimplementationをcommitする。standard completion commandは次のとおりである。
 
 ```bash
 npx scwbs finish --task <task-id>
 ```
 
-`finish` runs the Task's required checks, collects Evidence, checks the diff
-against the contract, and verifies the registry. Follow its typed next action
-for PR metadata, review, approval, and merge. Do not reconstruct that ceremony
-from a long manual command chain unless troubleshooting requires it.
+`finish`はTaskのrequired checkを実行し、Evidenceをcollectし、contractに対してdiffをcheckし、registryをverifyする。PR metadata、review、approval、mergeについてはtyped next actionに従う。troubleshooting以外で、このceremonyを長いmanual command chainとして再構成してはならない。
 
-## 5. Human Gate boundary
+## 5. Human Gateの境界
 
-If `finish` reports that a Human Gate is required, an AI must stop. A human
-reviews the current diff and Evidence, then runs the exact approval command
-shown by the CLI. Lean tasks may require copying an exact TTY confirmation into
-`--reason`:
+`finish`がHuman Gate requiredを報告した場合、AIはstopする。人間がcurrent diffとEvidenceをreviewし、CLIが示すexact approval commandを実行する。Lean taskではexact TTY confirmationを`--reason`へcopyする場合がある。
 
 ```bash
 npx scwbs approval approve \
@@ -113,19 +89,10 @@ npx scwbs approval approve \
   --reason "<exact confirmation printed by scwbs>"
 ```
 
-The confirmation is bound to the current Evidence subject head and diff hash
-(`CONFIRM TTY APPROVAL <task-id> <subjectHeadCommit> <diffHash>`). Do not reuse
-an older command after Evidence or the diff changes; rerun the command that
-`scwbs` prints for the current scope.
+confirmationはcurrent Evidence subject headとdiff hash（`CONFIRM TTY APPROVAL <task-id> <subjectHeadCommit> <diffHash>`）にbindされる。Evidenceまたはdiffが変わった後にold commandを再利用せず、current scope向けに`scwbs`が表示するcommandを再実行する。
 
-An AI must not substitute `--actor human`, approve its own work, or broaden a
-Task Contract to avoid the gate.
+AIは`--actor human`を代用せず、自分のworkをapproveせず、gate回避のためTask Contractを広げてはならない。
 
-## 6. Contributor and advanced paths
+## 6. Contributorと高度な経路
 
-This quickstart is for an installed consumer. Contributors working in the ACED
-repository should use [`CONTRIBUTING.md`](../../CONTRIBUTING.md), then read the
-advanced repository flow in [`getting-started.md`](getting-started.md) when
-needed. That flow intentionally retains manual checks, Evidence/registry
-repair, `check-diff`, review, and troubleshooting details for diagnosis and
-maintenance; it is not the first-use happy path.
+このquickstartはinstalled consumer向けである。ACED repositoryのcontributorは[`CONTRIBUTING.md`](../../CONTRIBUTING.md)を使い、必要に応じて[`getting-started.md`](getting-started.md)のadvanced repository flowを読む。そのflowはmanual check、Evidence/registry repair、`check-diff`、review、troubleshooting detailを意図的に保持するが、first-use happy pathではない。

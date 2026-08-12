@@ -1,8 +1,8 @@
-# scwbs CLI Reference
+# scwbs CLIリファレンス
 
-This file is the detailed command index for the `scwbs` CLI bundled with ACED (package name `scwbs`). Keep `README.md` short and link here when command examples grow.
+このfileはACEDにbundledされた`scwbs` CLI（package name `scwbs`）のdetailed command indexである。command exampleが増えた場合も`README.md`は短く保ち、ここへlinkする。
 
-Run through the npm script:
+実行時はnpm scriptを経由する。
 
 ```bash
 npm run scwbs -- --help
@@ -15,7 +15,7 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-## Mutation / Read-only 一覧
+## Mutation / Read-onlyの一覧
 
 各コマンドが完了後に何を残すかは、AIエージェントによる自動運用でも人間の運用でも重要な情報である。「read-only」を一律に扱うと `health` のようにtracked artifactは変えないがlocal metadataを書き込むコマンドを見落とすため、次の4分類を使う。全 `npm run scwbs -- ...` 呼び出しが実行中だけ作成し正常終了時に削除するcommand single-flight lockは、この永続side effect分類には含めない。
 
@@ -71,9 +71,9 @@ CLI自身の主要経路は次の終了コードを使う。Commanderが構文�
 
 **Human Gate待ちも通常のcheck失敗も同じexit code 1になる**ことに注意すること。CI等でHuman Gate待ちだけを別扱いしたい場合は、exit codeではなく `--json` の `outcome`（例: `awaiting-human-approval`）フィールドで判定すること。
 
-## Build Output
+## buildの出力
 
-After building:
+build後に次を実行する。
 
 ```bash
 npm run build

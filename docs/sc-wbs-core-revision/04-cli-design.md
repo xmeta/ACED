@@ -1,4 +1,4 @@
-# 04. CLI Design
+# 04. CLI設計
 
 この文書は、SC-WBS Core のCLI設計である。
 
@@ -147,7 +147,7 @@ scwbs packet --task WBS-001 --tiny
 
 `--tiny` を既定にする。
 
-### Packet levels
+### Packet level
 
 | Level | 用途 | 内容 |
 |---|---|---|
@@ -244,7 +244,7 @@ scwbs check-diff --task WBS-001
 - WBS changeset再現性
 ```
 
-### Exit code
+### 終了コード
 
 | Exit code | 意味 |
 |---:|---|
@@ -418,4 +418,3 @@ npm run scwbs -- finish
 ```text
 scwbs finish
 ```
-

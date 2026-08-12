@@ -1,8 +1,8 @@
-﻿# SC-WBS Evidence, Human Gate, Review, And DoD
+﻿# SC-WBS Evidence、Human Gate、Review、DoD
 
 Source: docs/sc-wbs-development.md split reference.
 
-This legacy reference is maintained in English; command names and schema fields remain unchanged.
+このlegacy referenceは日本語でmaintainし、command nameとschema fieldは変更しない。
 
 ## 9. Evidence
 
@@ -63,7 +63,7 @@ notes:
 
 Evidenceは自己申告だけで完結させない。可能な限り、CIログ、テスト結果、コミットID、差分、レビュー結果と結びつける。
 
-### Evidence subject provenance
+### Evidence subjectのprovenance
 
 新規に収集するEvidenceは `provenance.schemaVersion: 1.0.0` を持ち、
 subjectのcommit、tree hash、`diffHash`、および
@@ -258,7 +258,7 @@ Spec Contract、Task Contract、Acceptance CriteriaのみをGround Truthとし�
 
 ---
 
-## 13. Definition of Done
+## 13. 完了条件（Definition of Done）
 
 Doneは、コードが動いたことではない。
 

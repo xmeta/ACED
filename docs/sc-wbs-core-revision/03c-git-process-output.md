@@ -1,4 +1,4 @@
-# 03. Detailed Design
+# 03. 詳細設計
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
@@ -56,7 +56,7 @@ checks:
 
 ## 出力設計
 
-### Human output
+### Human向けoutput
 
 人間向けには短く表示する。
 

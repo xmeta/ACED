@@ -1,6 +1,6 @@
-﻿# SC-WBS Operations Profile, Subtree Phase, And Spec Files
+﻿# SC-WBS運用プロファイル、Subtree Phase、Spec File
 
-Source: docs/sc-wbs-development.md split reference.
+出典: docs/sc-wbs-development.mdを分割した参照文書。
 
 ## 15. 運用プロファイル
 
@@ -58,17 +58,15 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
 * `bootstrap`
 * `normal`
 
-## 18. Spec Contract Files
+## 18. Spec Contract file
 
-Spec Contract files live under `contracts/specs/*.yaml`.
-Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
+Spec Contract fileは`contracts/specs/*.yaml`配下に置く。Approved Spec Contractには`status`、`version`、`approvedBy`、`approvedAt`を含める。
 
-## 19. Spec Change Proposal Files
+## 19. Spec Change Proposal file
 
-Spec Change Proposal files live under `contracts/spec-changes/*.yaml`.
-They describe proposed Level 1 or Level 2 changes before the approved Spec Contract is updated.
+Spec Change Proposal fileは`contracts/spec-changes/*.yaml`配下に置く。approved Spec Contractをupdateする前に、proposed Level 1またはLevel 2 changeを記述する。
 
-Minimum form:
+最小形式:
 
 ```yaml
 id: SCP-SCWBS-001
@@ -91,17 +89,16 @@ risks:
   - Existing task locks may need refresh after approval.
 ```
 
-`status` is one of:
+`status`は次のいずれかである。
 
-| Status | Meaning |
+| Status | 意味 |
 |---|---|
-| `proposed` | Proposed and not yet approved |
-| `approved` | Human-approved and ready to drive Spec Contract updates |
-| `rejected` | Not accepted |
-| `superseded` | Replaced by another proposal |
+| `proposed` | 提案済みだが未承認 |
+| `approved` | Human承認済みでSpec Contract更新に使用できる |
+| `rejected` | 受け入れられていない |
+| `superseded` | 別の提案に置き換えられた |
 
-When `status: approved`, `approvedBy` and `approvedAt` are required.
-`scwbs check` validates Spec Change Proposal files and requires them to be indexed by `contracts/registry.yaml`.
+`status: approved`の場合、`approvedBy`と`approvedAt`がrequiredになる。`scwbs check`はSpec Change Proposal fileをvalidateし、`contracts/registry.yaml`でindexされていることを要求する。
 
 ### Approval Record 補足
 

@@ -1,4 +1,4 @@
-# 03. Minimal Artifacts
+# 03. 最小artifact
 
 この文書は、SC-WBS Core が内部生成する最小成果物を定義する。
 
@@ -215,7 +215,7 @@ history:
 
 AIは危険変更を推測で進めるのではなく、Blockを作る。
 
-## Managed Contract Paths
+## 管理対象Contractのpath
 
 EvidenceやBlockなど、作業に伴い生成される管理ファイルは、通常の `allowedPaths` と別扱いにする。
 

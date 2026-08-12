@@ -1,4 +1,4 @@
-# 05. Diff, Evidence, And Approval Rules
+# 05. Diff、Evidence、Approvalのルール
 
 この文書は、SC-WBS Core における差分・証跡・承認の一貫性ルールを定義する。
 

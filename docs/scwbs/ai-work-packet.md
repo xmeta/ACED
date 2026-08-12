@@ -1,8 +1,8 @@
 ﻿# SC-WBS AI Work Packet
 
-Source: docs/sc-wbs-development.md split reference.
+Source: docs/sc-wbs-development.md split reference。
 
-This legacy reference is maintained in English; command names and schema fields remain unchanged.
+このlegacy referenceは日本語でmaintainし、command nameとschema fieldは変更しない。
 
 ## 7. AI Work Packet
 

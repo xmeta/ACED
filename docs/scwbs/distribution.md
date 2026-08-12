@@ -27,8 +27,7 @@ node /tmp/scwbs-bootstrap.mjs install --save-dev
 npm install --ignore-scripts --no-audit --no-fund
 ```
 
-The bootstrap verifies the public manifest and writes only the exact tarball
-URL to `package.json`; run `npm install` afterward to install that dependency.
+bootstrapはpublic manifestをverifyし、`package.json`へexact tarball URLだけを書き込む。その後`npm install`を実行してdependencyをinstallする。
 
 変更前の確認には `--dry-run --json` を使えます。`--tag v<version>`、`--manifest <path>`、
 `--artifact <path>` を指定すると、対象 Release または offline artifact を固定して検証できます。
@@ -40,7 +39,7 @@ ACED はその実行資産を配布用に変換して保持します。
 
 ## 互換性
 
-- Node.js: `>=22.13.0` (required for the built-in `node:sqlite` module used by the local index)
+- Node.js: `>=22.13.0`（local indexが使うbuilt-in `node:sqlite` moduleに必要）
 - npm: `>=10`（repository build と contributor setup）
 - standalone consumer はインストール済み scwbs package の Node engine を検査する
 - contributor は `git submodule update --init --recursive wjs` 後に repository の workspace を install する
@@ -49,7 +48,7 @@ packed artifact の境界は CI の `distribution` job と
 `scripts/distribution-smoke.mjs` で検証します。検証対象は `--version`、
 `init`、`doctor`、`check`、WJS validation/apply、必要 asset、submodule 不在です。
 
-## Version lifecycle
+## Versionのライフサイクル
 
 インストール済み CLI は release manifest を read-only に解決し、package version、
 CLI version、release tag、commit、tarball digest を同じ subject として確認します。
@@ -65,7 +64,7 @@ GitHub に接続できない環境では、取得済みの `release-manifest.jso
 pin を自動変更しません。npm registry 公開や unattended upgrade の有効化は人間の
 配布判断を必要とします。
 
-## Release policy
+## Release方針
 
 `.github/workflows/release.yml` は、main の `scwbs` workflow が exact-head で成功した
 `workflow_run` を受け、package version と versioned CHANGELOG section を確認した後、

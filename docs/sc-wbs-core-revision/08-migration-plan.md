@@ -41,7 +41,7 @@ docs/sc-wbs-core-revision/
 ルート `README.md` には以下を追記する。
 
 ```md
-## Lightweight Core Workflow
+## 軽量Coreワークフロー
 
 AIに長い仕様全体を読ませず、短いコマンドとTiny Packetで運用する場合は、
 `docs/sc-wbs-core-revision/00-index.md` を参照してください。
@@ -91,7 +91,7 @@ diffHash: sha256:...
 scwbs migrate evidence --write
 ```
 
-Dry-run:
+dry-run:
 
 ```bash
 scwbs migrate evidence

@@ -315,6 +315,64 @@ describe("docs check", () => {
     expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.language.mixedProse");
   });
 
+  test("fails mixed natural prose in either declared language and reports the actual line", () => {
+    const root = makeTempRepo();
+    const document = documentSet();
+    writeFixture(root, [document]);
+    writeText(root, document.entrypoint, "# current\nこれは日本語の説明です。\nThis is English prose that must fail.\n");
+
+    const jaIssues = collectDocumentLifecycleIssues(root).issues.filter((issue) => issue.code === "docs.language.mixedProse");
+    expect(jaIssues).toHaveLength(1);
+    expect(jaIssues[0].message).toContain("docs/current/index.md:3");
+    expect(jaIssues[0].message).toContain("declared language ja");
+    expect(jaIssues[0].message).toContain("detected language en");
+    expect(jaIssues[0].message).toContain("expected language ja");
+
+    const manifestPath = path.join(root, "docs/document-lifecycle.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+    (manifest.documents as Array<Record<string, unknown>>)[0].language = "en";
+    writeJson(root, "docs/document-lifecycle.json", manifest);
+    writeText(root, document.entrypoint, "# current\nThis is English prose that is valid.\nこれは混在する日本語本文です。\n");
+
+    const enIssues = collectDocumentLifecycleIssues(root).issues.filter((issue) => issue.code === "docs.language.mixedProse");
+    expect(enIssues).toHaveLength(1);
+    expect(enIssues[0].message).toContain("docs/current/index.md:3");
+    expect(enIssues[0].message).toContain("declared language en");
+    expect(enIssues[0].message).toContain("detected language ja");
+    expect(enIssues[0].message).toContain("expected language en");
+  });
+
+  test("allows technical identifiers and Markdown code while checking prose table cells", () => {
+    const root = makeTempRepo();
+    const document = documentSet();
+    writeFixture(root, [document]);
+    writeText(
+      root,
+      document.entrypoint,
+      [
+        "# current",
+        "日本語の説明は `Task Contract` と `npm run scwbs -- docs check` を使用する。",
+        "URL は https://example.com/docs/check、path は docs/current/index.md、option は --json。",
+        "    This indented English code is ignored.",
+        "~~~text",
+        "This fenced English code is ignored.",
+        "~~~",
+        "| 項目 | 説明 |",
+        "| --- | --- |",
+        "| This is English prose in a table | 日本語 |"
+      ].join("\n") + "\n"
+    );
+
+    const issues = collectDocumentLifecycleIssues(root).issues.filter((issue) => issue.code === "docs.language.mixedProse");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("docs/current/index.md:10");
+  });
+
+  test("keeps all live managed documents free of language diagnostics", () => {
+    const languageIssues = collectDocumentLifecycleIssues(process.cwd()).issues.filter((issue) => issue.code.startsWith("docs.language."));
+    expect(languageIssues).toEqual([]);
+  });
+
   test("detects broken internal links in split documentation", () => {
     const root = makeTempRepo();
     const document = documentSet({ entrypoint: "docs/current/index.md" });

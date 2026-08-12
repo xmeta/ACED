@@ -21,9 +21,9 @@ AIが誤操作した場合に止まることをテストする。
 | Policy test | approvalなしHuman GateがErrorになること |
 | Regression test | Evidence self-stale問題、Approval stale問題 |
 
-## Unit tests
+## unit test
 
-### Path matcher
+### path matcher
 
 テストケース:
 
@@ -56,7 +56,7 @@ forbiddenPaths > humanGateRequiredPaths > managedContractPaths > allowedPaths
 - binary fileはblob hashで表現される
 ```
 
-### Evidence validation
+### Evidenceの検証
 
 テストケース:
 
@@ -69,7 +69,7 @@ forbiddenPaths > humanGateRequiredPaths > managedContractPaths > allowedPaths
 - subjectHeadCommitが存在しない
 ```
 
-### Approval validation
+### Approvalの検証
 
 テストケース:
 
@@ -82,9 +82,9 @@ forbiddenPaths > humanGateRequiredPaths > managedContractPaths > allowedPaths
 - approvedAtなし = error
 ```
 
-## Integration tests
+## integration test
 
-### Happy path
+### 成功経路
 
 ```bash
 scwbs task new "スタッフ検索APIを実装" --paths src/features/staff-search/** --checks test
@@ -169,9 +169,9 @@ Evidence自身のコミットだけではstaleにならない。
 Approval scope stale Errorになる。
 ```
 
-## CLI output tests
+## CLI outputのテスト
 
-### Human output
+### Human向けoutput
 
 エラー出力には必ず以下が含まれる。
 
@@ -203,7 +203,7 @@ Tiny Packetは以下を満たす。
 - allowed / forbidden / stopIf / checks / whenDone / whenBlocked を含む
 ```
 
-## Test fixtures
+## test fixture
 
 推奨fixture構成:
 
@@ -220,7 +220,7 @@ test-fixtures/
   approval-stale/
 ```
 
-## CI checks
+## CI check
 
 最低限:
 
@@ -251,4 +251,3 @@ MVPの受け入れ基準:
 - Approval後の追加コミットを検出できる。
 - すべてのErrorにfixCommandがある。
 ```
-

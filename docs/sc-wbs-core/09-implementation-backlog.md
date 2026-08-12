@@ -1,4 +1,4 @@
-# 09. Implementation Backlog
+# 09. 実装backlog
 
 この文書は、SC-WBS Core を実装するための優先タスク候補である。
 
@@ -65,7 +65,7 @@ Evidence生成、checks実行、check-diffを1コマンドにまとめる。
 - check-diff実行
 - fixCommand表示
 
-### CORE-003a: metadata-only finish workflow
+### CORE-003a: metadata-only finishワークフロー
 
 目的:
 

@@ -1,60 +1,60 @@
-# WJS Operations And Validation
+# WJSの操作と検証
 
-This repository treats `wjs/` as the canonical WBS-JSON implementation.
+このrepositoryは`wjs/`をcanonical WBS-JSON implementationとして扱う。
 
-## Source Of Truth
+## 正本
 
-The WBS source of truth is:
+WBS source of truthは次である。
 
 ```text
 contracts/wbs/project.wbs.json
 ```
 
-This file follows:
+このfileは次に従う。
 
 ```text
 wjs/schema/wbs-json.schema.json
 ```
 
-## Change-Set Rule
+## Change-Setのルール
 
-WBS changes must be proposed as semantic operation change sets under:
+WBS changeは次の配下にsemantic operation change setとして提案する。
 
 ```text
 contracts/changesets/*.json
 ```
 
-Do not hand-edit or regenerate the whole WBS when a small semantic operation is enough. Use `wjs/schema/wbs-operations.schema.json` operations such as `addNode` and `addRelation`.
+小さなsemantic operationで足りる場合に、WBS全体をhand-editまたはregenerateしてはならない。`addNode`や`addRelation`など、`wjs/schema/wbs-operations.schema.json`のoperationを使う。
 
-## Validate The WBS
+## WBSをvalidateする
 
 ```bash
 npm --prefix wjs run validate -- ../contracts/wbs/project.wbs.json
 npm run scwbs -- wbs validate
 ```
 
-`scwbs wbs validate` and `scwbs check` use `wjs/tools/validate.ts --wbs` internally.
+`scwbs wbs validate`と`scwbs check`は内部で`wjs/tools/validate.ts --wbs`を使う。
 
-## Validate Operations
+## Operationをvalidateする
 
 ```bash
 npm --prefix wjs run validate -- --operations ../contracts/changesets/change-set.json
 ```
 
-`scwbs check-diff` validates `contracts/changesets/*.json` with `wjs/tools/validate.ts --operations`.
+`scwbs check-diff`は`contracts/changesets/*.json`を`wjs/tools/validate.ts --operations`でvalidateする。
 
-## Diff Enforcement
+## Diffの強制
 
-`scwbs check-diff --task <task-id>` enforces these WBS-related rules:
+`scwbs check-diff --task <task-id>`は次のWBS関連ruleをenforceする。
 
-- If `contracts/wbs/project.wbs.json` changes, at least one `contracts/changesets/*.json` file must be present in the diff.
-- `contracts/changesets/*.json` files must pass the WJS operations schema.
-- The current Git branch must match the Task Contract `branchName`.
-- The WBS node must not be marked `completed` by AI implementation work.
+- `contracts/wbs/project.wbs.json`が変更された場合、diffに少なくとも1つの`contracts/changesets/*.json`がある。
+- `contracts/changesets/*.json`がWJS operations schemaにpassする。
+- current Git branchがTask Contractの`branchName`と一致する。
+- WBS nodeをAI implementation workで`completed`にしない。
 
-## Apply Preview
+## Apply preview
 
-Use dry-run change sets for preview and review:
+previewとreviewにはdry-run change setを使う。
 
 ```json
 {
@@ -67,14 +67,10 @@ Use dry-run change sets for preview and review:
 }
 ```
 
-When the governing Task requires Human Gate approval, record that requirement
-in the Task Contract before work starts and obtain approval before applying:
+governing TaskがHuman Gate approvalを要求する場合は、work開始前にそのrequirementをTask Contractへ記録し、apply前にapprovalを得る。
 
 ```bash
 npm run scwbs -- wbs apply contracts/changesets/change-set.json --force --output contracts/wbs/project.wbs.json
 ```
 
-`wbs apply` validates the WBS and operation document but does not accept a Task
-ID or inspect Approval records. Human Gate is therefore enforced by
-`check-diff` only when the governing Task's `humanGateRequiredPaths` matches the
-canonical WBS path; it is not an unconditional check inside WJS apply.
+`wbs apply`はWBSとoperation documentをvalidateするが、Task IDを受け取らずApproval recordもinspectしない。したがってHuman Gateは、governing Taskの`humanGateRequiredPaths`がcanonical WBS pathにmatchする場合に`check-diff`だけがenforceする。WJS apply内部のunconditional checkではない。

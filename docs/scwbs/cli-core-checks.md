@@ -1,8 +1,8 @@
-# scwbs CLI Reference
+# scwbs CLIリファレンス
 
-This file is the detailed command index for the `scwbs` CLI bundled with ACED (package name `scwbs`). Keep `README.md` short and link here when command examples grow.
+このfileはACEDにbundledされた`scwbs` CLI（package name `scwbs`）のdetailed command indexである。command exampleが増えた場合も`README.md`は短く保ち、ここへlinkする。
 
-Run through the npm script:
+npm script経由で実行する。
 
 ```bash
 npm run scwbs -- --help
@@ -15,29 +15,28 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-## Core Checks
+## Coreチェック
 
-### Top-level command groups
+### トップレベルのcommand group
 
-The top-level help lists each command group with a short purpose. Use the
-group-specific help for its subcommands and options:
+top-level helpは各command groupと短いpurposeを列挙する。subcommandとoptionについてはgroup-specific helpを使う。
 
-| Group        | Purpose                                                        |
-| ------------ | -------------------------------------------------------------- |
-| `ci`         | Plan and classify CI execution                                 |
-| `checks`     | Run and inspect required checks                                |
-| `metrics`    | Measure governance cost and repository metrics                 |
-| `ai`         | Build AI packets and dry-run task plans                        |
-| `approval`   | Manage task approval requests and delegated policy preparation |
-| `completion` | Apply completion changes through SC-WBS                        |
-| `evidence`   | Collect and maintain Task Evidence                             |
-| `registry`   | Validate and rebuild the contract registry                     |
-| `profile`    | Show or change the SC-WBS profile                              |
-| `review`     | Request and route Task reviews                                 |
-| `lite`       | Create lightweight task proposals                              |
-| `task`       | Manage Task Contracts and lifecycle                            |
-| `policy`     | Explain read-only repository policy impact                     |
-| `wbs`        | Validate and apply WBS changes                                 |
+| Group | Purpose |
+| --- | --- |
+| `ci` | CI executionをplan・classifyする |
+| `checks` | required checkを実行・inspectする |
+| `metrics` | governance costとrepository metricを計測する |
+| `ai` | AI packetとdry-run task planを作成する |
+| `approval` | task approval requestとdelegated policy preparationを管理する |
+| `completion` | SC-WBS経由でcompletion changeをapplyする |
+| `evidence` | Task Evidenceをcollect・maintainする |
+| `registry` | contract registryをvalidate・rebuildする |
+| `profile` | SC-WBS profileを表示・変更する |
+| `review` | Task reviewをrequest・routeする |
+| `lite` | lightweight task proposalを作成する |
+| `task` | Task Contractとlifecycleを管理する |
+| `policy` | read-only repository policy impactを説明する |
+| `wbs` | WBS changeをvalidate・applyする |
 
 ```bash
 npm run scwbs -- init --profile lean --agent codex --lang ja
@@ -79,33 +78,25 @@ npm run scwbs -- task preflight --title "Update auth flow" --paths "src/auth/**"
 npm run scwbs -- policy explain src/auth/session.ts --json
 ```
 
-`scwbs fix` only applies safe, deterministic fixes (currently: regenerating `contracts/registry.yaml`). It never edits Task Contracts, Evidence, Approvals, or WBS content, and never guesses at a fix for a failing check or a path violation.
+`scwbs fix`はsafeかつdeterministicなfix（currentは`contracts/registry.yaml`のregenerate）だけをapplyする。Task Contract、Evidence、Approval、WBS contentをeditせず、failed checkやpath violationのfixを推測しない。
 
-### Consumer first-use path
+### 利用者の初回利用経路
 
-The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quickstart.md): install the release tarball, run `npx scwbs init`, use `npx scwbs doctor` and `npx scwbs next`, create a narrowly scoped Task, and complete it with `npx scwbs finish --task <task-id>`. The manual Evidence/registry/check-diff sequence below remains available for contributor troubleshooting. The machine-readable command fixture at `docs/scwbs/quickstart-commands.json` is exercised by the distribution smoke test so command and option drift fails validation.
+canonical consumer flowは[`docs/scwbs/quickstart.md`](quickstart.md)に記載する。release tarballをinstallし、`npx scwbs init`を実行し、`npx scwbs doctor`と`npx scwbs next`を使い、narrowly scoped Taskを作成し、`npx scwbs finish --task <task-id>`でcompleteする。以下のmanual Evidence/registry/check-diff sequenceはcontributor troubleshooting向けに残る。`docs/scwbs/quickstart-commands.json`のmachine-readable command fixtureはdistribution smoke testがexerciseし、command/option driftをvalidation failureにする。
 
-`scwbs version` prints the installed exact version. The GitHub Release `scwbs-bootstrap.mjs`
-asset provides the supported non-npm Option B entry point: `node scwbs-bootstrap.mjs install
---save-dev` verifies the release manifest and tarball digest before writing an exact
-`devDependencies.scwbs` URL; `install --dry-run --json` is read-only and returns
-`scwbs.bootstrap-install.v1`. `scwbs version check --json`
-verifies the installed/current-stable release subject and supports `--manifest <path>`
-plus `--artifact <path>` for offline digest verification. `scwbs upgrade --dry-run --json`
-emits an exact artifact proposal without mutating the consumer; upgrade without
-`--dry-run` is rejected.
+`scwbs version`はinstalled exact versionを表示する。GitHub Releaseの`scwbs-bootstrap.mjs` assetはsupported non-npm Option B entrypointを提供する。`node scwbs-bootstrap.mjs install --save-dev`はexact `devDependencies.scwbs` URLを書き込む前にrelease manifestとtarball digestをverifyし、`install --dry-run --json`はread-onlyで`scwbs.bootstrap-install.v1`を返す。`scwbs version check --json`はinstalled/current-stable release subjectをverifyし、`--manifest <path>`と`--artifact <path>`でoffline digest verificationを可能にする。`scwbs upgrade --dry-run --json`はconsumerをmutationせずexact artifact proposalを出力し、`--dry-run`なしのupgradeはrejectされる。
 
 `doctor --github` は、明示的に指定した場合だけ GitHub readiness を read-only で診断する。`gh` CLI、認証、`origin`、repository/PR/Actions の read capability と merge readiness を `ready`、`partial`、`unavailable`、`not-evaluated` で返す。トークンや `gh` の生出力は返さず、GitHub が利用できない場合もローカル診断の結果は変えない。JSON 出力の追加フィールドは `docs/scwbs/schemas/doctor-github.schema.json` で定義する。
 
-`init --agent` adds the selected adapter without replacing existing adapters (`codex`, `claude`, `cursor`, `copilot`, `gemini`, or `opencode`). The versioned `scwbs.agent-adapter.v1` registry keeps file paths, lifecycle status, MCP capability, and locale keys in data rather than a command switch. Gemini CLI and OpenCode are preview fixtures. Manifest v2 stores `primaryAgent`, `agents`, and per-file `owner`/`sha256`; valid v1 manifests migrate safely. `agent add`, `agent set-primary`, and `agent remove` are additive, primary-only, and unchanged-file-only operations; divergent/user files remain preserved.
+`init --agent`はexisting adapterをreplaceせずselected adapter（`codex`、`claude`、`cursor`、`copilot`、`gemini`、`opencode`）をaddする。versioned `scwbs.agent-adapter.v1` registryはfile path、lifecycle status、MCP capability、locale keyをcommand switchではなくdataとして保持する。Gemini CLIとOpenCodeはpreview fixtureである。Manifest v2は`primaryAgent`、`agents`、fileごとの`owner`/`sha256`を保持し、valid v1 manifestをsafeにmigrateする。`agent add`、`agent set-primary`、`agent remove`はadditive、primary-only、unchanged-file-only operationであり、divergent/user fileはpreserveする。
 
-`init --lang <locale>` uses the versioned `scwbs.locale.v1` bundle for generated guidance. `ja-jp` and `en-us` normalize to `ja` and `en`; unknown valid locale ids deterministically fall back to `en`. Stable error codes, JSON schema field names, and authority semantics are never translated. Bundle key and placeholder validation fails closed before generated files are written.
+`init --lang <locale>`はgenerated guidanceにversioned `scwbs.locale.v1` bundleを使う。`ja-jp`と`en-us`は`ja`と`en`へnormalizeし、unknown valid locale idはdeterministically `en`へfallbackする。stable error code、JSON schema field name、authority semanticは翻訳しない。bundle keyとplaceholderのvalidationはgenerated fileを書き込む前にfail-closedする。
 
-`agent list --json` and `agent inspect <id> --json` expose bounded registry metadata. `agent doctor --all --json` checks every registered adapter's repository-relative paths and reports `ready`, `preview`, or `error`. Absolute paths, traversal, and symlink escapes fail closed; these commands never execute an agent or shell command.
+`agent list --json`と`agent inspect <id> --json`はbounded registry metadataを公開する。`agent doctor --all --json`はregistered adapterごとのrepository-relative pathをcheckし、`ready`、`preview`、`error`を報告する。absolute path、traversal、symlink escapeはfail-closedし、これらのcommandはagentやshell commandをexecuteしない。
 
-`update` refreshes all managed agents, or one with `--agent`. `update --lang <locale>` explicitly switches the generated guidance locale and `update --dry-run --json` returns versioned create/update/unchanged/preserved/divergent/migrate/remove decisions without writing. Operations are idempotent and retain Human Gate/approval stop semantics; divergent user-owned files are never overwritten.
+`update`はmanaged agent全体、または`--agent`指定の1つをrefreshする。`update --lang <locale>`はgenerated guidance localeをexplicitにswitchし、`update --dry-run --json`はwriteせずversioned create/update/unchanged/preserved/divergent/migrate/remove decisionを返す。operationはidempotentでHuman Gate/approval stop semanticを維持し、divergent user-owned fileを上書きしない。
 
-`task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
+`task preflight`と`policy explain`はread-only policy-cost explanationである。Task creationと同じcheck coverage/governance path evaluatorを使い、required check、Evidence、Human Gate path、forbidden path、reason code付きversioned JSONを返し、Task Contractをcreateまたはapproveしない。unclassified implementation pathはfail-closedする。
 
 `pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`pack update --dry-run --json` は `old` / `new` の version、digest、source provenance とファイル差分を返し、同一 digest の更新は no-op になる。更新はファイルと lockfile を transactional に適用し、失敗時に中間状態を残さない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
 
@@ -113,7 +104,7 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 
 `index rebuild` は canonical YAML/JSON artifact から `.scwbs/cache/index.sqlite` を完全再構築する。cache は Git 管理外の navigation/search 用 derived data であり、`check`、`finish`、`approval`、`merge` の authority 判定には使わない。`index status --json` / `index verify --json` は missing、ready、stale、corrupt と source hash / repository HEAD provenance を返す。`query --json` は SQL を公開せず、kind、status、bounded text、`--unverified`、`--stale` だけを受け付ける。結果には source path、source hash、schema version、HEAD、canonical locator を含め、出力は最大100件に制限する。corrupt cache は `index rebuild` で安全に再生成できる。
 
-### Navigation JSON contracts
+### Navigation JSON契約
 
 `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
 
@@ -136,7 +127,7 @@ fieldがある場合も、値には2種類ある。
 
 `fixCommand` の値をそのままshellへ渡す自動化を書いてはならない。fieldの有無を確認し、値が実行可能なコマンドか助言かを判定してから、人間または上位workflowが次の操作を決める。
 
-### `remediation` contract
+### `remediation`契約
 
 主要なcheck/health/doctor/check-diff/finishのJSON issueには、`remediation`（versioned contract）が付く。`kind` は `command`、`guidance`、`wait` のいずれかであり、commandはshell文字列ではなくargv配列をcanonical表現とする。
 
@@ -196,7 +187,7 @@ completion trustの対象と `--strict` の失敗対象は**同一の母集団**
 
 これらの指標は既定で既存のhealth出力と同じbounded形式（代表2件、omitted件数）で集約され、`--verbose` で全件表示する。
 
-## Governance Cost Metrics
+## Governance Costのメトリクス
 
 ```bash
 npm run scwbs -- metrics governance
@@ -234,31 +225,22 @@ GitHub remoteが設定され、`gh` が認証済みなら、同じsummaryの `hi
 
 Profile（Lean / Standard / Strict）ごとの必須artifact・required checks・governance対象directoryの詳細は [`docs/scwbs/operations-profile-and-specs.md`](operations-profile-and-specs.md) を参照。`profile show` / `profile set lean|standard|strict` はこのCLI Referenceの「Contracts」節に例がある。
 
-## Lightweight Entry Points
+## 軽量なentry point
 
 ### `store list` / `store show`
 
-Planning Store registry is a versioned, read-only cross-repository reference. The
-registry itself is not a Task Contract and cannot expand a repository Task's
-`allowedPaths`, required checks, Evidence, Approval, or Human Gate authority.
+Planning Store registryはversionedでread-onlyなcross-repository referenceである。registry自体はTask Contractではなく、repository Taskの`allowedPaths`、required check、Evidence、Approval、Human Gate authorityを拡張できない。
 
 ```bash
 corepack npm run scwbs -- store list --registry planning-store.yaml --json
 corepack npm run scwbs -- store show --registry planning-store.yaml --store <store-id> --json
 ```
 
-`store list` resolves each store root to an absolute path. `store show` checks
-repository trust, dirty state, pinned commit, shared Spec content hash, path
-escape, and dependency cycles. A missing or dirty/untrusted repository, a stale
-pin, a path escape, or a cycle fails closed; no clone, pull, push, credential
-loading, or remote mutation is performed. Task, Evidence, Approval, Human Gate,
-CI, and workset ownership remain repository-local; worksets provide correlation
-only. The JSON output versions are `scwbs.planning-store-list.v1` and
-`scwbs.planning-store-show.v1`.
+`store list`は各store rootをabsolute pathへresolveする。`store show`はrepository trust、dirty state、pinned commit、shared Spec content hash、path escape、dependency cycleをcheckする。missingまたはdirty/untrusted repository、stale pin、path escape、cycleはfail-closedし、clone、pull、push、credential loading、remote mutationは実行しない。Task、Evidence、Approval、Human Gate、CI、workset ownershipはrepository-localのままであり、worksetはcorrelationだけを提供する。JSON output versionは`scwbs.planning-store-list.v1`と`scwbs.planning-store-show.v1`である。
 
 ### `spec-change new`
 
-Create a proposed Spec Change Proposal without changing the target Spec or creating an approval record.
+target Specを変更せず、approval recordも作らずにproposed Spec Change Proposalを作成する。
 
 ```bash
 npm run scwbs -- spec-change new \
@@ -271,7 +253,7 @@ npm run scwbs -- spec-change new \
   --affected-paths "contracts/specs/SPEC-F001-API.yaml,src/features/api/index.ts"
 ```
 
-The command validates the Task and target Spec, derives `currentVersion`, creates a `proposed` artifact under `contracts/spec-changes/`, and refuses to overwrite an existing proposal. Level 2 proposals are marked `approval.required: true` with `approval.status: requested`; approval remains a human-only operation.
+commandはTaskとtarget Specをvalidateし、`currentVersion`をderiveし、`contracts/spec-changes/`配下に`proposed` artifactを作成し、既存proposalのoverwriteを拒否する。Level 2 proposalは`approval.required: true`と`approval.status: requested`でmarkし、approvalはhuman-only operationとして残る。
 
 ```bash
 npm run scwbs -- task start <task-id>
@@ -282,4 +264,4 @@ npm run scwbs -- lite task "small change title"
 npm run scwbs -- promote --task SCWBS-001
 ```
 
-`task start` is the existing-Task pre-flight entry point. `project bootstrap` creates only a bounded Discovery Probe; it does not create a delivery Task Contract or directly rewrite the canonical WBS. The top-level `start <task-id>` remains a legacy alias for the pre-flight command.
+`task start`はexisting Taskのpre-flight entrypointである。`project bootstrap`はbounded Discovery Probeだけを作成し、delivery Task Contractを作成せず、canonical WBSも直接rewriteしない。top-levelの`start <task-id>`はpre-flight commandのlegacy aliasとして残る。
