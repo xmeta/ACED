@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSPQ5A72
+type: spec-contract
+featureId: F-MSPQ5A72
+title: "Issue #558: Option B bootstrap installer and GitHub Release automation"
+status: approved
+version: 0.1.0
+summary: "digest-verified standalone bootstrap installation and automatic GitHub Release asset preparation from validated human-created tags"
+approvedBy: user-requested-issue-533-option-b
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "The standalone Node.js bootstrap asset uses only built-in modules, exposes install --save-dev and --dry-run --json, and returns a bounded scwbs.bootstrap-install.v1 response without executing arbitrary scripts or shell strings"
+  - "Latest or explicit tag resolution requires release-manifest.json and the matching tarball asset; package version, v<version> tag, tarball filename, release commit, manifest digest, and downloaded tarball SHA-256 must all match"
+  - "Dry-run and all verification failures are read-only; explicit install changes only the requested package.json dependency after verification and never mutates a lockfile or unrelated package fields"
+  - "The dependency value is an exact immutable GitHub Release tarball URL and never a floating latest reference"
+  - "The release workflow runs for validated v* tag pushes created outside the workflow and for the existing main workflow_dispatch path, attaches the tarball, release-manifest.json, and bootstrap installer, and retains current exact-head aggregate validation and permissions"
+  - "Standalone fixtures cover successful dry-run/install, package preservation, digest mismatch, subject mismatch, missing asset, network failure, unknown option, and schema-valid bounded JSON"
+  - "No npm publication, automatic tag creation, credential/trust-root adoption, branch protection change, existing version/upgrade semantics change, or unattended consumer upgrade is introduced"
