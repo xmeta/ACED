@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/documentation-capabilities.schema.json",
+  "title": "SC-WBS documentation capability status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "capabilities"],
+  "properties": {
+    "schemaVersion": { "const": "scwbs.documentation-capabilities.v1" },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/capability" }
+    }
+  },
+  "$defs": {
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "summary", "evidence"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "status": { "enum": ["implemented", "partial", "missing", "deferred"] },
+        "summary": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["commands", "files", "tests"],
+          "properties": {
+            "commands": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "files": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/repositoryPath" } },
+            "tests": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/repositoryPath" } }
+          }
+        }
+      }
+    }
+  }
+}

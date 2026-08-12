@@ -13,7 +13,10 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Optional Contract Lock metadata validation
 - Task Contract Lock generation from WBS and Spec content hashes
 - First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
-- First-class Spec Change Proposal files under `contracts/spec-changes/*.yaml` with required metadata validation
+
+<!-- scwbs-capability: spec-change-proposal status=implemented -->
+
+- First-class Spec Change Proposal files and `scwbs spec-change new` creation with Level 2 request routing
 - Evidence `testQuality` metadata validation
 - Base/head-aware Evidence changed file collection
 - Evidence PR metadata capture and refresh preservation
@@ -30,11 +33,14 @@ This document tracks the pieces that are intentionally still missing from the cu
 - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
 - Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
 - Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
+
+<!-- scwbs-capability: local-index status=implemented -->
+
 - Rebuildable Node SQLite local index with provenance-aware status, bounded cross-artifact query, stale/corrupt recovery, and non-authoritative cache semantics
 - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
 - Sensitive meta/config file guardrails in check-diff
 - Subtree-scoped bootstrap phase metadata and AI packet reporting
-- WBS conflict mitigation strategy and semantic merge roadmap
+- <!-- scwbs-capability: wbs-semantic-merge status=implemented --> Read-only WBS semantic merge planning and explicit clean-plan changeset generation
 - Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
 - WBS status summary
 - WJS semantic apply wrapper
@@ -56,22 +62,21 @@ This document tracks the pieces that are intentionally still missing from the cu
 
 ## Still Missing
 
-| Area                     | Missing Piece                                               | Why It Matters                                                                                                                                                                                                                  |
-| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Change control           | Spec Change Proposal command and workflow enforcement       | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated                                                                                                                                         |
-| Evidence trust           | External artifact signatures and independent CI attestation | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only |
-| Evidence diff basis      | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope |
-| Test quality             | Diff-aware assertion and coverage inspection                | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope                  |
-| Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
-| CI integration           | Independent attestation and automatic promotion             | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded |
-| Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
-| WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
+| Area                | Missing Piece                                                              | Why It Matters                                                                                                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Change control      | Spec Change workflow enforcement                                           | <!-- scwbs-capability: spec-change-workflow-enforcement status=missing --> Proposal creation and Level 2 request routing exist; broader workflow enforcement remains                                                           |
+| Evidence trust      | External artifact signatures and independent CI attestation                | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only                                     |
+| Evidence diff basis | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope                         |
+| Test quality        | Diff-aware assertion and coverage inspection                               | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope |
+| Review independence | Human review transition and external reviewer promotion                    | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                     |
+| CI integration      | Independent attestation and automatic promotion                            | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded                |
+| WBS collaboration   | Distributed WBS support                                                    | <!-- scwbs-capability: wbs-distributed-support status=missing --> Full distributed collaboration remains outside the read-only semantic merge planner                                                                          |
 
 ## Near-Term Follow-Ups
 
-- Add a command to create lightweight spec-change proposal artifacts.
+- Extend Spec Change workflow enforcement beyond proposal creation and Level 2 request routing.
 - Extend `testQualityObservation` with AST-based assertion counting where practical. Phase 1 already compares test diffs and verified coverage summaries without replacing manual `testQuality` metadata.
-- Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+- Extend read-only WBS semantic merge planning toward distributed WBS support.
 - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
 - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
 - Add release workflow permissions and attestation generation only after a separately approved threat model, repository-plan review, and Human Gate; this Task deliberately changes no `.github` workflow.

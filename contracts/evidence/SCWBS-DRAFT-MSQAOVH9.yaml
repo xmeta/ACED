@@ -1,0 +1,90 @@
+id: EVD-SCWBS-DRAFT-MSQAOVH9
+type: evidence
+taskId: SCWBS-DRAFT-MSQAOVH9
+commit: 015564de00fcd8c559f1860db55feaf491339888
+subjectHeadCommit: 015564de00fcd8c559f1860db55feaf491339888
+diffHash: sha256:2517293db657aa2b085e2982c3e15c250af0abb23fb88702b005993788ebe043
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 015564de00fcd8c559f1860db55feaf491339888
+    treeHash: 3a9a4a741529b9af90662e9e361edef7301a2d83
+    diffHash: sha256:2517293db657aa2b085e2982c3e15c250af0abb23fb88702b005993788ebe043
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQAOVH9.patch
+    manifestHash: sha256:2517293db657aa2b085e2982c3e15c250af0abb23fb88702b005993788ebe043
+git:
+  branch: task/SCWBS-DRAFT-MSQAOVH9-issue-572-capability-status-drift-detection
+  base: origin/main
+  baseCommit: c459caf74c5200d92235aed28cbfa9333e592511
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 015564de00fcd8c559f1860db55feaf491339888
+  diffHash: sha256:2517293db657aa2b085e2982c3e15c250af0abb23fb88702b005993788ebe043
+  headCommit: 015564de00fcd8c559f1860db55feaf491339888
+changedFiles:
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQAOVH9.patch
+  - contracts/evidence/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSQAOVH9.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/tasks/index.yaml
+  - docs/documentation-capabilities.json
+  - docs/implementation-gaps.md
+  - docs/scwbs/schemas/documentation-capabilities.schema.json
+  - src/core/document-lifecycle.ts
+  - tests/integration/docs-check.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: c459caf74c5200d92235aed28cbfa9333e592511
+    headCommit: 015564de00fcd8c559f1860db55feaf491339888
+    diffHash: sha256:2517293db657aa2b085e2982c3e15c250af0abb23fb88702b005993788ebe043
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:ed3211bb146c0c031a4acb2af7487e5c2b38cf5eee6b22460a3e2b48d768ce82
+    durationMilliseconds: 24730
+    executedAt: "2026-08-12T16:42:10.662Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:0a6dba0a763fdf28ca9364a06a133e1a231ba9ee23dd3a81744fc673dc562f9a
+    durationMilliseconds: 11803
+    executedAt: "2026-08-12T16:42:22.469Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e12cd8bd181e9b92627660d36dc9cad297783e8dc65d41bbbe2a755836e89f94
+    durationMilliseconds: 4859
+    executedAt: "2026-08-12T16:42:27.332Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:54f38f641435251a6e535f77c91de37c4138b4ef0f62f839b822182e40ebf502
+    durationMilliseconds: 347185
+    executedAt: "2026-08-12T16:48:14.522Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added capability schema, CLI/file evidence validation, matrix drift detection, and duplicate/unknown/missing evidence regression tests.

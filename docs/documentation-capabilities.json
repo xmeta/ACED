@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "scwbs.documentation-capabilities.v1",
+  "capabilities": [
+    {
+      "id": "local-index",
+      "status": "implemented",
+      "summary": "Rebuildable local SQLite index and bounded query are available as non-authoritative navigation capabilities.",
+      "evidence": {
+        "commands": ["index rebuild", "index status", "index verify", "query"],
+        "files": ["src/core/local-index.ts", "src/commands/local-index.ts"],
+        "tests": ["tests/integration/local-index.test.ts"]
+      }
+    },
+    {
+      "id": "spec-change-proposal",
+      "status": "implemented",
+      "summary": "Spec Change Proposal creation and Level 2 request routing are available through the governance CLI.",
+      "evidence": {
+        "commands": ["spec-change new"],
+        "files": ["src/cli/register-governance.ts"],
+        "tests": ["tests/integration/spec-change.test.ts"]
+      }
+    },
+    {
+      "id": "spec-change-workflow-enforcement",
+      "status": "missing",
+      "summary": "Broader enforcement beyond proposal creation and Level 2 request routing remains a follow-up.",
+      "evidence": {
+        "commands": [],
+        "files": ["src/cli/register-governance.ts"],
+        "tests": ["tests/integration/spec-change.test.ts"]
+      }
+    },
+    {
+      "id": "wbs-semantic-merge",
+      "status": "implemented",
+      "summary": "Read-only three-way WBS semantic merge planning and explicit clean-plan changeset generation are available.",
+      "evidence": {
+        "commands": ["wbs merge-plan"],
+        "files": ["src/cli/register-wbs.ts", "src/commands/wbs.ts"],
+        "tests": ["tests/integration/wbs-merge-plan.test.ts"]
+      }
+    },
+    {
+      "id": "wbs-distributed-support",
+      "status": "missing",
+      "summary": "Full distributed WBS collaboration remains outside the read-only merge-plan capability.",
+      "evidence": {
+        "commands": [],
+        "files": ["docs/wbs-conflict-mitigation.md"],
+        "tests": []
+      }
+    }
+  ]
+}
