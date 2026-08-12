@@ -1,0 +1,86 @@
+id: EVD-SCWBS-DRAFT-MSQ82SH4
+type: evidence
+taskId: SCWBS-DRAFT-MSQ82SH4
+commit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+subjectHeadCommit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+diffHash: sha256:57d1fc84241a6d51a8e240c173ef48413faef1e931edc505fd3e20a46f552129
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+    treeHash: cf5c1c3d563c0304ab0bfda39d76167dc7cf4778
+    diffHash: sha256:57d1fc84241a6d51a8e240c173ef48413faef1e931edc505fd3e20a46f552129
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQ82SH4.patch
+    manifestHash: sha256:57d1fc84241a6d51a8e240c173ef48413faef1e931edc505fd3e20a46f552129
+git:
+  branch: codex/issue-562-pack-update
+  base: origin/main
+  baseCommit: 2c4d468567a4f250b03e35be3e0ea8ae38a459ff
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+  diffHash: sha256:57d1fc84241a6d51a8e240c173ef48413faef1e931edc505fd3e20a46f552129
+  headCommit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - src/core/packs.ts
+  - tests/integration/pack.test.ts
+  - tests/unit/packs.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 2c4d468567a4f250b03e35be3e0ea8ae38a459ff
+    headCommit: fda24f29b4f168be5cae45b74a7a6faa5629f512
+    diffHash: sha256:57d1fc84241a6d51a8e240c173ef48413faef1e931edc505fd3e20a46f552129
+  tests:
+    filesAdded: 0
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:09d7c6d0513243fbbb12239c0f2bae4f3b630ad16d32d5154978f14892a31a89
+    durationMilliseconds: 26059
+    executedAt: "2026-08-12T15:20:17.790Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:2dc01005c7d87ea1206fca2b68b6e76e19ad994b17f2c443fce413bca079c519
+    durationMilliseconds: 12624
+    executedAt: "2026-08-12T15:20:30.418Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:382d3610f74f8ff96ab7de5bfe5832a7575f4b92ac4bba7e0d7ebec5e74bc028
+    durationMilliseconds: 5594
+    executedAt: "2026-08-12T15:20:36.016Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:4aa3fc930347d3def8191cddae92b451165e6acaea95c4e0655cfe362d748f4d
+    durationMilliseconds: 277158
+    executedAt: "2026-08-12T15:25:13.180Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added pack update regression coverage for v1-to-v2, dry-run/no-op, digest-only, ID and policy rejection, divergent preservation, failure atomicity, rollback, and CLI JSON output.

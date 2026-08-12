@@ -1,0 +1,505 @@
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml b/contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
+new file mode 100644
+index 0000000..b7fed11
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
+@@ -0,0 +1,63 @@
++id: SCWBS-DRAFT-MSQ82SH4
++type: task-contract
++status: approved
++approvedBy: user-requested-issue-562
++approvedAt: "2026-08-13T00:00:00+09:00"
++sourceIssue: 562
++wbsNodeId: node-governance-maintenance
++featureId: F-MSQ82SH4
++branchName: codex/issue-562-pack-update
++allowedPaths:
++  - src/core/packs.ts
++  - tests/unit/packs.test.ts
++  - tests/integration/pack.test.ts
++  - docs/scwbs/cli-reference.md
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - schema or policy contract change required
++  - dependency or external service change required
++  - Human Gate scope required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - updatePack has a dedicated resolve, validate, diff-plan, and transactional apply path and no longer delegates to installPack's duplicate guard
++  - v1 to v2 updates succeed and update dry-run JSON reports old and new version, digest, and source provenance without writing files or the lockfile
++  - same digest updates are idempotent no-ops and Pack ID changes, policy removals, and downgrade attempts fail closed
++  - digest-only updates apply only to unchanged managed files and preserve divergent user-owned files
++  - update failures leave Pack files and the lockfile unchanged, while rollback updates lockfile provenance without deleting prior versions
++  - unit and CLI integration tests cover v1-to-v2, dry-run, same-digest, digest-only, downgrade, divergent, failure atomicity, and rollback scenarios
++  - CLI documentation describes update old/new provenance and transactional file decisions
++  - 'Complete Issue #562: fix pack update self-rejection and transactional lifecycle'
++evidenceRequired:
++  - test-result
++  - integration-test-result
++  - typecheck-result
++  - build-result
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSQ82SH4.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSQ82SH4.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ82SH4.patch
++  - contracts/approvals/SCWBS-DRAFT-MSQ82SH4.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSQ82SH4.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-12T15:07:48.556Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index a32b11f..1e0adeb 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2043,3 +2043,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T14:14:05.411Z"
++  - id: SCWBS-DRAFT-MSQ82SH4
++    path: contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
++    branchName: codex/issue-562-pack-update
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 2fac95c..372050a 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -119,7 +119,7 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
+ 
+ `task preflight` and `policy explain` are read-only policy-cost explanations. They use the same check coverage and governance path evaluators as Task creation, return versioned JSON with required checks, Evidence, Human Gate paths, forbidden paths, and reason codes, and never create or approve a Task Contract. An unclassified implementation path fails closed.
+ 
+-`pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
++`pack` は `scwbs.pack.v1` Governance Pack の検査・固定・導入を扱う。v1 は repository-local path と repository-local Git の pinned ref を受け付け、任意 shell / JavaScript / executable hook は拒否する。`install --pin` は digest、installed files、compatibility、effective policy fingerprint を `.scwbs/packs.lock.json` に固定し、`--dry-run --json` では書き込み前の差分を返す。Pack は required checks、Human Gate、forbidden paths を追加できるが、削除・縮小は fail-closed である。Divergent な user-owned file は上書きしない。`pack update --dry-run --json` は `old` / `new` の version、digest、source provenance とファイル差分を返し、同一 digest の更新は no-op になる。更新はファイルと lockfile を transactional に適用し、失敗時に中間状態を残さない。`search` / `info` は installed lock の discovery-only catalog であり、trust root や authority ではない。Pack removal は policy downgrade の可能性があるため、v1 では dry-run を提示して停止する。
+ 
+ `mcp --stdio` は network listener を持たない MCP-compatible JSON-RPC server である。stdout は protocol message 専用、診断は stderr に分離される。`resources/list` / `resources/read` は `status`、`next`、`packet`、`trace`、`evidence`、`review-queue` を read-only resource として公開し、`tools/list` / `tools/call` は `scwbs.task.preflight`、`scwbs.check`、`scwbs.finish`、`scwbs.block` の structured input のみを受け付ける。既存の versioned JSON builder と authority evaluator を再利用するため、Human Approval、Review transition、policy downgrade、Evidence prune、merge bypass は公開されない。能力メタデータの契約は `scwbs.mcp-capabilities.v1` と [`docs/scwbs/schemas/mcp-capabilities.schema.json`](schemas/mcp-capabilities.schema.json) で固定する。MCP が使えない agent は従来の CLI workflow をそのまま利用する。
+ 
+diff --git a/src/core/packs.ts b/src/core/packs.ts
+index 015347e..9206240 100644
+--- a/src/core/packs.ts
++++ b/src/core/packs.ts
+@@ -1,5 +1,5 @@
+ import { createHash } from "node:crypto";
+-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
++import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { parseSimpleYaml } from "./yaml.js";
+@@ -44,6 +44,22 @@ type PackSource = {
+   read(relativePath: string): string;
+ };
+ 
++type PackOperationOptions = { ref?: string; dryRun?: boolean; pin?: boolean; now?: string };
++type PackOperationMode = "install" | "update";
++type FileDecision = { action: string; path: string };
++type FileMutation = { path: string; before?: Buffer; after: string };
++type PackOperationPlan = {
++  lock: PackLock;
++  nextLock: PackLock;
++  loaded: { source: PackSource; pack: GovernancePack; fileContent: Map<string, string> };
++  digest: string;
++  delta: ReturnType<typeof policyDelta>;
++  decisions: FileDecision[];
++  mutations: FileMutation[];
++  noOp: boolean;
++  old?: PackLockEntry;
++};
++
+ function sha256(value: string | Buffer): string {
+   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+ }
+@@ -233,10 +249,20 @@ function readLock(root: string): PackLock {
+   return { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: input.packs as PackLockEntry[] };
+ }
+ 
++function writeFileAtomic(fullPath: string, content: string | Buffer): void {
++  const temporaryPath = path.join(path.dirname(fullPath), `.${path.basename(fullPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
++  try {
++    writeFileSync(temporaryPath, content);
++    renameSync(temporaryPath, fullPath);
++  } finally {
++    if (existsSync(temporaryPath)) rmSync(temporaryPath, { force: true });
++  }
++}
++
+ function writeLock(root: string, lock: PackLock): void {
+   const fullPath = safeWritePath(root, lockPath);
+   mkdirSync(path.dirname(fullPath), { recursive: true });
+-  writeFileSync(fullPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
++  writeFileAtomic(fullPath, `${JSON.stringify(lock, null, 2)}\n`);
+ }
+ 
+ export function inspectPack(root: string, source: string, ref?: string): Record<string, unknown> {
+@@ -271,44 +297,147 @@ export function infoPack(root: string, id: string): Record<string, unknown> {
+   return { version: "scwbs.pack-info.v1", trust: "discovery-only", pack };
+ }
+ 
+-export function installPack(root: string, source: string, options: { ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
+-  if (!options.pin) fail("pack install requires --pin");
+-  const loaded = loadSource(root, source, options.ref);
+-  const digest = digestPack(loaded.pack, loaded.fileContent);
+-  const delta = policyDelta(loaded.pack);
+-  if (delta.rejectedDowngrades.length > 0) fail(`Pack policy downgrade rejected: ${delta.rejectedDowngrades.join(", ")}`);
+-  const lock = readLock(root);
+-  const existing = lock.packs.find((item) => item.id === loaded.pack.id);
+-  if (existing && (existing.digest !== digest || existing.version !== loaded.pack.version)) fail(`Pack ${loaded.pack.id} is already installed; use pack update`);
+-  const decisions: Array<{ action: string; path: string }> = [];
++function sourceAndRef(locator: string): { source: string; ref?: string } {
++  const hashIndex = locator.lastIndexOf("#");
++  return hashIndex > 0 ? { source: locator.slice(0, hashIndex), ref: locator.slice(hashIndex + 1) } : { source: locator };
++}
++
++function planPackFiles(root: string, loaded: PackOperationPlan["loaded"], mode: PackOperationMode, existing: PackLockEntry | undefined): { decisions: FileDecision[]; installedFiles: PackLockEntry["installedFiles"]; mutations: FileMutation[] } {
++  const decisions: FileDecision[] = [];
++  const mutations: FileMutation[] = [];
+   const installedFiles = loaded.pack.files.map((file) => {
+     const targetRelative = `.scwbs/packs/${loaded.pack.id}/${loaded.pack.version}/${file.target}`;
+     const target = safeWritePath(root, targetRelative);
+     const content = loaded.fileContent.get(file.source) ?? "";
+     const contentHash = sha256(content);
+-    if (!existsSync(target)) decisions.push({ action: "create", path: targetRelative });
+-    else if (sha256(readFileSync(target)) === contentHash) decisions.push({ action: "unchanged", path: targetRelative });
+-    else decisions.push({ action: "divergent-preserved", path: targetRelative });
+-    if (!options.dryRun && !existsSync(target)) {
+-      mkdirSync(path.dirname(target), { recursive: true });
+-      writeFileSync(target, content, "utf8");
++    if (!existsSync(target)) {
++      decisions.push({ action: "create", path: targetRelative });
++      mutations.push({ path: target, after: content });
++    } else {
++      const before = readFileSync(target);
++      const currentHash = sha256(before);
++      if (currentHash === contentHash) {
++        decisions.push({ action: "unchanged", path: targetRelative });
++      } else {
++        const previous = existing?.installedFiles.find((item) => item.path === targetRelative);
++        const managed = mode === "update" && previous?.sha256 === currentHash;
++        if (managed) {
++          decisions.push({ action: "update", path: targetRelative });
++          mutations.push({ path: target, before, after: content });
++        } else {
++          decisions.push({ action: "divergent-preserved", path: targetRelative });
++        }
++      }
+     }
+     return { path: targetRelative, sha256: contentHash };
+   });
+-  if (!options.dryRun) {
+-    const next: PackLock = {
+-      schemaVersion: PACK_LOCK_SCHEMA_VERSION,
+-      packs: [...lock.packs.filter((item) => item.id !== loaded.pack.id), { id: loaded.pack.id, version: loaded.pack.version, source: loaded.source.locator, digest, installedFiles, policyFingerprint: policyFingerprint(loaded.pack), installedAt: options.now ?? new Date().toISOString() }]
+-    };
+-    writeLock(root, next);
++  return { decisions, installedFiles, mutations };
++}
++
++function preparePackOperation(root: string, mode: PackOperationMode, source: string, options: PackOperationOptions, expectedId?: string): PackOperationPlan {
++  if (!options.pin) fail(`pack ${mode} requires --pin`);
++  const loaded = loadSource(root, source, options.ref);
++  if (expectedId && loaded.pack.id !== expectedId) fail(`Pack update source ID mismatch: expected ${expectedId}, received ${loaded.pack.id}`);
++  const digest = digestPack(loaded.pack, loaded.fileContent);
++  const delta = policyDelta(loaded.pack);
++  if (delta.rejectedDowngrades.length > 0) fail(`Pack policy downgrade rejected: ${delta.rejectedDowngrades.join(", ")}`);
++  const lock = readLock(root);
++  const existing = lock.packs.find((item) => item.id === loaded.pack.id);
++  if (mode === "install" && existing && (existing.digest !== digest || existing.version !== loaded.pack.version)) fail(`Pack ${loaded.pack.id} is already installed; use pack update`);
++  if (mode === "update" && !existing) fail(`Pack is not installed: ${expectedId ?? loaded.pack.id}`);
++
++  const sameIdentity = mode === "update"
++    && existing?.version === loaded.pack.version
++    && existing.digest === digest
++    && existing.policyFingerprint === policyFingerprint(loaded.pack)
++    && existing.source === loaded.source.locator;
++  const filePlan = sameIdentity
++    ? { decisions: [] as FileDecision[], installedFiles: existing?.installedFiles ?? [], mutations: [] as FileMutation[] }
++    : planPackFiles(root, loaded, mode, existing);
++  const nextEntry: PackLockEntry = {
++    id: loaded.pack.id,
++    version: loaded.pack.version,
++    source: loaded.source.locator,
++    digest,
++    installedFiles: filePlan.installedFiles,
++    policyFingerprint: policyFingerprint(loaded.pack),
++    installedAt: options.now ?? new Date().toISOString()
++  };
++  return {
++    lock,
++    nextLock: { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: [...lock.packs.filter((item) => item.id !== loaded.pack.id), nextEntry] },
++    loaded,
++    digest,
++    delta,
++    decisions: filePlan.decisions,
++    mutations: filePlan.mutations,
++    noOp: sameIdentity,
++    old: existing
++  };
++}
++
++function applyPackOperation(root: string, plan: PackOperationPlan, dryRun: boolean): void {
++  if (dryRun || plan.noOp) return;
++  const lockFile = safeWritePath(root, lockPath);
++  const previousLock = existsSync(lockFile) ? readFileSync(lockFile) : undefined;
++  const applied = plan.mutations.filter((mutation) => mutation.before !== undefined || !existsSync(mutation.path));
++  try {
++    for (const mutation of plan.mutations) {
++      mkdirSync(path.dirname(mutation.path), { recursive: true });
++      writeFileAtomic(mutation.path, mutation.after);
++    }
++    writeLock(root, plan.nextLock);
++  } catch (error) {
++    for (const mutation of [...applied].reverse()) {
++      try {
++        if (mutation.before === undefined) rmSync(mutation.path, { force: true });
++        else writeFileAtomic(mutation.path, mutation.before);
++      } catch {
++        // Preserve the original operation error; the next invocation remains fail-closed.
++      }
++    }
++    try {
++      if (previousLock === undefined) rmSync(lockFile, { force: true });
++      else {
++        mkdirSync(path.dirname(lockFile), { recursive: true });
++        writeFileAtomic(lockFile, previousLock);
++      }
++    } catch {
++      // Preserve the original operation error.
++    }
++    throw error;
++  }
++}
++
++function runPackOperation(root: string, mode: PackOperationMode, source: string, options: PackOperationOptions, expectedId?: string): Record<string, unknown> {
++  const plan = preparePackOperation(root, mode, source, options, expectedId);
++  applyPackOperation(root, plan, options.dryRun ?? false);
++  const result: Record<string, unknown> = {
++    version: "scwbs.pack-operation.v1",
++    operation: mode,
++    dryRun: options.dryRun ?? false,
++    source: plan.loaded.source.locator,
++    digest: plan.digest,
++    effectivePolicyDelta: plan.delta,
++    decisions: plan.decisions
++  };
++  if (mode === "update") {
++    result.old = plan.old ? { id: plan.old.id, version: plan.old.version, digest: plan.old.digest, source: plan.old.source } : undefined;
++    result.new = { id: plan.loaded.pack.id, version: plan.loaded.pack.version, digest: plan.digest, source: plan.loaded.source.locator };
++    result.noOp = plan.noOp;
+   }
+-  return { version: "scwbs.pack-operation.v1", operation: "install", dryRun: options.dryRun ?? false, source: loaded.source.locator, digest, effectivePolicyDelta: delta, decisions };
++  return result;
++}
++
++export function installPack(root: string, source: string, options: PackOperationOptions = {}): Record<string, unknown> {
++  return runPackOperation(root, "install", source, options);
+ }
+ 
+-export function updatePack(root: string, id: string, options: { source?: string; ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
++export function updatePack(root: string, id: string, options: PackOperationOptions & { source?: string } = {}): Record<string, unknown> {
+   const installed = readLock(root).packs.find((pack) => pack.id === id);
+   if (!installed) fail(`Pack is not installed: ${id}`);
+-  return installPack(root, options.source ?? installed.source.split("#")[0], { ref: options.ref ?? installed.source.split("#")[1], dryRun: options.dryRun, pin: options.pin ?? true, now: options.now });
++  const previous = sourceAndRef(installed.source);
++  return runPackOperation(root, "update", options.source ?? previous.source, { ref: options.ref ?? previous.ref, dryRun: options.dryRun, pin: options.pin ?? true, now: options.now }, id);
+ }
+ 
+ export function removePack(root: string, id: string, options: { dryRun?: boolean } = {}): Record<string, unknown> {
+diff --git a/tests/integration/pack.test.ts b/tests/integration/pack.test.ts
+index d5fc9c1..307dfef 100644
+--- a/tests/integration/pack.test.ts
++++ b/tests/integration/pack.test.ts
+@@ -1,4 +1,4 @@
+-import { mkdirSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { main } from "../../src/cli.js";
+@@ -28,5 +28,24 @@ describe("pack CLI", () => {
+     const remove = capture(root, ["pack", "remove", "org.example.cli", "--dry-run", "--json"]);
+     expect(remove.exitCode).toBe(0);
+     expect(JSON.parse(remove.stdout)).toMatchObject({ version: "scwbs.pack-operation.v1", operation: "remove", dryRun: true });
++
++    writeFileSync(path.join(root, "fixture/pack.yaml"), `schemaVersion: scwbs.pack.v1
++id: org.example.cli
++version: 2.0.0
++contents:
++  files:
++    - source: guidance/common.md
++security:
++  allowExecutableCode: false
++`, "utf8");
++    writeFileSync(path.join(root, "fixture/guidance/common.md"), "updated\n", "utf8");
++    const updateDryRun = capture(root, ["pack", "update", "org.example.cli", "--dry-run", "--json"]);
++    expect(updateDryRun.exitCode).toBe(0);
++    expect(JSON.parse(updateDryRun.stdout)).toMatchObject({ operation: "update", dryRun: true, old: { version: "1.0.0" }, new: { version: "2.0.0" } });
++    expect(existsSync(path.join(root, ".scwbs/packs/org.example.cli/2.0.0/guidance/common.md"))).toBe(false);
++    const update = capture(root, ["pack", "update", "org.example.cli", "--json"]);
++    expect(update.exitCode).toBe(0);
++    expect(JSON.parse(update.stdout)).toMatchObject({ operation: "update", dryRun: false, old: { version: "1.0.0" }, new: { version: "2.0.0" } });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.cli/2.0.0/guidance/common.md"), "utf8")).toBe("updated\n");
+   });
+ });
+diff --git a/tests/unit/packs.test.ts b/tests/unit/packs.test.ts
+index 08310ed..29ad904 100644
+--- a/tests/unit/packs.test.ts
++++ b/tests/unit/packs.test.ts
+@@ -1,14 +1,14 @@
+ import { execFileSync } from "node:child_process";
+-import { mkdirSync, readFileSync, symlinkSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { installPack, inspectPack, listPacks, removePack, searchPacks, updatePack } from "../../src/core/packs.js";
+ import { makeTempRepo, writeText } from "../helpers.js";
+ 
+-function packYaml(extra = ""): string {
++function packYaml(extra = "", version = "1.2.0"): string {
+   return `schemaVersion: scwbs.pack.v1
+ id: org.example.secure-node
+-version: 1.2.0
++version: ${version}
+ description: Secure Node baseline
+ contents:
+   files:
+@@ -41,10 +41,69 @@ describe("Governance Pack v1", () => {
+     expect(JSON.parse(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8"))).toMatchObject({ schemaVersion: "scwbs.packs-lock.v1", packs: [{ id: "org.example.secure-node", digest: expect.stringMatching(/^sha256:/) }] });
+     expect(listPacks(root)).toMatchObject({ version: "scwbs.pack-list.v1", packs: [{ id: "org.example.secure-node" }] });
+     expect(searchPacks(root, "secure-node")).toMatchObject({ version: "scwbs.pack-search.v1", trust: "discovery-only", packs: [{ id: "org.example.secure-node" }] });
+-    expect(updatePack(root, "org.example.secure-node", { dryRun: true })).toMatchObject({ operation: "install", dryRun: true });
++    expect(updatePack(root, "org.example.secure-node", { dryRun: true })).toMatchObject({ operation: "update", dryRun: true, noOp: true, old: { version: "1.2.0" }, new: { version: "1.2.0" }, decisions: [] });
++    const beforeNoOpLock = readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8");
++    expect(updatePack(root, "org.example.secure-node", { now: "2026-08-12T00:00:00Z" })).toMatchObject({ operation: "update", noOp: true, decisions: [] });
++    expect(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8")).toBe(beforeNoOpLock);
+     expect(removePack(root, "org.example.secure-node", { dryRun: true })).toMatchObject({ operation: "remove", dryRun: true, decisions: [{ action: "policy-downgrade-blocked" }] });
+   });
+ 
++  test("updates v1 to v2, reports old/new provenance, and preserves the old version", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml("", "1.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v1\n");
++    installPack(root, "fixture", { pin: true, now: "2026-08-11T00:00:00Z" });
++    writeText(root, "fixture/pack.yaml", packYaml("", "2.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v2\n");
++
++    const beforeLock = readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8");
++    const dryRun = updatePack(root, "org.example.secure-node", { dryRun: true });
++    expect(dryRun).toMatchObject({ operation: "update", dryRun: true, old: { version: "1.0.0", source: "fixture" }, new: { version: "2.0.0", source: "fixture" }, decisions: [{ action: "create" }] });
++    expect(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8")).toBe(beforeLock);
++    expect(existsSync(path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0/guidance/common.md"))).toBe(false);
++
++    const result = updatePack(root, "org.example.secure-node", { now: "2026-08-12T00:00:00Z" });
++    expect(result).toMatchObject({ operation: "update", old: { version: "1.0.0", digest: expect.stringMatching(/^sha256:/) }, new: { version: "2.0.0", digest: expect.stringMatching(/^sha256:/) } });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.0.0/guidance/common.md"), "utf8")).toBe("v1\n");
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0/guidance/common.md"), "utf8")).toBe("v2\n");
++    expect(JSON.parse(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8"))).toMatchObject({ packs: [{ version: "2.0.0", source: "fixture" }] });
++  });
++
++  test("applies digest-only updates when the installed file is still managed", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml());
++    writeText(root, "fixture/guidance/common.md", "before\n");
++    installPack(root, "fixture", { pin: true });
++    writeText(root, "fixture/guidance/common.md", "after\n");
++
++    const result = updatePack(root, "org.example.secure-node");
++    expect(result).toMatchObject({ operation: "update", old: { version: "1.2.0" }, new: { version: "1.2.0" }, decisions: [{ action: "update" }] });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md"), "utf8")).toBe("after\n");
++  });
++
++  test("rejects an update source whose Pack ID differs", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml());
++    writeText(root, "fixture/guidance/common.md", "installed\n");
++    installPack(root, "fixture", { pin: true });
++    const beforeLock = readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8");
++    writeText(root, "fixture/pack.yaml", packYaml().replace("org.example.secure-node", "org.example.other"));
++
++    expect(() => updatePack(root, "org.example.secure-node")).toThrow("Pack update source ID mismatch");
++    expect(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8")).toBe(beforeLock);
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md"), "utf8")).toBe("installed\n");
++  });
++
++  test("keeps policy downgrade rejection on update", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml());
++    writeText(root, "fixture/guidance/common.md", "installed\n");
++    installPack(root, "fixture", { pin: true });
++    writeText(root, "fixture/pack.yaml", packYaml("", "2.0.0").replace("security:\n  allowExecutableCode", "  removeRequiredChecks:\n    - security\nsecurity:\n  allowExecutableCode"));
++
++    expect(() => updatePack(root, "org.example.secure-node")).toThrow("Pack policy downgrade rejected");
++  });
++
+   test("supports a pinned local Git ref without executing pack content", () => {
+     const root = makeTempRepo();
+     writeText(root, "pack.yaml", packYaml());
+@@ -75,6 +134,51 @@ describe("Governance Pack v1", () => {
+     expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/1.2.0/guidance/common.md"), "utf8")).toBe("user-owned\n");
+   });
+ 
++  test("does not partially apply an update when a later target path is unsafe", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml("", "1.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v1\n");
++    installPack(root, "fixture", { pin: true });
++    writeText(root, "fixture/pack.yaml", `schemaVersion: scwbs.pack.v1
++id: org.example.secure-node
++version: 2.0.0
++contents:
++  files:
++    - source: guidance/common.md
++    - source: second.md
++      target: nested/second.md
++security:
++  allowExecutableCode: false
++`);
++    writeText(root, "fixture/second.md", "second\n");
++    const outside = path.join(path.dirname(root), "scwbs-pack-update-outside");
++    mkdirSync(outside, { recursive: true });
++    mkdirSync(path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0"), { recursive: true });
++    symlinkSync(outside, path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0/nested"), "dir");
++    const beforeLock = readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8");
++
++    expect(() => updatePack(root, "org.example.secure-node")).toThrow("symlink");
++    expect(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8")).toBe(beforeLock);
++    expect(existsSync(path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0/guidance/common.md"))).toBe(false);
++  });
++
++  test("rolls back to an earlier version while keeping later files", () => {
++    const root = makeTempRepo();
++    writeText(root, "fixture/pack.yaml", packYaml("", "1.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v1\n");
++    installPack(root, "fixture", { pin: true });
++    writeText(root, "fixture/pack.yaml", packYaml("", "2.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v2\n");
++    updatePack(root, "org.example.secure-node");
++    writeText(root, "fixture/pack.yaml", packYaml("", "1.0.0"));
++    writeText(root, "fixture/guidance/common.md", "v1\n");
++
++    const result = updatePack(root, "org.example.secure-node");
++    expect(result).toMatchObject({ operation: "update", old: { version: "2.0.0" }, new: { version: "1.0.0" } });
++    expect(JSON.parse(readFileSync(path.join(root, ".scwbs/packs.lock.json"), "utf8"))).toMatchObject({ packs: [{ version: "1.0.0", source: "fixture" }] });
++    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.secure-node/2.0.0/guidance/common.md"), "utf8")).toBe("v2\n");
++  });
++
+   test("rejects source traversal and symlink escape", () => {
+     const root = makeTempRepo();
+     expect(() => inspectPack(root, "../outside")).toThrow("inside the repository");
