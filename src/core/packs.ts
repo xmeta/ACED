@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { parseSimpleYaml } from "./yaml.js";
@@ -42,6 +42,22 @@ type PackLock = { schemaVersion: typeof PACK_LOCK_SCHEMA_VERSION; packs: PackLoc
 type PackSource = {
   locator: string;
   read(relativePath: string): string;
+};
+
+type PackOperationOptions = { ref?: string; dryRun?: boolean; pin?: boolean; now?: string };
+type PackOperationMode = "install" | "update";
+type FileDecision = { action: string; path: string };
+type FileMutation = { path: string; before?: Buffer; after: string };
+type PackOperationPlan = {
+  lock: PackLock;
+  nextLock: PackLock;
+  loaded: { source: PackSource; pack: GovernancePack; fileContent: Map<string, string> };
+  digest: string;
+  delta: ReturnType<typeof policyDelta>;
+  decisions: FileDecision[];
+  mutations: FileMutation[];
+  noOp: boolean;
+  old?: PackLockEntry;
 };
 
 function sha256(value: string | Buffer): string {
@@ -233,10 +249,20 @@ function readLock(root: string): PackLock {
   return { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: input.packs as PackLockEntry[] };
 }
 
+function writeFileAtomic(fullPath: string, content: string | Buffer): void {
+  const temporaryPath = path.join(path.dirname(fullPath), `.${path.basename(fullPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  try {
+    writeFileSync(temporaryPath, content);
+    renameSync(temporaryPath, fullPath);
+  } finally {
+    if (existsSync(temporaryPath)) rmSync(temporaryPath, { force: true });
+  }
+}
+
 function writeLock(root: string, lock: PackLock): void {
   const fullPath = safeWritePath(root, lockPath);
   mkdirSync(path.dirname(fullPath), { recursive: true });
-  writeFileSync(fullPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+  writeFileAtomic(fullPath, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
 export function inspectPack(root: string, source: string, ref?: string): Record<string, unknown> {
@@ -271,44 +297,147 @@ export function infoPack(root: string, id: string): Record<string, unknown> {
   return { version: "scwbs.pack-info.v1", trust: "discovery-only", pack };
 }
 
-export function installPack(root: string, source: string, options: { ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
-  if (!options.pin) fail("pack install requires --pin");
-  const loaded = loadSource(root, source, options.ref);
-  const digest = digestPack(loaded.pack, loaded.fileContent);
-  const delta = policyDelta(loaded.pack);
-  if (delta.rejectedDowngrades.length > 0) fail(`Pack policy downgrade rejected: ${delta.rejectedDowngrades.join(", ")}`);
-  const lock = readLock(root);
-  const existing = lock.packs.find((item) => item.id === loaded.pack.id);
-  if (existing && (existing.digest !== digest || existing.version !== loaded.pack.version)) fail(`Pack ${loaded.pack.id} is already installed; use pack update`);
-  const decisions: Array<{ action: string; path: string }> = [];
+function sourceAndRef(locator: string): { source: string; ref?: string } {
+  const hashIndex = locator.lastIndexOf("#");
+  return hashIndex > 0 ? { source: locator.slice(0, hashIndex), ref: locator.slice(hashIndex + 1) } : { source: locator };
+}
+
+function planPackFiles(root: string, loaded: PackOperationPlan["loaded"], mode: PackOperationMode, existing: PackLockEntry | undefined): { decisions: FileDecision[]; installedFiles: PackLockEntry["installedFiles"]; mutations: FileMutation[] } {
+  const decisions: FileDecision[] = [];
+  const mutations: FileMutation[] = [];
   const installedFiles = loaded.pack.files.map((file) => {
     const targetRelative = `.scwbs/packs/${loaded.pack.id}/${loaded.pack.version}/${file.target}`;
     const target = safeWritePath(root, targetRelative);
     const content = loaded.fileContent.get(file.source) ?? "";
     const contentHash = sha256(content);
-    if (!existsSync(target)) decisions.push({ action: "create", path: targetRelative });
-    else if (sha256(readFileSync(target)) === contentHash) decisions.push({ action: "unchanged", path: targetRelative });
-    else decisions.push({ action: "divergent-preserved", path: targetRelative });
-    if (!options.dryRun && !existsSync(target)) {
-      mkdirSync(path.dirname(target), { recursive: true });
-      writeFileSync(target, content, "utf8");
+    if (!existsSync(target)) {
+      decisions.push({ action: "create", path: targetRelative });
+      mutations.push({ path: target, after: content });
+    } else {
+      const before = readFileSync(target);
+      const currentHash = sha256(before);
+      if (currentHash === contentHash) {
+        decisions.push({ action: "unchanged", path: targetRelative });
+      } else {
+        const previous = existing?.installedFiles.find((item) => item.path === targetRelative);
+        const managed = mode === "update" && previous?.sha256 === currentHash;
+        if (managed) {
+          decisions.push({ action: "update", path: targetRelative });
+          mutations.push({ path: target, before, after: content });
+        } else {
+          decisions.push({ action: "divergent-preserved", path: targetRelative });
+        }
+      }
     }
     return { path: targetRelative, sha256: contentHash };
   });
-  if (!options.dryRun) {
-    const next: PackLock = {
-      schemaVersion: PACK_LOCK_SCHEMA_VERSION,
-      packs: [...lock.packs.filter((item) => item.id !== loaded.pack.id), { id: loaded.pack.id, version: loaded.pack.version, source: loaded.source.locator, digest, installedFiles, policyFingerprint: policyFingerprint(loaded.pack), installedAt: options.now ?? new Date().toISOString() }]
-    };
-    writeLock(root, next);
-  }
-  return { version: "scwbs.pack-operation.v1", operation: "install", dryRun: options.dryRun ?? false, source: loaded.source.locator, digest, effectivePolicyDelta: delta, decisions };
+  return { decisions, installedFiles, mutations };
 }
 
-export function updatePack(root: string, id: string, options: { source?: string; ref?: string; dryRun?: boolean; pin?: boolean; now?: string } = {}): Record<string, unknown> {
+function preparePackOperation(root: string, mode: PackOperationMode, source: string, options: PackOperationOptions, expectedId?: string): PackOperationPlan {
+  if (!options.pin) fail(`pack ${mode} requires --pin`);
+  const loaded = loadSource(root, source, options.ref);
+  if (expectedId && loaded.pack.id !== expectedId) fail(`Pack update source ID mismatch: expected ${expectedId}, received ${loaded.pack.id}`);
+  const digest = digestPack(loaded.pack, loaded.fileContent);
+  const delta = policyDelta(loaded.pack);
+  if (delta.rejectedDowngrades.length > 0) fail(`Pack policy downgrade rejected: ${delta.rejectedDowngrades.join(", ")}`);
+  const lock = readLock(root);
+  const existing = lock.packs.find((item) => item.id === loaded.pack.id);
+  if (mode === "install" && existing && (existing.digest !== digest || existing.version !== loaded.pack.version)) fail(`Pack ${loaded.pack.id} is already installed; use pack update`);
+  if (mode === "update" && !existing) fail(`Pack is not installed: ${expectedId ?? loaded.pack.id}`);
+
+  const sameIdentity = mode === "update"
+    && existing?.version === loaded.pack.version
+    && existing.digest === digest
+    && existing.policyFingerprint === policyFingerprint(loaded.pack)
+    && existing.source === loaded.source.locator;
+  const filePlan = sameIdentity
+    ? { decisions: [] as FileDecision[], installedFiles: existing?.installedFiles ?? [], mutations: [] as FileMutation[] }
+    : planPackFiles(root, loaded, mode, existing);
+  const nextEntry: PackLockEntry = {
+    id: loaded.pack.id,
+    version: loaded.pack.version,
+    source: loaded.source.locator,
+    digest,
+    installedFiles: filePlan.installedFiles,
+    policyFingerprint: policyFingerprint(loaded.pack),
+    installedAt: options.now ?? new Date().toISOString()
+  };
+  return {
+    lock,
+    nextLock: { schemaVersion: PACK_LOCK_SCHEMA_VERSION, packs: [...lock.packs.filter((item) => item.id !== loaded.pack.id), nextEntry] },
+    loaded,
+    digest,
+    delta,
+    decisions: filePlan.decisions,
+    mutations: filePlan.mutations,
+    noOp: sameIdentity,
+    old: existing
+  };
+}
+
+function applyPackOperation(root: string, plan: PackOperationPlan, dryRun: boolean): void {
+  if (dryRun || plan.noOp) return;
+  const lockFile = safeWritePath(root, lockPath);
+  const previousLock = existsSync(lockFile) ? readFileSync(lockFile) : undefined;
+  const applied = plan.mutations.filter((mutation) => mutation.before !== undefined || !existsSync(mutation.path));
+  try {
+    for (const mutation of plan.mutations) {
+      mkdirSync(path.dirname(mutation.path), { recursive: true });
+      writeFileAtomic(mutation.path, mutation.after);
+    }
+    writeLock(root, plan.nextLock);
+  } catch (error) {
+    for (const mutation of [...applied].reverse()) {
+      try {
+        if (mutation.before === undefined) rmSync(mutation.path, { force: true });
+        else writeFileAtomic(mutation.path, mutation.before);
+      } catch {
+        // Preserve the original operation error; the next invocation remains fail-closed.
+      }
+    }
+    try {
+      if (previousLock === undefined) rmSync(lockFile, { force: true });
+      else {
+        mkdirSync(path.dirname(lockFile), { recursive: true });
+        writeFileAtomic(lockFile, previousLock);
+      }
+    } catch {
+      // Preserve the original operation error.
+    }
+    throw error;
+  }
+}
+
+function runPackOperation(root: string, mode: PackOperationMode, source: string, options: PackOperationOptions, expectedId?: string): Record<string, unknown> {
+  const plan = preparePackOperation(root, mode, source, options, expectedId);
+  applyPackOperation(root, plan, options.dryRun ?? false);
+  const result: Record<string, unknown> = {
+    version: "scwbs.pack-operation.v1",
+    operation: mode,
+    dryRun: options.dryRun ?? false,
+    source: plan.loaded.source.locator,
+    digest: plan.digest,
+    effectivePolicyDelta: plan.delta,
+    decisions: plan.decisions
+  };
+  if (mode === "update") {
+    result.old = plan.old ? { id: plan.old.id, version: plan.old.version, digest: plan.old.digest, source: plan.old.source } : undefined;
+    result.new = { id: plan.loaded.pack.id, version: plan.loaded.pack.version, digest: plan.digest, source: plan.loaded.source.locator };
+    result.noOp = plan.noOp;
+  }
+  return result;
+}
+
+export function installPack(root: string, source: string, options: PackOperationOptions = {}): Record<string, unknown> {
+  return runPackOperation(root, "install", source, options);
+}
+
+export function updatePack(root: string, id: string, options: PackOperationOptions & { source?: string } = {}): Record<string, unknown> {
   const installed = readLock(root).packs.find((pack) => pack.id === id);
   if (!installed) fail(`Pack is not installed: ${id}`);
-  return installPack(root, options.source ?? installed.source.split("#")[0], { ref: options.ref ?? installed.source.split("#")[1], dryRun: options.dryRun, pin: options.pin ?? true, now: options.now });
+  const previous = sourceAndRef(installed.source);
+  return runPackOperation(root, "update", options.source ?? previous.source, { ref: options.ref ?? previous.ref, dryRun: options.dryRun, pin: options.pin ?? true, now: options.now }, id);
 }
 
 export function removePack(root: string, id: string, options: { dryRun?: boolean } = {}): Record<string, unknown> {

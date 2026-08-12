@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MSQ82SH4
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-562
+approvedAt: "2026-08-13T00:00:00+09:00"
+sourceIssue: 562
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQ82SH4
+branchName: codex/issue-562-pack-update
+allowedPaths:
+  - src/core/packs.ts
+  - tests/unit/packs.test.ts
+  - tests/integration/pack.test.ts
+  - docs/scwbs/cli-reference.md
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - schema or policy contract change required
+  - dependency or external service change required
+  - Human Gate scope required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - updatePack has a dedicated resolve, validate, diff-plan, and transactional apply path and no longer delegates to installPack's duplicate guard
+  - v1 to v2 updates succeed and update dry-run JSON reports old and new version, digest, and source provenance without writing files or the lockfile
+  - same digest updates are idempotent no-ops and Pack ID changes, policy removals, and downgrade attempts fail closed
+  - digest-only updates apply only to unchanged managed files and preserve divergent user-owned files
+  - update failures leave Pack files and the lockfile unchanged, while rollback updates lockfile provenance without deleting prior versions
+  - unit and CLI integration tests cover v1-to-v2, dry-run, same-digest, digest-only, downgrade, divergent, failure atomicity, and rollback scenarios
+  - CLI documentation describes update old/new provenance and transactional file decisions
+  - 'Complete Issue #562: fix pack update self-rejection and transactional lifecycle'
+evidenceRequired:
+  - test-result
+  - integration-test-result
+  - typecheck-result
+  - build-result
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ82SH4.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQ82SH4.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-12T15:07:48.556Z"
