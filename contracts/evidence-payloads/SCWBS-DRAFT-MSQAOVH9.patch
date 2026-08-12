@@ -1,0 +1,1184 @@
+diff --git a/contracts/specs/SPEC-LITE-MSQAOVH9.yaml b/contracts/specs/SPEC-LITE-MSQAOVH9.yaml
+new file mode 100644
+index 0000000..550218e
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSQAOVH9.yaml
+@@ -0,0 +1,23 @@
++id: SPEC-LITE-MSQAOVH9
++type: spec-contract
++featureId: F-MSQAOVH9
++title: "Issue #572: detect implementation capability status drift in documentation"
++sourceIssue: 572
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-572
++approvedAt: "2026-08-13T00:00:00+09:00"
++summary: "docs check validates a single machine-readable capability status source and detects contradictory implementation-gaps entries"
++acceptanceCriteria:
++  - documentation capabilities have stable unique ids, a closed status enum, and bounded command/file/test evidence
++  - local-index, spec-change-proposal, and wbs-semantic-merge are classified from current source, CLI registration, and existing tests without changing those implementations
++  - implementation-gaps.md removes the three stale missing claims and preserves genuinely incomplete capabilities
++  - docs check fails closed for duplicate ids, duplicate status claims, unknown commands, missing evidence files, invalid statuses, and missing evidence for implemented or partial capabilities
++  - docs check JSON contains bounded reason codes and actionable paths or capability ids for capability drift
++  - integration fixtures cover valid statuses, invalid status, duplicate id, duplicate matrix claim, unknown command, missing evidence file, and all three current regressions
++  - package, CI, WBS, WJS, changesets, external services, and unrelated implementation files remain unchanged
++nonGoals:
++  - document size limits or authoring-language enforcement
++  - a new docs generation CLI
++  - natural-language semantic analysis of all Markdown
++  - changing local-index, spec-change, or WBS merge behavior
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml b/contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
+new file mode 100644
+index 0000000..9b70044
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
+@@ -0,0 +1,74 @@
++id: SCWBS-DRAFT-MSQAOVH9
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSQAOVH9
++branchName: task/SCWBS-DRAFT-MSQAOVH9-issue-572-capability-status-drift-detection
++sourceIssue: 572
++status: approved
++approvedBy: user-requested-issue-572
++approvedAt: "2026-08-13T00:00:00+09:00"
++allowedPaths:
++  - docs/documentation-capabilities.json
++  - docs/scwbs/schemas/documentation-capabilities.schema.json
++  - docs/implementation-gaps.md
++  - src/core/document-lifecycle.ts
++  - src/commands/docs-check.ts
++  - tests/integration/docs-check.test.ts
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - contracts/changesets/**
++stopIf:
++  - package or CI change
++  - authority outside allowedPaths
++  - Human Gate
++  - external service or credential change
++  - WBS or WJS source change
++  - scope ambiguity
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - capability status is stored in a versioned machine-readable source with stable unique ids
++  - local-index, spec-change-proposal, and wbs-semantic-merge statuses match live implementation evidence
++  - implementation-gaps.md no longer contains contradictory status rows and references each tracked capability by stable id
++  - docs check fails closed for duplicate ids, duplicate status claims, unknown commands, missing evidence files, and invalid status evidence
++  - docs check JSON exposes bounded machine-readable reason codes for capability drift
++  - regression fixtures cover valid implemented/partial/missing entries and the three current stale-status cases
++  - package, CI, WBS, WJS, changesets, external services, and unrelated implementation files remain unchanged
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
++  - contracts/specs/SPEC-LITE-MSQAOVH9.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSQAOVH9.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSQAOVH9.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSQAOVH9.patch
++  - contracts/approvals/SCWBS-DRAFT-MSQAOVH9.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSQAOVH9.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:0d6fe591634fa2d8688c71e37f8a3f71dd583d52416905c63e21b356bc9a6725
++  createdAt: "2026-08-12T16:22:53.692Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index b09044b..50fd830 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2050,3 +2050,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T15:42:50.347Z"
++  - id: SCWBS-DRAFT-MSQAOVH9
++    path: contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
++    branchName: task/SCWBS-DRAFT-MSQAOVH9-issue-572-capability-status-drift-detection
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/documentation-capabilities.json b/docs/documentation-capabilities.json
+new file mode 100644
+index 0000000..3be4f82
+--- /dev/null
++++ b/docs/documentation-capabilities.json
+@@ -0,0 +1,55 @@
++{
++  "schemaVersion": "scwbs.documentation-capabilities.v1",
++  "capabilities": [
++    {
++      "id": "local-index",
++      "status": "implemented",
++      "summary": "Rebuildable local SQLite index and bounded query are available as non-authoritative navigation capabilities.",
++      "evidence": {
++        "commands": ["index rebuild", "index status", "index verify", "query"],
++        "files": ["src/core/local-index.ts", "src/commands/local-index.ts"],
++        "tests": ["tests/integration/local-index.test.ts"]
++      }
++    },
++    {
++      "id": "spec-change-proposal",
++      "status": "implemented",
++      "summary": "Spec Change Proposal creation and Level 2 request routing are available through the governance CLI.",
++      "evidence": {
++        "commands": ["spec-change new"],
++        "files": ["src/cli/register-governance.ts"],
++        "tests": ["tests/integration/spec-change.test.ts"]
++      }
++    },
++    {
++      "id": "spec-change-workflow-enforcement",
++      "status": "missing",
++      "summary": "Broader enforcement beyond proposal creation and Level 2 request routing remains a follow-up.",
++      "evidence": {
++        "commands": [],
++        "files": ["src/cli/register-governance.ts"],
++        "tests": ["tests/integration/spec-change.test.ts"]
++      }
++    },
++    {
++      "id": "wbs-semantic-merge",
++      "status": "implemented",
++      "summary": "Read-only three-way WBS semantic merge planning and explicit clean-plan changeset generation are available.",
++      "evidence": {
++        "commands": ["wbs merge-plan"],
++        "files": ["src/cli/register-wbs.ts", "src/commands/wbs.ts"],
++        "tests": ["tests/integration/wbs-merge-plan.test.ts"]
++      }
++    },
++    {
++      "id": "wbs-distributed-support",
++      "status": "missing",
++      "summary": "Full distributed WBS collaboration remains outside the read-only merge-plan capability.",
++      "evidence": {
++        "commands": [],
++        "files": ["docs/wbs-conflict-mitigation.md"],
++        "tests": []
++      }
++    }
++  ]
++}
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index ab9ab98..79a4adc 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -13,7 +13,10 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Optional Contract Lock metadata validation
+ - Task Contract Lock generation from WBS and Spec content hashes
+ - First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
+-- First-class Spec Change Proposal files under `contracts/spec-changes/*.yaml` with required metadata validation
++
++<!-- scwbs-capability: spec-change-proposal status=implemented -->
++
++- First-class Spec Change Proposal files and `scwbs spec-change new` creation with Level 2 request routing
+ - Evidence `testQuality` metadata validation
+ - Base/head-aware Evidence changed file collection
+ - Evidence PR metadata capture and refresh preservation
+@@ -30,11 +33,14 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
+ - Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
+ - Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
++
++<!-- scwbs-capability: local-index status=implemented -->
++
+ - Rebuildable Node SQLite local index with provenance-aware status, bounded cross-artifact query, stale/corrupt recovery, and non-authoritative cache semantics
+ - Warning-only code-versus-contract timestamp drift detection through `scwbs health`
+ - Sensitive meta/config file guardrails in check-diff
+ - Subtree-scoped bootstrap phase metadata and AI packet reporting
+-- WBS conflict mitigation strategy and semantic merge roadmap
++- <!-- scwbs-capability: wbs-semantic-merge status=implemented --> Read-only WBS semantic merge planning and explicit clean-plan changeset generation
+ - Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
+ - WBS status summary
+ - WJS semantic apply wrapper
+@@ -56,22 +62,21 @@ This document tracks the pieces that are intentionally still missing from the cu
+ 
+ ## Still Missing
+ 
+-| Area                     | Missing Piece                                               | Why It Matters                                                                                                                                                                                                                  |
+-| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+-| Change control           | Spec Change Proposal command and workflow enforcement       | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated                                                                                                                                         |
+-| Evidence trust           | External artifact signatures and independent CI attestation | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only |
+-| Evidence diff basis      | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope |
+-| Test quality             | Diff-aware assertion and coverage inspection                | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope                  |
+-| Review independence      | Human review transition and external reviewer promotion      | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                   |
+-| CI integration           | Independent attestation and automatic promotion             | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded |
+-| Indexing                 | SQLite or other local index                                 | We do not yet have a searchable cache for contracts and findings                                                                                                                                                                |
+-| WBS collaboration        | Semantic merge implementation or distributed WBS support    | The mitigation strategy is documented, but merge assistance is not implemented yet                                                                                                                                              |
++| Area                | Missing Piece                                                              | Why It Matters                                                                                                                                                                                                                 |
++| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
++| Change control      | Spec Change workflow enforcement                                           | <!-- scwbs-capability: spec-change-workflow-enforcement status=missing --> Proposal creation and Level 2 request routing exist; broader workflow enforcement remains                                                           |
++| Evidence trust      | External artifact signatures and independent CI attestation                | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only                                     |
++| Evidence diff basis | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope                         |
++| Test quality        | Diff-aware assertion and coverage inspection                               | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope |
++| Review independence | Human review transition and external reviewer promotion                    | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                     |
++| CI integration      | Independent attestation and automatic promotion                            | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded                |
++| WBS collaboration   | Distributed WBS support                                                    | <!-- scwbs-capability: wbs-distributed-support status=missing --> Full distributed collaboration remains outside the read-only semantic merge planner                                                                          |
+ 
+ ## Near-Term Follow-Ups
+ 
+-- Add a command to create lightweight spec-change proposal artifacts.
++- Extend Spec Change workflow enforcement beyond proposal creation and Level 2 request routing.
+ - Extend `testQualityObservation` with AST-based assertion counting where practical. Phase 1 already compares test diffs and verified coverage summaries without replacing manual `testQuality` metadata.
+-- Implement a low-cost WBS semantic merge helper before full distributed WBS support.
++- Extend read-only WBS semantic merge planning toward distributed WBS support.
+ - Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
+ - Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
+ - Add release workflow permissions and attestation generation only after a separately approved threat model, repository-plan review, and Human Gate; this Task deliberately changes no `.github` workflow.
+diff --git a/docs/scwbs/schemas/documentation-capabilities.schema.json b/docs/scwbs/schemas/documentation-capabilities.schema.json
+new file mode 100644
+index 0000000..3496c0a
+--- /dev/null
++++ b/docs/scwbs/schemas/documentation-capabilities.schema.json
+@@ -0,0 +1,43 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/xmeta/ACED/blob/main/docs/scwbs/schemas/documentation-capabilities.schema.json",
++  "title": "SC-WBS documentation capability status",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schemaVersion", "capabilities"],
++  "properties": {
++    "schemaVersion": { "const": "scwbs.documentation-capabilities.v1" },
++    "capabilities": {
++      "type": "array",
++      "minItems": 1,
++      "items": { "$ref": "#/$defs/capability" }
++    }
++  },
++  "$defs": {
++    "repositoryPath": {
++      "type": "string",
++      "minLength": 1,
++      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
++    },
++    "capability": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["id", "status", "summary", "evidence"],
++      "properties": {
++        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
++        "status": { "enum": ["implemented", "partial", "missing", "deferred"] },
++        "summary": { "type": "string", "minLength": 1 },
++        "evidence": {
++          "type": "object",
++          "additionalProperties": false,
++          "required": ["commands", "files", "tests"],
++          "properties": {
++            "commands": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
++            "files": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/repositoryPath" } },
++            "tests": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/repositoryPath" } }
++          }
++        }
++      }
++    }
++  }
++}
+diff --git a/src/core/document-lifecycle.ts b/src/core/document-lifecycle.ts
+index 817e47f..8a4408a 100644
+--- a/src/core/document-lifecycle.ts
++++ b/src/core/document-lifecycle.ts
+@@ -5,9 +5,12 @@ import { resolveFrom } from "./paths.js";
+ import type { Issue } from "./types.js";
+ 
+ export const documentLifecyclePath = "docs/document-lifecycle.json";
++export const documentationCapabilitiesPath = "docs/documentation-capabilities.json";
+ export const documentStatuses = ["normative", "informative", "proposal", "deprecated", "superseded"] as const;
++export const documentationCapabilityStatuses = ["implemented", "partial", "missing", "deferred"] as const;
+ 
+-export type DocumentStatus = typeof documentStatuses[number];
++export type DocumentStatus = (typeof documentStatuses)[number];
++export type DocumentationCapabilityStatus = (typeof documentationCapabilityStatuses)[number];
+ 
+ export type DocumentSet = {
+   documentId: string;
+@@ -32,6 +35,22 @@ export type DocumentLifecycleResult = {
+   issues: Issue[];
+ };
+ 
++export type DocumentationCapability = {
++  id: string;
++  status: DocumentationCapabilityStatus;
++  summary: string;
++  evidence: {
++    commands: string[];
++    files: string[];
++    tests: string[];
++  };
++};
++
++export type DocumentationCapabilitiesResult = {
++  capabilities?: DocumentationCapability[];
++  issues: Issue[];
++};
++
+ const NON_CURRENT = new Set<DocumentStatus>(["proposal", "deprecated", "superseded"]);
+ const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
+ const RANGE_CLAUSE = /^(>=|<=|>|<|=)?(\d+\.\d+\.\d+)$/;
+@@ -47,10 +66,12 @@ function stringArray(value: unknown): value is string[] {
+ function safeRepositoryPath(value: string): boolean {
+   const normalized = value.replace(/\\/g, "/");
+   const segments = normalized.split("/");
+-  return normalized.length > 0
+-    && !normalized.startsWith("/")
+-    && !/^[A-Za-z]:/.test(normalized)
+-    && !segments.some((segment) => segment === "." || segment === "..");
++  return (
++    normalized.length > 0 &&
++    !normalized.startsWith("/") &&
++    !/^[A-Za-z]:/.test(normalized) &&
++    !segments.some((segment) => segment === "." || segment === "..")
++  );
+ }
+ 
+ function error(code: string, message: string): Issue {
+@@ -66,6 +87,15 @@ function warning(code: string, message: string): Issue {
+   return { severity: "warn", code, message };
+ }
+ 
++function capabilityError(code: string, message: string): Issue {
++  return {
++    severity: "error",
++    code,
++    message,
++    fixCommand: `Fix ${documentationCapabilitiesPath} or docs/implementation-gaps.md, then run: npm run scwbs -- docs check`
++  };
++}
++
+ function readText(root: string, relativePath: string): string | undefined {
+   const absolutePath = resolveFrom(root, relativePath);
+   if (!existsSync(absolutePath)) return undefined;
+@@ -111,7 +141,12 @@ function collectOrphanDocumentationIssues(root: string, manifest: DocumentLifecy
+   return collectMarkdownFiles(root)
+     .filter((file) => !manifest.documents.some((document) => matchesAny(file, document.paths)))
+     .filter((file) => !manifest.ignoredPaths.some((pattern) => matchesAny(file, [pattern])))
+-    .map((file) => error("docs.orphan.unregistered", `${file} is a maintained Markdown file not covered by document lifecycle or ignoredPaths`));
++    .map((file) =>
++      error(
++        "docs.orphan.unregistered",
++        `${file} is a maintained Markdown file not covered by document lifecycle or ignoredPaths`
++      )
++    );
+ }
+ 
+ function collectFactualDocumentationIssues(root: string): Issue[] {
+@@ -125,34 +160,276 @@ function collectFactualDocumentationIssues(root: string): Issue[] {
+   const configuredLintWarnings = packageJson?.lintScript?.match(/--max-warnings(?:=|\s+)(\d+)/)?.[1];
+   const documentedLintWarnings = readme.match(/(?:baseline|up to)\s+(\d+)\s+warnings/i)?.[1];
+   if (configuredLintWarnings && documentedLintWarnings && configuredLintWarnings !== documentedLintWarnings) {
+-    issues.push(error(
+-      "docs.fact.lintThreshold",
+-      `README documents ${documentedLintWarnings} lint warnings but package.json lint uses --max-warnings=${configuredLintWarnings}`
+-    ));
++    issues.push(
++      error(
++        "docs.fact.lintThreshold",
++        `README documents ${documentedLintWarnings} lint warnings but package.json lint uses --max-warnings=${configuredLintWarnings}`
++      )
++    );
+   }
+ 
+-  if (/Documentation automation\s*\|[^\n]*Markdown generation from contracts/i.test(gaps)
+-    && /runDocsGenerate|\.command\("generate"\)/.test(cliSource)) {
+-    issues.push(error(
+-      "docs.fact.implementedMissing",
+-      "docs/implementation-gaps.md lists contract Markdown generation as missing although docs generate is implemented"
+-    ));
++  if (
++    /Documentation automation\s*\|[^\n]*Markdown generation from contracts/i.test(gaps) &&
++    /runDocsGenerate|\.command\("generate"\)/.test(cliSource)
++  ) {
++    issues.push(
++      error(
++        "docs.fact.implementedMissing",
++        "docs/implementation-gaps.md lists contract Markdown generation as missing although docs generate is implemented"
++      )
++    );
+   }
+ 
+-  if (mergeProtection && /(?:currently|現行)[^\n]*(?:private|public)/i.test(mergeProtection)
+-    && !/(?:snapshot|観測|revalidat|再検証|gh api)/i.test(mergeProtection)) {
+-    issues.push(error(
+-      "docs.fact.transientRepositoryState",
+-      "merge protection documentation contains an unbounded repository visibility claim; record a dated snapshot and live revalidation guidance"
+-    ));
++  if (
++    mergeProtection &&
++    /(?:currently|現行)[^\n]*(?:private|public)/i.test(mergeProtection) &&
++    !/(?:snapshot|観測|revalidat|再検証|gh api)/i.test(mergeProtection)
++  ) {
++    issues.push(
++      error(
++        "docs.fact.transientRepositoryState",
++        "merge protection documentation contains an unbounded repository visibility claim; record a dated snapshot and live revalidation guidance"
++      )
++    );
+   }
+ 
+   if (readme.includes("docs check") && !/\.command\("check"\)/.test(cliSource)) {
+-    issues.push(error("docs.fact.commandMissing", "README documents docs check but the command is not registered in src/cli.ts"));
++    issues.push(
++      error("docs.fact.commandMissing", "README documents docs check but the command is not registered in src/cli.ts")
++    );
+   }
+   return issues;
+ }
+ 
++const COMMAND_EVIDENCE: Record<string, { path: string; pattern: RegExp }> = {
++  "index rebuild": {
++    path: "src/cli.ts",
++    pattern: /const index = program\.command\("index"\)[\s\S]*?index\.command\("rebuild"\)/
++  },
++  "index status": {
++    path: "src/cli.ts",
++    pattern: /const index = program\.command\("index"\)[\s\S]*?index\.command\("status"\)/
++  },
++  "index verify": {
++    path: "src/cli.ts",
++    pattern: /const index = program\.command\("index"\)[\s\S]*?index\.command\("verify"\)/
++  },
++  query: { path: "src/cli.ts", pattern: /program\s*\.command\("query"\)/ },
++  "spec-change new": {
++    path: "src/cli/register-governance.ts",
++    pattern: /program\.command\("spec-change"\)[\s\S]*?\.command\("new"\)/
++  },
++  "wbs merge-plan": {
++    path: "src/cli/register-wbs.ts",
++    pattern: /program\.command\("wbs"\)[\s\S]*?\.command\("merge-plan"\)/
++  }
++};
++
++const CAPABILITY_MARKER =
++  /<!--\s*scwbs-capability:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s+status=(implemented|partial|missing|deferred)\s*-->/g;
++const CAPABILITY_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
++
++function optionalStringArray(value: unknown): value is string[] {
++  return Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0);
++}
++
++function parseDocumentationCapabilities(text: string): DocumentationCapabilitiesResult {
++  let raw: unknown;
++  try {
++    raw = JSON.parse(text);
++  } catch (parseError) {
++    return {
++      issues: [
++        capabilityError("docs.capability.parse", parseError instanceof Error ? parseError.message : String(parseError))
++      ]
++    };
++  }
++  if (!record(raw))
++    return { issues: [capabilityError("docs.capability.shape", `${documentationCapabilitiesPath} must be an object`)] };
++  const issues: Issue[] = [];
++  if (raw.schemaVersion !== "scwbs.documentation-capabilities.v1") {
++    issues.push(
++      capabilityError(
++        "docs.capability.schemaVersion",
++        `${documentationCapabilitiesPath} schemaVersion must be scwbs.documentation-capabilities.v1`
++      )
++    );
++  }
++  if (!Array.isArray(raw.capabilities)) {
++    return { issues: [...issues, capabilityError("docs.capability.list", "capabilities must be an array")] };
++  }
++
++  const capabilities: DocumentationCapability[] = [];
++  const ids = new Set<string>();
++  for (const [index, value] of raw.capabilities.entries()) {
++    const prefix = `capabilities[${index}]`;
++    if (!record(value)) {
++      issues.push(capabilityError("docs.capability.entry", `${prefix} must be an object`));
++      continue;
++    }
++    const id = typeof value.id === "string" ? value.id : "";
++    const status = typeof value.status === "string" ? value.status : "";
++    const summary = typeof value.summary === "string" ? value.summary : "";
++    if (!CAPABILITY_ID.test(id))
++      issues.push(capabilityError("docs.capability.id", `${prefix}.id must be a stable kebab-case id`));
++    if (ids.has(id)) issues.push(capabilityError("docs.capability.id.duplicate", `duplicate capability id ${id}`));
++    ids.add(id);
++    if (!documentationCapabilityStatuses.includes(status as DocumentationCapabilityStatus)) {
++      issues.push(
++        capabilityError(
++          "docs.capability.status",
++          `${prefix}.status must be one of ${documentationCapabilityStatuses.join(", ")}`
++        )
++      );
++    }
++    if (!summary.trim()) issues.push(capabilityError("docs.capability.summary", `${prefix}.summary must be non-empty`));
++    if (!record(value.evidence)) {
++      issues.push(capabilityError("docs.capability.evidence", `${prefix}.evidence must be an object`));
++      continue;
++    }
++    const commands = optionalStringArray(value.evidence.commands) ? value.evidence.commands : [];
++    const files = optionalStringArray(value.evidence.files) ? value.evidence.files : [];
++    const tests = optionalStringArray(value.evidence.tests) ? value.evidence.tests : [];
++    if (!optionalStringArray(value.evidence.commands))
++      issues.push(
++        capabilityError("docs.capability.evidence.commands", `${prefix}.evidence.commands must be a string array`)
++      );
++    if (!optionalStringArray(value.evidence.files))
++      issues.push(capabilityError("docs.capability.evidence.files", `${prefix}.evidence.files must be a string array`));
++    if (!optionalStringArray(value.evidence.tests))
++      issues.push(capabilityError("docs.capability.evidence.tests", `${prefix}.evidence.tests must be a string array`));
++    if (id && documentationCapabilityStatuses.includes(status as DocumentationCapabilityStatus)) {
++      capabilities.push({
++        id,
++        status: status as DocumentationCapabilityStatus,
++        summary,
++        evidence: { commands, files, tests }
++      });
++    }
++  }
++  if (issues.some((item) => item.severity === "error")) return { issues };
++  return { capabilities, issues };
++}
++
++function validateCapabilityEvidence(root: string, capability: DocumentationCapability): Issue[] {
++  const issues: Issue[] = [];
++  let validEvidence = 0;
++  for (const command of capability.evidence.commands) {
++    const descriptor = COMMAND_EVIDENCE[command];
++    if (!descriptor) {
++      issues.push(
++        capabilityError("docs.capability.command.unknown", `${capability.id} documents unknown command: ${command}`)
++      );
++      continue;
++    }
++    const source = readText(root, descriptor.path);
++    if (!source || !descriptor.pattern.test(source)) {
++      issues.push(
++        capabilityError(
++          "docs.capability.command.missing",
++          `${capability.id} documents command ${command}, but its CLI registration is missing from ${descriptor.path}`
++        )
++      );
++      continue;
++    }
++    validEvidence += 1;
++  }
++  for (const pathValue of [...capability.evidence.files, ...capability.evidence.tests]) {
++    if (!safeRepositoryPath(pathValue)) {
++      issues.push(
++        capabilityError(
++          "docs.capability.path.invalid",
++          `${capability.id} documents an unsafe evidence path: ${pathValue}`
++        )
++      );
++      continue;
++    }
++    if (!existsSync(resolveFrom(root, pathValue))) {
++      issues.push(
++        capabilityError(
++          "docs.capability.evidence.missing",
++          `${capability.id} evidence path does not exist: ${pathValue}`
++        )
++      );
++      continue;
++    }
++    validEvidence += 1;
++  }
++  if ((capability.status === "implemented" || capability.status === "partial") && validEvidence === 0) {
++    issues.push(
++      capabilityError(
++        "docs.capability.evidence.required",
++        `${capability.id} status ${capability.status} requires at least one valid command, file, or test evidence`
++      )
++    );
++  }
++  return issues;
++}
++
++function validateCapabilityMatrix(markdown: string, capabilities: DocumentationCapability[]): Issue[] {
++  const issues: Issue[] = [];
++  const byId = new Map(capabilities.map((capability) => [capability.id, capability]));
++  const markers = new Map<string, DocumentationCapabilityStatus>();
++  for (const match of markdown.matchAll(CAPABILITY_MARKER)) {
++    const id = match[1];
++    const status = match[2] as DocumentationCapabilityStatus;
++    if (markers.has(id)) {
++      issues.push(
++        capabilityError(
++          "docs.capability.matrix.duplicate",
++          `capability ${id} appears more than once in docs/implementation-gaps.md`
++        )
++      );
++      continue;
++    }
++    markers.set(id, status);
++    const capability = byId.get(id);
++    if (!capability) {
++      issues.push(
++        capabilityError(
++          "docs.capability.matrix.unknown",
++          `docs/implementation-gaps.md references unknown capability ${id}`
++        )
++      );
++    } else if (capability.status !== status) {
++      issues.push(
++        capabilityError(
++          "docs.capability.matrix.mismatch",
++          `${id} is ${capability.status} in ${documentationCapabilitiesPath} but ${status} in docs/implementation-gaps.md`
++        )
++      );
++    }
++  }
++  for (const capability of capabilities) {
++    if (!markers.has(capability.id)) {
++      issues.push(
++        capabilityError(
++          "docs.capability.matrix.missing",
++          `docs/implementation-gaps.md has no status marker for capability ${capability.id}`
++        )
++      );
++    }
++  }
++  return issues;
++}
++
++function collectDocumentationCapabilityIssues(root: string): Issue[] {
++  const capabilityText = readText(root, documentationCapabilitiesPath);
++  const gapsText = readText(root, "docs/implementation-gaps.md");
++  if (!capabilityText && !gapsText) return [];
++  if (!capabilityText)
++    return [capabilityError("docs.capability.missing", `${documentationCapabilitiesPath} does not exist`)];
++  if (!gapsText)
++    return [capabilityError("docs.capability.matrix.missingFile", "docs/implementation-gaps.md does not exist")];
++  const parsed = parseDocumentationCapabilities(capabilityText);
++  if (!parsed.capabilities) return parsed.issues;
++  return [
++    ...parsed.issues,
++    ...parsed.capabilities.flatMap((capability) => validateCapabilityEvidence(root, capability)),
++    ...validateCapabilityMatrix(gapsText, parsed.capabilities)
++  ];
++}
++
+ function parseVersion(value: string): [number, number, number] | undefined {
+   const match = value.match(SEMVER);
+   if (!match) return undefined;
+@@ -178,11 +455,16 @@ export function versionSatisfiesRange(version: string, range: string): boolean {
+     if (!target) return false;
+     const comparison = compareVersion(parsedVersion, target);
+     switch (match[1] ?? "=") {
+-      case ">=": return comparison >= 0;
+-      case "<=": return comparison <= 0;
+-      case ">": return comparison > 0;
+-      case "<": return comparison < 0;
+-      default: return comparison === 0;
++      case ">=":
++        return comparison >= 0;
++      case "<=":
++        return comparison <= 0;
++      case ">":
++        return comparison > 0;
++      case "<":
++        return comparison < 0;
++      default:
++        return comparison === 0;
+     }
+   });
+ }
+@@ -192,7 +474,9 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+   try {
+     raw = JSON.parse(text);
+   } catch (parseError) {
+-    return { issues: [error("docs.manifest.parse", parseError instanceof Error ? parseError.message : String(parseError))] };
++    return {
++      issues: [error("docs.manifest.parse", parseError instanceof Error ? parseError.message : String(parseError))]
++    };
+   }
+   if (!record(raw)) return { issues: [error("docs.manifest.shape", "document lifecycle manifest must be an object")] };
+ 
+@@ -204,8 +488,13 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+     issues.push(error("docs.manifest.standardEntrypoints", "standardEntrypoints must be a non-empty string array"));
+   }
+   const validIgnoredPaths = raw.ignoredPaths === undefined || stringArray(raw.ignoredPaths);
+-  if (!validIgnoredPaths || (raw.ignoredPaths as unknown[] | undefined)?.some((item) => !safeRepositoryPath(item as string))) {
+-    issues.push(error("docs.manifest.ignoredPaths", "ignoredPaths must be a string array of safe repository-relative paths"));
++  if (
++    !validIgnoredPaths ||
++    (raw.ignoredPaths as unknown[] | undefined)?.some((item) => !safeRepositoryPath(item as string))
++  ) {
++    issues.push(
++      error("docs.manifest.ignoredPaths", "ignoredPaths must be a string array of safe repository-relative paths")
++    );
+   }
+   if (!Array.isArray(raw.documents) || raw.documents.length === 0) {
+     issues.push(error("docs.manifest.documents", "documents must be a non-empty array"));
+@@ -225,29 +514,41 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+     const appliesToCli = typeof value.appliesToCli === "string" ? value.appliesToCli : "";
+     const entrypoint = typeof value.entrypoint === "string" ? value.entrypoint : "";
+     const paths = stringArray(value.paths) ? value.paths : [];
+-    const validSupersedes = Array.isArray(value.supersedes)
+-      && value.supersedes.every((item) => typeof item === "string" && item.length > 0);
+-    const supersedes = validSupersedes ? value.supersedes as string[] : [];
++    const validSupersedes =
++      Array.isArray(value.supersedes) && value.supersedes.every((item) => typeof item === "string" && item.length > 0);
++    const supersedes = validSupersedes ? (value.supersedes as string[]) : [];
+ 
+     if (!documentId) issues.push(error("docs.document.documentId", `${prefix}.documentId must be a non-empty string`));
+     if (!documentStatuses.includes(status as DocumentStatus)) {
+       issues.push(error("docs.document.status", `${prefix}.status must be one of ${documentStatuses.join(", ")}`));
+     }
+-    if (!parseVersion(version)) issues.push(error("docs.document.version", `${prefix}.version must be semantic version x.y.z`));
++    if (!parseVersion(version))
++      issues.push(error("docs.document.version", `${prefix}.version must be semantic version x.y.z`));
+     if (!appliesToCli || appliesToCli.split(/\s+/).some((clause) => !RANGE_CLAUSE.test(clause))) {
+-      issues.push(error("docs.document.appliesToCli", `${prefix}.appliesToCli must be a supported semantic version range`));
++      issues.push(
++        error("docs.document.appliesToCli", `${prefix}.appliesToCli must be a supported semantic version range`)
++      );
+     }
+     if (!entrypoint || !safeRepositoryPath(entrypoint)) {
+       issues.push(error("docs.document.entrypoint", `${prefix}.entrypoint must be a safe repository-relative path`));
+     }
+     if (paths.length === 0 || paths.some((item) => !safeRepositoryPath(item))) {
+-      issues.push(error("docs.document.paths", `${prefix}.paths must be a non-empty array of safe repository-relative paths`));
++      issues.push(
++        error("docs.document.paths", `${prefix}.paths must be a non-empty array of safe repository-relative paths`)
++      );
+     }
+     if (!validSupersedes) {
+       issues.push(error("docs.document.supersedes", `${prefix}.supersedes must be a string array`));
+     }
+ 
+-    if (documentId && documentStatuses.includes(status as DocumentStatus) && parseVersion(version) && appliesToCli && entrypoint && paths.length > 0) {
++    if (
++      documentId &&
++      documentStatuses.includes(status as DocumentStatus) &&
++      parseVersion(version) &&
++      appliesToCli &&
++      entrypoint &&
++      paths.length > 0
++    ) {
+       documents.push({
+         documentId,
+         status: status as DocumentStatus,
+@@ -266,7 +567,7 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
+       schemaVersion: "1.0.0",
+       standardEntrypoints: raw.standardEntrypoints as string[],
+       documents,
+-      ignoredPaths: raw.ignoredPaths === undefined ? [] : raw.ignoredPaths as string[]
++      ignoredPaths: raw.ignoredPaths === undefined ? [] : (raw.ignoredPaths as string[])
+     },
+     issues
+   };
+@@ -281,7 +582,9 @@ function validateSuccessorGraph(manifest: DocumentLifecycleManifest): Issue[] {
+     graph.set(document.documentId, [...document.supersedes]);
+     for (const predecessor of document.supersedes) {
+       if (!ids.has(predecessor)) {
+-        issues.push(error("docs.supersedes.missing", `${document.documentId} supersedes unknown documentId ${predecessor}`));
++        issues.push(
++          error("docs.supersedes.missing", `${document.documentId} supersedes unknown documentId ${predecessor}`)
++        );
+         continue;
+       }
+       if (predecessor === document.documentId) {
+@@ -307,12 +610,16 @@ function validateSuccessorGraph(manifest: DocumentLifecycleManifest): Issue[] {
+   for (const id of ids) visit(id);
+ 
+   for (const document of manifest.documents) {
+-    if ((document.status === "deprecated" || document.status === "superseded")
+-      && (successors.get(document.documentId)?.length ?? 0) === 0) {
+-      issues.push(error(
+-        "docs.successor.missing",
+-        `${document.documentId} is ${document.status} but no successor document supersedes it`
+-      ));
++    if (
++      (document.status === "deprecated" || document.status === "superseded") &&
++      (successors.get(document.documentId)?.length ?? 0) === 0
++    ) {
++      issues.push(
++        error(
++          "docs.successor.missing",
++          `${document.documentId} is ${document.status} but no successor document supersedes it`
++        )
++      );
+     }
+   }
+   return issues;
+@@ -328,9 +635,7 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
+   const absolutePath = resolveFrom(root, documentLifecyclePath);
+   if (!existsSync(absolutePath)) {
+     return {
+-      issues: required
+-        ? [error("docs.manifest.missing", `${documentLifecyclePath} does not exist`)]
+-        : []
++      issues: required ? [error("docs.manifest.missing", `${documentLifecyclePath} does not exist`)] : []
+     };
+   }
+ 
+@@ -359,16 +664,25 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
+       byId.set(document.documentId, document);
+     }
+     if (!existsSync(resolveFrom(root, document.entrypoint))) {
+-      issues.push(error("docs.entrypoint.missing", `${document.documentId} entrypoint does not exist: ${document.entrypoint}`));
++      issues.push(
++        error("docs.entrypoint.missing", `${document.documentId} entrypoint does not exist: ${document.entrypoint}`)
++      );
+     }
+     if (!matchesAny(document.entrypoint, document.paths)) {
+-      issues.push(error("docs.entrypoint.scope", `${document.documentId} entrypoint is not covered by its paths: ${document.entrypoint}`));
++      issues.push(
++        error(
++          "docs.entrypoint.scope",
++          `${document.documentId} entrypoint is not covered by its paths: ${document.entrypoint}`
++        )
++      );
+     }
+     if (cliVersion && !versionSatisfiesRange(cliVersion, document.appliesToCli)) {
+-      issues.push(error(
+-        "docs.appliesToCli.mismatch",
+-        `${document.documentId} appliesToCli ${document.appliesToCli} does not include CLI ${cliVersion}`
+-      ));
++      issues.push(
++        error(
++          "docs.appliesToCli.mismatch",
++          `${document.documentId} appliesToCli ${document.appliesToCli} does not include CLI ${cliVersion}`
++        )
++      );
+     }
+   }
+ 
+@@ -378,7 +692,12 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
+       const left = normative[leftIndex];
+       const right = normative[rightIndex];
+       if (normativeConflict(left, right)) {
+-        issues.push(error("docs.normative.conflict", `${left.documentId} and ${right.documentId} claim overlapping normative scope`));
++        issues.push(
++          error(
++            "docs.normative.conflict",
++            `${left.documentId} and ${right.documentId} claim overlapping normative scope`
++          )
++        );
+       }
+     }
+   }
+@@ -391,19 +710,24 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
+     }
+     const owner = entrypointOwner.get(entrypoint);
+     if (!owner) {
+-      issues.push(error("docs.standardEntrypoint.unregistered", `standard entrypoint is not a document entrypoint: ${entrypoint}`));
++      issues.push(
++        error("docs.standardEntrypoint.unregistered", `standard entrypoint is not a document entrypoint: ${entrypoint}`)
++      );
+       continue;
+     }
+     if (NON_CURRENT.has(owner.status)) {
+-      issues.push(warning(
+-        "docs.standardEntrypoint.nonCurrent",
+-        `${entrypoint} is ${owner.status} and should not be in the standard execution path`
+-      ));
++      issues.push(
++        warning(
++          "docs.standardEntrypoint.nonCurrent",
++          `${entrypoint} is ${owner.status} and should not be in the standard execution path`
++        )
++      );
+     }
+   }
+   issues.push(...validateSuccessorGraph(manifest));
+   issues.push(...collectOrphanDocumentationIssues(root, manifest));
+   issues.push(...collectFactualDocumentationIssues(root));
++  issues.push(...collectDocumentationCapabilityIssues(root));
+ 
+   return { manifest, cliVersion, issues };
+ }
+diff --git a/tests/integration/docs-check.test.ts b/tests/integration/docs-check.test.ts
+index f5b8b87..2afb930 100644
+--- a/tests/integration/docs-check.test.ts
++++ b/tests/integration/docs-check.test.ts
+@@ -64,6 +64,35 @@ function yamlExampleAfterHeading(markdown: string, heading: string): unknown {
+   return load(match[1]);
+ }
+ 
++type CapabilityFixture = {
++  id?: string;
++  status?: string;
++  summary?: string;
++  commands?: string[];
++  files?: string[];
++  tests?: string[];
++};
++
++function writeCapabilities(root: string, capabilities: CapabilityFixture[]): void {
++  writeJson(root, "docs/documentation-capabilities.json", {
++    schemaVersion: "scwbs.documentation-capabilities.v1",
++    capabilities: capabilities.map((capability) => ({
++      id: capability.id ?? "demo-capability",
++      status: capability.status ?? "implemented",
++      summary: capability.summary ?? "A documented capability fixture.",
++      evidence: {
++        commands: capability.commands ?? [],
++        files: capability.files ?? ["src/demo.ts"],
++        tests: capability.tests ?? ["tests/demo.test.ts"]
++      }
++    }))
++  });
++}
++
++function writeCapabilityMatrix(root: string, ...markers: string[]): void {
++  writeText(root, "docs/implementation-gaps.md", markers.join("\n") + "\n");
++}
++
+ describe("docs check", () => {
+   test("validates the lifecycle manifest and emits schema-conforming JSON", () => {
+     const root = makeTempRepo();
+@@ -81,20 +110,26 @@ describe("docs check", () => {
+     expect(report.status).toBe("pass");
+     expect(report.summary).toMatchObject({ documents: 2, normative: 1, proposal: 1, errors: 0 });
+ 
+-    const schema = JSON.parse(readFileSync(
+-      path.join(process.cwd(), "docs/scwbs/schemas/docs-check.schema.json"),
+-      "utf8"
+-    ));
++    const schema = JSON.parse(
++      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/docs-check.schema.json"), "utf8")
++    );
+     const ajv = new Ajv2020({ strict: false });
+     expect(ajv.compile(schema)(report)).toBe(true);
+ 
+-    const manifestSchema = JSON.parse(readFileSync(
+-      path.join(process.cwd(), "docs/scwbs/schemas/document-lifecycle.schema.json"),
+-      "utf8"
+-    ));
++    const manifestSchema = JSON.parse(
++      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/document-lifecycle.schema.json"), "utf8")
++    );
+     const manifest = JSON.parse(readFileSync(path.join(root, "docs/document-lifecycle.json"), "utf8"));
+     expect(ajv.compile(manifestSchema)(manifest)).toBe(true);
+ 
++    const capabilitiesSchema = JSON.parse(
++      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/documentation-capabilities.schema.json"), "utf8")
++    );
++    const capabilities = JSON.parse(
++      readFileSync(path.join(process.cwd(), "docs/documentation-capabilities.json"), "utf8")
++    );
++    expect(ajv.compile(capabilitiesSchema)(capabilities)).toBe(true);
++
+     const output: string[] = [];
+     const originalLog = console.log;
+     console.log = (message?: unknown) => output.push(String(message));
+@@ -141,8 +176,7 @@ describe("docs check", () => {
+     ];
+     writeFixture(root, documents);
+ 
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .toContain("docs.document.status");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.document.status");
+ 
+     writeFixture(
+       root,
+@@ -150,14 +184,16 @@ describe("docs check", () => {
+       ["docs/current/index.md", "docs/missing.md"]
+     );
+     const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
+-    expect(codes).toEqual(expect.arrayContaining([
+-      "docs.entrypoint.scope",
+-      "docs.appliesToCli.mismatch",
+-      "docs.normative.conflict",
+-      "docs.supersedes.cycle",
+-      "docs.standardEntrypoint.missing",
+-      "docs.documentId.duplicate"
+-    ]));
++    expect(codes).toEqual(
++      expect.arrayContaining([
++        "docs.entrypoint.scope",
++        "docs.appliesToCli.mismatch",
++        "docs.normative.conflict",
++        "docs.supersedes.cycle",
++        "docs.standardEntrypoint.missing",
++        "docs.documentId.duplicate"
++      ])
++    );
+     expect(runDocsCheck(root)).toBe(1);
+   });
+ 
+@@ -174,10 +210,9 @@ describe("docs check", () => {
+ 
+     const report = buildDocsCheckReport(root);
+     expect(report.status).toBe("fail");
+-    expect(report.issues.map((issue) => issue.code)).toEqual(expect.arrayContaining([
+-      "docs.standardEntrypoint.nonCurrent",
+-      "docs.successor.missing"
+-    ]));
++    expect(report.issues.map((issue) => issue.code)).toEqual(
++      expect.arrayContaining(["docs.standardEntrypoint.nonCurrent", "docs.successor.missing"])
++    );
+   });
+ 
+   test("reports orphan Markdown and supports explicit ignored paths", () => {
+@@ -185,12 +220,14 @@ describe("docs check", () => {
+     writeFixture(root, [documentSet()]);
+     writeText(root, "docs/orphan.md", "# Orphan\n");
+ 
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .toContain("docs.orphan.unregistered");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
++      "docs.orphan.unregistered"
++    );
+ 
+     writeFixture(root, [documentSet()], undefined, ["docs/orphan.md"]);
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .not.toContain("docs.orphan.unregistered");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).not.toContain(
++      "docs.orphan.unregistered"
++    );
+   });
+ 
+   test("reports lint threshold drift between package.json and README", () => {
+@@ -199,8 +236,7 @@ describe("docs check", () => {
+     writeJson(root, "package.json", { version: "0.1.0", scripts: { lint: "eslint --max-warnings=0" } });
+     writeText(root, "README.md", "# ACED\nThe baseline is currently up to 37 warnings.\n");
+ 
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .toContain("docs.fact.lintThreshold");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.fact.lintThreshold");
+   });
+ 
+   test("reports implemented documentation automation that remains in the gaps table", () => {
+@@ -211,11 +247,78 @@ describe("docs check", () => {
+       paths: ["docs/implementation-gaps.md"]
+     });
+     writeFixture(root, [gaps]);
+-    writeText(root, "docs/implementation-gaps.md", "| Documentation automation | Markdown generation from contracts | missing |\n");
++    writeText(
++      root,
++      "docs/implementation-gaps.md",
++      "| Documentation automation | Markdown generation from contracts | missing |\n"
++    );
+     writeText(root, "src/cli.ts", 'program.command("generate");\n');
+ 
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .toContain("docs.fact.implementedMissing");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
++      "docs.fact.implementedMissing"
++    );
++  });
++
++  test("keeps the live capability matrix aligned with current implementation evidence", () => {
++    const codes = collectDocumentLifecycleIssues(process.cwd()).issues.map((issue) => issue.code);
++    expect(codes.filter((code) => code.startsWith("docs.capability."))).toEqual([]);
++  });
++
++  test("rejects duplicate capability ids and duplicate matrix claims", () => {
++    const root = makeTempRepo();
++    const gaps = documentSet({
++      documentId: "gaps",
++      entrypoint: "docs/implementation-gaps.md",
++      paths: ["docs/implementation-gaps.md"]
++    });
++    writeFixture(root, [gaps]);
++    writeText(root, "src/demo.ts", "export const demo = true;\n");
++    writeText(root, "tests/demo.test.ts", "test('demo', () => {});\n");
++    writeCapabilities(root, [{ id: "demo-capability" }, { id: "demo-capability" }]);
++    writeCapabilityMatrix(
++      root,
++      "<!-- scwbs-capability: demo-capability status=implemented -->",
++      "<!-- scwbs-capability: demo-capability status=implemented -->"
++    );
++
++    const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
++    expect(codes).toContain("docs.capability.id.duplicate");
++
++    writeCapabilities(root, [{ id: "demo-capability" }]);
++    const duplicateMatrixCodes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
++    expect(duplicateMatrixCodes).toContain("docs.capability.matrix.duplicate");
++  });
++
++  test("rejects unknown commands, missing evidence, and matrix status mismatch", () => {
++    const root = makeTempRepo();
++    const gaps = documentSet({
++      documentId: "gaps",
++      entrypoint: "docs/implementation-gaps.md",
++      paths: ["docs/implementation-gaps.md"]
++    });
++    writeFixture(root, [gaps]);
++    writeCapabilities(root, [
++      { id: "unknown-command", commands: ["not-a-command"], files: [], tests: [] },
++      { id: "missing-evidence", files: ["src/missing.ts"], tests: [] },
++      { id: "status-mismatch", status: "partial" }
++    ]);
++    writeCapabilityMatrix(
++      root,
++      "<!-- scwbs-capability: unknown-command status=implemented -->",
++      "<!-- scwbs-capability: missing-evidence status=implemented -->",
++      "<!-- scwbs-capability: status-mismatch status=implemented -->"
++    );
++    writeText(root, "src/demo.ts", "export const demo = true;\n");
++    writeText(root, "tests/demo.test.ts", "test('demo', () => {});\n");
++
++    const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
++    expect(codes).toEqual(
++      expect.arrayContaining([
++        "docs.capability.command.unknown",
++        "docs.capability.evidence.missing",
++        "docs.capability.matrix.mismatch"
++      ])
++    );
+   });
+ 
+   test("requires repository visibility claims to be dated snapshots with revalidation", () => {
+@@ -228,20 +331,20 @@ describe("docs check", () => {
+     writeFixture(root, [protection]);
+     writeText(root, "docs/scwbs/merge-protection.md", "This repository is currently private.\n");
+ 
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .toContain("docs.fact.transientRepositoryState");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
++      "docs.fact.transientRepositoryState"
++    );
+ 
+     writeText(root, "docs/scwbs/merge-protection.md", "This is a dated snapshot; revalidate with gh api.\n");
+-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
+-      .not.toContain("docs.fact.transientRepositoryState");
++    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).not.toContain(
++      "docs.fact.transientRepositoryState"
++    );
+   });
+ 
+   test("is available in CLI help and aggregate scwbs check", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+-    writeFixture(root, [
+-      documentSet({ appliesToCli: ">=9.0.0" })
+-    ]);
++    writeFixture(root, [documentSet({ appliesToCli: ">=9.0.0" })]);
+ 
+     const issues = collectCheckIssues(root);
+     expect(issues.some((issue) => issue.code === "docs.appliesToCli.mismatch")).toBe(true);
+@@ -262,10 +365,7 @@ describe("docs check", () => {
+   });
+ 
+   test("keeps normative Core Task and Evidence examples valid against current schemas", () => {
+-    const markdown = readFileSync(
+-      path.join(process.cwd(), "docs/sc-wbs-core/03-minimal-artifacts.md"),
+-      "utf8"
+-    );
++    const markdown = readFileSync(path.join(process.cwd(), "docs/sc-wbs-core/03-minimal-artifacts.md"), "utf8");
+     const task = yamlExampleAfterHeading(markdown, "## Task Contract Core");
+     const evidence = yamlExampleAfterHeading(markdown, "## Evidence Core");
+ 
