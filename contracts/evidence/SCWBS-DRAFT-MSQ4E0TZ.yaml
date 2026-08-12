@@ -1,0 +1,87 @@
+id: EVD-SCWBS-DRAFT-MSQ4E0TZ
+type: evidence
+taskId: SCWBS-DRAFT-MSQ4E0TZ
+commit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+subjectHeadCommit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+diffHash: sha256:1424d7c2644409dcfe290241ec4f4b465a7b87301b2670f938ff19b13ed70bf6
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+    treeHash: 3dbb3da6c387a2f8bda98e2520bf2279e79adad3
+    diffHash: sha256:1424d7c2644409dcfe290241ec4f4b465a7b87301b2670f938ff19b13ed70bf6
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQ4E0TZ.patch
+    manifestHash: sha256:1424d7c2644409dcfe290241ec4f4b465a7b87301b2670f938ff19b13ed70bf6
+git:
+  branch: task/SCWBS-DRAFT-MSQ4E0TZ-issue-561-local-index-source-separation
+  base: origin/main
+  baseCommit: e677a4f1767f9c1944bf213dee91eb70861a4f44
+  changedFilesBasis: branch-diff
+  pullRequest: "580"
+  subjectHeadCommit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+  diffHash: sha256:1424d7c2644409dcfe290241ec4f4b465a7b87301b2670f938ff19b13ed70bf6
+  headCommit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ4E0TZ.patch
+  - contracts/evidence/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/registry.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/tasks/index.yaml
+  - src/core/local-index.ts
+  - tests/integration/local-index.test.ts
+  - tests/unit/local-index.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: e677a4f1767f9c1944bf213dee91eb70861a4f44
+    headCommit: 0abf8688d45e0ffbd6de6b3c4b9ef764c1126a9d
+    diffHash: sha256:1424d7c2644409dcfe290241ec4f4b465a7b87301b2670f938ff19b13ed70bf6
+  tests:
+    filesAdded: 0
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:9d187af8d322feeaeecba6dea7643a11264e45350a0391428d3bee7edaa01733
+    durationMilliseconds: 23498
+    executedAt: "2026-08-12T13:51:00.511Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:7ad4433642e10591c42ccc77f2855fd7d99a5dd3493a20610f8bbf46745bca45
+    durationMilliseconds: 13587
+    executedAt: "2026-08-12T13:51:14.103Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:32a37f0fcf3294a5ed3a61ed676b91c0a7da5ce061ab433f7e885f46ec62a230
+    durationMilliseconds: 5426
+    executedAt: "2026-08-12T13:51:19.534Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:5956882618508a4516ffc75c7c7aea3c276d5d0b54f4f47fe8b518d9d1c8f03b
+    durationMilliseconds: 364187
+    executedAt: "2026-08-12T13:57:23.726Z"
+testQuality:
+  assertionsAdded: true
+  notes:
+    - Added regression assertions for task-index exclusion, status propagation, stale manifest detection, atomic rebuild failure preservation, and CLI query output.

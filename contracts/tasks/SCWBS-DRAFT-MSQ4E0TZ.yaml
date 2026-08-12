@@ -1,0 +1,57 @@
+id: SCWBS-DRAFT-MSQ4E0TZ
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQ4E0TZ
+branchName: task/SCWBS-DRAFT-MSQ4E0TZ-issue-561-local-index-source-separation
+allowedPaths:
+  - src/core/local-index.ts
+  - tests/unit/local-index.test.ts
+  - tests/integration/local-index.test.ts
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/local-index.ts
+stopIf:
+  - Human Gate required
+  - additional path required
+  - dependency addition or dependency graph change
+  - stale cache used for authority
+  - destructive source artifact deletion
+  - authentication or permission change
+  - unbounded query output
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - canonical artifact paths and freshness manifest paths are maintained separately
+  - contracts/tasks/index.yaml is included in freshness hashing but never emitted as a searchable Task record
+  - canonical paths are deterministic and duplicate-free, and Task status continues to come from the task index
+  - index rebuild failure leaves the existing working SQLite database unchanged
+  - unit and integration regression tests cover the ACED repository layout, duplicate source fixture, stale detection, status propagation, and bounded Task queries
+  - Issue
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ4E0TZ.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQ4E0TZ.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  createdAt: "2026-08-12T13:24:35.365Z"
