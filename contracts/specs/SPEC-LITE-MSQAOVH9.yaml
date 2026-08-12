@@ -1,0 +1,23 @@
+id: SPEC-LITE-MSQAOVH9
+type: spec-contract
+featureId: F-MSQAOVH9
+title: "Issue #572: detect implementation capability status drift in documentation"
+sourceIssue: 572
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-572
+approvedAt: "2026-08-13T00:00:00+09:00"
+summary: "docs check validates a single machine-readable capability status source and detects contradictory implementation-gaps entries"
+acceptanceCriteria:
+  - documentation capabilities have stable unique ids, a closed status enum, and bounded command/file/test evidence
+  - local-index, spec-change-proposal, and wbs-semantic-merge are classified from current source, CLI registration, and existing tests without changing those implementations
+  - implementation-gaps.md removes the three stale missing claims and preserves genuinely incomplete capabilities
+  - docs check fails closed for duplicate ids, duplicate status claims, unknown commands, missing evidence files, invalid statuses, and missing evidence for implemented or partial capabilities
+  - docs check JSON contains bounded reason codes and actionable paths or capability ids for capability drift
+  - integration fixtures cover valid statuses, invalid status, duplicate id, duplicate matrix claim, unknown command, missing evidence file, and all three current regressions
+  - package, CI, WBS, WJS, changesets, external services, and unrelated implementation files remain unchanged
+nonGoals:
+  - document size limits or authoring-language enforcement
+  - a new docs generation CLI
+  - natural-language semantic analysis of all Markdown
+  - changing local-index, spec-change, or WBS merge behavior

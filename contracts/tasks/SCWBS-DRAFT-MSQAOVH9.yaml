@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MSQAOVH9
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQAOVH9
+branchName: task/SCWBS-DRAFT-MSQAOVH9-issue-572-capability-status-drift-detection
+sourceIssue: 572
+status: approved
+approvedBy: user-requested-issue-572
+approvedAt: "2026-08-13T00:00:00+09:00"
+allowedPaths:
+  - docs/documentation-capabilities.json
+  - docs/scwbs/schemas/documentation-capabilities.schema.json
+  - docs/implementation-gaps.md
+  - src/core/document-lifecycle.ts
+  - src/commands/docs-check.ts
+  - tests/integration/docs-check.test.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/changesets/**
+stopIf:
+  - package or CI change
+  - authority outside allowedPaths
+  - Human Gate
+  - external service or credential change
+  - WBS or WJS source change
+  - scope ambiguity
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - capability status is stored in a versioned machine-readable source with stable unique ids
+  - local-index, spec-change-proposal, and wbs-semantic-merge statuses match live implementation evidence
+  - implementation-gaps.md no longer contains contradictory status rows and references each tracked capability by stable id
+  - docs check fails closed for duplicate ids, duplicate status claims, unknown commands, missing evidence files, and invalid status evidence
+  - docs check JSON exposes bounded machine-readable reason codes for capability drift
+  - regression fixtures cover valid implemented/partial/missing entries and the three current stale-status cases
+  - package, CI, WBS, WJS, changesets, external services, and unrelated implementation files remain unchanged
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/specs/SPEC-LITE-MSQAOVH9.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQAOVH9.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQAOVH9.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:0d6fe591634fa2d8688c71e37f8a3f71dd583d52416905c63e21b356bc9a6725
+  createdAt: "2026-08-12T16:22:53.692Z"
