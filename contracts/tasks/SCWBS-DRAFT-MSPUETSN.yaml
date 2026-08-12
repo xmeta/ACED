@@ -1,0 +1,70 @@
+id: SCWBS-DRAFT-MSPUETSN
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSPUETSN
+branchName: task/SCWBS-DRAFT-MSPUETSN-issue-560-automatic-stable-github-release-after-
+status: approved
+approvedBy: user-approved-issue-560-automation
+approvedAt: "2026-08-12T08:45:25.000Z"
+allowedPaths:
+  - .github/workflows/release.yml
+  - scripts/release-integrity.mjs
+  - scripts/distribution-remote-smoke.mjs
+  - tests/integration/release-integrity.test.ts
+  - docs/scwbs/distribution.md
+  - docs/scwbs/quickstart.md
+  - CHANGELOG.md
+  - contracts/specs/SPEC-LITE-MSPUETSN.yaml
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/release.yml
+stopIf:
+  - release publication must remain exact-head and fail-closed
+  - automatic npm publication or unattended upgrade is forbidden
+  - credential or permission expansion requires Human Gate
+  - duplicate tag or Release must fail closed
+  - prerelease publication is out of scope
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - 'Complete Issue #560 automatic stable GitHub Release after exact-head main validation'
+  - A successful exact-head main scwbs workflow is the only release subject accepted by automation
+  - 'Automation derives v<package.json.version>, requires CHANGELOG.md ## [<version>], and rejects prerelease or version mismatch'
+  - Automation creates a missing tag and GitHub Release at most once; existing tag or Release subject mismatch fails closed
+  - Release assets are scwbs-<version>.tgz, release-manifest.json, and scwbs-bootstrap.mjs with existing integrity checks preserved
+  - Remote smoke verifies both direct tarball installation and bootstrap installation in fresh consumer projects, including --version, init, doctor, and task preflight
+  - No npm publication, unattended consumer upgrade, credential expansion, or workflow permission expansion is introduced
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - integration-test-result
+specPath: contracts/specs/SPEC-LITE-MSPUETSN.yaml
+specVersion: 0.1.0
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/specs/SPEC-LITE-MSPUETSN.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSPUETSN.patch
+  - contracts/approvals/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:709951cad9538df39b6f45b143d1a4f30eaa81f1461c8d15038d372b3bf62b3e
+  createdAt: "2026-08-12T08:46:03.371Z"

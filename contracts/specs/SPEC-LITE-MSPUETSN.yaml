@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSPUETSN
+type: spec-contract
+featureId: F-MSPUETSN
+title: "Issue #560: automatic stable GitHub Release after exact-head main validation"
+status: approved
+version: 0.1.0
+summary: "Create a stable tag and GitHub Release automatically only after exact-head main validation, then dogfood the public tarball and bootstrap asset in fresh consumer projects."
+approvedBy: user-approved-issue-560-automation
+approvedAt: "2026-08-12T08:45:25.000Z"
+acceptanceCriteria:
+  - "Release automation runs only for a successful completed main scwbs validation subject and rechecks the exact subject SHA before publishing."
+  - "The release candidate binds package.json version, v<version> tag, versioned CHANGELOG.md section, release subject commit, tarball filename, and release manifest."
+  - "A missing stable tag and Release are created at most once; an existing tag or Release with a different subject, draft state, prerelease state, or mismatched version fails closed."
+  - "The stable Release contains scwbs-<version>.tgz, release-manifest.json, and scwbs-bootstrap.mjs, while the existing digest, validation, package, and CLI version checks remain enforced."
+  - "Remote consumer smoke uses fresh directories and verifies direct tarball installation plus bootstrap verification followed by npm install, --version, init, doctor, and task preflight."
+  - "Tests cover trigger filtering, version/changelog/tag collision policy, exact-subject checks, remote smoke command contract, and failure observability."
+  - "The change does not publish to npm, enable unattended consumer upgrades, add credentials or trust roots, expand workflow permissions, or publish prereleases."
