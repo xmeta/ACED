@@ -1,0 +1,23 @@
+id: SPEC-LITE-MSQFJJ9P
+type: spec-contract
+featureId: F-MSQFJJ9P
+title: "Issue #588: 日英混在文書の検出漏れを修正し管理文書を日本語統一する"
+status: approved
+version: 0.1.0
+summary: "lifecycle管理対象文書の自然言語本文を日本語へ統一し、技術識別子を除外した日英混在検査と回帰テストを追加する。"
+approvedBy: user-requested-issue-588
+approvedAt: "2026-08-13T00:00:00+09:00"
+sourceIssue: 588
+sourcePaths:
+  - README.md
+  - docs/**
+  - src/core/document-lifecycle.ts
+  - tests/integration/docs-check.test.ts
+acceptanceCriteria:
+  - "docs/document-lifecycle.jsonの全document setがlanguage: jaを宣言し、管理対象Markdownの自然文が日本語へ統一される。"
+  - "README.md、docs/README.md、docs/implementation-gaps.md、docs/sc-wbs-development.md、docs/wbs-conflict-mitigation.md、docs/scwbs/**/*.md、docs/sc-wbs-core/**、docs/sc-wbs-core-revision/**を確認し、正式な技術用語と識別子を保持したまま自然文を翻訳する。"
+  - "docs checkが同一文書内の日英自然文混在をdocs.language.mixedProseとして検出し、path、line、declared language、detected language、expected languageをJSON診断に含める。"
+  - "fenced code、indented code、inline code、URL/link destination、path、CLI option、schema field、error code、JSON/YAML/shell/Mermaid例を誤検知せず、Markdown表の自然文セルを検査する。"
+  - "ja/en双方の混在、許容される技術識別子、除外構文、表セル、正確な違反行、manifest全体のライブ回帰をintegration testで検証する。"
+  - "500行制限、期限付き例外、内部リンク、document lifecycleの既存検査と、#572のcapability status検証を変更または重複実装しない。"
+  - "AGENTS.md、contracts/**、生成Evidence、JSON/YAML schema本文、package/CI、WBS、WJS、Approval、Human Gate、proposal statusの意味を変更しない。"

@@ -1,4 +1,4 @@
-# 02. Command-First Workflow
+# 02. Command-Firstワークフロー
 
 SC-WBS Core では、YAML/JSONを直接編集しない。人間とAIは短いコマンドで作業する。
 
@@ -94,7 +94,7 @@ delivery Task に関連付けられたProbeは `concluded` になるまで `scwb
 を失敗させ、Tiny Packetにも停止指示を表示する。`inconclusive` は正常な終端
 だが、delivery開始を許可する根拠にはならない。
 
-### Rolling Wave Planning
+### Rolling Wave Planning（段階的計画）
 
 `scwbs plan` は固定的な実装・テスト・文書化Taskを一括生成しない。approved
 Specの `planning` 入力から、遠い作業を粗い `approachCandidates` として残し、

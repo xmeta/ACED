@@ -1,4 +1,4 @@
-# 01. Revision Goals
+# 01. 改訂目標
 
 ## 背景
 
@@ -14,7 +14,7 @@ SC-WBS は、AIに作業範囲を契約として与え、差分とEvidenceで完
 
 ## 改訂後のゴール
 
-### Goal 1: Command-first
+### 目標1: Command-first
 
 人間とAIは、YAML/JSONを直接書かない。
 
@@ -29,7 +29,7 @@ scwbs approve WBS-001 --pr 42
 
 YAML/JSONは正本としてGit管理するが、人間やAIのUIにはしない。
 
-### Goal 2: Tiny Packet by default
+### 目標2: Tiny Packetを既定にする
 
 AIに渡す情報は、デフォルトではTiny Packetだけにする。
 
@@ -46,7 +46,7 @@ AIに渡す情報は、デフォルトではTiny Packetだけにする。
 
 関連仕様やWBS全体は、AIが必要と判断したときだけ段階的に渡す。
 
-### Goal 3: Diff Guard first
+### 目標3: Diff Guardを先に適用する
 
 安全性は、AIの自己判断ではなく、差分検査で担保する。
 
@@ -54,7 +54,7 @@ AIに渡す情報は、デフォルトではTiny Packetだけにする。
 AIがルールを完全に覚えていなくても、check-diff が止める。
 ```
 
-### Goal 4: Evidence without self-stale
+### 目標4: Evidence自身でstaleにしない
 
 Evidenceは、Evidenceファイル自身のコミットでstaleにならない設計にする。
 
@@ -64,13 +64,13 @@ evidenceCommit: <Evidence自身のコミット。任意>
 diffHash: <検証対象差分のhash>
 ```
 
-### Goal 5: Approval scope binding
+### 目標5: Approval scopeを束縛する
 
 Approvalは、PR番号だけでなく、承認時点の `headCommit` と `diffHash` に紐づける。
 
 承認後に追加コミットされた場合は、再承認が必要になる。
 
-### Goal 6: WBS optional in Core
+### 目標6: CoreではWBSを任意にする
 
 CoreではWBS-JSONを必須にしない。
 
@@ -119,13 +119,12 @@ Coreが安定してからFullへ拡張する。
 YAML/JSONはGitで管理しやすいので正本として残す。
 ただし、人間やAIにはCLIを使わせる。
 
-### Decision 3: AIにはスキーマを読ませない
+### 判断3: AIにはスキーマを読ませない
 
 AIが読むのはTiny Packetと対象ファイルだけにする。
 スキーマ検証、Evidence生成、Approval生成はCLIが行う。
 
-### Decision 4: completed化は人間判断
+### 判断4: completed化は人間判断
 
 AIは `ready` や `blocked` までは提案できる。
 `completed` は、人間の承認または明示操作を必要とする。
-

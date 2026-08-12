@@ -1,32 +1,29 @@
-# AI Agent Guide
+# AI Agentガイド
 
-This guide tells AI agents how to use `scwbs` without loading unnecessary
-methodology context or confusing draft specs with current rules.
+このguideは、不要なmethodology contextを読み込まず、draft specをcurrent ruleと混同せずにAI agentが`scwbs`を使う方法を示す。
 
-## Priority Order
+## 優先順位
 
-When instructions conflict, use this order:
+instructionが衝突する場合は、次の順序を使う。
 
 1. `AGENTS.md`
-2. The active `contracts/tasks/<task-id>.yaml`
-3. The packet generated for that task
-4. Current command docs under `docs/scwbs/`
-5. Core reference docs under `docs/sc-wbs-core/`
-6. Draft revision docs under `docs/sc-wbs-core-revision/`
+2. active `contracts/tasks/<task-id>.yaml`
+3. そのtask向けに生成されたpacket
+4. `docs/scwbs/`配下のcurrent command doc
+5. `docs/sc-wbs-core/`配下のCore reference doc
+6. `docs/sc-wbs-core-revision/`配下のdraft revision doc
 
-Do not treat `docs/sc-wbs-core-revision/` as current behavior unless a Task
-Contract explicitly asks you to implement or integrate that draft.
+Task Contractがdraftのimplementまたはintegrateを明示的に要求しない限り、`docs/sc-wbs-core-revision/`をcurrent behaviorとして扱わない。
 
-## Implementation AI Checklist
+## 実装AIチェックリスト
 
-Before editing:
+edit前に次を行う。
 
-1. Read `AGENTS.md`.
-2. Read `contracts/tasks/<task-id>.yaml`.
-3. Confirm current branch equals `branchName`.
-4. List the files you expect to modify.
-5. Check those files against `allowedPaths`, `forbiddenPaths`, and
-   `humanGateRequiredPaths`.
+1. `AGENTS.md`を読む。
+2. `contracts/tasks/<task-id>.yaml`を読む。
+3. current branchが`branchName`と一致することを確認する。
+4. modify予定のfileを列挙する。
+5. そのfileを`allowedPaths`、`forbiddenPaths`、`humanGateRequiredPaths`と照合する。
 
 Useful command:
 
@@ -34,34 +31,34 @@ Useful command:
 npm run scwbs -- task start <task-id>
 ```
 
-If more task context is needed:
+task contextが不足する場合:
 
 ```bash
 npm run scwbs -- packet --task <task-id> --tiny
 ```
 
-or:
+または:
 
 ```bash
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 ```
 
-Do not read the whole docs tree by default.
+既定ではdocs tree全体を読まない。
 
-## Stop Conditions
+## 停止条件
 
-Stop implementation and block when the work requires any of the following:
+次のいずれかが必要なら、implementationをstopしてblockする。
 
-- files outside `allowedPaths`
-- files under `forbiddenPaths`
-- unapproved `humanGateRequiredPaths`
-- DB schema or migration changes
-- authentication or permission changes
-- breaking API changes
-- unclear business rules
-- personal data or security setting changes
-- external service, billing, release, or deployment decisions
-- spec-level judgment that is not already contracted
+- `allowedPaths`外のfile
+- `forbiddenPaths`配下のfile
+- 未承認の`humanGateRequiredPaths`
+- DB schemaまたはmigration
+- authenticationまたはpermission change
+- breaking API change
+- 不明確なbusiness rule
+- personal dataまたはsecurity setting change
+- external service、billing、release、deploymentのdecision
+- 契約済みでないspec-level judgment
 
 Block command:
 
@@ -69,12 +66,11 @@ Block command:
 npm run scwbs -- ai block --task <task-id> --reason "<reason>"
 ```
 
-Do not continue by making a best-effort assumption.
+best-effort assumptionを置いて継続してはならない。
 
-## Completion Checklist
+## 完了チェックリスト
 
-A task is not Done because the implementation looks complete. It is Done only
-after required checks, Evidence, and diff validation are complete.
+implementationがcompleteに見えるだけではDoneではない。required check、Evidence、diff validationがcompleteして初めてDoneである。
 
 Typical sequence:
 
@@ -87,14 +83,13 @@ npm run scwbs -- registry rebuild --check
 git status --short --branch
 ```
 
-Commit the implementation changes, then collect Evidence:
+implementation changeをcommitしてからEvidenceをcollectする。
 
 ```bash
 npm run scwbs -- evidence collect --task <task-id>
 ```
 
-If Evidence or registry files are added after the implementation commit, commit
-those metadata files separately.
+Evidenceまたはregistry fileがimplementation commit後に追加された場合は、そのmetadataを別commitにする。
 
 Final gate:
 
@@ -102,42 +97,38 @@ Final gate:
 npm run scwbs -- check-diff --task <task-id>
 ```
 
-If any commit changes the subject diff after Evidence collection, regenerate
-Evidence.
+Evidence収集後にsubject diffを変更したcommitがある場合はEvidenceを再生成する。
 
-## Review AI Checklist
+## Review AIチェックリスト
 
-Do not review from the implementer's summary alone. Ground Truth is:
+implementerのsummaryだけでreviewしてはならない。Ground Truthは次である。
 
 - Task Contract
 - packet
-- Spec Slice / acceptance criteria, when present
+- Spec Slice / acceptance criteria（存在する場合）
 - actual branch diff
 - Evidence
 - Approval scope
 
-Review questions:
+review question:
 
-- Does every changed file fit the Task Contract?
-- Did the implementation touch `forbiddenPaths`?
-- Did it need Human Gate approval?
-- Does Evidence describe the final subject commit and changed files?
-- Did required checks pass?
-- Are tests appropriate for the risk of the change?
-- Did the branch add metadata without updating registry?
+- すべてのchanged fileがTask Contractに適合するか。
+- implementationが`forbiddenPaths`に触れていないか。
+- Human Gate approvalが必要だったか。
+- Evidenceがfinal subject commitとchanged fileを記述するか。
+- required checkがpassしたか。
+- riskに対してtestが適切か。
+- branchがmetadataを追加したのにregistryを更新していない状態ではないか。
 
-If the answer is unclear, do not approve. Report the findings to the human
-reviewer. The `review approve`, `review changes-requested`, and `review close`
-transitions require `--actor human`; an AI agent must not run them or claim that
-identity.
+不明な場合はapproveせず、human reviewerへfindingを報告する。`review approve`、`review changes-requested`、`review close`は`--actor human`を要求するhuman-only transitionであり、AIはそのidentityをclaimして実行してはならない。
 
-If the work needs a Human Decision rather than a code fix, block instead:
+code fixではなくHuman Decisionが必要ならblockする。
 
 ```bash
 npm run scwbs -- ai block --task <task-id> --reason "<reason>"
 ```
 
-## Commands To Prefer
+## 優先するcommand
 
 ```bash
 npm run scwbs -- next
@@ -151,23 +142,15 @@ npm run scwbs -- check-diff --task <task-id>
 npm run scwbs -- review-queue
 ```
 
-Run SC-WBS commands sequentially. They build the TypeScript output before
-running and can interfere with each other if run in parallel.
+SC-WBS commandはserialに実行する。実行前にTypeScript outputをbuildするため、parallel実行すると互いに干渉し得る。
 
-## What Not To Do
+## してはならないこと
 
-- Do not use `git diff` alone to decide task validity.
-- Do not edit YAML/JSON contract files by hand unless the Task Contract allows
-  contract or registry updates.
-- Do not mark Approval as `approved`.
-- Do not run `review approve`, `review changes-requested`, or `review close`
-  with the human-only actor.
-- Do not complete WBS nodes directly.
-- Do not edit `contracts/wbs/project.wbs.json` directly. The canonical WBS is
-  updated only through a changeset under `contracts/changesets/` applied with
-  `npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json`.
-  `scwbs check` and `scwbs check-diff` fail with `wbs.changeset.required` when
-  the WBS is edited without a corresponding changeset.
-- Do not use future Core shorthand from draft docs when the current CLI docs
-  specify a different command.
-- Do not ignore `review-queue` just because `next` suggests a planned task.
+- `git diff`だけでtask validityを判断しない。
+- Task Contractがcontractまたはregistry updateを許可しない限り、YAML/JSON contract fileを手編集しない。
+- Approvalを`approved`にしない。
+- human-only actorで`review approve`、`review changes-requested`、`review close`を実行しない。
+- WBS nodeを直接completeしない。
+- `contracts/wbs/project.wbs.json`を直接編集しない。canonical WBSは`contracts/changesets/`配下のchangesetを`npm run scwbs -- wbs apply contracts/changesets/<file> --force --output contracts/wbs/project.wbs.json`でapplyして更新する。changesetなしのWBS editは`scwbs check`と`scwbs check-diff`が`wbs.changeset.required`でfailする。
+- current CLI docと異なるfuture Core shorthandをdraft docから使わない。
+- `next`がplanned taskをsuggestしただけで`review-queue`を無視しない。

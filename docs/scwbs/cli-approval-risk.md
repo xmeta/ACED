@@ -1,8 +1,8 @@
-# scwbs CLI Reference
+# scwbs CLIリファレンス
 
-This file is the detailed command index for the `scwbs` CLI bundled with ACED (package name `scwbs`). Keep `README.md` short and link here when command examples grow.
+このfileはACEDにbundledされた`scwbs` CLI（package name `scwbs`）のdetailed command indexである。command exampleが増えた場合も`README.md`は短く保ち、ここへlinkする。
 
-Run through the npm script:
+npm script経由で実行する。
 
 ```bash
 npm run scwbs -- --help
@@ -15,7 +15,7 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-## Review And Approval
+## ReviewとApproval
 
 ```bash
 npm run scwbs -- review-queue
@@ -57,9 +57,9 @@ npm run scwbs -- approve --task SCWBS-001 --pr 42 --actor human --reason "<exact
 
 `review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
 
-`review route` previews requested reviewer roles from Evidence changed files. `review request` records those roles in `contracts/reviews/<task-id>.yaml` as `requestedReviewers` and synchronizes the derived `contracts/registry.yaml` in the same successful operation. Use `--json` to obtain the written artifacts and next action.
+`review route`はEvidence changed fileからrequested reviewer roleをpreviewする。`review request`はそのroleを`contracts/reviews/<task-id>.yaml`の`requestedReviewers`へ記録し、同じsuccessful operationでderived `contracts/registry.yaml`をsynchronizeする。written artifactとnext actionを得るには`--json`を使う。
 
-### Independent Review lifecycle (`review approve` / `review changes-requested` / `review close`)
+### 独立Reviewのライフサイクル（`review approve` / `review changes-requested` / `review close`）
 
 `approval approve`（Human Gate承認）とは別に、`review` サブコマンド配下には独立レビュー判定を記録するコマンド群がある。これらは「Human Gateの承認」ではなく「レビューでの合否判定」を記録するためのもので、`evidence-human-gate-review.md` の Review Profile（Self Review / Independent AI Review / Human Review）の判定結果をCLI上に残す。
 
@@ -75,7 +75,7 @@ npm run scwbs -- review close --task SCWBS-001 --actor human
 
 3コマンドはいずれもactorが `human` でなければ失敗する。`--actor` を省略した場合は `SCWBS_AGENT_MODE` がfallbackになり、値が `ai` なら拒否される。ただし、これはactor文字列の検査であり本人性を独立検証する仕組みではない。ガードレール上、AI agentは `--actor human` を自己申告して実行してはならない。AIはfindingsを人間へ報告し、人間が内容を確認してreview transitionを記録する。
 
-Approval records live under `contracts/approvals/*.yaml` and can carry human-review metadata independently from Evidence:
+Approval recordは`contracts/approvals/*.yaml`配下にあり、Evidenceとは独立してhuman-review metadataを持てる。
 
 ```yaml
 id: APR-SCWBS-006
@@ -87,9 +87,9 @@ notes:
   - Awaiting human gate review
 ```
 
-`approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+`approval request`はhuman approvalをfabricateせず`requested` recordを作る。`approval approve`はreview済みtaskをapproved recordへ変えるexplicit human actionで、`status: approved`、`approvedBy: human`、`approvedAt`を書き込む。`--note`と`--reason`はquoted multi-word argumentと`--note=Awaiting human review`、`--reason=Evidence reviewed`のようなinline syntaxの両方で使える。
 
-`approval request --json` emits one bounded `scwbs.approval-request.v1` document with `approvalId`, `taskId`, `status: requested`, `requestedAt`, bounded `notes`, `nextActionOwner: human`, and `nextAction`. Its schema is [`schemas/approval-request.schema.json`](schemas/approval-request.schema.json). JSON output is a response projection only: it does not approve the request, expose approval provenance, or change the existing YAML artifact and policy checks. Without `--json`, the existing YAML output remains unchanged.
+`approval request --json`は`approvalId`、`taskId`、`status: requested`、`requestedAt`、bounded `notes`、`nextActionOwner: human`、`nextAction`を持つboundedな`scwbs.approval-request.v1` documentを1件出力する。schemaは[`schemas/approval-request.schema.json`](schemas/approval-request.schema.json)である。JSON outputはresponse projectionだけで、requestをapproveせず、approval provenanceを公開せず、既存YAML artifactとpolicy checkを変更しない。`--json`なしではexisting YAML outputを維持する。
 
 `approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
 
@@ -147,9 +147,9 @@ set SCWBS_APPROVAL_DELEGATION_TOKEN=
 
 どのシェルでも、token値はshell historyに残り得る。可能な限りCI secret store経由で環境変数を注入し、対話シェルへ直接入力しないことを推奨する。
 
-When `finish` requires Human Approval, its text output and JSON `nextAction` use only the currently implemented `approval approve` options. In particular, they do not emit unsupported `--approved-by` or `--human-confirm` options.
+`finish`がHuman Approvalを要求する場合、text outputとJSON `nextAction`はcurrently implementedな`approval approve` optionだけを使う。特に未対応の`--approved-by`や`--human-confirm` optionは出力しない。
 
-After a PR exists, refresh Evidence with `--pull-request` so review and completion queues can tie the work back to the reviewed PR. When `evidence collect --force` refreshes an existing Evidence file and no replacement PR is provided, it preserves the existing `git.pullRequest` value instead of dropping it.
+PRが存在した後は`--pull-request`付きでEvidenceをrefreshし、review/completion queueがworkをreview済みPRへ結び付けられるようにする。`evidence collect --force`でexisting Evidenceをrefreshしreplacement PRを指定しない場合、existing `git.pullRequest` valueをdropせずpreserveする。
 
 `evidence collect` の既定成功出力は、Evidence YAML全文ではなく `path`、check集計、変更ファイル数、PRを含む固定5行のサマリである。機械処理にはversioned summaryを返す `--json`、サマリと全YAMLの確認には `--verbose`、YAMLだけをstdoutへpipeする場合は `--output -` を使う。これら3つの出力modeは同時指定できず、`--output` の対象は `-` のみである。JSONの正式なshapeは [`schemas/evidence-collect-summary.schema.json`](schemas/evidence-collect-summary.schema.json) で定義する。`finish` は内部のEvidence収集をquietに実行するが、failed check、Human Gate、次アクションなど `finish` 自身の重要な結果は省略しない。
 
@@ -193,6 +193,6 @@ npm run scwbs -- completion apply \
   --reason "Reviewed and accepted"
 ```
 
-`completion apply` completes reviewed WBS nodes without hand-written YAML. By default it is a dry-run that prints the approvals and `changeNodeStatus` operations it would write. With `--apply`, it validates existing approved records, writes `contracts/changesets/<completion-task-id>-complete-reviewed-work.json`, applies the WBS changeset, and rebuilds the registry. It refuses root-node completion by default; use `--allow-root` only after explicit human decision.
+`completion apply`はhand-written YAMLなしでreview済みWBS nodeをcompleteする。既定はdry-runで、書き込む予定のapprovalと`changeNodeStatus` operationを表示する。`--apply`ではexisting approved recordをvalidateし、`contracts/changesets/<completion-task-id>-complete-reviewed-work.json`を書き、WBS changesetをapplyし、registryをrebuildする。既定ではroot-node completionを拒否し、`--allow-root`はexplicit human decision後だけ使う。
 
 > **将来的な改善案**：`--tasks`/`--task` という命名は初見では区別しづらい。CLIの後方互換性を保つ必要がなければ、`--completed-tasks <ids>` と `--completion-task <id>` のような自己説明的な名前への変更を検討する価値がある（現行実装のoption名は変更していない）。

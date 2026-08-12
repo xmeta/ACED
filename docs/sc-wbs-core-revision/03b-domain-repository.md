@@ -1,8 +1,8 @@
-# 03. Detailed Design
+# 03. 詳細設計
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
-## Domain Model
+## ドメインモデル
 
 ### TaskContract
 
@@ -68,7 +68,7 @@ AIに渡す作業カード。
 
 Tiny Packetは短いテキスト出力を第一形式とする。
 
-## Repository Layer
+## Repository層
 
 YAML/JSONの読み書きを担当する。
 

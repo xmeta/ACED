@@ -1,4 +1,4 @@
-# 06. Human Gate And Stop Conditions
+# 06. Human Gateと停止条件
 
 Human Gate は、人間の責任判断が必要な変更をAIが勝手に進めないための仕組みである。
 

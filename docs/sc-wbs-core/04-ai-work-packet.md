@@ -1,4 +1,4 @@
-# 04. AI Work Packet And Context Control
+# 04. AI Work Packetとコンテキスト制御
 
 AI Work Packet は、AIに実装を依頼するときの最小コンテキストである。
 
@@ -57,7 +57,7 @@ scwbs packet --task WBS-001 --standard
 Standard Packet には、Tiny Packet の内容に加えて以下を含める：
 - WBS Node の詳細（Code、Type、Status、Feature）
 - Subtree Phase
-- Depends On
+- 依存関係（Depends On）
 - Context Filter（relation depth 0）
 - Related Relations
 - Output Artifacts
@@ -109,7 +109,7 @@ AIは、すぐに全文読み込みを要求してはいけない。まず不足
 scwbs packet --task WBS-001 --standard
 ```
 
-## Read-only Context Manifest (`--context-json`)
+## read-only Context Manifest（`--context-json`）
 
 実装前のコード探索を小さく始める場合は、source本文を含まないderived manifestを生成する。
 

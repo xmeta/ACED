@@ -2,50 +2,39 @@
 
 この README はリポジトリの概要、導入手順、標準的な作業入口を日本語で案内する。
 
-`scwbs` is a TypeScript CLI for operating **SC-WBS Development**:
+`scwbs` は **SC-WBS Development** を運用するための TypeScript CLI である。
 
-> AI-Collaborative Spec Contract and WBS Driven Development
+> AIと協調してSpec ContractとWBSを用いる開発手法
 
-The tool keeps AI-assisted work inside an explicit Task Contract. It records
-Evidence, checks changed files against the contract, and routes risky changes
-back to Human Gate instead of letting an AI guess.
+このツールは、AI支援作業を明示的なTask Contractの範囲内に保つ。Evidenceを記録し、変更ファイルを契約と照合し、AIが推測して進めるのではなく、危険な変更をHuman Gateへ戻す。
 
 ## License
 
-Unless a file states otherwise, the `scwbs` source code and repository-authored
-documentation are licensed under the GNU General Public License version 3.0
-only. See [LICENSE](LICENSE) for the full license text. The `wjs` submodule is
-a separate dependency and retains its own licensing terms.
+別途記載がない限り、`scwbs`のソースコードとrepository-authored documentationはGNU General Public License version 3.0 onlyでライセンスされる。全文は[LICENSE](LICENSE)を参照する。`wjs` submoduleは別依存であり、独自のライセンス条件を維持する。
 
 ## Start Here
 
-| Reader | Read this first |
+| 読者 | 最初に読む文書 |
 |---|---|
-| New human user | `docs/scwbs/quickstart.md` |
-| Human contributor | `CONTRIBUTING.md` |
+| 初めて使う人間 | `docs/scwbs/quickstart.md` |
+| 人間のcontributor | `CONTRIBUTING.md` |
 | Security reporter | [SECURITY.md](SECURITY.md) |
 | Release history | [CHANGELOG.md](CHANGELOG.md) |
 | Docs navigator | `docs/README.md` |
-| AI implementation agent | `AGENTS.md`, then `contracts/tasks/<task-id>.yaml` |
+| AI implementation agent | `AGENTS.md`、次に `contracts/tasks/<task-id>.yaml` |
 | AI reviewer | `docs/scwbs/ai-agent-guide.md` |
 | CLI/reference user | `docs/scwbs/cli-reference.md` |
 | SC-WBS Core designer | `docs/sc-wbs-core/00-index.md` |
 
-Do not start by reading every file under `docs/`. The intended workflow is
-small context first, deeper docs only when needed.
+`docs/`配下の全ファイルを最初から読んではならない。意図したworkflowは、まず小さいcontextを読み、必要な場合だけ詳細文書へ進むことである。
 
-## 1. What This Tool Is
+## 1. このtoolについて
 
-`scwbs` is a guardrail CLI for AI-assisted work. It gives each change an
-explicit Task Contract, checks the changed files against that contract, records
-Evidence, and sends risky work back to Human Gate.
+`scwbs`はAI支援作業のためのguardrail CLIである。各変更に明示的なTask Contractを与え、変更ファイルを契約と照合し、Evidenceを記録し、危険な作業をHuman Gateへ戻す。
 
 ## 2. Consumer Installation
 
-For first use, follow the [consumer quickstart](docs/scwbs/quickstart.md).
-It is the canonical clone-free, finish-first path using the installed CLI.
-For a local distribution smoke test, build and pack the CLI, then install the
-tarball into an empty consumer project:
+初回利用では[consumer quickstart](docs/scwbs/quickstart.md)に従う。これはinstalled CLIを使う、clone-freeかつfinish-firstのcanonical pathである。local distribution smoke testでは、CLIをbuildしてpackし、空のconsumer projectへtarballをinstallする。
 
 ```bash
 corepack npm run build
@@ -57,33 +46,26 @@ npm install --save-dev /path/to/scwbs-0.1.0.tgz
 npx scwbs --version
 ```
 
-The packed artifact includes the WJS validator, apply runtime, and schemas, so
-the consumer does not need an ACED checkout or the `wjs` submodule. The
-supported release path is a self-contained tarball attached to a GitHub
-Release; this repository does not publish to npm.
+packed artifactにはWJS validator、apply runtime、schemaが含まれるため、consumerはACED checkoutや`wjs` submoduleを必要としない。対応するrelease pathはGitHub Releaseへ添付するself-contained tarballであり、このrepositoryはnpmへpublishしない。
 
 ## 3. Minimal Setup
 
-This repository supports Node.js `>=22.12.0` and npm `>=10`. It pins npm
-`10.9.0` through `packageManager`; enable Corepack before installing so the
-lockfile is produced by the supported npm release. CI verifies both the
-minimum supported Node.js version and the current LTS version.
+このrepositoryはNode.js `>=22.12.0`とnpm `>=10`をサポートする。`packageManager`でnpm `10.9.0`をpinしているため、install前にCorepackをenableし、対応するnpm releaseでlockfileを生成する。CIはminimum supported Node.js versionとcurrent LTS versionの両方を検証する。
 
-The required WJS schema is kept in the `wjs` Git submodule. After a normal
-clone, initialize the submodule before installing dependencies:
+required WJS schemaは`wjs` Git submoduleに保持する。通常のclone後は、dependenciesをinstallする前にsubmoduleをinitializeする。
 
 ```bash
 git submodule update --init --recursive wjs
 ```
 
-Install dependencies:
+dependenciesをinstallする。
 
 ```bash
 corepack enable
 corepack npm install
 ```
 
-Check the local installation:
+local installationを確認する。
 
 ```bash
 npm run scwbs -- doctor
@@ -91,9 +73,9 @@ npm run scwbs -- check
 npm run scwbs -- docs check
 ```
 
-## 4. Doctor And Check
+## 4. DoctorとCheck
 
-Use `doctor` for setup diagnostics and `check` for contract/registry health:
+setup diagnosticsには`doctor`を、contract/registry healthには`check`を使う。
 
 ```bash
 npm run scwbs -- doctor
@@ -104,53 +86,40 @@ npm run scwbs -- status --strict
 npm run scwbs -- registry rebuild --check
 ```
 
-`doctor` reads the Node.js requirement from the consumer package when declared,
-or from the installed scwbs package for standalone consumers, and reports PASS /
-FAIL for that range, npm, the root `node_modules`,
-`wjs/node_modules` (or the bundled runtime), `git`, `contracts/registry.yaml`,
-`contracts/wbs/project.wbs.json`, and the WJS schema,
-plus any check / health issues. Each FAIL prints a suggested fix command.
+`doctor`は、宣言されていればconsumer packageから、standalone consumerではinstalled scwbs packageからNode.js requirementを読み取る。そのrange、npm、root `node_modules`、`wjs/node_modules`（またはbundled runtime）、`git`、`contracts/registry.yaml`、`contracts/wbs/project.wbs.json`、WJS schema、およびcheck/health issueについてPASS/FAILを報告する。各FAILにはsuggested fix commandを表示する。
 
-`doctor --fix` only runs safe repairs (for example `npm install`). It refuses destructive operations; for anything risky, follow the printed suggested fix command instead.
+`doctor --fix`はsafe repair（例: `npm install`）だけを実行する。destructive operationは拒否し、危険な操作は表示されたsuggested fix commandに従う。
 
-Run `doctor` before `check` whenever setup may be incomplete so failures
-are diagnosed explicitly instead of surfacing as opaque errors.
+setupが不完全かもしれない場合は`check`の前に`doctor`を実行し、opaque errorではなくfailureを明示的に診断する。
 
-`docs check` validates `docs/document-lifecycle.json`, including document-set
-status, entrypoints, normative ownership, successor links, and compatibility
-with the current CLI version. Its `--json` output is suitable for CI tooling;
-the same errors are included in the aggregate `scwbs check`.
+`docs check`は`docs/document-lifecycle.json`を検証し、document-set status、entrypoint、normative ownership、successor link、current CLI versionとのcompatibilityを確認する。`--json` outputはCI toolingで利用でき、同じerrorはaggregate `scwbs check`にも含まれる。
 
-`status` keeps WBS lifecycle counts separate from completion trust. A completed
-or archived Task is only `verified` when its required checks, Evidence subject,
-and any Human Approval scope remain verifiable; `--strict` returns a non-zero
-status when terminal Task trust is degraded, unverifiable, or not evaluated.
+`status`はWBS lifecycle countとcompletion trustを分離する。completedまたはarchived Taskが`verified`になるのは、required checks、Evidence subject、およびHuman Approval scopeを検証可能な場合だけである。`--strict`はterminal Taskのtrustが低下、検証不能、または未評価の場合にnon-zero statusを返す。
 
 ## 5. AI Minimum Flow
 
-AI agents should start from the active Task Contract and avoid broad docs
-scans. Use the tiny packet by default (`--tiny` is the default):
+AI agentはactive Task Contractから開始し、広範なdocs scanを避ける。既定ではtiny packetを使う（`--tiny`がdefaultである）。
 
 ```bash
 npm run scwbs -- packet --task <task-id>
 ```
 
-Use `--standard` or `--full` only when more context is needed:
+より多くのcontextが必要な場合だけ`--standard`または`--full`を使う。
 
 ```bash
 npm run scwbs -- packet --task <task-id> --standard
 npm run scwbs -- packet --task <task-id> --full
 ```
 
-Finish with required checks, Evidence, diff validation, and registry check in a single command:
+required checks、Evidence、diff validation、registry checkは1つのcommandでfinishする。
 
 ```bash
 npm run scwbs -- finish --task <task-id>
 ```
 
-`finish` runs everything automatically: required checks, Evidence collection, diff guard, and registry consistency check. It also detects Human Gate paths and shows the next action for human reviewers.
+`finish`はrequired checks、Evidence collection、diff guard、registry consistency checkを自動実行する。またHuman Gate pathを検出し、人間のreviewer向けにnext actionを表示する。
 
-If a stop condition is hit, block instead of guessing:
+stop conditionに達した場合は推測せずblockする。
 
 ```bash
 npm run scwbs -- block "Human Gate required" --task <task-id>
@@ -158,46 +127,33 @@ npm run scwbs -- block "Human Gate required" --task <task-id>
 
 ## 5. Human Reviewer Flow
 
-Humans review the PR, Evidence, and current diff before approving. AI agents
-must not run approval commands on behalf of a human.
+人間はapproveする前にPR、Evidence、current diffをreviewする。AI agentは人間に代わってapproval commandを実行してはならない。
 
 ```bash
 npm run scwbs -- review-queue
 npm run scwbs -- approve --task <task-id> --pr <number> --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 
-The detailed command is also available:
+詳細commandも利用できる。
 
 ```bash
 npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 
-`finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
+`finish`はHuman Gateのnext actionにこのimplemented command shapeを使う。未対応の`--approved-by`や`--human-confirm` optionは出力しない。
 
-After approval and successful CI, merge through the fail-closed SC-WBS path:
+approvalとCI成功の後は、fail-closedなSC-WBS pathでmergeする。
 
 ```bash
 npm run scwbs -- merge --pr <number> --preflight-only --json
 npm run scwbs -- merge --pr <number>
 ```
 
-The command requires an open, non-draft PR targeting `main`, a `CLEAN` merge
-state, the current checkout's GitHub `origin`, and exactly one successful
-aggregate `validate` check from the `scwbs` workflow and repository. It binds
-the merge to the checked PR head with
-`--match-head-commit`; pending, failed, cancelled, skipped, missing, or
-ambiguous `validate` results are rejected. Do not replace this normal path
-with direct `gh pr merge`, `--admin`, or `--auto`.
+commandは、`main`をtargetとするopenかつnon-draftのPR、`CLEAN` merge state、current checkoutのGitHub `origin`、および`scwbs` workflow/repositoryからの成功したaggregate `validate` checkをちょうど1つ要求する。`--match-head-commit`でchecked PR headにmergeをbindし、pending、failed、cancelled、skipped、missing、ambiguousな`validate` resultは拒否する。このnormal pathをdirect `gh pr merge`、`--admin`、`--auto`で置き換えてはならない。
 
-Repository visibility and branch-protection capability are recorded only as
-dated GitHub API snapshots; they are not current-state guarantees. Revalidate
-the live repository before relying on the merge boundary. The local command
-therefore improves the normal merge path but cannot prevent direct/force pushes
-or privileged API and administrator bypasses. Changing repository visibility,
-GitHub plan, external cost, or permissions requires a Human Decision. See
-[`docs/scwbs/merge-protection.md`](docs/scwbs/merge-protection.md).
+Repository visibilityとbranch-protection capabilityはdated GitHub API snapshotとしてのみ記録し、current-state guaranteeとはしない。merge boundaryを信頼する前にlive repositoryを再検証する。したがってlocal commandはnormal merge pathを改善するが、direct/force pushやprivileged API、administrator bypassは防げない。repository visibility、GitHub plan、external cost、permissionsの変更にはHuman Decisionが必要である。[詳細](docs/scwbs/merge-protection.md)を参照する。
 
-Unattended execution is an explicit, per-Task exception. The Task Contract must contain a locked `approvalPolicy.mode: delegated` policy with the delegator, AI target, allowed scopes (`human-gate` and/or `post-finish`), source, reason, expiry, and SHA-256 hash of an external token. The token itself is supplied only through `SCWBS_APPROVAL_DELEGATION_TOKEN`; it must not be committed or stored in contracts or Approval records.
+Unattended executionはTaskごとの明示的な例外である。Task Contractには、delegator、AI target、allowed scopes（`human-gate`および/または`post-finish`）、source、reason、expiry、external tokenのSHA-256 hashを持つlockedな`approvalPolicy.mode: delegated` policyが必要である。token自体は`SCWBS_APPROVAL_DELEGATION_TOKEN`だけから供給し、contractsやApproval recordへcommitまたは保存してはならない。
 
 ```bash
 SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" \
@@ -205,7 +161,7 @@ SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" \
   --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
 ```
 
-A local `.env` file or CI secret store may be used to manage the environment variable, but the CLI does not automatically load `.env`, and `.env` alone never grants authority. Use a randomly generated token of at least 32 bytes; the public SHA-256 in the contract otherwise permits offline guessing of weak secrets. The committed Task Contract policy and a matching, unexpired token are both required. Delegated records use `approvalMode: delegated` and a token-derived `delegationProof`, and record their declared source, delegator, executor, and scope separately from human approvals. Consumers revalidate the proof and accept `human-gate` only for Human Gate checks and `post-finish` only for completion. These controls make accidental and simple YAML bypasses substantially harder, but they do not independently verify the real-world identity of `delegatedBy`, the person who provisioned the token, or a fully privileged process that can rewrite both code and local secrets.
+環境変数の管理にはlocal `.env` fileやCI secret storeを使えるが、CLIは`.env`を自動loadせず、`.env`だけでauthorityが付与されることもない。少なくとも32 bytesのrandom tokenを使う。そうしなければcontractに公開されたSHA-256から弱いsecretをoffline guessingできる。committed Task Contract policyと一致する未期限切れtokenの両方が必要である。Delegated recordは`approvalMode: delegated`とtoken-derived `delegationProof`を使い、declared source、delegator、executor、scopeをhuman approvalとは別に記録する。consumerはproofを再検証し、`human-gate`はHuman Gate checkに、`post-finish`はcompletionにのみ受け入れる。これらのcontrolは偶発的または単純なYAML bypassを大幅に困難にするが、`delegatedBy`の現実のidentity、tokenをprovisionした人、codeとlocal secretをともに書き換えられるfully privileged processを独立して検証するものではない。
 
 ## 6. Core Artifacts
 
@@ -226,49 +182,42 @@ npm run scwbs -- profile set standard
 npm run scwbs -- profile set strict
 ```
 
-Use `lean` for small local dogfood tasks, `standard` for normal repository
-work, and `strict` when broader governance checks are required.
-`profile set` writes a `setDocumentExtension` changeset under
-`contracts/changesets/` and applies it through WJS; it does not directly edit
-the canonical WBS. Because the profile participates in the global Task lock,
-review `npm run scwbs -- task refresh --affected` after changing it.
+小さなlocal dogfood taskには`lean`、通常のrepository workには`standard`、広いgovernance checkが必要な場合には`strict`を使う。`profile set`は`contracts/changesets/`配下へ`setDocumentExtension` changesetを書き、WJS経由でapplyする。canonical WBSを直接編集しない。profileはglobal Task lockに参加するため、変更後に`npm run scwbs -- task refresh --affected`をreviewする。
 
 ## 8. Common Errors
 
-- Outside `allowedPaths`: stop, narrow the change, or update the Task Contract
-  before editing.
-- Under `forbiddenPaths`: stop and block; forbidden paths override allowed
-  paths.
-- Human Gate required: stop and use `block`.
-- Stale Evidence: rerun `finish` after the final diff is in place.
-- Stale Approval scope: a human must re-review and approve the current diff.
+- `allowedPaths`外: stopし、変更を狭めるか、編集前にTask Contractを更新する。
+- `forbiddenPaths`配下: stopしてblockする。forbidden pathはallowed pathより優先される。
+- Human Gate required: stopして`block`を使う。
+- Stale Evidence: final diffを確定してから`finish`を再実行する。
+- Stale Approval scope: 人間がcurrent diffを再reviewしてapproveする必要がある。
 
 ## 9. Developer Commands
 
-Create a small task:
+小さなtaskを作成する。
 
 ```bash
 npm run scwbs -- task new "Update docs" --paths "docs/scwbs/getting-started.md" --stop "source change required"
 ```
 
-Switch to the branch printed by the Task Contract:
+Task Contractに表示されたbranchへ切り替える。
 
 ```bash
 git switch -c <branchName>
 ```
 
-Tests are split into two groups:
+テストは2つのgroupに分かれる。
 
-- `tests/unit/` – fast, lightweight tests used by the default `npm test` command.
-- `tests/integration/` – heavier tests that create temporary Git repositories.
+- `tests/unit/` – default `npm test` commandで使うfastかつlightweightなtest。
+- `tests/integration/` – temporary Git repositoryを作成するheavyなtest。
 
-Coverage commands use the same two scopes:
+Coverage commandも同じ2つのscopeを使う。
 
-- `npm run test:coverage` – unit-only coverage for fast local feedback.
-- `npm run test:coverage:all` – combined unit and integration coverage using the V8 provider; the report and machine-readable inputs are written to `coverage/`. The deliberately large receipt-bound stress cases are excluded from this instrumented run because their per-test timeouts are lower than their synchronous filesystem workloads; the complete integration suite remains covered by `npm run test:integration`.
-- CI converts those inputs into `coverage/coverage-receipt.json` and `coverage/evidence-snapshot.json`. The receipt records the test counts, skip reasons, Statements/Branches/Functions/Lines metrics, PR/head/workflow/artifact provenance, and a payload digest. To attach a verified receipt to normal Task Evidence, use `npm run scwbs -- evidence collect --task <task-id> --pull-request <number> --coverage-receipt coverage/coverage-receipt.json`; mismatched head, PR, repository, or workflow provenance is rejected. The workflow only uploads artifacts and retains read-only permissions; it does not push Evidence or enforce a coverage threshold.
+- `npm run test:coverage` – fastなunit-only coverage。
+- `npm run test:coverage:all` – V8 providerを使うunit/integration combined coverage。reportとmachine-readable inputは`coverage/`へ書き込む。意図的に大きいreceipt-bound stress caseは、synchronous filesystem workloadよりper-test timeoutが短いため、このinstrumented runから除外する。complete integration suiteは`npm run test:integration`で引き続きcoverage対象である。
+- CIはそのinputを`coverage/coverage-receipt.json`と`coverage/evidence-snapshot.json`へ変換する。receiptはtest count、skip reason、Statements/Branches/Functions/Lines metric、PR/head/workflow/artifact provenance、payload digestを記録する。verified receiptを通常のTask Evidenceへ添付するには`npm run scwbs -- evidence collect --task <task-id> --pull-request <number> --coverage-receipt coverage/coverage-receipt.json`を使う。head、PR、repository、workflow provenanceが一致しない場合は拒否する。workflowはartifactをuploadしread-only permissionを保持するだけで、Evidenceをpushしたりcoverage thresholdをenforceしたりしない。
 
-Run the full local verification set:
+local verification set全体を実行する。
 
 ```bash
 npm test                    # unit tests only (fast)
@@ -285,46 +234,32 @@ npm run scwbs -- finish --task <task-id>
 npm run scwbs -- registry rebuild --check
 ```
 
-`npm run typecheck` runs three checks in sequence: production TypeScript,
-test TypeScript, and the dependency-free JavaScript runners in `scripts/`.
-The production build continues to use `tsconfig.json`. Test code uses
-`tsconfig.tests.json` with no output, while scripts use `scripts/tsconfig.json`
-with `checkJs`; implicit JavaScript parameter types remain a documented
-migration boundary, but other inferred type errors are checked.
+`npm run typecheck`はproduction TypeScript、test TypeScript、`scripts/`のdependency-free JavaScript runnerという3つのcheckを順に実行する。production buildは引き続き`tsconfig.json`を使う。test codeはoutputなしで`tsconfig.tests.json`を使い、scriptは`checkJs`付きの`scripts/tsconfig.json`を使う。implicit JavaScript parameter typeはdocumentされたmigration boundaryとして残るが、その他のinferred type errorは検査する。
 
-`npm run lint` uses the ESLint flat config for `src/`, `tests/`, and `scripts/`,
-with the current zero-warning threshold configured in `package.json`.
-Historical warning counts are not an active acceptance criterion. The current
-command fails on any warning because `--max-warnings=0` is configured in
-`package.json`; update this documentation whenever that gate changes.
-Individual rules can be promoted to errors in later, separately scoped
-changes; this task does not bulk-rewrite existing source. Prettier is
-available through the explicit `npm run format` write command and is not run
-automatically by CI.
+`npm run lint`は`src/`、`tests/`、`scripts/`向けのESLint flat configを使い、`package.json`でcurrent zero-warning thresholdを設定する。Historical warning countはactive acceptance criterionではない。`package.json`で`--max-warnings=0`を設定しているため、current commandはwarningが1つでもあれば失敗する。このgateを変更する場合は本文も更新する。Individual ruleをerrorへ昇格する場合は、後続の別scope変更で行う。このtaskでは既存sourceをbulk rewriteしない。Prettierは明示的な`npm run format` write commandで利用でき、CIでは自動実行しない。
 
-For a walkthrough with decision points, use
-`docs/scwbs/getting-started.md`.
+decision point付きのwalkthroughには`docs/scwbs/getting-started.md`を使う。
 
-## What AI Agents Must Not Do
+## AI agentがしてはならないこと
 
-- Do not work without a Task Contract.
-- Do not change files outside `allowedPaths`.
-- Do not change `forbiddenPaths`.
-- Do not treat implementation notes or chat as Ground Truth.
-- Do not approve Human Gate decisions on behalf of a human.
-- Do not call a task Done until Evidence and `check-diff` pass.
+- Task Contractなしで作業しない。
+- `allowedPaths`外のfileを変更しない。
+- `forbiddenPaths`を変更しない。
+- implementation noteやchatをGround Truthとして扱わない。
+- 人間に代わってHuman Gate decisionをapproveしない。
+- Evidenceと`check-diff`がpassするまでtaskをDoneとしない。
 
-The current repository-specific rules are in `AGENTS.md`.
+current repository-specific ruleは`AGENTS.md`にある。
 
 ## Current Command Surface
 
-Run all CLI commands through the npm script while working in this repository:
+このrepositoryで作業する間は、すべてのCLI commandをnpm script経由で実行する。
 
 ```bash
 npm run scwbs -- --help
 ```
 
-Common commands:
+Common command:
 
 ```bash
 npm run scwbs -- next
@@ -340,7 +275,7 @@ npm run scwbs -- block "Human Gate required" --task <task-id>
 npm run scwbs -- request-approval --task <task-id> --pr <number>
 ```
 
-Detailed examples live in `docs/scwbs/cli-reference.md`.
+詳細なexampleは`docs/scwbs/cli-reference.md`にある。
 
 ## Repository Layout
 
@@ -361,42 +296,37 @@ Detailed examples live in `docs/scwbs/cli-reference.md`.
 └── tsconfig.json
 ```
 
-## Source Of Truth
+## 正本
 
-Status: current repository entrypoint.
+状態: 現行リポジトリの入口。
 
-- Current execution rules: `AGENTS.md` and the active Task Contract.
-- Task scope: `contracts/tasks/<task-id>.yaml`.
-- Completion evidence: `contracts/evidence/<task-id>.yaml`.
-- Documentation map: `docs/README.md`.
-- Current Core reference: `docs/sc-wbs-core/00-index.md`.
-- Legacy/detail reference: `docs/scwbs/`.
-- Proposal/design notes: `docs/sc-wbs-core-revision/`.
-- Canonical artifact schemas: `src/core/schema/records.ts` (AJV JSON Schema).
-  - `ApprovalRecord`: flat structure with top-level `pullRequest`, `headCommit`, `diffHash` (no nested `scope`).
-  - `BlockRecord`: requires `level`, `category`, `requiredHumanDecision`, `createdAt`; optional `history[]`.
-  - Schema version follows `schemaVersion` in `contracts/wbs/project.wbs.json`.
+- 現行の実行ルール: `AGENTS.md`とactive Task Contract。
+- Taskの範囲: `contracts/tasks/<task-id>.yaml`。
+- 完了Evidence: `contracts/evidence/<task-id>.yaml`。
+- 文書マップ: `docs/README.md`。
+- 現行Coreのリファレンス: `docs/sc-wbs-core/00-index.md`。
+- Legacy / 詳細リファレンス: `docs/scwbs/`。
+- Proposal / 設計ノート: `docs/sc-wbs-core-revision/`。
+- 正規artifactのschema: `src/core/schema/records.ts`（AJV JSON Schema）。
+  - `ApprovalRecord`: top-levelの`pullRequest`、`headCommit`、`diffHash`を持つflat structure（nested `scope`は持たない）。
+  - `BlockRecord`: `level`、`category`、`requiredHumanDecision`、`createdAt`を要求し、`history[]`はoptional。
+  - Schema versionは`contracts/wbs/project.wbs.json`の`schemaVersion`に従う。
 
-When these disagree during real work, prefer `AGENTS.md` and the active Task
-Contract.
+実作業中にこれらが食い違う場合は、`AGENTS.md`とactive Task Contractを優先する。
 
 ## MVP Scope
 
-Implemented in v0.1:
+v0.1で実装済み:
 
-- Contract, Evidence, WBS, diff, and health validation.
-- AI work packets, review queues, approval requests, and lightweight
-  orchestration helpers.
-- WJS-backed WBS validation, semantic operation application, and changeset
-  checks, with a packaged runtime for standalone consumers.
-- WBS-less task index operation, WBS candidate generation, and WBS changeset
-  reproduction checks.
-- Branch-per-task safeguards and Evidence git metadata.
-- Text-first dashboard, trace, next-action, profile, registry, and
-  draft-generation commands.
+- Contract、Evidence、WBS、diff、healthの検証。
+- AI work packet、Review queue、Approval request、軽量なorchestration helper。
+- packaged runtimeを備えたWJS-backed WBS validation、semantic operation application、changeset check。
+- WBS-less task index operation、WBS candidate generation、WBS changeset reproduction check。
+- branchごとのTask safeguardとEvidenceのGit metadata。
+- Text-first dashboard、trace、next-action、profile、registry、draft-generation command。
 
-Not included yet:
+まだ含まれないもの:
 
-- Web UI beyond the initial text dashboard / `serve` stub.
-- SQLite index.
-- Fully external installer experience.
+- 初期のtext dashboardと`serve` stubを超えるWeb UI。
+- SQLiteによるindex。
+- 外部利用者向けinstaller体験の完全版。

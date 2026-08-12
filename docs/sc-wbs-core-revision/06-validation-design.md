@@ -39,7 +39,7 @@ AIが間違えても、ツールが差分で止める。
 13. CheckReportを出力する
 ```
 
-## Path validation
+## pathの検証
 
 ### ルール
 
@@ -67,7 +67,7 @@ forbiddenPaths > humanGateRequiredPaths > managedContractPaths > allowedPaths
 | allowedPathsに一致 | Pass |
 | どれにも一致しない | Error |
 
-## managedContractPaths validation
+## managedContractPathsの検証
 
 EvidenceやBlockなどのCLI生成物が `allowedPaths` 外変更として落ちないようにする。
 ただし、AIがApprovalを捏造できないよう、ファイル種別ごとに許可操作を分ける。
@@ -87,7 +87,7 @@ EvidenceやBlockなどのCLI生成物が `allowedPaths` 外変更として落ち
 - check-diffではapproved recordのscopeが現在差分と一致するか確認する。
 ```
 
-## Evidence validation
+## Evidenceの検証
 
 Evidenceは自己申告ではなく、差分とchecksに結びつく必要がある。
 
@@ -152,7 +152,7 @@ ApprovalとEvidenceを、PR番号やタスクIDではなく実際の差分に紐
 sha256:<hex>
 ```
 
-## Approval scope validation
+## Approval scopeの検証
 
 Approvalは以下のscopeに紐づく。
 
@@ -185,7 +185,7 @@ scope:
 - approvedAtがない
 ```
 
-## Human Gate validation
+## Human Gateの検証
 
 Human Gate対象は、Standard以上ではWarningではなくErrorにする。
 
@@ -207,7 +207,7 @@ Human Gate対象変更 + approved Approval + scope一致 = Pass
 Human Gate対象変更 + approved Approval + scope不一致 = Error
 ```
 
-## WBS changeset validation
+## WBS changesetの検証
 
 Coreでは任意。
 Full連携時に有効化する。
@@ -256,7 +256,7 @@ JSON:
 }
 ```
 
-## Severity
+## 重要度
 
 | Severity | 意味 | CI |
 |---|---|---|
@@ -278,4 +278,3 @@ JSON:
 | approval stale | `scwbs approve <task-id> --pr <n>` |
 | branch mismatch | `scwbs start <task-id>` |
 | check failed | テスト修正後 `scwbs finish` |
-

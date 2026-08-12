@@ -1,38 +1,31 @@
-# Getting Started With scwbs
+# scwbs入門
 
-This page is the repository contributor and advanced troubleshooting guide. For
-the first-use consumer path, start with the [Consumer Quickstart](quickstart.md),
-which uses the installed CLI and the finish-first workflow. Contributor setup
-is documented separately in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+このpageはrepository contributor向けのadvanced troubleshooting guideである。first-use consumer pathでは、installed CLIとfinish-first workflowを使う[Consumer Quickstart](quickstart.md)から始める。Contributor setupは[`CONTRIBUTING.md`](../../CONTRIBUTING.md)に別途記載する。
 
-## The Mental Model
+## メンタルモデル
 
-SC-WBS work has three layers:
+SC-WBS workには3つのlayerがある。
 
-1. **Task Contract**: what may be changed.
-2. **Evidence**: what changed and which checks ran.
-3. **Diff guard**: whether the branch still matches the contract.
+1. **Task Contract**: 何を変更してよいか。
+2. **Evidence**: 何が変更され、どのcheckを実行したか。
+3. **Diff guard**: branchがcontractと一致しているか。
 
-An AI can implement within a contract, but it should not decide the contract's
-scope for itself after work has started.
+AIはcontract内をimplementできるが、work開始後にcontractのscopeを自分で決めてはならない。
 
-## Advanced Repository Setup
+## 高度なrepository設定
 
-The commands below assume an ACED checkout and are retained for contributors,
-debugging, and maintenance. They are not required for a consumer using the
-release tarball.
+以下のcommandはACED checkoutを前提とし、contributor、debugging、maintenance向けに残している。release tarballを使うconsumerには必要ない。
 
-Use Node.js `>=22.13.0` and npm `>=10`. This repository pins npm `10.9.0`
-through `packageManager`, so enable Corepack before installing dependencies.
+Node.js `>=22.13.0`とnpm `>=10`を使う。このrepositoryは`packageManager`でnpm `10.9.0`をpinするため、dependenciesのinstall前にCorepackをenableする。
 
-Install dependencies once:
+dependenciesを一度installする。
 
 ```bash
 corepack enable
 corepack npm install
 ```
 
-Check repository health:
+repository healthを確認する。
 
 ```bash
 npm run scwbs -- check
@@ -51,23 +44,23 @@ npm run scwbs -- doctor --github --json
 不足している項目には限定された診断メッセージを返します。merge の事前確認や
 Metrics が GitHub 情報を取得できない場合も、このコマンドを案内します。
 
-Ask what needs attention:
+attentionが必要な項目を確認する。
 
 ```bash
 npm run scwbs -- next
 ```
 
-When in doubt, prefer `next` over guessing from Git status alone.
+不明な場合は、Git statusだけから推測せず`next`を優先する。
 
-## Create A Small Task
+## 小さなTaskを作成する
 
-For a docs-only change:
+docs-only changeの場合:
 
 ```bash
 npm run scwbs -- task new "Improve user docs" --paths "README.md,docs/scwbs/getting-started.md" --stop "source change required"
 ```
 
-For a code-and-test change:
+code-and-test changeの場合:
 
 ```bash
 npm run scwbs -- task new "Fix parser edge case" --paths "src/core/parser.ts,tests/unit/parser.test.ts" --stop "schema or dependency change required"
@@ -75,76 +68,71 @@ npm run scwbs -- task new "Fix parser edge case" --paths "src/core/parser.ts,tes
 
 `--paths` を省略すると `allowedPaths: []` のdraftになり、実装を認可しません。`--wbs-node` を省略したTaskはWBS-lessとして保存され、WBS completion queueには入りません。Stop Conditionsを意図的に空にする場合は `--no-stop-conditions` を明示してください。
 
-The command prints a Task Contract. Note these fields:
+commandはTask Contractを表示する。次のfieldを確認する。
 
-- `id`: pass this to later `scwbs` commands.
-- `branchName`: use this exact branch name.
-- `allowedPaths`: files you may change.
-- `forbiddenPaths`: files you must not change.
-- `humanGateRequiredPaths`: files that need human approval before change.
-- `requiredChecks`: checks expected before completion.
+- `id`: 後続の`scwbs` commandへ渡す値。
+- `branchName`: このexact branch nameを使う。
+- `allowedPaths`: 変更してよいfile。
+- `forbiddenPaths`: 変更してはならないfile。
+- `humanGateRequiredPaths`: 変更前にhuman approvalが必要なfile。
+- `requiredChecks`: completion前に期待されるcheck。
 
-Switch to the task branch:
+Task branchへ切り替える。
 
 ```bash
 git switch -c <branchName>
 ```
 
-Start the task:
+Taskを開始する。
 
 ```bash
 npm run scwbs -- task start <task-id>
 ```
 
-If branch status is `mismatch`, fix the branch before editing files.
+branch statusが`mismatch`なら、fileをeditする前にbranchを修正する。
 
-## Give Work To An AI
+## AIにworkを渡す
 
-Give the AI this minimum context:
+AIにはこのminimum contextを渡す。
 
 ```text
 AGENTS.md
 contracts/tasks/<task-id>.yaml
 ```
 
-If the AI needs more context, generate a packet:
+AIにmore contextが必要ならpacketを生成する。
 
 ```bash
 npm run scwbs -- packet --task <task-id> --tiny
 ```
 
-For deeper context:
+deeper contextの場合:
 
 ```bash
 npm run scwbs -- ai packet --task <task-id> --relation-depth 1
 ```
 
-Do not ask the AI to read all docs unless it is changing the methodology or CLI
-itself.
+methodologyまたはCLI自体を変更する場合を除き、AIに全docsを読むよう求めない。
 
-## Work Inside Scope
+## Scope内で作業する
 
-Before editing, compare the planned files with `allowedPaths`.
+edit前にplanned fileを`allowedPaths`と比較する。
 
-If the change needs a file outside `allowedPaths`, do not edit it first. Create
-a new task or update the Task Contract through an explicit SC-WBS task.
+changeに`allowedPaths`外のfileが必要なら、先にeditしてはならない。new taskを作成するか、明示的なSC-WBS taskを通してTask Contractをupdateする。
 
-If the change touches `humanGateRequiredPaths`, stop and request human
-approval. Do not self-approve.
+changeが`humanGateRequiredPaths`に触れるならstopしてhuman approvalをrequestする。self-approveしてはならない。
 
-If the change requires a DB schema change, migration, authentication redesign,
-permission change, breaking API change, external service decision, release
-decision, or unclear business rule, block instead of guessing:
+changeにDB schema change、migration、authentication redesign、permission change、breaking API change、external service decision、release decision、unclear business ruleが必要なら、推測せずblockする。
 
 ```bash
 npm run scwbs -- ai block --task <task-id> --reason "Human Gate required"
 ```
 
-Use a more specific reason when possible.
+可能な場合はよりspecificなreasonを使う。
 
-## Finish A Task
+## Taskをfinishする
 
-Run the checks listed in the Task Contract. Most tasks use:
+Task Contractに列挙されたcheckを実行する。多くのtaskは次を使う。
 
 ```bash
 npm test
@@ -152,28 +140,27 @@ npm run typecheck
 npm run build
 ```
 
-Run SC-WBS checks:
+SC-WBS checkを実行する。
 
 ```bash
 npm run scwbs -- check
 npm run scwbs -- registry rebuild --check
 ```
 
-Commit the implementation changes first when Evidence should describe the final
-branch diff:
+Evidenceにfinal branch diffを記述させる場合は、先にimplementation changeをcommitする。
 
 ```bash
 git add <changed-files>
 git commit -m "<short description>"
 ```
 
-Collect Evidence:
+Evidenceをcollectする。
 
 ```bash
 npm run scwbs -- evidence collect --task <task-id>
 ```
 
-For docs-only work, record that no test assertions changed:
+docs-only workではtest assertionが変更されていないことを記録する。
 
 ```bash
 npm run scwbs -- evidence collect --task <task-id> \
@@ -183,54 +170,52 @@ npm run scwbs -- evidence collect --task <task-id> \
   --test-quality-note "Docs-only change; no test assertions changed."
 ```
 
-If registry becomes stale after adding Evidence:
+Evidence追加後にregistryがstaleになった場合:
 
 ```bash
 npm run scwbs -- registry rebuild --force
 npm run scwbs -- registry rebuild --check
 ```
 
-Commit Evidence and registry updates:
+Evidenceとregistry updateをcommitする。
 
 ```bash
 git add contracts/evidence/<task-id>.yaml contracts/registry.yaml
 git commit -m "chore: add evidence for <task>"
 ```
 
-Finally:
+最後に:
 
 ```bash
 npm run scwbs -- check-diff --task <task-id>
 ```
 
-If you commit more implementation changes after Evidence collection, regenerate
-Evidence.
+Evidence collection後にimplementation changeを追加commitした場合は、Evidenceを再生成する。
 
-## Review And PR
+## ReviewとPR
 
-Before opening a PR, confirm:
+PRを開く前に確認する。
 
 ```bash
 git status --short --branch
 npm run scwbs -- check-diff --task <task-id>
 ```
 
-After a PR exists, refresh Evidence with the PR number when the workflow needs
-PR metadata:
+PRが存在し、workflowがPR metadataを必要とする場合はPR number付きでEvidenceをrefreshする。
 
 ```bash
 npm run scwbs -- evidence collect --task <task-id> --pull-request "#123" --force
 ```
 
-Do not mark Approval as approved unless a human reviewer explicitly approved it.
+human reviewerが明示的にapproveしない限りApprovalをapprovedにしない。
 
-## Common Mistakes
+## よくあるmistake
 
-| Mistake | What to do instead |
+| Mistake | 代わりにすること |
 |---|---|
-| Editing before reading the Task Contract | Read `contracts/tasks/<task-id>.yaml` first |
-| Changing files outside `allowedPaths` | Stop and create/update a contract |
-| Treating `docs/sc-wbs-core-revision/` as current rules | Treat it as draft design |
-| Running several `npm run scwbs` commands in parallel | Run SC-WBS commands sequentially |
-| Collecting Evidence before the final implementation commit | Commit first, then collect Evidence |
-| Self-approving a Human Gate | Request human review instead |
+| Task Contractを読む前にeditする | 先に`contracts/tasks/<task-id>.yaml`を読む |
+| `allowedPaths`外のfileを変更する | stopしてcontractをcreate/updateする |
+| `docs/sc-wbs-core-revision/`をcurrent ruleとして扱う | draft designとして扱う |
+| 複数の`npm run scwbs` commandをparallel実行する | SC-WBS commandをserial実行する |
+| final implementation commit前にEvidenceをcollectする | 先にcommitし、その後Evidenceをcollectする |
+| Human Gateをself-approveする | 代わりにhuman reviewをrequestする |

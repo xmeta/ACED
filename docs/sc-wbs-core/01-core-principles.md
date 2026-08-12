@@ -1,4 +1,4 @@
-# 01. SC-WBS Core Principles
+# 01. SC-WBS Coreの原則
 
 ## 目的
 

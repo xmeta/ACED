@@ -1,12 +1,12 @@
-# GitHub Issue intake
+# GitHub Issueの取り込み
 
-GitHub Issues are an optional, read-only discovery input. They are not Task Contracts, approvals, or policy documents.
+GitHub Issueはoptionalかつread-onlyなDiscovery inputである。Task Contract、approval、policy documentではない。
 
 ```bash
 npm run scwbs -- intake github-issue 123 --json
 npm run scwbs -- discovery from-github-issue 123 --dry-run --json
 ```
 
-The intake adapter uses `gh issue view` with structured argument arrays and a bounded output buffer. It normalizes repository, number, title, body, labels, author, timestamps, state, source URL, a canonical SHA-256 digest, and `observedAt`. Issue body and metadata are explicitly untrusted fields; prompt-like text cannot authorize commands or change SC-WBS policy.
+intake adapterはstructured argument arrayとbounded output bufferで`gh issue view`を使う。repository、number、title、body、label、author、timestamp、state、source URL、canonical SHA-256 digest、`observedAt`をnormalizeする。Issue bodyとmetadataは明示的にuntrusted fieldであり、prompt-like textはcommand実行やSC-WBS policy変更をauthorizeできない。
 
-The Discovery projection is always `discovery-only`. It does not write a Probe in dry-run mode, create or approve a Task Contract, write comments, close Issues, or persist credentials. An optional `--expected-digest` turns an updated snapshot into a machine-readable `stale` result. Missing GitHub access, malformed payloads, foreign repositories, and unavailable authentication are reported without breaking local workflows.
+Discovery projectionは常に`discovery-only`である。dry-run modeではProbeを書かず、Task Contractをcreateまたはapproveせず、commentを書かず、Issueをcloseせず、credentialをpersistしない。optionalな`--expected-digest`により、updated snapshotをmachine-readableな`stale` resultへ変換できる。GitHub access不足、malformed payload、foreign repository、unavailable authenticationはlocal workflowを壊さず報告する。

@@ -1,8 +1,8 @@
-# main merge protection and enforcement boundary
+# main merge protectionとenforcement boundary
 
-This legacy reference is maintained in English; command names and schema fields remain unchanged.
+このlegacy referenceは日本語でmaintainし、command nameとschema fieldは変更しない。
 
-## Current repository state
+## 現在のrepository状態
 
 2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という
 historical snapshotを記録している。この記録は現在のvisibilityや保護状態を
@@ -21,7 +21,7 @@ administrator bypass禁止は確認も強制もできない。
 この状態で「GitHubがmainを保護している」と表現してはいけない。現行の強制
 レベルはrepository-local commandによる通常経路のfail-closed検査である。
 
-## Normal protected path
+## 通常の保護経路
 
 PRの状態だけを検証する。
 
@@ -59,7 +59,7 @@ gh pr merge <number> --squash --delete-branch \
 commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
 `finish`もchecks成功後のnext actionとしてこのcommandを案内する。
 
-## Fail-closed cases
+## fail-closedとなるケース
 
 次の場合はmerge subprocessを起動しない。
 
@@ -72,7 +72,7 @@ commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
 integration testはfake `gh` fixtureを使い、これらの拒否時に
 `gh pr merge` が呼ばれないことを検証する。意図的なfailing PRは作らない。
 
-## Enforcement and audit boundary
+## 強制と監査の境界
 
 | Path | Current enforcement | Audit evidence |
 |---|---|---|

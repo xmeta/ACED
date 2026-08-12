@@ -1,35 +1,32 @@
-# SC-WBS Development References
+# SC-WBS開発リファレンス
 
-Status: legacy/detail reference.
+Status: legacy/detail reference。
 
-SC-WBS details are split here so humans and agents can read only the files
-needed for the current task.
+SC-WBSの詳細をここへ分割し、人間とagentがcurrent taskに必要なfileだけ読めるようにしている。
 
-For current work in this repository, start with `../../README.md`,
-`../../AGENTS.md`, and the active Task Contract. Use this directory when those
-entrypoints or the task require detailed SC-WBS method or CLI reference.
+このrepositoryのcurrent workでは、`../../README.md`、`../../AGENTS.md`、active Task Contractから始める。これらのentrypointまたはtaskがdetailed SC-WBS methodやCLI referenceを要求する場合に、このdirectoryを使う。
 
-## Entry Points
+## entry point
 
-- `getting-started.md` - first-use walkthrough for humans in this repository.
-- `ai-agent-guide.md` - minimum-context rules for implementation and review AI.
-- `cli-reference.md` - responsibility-based index for detailed command examples.
-- `cli-core-checks.md`, `cli-task-evidence.md`, `cli-approval-risk.md`, `cli-wbs-github.md`, `cli-mutation-output.md` - detailed command references by responsibility.
-- `../sc-wbs-development.md` - short methodology hub.
+- `getting-started.md` - このrepositoryの人間向けfirst-use walkthrough。
+- `ai-agent-guide.md` - implementation/review AI向けminimum-context rule。
+- `cli-reference.md` - detailed command exampleのresponsibility-based index。
+- `cli-core-checks.md`、`cli-task-evidence.md`、`cli-approval-risk.md`、`cli-wbs-github.md`、`cli-mutation-output.md` - responsibility別のdetailed command reference。
+- `../sc-wbs-development.md` - short methodology hub。
 
-## Methodology
+## 方法論
 
-- `overview.md` - basic policy, source-of-truth rules, flow, and bootstrap contract.
-- `wbs-json.md` - WBS-JSON operation policy and Human Gate write rules.
-- `task-contract.md` - Task Contract fields, lock freshness, and scope rules.
-- `ai-work-packet.md` - AI Work Packet content and pre-work requirements.
-- `contract-enforcement.md` - `check-diff`, path rules, health checks, and branch-per-task review flow.
-- `evidence-human-gate-review.md` - Evidence, Human Gate, review, Definition of Done, and status management.
-- `operations-profile-and-specs.md` - operating profiles, core principles, Subtree Phase, and Spec Contract files.
+- `overview.md` - basic policy、source-of-truth rule、flow、bootstrap contract。
+- `wbs-json.md` - WBS-JSON operation policyとHuman Gate write rule。
+- `task-contract.md` - Task Contract field、lock freshness、scope rule。
+- `ai-work-packet.md` - AI Work Packet contentとpre-work requirement。
+- `contract-enforcement.md` - `check-diff`、path rule、health check、branch-per-task review flow。
+- `evidence-human-gate-review.md` - Evidence、Human Gate、review、Definition of Done（完了定義）、status management。
+- `operations-profile-and-specs.md` - operating profile、Core principle、Subtree Phase、Spec Contract file。
 
-## Tool References
+## ツールリファレンス
 
-- `cli-reference.md` - detailed CLI index and responsibility links.
-- `wjs-operations-validation.md` - WJS validate and operations schema workflow.
-- `merge-protection.md` - main branch merge enforcement boundary and fail-closed merge path.
-- `integration-testing.md` - integration test runner parallelism, isolation, and duration reporting.
+- `cli-reference.md` - detailed CLI indexとresponsibility link。
+- `wjs-operations-validation.md` - WJS validateとoperation schema workflow。
+- `merge-protection.md` - main branch merge enforcement boundaryとfail-closed merge path。
+- `integration-testing.md` - integration test runnerのparallelism、isolation、duration report。

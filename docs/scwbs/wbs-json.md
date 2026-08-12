@@ -2,7 +2,7 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
-This legacy reference is maintained in English; command names and schema fields remain unchanged.
+このlegacy referenceは日本語でmaintainし、command nameとschema fieldは変更しない。
 
 ## 5. WBS-JSON運用
 
@@ -78,7 +78,7 @@ npm run scwbs -- wbs validate
 `scwbs wbs validate` と `scwbs check` は、内部で `wjs/tools/validate.ts --wbs` を使ってWBS-JSON schemaとsemantic validationを確認する。
 `scwbs check-diff` は、`contracts/wbs/project.wbs.json` が変更されているのに `contracts/changesets/*.json` がない場合はErrorとし、change setがある場合は `wjs/tools/validate.ts --operations` で検証する。
 
-## 3-way semantic merge plan
+## 3-way semantic merge plan（3-way semantic merge計画）
 
 複数branchのWBSを統合するときは、canonical JSONを直接編集せず、まずread-onlyのsemantic planを生成する。
 

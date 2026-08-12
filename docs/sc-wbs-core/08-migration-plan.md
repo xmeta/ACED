@@ -1,4 +1,4 @@
-# 08. Migration Plan From Current SC-WBS To Core
+# 08. 現行SC-WBSからCoreへの移行計画
 
 この文書は、既存SC-WBS仕様へ Core 方針を反映するための移行手順である。
 

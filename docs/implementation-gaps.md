@@ -1,84 +1,84 @@
-# Implementation Gaps
+# 実装上のギャップ
 
 この表は、現在の MVP で未完了または継続確認が必要な機能を日本語で管理する。
 
-This document tracks the pieces that are intentionally still missing from the current MVP.
+この文書は、現在のMVPで意図的に未完了として残している項目を追跡する。
 
-## Already Implemented
+## 実装済み
 
-- `scwbs check` for structural contract validation
-- `scwbs health` for basic freshness and trust warnings
-- Task Contract and Evidence validation
-- Task Contract draft generation from WBS nodes
-- Git diff path checks
-- AI Work Packet generation with relation-depth filtering
-- Optional Contract Lock metadata validation
-- Task Contract Lock generation from WBS and Spec content hashes
-- First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
+- 構造的な契約検証を行う`scwbs check`
+- 基本的な鮮度と信頼性の警告を行う`scwbs health`
+- Task ContractとEvidenceの検証
+- WBS nodeからTask Contractのdraftを生成する機能
+- Git diffのpath検査
+- `relation-depth`で関連範囲を絞ったAI Work Packet生成
+- Contract Lock metadataの任意検証
+- WBSとSpecのcontent hashからTask Contract Lockを生成する機能
+- required metadata検証付き`contracts/specs/*.yaml`のfirst-class Spec Contract file
 
 <!-- scwbs-capability: spec-change-proposal status=implemented -->
 
-- First-class Spec Change Proposal files and `scwbs spec-change new` creation with Level 2 request routing
-- Evidence `testQuality` metadata validation
-- Base/head-aware Evidence changed file collection
-- Evidence PR metadata capture and refresh preservation
-- Evidence testQuality metadata capture and refresh preservation
-- Stale Task Contract Lock detection and refresh policy (`task refresh --task`, `--affected`, and explicit `--all --apply`)
-- Human Gate boundary for lock-only refreshes; refresh never changes Task authority fields or approves semantic contract changes
-- Tracked patch Evidence retention and subject reconstruction after squash merge
-- Fail-closed patch provenance verification in health/status
-- Bounded legacy Evidence migration through `evidence retain`
-- Read-only Evidence retention inventory and prune planning through `evidence prune` (current baseline: 148 tracked payloads / 5,933,400 bytes); deletion, external archive durability, audit trust changes, and Git history rewriting remain Human Decision work
-- AI blocked-task change-set generation
-- Dependency-aware planned-task candidate listing for simple queue handoff
-- Priority-aware planned-task candidate listing through `ai next-task`
-- Versioned, data-driven AI tool adapter registry with Codex/Claude/Cursor/Copilot support, Gemini CLI/OpenCode preview fixtures, capability/locale metadata, and divergence-aware `init` / `update` generation
-- Versioned Governance Pack v1 inspection/install/update/remove dry-runs with digest lock, local pinned Git refs, additive-only policy merge, and discovery-only installed catalog
-- Dependency-free stdio-only MCP server with versioned resources/tools, existing evaluator reuse, bounded protocol output, and Human-only operation exclusion
+- first-class Spec Change Proposal fileと、Level 2 request routing付き`scwbs spec-change new`の生成
+- Evidence `testQuality` metadataの検証
+- `base`と`head`を考慮したEvidenceのchanged file収集
+- EvidenceへのPR metadataの記録とrefresh後の保持
+- EvidenceへのtestQuality metadataの記録とrefresh後の保持
+- staleなTask Contract Lockの検出とrefresh方針（`task refresh --task`、`--affected`、明示的な`--all --apply`）
+- lockのみを更新するrefreshのHuman Gate境界。refreshはTask authority fieldを変更せず、semantic contract changeをapproveしない
+- squash merge後のtracked patch Evidence保持とsubject再構成
+- health/statusでpatch provenanceをfail-closedに検証する機能
+- `evidence retain`による範囲を限定したlegacy Evidence移行
+- `evidence prune`によるread-onlyのEvidence保持状況一覧とprune計画（現在のbaseline: 148 tracked payloads / 5,933,400 bytes）。削除、external archiveの耐久性、監査上の信頼性変更、Git history rewriteは人間の判断事項として残る
+- AIがblocked task用のchangesetを生成する機能
+- simple queue handoff向けに依存関係を考慮したplanned task候補を一覧化する機能
+- `ai next-task`によって優先度を考慮したplanned task候補を一覧化する機能
+- Codex/Claude/Cursor/Copilotに対応し、Gemini CLI/OpenCodeのpreview fixture、capability/locale metadata、divergence-aware `init` / `update` generationを備えた、バージョン管理されたデータ駆動型AI tool adapter registry
+- digest lock、local pinned Git ref、additive-only policy merge、discovery-only installed catalogを備えた、バージョン管理されたGovernance Pack v1のinspection/install/update/remove dry-run
+- バージョン管理されたresource/tool、既存evaluatorの再利用、上限付きprotocol output、人間専用operationの除外を備えた、依存関係のないstdio-only MCP server
 
 <!-- scwbs-capability: local-index status=implemented -->
 
-- Rebuildable Node SQLite local index with provenance-aware status, bounded cross-artifact query, stale/corrupt recovery, and non-authoritative cache semantics
-- Warning-only code-versus-contract timestamp drift detection through `scwbs health`
-- Sensitive meta/config file guardrails in check-diff
-- Subtree-scoped bootstrap phase metadata and AI packet reporting
-- <!-- scwbs-capability: wbs-semantic-merge status=implemented --> Read-only WBS semantic merge planning and explicit clean-plan changeset generation
-- Repository dogfooding with `contracts/wbs/project.wbs.json` and active Task Contracts
-- WBS status summary
-- WJS semantic apply wrapper
-- Unit and integration test coverage measurement, including a CI-retained report and machine-readable Evidence snapshot
-- Versioned declarative artifact workflow schema, fail-closed DAG validation, and read-only `scwbs artifact status/instructions`; workflow guidance remains advisory and cannot relax Task authority, Human Gates, required checks, or Evidence provenance
-- Versioned read-only Discovery routing proposals with deterministic Spec/Task/WBS inventory, five route outcomes, brief/roadmap output, cross-Spec boundary review, and provenance; route output never mutates delivery authority
-- Versioned read-only Planning Store registry with absolute-root resolution, repository trust, pinned shared Spec provenance, stale/path/cycle checks, and repository-local Task/Evidence/CI authority; remote Git and credential automation remain excluded
-- Bounded AI execution runner with one-Task implementer/checks/fresh-reviewer orchestration, a versioned Phase 2 debugger/remediation receipt with a two-round cap, stale resume validation, shell-free adapter invocation, provider capability validation, bounded advisory learned notes, local execution cost metrics, and fail-closed authority/Human Gate boundaries; PR and merge automation remain excluded
-- First-class release lifecycle UX for exact version checks, release-manifest subject/digest verification, offline tarball verification, and read-only upgrade proposals; npm publication and unattended upgrade remain human decisions
-- WJS operations validation is fail-closed: missing or unusable canonical validation no longer downgrades to a permissive local fallback, and `doctor` reports the same repair boundary
-- Segment-aware globstar semantics now cover zero-directory and nested-directory matches with shared path normalization; unsupported authority syntax is rejected by check-diff
-- Finish PR readiness now reuses the merge preflight evaluator and exposes machine-readable `mergeReadiness`; pending, neutral, skipped, wrong-workflow, duplicate, and failed `validate` checks never become merge-ready
-- Doctor now validates `engines.npm`, Corepack availability, the pinned `packageManager`, and workspace dependency graph health; repair plans respect the declared npm pin
-- Read-only `task preflight` and `policy explain` now derive required checks, Evidence, Human Gate paths, forbidden paths, and policy reason codes without mutating Task authority
-- Versioned Risk Register v1 now provides bounded `risk list/show/add/update/accept`, fixed likelihood × impact scoring, Strict fail-closed treatment/acceptance checks, Evidence-bound acceptance freshness, and trace relations; risk acceptance remains Human-only
-- Local read-only `scwbs serve` now provides an offline localhost dashboard that projects existing UI/trace evaluators with bounded GET routes, CSP, secret filtering, and no write authority
-- Read-only GitHub Issue intake now provides bounded normalized snapshots and dry-run Discovery candidates with digest/stale provenance; GitHub write-back and Task auto-promotion remain Human-only
-- docs check now detects orphan Markdown and selected factual drift; repository capability prose is treated as a dated snapshot
+- provenanceを考慮したstatus、範囲を限定したcross-artifact query、stale/corrupt recovery、non-authoritative cache semanticsを備えたrebuildable Node SQLite local index
+- `scwbs health`によるwarning-only code-versus-contract timestamp drift detection
+- check-diffのsensitive meta/config file guardrail
+- subtree-scoped bootstrap phase metadataとAI packet reporting
+- <!-- scwbs-capability: wbs-semantic-merge status=implemented --> read-only WBS semantic merge planningとexplicit clean-plan changeset generation
+- `contracts/wbs/project.wbs.json`とactive Task Contractによるrepository dogfooding
+- WBSの状態サマリー
+- WJSのsemantic apply wrapper
+- CIに保持されるreportとmachine-readable Evidence snapshotを含むunit/integration test coverageの計測
+- バージョン管理されたdeclarative artifact workflow schema、fail-closed DAG validation、read-only `scwbs artifact status/instructions`。workflow guidanceはadvisoryであり、Task authority、Human Gate、required check、Evidence provenanceを緩和できない
+- deterministicなSpec/Task/WBS inventory、5つのroute outcome、brief/roadmap output、cross-Spec boundary review、provenanceを備えた、バージョン管理されたread-only Discovery routing proposal。route outputはdelivery authorityを変更しない
+- absolute-root resolution、repository trust、pinned shared Spec provenance、stale/path/cycle check、repository-local Task/Evidence/CI authorityを備えた、バージョン管理されたread-only Planning Store registry。remote Gitとcredential automationは除外する
+- one-Task implementer/checks/fresh-reviewer orchestration、two-round cap付きバージョン管理Phase 2 debugger/remediation receipt、stale resume validation、shell-free adapter invocation、provider capability validation、範囲を限定したadvisory learned note、local execution cost metric、fail-closed authority/Human Gate boundaryを備えたbounded AI execution runner。PRとmerge automationは除外する
+- exact version check、release-manifest subject/digest verification、offline tarball verification、read-only upgrade proposalを備えたfirst-class release lifecycle UX。npm publicationとunattended upgradeは人間の判断事項として残る
+- WJS operations validationはfail-closedであり、missingまたはunusable canonical validationがpermissive local fallbackへdowngradeされず、`doctor`も同じrepair boundaryを報告する
+- segment-aware globstar semanticがzero-directory/nested-directory matchとshared path normalizationをカバーし、unsupported authority syntaxはcheck-diffでrejectされる
+- Finish PR readinessがmerge preflight evaluatorを再利用してmachine-readable `mergeReadiness`を公開し、pending、neutral、skipped、wrong-workflow、duplicate、failedな`validate` checkはmerge-readyにならない
+- Doctorが`engines.npm`、Corepack availability、pinned `packageManager`、workspace dependency graph healthを検証し、repair planがdeclared npm pinを尊重する
+- read-only `task preflight`と`policy explain`がTask authorityを変更せずrequired check、Evidence、Human Gate path、forbidden path、policy reason codeをderiveする
+- versioned Risk Register v1がbounded `risk list/show/add/update/accept`、fixed likelihood × impact scoring、Strict fail-closed treatment/acceptance check、Evidence-bound acceptance freshness、trace relationを提供する。risk acceptanceはHuman-onlyとして残る
+- local read-only `scwbs serve`が、既存UI/trace evaluatorを投影するoffline localhost dashboardをbounded GET route、CSP、secret filtering、write authorityなしで提供する
+- read-only GitHub Issue intakeがdigest/stale provenance付きbounded normalized snapshotとdry-run Discovery candidateを提供する。GitHub write-backとTask auto-promotionはHuman-onlyとして残る
+- docs checkがorphan Markdownとselected factual driftを検出し、repository capability proseをdated snapshotとして扱う
 
-## Still Missing
+## 未実装
 
-| Area                | Missing Piece                                                              | Why It Matters                                                                                                                                                                                                                 |
+| 領域 | 未対応項目 | 重要性 |
 | ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Change control      | Spec Change workflow enforcement                                           | <!-- scwbs-capability: spec-change-workflow-enforcement status=missing --> Proposal creation and Level 2 request routing exist; broader workflow enforcement remains                                                           |
-| Evidence trust      | External artifact signatures and independent CI attestation                | `evidence verify-attestation` now records bounded GitHub Artifact Attestation verification summaries; workflow permissions, trust-root adoption, and release publication remain Human-only                                     |
-| Evidence diff basis | Independent external artifact signatures and publish-time promotion policy | `evidence import-ci` verifies the bounded PR readiness artifact, while `evidence verify-attestation` validates an exact artifact digest and subject identity; automatic promotion remains out of scope                         |
-| Test quality        | Diff-aware assertion and coverage inspection                               | Phase 1 records changed test files, added skip/only/todo markers, and a fail-safe line-coverage delta when a verified base receipt is available; AST assertion counting and threshold gating remain intentionally out of scope |
-| Review independence | Human review transition and external reviewer promotion                    | Phase 1 can collect a fresh reviewer result but does not create human-only Review transitions or promote a reviewer result into completion                                                                                     |
-| CI integration      | Independent attestation and automatic promotion                            | Trusted `workflow_run` reporting plus the bounded external verifier provide provenance evidence; workflow permissions, automatic Approval/Review/merge, and unbounded annotations remain intentionally excluded                |
-| WBS collaboration   | Distributed WBS support                                                    | <!-- scwbs-capability: wbs-distributed-support status=missing --> Full distributed collaboration remains outside the read-only semantic merge planner                                                                          |
+| Change control | Spec Change workflow enforcement | <!-- scwbs-capability: spec-change-workflow-enforcement status=missing --> Proposal creationとLevel 2 request routingは存在するが、より広いworkflow enforcementが未完了である |
+| Evidence trust | External artifact signatureとindependent CI attestation | `evidence verify-attestation`は範囲を限定したGitHub Artifact Attestation verification summaryを記録するが、workflow permission、trust-root adoption、release publicationはHuman-onlyとして残る |
+| Evidence diff basis | Independent external artifact signatureとpublish-time promotion policy | `evidence import-ci`は範囲を限定したPR readiness artifactを検証し、`evidence verify-attestation`は正確なartifact digestとsubject identityを検証する。automatic promotionは対象外である |
+| Test quality | Diff-aware assertionとcoverage inspection | Phase 1はchanged test file、added skip/only/todo marker、verified base receiptがある場合のfail-safe line-coverage deltaを記録する。AST assertion countとthreshold gateは意図的に対象外である |
+| Review independence | Human review transitionとexternal reviewer promotion | Phase 1はfresh reviewer resultを収集できるが、human-only Review transitionを作成せず、reviewer resultをcompletionへpromoteしない |
+| CI integration | Independent attestationとautomatic promotion | trusted `workflow_run` reportingと範囲を限定したexternal verifierがprovenance evidenceを提供する。workflow permission、automatic Approval/Review/merge、unbounded annotationは意図的に除外する |
+| WBS collaboration | Distributed WBS support | <!-- scwbs-capability: wbs-distributed-support status=missing --> Full distributed collaborationはread-only semantic merge plannerの対象外として残る |
 
-## Near-Term Follow-Ups
+## 近い将来のフォローアップ
 
-- Extend Spec Change workflow enforcement beyond proposal creation and Level 2 request routing.
-- Extend `testQualityObservation` with AST-based assertion counting where practical. Phase 1 already compares test diffs and verified coverage summaries without replacing manual `testQuality` metadata.
-- Extend read-only WBS semantic merge planning toward distributed WBS support.
-- Run read-only inventory after the patch-retention merge and backfill only historical Evidence whose recorded subject, base, diffHash, and changedFiles can be reproduced.
-- Use `npm run scwbs -- evidence prune --json` to inspect the current tracked payload inventory. The command is intentionally read-only: it reports archived Task candidates but does not select a cutoff, delete payloads, upload archives, or rewrite Git history.
-- Add release workflow permissions and attestation generation only after a separately approved threat model, repository-plan review, and Human Gate; this Task deliberately changes no `.github` workflow.
+- Proposal creationとLevel 2 request routingを超えてSpec Change workflow enforcementを拡張する。
+- 実行可能な範囲で`testQualityObservation`へAST-based assertion countを追加する。Phase 1はmanual `testQuality` metadataを置き換えず、test diffとverified coverage summaryを比較する。
+- read-only WBS semantic merge planningをdistributed WBS supportへ拡張する。
+- patch-retention merge後にread-only inventoryを実行し、記録されたsubject、base、diffHash、changedFilesを再現できるhistorical Evidenceだけをbackfillする。
+- `npm run scwbs -- evidence prune --json`で現在のtracked payload inventoryを確認する。このcommandは意図的にread-onlyであり、archived Task candidateを報告するが、cutoff選択、payload削除、archive upload、Git history rewriteは行わない。
+- release workflow permissionとattestation generationは、別途approveされたthreat model、repository-plan review、Human Gateの後にだけ追加する。このTaskは`.github` workflowを変更しない。
