@@ -1,0 +1,38 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-565-lean-approval-command
+type: discovery-probe
+status: concluded
+question: Lean Human Approval案内の全経路が現在のEvidenceに束縛されたexact TTY confirmationを提示できるか
+hypotheses:
+  - 既存のHuman Gate/Approval provenanceを維持したまま共通command builderへ統合できる
+  - headまたはdiff hash更新時に案内が再生成される
+activities:
+  - check-diff finish human-gate approval-requestの実装とテストを監査
+  - checkCoverageと既存ドキュメント例を照合
+evidenceExpected:
+  - 固定理由文の参照箇所
+  - Lean confirmation検証箇所
+  - 必要な回帰テストと文書範囲
+unknowns:
+  - Evidence欠落時のfail-closed案内境界
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - 実装対象とfail-closed境界が確定
+  - delivery TaskのallowedPathsとrequiredChecksが確定
+nextDecision: "Create and lock one bounded delivery Task for Issue #565 exact TTY approval command generation"
+createdAt: "2026-08-12T11:32:50.275Z"
+startedAt: "2026-08-12T11:33:10.528Z"
+concludedAt: "2026-08-12T11:33:24.308Z"
+exitConditionsMet: true
+factsLearned:
+  - 固定理由文はsrc/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/core/human-gate.tsに存在
+  - Lean検証はsubjectHeadCommitとdiffHashの完全一致を要求
+  - approval-request JSONもEvidence-bound commandへ更新可能
+hypothesesRejected:
+  - Human Approvalのprovenance検証を弱める
+  - AIがapproval approveを実行する
+remainingUnknowns:
+  - Evidence欠落時はapproval commandを捏造せずEvidence収集を案内する
