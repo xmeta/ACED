@@ -1,0 +1,285 @@
+diff --git a/contracts/discovery/PROBE-issue-561-local-index-source-separation.yaml b/contracts/discovery/PROBE-issue-561-local-index-source-separation.yaml
+new file mode 100644
+index 0000000..df51a7d
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-561-local-index-source-separation.yaml
+@@ -0,0 +1,38 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-561-local-index-source-separation
++type: discovery-probe
++status: concluded
++question: contracts/tasks/index.yamlを検索recordから除外しつつfreshness検知とTask status反映を維持できるか
++hypotheses:
++  - artifact pathsとfreshness pathsを分離すれば重複recordを防げる
++  - 既存のtemporary SQLite rebuildで失敗時のworking DB保護を維持できる
++activities:
++  - local-index.tsのsource path収集とsourceKindを監査
++  - unit/integration fixtureとindex status/queryの回帰境界を確定
++evidenceExpected:
++  - 重複列挙箇所
++  - 偽Task分類箇所
++  - Task statusとstale manifestの既存経路
++  - 回帰テスト範囲
++unknowns:
++  - rebuild失敗時に既存DBが保持されることをfixtureで確認する
++timebox: 1h
++costLimit: one engineer-hour
++exitConditions:
++  - 実装対象とsource分離境界が確定
++  - delivery TaskのallowedPathsとrequiredChecksが確定
++nextDecision: "Create and lock one bounded delivery Task for Issue #561 local index source separation"
++createdAt: "2026-08-12T13:21:54.877Z"
++startedAt: "2026-08-12T13:22:08.125Z"
++concludedAt: "2026-08-12T13:22:21.087Z"
++exitConditionsMet: true
++factsLearned:
++  - sourceRootsのcontracts/tasks走査と明示index.yaml追加が重複する
++  - index.yamlは/tasks/分類でsynthetic Task recordになり得る
++  - source manifestはindex.yamlを含める必要がある
++  - temporary SQLiteとtransactionはreplacement前の失敗で既存DBを保持する
++hypothesesRejected:
++  - index.yamlをTask artifactとして検索対象に残す
++  - stale検知のためindex.yamlをmanifestから除外する
++remainingUnknowns:
++  - なし
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml b/contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
+new file mode 100644
+index 0000000..71920ca
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
+@@ -0,0 +1,57 @@
++id: SCWBS-DRAFT-MSQ4E0TZ
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSQ4E0TZ
++branchName: task/SCWBS-DRAFT-MSQ4E0TZ-issue-561-local-index-source-separation
++allowedPaths:
++  - src/core/local-index.ts
++  - tests/unit/local-index.test.ts
++  - tests/integration/local-index.test.ts
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/local-index.ts
++stopIf:
++  - Human Gate required
++  - additional path required
++  - dependency addition or dependency graph change
++  - stale cache used for authority
++  - destructive source artifact deletion
++  - authentication or permission change
++  - unbounded query output
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - canonical artifact paths and freshness manifest paths are maintained separately
++  - contracts/tasks/index.yaml is included in freshness hashing but never emitted as a searchable Task record
++  - canonical paths are deterministic and duplicate-free, and Task status continues to come from the task index
++  - index rebuild failure leaves the existing working SQLite database unchanged
++  - unit and integration regression tests cover the ACED repository layout, duplicate source fixture, stale detection, status propagation, and bounded Task queries
++  - Issue
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSQ4E0TZ.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSQ4E0TZ.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ4E0TZ.patch
++  - contracts/approvals/SCWBS-DRAFT-MSQ4E0TZ.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSQ4E0TZ.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-08-12T13:24:35.365Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index ca146c7..6778dca 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2036,3 +2036,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T12:50:52.756Z"
++  - id: SCWBS-DRAFT-MSQ4E0TZ
++    path: contracts/tasks/SCWBS-DRAFT-MSQ4E0TZ.yaml
++    branchName: task/SCWBS-DRAFT-MSQ4E0TZ-issue-561-local-index-source-separation
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/core/local-index.ts b/src/core/local-index.ts
+index cb05d6f..e03bffe 100644
+--- a/src/core/local-index.ts
++++ b/src/core/local-index.ts
+@@ -82,6 +82,7 @@ const sourceRoots = [
+   "contracts/blocks",
+   "contracts/discovery"
+ ] as const;
++const taskIndexSourcePath = "contracts/tasks/index.yaml";
+ 
+ const kindAliases: Record<string, IndexKind> = {
+   spec: "spec", specs: "spec",
+@@ -124,16 +125,27 @@ function walkFiles(root: string, directory: string): string[] {
+   return output.sort();
+ }
+ 
+-function canonicalSourcePaths(root: string): string[] {
+-  return [
+-    ...sourceRoots.flatMap((directory) => walkFiles(root, directory)),
+-    existsSync(resolveFrom(root, "contracts/tasks/index.yaml")) ? "contracts/tasks/index.yaml" : "",
++function uniqueSortedPaths(paths: string[]): string[] {
++  return [...new Set(paths.filter(Boolean))].sort();
++}
++
++function canonicalArtifactPaths(root: string): string[] {
++  return uniqueSortedPaths(
++    sourceRoots.flatMap((directory) => walkFiles(root, directory))
++      .filter((relative) => relative !== taskIndexSourcePath)
++  );
++}
++
++function freshnessManifestPaths(root: string): string[] {
++  return uniqueSortedPaths([
++    ...canonicalArtifactPaths(root),
++    existsSync(resolveFrom(root, taskIndexSourcePath)) ? taskIndexSourcePath : "",
+     existsSync(resolveFrom(root, "contracts/wbs/project.wbs.json")) ? "contracts/wbs/project.wbs.json" : ""
+-  ].filter(Boolean);
++  ]);
+ }
+ 
+ function sourceManifest(root: string): { paths: string[]; hash: string } {
+-  const paths = canonicalSourcePaths(root);
++  const paths = freshnessManifestPaths(root);
+   const hash = createHash("sha256");
+   for (const relative of paths) {
+     hash.update(relative);
+@@ -151,7 +163,7 @@ function parseCanonical(root: string, relative: string): unknown {
+ 
+ function statusMap(root: string): Map<string, string> {
+   const result = new Map<string, string>();
+-  const relative = "contracts/tasks/index.yaml";
++  const relative = taskIndexSourcePath;
+   if (!existsSync(resolveFrom(root, relative))) return result;
+   const value = parseCanonical(root, relative);
+   if (!isObject(value) || !Array.isArray(value.tasks)) return result;
+@@ -163,6 +175,7 @@ function statusMap(root: string): Map<string, string> {
+ }
+ 
+ function sourceKind(relative: string): IndexKind | undefined {
++  if (relative === taskIndexSourcePath) return undefined;
+   if (relative.includes("/specs/")) return "spec";
+   if (relative.includes("/tasks/")) return "task";
+   if (relative.includes("/evidence/")) return "evidence";
+@@ -309,7 +322,7 @@ export function rebuildIndex(root: string): JsonObject {
+   const repositoryHead = headCommit(root) ?? "unavailable";
+   const manifest = sourceManifest(root);
+   const statuses = statusMap(root);
+-  const records = manifest.paths.flatMap((relative) => recordsForSource(root, relative, statuses, { indexedAt, repositoryHead }));
++  const records = canonicalArtifactPaths(root).flatMap((relative) => recordsForSource(root, relative, statuses, { indexedAt, repositoryHead }));
+   const destination = databasePath(root);
+   const directory = path.dirname(destination);
+   mkdirSync(directory, { recursive: true });
+diff --git a/tests/integration/local-index.test.ts b/tests/integration/local-index.test.ts
+index de7ac42..395b283 100644
+--- a/tests/integration/local-index.test.ts
++++ b/tests/integration/local-index.test.ts
+@@ -1,7 +1,7 @@
+ import { describe, expect, test } from "vitest";
+ import { main } from "../../src/cli.js";
+ import { queryIndex, rebuildIndex } from "../../src/core/local-index.js";
+-import { makeTempRepo, writeText } from "../helpers.js";
++import { makeTempRepo, writeText, writeYaml } from "../helpers.js";
+ 
+ function capture(root: string, args: string[]): { code: number; output: string } {
+   const originalWrite = process.stdout.write;
+@@ -15,6 +15,25 @@ function capture(root: string, args: string[]): { code: number; output: string }
+ }
+ 
+ describe("local index CLI and scale fixture", () => {
++  test("rebuilds an ACED-shaped task directory without indexing task metadata", () => {
++    const root = makeTempRepo();
++    writeText(root, "contracts/tasks/TASK-1.yaml", "id: TASK-1\ntype: task-contract\ntitle: CLI task\nstatus: planned\n");
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [{ id: "TASK-1", path: "contracts/tasks/TASK-1.yaml", branchName: "task/TASK-1", wbsNodeId: "node-api", status: "reviewed", dependsOn: [] }]
++    });
++
++    const rebuild = capture(root, ["index", "rebuild", "--json"]);
++    expect(rebuild.code).toBe(0);
++    expect(JSON.parse(rebuild.output)).toMatchObject({ status: "pass", recordCount: 1 });
++
++    const query = capture(root, ["query", "--kind", "task", "--json"]);
++    expect(query.code).toBe(0);
++    const output = JSON.parse(query.output) as { results: Array<{ sourcePath: string; status: string }> };
++    expect(output.results).toHaveLength(1);
++    expect(output.results[0]).toMatchObject({ sourcePath: "contracts/tasks/TASK-1.yaml", status: "reviewed" });
++    expect(output.results.some((item) => item.sourcePath === "contracts/tasks/index.yaml")).toBe(false);
++  });
++
+   test("rebuilds and queries more than 1000 records with bounded JSON", () => {
+     const root = makeTempRepo();
+     for (let index = 0; index < 1_050; index += 1) {
+diff --git a/tests/unit/local-index.test.ts b/tests/unit/local-index.test.ts
+index 0e71c8f..cdfe6e4 100644
+--- a/tests/unit/local-index.test.ts
++++ b/tests/unit/local-index.test.ts
+@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { indexStatus, queryIndex, rebuildIndex, verifyIndex } from "../../src/core/local-index.js";
+-import { makeTempRepo, writeText } from "../helpers.js";
++import { makeTempRepo, writeText, writeYaml } from "../helpers.js";
+ 
+ describe("local SQLite index", () => {
+   test("rebuilds canonical records with provenance and bounded query output", () => {
+@@ -30,6 +30,39 @@ describe("local SQLite index", () => {
+     expect(indexStatus(root)).toMatchObject({ status: "ready" });
+   });
+ 
++  test("separates task index metadata from searchable task artifacts", () => {
++    const root = makeTempRepo();
++    writeText(root, "contracts/tasks/TASK-1.yaml", "id: TASK-1\ntype: task-contract\ntitle: Indexed task\nstatus: planned\n");
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [{ id: "TASK-1", path: "contracts/tasks/TASK-1.yaml", branchName: "task/TASK-1", wbsNodeId: "node-api", status: "blocked", dependsOn: [] }]
++    });
++
++    const rebuilt = rebuildIndex(root) as { recordCount: number };
++    const result = queryIndex(root, { kinds: ["task"] });
++
++    expect(rebuilt.recordCount).toBe(1);
++    expect(result.results).toHaveLength(1);
++    expect(result.results[0]).toMatchObject({ id: "TASK-1:task:contracts/tasks/TASK-1.yaml", sourcePath: "contracts/tasks/TASK-1.yaml", status: "blocked" });
++    expect(result.results.some((item) => item.sourcePath === "contracts/tasks/index.yaml")).toBe(false);
++
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [{ id: "TASK-1", path: "contracts/tasks/TASK-1.yaml", branchName: "task/TASK-1", wbsNodeId: "node-api", status: "active", dependsOn: [] }]
++    });
++    expect(indexStatus(root)).toMatchObject({ status: "stale", reasons: expect.arrayContaining(["index.source.stale"]) });
++  });
++
++  test("keeps the working index when source parsing fails during rebuild", () => {
++    const root = makeTempRepo();
++    writeText(root, "contracts/specs/SPEC-A.yaml", "id: SPEC-A\ntype: spec-contract\ntitle: Stable\nstatus: approved\n");
++    rebuildIndex(root);
++    const before = queryIndex(root, { kinds: ["spec"] });
++    writeText(root, "contracts/specs/SPEC-A.yaml", "id: [invalid\n");
++
++    expect(() => rebuildIndex(root)).toThrow();
++    const after = queryIndex(root, { kinds: ["spec"] });
++    expect(after.results[0]).toMatchObject({ id: before.results[0]?.id, sourcePath: "contracts/specs/SPEC-A.yaml", title: "Stable", status: "approved", stale: true });
++  });
++
+   test("missing cache is a non-authoritative fallback", () => {
+     const root = makeTempRepo();
+     mkdirSync(path.join(root, "contracts"), { recursive: true });
