@@ -20,6 +20,19 @@ npm install --save-dev "https://github.com/xmeta/ACED/releases/download/v${SCWBS
 npx scwbs --version
 ```
 
+For discovery without hand-building the URL, download the release bootstrap asset. It
+verifies the release manifest and tarball digest before writing an exact dependency URL.
+
+```bash
+curl --fail --silent --show-error --location \
+  https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
+  --output /tmp/scwbs-bootstrap.mjs
+node /tmp/scwbs-bootstrap.mjs install --save-dev
+```
+
+Use `node /tmp/scwbs-bootstrap.mjs install --dry-run --json` to inspect the proposal
+without changing `package.json`.
+
 For an installed consumer, use the read-only version check. It reports the exact
 package version, release tag, subject commit, and tarball digest. The manifest
 and artifact options keep the same verification available offline.

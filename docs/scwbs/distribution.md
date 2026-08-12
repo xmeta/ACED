@@ -14,6 +14,22 @@ npx scwbs doctor
 npx scwbs check
 ```
 
+GitHub Release には、npm registry を使わずに current stable を検証して導入する
+依存なしの `scwbs-bootstrap.mjs` も添付します。bootstrap 自体は latest release
+を解決できますが、consumer の dependency には検証済みの exact version tarball URL
+だけを書き込みます。
+
+```bash
+curl --fail --silent --show-error --location \
+  https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
+  --output /tmp/scwbs-bootstrap.mjs
+node /tmp/scwbs-bootstrap.mjs install --save-dev
+```
+
+変更前の確認には `--dry-run --json` を使えます。`--tag v<version>`、`--manifest <path>`、
+`--artifact <path>` を指定すると、対象 Release または offline artifact を固定して検証できます。
+verification failure、unknown option、network failure は package.json を変更しません。
+
 Release artifact の `dist/wjs-runtime/` には WJS の validator、apply tool、
 schema が build 時に同梱されます。WJS の ownership は submodule 側に残り、
 ACED はその実行資産を配布用に変換して保持します。
@@ -47,9 +63,10 @@ pin を自動変更しません。npm registry 公開や unattended upgrade の�
 
 ## Release policy
 
-Release は main から手動 dispatch する `.github/workflows/release.yml` が
-release subject を先に確定し、対象 commit から `npm pack` した tarball と
-`release-manifest.json` を GitHub Release に添付します。npm registry への
+`.github/workflows/release.yml` は、人間が作成した `v*.*.*` tag push または main からの
+手動 dispatch を受け、release subject を先に確定し、対象 commit から `npm pack` した
+tarball、`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
+tag は workflow 内で作成せず、npm registry への
 publish、repository visibility の変更、credential の追加は行いません。
 
 workflow は次の順序を fail-closed で検証します。
