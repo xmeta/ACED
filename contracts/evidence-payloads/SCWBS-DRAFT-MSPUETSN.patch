@@ -1,0 +1,956 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index e4103f5..4decbae 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -10,6 +10,14 @@ on:
+         description: "Existing or new release tag, for example v0.1.0"
+         required: true
+         type: string
++  workflow_run:
++    workflows: ["scwbs"]
++    types: [completed]
++    branches: [main]
++
++concurrency:
++  group: scwbs-release-${{ github.event.workflow_run.head_sha || github.sha }}
++  cancel-in-progress: false
+ 
+ permissions:
+   contents: write
+@@ -18,69 +26,155 @@ permissions:
+ 
+ jobs:
+   release:
+-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
++    if: >-
++      github.event_name == 'push' ||
++      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
++      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout main
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           fetch-depth: 0
++          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+ 
+       - name: Resolve and checkout exact release subject
+         id: subject
+         env:
+-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
++          EVENT_NAME: ${{ github.event_name }}
++          INPUT_TAG: ${{ inputs.tag }}
++          REF_NAME: ${{ github.ref_name }}
++          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+         run: |
+           set -euo pipefail
+           integrity_script="$RUNNER_TEMP/release-integrity.mjs"
+           cp scripts/release-integrity.mjs "$integrity_script"
+           printf 'RELEASE_INTEGRITY_SCRIPT=%s\n' "$integrity_script" >> "$GITHUB_ENV"
+           git fetch origin main --tags --force
+-          if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
+-            tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
+-            test -n "$tag_commit"
+-            git checkout --detach "$tag_commit"
+-            release_commit="$tag_commit"
++          if [ "$EVENT_NAME" = "workflow_run" ]; then
++            release_commit="$WORKFLOW_RUN_SHA"
++            checkout_commit="$(git rev-parse HEAD^{commit})"
++            test "$checkout_commit" = "$release_commit"
++            package_version="$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).version')"
++            RELEASE_TAG="v${package_version}"
++          elif [ "$EVENT_NAME" = "push" ]; then
++            RELEASE_TAG="$REF_NAME"
++            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
++              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
++              test -n "$tag_commit"
++              git checkout --detach "$tag_commit"
++              release_commit="$tag_commit"
++            else
++              echo "push event did not contain the expected tag $RELEASE_TAG" >&2
++              exit 1
++            fi
+             tag_exists=true
+           else
++            RELEASE_TAG="$INPUT_TAG"
++            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
++              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
++              test -n "$tag_commit"
++              git checkout --detach "$tag_commit"
++              release_commit="$tag_commit"
++              tag_exists=true
++            else
++              release_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
++              checkout_commit="$(git rev-parse HEAD^{commit})"
++              test "$checkout_commit" = "$release_commit"
++              tag_commit=""
++              tag_exists=false
++            fi
++          fi
++          if [ "$EVENT_NAME" = "workflow_run" ]; then
++            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
++              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
++              test -n "$tag_commit"
++              tag_exists=true
++            else
++              tag_commit=""
++              tag_exists=false
++            fi
++          elif [ "$EVENT_NAME" = "push" ]; then
++            :
++          elif [ "$tag_exists" = "false" ]; then
+             release_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
+             checkout_commit="$(git rev-parse HEAD^{commit})"
+             test "$checkout_commit" = "$release_commit"
+-            tag_commit=""
+-            tag_exists=false
+           fi
++          printf 'release_tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+           printf 'release_commit=%s\n' "$release_commit" >> "$GITHUB_OUTPUT"
+           printf 'tag_commit=%s\n' "$tag_commit" >> "$GITHUB_OUTPUT"
+           printf 'tag_exists=%s\n' "$tag_exists" >> "$GITHUB_OUTPUT"
+ 
++      - name: Resolve existing stable Release and publication action
++        id: release-state
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
++        env:
++          EVENT_NAME: ${{ github.event_name }}
++          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
++          TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
++          TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
++        with:
++          script: |
++            const { classifyAutomatedRelease } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
++            let release = null;
++            try {
++              release = (await github.rest.repos.getReleaseByTag({
++                owner: context.repo.owner,
++                repo: context.repo.repo,
++                tag: process.env.RELEASE_TAG
++              })).data;
++            } catch (error) {
++              if (error.status !== 404) throw error;
++            }
++            const decision = classifyAutomatedRelease({
++              eventName: process.env.EVENT_NAME,
++              releaseTag: process.env.RELEASE_TAG,
++              releaseCommit: process.env.RELEASE_COMMIT,
++              tagExists: process.env.TAG_EXISTS === "true",
++              tagCommit: process.env.TAG_COMMIT || null,
++              release
++            });
++            core.setOutput("action", decision.action);
++            core.setOutput("create_tag", String(decision.createTag));
++            core.info(`${decision.action} ${process.env.RELEASE_TAG}`);
++
+       - name: Validate release subject, package version, and changelog
+         env:
+-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
++          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
+           TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
++          RELEASE_ACTION: ${{ steps.release-state.outputs.action }}
+         run: |
+           node --input-type=module <<'NODE'
+           import { execFileSync } from "node:child_process";
+           import { readFileSync } from "node:fs";
+-          const { assertChangelogVersion, assertReleaseSubject } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
++          const { assertChangelogVersion, assertReleaseSubject, assertStableReleaseVersion, expectedReleaseTag } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
+ 
+           const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+-          const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
+-          assertReleaseSubject({
+-            releaseTag: process.env.RELEASE_TAG,
+-            packageVersion: packageJson.version,
+-            tagExists: process.env.TAG_EXISTS === "true",
+-            tagCommit: process.env.TAG_COMMIT || null,
+-            releaseCommit: process.env.RELEASE_COMMIT,
+-            checkoutCommit
+-          });
++          assertStableReleaseVersion(packageJson.version);
++          if (process.env.RELEASE_ACTION === "publish") {
++            const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
++            assertReleaseSubject({
++              releaseTag: process.env.RELEASE_TAG,
++              packageVersion: packageJson.version,
++              tagExists: process.env.TAG_EXISTS === "true",
++              tagCommit: process.env.TAG_COMMIT || null,
++              releaseCommit: process.env.RELEASE_COMMIT,
++              checkoutCommit
++            });
++          } else if (expectedReleaseTag(packageJson.version) !== process.env.RELEASE_TAG) {
++            throw new Error(`existing Release tag ${process.env.RELEASE_TAG} does not match current package version ${packageJson.version}`);
++          }
+           assertChangelogVersion(readFileSync("CHANGELOG.md", "utf8"), packageJson.version);
+           console.log(`validated release subject ${process.env.RELEASE_COMMIT} for ${process.env.RELEASE_TAG}`);
+           NODE
+ 
+       - name: Verify exact-head aggregate validation
+         id: validation
++        if: steps.release-state.outputs.action == 'publish'
+         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+         env:
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+@@ -114,14 +208,16 @@ jobs:
+             }
+ 
+       - name: Set up repository and Node.js toolchain
++        if: steps.release-state.outputs.action == 'publish'
+         uses: ./.github/actions/setup-toolchain
+         with:
+           node-version: 24
+ 
+       - name: Build and pack self-contained artifact
+         id: pack
++        if: steps.release-state.outputs.action == 'publish'
+         env:
+-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
++          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           VALIDATION_WORKFLOW_RUN_ID: ${{ steps.validation.outputs.workflow_run_id }}
+           VALIDATION_CHECKS: ${{ steps.validation.outputs.checks }}
+@@ -158,12 +254,36 @@ jobs:
+           appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\nbootstrap=${bootstrapPath}\n`);
+           NODE
+ 
++      - name: Create exact release tag
++        if: steps.release-state.outputs.action == 'publish' && steps.release-state.outputs.create_tag == 'true'
++        env:
++          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
++          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
++        run: |
++          set -euo pipefail
++          git config user.name "github-actions[bot]"
++          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
++          if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
++            echo "release tag already exists; refusing duplicate creation" >&2
++            exit 1
++          fi
++          git tag -a "$RELEASE_TAG" "$RELEASE_COMMIT" -m "scwbs $RELEASE_TAG"
++          git push origin "refs/tags/$RELEASE_TAG"
++
+       - name: Create GitHub Release with artifact
++        if: steps.release-state.outputs.action == 'publish'
+         env:
+           GH_TOKEN: ${{ github.token }}
+-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
++          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           TARBALL: ${{ steps.pack.outputs.tarball }}
+           RELEASE_MANIFEST: ${{ steps.pack.outputs.manifest }}
+           BOOTSTRAP: ${{ steps.pack.outputs.bootstrap }}
+-        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
++        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --verify-tag --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
++
++      - name: Dogfood stable Release from public URLs
++        if: steps.release-state.outputs.action == 'publish' || steps.release-state.outputs.action == 'skip'
++        env:
++          SCWBS_RELEASE_REPOSITORY: ${{ github.repository }}
++          SCWBS_RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
++        run: node scripts/distribution-remote-smoke.mjs
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 5de1999..2999c21 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -14,6 +14,15 @@ and this project uses [Semantic Versioning](https://semver.org/).
+   validated in a fresh consumer fixture; GitHub Release is the supported
+   distribution path.
+ 
++## [0.1.0] - 2026-08-12
++
++### Added
++
++- Self-contained GitHub Release artifacts with exact-subject integrity
++  verification and consumer bootstrap installation.
++- Exact-head stable Release automation with direct tarball and bootstrap
++  remote consumer smoke validation.
++
+ Future user-visible changes should be added under `Unreleased` and moved to a
+ versioned section when a release is published. Historical implementation work
+ before this file was introduced remains available in the Git history.
+diff --git a/contracts/specs/SPEC-LITE-MSPUETSN.yaml b/contracts/specs/SPEC-LITE-MSPUETSN.yaml
+new file mode 100644
+index 0000000..a3acea2
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSPUETSN.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSPUETSN
++type: spec-contract
++featureId: F-MSPUETSN
++title: "Issue #560: automatic stable GitHub Release after exact-head main validation"
++status: approved
++version: 0.1.0
++summary: "Create a stable tag and GitHub Release automatically only after exact-head main validation, then dogfood the public tarball and bootstrap asset in fresh consumer projects."
++approvedBy: user-approved-issue-560-automation
++approvedAt: "2026-08-12T08:45:25.000Z"
++acceptanceCriteria:
++  - "Release automation runs only for a successful completed main scwbs validation subject and rechecks the exact subject SHA before publishing."
++  - "The release candidate binds package.json version, v<version> tag, versioned CHANGELOG.md section, release subject commit, tarball filename, and release manifest."
++  - "A missing stable tag and Release are created at most once; an existing tag or Release with a different subject, draft state, prerelease state, or mismatched version fails closed."
++  - "The stable Release contains scwbs-<version>.tgz, release-manifest.json, and scwbs-bootstrap.mjs, while the existing digest, validation, package, and CLI version checks remain enforced."
++  - "Remote consumer smoke uses fresh directories and verifies direct tarball installation plus bootstrap verification followed by npm install, --version, init, doctor, and task preflight."
++  - "Tests cover trigger filtering, version/changelog/tag collision policy, exact-subject checks, remote smoke command contract, and failure observability."
++  - "The change does not publish to npm, enable unattended consumer upgrades, add credentials or trust roots, expand workflow permissions, or publish prereleases."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml b/contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
+new file mode 100644
+index 0000000..7f264e8
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
+@@ -0,0 +1,70 @@
++id: SCWBS-DRAFT-MSPUETSN
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSPUETSN
++branchName: task/SCWBS-DRAFT-MSPUETSN-issue-560-automatic-stable-github-release-after-
++status: approved
++approvedBy: user-approved-issue-560-automation
++approvedAt: "2026-08-12T08:45:25.000Z"
++allowedPaths:
++  - .github/workflows/release.yml
++  - scripts/release-integrity.mjs
++  - scripts/distribution-remote-smoke.mjs
++  - tests/integration/release-integrity.test.ts
++  - docs/scwbs/distribution.md
++  - docs/scwbs/quickstart.md
++  - CHANGELOG.md
++  - contracts/specs/SPEC-LITE-MSPUETSN.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - .github/workflows/release.yml
++stopIf:
++  - release publication must remain exact-head and fail-closed
++  - automatic npm publication or unattended upgrade is forbidden
++  - credential or permission expansion requires Human Gate
++  - duplicate tag or Release must fail closed
++  - prerelease publication is out of scope
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - 'Complete Issue #560 automatic stable GitHub Release after exact-head main validation'
++  - A successful exact-head main scwbs workflow is the only release subject accepted by automation
++  - 'Automation derives v<package.json.version>, requires CHANGELOG.md ## [<version>], and rejects prerelease or version mismatch'
++  - Automation creates a missing tag and GitHub Release at most once; existing tag or Release subject mismatch fails closed
++  - Release assets are scwbs-<version>.tgz, release-manifest.json, and scwbs-bootstrap.mjs with existing integrity checks preserved
++  - Remote smoke verifies both direct tarball installation and bootstrap installation in fresh consumer projects, including --version, init, doctor, and task preflight
++  - No npm publication, unattended consumer upgrade, credential expansion, or workflow permission expansion is introduced
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - integration-test-result
++specPath: contracts/specs/SPEC-LITE-MSPUETSN.yaml
++specVersion: 0.1.0
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
++  - contracts/specs/SPEC-LITE-MSPUETSN.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSPUETSN.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSPUETSN.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSPUETSN.patch
++  - contracts/approvals/SCWBS-DRAFT-MSPUETSN.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSPUETSN.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:709951cad9538df39b6f45b143d1a4f30eaa81f1461c8d15038d372b3bf62b3e
++  createdAt: "2026-08-12T08:46:03.371Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 625cb6f..85d11bd 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2022,3 +2022,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T07:46:08.347Z"
++  - id: SCWBS-DRAFT-MSPUETSN
++    path: contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
++    branchName: task/SCWBS-DRAFT-MSPUETSN-issue-560-automatic-stable-github-release-after-
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index 8c0d642..f0de6dc 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -24,8 +24,12 @@ curl --fail --silent --show-error --location \
+   https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
+   --output /tmp/scwbs-bootstrap.mjs
+ node /tmp/scwbs-bootstrap.mjs install --save-dev
++npm install --ignore-scripts --no-audit --no-fund
+ ```
+ 
++The bootstrap verifies the public manifest and writes only the exact tarball
++URL to `package.json`; run `npm install` afterward to install that dependency.
++
+ 変更前の確認には `--dry-run --json` を使えます。`--tag v<version>`、`--manifest <path>`、
+ `--artifact <path>` を指定すると、対象 Release または offline artifact を固定して検証できます。
+ verification failure、unknown option、network failure は package.json を変更しません。
+@@ -63,17 +67,19 @@ pin を自動変更しません。npm registry 公開や unattended upgrade の
+ 
+ ## Release policy
+ 
+-`.github/workflows/release.yml` は、人間が作成した `v*.*.*` tag push または main からの
+-手動 dispatch を受け、release subject を先に確定し、対象 commit から `npm pack` した
+-tarball、`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
+-tag は workflow 内で作成せず、npm registry への
+-publish、repository visibility の変更、credential の追加は行いません。
++`.github/workflows/release.yml` は、main の `scwbs` workflow が exact-head で成功した
++`workflow_run` を受け、package version と versioned CHANGELOG section を確認した後、
++未公開の `v*.*.*` tag を作成し、対象 commit から `npm pack` した tarball、
++`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
++既存の同一 stable Release は idempotent に扱い、公開 asset の remote smoke だけを再実行します。
++手動 tag push と main からの workflow dispatch も互換経路として残ります。
++npm registry への publish、repository visibility の変更、credential の追加は行いません。
+ 
+ workflow は次の順序を fail-closed で検証します。
+ 
+ 1. 入力 tag が `v${package.json.version}` と一致すること
+-2. 既存 tag はその tag が指す commit を checkout し、新規 tag は現在の main
+-   commit を release subject とすること
++2. 既存 tag はその tag が指す commit を checkout し、自動作成する新規 tag は
++   exact-head validation の main commit を release subject とすること
+ 3. 同じ subject SHA を head に持つ `.github/workflows/scwbs.yml` の
+    `core`、`integration`、`wjs`、`distribution`、`validate` がすべて成功済みであること
+ 4. versioned `CHANGELOG.md` section が存在すること
+@@ -82,8 +88,10 @@ workflow は次の順序を fail-closed で検証します。
+ 
+ 既存 tag の subject mismatch、version mismatch、validation 不在、または
+ `Unreleased` section しかない CHANGELOG の場合は、tag や Release を作成せずに
+-失敗します。新規 tag は全検証と manifest 生成が終わった後、
+-`gh release create --target <subject-commit>` で初めて作成されます。
++失敗します。新規 tag は全検証と manifest 生成が終わった後に workflow が作成し、
++`gh release create --verify-tag --target <subject-commit>` で公開します。
++tag collision、既存 Release の不完全 asset、draft/prerelease、exact-subject 不一致は
++fail-closed で公開しません。
+ 
+ Release asset の検証例:
+ 
+diff --git a/docs/scwbs/quickstart.md b/docs/scwbs/quickstart.md
+index 203233d..1556f72 100644
+--- a/docs/scwbs/quickstart.md
++++ b/docs/scwbs/quickstart.md
+@@ -28,8 +28,12 @@ curl --fail --silent --show-error --location \
+   https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
+   --output /tmp/scwbs-bootstrap.mjs
+ node /tmp/scwbs-bootstrap.mjs install --save-dev
++npm install --ignore-scripts --no-audit --no-fund
+ ```
+ 
++The bootstrap verifies the release before writing the exact tarball URL to
++`package.json`; the following `npm install` installs that pinned dependency.
++
+ Use `node /tmp/scwbs-bootstrap.mjs install --dry-run --json` to inspect the proposal
+ without changing `package.json`.
+ 
+diff --git a/scripts/distribution-remote-smoke.mjs b/scripts/distribution-remote-smoke.mjs
+new file mode 100644
+index 0000000..5fe6045
+--- /dev/null
++++ b/scripts/distribution-remote-smoke.mjs
+@@ -0,0 +1,114 @@
++#!/usr/bin/env node
++import assert from "node:assert/strict";
++import { execFileSync } from "node:child_process";
++import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
++import os from "node:os";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import { setTimeout as delay } from "node:timers/promises";
++
++export const DEFAULT_REPOSITORY = "xmeta/ACED";
++export const MAX_FETCH_ATTEMPTS = 12;
++export const FETCH_RETRY_DELAY_MS = 2_000;
++
++function run(command, args, cwd) {
++  return execFileSync(command, args, {
++    cwd,
++    encoding: "utf8",
++    stdio: ["ignore", "pipe", "pipe"]
++  }).trim();
++}
++
++function runJson(command, args, cwd) {
++  return JSON.parse(run(command, args, cwd));
++}
++
++/** @param {{repository?: string, packageVersion: string}} options */
++export function buildRemoteSmokePlan({ repository = DEFAULT_REPOSITORY, packageVersion }) {
++  const tag = `v${packageVersion}`;
++  const tarball = `scwbs-${packageVersion}.tgz`;
++  return {
++    tag,
++    tarballUrl: `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(tarball)}`,
++    bootstrapUrl: `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/scwbs-bootstrap.mjs`,
++    commands: ["--version", "init", "doctor", "task preflight"]
++  };
++}
++
++async function fetchBytes(url) {
++  let lastError;
++  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
++    try {
++      const response = await fetch(url, { headers: { "user-agent": "scwbs-release-smoke" } });
++      if (!response.ok) throw new Error(`HTTP ${response.status}`);
++      return new Uint8Array(await response.arrayBuffer());
++    } catch (error) {
++      lastError = error;
++      if (attempt < MAX_FETCH_ATTEMPTS) await delay(FETCH_RETRY_DELAY_MS);
++    }
++  }
++  throw new Error(`failed to download ${url}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
++}
++
++async function installConsumer({ root, packageVersion, plan, mode }) {
++  run("npm", ["init", "-y"], root);
++  if (mode === "direct") {
++    run("npm", ["install", "--save-dev", "--ignore-scripts", "--no-audit", "--no-fund", plan.tarballUrl], root);
++  } else {
++    const bootstrapPath = path.join(root, "scwbs-bootstrap.mjs");
++    writeFileSync(bootstrapPath, await fetchBytes(plan.bootstrapUrl));
++    const bootstrap = runJson(process.execPath, [bootstrapPath, "install", "--save-dev", "--json"], root);
++    assert.equal(bootstrap.status, "pass", `bootstrap failed: ${JSON.stringify(bootstrap)}`);
++    assert.equal(bootstrap.artifactUrl, plan.tarballUrl);
++    const packageJson = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
++    assert.equal(packageJson.devDependencies?.scwbs, plan.tarballUrl);
++    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], root);
++  }
++
++  assert.equal(run("npx", ["--no-install", "scwbs", "--version"], root), packageVersion);
++  run("npx", ["--no-install", "scwbs", "init", "--profile", "lean", "--agent", "codex", "--lang", "en"], root);
++  run("npx", ["--no-install", "scwbs", "doctor"], root);
++  const preflight = runJson(
++    "npx",
++    [
++      "--no-install",
++      "scwbs",
++      "task",
++      "preflight",
++      "--title",
++      "Improve a consumer-facing document",
++      "--paths",
++      "docs/example.md",
++      "--profile",
++      "lean",
++      "--json"
++    ],
++    root
++  );
++  assert.equal(preflight.status, "pass", `consumer task preflight failed: ${JSON.stringify(preflight)}`);
++}
++
++/** @param {{repository?: string, packageVersion?: string}} [options] */
++export async function runRemoteSmoke({ repository = DEFAULT_REPOSITORY, packageVersion } = {}) {
++  const version = String(packageVersion ?? "");
++  if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error("packageVersion must be a stable semantic version");
++  const plan = buildRemoteSmokePlan({ repository, packageVersion: version });
++  const root = mkdtempSync(path.join(os.tmpdir(), "scwbs-remote-smoke-"));
++  const direct = path.join(root, "direct-consumer");
++  const bootstrap = path.join(root, "bootstrap-consumer");
++  mkdirSync(direct);
++  mkdirSync(bootstrap);
++  await installConsumer({ root: direct, packageVersion: version, plan, mode: "direct" });
++  await installConsumer({ root: bootstrap, packageVersion: version, plan, mode: "bootstrap" });
++  console.log(`PASS remote distribution smoke ${plan.tag} (${root})`);
++  return { status: "pass", packageVersion: version, tag: plan.tag, root };
++}
++
++if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
++  const tag = process.env.SCWBS_RELEASE_TAG ?? "";
++  const packageVersion = tag.replace(/^v/, "");
++  await runRemoteSmoke({
++    repository: process.env.SCWBS_RELEASE_REPOSITORY ?? DEFAULT_REPOSITORY,
++    packageVersion
++  });
++}
+diff --git a/scripts/release-integrity.mjs b/scripts/release-integrity.mjs
+index 4d9ed6c..402342d 100644
+--- a/scripts/release-integrity.mjs
++++ b/scripts/release-integrity.mjs
+@@ -2,16 +2,12 @@ import { createHash } from "node:crypto";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
+ 
+-export const REQUIRED_RELEASE_CHECKS = Object.freeze([
+-  "core",
+-  "integration",
+-  "wjs",
+-  "distribution",
+-  "validate"
+-]);
++export const REQUIRED_RELEASE_CHECKS = Object.freeze(["core", "integration", "wjs", "distribution", "validate"]);
+ 
+ export const RELEASE_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+ 
++export const REQUIRED_RELEASE_ASSETS = Object.freeze(["release-manifest.json", "scwbs-bootstrap.mjs"]);
++
+ const REQUIRED_PACKED_FILES = Object.freeze([
+   "dist/cli.js",
+   "dist/wjs-runtime/tools/validate.mjs",
+@@ -31,6 +27,13 @@ export function expectedReleaseTag(packageVersion) {
+   return `v${packageVersion}`;
+ }
+ 
++export function assertStableReleaseVersion(packageVersion) {
++  if (!/^\d+\.\d+\.\d+$/.test(String(packageVersion))) {
++    throw new Error(`release version ${packageVersion} is not a stable semantic version`);
++  }
++  return packageVersion;
++}
++
+ export function assertReleaseSubject({
+   releaseTag,
+   packageVersion,
+@@ -41,7 +44,9 @@ export function assertReleaseSubject({
+ }) {
+   const expectedTag = expectedReleaseTag(packageVersion);
+   if (releaseTag !== expectedTag) {
+-    throw new Error(`release tag ${releaseTag} does not match package version ${packageVersion}; expected ${expectedTag}`);
++    throw new Error(
++      `release tag ${releaseTag} does not match package version ${packageVersion}; expected ${expectedTag}`
++    );
+   }
+   if (!releaseCommit || checkoutCommit !== releaseCommit) {
+     throw new Error("release checkout is not the exact release subject commit");
+@@ -58,6 +63,40 @@ export function assertChangelogVersion(changelog, packageVersion) {
+   }
+ }
+ 
++/**
++ * Decide whether automated release publication is a new publication, an
++ * idempotent verification, or a fail-closed duplicate/collision.
++ *
++ * The workflow-run path is intentionally idempotent because every successful
++ * main validation can observe the already-published package version. Push and
++ * manual-dispatch paths remain strict duplicate attempts.
++ */
++export function classifyAutomatedRelease({ eventName, releaseTag, releaseCommit, tagExists, tagCommit, release }) {
++  if (!["push", "workflow_dispatch", "workflow_run"].includes(eventName)) {
++    throw new Error(`unsupported release event ${eventName}`);
++  }
++  if (release && release.tag_name !== releaseTag) {
++    throw new Error("existing GitHub Release tag does not match the requested release tag");
++  }
++  if (tagExists && tagCommit !== releaseCommit) {
++    throw new Error("existing release tag does not resolve to the exact release subject");
++  }
++  if (release && (release.draft === true || release.prerelease === true)) {
++    throw new Error("existing GitHub Release is not a stable published release");
++  }
++  if (release) {
++    const assets = new Set((release.assets ?? []).map((asset) => asset?.name));
++    const requiredAssets = [...REQUIRED_RELEASE_ASSETS, `scwbs-${releaseTag.replace(/^v/, "")}.tgz`];
++    for (const required of requiredAssets) {
++      if (!assets.has(required)) throw new Error(`existing GitHub Release is missing ${required}`);
++    }
++    if (!tagExists) throw new Error("existing GitHub Release has no matching Git tag");
++    if (eventName === "workflow_run") return { action: "skip", createTag: false };
++    throw new Error("stable GitHub Release already exists; refusing duplicate publication");
++  }
++  return { action: "publish", createTag: !tagExists };
++}
++
+ export function assertCliVersion(actualVersion, packageVersion) {
+   if (actualVersion !== packageVersion) {
+     throw new Error(`scwbs --version returned ${actualVersion}; expected ${packageVersion}`);
+diff --git a/tests/integration/release-integrity.test.ts b/tests/integration/release-integrity.test.ts
+index cc65c99..fe2f7a3 100644
+--- a/tests/integration/release-integrity.test.ts
++++ b/tests/integration/release-integrity.test.ts
+@@ -7,9 +7,12 @@ import {
+   assertChangelogVersion,
+   assertCliVersion,
+   assertReleaseSubject,
++  assertStableReleaseVersion,
++  classifyAutomatedRelease,
+   createReleaseManifest,
+   findTrustedValidationRun
+ } from "../../scripts/release-integrity.mjs";
++import { buildRemoteSmokePlan } from "../../scripts/distribution-remote-smoke.mjs";
+ 
+ const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/release.yml"), "utf8");
+ const subject = "a".repeat(40);
+@@ -41,52 +44,68 @@ function validationFixtures(overrides: Record<string, unknown> = {}) {
+ 
+ describe("release integrity", () => {
+   test("requires the package version tag and exact checked-out subject", () => {
+-    expect(() => assertReleaseSubject({
+-      releaseTag: "v0.1.0",
+-      packageVersion: "0.1.0",
+-      tagExists: true,
+-      tagCommit: subject,
+-      releaseCommit: subject,
+-      checkoutCommit: subject
+-    })).not.toThrow();
+-
+-    expect(() => assertReleaseSubject({
+-      releaseTag: "v0.2.0",
+-      packageVersion: "0.1.0",
+-      tagExists: false,
+-      tagCommit: null,
+-      releaseCommit: subject,
+-      checkoutCommit: subject
+-    })).toThrow(/does not match package version/);
++    expect(() =>
++      assertReleaseSubject({
++        releaseTag: "v0.1.0",
++        packageVersion: "0.1.0",
++        tagExists: true,
++        tagCommit: subject,
++        releaseCommit: subject,
++        checkoutCommit: subject
++      })
++    ).not.toThrow();
+ 
+-    expect(() => assertReleaseSubject({
+-      releaseTag: "v0.1.0",
+-      packageVersion: "0.1.0",
+-      tagExists: true,
+-      tagCommit: otherSubject,
+-      releaseCommit: subject,
+-      checkoutCommit: subject
+-    })).toThrow(/existing release tag/);
++    expect(() =>
++      assertReleaseSubject({
++        releaseTag: "v0.2.0",
++        packageVersion: "0.1.0",
++        tagExists: false,
++        tagCommit: null,
++        releaseCommit: subject,
++        checkoutCommit: subject
++      })
++    ).toThrow(/does not match package version/);
+ 
+-    expect(() => assertReleaseSubject({
+-      releaseTag: "v0.1.0",
+-      packageVersion: "0.1.0",
+-      tagExists: false,
+-      tagCommit: null,
+-      releaseCommit: subject,
+-      checkoutCommit: otherSubject
+-    })).toThrow(/exact release subject/);
++    expect(() =>
++      assertReleaseSubject({
++        releaseTag: "v0.1.0",
++        packageVersion: "0.1.0",
++        tagExists: true,
++        tagCommit: otherSubject,
++        releaseCommit: subject,
++        checkoutCommit: subject
++      })
++    ).toThrow(/existing release tag/);
++
++    expect(() =>
++      assertReleaseSubject({
++        releaseTag: "v0.1.0",
++        packageVersion: "0.1.0",
++        tagExists: false,
++        tagCommit: null,
++        releaseCommit: subject,
++        checkoutCommit: otherSubject
++      })
++    ).toThrow(/exact release subject/);
+   });
+ 
+   test("accepts only successful aggregate validation for the exact workflow head", () => {
+     expect(findTrustedValidationRun(validationFixtures())).toMatchObject({ workflowRunId: 5060 });
+     expect(findTrustedValidationRun(validationFixtures({ subjectCommit: otherSubject }))).toBeNull();
+-    expect(findTrustedValidationRun(validationFixtures({
+-      workflowRuns: [{ ...validationFixtures().workflowRuns[0], head_sha: otherSubject }]
+-    }))).toBeNull();
+-    expect(findTrustedValidationRun(validationFixtures({
+-      checkRuns: validationFixtures().checkRuns.filter((check) => check.name !== "validate")
+-    }))).toBeNull();
++    expect(
++      findTrustedValidationRun(
++        validationFixtures({
++          workflowRuns: [{ ...validationFixtures().workflowRuns[0], head_sha: otherSubject }]
++        })
++      )
++    ).toBeNull();
++    expect(
++      findTrustedValidationRun(
++        validationFixtures({
++          checkRuns: validationFixtures().checkRuns.filter((check) => check.name !== "validate")
++        })
++      )
++    ).toBeNull();
+   });
+ 
+   test("rejects an Unreleased-only changelog and accepts a versioned section", () => {
+@@ -99,6 +118,11 @@ describe("release integrity", () => {
+     expect(() => assertCliVersion("0.2.0", "0.1.0")).toThrow(/expected 0.1.0/);
+   });
+ 
++  test("accepts only stable package versions for automated publication", () => {
++    expect(assertStableReleaseVersion("0.1.0")).toBe("0.1.0");
++    expect(() => assertStableReleaseVersion("0.1.0-rc.1")).toThrow(/not a stable semantic version/);
++  });
++
+   test("creates a manifest with the tarball checksum and validation provenance", () => {
+     const root = mkdtempSync(path.join(tmpdir(), "scwbs-release-integrity-"));
+     const tarballPath = path.join(root, "scwbs-0.1.0.tgz");
+@@ -109,18 +133,20 @@ describe("release integrity", () => {
+       releaseTag: "v0.1.0",
+       commit: subject,
+       tarballPath,
+-      packMetadata: [{
+-        name: "scwbs",
+-        version: "0.1.0",
+-        filename: "scwbs-0.1.0.tgz",
+-        files: [
+-          { path: "dist/cli.js" },
+-          { path: "dist/wjs-runtime/tools/validate.mjs" },
+-          { path: "dist/wjs-runtime/tools/apply.mjs" },
+-          { path: "dist/wjs-runtime/schema/wbs-json.schema.json" },
+-          { path: "dist/wjs-runtime/schema/wbs-operations.schema.json" }
+-        ]
+-      }],
++      packMetadata: [
++        {
++          name: "scwbs",
++          version: "0.1.0",
++          filename: "scwbs-0.1.0.tgz",
++          files: [
++            { path: "dist/cli.js" },
++            { path: "dist/wjs-runtime/tools/validate.mjs" },
++            { path: "dist/wjs-runtime/tools/apply.mjs" },
++            { path: "dist/wjs-runtime/schema/wbs-json.schema.json" },
++            { path: "dist/wjs-runtime/schema/wbs-operations.schema.json" }
++          ]
++        }
++      ],
+       validationWorkflowRunId: 5060,
+       validationChecks: [{ name: "validate", conclusion: "success" }]
+     });
+@@ -134,17 +160,114 @@ describe("release integrity", () => {
+     });
+   });
+ 
++  test("publishes a new automated release only when the tag and Release are absent", () => {
++    expect(
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: false,
++        tagCommit: null,
++        release: null
++      })
++    ).toEqual({ action: "publish", createTag: true });
++
++    expect(
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: subject,
++        release: null
++      })
++    ).toEqual({ action: "publish", createTag: false });
++
++    expect(() =>
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: otherSubject,
++        release: null
++      })
++    ).toThrow(/exact release subject/);
++  });
++
++  test("makes an existing complete stable Release idempotent only for workflow_run", () => {
++    const release = {
++      tag_name: "v0.1.0",
++      draft: false,
++      prerelease: false,
++      assets: [{ name: "release-manifest.json" }, { name: "scwbs-bootstrap.mjs" }, { name: "scwbs-0.1.0.tgz" }]
++    };
++    expect(
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: subject,
++        release
++      })
++    ).toEqual({ action: "skip", createTag: false });
++    expect(() =>
++      classifyAutomatedRelease({
++        eventName: "push",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: subject,
++        release
++      })
++    ).toThrow(/duplicate publication/);
++    expect(() =>
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: subject,
++        release: { ...release, assets: [{ name: "release-manifest.json" }] }
++      })
++    ).toThrow(/missing scwbs-bootstrap/);
++    expect(() =>
++      classifyAutomatedRelease({
++        eventName: "workflow_run",
++        releaseTag: "v0.1.0",
++        releaseCommit: subject,
++        tagExists: true,
++        tagCommit: otherSubject,
++        release
++      })
++    ).toThrow(/exact release subject/);
++  });
++
++  test("builds bounded direct and bootstrap remote smoke URLs", () => {
++    expect(buildRemoteSmokePlan({ repository: "xmeta/ACED", packageVersion: "0.1.0" })).toMatchObject({
++      tag: "v0.1.0",
++      tarballUrl: "https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-0.1.0.tgz",
++      bootstrapUrl: "https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-bootstrap.mjs",
++      commands: ["--version", "init", "doctor", "task preflight"]
++    });
++  });
++
+   test("keeps the workflow fail-closed and target-pinned", () => {
+     expect(workflow).toContain("checks: read");
+     expect(workflow).toContain("actions: read");
+     expect(workflow).toContain('cp scripts/release-integrity.mjs "$integrity_script"');
+     expect(workflow).toContain('git checkout --detach "$tag_commit"');
+-    expect(workflow).toContain('import(process.env.RELEASE_INTEGRITY_SCRIPT)');
++    expect(workflow).toContain("import(process.env.RELEASE_INTEGRITY_SCRIPT)");
+     expect(workflow).toContain("findTrustedValidationRun");
+     expect(workflow).toContain("release-manifest.json");
+     expect(workflow).toContain("scwbs-bootstrap.mjs");
+     expect(workflow).toContain('tags:\n      - "v*.*.*"');
+-    expect(workflow).toContain("github.event_name == 'push' || github.ref == 'refs/heads/main'");
++    expect(workflow).toContain('workflows: ["scwbs"]');
++    expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
++    expect(workflow).toContain("Create exact release tag");
++    expect(workflow).toContain("--verify-tag");
++    expect(workflow).toContain("Dogfood stable Release from public URLs");
+     expect(workflow).toContain('--target "$RELEASE_COMMIT"');
+   });
+ });

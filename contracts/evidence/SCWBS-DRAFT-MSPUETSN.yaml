@@ -1,0 +1,84 @@
+id: EVD-SCWBS-DRAFT-MSPUETSN
+type: evidence
+taskId: SCWBS-DRAFT-MSPUETSN
+commit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+subjectHeadCommit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+diffHash: sha256:a6744cd2e23693abaa782d8103f1331fa6be73c629a2a25aa9f44e8d09950a88
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+    treeHash: fedd3560269cec1291799490cbc1e1da6814fb1c
+    diffHash: sha256:a6744cd2e23693abaa782d8103f1331fa6be73c629a2a25aa9f44e8d09950a88
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSPUETSN.patch
+    manifestHash: sha256:a6744cd2e23693abaa782d8103f1331fa6be73c629a2a25aa9f44e8d09950a88
+git:
+  branch: task/SCWBS-DRAFT-MSPUETSN-issue-560-automatic-stable-github-release-after-
+  base: origin/main
+  baseCommit: 56aec858d5878e5e0edc7d09dfb3ceda0d4e7c03
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+  diffHash: sha256:a6744cd2e23693abaa782d8103f1331fa6be73c629a2a25aa9f44e8d09950a88
+  headCommit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+changedFiles:
+  - .github/workflows/release.yml
+  - CHANGELOG.md
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSPUETSN.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSPUETSN.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/distribution.md
+  - docs/scwbs/quickstart.md
+  - scripts/distribution-remote-smoke.mjs
+  - scripts/release-integrity.mjs
+  - tests/integration/release-integrity.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 56aec858d5878e5e0edc7d09dfb3ceda0d4e7c03
+    headCommit: be69b1fcf7a6569f189837dfd6d647f139d580c5
+    diffHash: sha256:a6744cd2e23693abaa782d8103f1331fa6be73c629a2a25aa9f44e8d09950a88
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:cf69ef6819d153ff28077983b297e5ef6c7f8f0571bf3bdd10c6a31a90f93717
+    durationMilliseconds: 22506
+    executedAt: "2026-08-12T09:39:09.701Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e23e078cbec03366c6795e32168c300938e995f0bb595fc5ea1a7c6f2269be91
+    durationMilliseconds: 12802
+    executedAt: "2026-08-12T09:39:22.509Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:6f7da7ab07a2bb8c2ab401d9ceeee923f32145ecb6f9b3c9b5d2e0e80d14fc0b
+    durationMilliseconds: 5258
+    executedAt: "2026-08-12T09:39:27.772Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:ea7be8ddd27eed01688a8e2e42a356372fca1851b2270693452ac49a6a6beb86
+    durationMilliseconds: 279658
+    executedAt: "2026-08-12T09:44:07.435Z"
