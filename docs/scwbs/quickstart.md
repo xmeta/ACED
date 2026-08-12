@@ -28,7 +28,11 @@ curl --fail --silent --show-error --location \
   https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
   --output /tmp/scwbs-bootstrap.mjs
 node /tmp/scwbs-bootstrap.mjs install --save-dev
+npm install --ignore-scripts --no-audit --no-fund
 ```
+
+The bootstrap verifies the release before writing the exact tarball URL to
+`package.json`; the following `npm install` installs that pinned dependency.
 
 Use `node /tmp/scwbs-bootstrap.mjs install --dry-run --json` to inspect the proposal
 without changing `package.json`.

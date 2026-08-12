@@ -10,6 +10,14 @@ on:
         description: "Existing or new release tag, for example v0.1.0"
         required: true
         type: string
+  workflow_run:
+    workflows: ["scwbs"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: scwbs-release-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -18,69 +26,154 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Resolve and checkout exact release subject
         id: subject
         env:
-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           integrity_script="$RUNNER_TEMP/release-integrity.mjs"
           cp scripts/release-integrity.mjs "$integrity_script"
           printf 'RELEASE_INTEGRITY_SCRIPT=%s\n' "$integrity_script" >> "$GITHUB_ENV"
           git fetch origin main --tags --force
-          if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
-            tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
-            test -n "$tag_commit"
-            git checkout --detach "$tag_commit"
-            release_commit="$tag_commit"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            release_commit="$WORKFLOW_RUN_SHA"
+            checkout_commit="$(git rev-parse HEAD^{commit})"
+            test "$checkout_commit" = "$release_commit"
+            package_version="$(node -p 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).version')"
+            RELEASE_TAG="v${package_version}"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            RELEASE_TAG="$REF_NAME"
+            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
+              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
+              test -n "$tag_commit"
+              git checkout --detach "$tag_commit"
+              release_commit="$tag_commit"
+            else
+              echo "push event did not contain the expected tag $RELEASE_TAG" >&2
+              exit 1
+            fi
             tag_exists=true
           else
+            RELEASE_TAG="$INPUT_TAG"
+            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
+              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
+              test -n "$tag_commit"
+              git checkout --detach "$tag_commit"
+              release_commit="$tag_commit"
+              tag_exists=true
+            else
+              release_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
+              checkout_commit="$(git rev-parse HEAD^{commit})"
+              test "$checkout_commit" = "$release_commit"
+              tag_commit=""
+              tag_exists=false
+            fi
+          fi
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
+              tag_commit="$(git rev-list -n 1 "$RELEASE_TAG^{commit}")"
+              test -n "$tag_commit"
+              tag_exists=true
+            else
+              tag_commit=""
+              tag_exists=false
+            fi
+          elif [ "$EVENT_NAME" = "push" ]; then
+            :
+          elif [ "$tag_exists" = "false" ]; then
             release_commit="$(git rev-parse refs/remotes/origin/main^{commit})"
             checkout_commit="$(git rev-parse HEAD^{commit})"
             test "$checkout_commit" = "$release_commit"
-            tag_commit=""
-            tag_exists=false
           fi
+          printf 'release_tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           printf 'release_commit=%s\n' "$release_commit" >> "$GITHUB_OUTPUT"
           printf 'tag_commit=%s\n' "$tag_commit" >> "$GITHUB_OUTPUT"
           printf 'tag_exists=%s\n' "$tag_exists" >> "$GITHUB_OUTPUT"
 
-      - name: Validate release subject, package version, and changelog
+      - name: Resolve existing stable Release and publication action
+        id: release-state
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
           TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
+        with:
+          script: |
+            const { classifyAutomatedRelease } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
+            let release = null;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: process.env.RELEASE_TAG
+              })).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            const decision = classifyAutomatedRelease({
+              eventName: process.env.EVENT_NAME,
+              releaseTag: process.env.RELEASE_TAG,
+              releaseCommit: process.env.RELEASE_COMMIT,
+              tagExists: process.env.TAG_EXISTS === "true",
+              tagCommit: process.env.TAG_COMMIT || null,
+              release
+            });
+            core.setOutput("action", decision.action);
+            core.setOutput("create_tag", String(decision.createTag));
+            core.info(`${decision.action} ${process.env.RELEASE_TAG}`);
+
+      - name: Validate release subject, package version, and changelog
+        env:
+          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+          TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
+          TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
+          RELEASE_ACTION: ${{ steps.release-state.outputs.action }}
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync } from "node:child_process";
           import { readFileSync } from "node:fs";
-          const { assertChangelogVersion, assertReleaseSubject } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
+          const { assertChangelogVersion, assertReleaseSubject, expectedReleaseTag } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
 
           const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-          const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
-          assertReleaseSubject({
-            releaseTag: process.env.RELEASE_TAG,
-            packageVersion: packageJson.version,
-            tagExists: process.env.TAG_EXISTS === "true",
-            tagCommit: process.env.TAG_COMMIT || null,
-            releaseCommit: process.env.RELEASE_COMMIT,
-            checkoutCommit
-          });
+          if (process.env.RELEASE_ACTION === "publish") {
+            const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
+            assertReleaseSubject({
+              releaseTag: process.env.RELEASE_TAG,
+              packageVersion: packageJson.version,
+              tagExists: process.env.TAG_EXISTS === "true",
+              tagCommit: process.env.TAG_COMMIT || null,
+              releaseCommit: process.env.RELEASE_COMMIT,
+              checkoutCommit
+            });
+          } else if (expectedReleaseTag(packageJson.version) !== process.env.RELEASE_TAG) {
+            throw new Error(`existing Release tag ${process.env.RELEASE_TAG} does not match current package version ${packageJson.version}`);
+          }
           assertChangelogVersion(readFileSync("CHANGELOG.md", "utf8"), packageJson.version);
           console.log(`validated release subject ${process.env.RELEASE_COMMIT} for ${process.env.RELEASE_TAG}`);
           NODE
 
       - name: Verify exact-head aggregate validation
         id: validation
+        if: steps.release-state.outputs.action == 'publish'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
@@ -114,14 +207,16 @@ jobs:
             }
 
       - name: Set up repository and Node.js toolchain
+        if: steps.release-state.outputs.action == 'publish'
         uses: ./.github/actions/setup-toolchain
         with:
           node-version: 24
 
       - name: Build and pack self-contained artifact
         id: pack
+        if: steps.release-state.outputs.action == 'publish'
         env:
-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           VALIDATION_WORKFLOW_RUN_ID: ${{ steps.validation.outputs.workflow_run_id }}
           VALIDATION_CHECKS: ${{ steps.validation.outputs.checks }}
@@ -158,12 +253,36 @@ jobs:
           appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\nbootstrap=${bootstrapPath}\n`);
           NODE
 
+      - name: Create exact release tag
+        if: steps.release-state.outputs.action == 'publish' && steps.release-state.outputs.create_tag == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+          RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git show-ref --tags --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            echo "release tag already exists; refusing duplicate creation" >&2
+            exit 1
+          fi
+          git tag -a "$RELEASE_TAG" "$RELEASE_COMMIT" -m "scwbs $RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+
       - name: Create GitHub Release with artifact
+        if: steps.release-state.outputs.action == 'publish'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           TARBALL: ${{ steps.pack.outputs.tarball }}
           RELEASE_MANIFEST: ${{ steps.pack.outputs.manifest }}
           BOOTSTRAP: ${{ steps.pack.outputs.bootstrap }}
-        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
+        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --verify-tag --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
+
+      - name: Dogfood stable Release from public URLs
+        if: steps.release-state.outputs.action == 'publish' || steps.release-state.outputs.action == 'skip'
+        env:
+          SCWBS_RELEASE_REPOSITORY: ${{ github.repository }}
+          SCWBS_RELEASE_TAG: ${{ steps.subject.outputs.release_tag }}
+        run: node scripts/distribution-remote-smoke.mjs

@@ -24,7 +24,11 @@ curl --fail --silent --show-error --location \
   https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
   --output /tmp/scwbs-bootstrap.mjs
 node /tmp/scwbs-bootstrap.mjs install --save-dev
+npm install --ignore-scripts --no-audit --no-fund
 ```
+
+The bootstrap verifies the public manifest and writes only the exact tarball
+URL to `package.json`; run `npm install` afterward to install that dependency.
 
 変更前の確認には `--dry-run --json` を使えます。`--tag v<version>`、`--manifest <path>`、
 `--artifact <path>` を指定すると、対象 Release または offline artifact を固定して検証できます。
@@ -63,17 +67,19 @@ pin を自動変更しません。npm registry 公開や unattended upgrade の�
 
 ## Release policy
 
-`.github/workflows/release.yml` は、人間が作成した `v*.*.*` tag push または main からの
-手動 dispatch を受け、release subject を先に確定し、対象 commit から `npm pack` した
-tarball、`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
-tag は workflow 内で作成せず、npm registry への
-publish、repository visibility の変更、credential の追加は行いません。
+`.github/workflows/release.yml` は、main の `scwbs` workflow が exact-head で成功した
+`workflow_run` を受け、package version と versioned CHANGELOG section を確認した後、
+未公開の `v*.*.*` tag を作成し、対象 commit から `npm pack` した tarball、
+`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
+既存の同一 stable Release は idempotent に扱い、公開 asset の remote smoke だけを再実行します。
+手動 tag push と main からの workflow dispatch も互換経路として残ります。
+npm registry への publish、repository visibility の変更、credential の追加は行いません。
 
 workflow は次の順序を fail-closed で検証します。
 
 1. 入力 tag が `v${package.json.version}` と一致すること
-2. 既存 tag はその tag が指す commit を checkout し、新規 tag は現在の main
-   commit を release subject とすること
+2. 既存 tag はその tag が指す commit を checkout し、自動作成する新規 tag は
+   exact-head validation の main commit を release subject とすること
 3. 同じ subject SHA を head に持つ `.github/workflows/scwbs.yml` の
    `core`、`integration`、`wjs`、`distribution`、`validate` がすべて成功済みであること
 4. versioned `CHANGELOG.md` section が存在すること
@@ -82,8 +88,10 @@ workflow は次の順序を fail-closed で検証します。
 
 既存 tag の subject mismatch、version mismatch、validation 不在、または
 `Unreleased` section しかない CHANGELOG の場合は、tag や Release を作成せずに
-失敗します。新規 tag は全検証と manifest 生成が終わった後、
-`gh release create --target <subject-commit>` で初めて作成されます。
+失敗します。新規 tag は全検証と manifest 生成が終わった後に workflow が作成し、
+`gh release create --verify-tag --target <subject-commit>` で公開します。
+tag collision、既存 Release の不完全 asset、draft/prerelease、exact-subject 不一致は
+fail-closed で公開しません。
 
 Release asset の検証例:
 

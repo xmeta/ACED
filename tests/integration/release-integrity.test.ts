@@ -7,9 +7,11 @@ import {
   assertChangelogVersion,
   assertCliVersion,
   assertReleaseSubject,
+  classifyAutomatedRelease,
   createReleaseManifest,
   findTrustedValidationRun
 } from "../../scripts/release-integrity.mjs";
+import { buildRemoteSmokePlan } from "../../scripts/distribution-remote-smoke.mjs";
 
 const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/release.yml"), "utf8");
 const subject = "a".repeat(40);
@@ -41,52 +43,68 @@ function validationFixtures(overrides: Record<string, unknown> = {}) {
 
 describe("release integrity", () => {
   test("requires the package version tag and exact checked-out subject", () => {
-    expect(() => assertReleaseSubject({
-      releaseTag: "v0.1.0",
-      packageVersion: "0.1.0",
-      tagExists: true,
-      tagCommit: subject,
-      releaseCommit: subject,
-      checkoutCommit: subject
-    })).not.toThrow();
+    expect(() =>
+      assertReleaseSubject({
+        releaseTag: "v0.1.0",
+        packageVersion: "0.1.0",
+        tagExists: true,
+        tagCommit: subject,
+        releaseCommit: subject,
+        checkoutCommit: subject
+      })
+    ).not.toThrow();
 
-    expect(() => assertReleaseSubject({
-      releaseTag: "v0.2.0",
-      packageVersion: "0.1.0",
-      tagExists: false,
-      tagCommit: null,
-      releaseCommit: subject,
-      checkoutCommit: subject
-    })).toThrow(/does not match package version/);
+    expect(() =>
+      assertReleaseSubject({
+        releaseTag: "v0.2.0",
+        packageVersion: "0.1.0",
+        tagExists: false,
+        tagCommit: null,
+        releaseCommit: subject,
+        checkoutCommit: subject
+      })
+    ).toThrow(/does not match package version/);
 
-    expect(() => assertReleaseSubject({
-      releaseTag: "v0.1.0",
-      packageVersion: "0.1.0",
-      tagExists: true,
-      tagCommit: otherSubject,
-      releaseCommit: subject,
-      checkoutCommit: subject
-    })).toThrow(/existing release tag/);
+    expect(() =>
+      assertReleaseSubject({
+        releaseTag: "v0.1.0",
+        packageVersion: "0.1.0",
+        tagExists: true,
+        tagCommit: otherSubject,
+        releaseCommit: subject,
+        checkoutCommit: subject
+      })
+    ).toThrow(/existing release tag/);
 
-    expect(() => assertReleaseSubject({
-      releaseTag: "v0.1.0",
-      packageVersion: "0.1.0",
-      tagExists: false,
-      tagCommit: null,
-      releaseCommit: subject,
-      checkoutCommit: otherSubject
-    })).toThrow(/exact release subject/);
+    expect(() =>
+      assertReleaseSubject({
+        releaseTag: "v0.1.0",
+        packageVersion: "0.1.0",
+        tagExists: false,
+        tagCommit: null,
+        releaseCommit: subject,
+        checkoutCommit: otherSubject
+      })
+    ).toThrow(/exact release subject/);
   });
 
   test("accepts only successful aggregate validation for the exact workflow head", () => {
     expect(findTrustedValidationRun(validationFixtures())).toMatchObject({ workflowRunId: 5060 });
     expect(findTrustedValidationRun(validationFixtures({ subjectCommit: otherSubject }))).toBeNull();
-    expect(findTrustedValidationRun(validationFixtures({
-      workflowRuns: [{ ...validationFixtures().workflowRuns[0], head_sha: otherSubject }]
-    }))).toBeNull();
-    expect(findTrustedValidationRun(validationFixtures({
-      checkRuns: validationFixtures().checkRuns.filter((check) => check.name !== "validate")
-    }))).toBeNull();
+    expect(
+      findTrustedValidationRun(
+        validationFixtures({
+          workflowRuns: [{ ...validationFixtures().workflowRuns[0], head_sha: otherSubject }]
+        })
+      )
+    ).toBeNull();
+    expect(
+      findTrustedValidationRun(
+        validationFixtures({
+          checkRuns: validationFixtures().checkRuns.filter((check) => check.name !== "validate")
+        })
+      )
+    ).toBeNull();
   });
 
   test("rejects an Unreleased-only changelog and accepts a versioned section", () => {
@@ -109,18 +127,20 @@ describe("release integrity", () => {
       releaseTag: "v0.1.0",
       commit: subject,
       tarballPath,
-      packMetadata: [{
-        name: "scwbs",
-        version: "0.1.0",
-        filename: "scwbs-0.1.0.tgz",
-        files: [
-          { path: "dist/cli.js" },
-          { path: "dist/wjs-runtime/tools/validate.mjs" },
-          { path: "dist/wjs-runtime/tools/apply.mjs" },
-          { path: "dist/wjs-runtime/schema/wbs-json.schema.json" },
-          { path: "dist/wjs-runtime/schema/wbs-operations.schema.json" }
-        ]
-      }],
+      packMetadata: [
+        {
+          name: "scwbs",
+          version: "0.1.0",
+          filename: "scwbs-0.1.0.tgz",
+          files: [
+            { path: "dist/cli.js" },
+            { path: "dist/wjs-runtime/tools/validate.mjs" },
+            { path: "dist/wjs-runtime/tools/apply.mjs" },
+            { path: "dist/wjs-runtime/schema/wbs-json.schema.json" },
+            { path: "dist/wjs-runtime/schema/wbs-operations.schema.json" }
+          ]
+        }
+      ],
       validationWorkflowRunId: 5060,
       validationChecks: [{ name: "validate", conclusion: "success" }]
     });
@@ -134,17 +154,104 @@ describe("release integrity", () => {
     });
   });
 
+  test("publishes a new automated release only when the tag and Release are absent", () => {
+    expect(
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: false,
+        tagCommit: null,
+        release: null
+      })
+    ).toEqual({ action: "publish", createTag: true });
+
+    expect(
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: subject,
+        release: null
+      })
+    ).toEqual({ action: "publish", createTag: false });
+
+    expect(() =>
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: otherSubject,
+        release: null
+      })
+    ).toThrow(/exact release subject/);
+  });
+
+  test("makes an existing complete stable Release idempotent only for workflow_run", () => {
+    const release = {
+      tag_name: "v0.1.0",
+      draft: false,
+      prerelease: false,
+      assets: [{ name: "release-manifest.json" }, { name: "scwbs-bootstrap.mjs" }, { name: "scwbs-0.1.0.tgz" }]
+    };
+    expect(
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: otherSubject,
+        release
+      })
+    ).toEqual({ action: "skip", createTag: false });
+    expect(() =>
+      classifyAutomatedRelease({
+        eventName: "push",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: subject,
+        release
+      })
+    ).toThrow(/duplicate publication/);
+    expect(() =>
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: subject,
+        release: { ...release, assets: [{ name: "release-manifest.json" }] }
+      })
+    ).toThrow(/missing scwbs-bootstrap/);
+  });
+
+  test("builds bounded direct and bootstrap remote smoke URLs", () => {
+    expect(buildRemoteSmokePlan({ repository: "xmeta/ACED", packageVersion: "0.1.0" })).toMatchObject({
+      tag: "v0.1.0",
+      tarballUrl: "https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-0.1.0.tgz",
+      bootstrapUrl: "https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-bootstrap.mjs",
+      commands: ["--version", "init", "doctor", "task preflight"]
+    });
+  });
+
   test("keeps the workflow fail-closed and target-pinned", () => {
     expect(workflow).toContain("checks: read");
     expect(workflow).toContain("actions: read");
     expect(workflow).toContain('cp scripts/release-integrity.mjs "$integrity_script"');
     expect(workflow).toContain('git checkout --detach "$tag_commit"');
-    expect(workflow).toContain('import(process.env.RELEASE_INTEGRITY_SCRIPT)');
+    expect(workflow).toContain("import(process.env.RELEASE_INTEGRITY_SCRIPT)");
     expect(workflow).toContain("findTrustedValidationRun");
     expect(workflow).toContain("release-manifest.json");
     expect(workflow).toContain("scwbs-bootstrap.mjs");
     expect(workflow).toContain('tags:\n      - "v*.*.*"');
-    expect(workflow).toContain("github.event_name == 'push' || github.ref == 'refs/heads/main'");
+    expect(workflow).toContain('workflows: ["scwbs"]');
+    expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(workflow).toContain("Create exact release tag");
+    expect(workflow).toContain("--verify-tag");
+    expect(workflow).toContain("Dogfood stable Release from public URLs");
     expect(workflow).toContain('--target "$RELEASE_COMMIT"');
   });
 });

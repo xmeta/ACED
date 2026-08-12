@@ -2,15 +2,11 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-export const REQUIRED_RELEASE_CHECKS = Object.freeze([
-  "core",
-  "integration",
-  "wjs",
-  "distribution",
-  "validate"
-]);
+export const REQUIRED_RELEASE_CHECKS = Object.freeze(["core", "integration", "wjs", "distribution", "validate"]);
 
 export const RELEASE_WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+
+export const REQUIRED_RELEASE_ASSETS = Object.freeze(["release-manifest.json", "scwbs-bootstrap.mjs"]);
 
 const REQUIRED_PACKED_FILES = Object.freeze([
   "dist/cli.js",
@@ -41,7 +37,9 @@ export function assertReleaseSubject({
 }) {
   const expectedTag = expectedReleaseTag(packageVersion);
   if (releaseTag !== expectedTag) {
-    throw new Error(`release tag ${releaseTag} does not match package version ${packageVersion}; expected ${expectedTag}`);
+    throw new Error(
+      `release tag ${releaseTag} does not match package version ${packageVersion}; expected ${expectedTag}`
+    );
   }
   if (!releaseCommit || checkoutCommit !== releaseCommit) {
     throw new Error("release checkout is not the exact release subject commit");
@@ -56,6 +54,40 @@ export function assertChangelogVersion(changelog, packageVersion) {
   if (!heading.test(changelog)) {
     throw new Error(`CHANGELOG.md is missing a versioned section for ${packageVersion}`);
   }
+}
+
+/**
+ * Decide whether automated release publication is a new publication, an
+ * idempotent verification, or a fail-closed duplicate/collision.
+ *
+ * The workflow-run path is intentionally idempotent because every successful
+ * main validation can observe the already-published package version. Push and
+ * manual-dispatch paths remain strict duplicate attempts.
+ */
+export function classifyAutomatedRelease({ eventName, releaseTag, releaseCommit, tagExists, tagCommit, release }) {
+  if (!["push", "workflow_dispatch", "workflow_run"].includes(eventName)) {
+    throw new Error(`unsupported release event ${eventName}`);
+  }
+  if (release && release.tag_name !== releaseTag) {
+    throw new Error("existing GitHub Release tag does not match the requested release tag");
+  }
+  if (release && (release.draft === true || release.prerelease === true)) {
+    throw new Error("existing GitHub Release is not a stable published release");
+  }
+  if (release) {
+    const assets = new Set((release.assets ?? []).map((asset) => asset?.name));
+    const requiredAssets = [...REQUIRED_RELEASE_ASSETS, `scwbs-${releaseTag.replace(/^v/, "")}.tgz`];
+    for (const required of requiredAssets) {
+      if (!assets.has(required)) throw new Error(`existing GitHub Release is missing ${required}`);
+    }
+    if (!tagExists) throw new Error("existing GitHub Release has no matching Git tag");
+    if (eventName === "workflow_run") return { action: "skip", createTag: false };
+    throw new Error("stable GitHub Release already exists; refusing duplicate publication");
+  }
+  if (tagExists && tagCommit !== releaseCommit) {
+    throw new Error("existing release tag does not resolve to the exact release subject");
+  }
+  return { action: "publish", createTag: !tagExists };
 }
 
 export function assertCliVersion(actualVersion, packageVersion) {
