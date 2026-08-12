@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { indexStatus, queryIndex, rebuildIndex, verifyIndex } from "../../src/core/local-index.js";
-import { makeTempRepo, writeText } from "../helpers.js";
+import { makeTempRepo, writeText, writeYaml } from "../helpers.js";
 
 describe("local SQLite index", () => {
   test("rebuilds canonical records with provenance and bounded query output", () => {
@@ -28,6 +28,39 @@ describe("local SQLite index", () => {
     expect(indexStatus(root)).toMatchObject({ status: "corrupt" });
     expect(rebuildIndex(root)).toMatchObject({ status: "pass" });
     expect(indexStatus(root)).toMatchObject({ status: "ready" });
+  });
+
+  test("separates task index metadata from searchable task artifacts", () => {
+    const root = makeTempRepo();
+    writeText(root, "contracts/tasks/TASK-1.yaml", "id: TASK-1\ntype: task-contract\ntitle: Indexed task\nstatus: planned\n");
+    writeYaml(root, "contracts/tasks/index.yaml", {
+      tasks: [{ id: "TASK-1", path: "contracts/tasks/TASK-1.yaml", branchName: "task/TASK-1", wbsNodeId: "node-api", status: "blocked", dependsOn: [] }]
+    });
+
+    const rebuilt = rebuildIndex(root) as { recordCount: number };
+    const result = queryIndex(root, { kinds: ["task"] });
+
+    expect(rebuilt.recordCount).toBe(1);
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]).toMatchObject({ id: "TASK-1:task:contracts/tasks/TASK-1.yaml", sourcePath: "contracts/tasks/TASK-1.yaml", status: "blocked" });
+    expect(result.results.some((item) => item.sourcePath === "contracts/tasks/index.yaml")).toBe(false);
+
+    writeYaml(root, "contracts/tasks/index.yaml", {
+      tasks: [{ id: "TASK-1", path: "contracts/tasks/TASK-1.yaml", branchName: "task/TASK-1", wbsNodeId: "node-api", status: "active", dependsOn: [] }]
+    });
+    expect(indexStatus(root)).toMatchObject({ status: "stale", reasons: expect.arrayContaining(["index.source.stale"]) });
+  });
+
+  test("keeps the working index when source parsing fails during rebuild", () => {
+    const root = makeTempRepo();
+    writeText(root, "contracts/specs/SPEC-A.yaml", "id: SPEC-A\ntype: spec-contract\ntitle: Stable\nstatus: approved\n");
+    rebuildIndex(root);
+    const before = queryIndex(root, { kinds: ["spec"] });
+    writeText(root, "contracts/specs/SPEC-A.yaml", "id: [invalid\n");
+
+    expect(() => rebuildIndex(root)).toThrow();
+    const after = queryIndex(root, { kinds: ["spec"] });
+    expect(after.results[0]).toMatchObject({ id: before.results[0]?.id, sourcePath: "contracts/specs/SPEC-A.yaml", title: "Stable", status: "approved", stale: true });
   });
 
   test("missing cache is a non-authoritative fallback", () => {

@@ -82,6 +82,7 @@ const sourceRoots = [
   "contracts/blocks",
   "contracts/discovery"
 ] as const;
+const taskIndexSourcePath = "contracts/tasks/index.yaml";
 
 const kindAliases: Record<string, IndexKind> = {
   spec: "spec", specs: "spec",
@@ -124,16 +125,27 @@ function walkFiles(root: string, directory: string): string[] {
   return output.sort();
 }
 
-function canonicalSourcePaths(root: string): string[] {
-  return [
-    ...sourceRoots.flatMap((directory) => walkFiles(root, directory)),
-    existsSync(resolveFrom(root, "contracts/tasks/index.yaml")) ? "contracts/tasks/index.yaml" : "",
+function uniqueSortedPaths(paths: string[]): string[] {
+  return [...new Set(paths.filter(Boolean))].sort();
+}
+
+function canonicalArtifactPaths(root: string): string[] {
+  return uniqueSortedPaths(
+    sourceRoots.flatMap((directory) => walkFiles(root, directory))
+      .filter((relative) => relative !== taskIndexSourcePath)
+  );
+}
+
+function freshnessManifestPaths(root: string): string[] {
+  return uniqueSortedPaths([
+    ...canonicalArtifactPaths(root),
+    existsSync(resolveFrom(root, taskIndexSourcePath)) ? taskIndexSourcePath : "",
     existsSync(resolveFrom(root, "contracts/wbs/project.wbs.json")) ? "contracts/wbs/project.wbs.json" : ""
-  ].filter(Boolean);
+  ]);
 }
 
 function sourceManifest(root: string): { paths: string[]; hash: string } {
-  const paths = canonicalSourcePaths(root);
+  const paths = freshnessManifestPaths(root);
   const hash = createHash("sha256");
   for (const relative of paths) {
     hash.update(relative);
@@ -151,7 +163,7 @@ function parseCanonical(root: string, relative: string): unknown {
 
 function statusMap(root: string): Map<string, string> {
   const result = new Map<string, string>();
-  const relative = "contracts/tasks/index.yaml";
+  const relative = taskIndexSourcePath;
   if (!existsSync(resolveFrom(root, relative))) return result;
   const value = parseCanonical(root, relative);
   if (!isObject(value) || !Array.isArray(value.tasks)) return result;
@@ -163,6 +175,7 @@ function statusMap(root: string): Map<string, string> {
 }
 
 function sourceKind(relative: string): IndexKind | undefined {
+  if (relative === taskIndexSourcePath) return undefined;
   if (relative.includes("/specs/")) return "spec";
   if (relative.includes("/tasks/")) return "task";
   if (relative.includes("/evidence/")) return "evidence";
@@ -309,7 +322,7 @@ export function rebuildIndex(root: string): JsonObject {
   const repositoryHead = headCommit(root) ?? "unavailable";
   const manifest = sourceManifest(root);
   const statuses = statusMap(root);
-  const records = manifest.paths.flatMap((relative) => recordsForSource(root, relative, statuses, { indexedAt, repositoryHead }));
+  const records = canonicalArtifactPaths(root).flatMap((relative) => recordsForSource(root, relative, statuses, { indexedAt, repositoryHead }));
   const destination = databasePath(root);
   const directory = path.dirname(destination);
   mkdirSync(directory, { recursive: true });
