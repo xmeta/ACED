@@ -15,7 +15,6 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-
 ## Core Checks
 
 ### Top-level command groups
@@ -23,22 +22,22 @@ npm run scwbs -- --help
 The top-level help lists each command group with a short purpose. Use the
 group-specific help for its subcommands and options:
 
-| Group | Purpose |
-|---|---|
-| `ci` | Plan and classify CI execution |
-| `checks` | Run and inspect required checks |
-| `metrics` | Measure governance cost and repository metrics |
-| `ai` | Build AI packets and dry-run task plans |
-| `approval` | Manage task approval requests and delegated policy preparation |
-| `completion` | Apply completion changes through SC-WBS |
-| `evidence` | Collect and maintain Task Evidence |
-| `registry` | Validate and rebuild the contract registry |
-| `profile` | Show or change the SC-WBS profile |
-| `review` | Request and route Task reviews |
-| `lite` | Create lightweight task proposals |
-| `task` | Manage Task Contracts and lifecycle |
-| `policy` | Explain read-only repository policy impact |
-| `wbs` | Validate and apply WBS changes |
+| Group        | Purpose                                                        |
+| ------------ | -------------------------------------------------------------- |
+| `ci`         | Plan and classify CI execution                                 |
+| `checks`     | Run and inspect required checks                                |
+| `metrics`    | Measure governance cost and repository metrics                 |
+| `ai`         | Build AI packets and dry-run task plans                        |
+| `approval`   | Manage task approval requests and delegated policy preparation |
+| `completion` | Apply completion changes through SC-WBS                        |
+| `evidence`   | Collect and maintain Task Evidence                             |
+| `registry`   | Validate and rebuild the contract registry                     |
+| `profile`    | Show or change the SC-WBS profile                              |
+| `review`     | Request and route Task reviews                                 |
+| `lite`       | Create lightweight task proposals                              |
+| `task`       | Manage Task Contracts and lifecycle                            |
+| `policy`     | Explain read-only repository policy impact                     |
+| `wbs`        | Validate and apply WBS changes                                 |
 
 ```bash
 npm run scwbs -- init --profile lean --agent codex --lang ja
@@ -118,10 +117,10 @@ emits an exact artifact proposal without mutating the consumer; upgrade without
 
 `next --json`、`ui --json`、`trace --json` は、agent/IDEがproseをparseせずに利用できるversioned JSONをstdoutへ1件だけ出力する。diagnosticや実行ログはstderrへ分離する。
 
-| Command | Version | Schema |
-|---|---|---|
-| `next --json` | `scwbs.next.v1` | `docs/scwbs/schemas/next.schema.json` |
-| `ui --json` | `scwbs.ui.v1` | `docs/scwbs/schemas/ui.schema.json` |
+| Command        | Version          | Schema                                 |
+| -------------- | ---------------- | -------------------------------------- |
+| `next --json`  | `scwbs.next.v1`  | `docs/scwbs/schemas/next.schema.json`  |
+| `ui --json`    | `scwbs.ui.v1`    | `docs/scwbs/schemas/ui.schema.json`    |
 | `trace --json` | `scwbs.trace.v1` | `docs/scwbs/schemas/trace.schema.json` |
 
 `next --json` の `action.owner` が `human` の場合、`aiStop: true` とともにAIは停止し、`command`を自動実行してはならない。`version`は互換性の固定点であり、既存フィールドの意味を変更する場合は同じversionを再利用せず、新しいversionとschemaを追加する。後方互換な任意フィールド追加は、consumerが未知フィールドを無視できることを前提に行う。

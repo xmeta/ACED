@@ -15,7 +15,6 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-
 ## Mutation / Read-only 一覧
 
 各コマンドが完了後に何を残すかは、AIエージェントによる自動運用でも人間の運用でも重要な情報である。「read-only」を一律に扱うと `health` のようにtracked artifactは変えないがlocal metadataを書き込むコマンドを見落とすため、次の4分類を使う。全 `npm run scwbs -- ...` 呼び出しが実行中だけ作成し正常終了時に削除するcommand single-flight lockは、この永続side effect分類には含めない。
@@ -56,9 +55,9 @@ npm run scwbs -- --help
 | `merge --preflight-only`                                                                                            | external state read                                                             | GitHub PR metadata/checksを読む                                                                    |
 | `merge`                                                                                                             | external state read + external state write                                      | 検証後にGitHub PRをsquash mergeしhead branchを削除する                                             |
 | `serve`                                                                                                             | 何もしない（stub）                                                              |                                                                                                    |
-| `mcp --stdio`                                                                                                       | read-only resources; tracked-artifact mutation for `finish`/`block`              | MCP JSON-RPC over stdio only。Human-only operationsは公開しない                              |
-| `index rebuild`                                                                                                    | tracked-artifact mutation（`.scwbs/cache`のみ）                                  | canonical artifactからderived SQLite cacheを再構築する                                       |
-| `index status` / `index verify` / `query`                                                                           | repository-content read-only                                                    | stale/corrupt cacheはauthorityに使わず、query結果はbounded                                 |
+| `mcp --stdio`                                                                                                       | read-only resources; tracked-artifact mutation for `finish`/`block`             | MCP JSON-RPC over stdio only。Human-only operationsは公開しない                                    |
+| `index rebuild`                                                                                                     | tracked-artifact mutation（`.scwbs/cache`のみ）                                 | canonical artifactからderived SQLite cacheを再構築する                                             |
+| `index status` / `index verify` / `query`                                                                           | repository-content read-only                                                    | stale/corrupt cacheはauthorityに使わず、query結果はbounded                                         |
 
 ## 終了コード
 

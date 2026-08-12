@@ -2,7 +2,6 @@
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
-
 ## Domain Model
 
 ### TaskContract
@@ -23,6 +22,7 @@ stopIf
 checks
 lock
 ```
+
 ### Evidence
 
 作業差分がチェックを満たしたことを表す。

@@ -2,7 +2,6 @@
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
-
 ## 全体アーキテクチャ
 
 SC-WBS Core は、以下の層に分ける。
@@ -18,6 +17,7 @@ Repository / File System Layer
   ↓
 Git / Process Adapter Layer
 ```
+
 ## 設計原則
 
 ```text

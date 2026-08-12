@@ -2,7 +2,6 @@
 
 この文書は、SC-WBS Core改訂の詳細設計である。
 
-
 ## Git Adapter
 
 Git操作は直接CLI各所に散らさない。
@@ -18,6 +17,7 @@ Git操作は直接CLI各所に散らさない。
 - diffHash生成に必要な正規化diff取得
 - branch名検証
 ```
+
 主要メソッド:
 
 ```ts

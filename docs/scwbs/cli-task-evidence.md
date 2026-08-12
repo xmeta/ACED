@@ -15,7 +15,6 @@ npm run scwbs -- --help
 > - コマンドが**変更するもの**（tracked files / git common dir / network）は「Mutation / Read-only 一覧」で分類する。
 > - 終了コードは「終了コード」の節にある実装済みの値だけを記載する。文書化されていない終了コードは存在しないものとして扱う。
 
-
 ## AI Workflow
 
 ```bash
@@ -131,10 +130,10 @@ workflow権限、issuer/trust rootの採用、fork/untrusted PRの署名境界�
 
 `task new` は `--paths` / `--wbs-node` / `--stop` 以外にも、次のカンマ区切りoptionを取る。
 
-| Option              | 対応するTask Contract field |
-| ------------------- | --------------------------- |
-| `--forbid <paths>`  | `forbiddenPaths`            |
-| `--gate <paths>`    | `humanGateRequiredPaths`    |
+| Option              | 対応するTask Contract field                                |
+| ------------------- | ---------------------------------------------------------- |
+| `--forbid <paths>`  | `forbiddenPaths`                                           |
+| `--gate <paths>`    | `humanGateRequiredPaths`                                   |
 | `--checks <checks>` | `requiredChecks` (baseline `test,typecheck,build` +追加値) |
 
 ```bash
