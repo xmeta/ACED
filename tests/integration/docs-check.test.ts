@@ -64,6 +64,35 @@ function yamlExampleAfterHeading(markdown: string, heading: string): unknown {
   return load(match[1]);
 }
 
+type CapabilityFixture = {
+  id?: string;
+  status?: string;
+  summary?: string;
+  commands?: string[];
+  files?: string[];
+  tests?: string[];
+};
+
+function writeCapabilities(root: string, capabilities: CapabilityFixture[]): void {
+  writeJson(root, "docs/documentation-capabilities.json", {
+    schemaVersion: "scwbs.documentation-capabilities.v1",
+    capabilities: capabilities.map((capability) => ({
+      id: capability.id ?? "demo-capability",
+      status: capability.status ?? "implemented",
+      summary: capability.summary ?? "A documented capability fixture.",
+      evidence: {
+        commands: capability.commands ?? [],
+        files: capability.files ?? ["src/demo.ts"],
+        tests: capability.tests ?? ["tests/demo.test.ts"]
+      }
+    }))
+  });
+}
+
+function writeCapabilityMatrix(root: string, ...markers: string[]): void {
+  writeText(root, "docs/implementation-gaps.md", markers.join("\n") + "\n");
+}
+
 describe("docs check", () => {
   test("validates the lifecycle manifest and emits schema-conforming JSON", () => {
     const root = makeTempRepo();
@@ -81,19 +110,25 @@ describe("docs check", () => {
     expect(report.status).toBe("pass");
     expect(report.summary).toMatchObject({ documents: 2, normative: 1, proposal: 1, errors: 0 });
 
-    const schema = JSON.parse(readFileSync(
-      path.join(process.cwd(), "docs/scwbs/schemas/docs-check.schema.json"),
-      "utf8"
-    ));
+    const schema = JSON.parse(
+      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/docs-check.schema.json"), "utf8")
+    );
     const ajv = new Ajv2020({ strict: false });
     expect(ajv.compile(schema)(report)).toBe(true);
 
-    const manifestSchema = JSON.parse(readFileSync(
-      path.join(process.cwd(), "docs/scwbs/schemas/document-lifecycle.schema.json"),
-      "utf8"
-    ));
+    const manifestSchema = JSON.parse(
+      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/document-lifecycle.schema.json"), "utf8")
+    );
     const manifest = JSON.parse(readFileSync(path.join(root, "docs/document-lifecycle.json"), "utf8"));
     expect(ajv.compile(manifestSchema)(manifest)).toBe(true);
+
+    const capabilitiesSchema = JSON.parse(
+      readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/documentation-capabilities.schema.json"), "utf8")
+    );
+    const capabilities = JSON.parse(
+      readFileSync(path.join(process.cwd(), "docs/documentation-capabilities.json"), "utf8")
+    );
+    expect(ajv.compile(capabilitiesSchema)(capabilities)).toBe(true);
 
     const output: string[] = [];
     const originalLog = console.log;
@@ -141,8 +176,7 @@ describe("docs check", () => {
     ];
     writeFixture(root, documents);
 
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .toContain("docs.document.status");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.document.status");
 
     writeFixture(
       root,
@@ -150,14 +184,16 @@ describe("docs check", () => {
       ["docs/current/index.md", "docs/missing.md"]
     );
     const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
-    expect(codes).toEqual(expect.arrayContaining([
-      "docs.entrypoint.scope",
-      "docs.appliesToCli.mismatch",
-      "docs.normative.conflict",
-      "docs.supersedes.cycle",
-      "docs.standardEntrypoint.missing",
-      "docs.documentId.duplicate"
-    ]));
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        "docs.entrypoint.scope",
+        "docs.appliesToCli.mismatch",
+        "docs.normative.conflict",
+        "docs.supersedes.cycle",
+        "docs.standardEntrypoint.missing",
+        "docs.documentId.duplicate"
+      ])
+    );
     expect(runDocsCheck(root)).toBe(1);
   });
 
@@ -174,10 +210,9 @@ describe("docs check", () => {
 
     const report = buildDocsCheckReport(root);
     expect(report.status).toBe("fail");
-    expect(report.issues.map((issue) => issue.code)).toEqual(expect.arrayContaining([
-      "docs.standardEntrypoint.nonCurrent",
-      "docs.successor.missing"
-    ]));
+    expect(report.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(["docs.standardEntrypoint.nonCurrent", "docs.successor.missing"])
+    );
   });
 
   test("reports orphan Markdown and supports explicit ignored paths", () => {
@@ -185,12 +220,14 @@ describe("docs check", () => {
     writeFixture(root, [documentSet()]);
     writeText(root, "docs/orphan.md", "# Orphan\n");
 
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .toContain("docs.orphan.unregistered");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
+      "docs.orphan.unregistered"
+    );
 
     writeFixture(root, [documentSet()], undefined, ["docs/orphan.md"]);
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .not.toContain("docs.orphan.unregistered");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).not.toContain(
+      "docs.orphan.unregistered"
+    );
   });
 
   test("reports lint threshold drift between package.json and README", () => {
@@ -199,8 +236,7 @@ describe("docs check", () => {
     writeJson(root, "package.json", { version: "0.1.0", scripts: { lint: "eslint --max-warnings=0" } });
     writeText(root, "README.md", "# ACED\nThe baseline is currently up to 37 warnings.\n");
 
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .toContain("docs.fact.lintThreshold");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.fact.lintThreshold");
   });
 
   test("reports implemented documentation automation that remains in the gaps table", () => {
@@ -211,11 +247,78 @@ describe("docs check", () => {
       paths: ["docs/implementation-gaps.md"]
     });
     writeFixture(root, [gaps]);
-    writeText(root, "docs/implementation-gaps.md", "| Documentation automation | Markdown generation from contracts | missing |\n");
+    writeText(
+      root,
+      "docs/implementation-gaps.md",
+      "| Documentation automation | Markdown generation from contracts | missing |\n"
+    );
     writeText(root, "src/cli.ts", 'program.command("generate");\n');
 
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .toContain("docs.fact.implementedMissing");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
+      "docs.fact.implementedMissing"
+    );
+  });
+
+  test("keeps the live capability matrix aligned with current implementation evidence", () => {
+    const codes = collectDocumentLifecycleIssues(process.cwd()).issues.map((issue) => issue.code);
+    expect(codes.filter((code) => code.startsWith("docs.capability."))).toEqual([]);
+  });
+
+  test("rejects duplicate capability ids and duplicate matrix claims", () => {
+    const root = makeTempRepo();
+    const gaps = documentSet({
+      documentId: "gaps",
+      entrypoint: "docs/implementation-gaps.md",
+      paths: ["docs/implementation-gaps.md"]
+    });
+    writeFixture(root, [gaps]);
+    writeText(root, "src/demo.ts", "export const demo = true;\n");
+    writeText(root, "tests/demo.test.ts", "test('demo', () => {});\n");
+    writeCapabilities(root, [{ id: "demo-capability" }, { id: "demo-capability" }]);
+    writeCapabilityMatrix(
+      root,
+      "<!-- scwbs-capability: demo-capability status=implemented -->",
+      "<!-- scwbs-capability: demo-capability status=implemented -->"
+    );
+
+    const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
+    expect(codes).toContain("docs.capability.id.duplicate");
+
+    writeCapabilities(root, [{ id: "demo-capability" }]);
+    const duplicateMatrixCodes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
+    expect(duplicateMatrixCodes).toContain("docs.capability.matrix.duplicate");
+  });
+
+  test("rejects unknown commands, missing evidence, and matrix status mismatch", () => {
+    const root = makeTempRepo();
+    const gaps = documentSet({
+      documentId: "gaps",
+      entrypoint: "docs/implementation-gaps.md",
+      paths: ["docs/implementation-gaps.md"]
+    });
+    writeFixture(root, [gaps]);
+    writeCapabilities(root, [
+      { id: "unknown-command", commands: ["not-a-command"], files: [], tests: [] },
+      { id: "missing-evidence", files: ["src/missing.ts"], tests: [] },
+      { id: "status-mismatch", status: "partial" }
+    ]);
+    writeCapabilityMatrix(
+      root,
+      "<!-- scwbs-capability: unknown-command status=implemented -->",
+      "<!-- scwbs-capability: missing-evidence status=implemented -->",
+      "<!-- scwbs-capability: status-mismatch status=implemented -->"
+    );
+    writeText(root, "src/demo.ts", "export const demo = true;\n");
+    writeText(root, "tests/demo.test.ts", "test('demo', () => {});\n");
+
+    const codes = collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code);
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        "docs.capability.command.unknown",
+        "docs.capability.evidence.missing",
+        "docs.capability.matrix.mismatch"
+      ])
+    );
   });
 
   test("requires repository visibility claims to be dated snapshots with revalidation", () => {
@@ -228,20 +331,20 @@ describe("docs check", () => {
     writeFixture(root, [protection]);
     writeText(root, "docs/scwbs/merge-protection.md", "This repository is currently private.\n");
 
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .toContain("docs.fact.transientRepositoryState");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
+      "docs.fact.transientRepositoryState"
+    );
 
     writeText(root, "docs/scwbs/merge-protection.md", "This is a dated snapshot; revalidate with gh api.\n");
-    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code))
-      .not.toContain("docs.fact.transientRepositoryState");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).not.toContain(
+      "docs.fact.transientRepositoryState"
+    );
   });
 
   test("is available in CLI help and aggregate scwbs check", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
-    writeFixture(root, [
-      documentSet({ appliesToCli: ">=9.0.0" })
-    ]);
+    writeFixture(root, [documentSet({ appliesToCli: ">=9.0.0" })]);
 
     const issues = collectCheckIssues(root);
     expect(issues.some((issue) => issue.code === "docs.appliesToCli.mismatch")).toBe(true);
@@ -262,10 +365,7 @@ describe("docs check", () => {
   });
 
   test("keeps normative Core Task and Evidence examples valid against current schemas", () => {
-    const markdown = readFileSync(
-      path.join(process.cwd(), "docs/sc-wbs-core/03-minimal-artifacts.md"),
-      "utf8"
-    );
+    const markdown = readFileSync(path.join(process.cwd(), "docs/sc-wbs-core/03-minimal-artifacts.md"), "utf8");
     const task = yamlExampleAfterHeading(markdown, "## Task Contract Core");
     const evidence = yamlExampleAfterHeading(markdown, "## Evidence Core");
 
