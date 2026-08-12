@@ -132,6 +132,10 @@ describe("approval", () => {
   test("approval request --json emits a bounded versioned requested summary", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234"
+    }) as unknown as Record<string, unknown>);
     const note = "n".repeat(2048);
     const output = captureOutput(() => main([
       "approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", note, "--json"
@@ -149,7 +153,9 @@ describe("approval", () => {
     });
     expect(json.requestedAt).toEqual(expect.any(String));
     expect(json.notes).toEqual(["n".repeat(512)]);
-    expect(json.nextAction).toEqual(expect.stringContaining("approval approve --task WBS-001-004 --actor human"));
+    expect(json.nextAction).toEqual(expect.stringContaining(
+      'approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234"'
+    ));
     expect(json).not.toHaveProperty("approvedBy");
     expect(json).not.toHaveProperty("approvedAt");
     expect(output.stdout.length).toBeLessThan(2048);

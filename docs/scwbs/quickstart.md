@@ -113,6 +113,11 @@ npx scwbs approval approve \
   --reason "<exact confirmation printed by scwbs>"
 ```
 
+The confirmation is bound to the current Evidence subject head and diff hash
+(`CONFIRM TTY APPROVAL <task-id> <subjectHeadCommit> <diffHash>`). Do not reuse
+an older command after Evidence or the diff changes; rerun the command that
+`scwbs` prints for the current scope.
+
 An AI must not substitute `--actor human`, approve its own work, or broaden a
 Task Contract to avoid the gate.
 

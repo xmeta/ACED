@@ -443,7 +443,7 @@ npm run scwbs -- review route --task SCWBS-001
 npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
 npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
 npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
-npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
+npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
 SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
@@ -469,7 +469,7 @@ npm run scwbs -- risk accept RISK-EXAMPLE --actor human --reason "CONFIRM TTY RI
 
 ```bash
 npm run scwbs -- request-approval --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
-npm run scwbs -- approve --task SCWBS-001 --pr 42 --actor human --reason "Evidence and PR reviewed"
+npm run scwbs -- approve --task SCWBS-001 --pr 42 --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 
 `review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。

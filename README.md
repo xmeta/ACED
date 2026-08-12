@@ -161,13 +161,13 @@ must not run approval commands on behalf of a human.
 
 ```bash
 npm run scwbs -- review-queue
-npm run scwbs -- approve --task <task-id> --pr <number> --actor human --reason "Evidence and PR reviewed"
+npm run scwbs -- approve --task <task-id> --pr <number> --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 
 The detailed command is also available:
 
 ```bash
-npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --actor human --reason "Evidence and PR reviewed"
+npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 
 `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.

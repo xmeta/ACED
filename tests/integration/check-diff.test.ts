@@ -975,7 +975,7 @@ describe("check-diff", () => {
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       changedFiles: ["src/security/secret.ts"],
       diffHash: "test-diff-hash",
-      git: { diffHash: "test-diff-hash" }
+      git: { headCommit: "abc1234", diffHash: "test-diff-hash" }
     }) as unknown as Record<string, unknown>);
 
     const output: string[] = [];
@@ -1019,7 +1019,7 @@ describe("check-diff", () => {
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       changedFiles: ["src/security/secret.ts"],
       diffHash: "test-diff-hash",
-      git: { diffHash: "test-diff-hash" }
+      git: { headCommit: "abc1234", diffHash: "test-diff-hash" }
     }) as unknown as Record<string, unknown>);
 
     const output: string[] = [];
@@ -1034,7 +1034,7 @@ describe("check-diff", () => {
     }
 
     const result = JSON.parse(output.join("\n"));
-    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`;
+    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 test-diff-hash"`;
     expect(result.requiresHumanApproval).toBe(true);
     expect(result.nextAction).toBe(command);
     expect(result).toMatchObject({

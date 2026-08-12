@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { readApproval, readEvidence, readTask } from "../core/contracts.js";
-import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
+import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof, buildHumanApprovalCommand } from "../core/human-gate.js";
 import { approvalPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import { syncRegistry } from "./registry-rebuild.js";
@@ -48,10 +48,13 @@ function boundedNotes(notes: string[] | undefined): string[] {
     .map((note) => note.slice(0, MAX_JSON_NOTE_LENGTH));
 }
 
-export function buildApprovalRequestJson(approval: ApprovalRecord): ApprovalRequestJson {
+export function buildApprovalRequestJson(approval: ApprovalRecord, evidence?: Evidence): ApprovalRequestJson {
   const requestedAt = approval.requestedAt;
   if (!requestedAt) throw new Error("Approval request is missing requestedAt");
-  const nextAction = `Review Evidence and diff, then run npm run scwbs -- approval approve --task ${approval.taskId} --actor human with the exact TTY confirmation.`;
+  const approvalCommand = buildHumanApprovalCommand(approval.taskId, evidence, approval.status);
+  const nextAction = approvalCommand
+    ? `Review Evidence and diff, then run: ${approvalCommand}`
+    : `Collect current Evidence with: npm run scwbs -- evidence collect --task ${approval.taskId} --force; then use the exact approval command printed by scwbs.`;
   return {
     version: APPROVAL_REQUEST_JSON_VERSION,
     approvalId: approval.id,
@@ -166,7 +169,8 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
     syncRegistry(root);
-    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval), null, 2)}\n` : yaml);
+    const { evidence } = readEvidence(root, taskId);
+    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval, evidence), null, 2)}\n` : yaml);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
