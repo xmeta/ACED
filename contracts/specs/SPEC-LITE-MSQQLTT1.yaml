@@ -1,0 +1,18 @@
+id: SPEC-LITE-MSQQLTT1
+type: spec-contract
+featureId: F-MSQQLTT1
+title: "Issue #569: aggregate Risk Acceptance scope fingerprint"
+status: approved
+version: 0.1.0
+summary: "Bind Risk Acceptance freshness to every linked Task Evidence, Spec revision, and Requirement revision with fail-closed diagnostics and legacy compatibility."
+approvedBy: user-requested-issue-569-plan
+approvedAt: "2026-08-13T00:00:00+09:00"
+acceptanceCriteria:
+  - "All linked Task Evidence, Spec revisions, and Requirement revisions are represented in a canonical order-independent aggregate scope fingerprint."
+  - "A change to any linked Task Evidence, linked Spec, or linked Requirement makes a prior fingerprinted Risk Acceptance stale."
+  - "Missing or ambiguous Task Evidence, Spec, or Requirement identity is fail-closed and cannot produce a valid acceptance."
+  - "Spec-only scopes can be accepted when all linked Spec and Requirement identities resolve completely."
+  - "Legacy single Task/task-only acceptances retain the old subjectHeadCommit and diffHash behavior; legacy multi-scope acceptances without scopeFingerprint are stale."
+  - "RiskAcceptance stores scopeFingerprint while preserving legacy subject fields, and risk JSON output exposes current and accepted scope fingerprints plus constituent diagnostics."
+  - "The human-only risk accept command confirms the aggregate scope fingerprint and rejects AI actors or mismatched confirmation text."
+  - "Issue #569 does not change residualRisk input/scoring semantics, dependencies, workflows, or WBS."
