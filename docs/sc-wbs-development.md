@@ -1,5 +1,7 @@
 ﻿# SC-WBS Development
 
+この文書は、SC-WBS 開発の基本方針と標準作業入口を日本語で示す。
+
 SC-WBS Development is AI-Collaborative Spec Contract and WBS Driven Development.
 
 This file is intentionally short. Detailed methodology and tool operations are split under `docs/scwbs/` so agents can read only the context needed for a task.

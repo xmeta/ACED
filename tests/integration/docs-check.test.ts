@@ -23,6 +23,7 @@ type DocumentSetFixture = {
   entrypoint: string;
   paths: string[];
   supersedes: string[];
+  language: "ja" | "en";
 };
 
 function documentSet(overrides: Partial<DocumentSetFixture> = {}): DocumentSetFixture {
@@ -34,6 +35,7 @@ function documentSet(overrides: Partial<DocumentSetFixture> = {}): DocumentSetFi
     entrypoint: "docs/current/index.md",
     paths: ["docs/current/**"],
     supersedes: [],
+    language: "ja",
     ...overrides
   };
 }
@@ -42,14 +44,17 @@ function writeFixture(
   root: string,
   documents: DocumentSetFixture[],
   standardEntrypoints = [documents[0].entrypoint],
-  ignoredPaths: string[] = []
+  ignoredPaths: string[] = [],
+  qualityExceptions: Array<{ path: string; reason: string; owner: string; expiresAt: string }> = []
 ): void {
   writeJson(root, "package.json", { version: "0.1.0" });
   for (const document of documents) {
     writeText(root, document.entrypoint, `# ${document.documentId}\n`);
   }
   writeJson(root, "docs/document-lifecycle.json", {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
+    maxLines: 500,
+    qualityExceptions,
     standardEntrypoints,
     ignoredPaths,
     documents
@@ -262,6 +267,60 @@ describe("docs check", () => {
   test("keeps the live capability matrix aligned with current implementation evidence", () => {
     const codes = collectDocumentLifecycleIssues(process.cwd()).issues.map((issue) => issue.code);
     expect(codes.filter((code) => code.startsWith("docs.capability."))).toEqual([]);
+  });
+
+  test("enforces the physical line limit and permits only valid current exceptions", () => {
+    const root = makeTempRepo();
+    const document = documentSet({ entrypoint: "docs/current/index.md" });
+    writeFixture(root, [document]);
+    writeText(root, document.entrypoint, `${Array.from({ length: 501 }, (_, index) => `line ${index}`).join("\n")}\n`);
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.size.exceeded");
+
+    writeFixture(root, [document], undefined, [], [
+      { path: document.entrypoint, reason: "planned split", owner: "docs-team", expiresAt: "2099-12-31" }
+    ]);
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).not.toContain("docs.size.exceeded");
+
+    writeFixture(root, [document], undefined, [], [
+      { path: document.entrypoint, reason: "", owner: "docs-team", expiresAt: "2000-01-01" }
+    ]);
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain(
+      "docs.quality.exceptionInvalid"
+    );
+  });
+
+  test("requires language on current manifests and checks prose without inspecting code", () => {
+    const root = makeTempRepo();
+    const document = documentSet();
+    writeFixture(root, [document]);
+    const manifestPath = path.join(root, "docs/document-lifecycle.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+    const documents = manifest.documents as Array<Record<string, unknown>>;
+    delete documents[0].language;
+    writeJson(root, "docs/document-lifecycle.json", manifest);
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.language.missing");
+
+    documents[0].language = "ja";
+    writeJson(root, "docs/document-lifecycle.json", manifest);
+    writeText(
+      root,
+      document.entrypoint,
+      "This is clear English prose that should fail the Japanese declaration.\n```text\nThis code is ignored.\n```\n"
+    );
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.language.mixedProse");
+
+    documents[0].language = "en";
+    writeJson(root, "docs/document-lifecycle.json", manifest);
+    writeText(root, document.entrypoint, "これはコード外の日本語本文である。\n`npm run scwbs -- docs check` は識別子として扱う。\n");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.language.mixedProse");
+  });
+
+  test("detects broken internal links in split documentation", () => {
+    const root = makeTempRepo();
+    const document = documentSet({ entrypoint: "docs/current/index.md" });
+    writeFixture(root, [document]);
+    writeText(root, document.entrypoint, "[missing](details.md)\n");
+    expect(collectDocumentLifecycleIssues(root).issues.map((issue) => issue.code)).toContain("docs.link.missing");
   });
 
   test("rejects duplicate capability ids and duplicate matrix claims", () => {

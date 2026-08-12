@@ -45,7 +45,7 @@ AIに渡す情報: Tiny Packet
 |---|---|
 | `01-revision-goals.md` | 改訂のゴール、非ゴール、設計判断 |
 | `02-implementation-plan.md` | 実装順序、マイルストーン、タスク分解 |
-| `03-detailed-design.md` | 全体アーキテクチャと主要モジュール設計 |
+| `03-detailed-design.md` と `03a`〜`03d` | 全体アーキテクチャと責務別の主要モジュール設計 |
 | `04-cli-design.md` | CLIコマンド仕様とUX設計 |
 | `05-data-model.md` | 生成されるYAML/JSONの最小データモデル |
 | `06-validation-design.md` | check-diff、finish、approval scope の検証設計 |

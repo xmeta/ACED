@@ -6,11 +6,15 @@ import type { Issue } from "./types.js";
 
 export const documentLifecyclePath = "docs/document-lifecycle.json";
 export const documentationCapabilitiesPath = "docs/documentation-capabilities.json";
+export const documentLifecycleSchemaVersion = "1.1.0";
+export const documentLifecycleLegacySchemaVersion = "1.0.0";
 export const documentStatuses = ["normative", "informative", "proposal", "deprecated", "superseded"] as const;
 export const documentationCapabilityStatuses = ["implemented", "partial", "missing", "deferred"] as const;
+export const documentLanguages = ["ja", "en"] as const;
 
 export type DocumentStatus = (typeof documentStatuses)[number];
 export type DocumentationCapabilityStatus = (typeof documentationCapabilityStatuses)[number];
+export type DocumentLanguage = (typeof documentLanguages)[number];
 
 export type DocumentSet = {
   documentId: string;
@@ -20,13 +24,23 @@ export type DocumentSet = {
   entrypoint: string;
   paths: string[];
   supersedes: string[];
+  language: DocumentLanguage;
+};
+
+export type DocumentQualityException = {
+  path: string;
+  reason: string;
+  owner: string;
+  expiresAt: string;
 };
 
 export type DocumentLifecycleManifest = {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.0.0" | "1.1.0";
   standardEntrypoints: string[];
   documents: DocumentSet[];
   ignoredPaths: string[];
+  maxLines: number;
+  qualityExceptions: DocumentQualityException[];
 };
 
 export type DocumentLifecycleResult = {
@@ -121,6 +135,120 @@ function collectMarkdownFiles(root: string): string[] {
   };
   visit(docsRoot);
   return files.sort();
+}
+
+function physicalLineCount(text: string): number {
+  return text.split(/\r?\n/).length - (text.endsWith("\n") ? 1 : 0);
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function languageCandidate(line: string): { japanese: boolean; english: boolean } {
+  const withoutCode = line
+    .replace(/`[^`]*`/g, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/^\s{4,}/, "")
+    .trim();
+  if (!withoutCode || withoutCode.startsWith("#") || /^[-*+]\s+[`<]/.test(withoutCode)) {
+    return { japanese: false, english: false };
+  }
+  const japanese = /[\u3040-\u30ff\u3400-\u9fff]/.test(withoutCode);
+  const words = withoutCode.toLowerCase().match(/[a-z]{3,}/g) ?? [];
+  const englishWords = new Set([
+    "the", "and", "for", "with", "this", "that", "from", "when", "must", "should", "use", "only", "current", "document", "repository", "run", "check", "work", "file", "source", "does", "not", "are", "is"
+  ]);
+  const english = !japanese && (words.filter((word) => englishWords.has(word)).length >= 2 || words.length >= 8);
+  return { japanese, english };
+}
+
+function documentFiles(root: string, manifest: DocumentLifecycleManifest): string[] {
+  const candidates = new Set<string>(manifest.standardEntrypoints);
+  for (const file of collectMarkdownFiles(root)) {
+    if (manifest.documents.some((document) => matchesAny(file, document.paths))) candidates.add(file);
+  }
+  return [...candidates].filter((file) => file.endsWith(".md")).sort();
+}
+
+function collectDocumentationQualityIssues(root: string, manifest: DocumentLifecycleManifest): Issue[] {
+  const issues: Issue[] = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const exceptions = new Map<string, DocumentQualityException>();
+  for (const [index, exception] of manifest.qualityExceptions.entries()) {
+    const prefix = `qualityExceptions[${index}]`;
+    const valid =
+      safeRepositoryPath(exception.path) &&
+      exception.reason.trim().length > 0 &&
+      exception.owner.trim().length > 0 &&
+      isIsoDate(exception.expiresAt) &&
+      exception.expiresAt >= today &&
+      existsSync(resolveFrom(root, exception.path)) &&
+      !exceptions.has(exception.path);
+    if (!valid) {
+      issues.push(
+        error(
+          "docs.quality.exceptionInvalid",
+          `${prefix} is invalid, expired, duplicated, or points to a missing path: ${exception.path}`
+        )
+      );
+    } else {
+      exceptions.set(exception.path, exception);
+    }
+  }
+
+  const languageByPath = new Map<string, DocumentLanguage>();
+  for (const document of manifest.documents) {
+    for (const file of documentFiles(root, { ...manifest, documents: [document] })) languageByPath.set(file, document.language);
+  }
+  for (const file of documentFiles(root, manifest)) {
+    const text = readText(root, file);
+    if (text === undefined) continue;
+    const lineCount = physicalLineCount(text);
+    if (lineCount > manifest.maxLines && !exceptions.has(file)) {
+      issues.push(error("docs.size.exceeded", `${file} has ${lineCount} physical lines; expected at most ${manifest.maxLines}`));
+    }
+    const declared = languageByPath.get(file);
+    if (!declared) continue;
+    let inFence = false;
+    let japaneseLines = 0;
+    let englishLines = 0;
+    for (const line of text.split(/\r?\n/)) {
+      if (/^\s*```/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      const candidate = languageCandidate(line);
+      if (candidate.japanese) japaneseLines += 1;
+      if (candidate.english) englishLines += 1;
+    }
+    const oppositeDetected = declared === "ja" ? englishLines >= 1 && japaneseLines === 0 : japaneseLines >= 1 && englishLines === 0;
+    if (oppositeDetected) {
+      issues.push(
+        error("docs.language.mixedProse", `${file}:1 declared language ${declared}, expected ${declared} prose; opposite-language prose detected`)
+      );
+    }
+  }
+  return issues;
+}
+
+function collectInternalLinkIssues(root: string, manifest: DocumentLifecycleManifest): Issue[] {
+  const issues: Issue[] = [];
+  for (const file of documentFiles(root, manifest)) {
+    const text = readText(root, file) ?? "";
+    for (const match of text.matchAll(/\[[^\]]+\]\(([^)\s]+)(?:\s+[^)]*)?\)/g)) {
+      const target = match[1];
+      if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+      const targetPath = target.split("#", 1)[0];
+      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file), targetPath));
+      if (!safeRepositoryPath(resolved) || !existsSync(resolveFrom(root, resolved))) {
+        issues.push(error("docs.link.missing", `${file} links to missing path ${target}`));
+      }
+    }
+  }
+  return issues;
 }
 
 function repositoryPackage(root: string): { version?: string; lintScript?: string } | undefined {
@@ -481,8 +609,9 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
   if (!record(raw)) return { issues: [error("docs.manifest.shape", "document lifecycle manifest must be an object")] };
 
   const issues: Issue[] = [];
-  if (raw.schemaVersion !== "1.0.0") {
-    issues.push(error("docs.manifest.schemaVersion", 'schemaVersion must be "1.0.0"'));
+  const legacy = raw.schemaVersion === documentLifecycleLegacySchemaVersion;
+  if (!legacy && raw.schemaVersion !== documentLifecycleSchemaVersion) {
+    issues.push(error("docs.manifest.schemaVersion", `schemaVersion must be "${documentLifecycleSchemaVersion}"`));
   }
   if (!stringArray(raw.standardEntrypoints) || raw.standardEntrypoints.length === 0) {
     issues.push(error("docs.manifest.standardEntrypoints", "standardEntrypoints must be a non-empty string array"));
@@ -501,6 +630,15 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
     return { issues };
   }
 
+  const maxLines = raw.maxLines === undefined && legacy ? 500 : raw.maxLines;
+  if (typeof maxLines !== "number" || !Number.isInteger(maxLines) || maxLines < 1) {
+    issues.push(error("docs.manifest.maxLines", "maxLines must be a positive integer"));
+  }
+  const rawExceptions = raw.qualityExceptions === undefined && legacy ? [] : raw.qualityExceptions;
+  if (!Array.isArray(rawExceptions)) {
+    issues.push(error("docs.manifest.qualityExceptions", "qualityExceptions must be an array"));
+  }
+
   const documents: DocumentSet[] = [];
   for (const [index, value] of raw.documents.entries()) {
     if (!record(value)) {
@@ -517,6 +655,7 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
     const validSupersedes =
       Array.isArray(value.supersedes) && value.supersedes.every((item) => typeof item === "string" && item.length > 0);
     const supersedes = validSupersedes ? (value.supersedes as string[]) : [];
+    const language = value.language;
 
     if (!documentId) issues.push(error("docs.document.documentId", `${prefix}.documentId must be a non-empty string`));
     if (!documentStatuses.includes(status as DocumentStatus)) {
@@ -540,6 +679,9 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
     if (!validSupersedes) {
       issues.push(error("docs.document.supersedes", `${prefix}.supersedes must be a string array`));
     }
+    if (!legacy && !documentLanguages.includes(language as DocumentLanguage)) {
+      issues.push(error("docs.language.missing", `${prefix}.language must be one of ${documentLanguages.join(", ")}`));
+    }
 
     if (
       documentId &&
@@ -556,7 +698,8 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
         appliesToCli,
         entrypoint,
         paths,
-        supersedes
+        supersedes,
+        language: documentLanguages.includes(language as DocumentLanguage) ? (language as DocumentLanguage) : "ja"
       });
     }
   }
@@ -564,10 +707,20 @@ export function parseDocumentLifecycleManifest(text: string): DocumentLifecycleR
   if (issues.some((item) => item.severity === "error")) return { issues };
   return {
     manifest: {
-      schemaVersion: "1.0.0",
+      schemaVersion: legacy ? documentLifecycleLegacySchemaVersion : documentLifecycleSchemaVersion,
       standardEntrypoints: raw.standardEntrypoints as string[],
       documents,
-      ignoredPaths: raw.ignoredPaths === undefined ? [] : (raw.ignoredPaths as string[])
+      ignoredPaths: raw.ignoredPaths === undefined ? [] : (raw.ignoredPaths as string[]),
+      maxLines: maxLines as number,
+      qualityExceptions: (Array.isArray(rawExceptions) ? rawExceptions : []).flatMap((value) => {
+        if (!record(value)) return [];
+        return [{
+          path: typeof value.path === "string" ? value.path : "",
+          reason: typeof value.reason === "string" ? value.reason : "",
+          owner: typeof value.owner === "string" ? value.owner : "",
+          expiresAt: typeof value.expiresAt === "string" ? value.expiresAt : ""
+        }];
+      })
     },
     issues
   };
@@ -728,6 +881,8 @@ export function collectDocumentLifecycleIssues(root: string, required = true): D
   issues.push(...collectOrphanDocumentationIssues(root, manifest));
   issues.push(...collectFactualDocumentationIssues(root));
   issues.push(...collectDocumentationCapabilityIssues(root));
+  issues.push(...collectDocumentationQualityIssues(root, manifest));
+  issues.push(...collectInternalLinkIssues(root, manifest));
 
   return { manifest, cliVersion, issues };
 }

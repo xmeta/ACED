@@ -13,7 +13,8 @@ entrypoints or the task require detailed SC-WBS method or CLI reference.
 
 - `getting-started.md` - first-use walkthrough for humans in this repository.
 - `ai-agent-guide.md` - minimum-context rules for implementation and review AI.
-- `cli-reference.md` - detailed command examples.
+- `cli-reference.md` - responsibility-based index for detailed command examples.
+- `cli-core-checks.md`, `cli-task-evidence.md`, `cli-approval-risk.md`, `cli-wbs-github.md`, `cli-mutation-output.md` - detailed command references by responsibility.
 - `../sc-wbs-development.md` - short methodology hub.
 
 ## Methodology
@@ -28,7 +29,7 @@ entrypoints or the task require detailed SC-WBS method or CLI reference.
 
 ## Tool References
 
-- `cli-reference.md` - detailed CLI examples.
+- `cli-reference.md` - detailed CLI index and responsibility links.
 - `wjs-operations-validation.md` - WJS validate and operations schema workflow.
 - `merge-protection.md` - main branch merge enforcement boundary and fail-closed merge path.
 - `integration-testing.md` - integration test runner parallelism, isolation, and duration reporting.

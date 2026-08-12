@@ -1,5 +1,7 @@
 # ACED Documentation Map
 
+この文書は、目的に応じた文書群の選び方を日本語で示す標準ナビゲーション入口である。
+
 Status: current navigation entrypoint.
 
 This file is the first stop for choosing which documentation set to read.

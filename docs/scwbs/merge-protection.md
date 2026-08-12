@@ -1,5 +1,7 @@
 # main merge protection and enforcement boundary
 
+This legacy reference is maintained in English; command names and schema fields remain unchanged.
+
 ## Current repository state
 
 2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という

@@ -2,6 +2,8 @@
 
 Source: docs/sc-wbs-development.md split reference.
 
+This legacy reference is maintained in English; command names and schema fields remain unchanged.
+
 ## 8. Contract Enforcement
 
 `scwbs check` は、SC-WBSの契約違反を検出する。

@@ -1,5 +1,7 @@
 # WBS Conflict Mitigation
 
+この文書は、WBS の競合を安全に扱うための方針を日本語で示す。
+
 This note defines the near-term conflict strategy for `contracts/wbs/project.wbs.json`.
 
 ## Problem
