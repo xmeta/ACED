@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { main } from "../../src/cli.js";
@@ -28,5 +28,24 @@ describe("pack CLI", () => {
     const remove = capture(root, ["pack", "remove", "org.example.cli", "--dry-run", "--json"]);
     expect(remove.exitCode).toBe(0);
     expect(JSON.parse(remove.stdout)).toMatchObject({ version: "scwbs.pack-operation.v1", operation: "remove", dryRun: true });
+
+    writeFileSync(path.join(root, "fixture/pack.yaml"), `schemaVersion: scwbs.pack.v1
+id: org.example.cli
+version: 2.0.0
+contents:
+  files:
+    - source: guidance/common.md
+security:
+  allowExecutableCode: false
+`, "utf8");
+    writeFileSync(path.join(root, "fixture/guidance/common.md"), "updated\n", "utf8");
+    const updateDryRun = capture(root, ["pack", "update", "org.example.cli", "--dry-run", "--json"]);
+    expect(updateDryRun.exitCode).toBe(0);
+    expect(JSON.parse(updateDryRun.stdout)).toMatchObject({ operation: "update", dryRun: true, old: { version: "1.0.0" }, new: { version: "2.0.0" } });
+    expect(existsSync(path.join(root, ".scwbs/packs/org.example.cli/2.0.0/guidance/common.md"))).toBe(false);
+    const update = capture(root, ["pack", "update", "org.example.cli", "--json"]);
+    expect(update.exitCode).toBe(0);
+    expect(JSON.parse(update.stdout)).toMatchObject({ operation: "update", dryRun: false, old: { version: "1.0.0" }, new: { version: "2.0.0" } });
+    expect(readFileSync(path.join(root, ".scwbs/packs/org.example.cli/2.0.0/guidance/common.md"), "utf8")).toBe("updated\n");
   });
 });
