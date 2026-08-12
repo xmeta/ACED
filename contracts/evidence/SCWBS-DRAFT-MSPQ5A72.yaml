@@ -1,0 +1,103 @@
+id: EVD-SCWBS-DRAFT-MSPQ5A72
+type: evidence
+taskId: SCWBS-DRAFT-MSPQ5A72
+commit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+subjectHeadCommit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+diffHash: sha256:d192be68e60e1f8daee495e8784ccc8b308eb2917b57b13001e54be3d274af0b
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+    treeHash: 792045cb36293e52a3efeedd1e5cded5e9c7037f
+    diffHash: sha256:d192be68e60e1f8daee495e8784ccc8b308eb2917b57b13001e54be3d274af0b
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSPQ5A72.patch
+    manifestHash: sha256:d192be68e60e1f8daee495e8784ccc8b308eb2917b57b13001e54be3d274af0b
+git:
+  branch: task/SCWBS-DRAFT-MSPQ5A72-issue-558-option-b-bootstrap-installer-and-githu
+  base: origin/main
+  baseCommit: 192ac2795531ca590f0ac1ddcbb89ccadb2bd8b9
+  changedFilesBasis: branch-diff
+  pullRequest: "559"
+  subjectHeadCommit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+  diffHash: sha256:d192be68e60e1f8daee495e8784ccc8b308eb2917b57b13001e54be3d274af0b
+  headCommit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+changedFiles:
+  - .github/workflows/release.yml
+  - contracts/approvals/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/discovery/PROBE-issue-558-option-b.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSPQ5A72.patch
+  - contracts/evidence/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSPQ5A72.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/distribution.md
+  - docs/scwbs/quickstart.md
+  - docs/scwbs/schemas/bootstrap.schema.json
+  - scripts/scwbs-bootstrap.mjs
+  - tests/integration/bootstrap.test.ts
+  - tests/integration/release-integrity.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 192ac2795531ca590f0ac1ddcbb89ccadb2bd8b9
+    headCommit: aa43b684da4a55dcfadc3837da82e9c41b8a7938
+    diffHash: sha256:d192be68e60e1f8daee495e8784ccc8b308eb2917b57b13001e54be3d274af0b
+  tests:
+    filesAdded: 1
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:1cb8f6debe56cff0aa3598f2cf1fbab13c309b2abe80513ba3a074b1fef0695b
+    durationMilliseconds: 24389
+    executedAt: "2026-08-12T07:10:04.576Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:471494a0766245e0dce12452b5d562913e1454e68df1287511ec2b2cfa7c06fb
+    durationMilliseconds: 13755
+    executedAt: "2026-08-12T07:10:18.335Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:ad679017d35e798c60bea700f8b10fd6a23882269761f1d3c5dc5e5e932443e5
+    durationMilliseconds: 5456
+    executedAt: "2026-08-12T07:10:23.796Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:94e1455d2334785e8ad7ec1e52c60c6255b972107b45bb484a00760551278efd
+    durationMilliseconds: 10354
+    executedAt: "2026-08-12T07:10:34.154Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:46a8af91d4153463ee192f4d9fd7b13dfa42156d2c9178cb35b3d988fcb3ae3e
+    durationMilliseconds: 343556
+    executedAt: "2026-08-12T07:16:17.716Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added standalone bootstrap installer, release workflow trigger/asset regression, manifest/digest/subject/offline/package-preservation tests; no tests disabled or coverage decrease.

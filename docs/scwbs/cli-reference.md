@@ -97,7 +97,11 @@ npm run scwbs -- policy explain src/auth/session.ts --json
 
 The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quickstart.md): install the release tarball, run `npx scwbs init`, use `npx scwbs doctor` and `npx scwbs next`, create a narrowly scoped Task, and complete it with `npx scwbs finish --task <task-id>`. The manual Evidence/registry/check-diff sequence below remains available for contributor troubleshooting. The machine-readable command fixture at `docs/scwbs/quickstart-commands.json` is exercised by the distribution smoke test so command and option drift fails validation.
 
-`scwbs version` prints the installed exact version. `scwbs version check --json`
+`scwbs version` prints the installed exact version. The GitHub Release `scwbs-bootstrap.mjs`
+asset provides the supported non-npm Option B entry point: `node scwbs-bootstrap.mjs install
+--save-dev` verifies the release manifest and tarball digest before writing an exact
+`devDependencies.scwbs` URL; `install --dry-run --json` is read-only and returns
+`scwbs.bootstrap-install.v1`. `scwbs version check --json`
 verifies the installed/current-stable release subject and supports `--manifest <path>`
 plus `--artifact <path>` for offline digest verification. `scwbs upgrade --dry-run --json`
 emits an exact artifact proposal without mutating the consumer; upgrade without

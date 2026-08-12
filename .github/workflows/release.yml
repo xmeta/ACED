@@ -1,6 +1,9 @@
 name: scwbs release artifact
 
 on:
+  push:
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       tag:
@@ -15,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
@@ -26,7 +29,7 @@ jobs:
       - name: Resolve and checkout exact release subject
         id: subject
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         run: |
           set -euo pipefail
           integrity_script="$RUNNER_TEMP/release-integrity.mjs"
@@ -52,7 +55,7 @@ jobs:
 
       - name: Validate release subject, package version, and changelog
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
           TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
@@ -118,7 +121,7 @@ jobs:
       - name: Build and pack self-contained artifact
         id: pack
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           VALIDATION_WORKFLOW_RUN_ID: ${{ steps.validation.outputs.workflow_run_id }}
           VALIDATION_CHECKS: ${{ steps.validation.outputs.checks }}
@@ -128,7 +131,7 @@ jobs:
           npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/pack-metadata.json"
           RELEASE_DIR="$RUNNER_TEMP/scwbs-release" node --input-type=module <<'NODE'
           import { execFileSync } from "node:child_process";
-          import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+          import { appendFileSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
           import path from "node:path";
           const { assertCliVersion, createReleaseManifest } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
 
@@ -149,15 +152,18 @@ jobs:
             validationChecks: JSON.parse(process.env.VALIDATION_CHECKS)
           });
           const manifestPath = path.join(releaseDir, "release-manifest.json");
+          const bootstrapPath = path.join(releaseDir, "scwbs-bootstrap.mjs");
+          copyFileSync("scripts/scwbs-bootstrap.mjs", bootstrapPath);
           writeFileSync(manifestPath, `${JSON.stringify(releaseManifest, null, 2)}\n`);
-          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\nbootstrap=${bootstrapPath}\n`);
           NODE
 
       - name: Create GitHub Release with artifact
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
           TARBALL: ${{ steps.pack.outputs.tarball }}
           RELEASE_MANIFEST: ${{ steps.pack.outputs.manifest }}
-        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
+          BOOTSTRAP: ${{ steps.pack.outputs.bootstrap }}
+        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes

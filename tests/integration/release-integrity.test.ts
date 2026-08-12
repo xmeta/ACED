@@ -142,6 +142,9 @@ describe("release integrity", () => {
     expect(workflow).toContain('import(process.env.RELEASE_INTEGRITY_SCRIPT)');
     expect(workflow).toContain("findTrustedValidationRun");
     expect(workflow).toContain("release-manifest.json");
+    expect(workflow).toContain("scwbs-bootstrap.mjs");
+    expect(workflow).toContain('tags:\n      - "v*.*.*"');
+    expect(workflow).toContain("github.event_name == 'push' || github.ref == 'refs/heads/main'");
     expect(workflow).toContain('--target "$RELEASE_COMMIT"');
   });
 });

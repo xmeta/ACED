@@ -1,0 +1,76 @@
+id: SCWBS-DRAFT-MSPQ5A72
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSPQ5A72
+branchName: task/SCWBS-DRAFT-MSPQ5A72-issue-558-option-b-bootstrap-installer-and-githu
+status: approved
+approvedBy: user-requested-issue-533-option-b
+approvedAt: "2026-08-12T00:00:00+09:00"
+allowedPaths:
+  - contracts/discovery/PROBE-issue-558-option-b.yaml
+  - contracts/specs/**
+  - scripts/scwbs-bootstrap.mjs
+  - .github/workflows/release.yml
+  - tests/integration/bootstrap.test.ts
+  - tests/integration/release-integrity.test.ts
+  - docs/scwbs/distribution.md
+  - docs/scwbs/quickstart.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/bootstrap.schema.json
+forbiddenPaths:
+  - wjs/**
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .scwbs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - .github/workflows/release.yml
+  - scripts/scwbs-bootstrap.mjs
+stopIf:
+  - release publication or repository permission expansion beyond existing contents write
+  - automatic tag creation or npm publication
+  - OIDC trust root signing key or credential adoption
+  - consumer lockfile or repository mutation without explicit install
+  - existing version upgrade or release integrity semantics change
+  - workflow or distribution scope expansion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+doneCriteria:
+  - Release bootstrap asset provides install --save-dev and read-only --dry-run --json without npm publication or external dependencies
+  - Bootstrap resolves latest or an explicit release tag, verifies manifest schema, package version, tag, tarball filename, commit, asset presence, and SHA-256 before any consumer mutation
+  - Explicit install writes only an exact GitHub Release tarball URL to package.json after verification; dry-run, unknown options, digest mismatch, missing assets, and network failures leave package.json unchanged
+  - Release workflow supports validated human-created v* tag pushes and existing main workflow_dispatch, attaches tarball, release-manifest.json, and bootstrap installer, and preserves exact-head validation, changelog, subject, and manifest checks
+  - Standalone integration fixtures cover dry-run, explicit install, digest/subject mismatch, offline/error, unknown option, and bounded versioned JSON
+  - Existing version check, upgrade dry-run, unattended upgrade disabled, npm publication boundary, tag creation boundary, and release permissions remain unchanged
+specPath: contracts/specs/SPEC-LITE-MSPQ5A72.yaml
+specVersion: 0.1.0
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/specs/SPEC-LITE-MSPQ5A72.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSPQ5A72.patch
+  - contracts/approvals/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSPQ5A72.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:8029f08c8f96eaf1a25e001c9c2ba2dfd49c258b12a673e0aa44c97f17113d29
+  createdAt: "2026-08-12T06:46:17.341Z"

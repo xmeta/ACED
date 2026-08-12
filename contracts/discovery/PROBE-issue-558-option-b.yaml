@@ -1,0 +1,46 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-558-option-b
+type: discovery-probe
+status: concluded
+question: Can Option B provide a standalone digest-verified bootstrap installer and safely prepare GitHub Release assets automatically on validated tag pushes without npm publication or authority downgrade?
+hypotheses:
+  - a standalone Node.js asset can resolve and verify release-manifest.json plus tarball before consumer mutation
+  - release workflow can attach bootstrap asset and support validated tag push plus manual dispatch
+  - existing release integrity and version lifecycle can be reused without changing existing commands
+activities:
+  - inspect existing release workflow and integrity helpers
+  - define bootstrap CLI and package.json mutation safety
+  - add standalone fixture and workflow regression coverage
+  - verify tag push/manual dispatch boundaries and release assets
+evidenceExpected:
+  - bootstrap installer source and bounded JSON schema
+  - package.json unchanged on dry-run/failure and exact URL on explicit install
+  - digest subject mismatch and unknown option fail closed
+  - release workflow asset attachment and trigger assertions
+unknowns:
+  - whether release workflow permissions need new scope beyond contents write
+  - how to represent latest versus explicit tag while preserving immutable artifact URL
+timebox: 60m
+costLimit: low
+exitConditions:
+  - bootstrap interface and bounds defined
+  - release trigger and asset boundary defined
+  - existing version lifecycle and release integrity remain unchanged
+nextDecision: "Create a delivery Task for Issue #558 Option B bootstrap and GitHub Release asset automation"
+createdAt: "2026-08-12T06:43:47.806Z"
+startedAt: "2026-08-12T06:44:02.639Z"
+concludedAt: "2026-08-12T06:44:23.649Z"
+exitConditionsMet: true
+factsLearned:
+  - existing release workflow is manual_dispatch on main with contents write and currently attaches only tarball plus release-manifest.json
+  - existing release-integrity helper already defines exact package version tag commit changelog aggregate validation and sha256 subject checks
+  - standalone Node built-ins are sufficient for a release bootstrap asset that fetches manifest and tarball then mutates package.json only after verification
+  - tag push automation can preserve human-created tag and existing manual dispatch while never creating tags or changing npm publication
+hypothesesRejected:
+  - npm registry publication
+  - automatic tag creation
+  - OIDC trust root or signing key adoption
+  - consumer lockfile mutation without explicit install
+  - release permission expansion beyond existing contents write
+remainingUnknowns:
+  - none for bounded installer and workflow asset scope

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/scwbs.bootstrap-install.v1.schema.json",
+  "title": "SC-WBS bootstrap install JSON output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "status", "mode", "repository", "releaseTag", "packageVersion", "artifactUrl", "mutation", "reasons"],
+  "properties": {
+    "version": { "const": "scwbs.bootstrap-install.v1" },
+    "status": { "enum": ["pass", "blocked", "fail", "unavailable"] },
+    "mode": { "enum": ["dry-run", "install"] },
+    "repository": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
+    "releaseTag": { "type": ["string", "null"] },
+    "packageVersion": { "type": ["string", "null"] },
+    "artifactUrl": { "type": ["string", "null"], "pattern": "^(https://github\\.com/[^/]+/[^/]+/releases/download/[^/]+/scwbs-[^/]+\\.tgz)?$" },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "field", "changed"],
+      "properties": {
+        "target": { "const": "package.json" },
+        "field": { "const": "devDependencies.scwbs" },
+        "changed": { "type": "boolean" }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "maxLength": 128 },
+          "message": { "type": "string", "maxLength": 512 }
+        }
+      }
+    }
+  }
+}
