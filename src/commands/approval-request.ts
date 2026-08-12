@@ -25,6 +25,46 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
 }
 
+const APPROVAL_REQUEST_JSON_VERSION = "scwbs.approval-request.v1" as const;
+const MAX_JSON_NOTES = 3;
+const MAX_JSON_NOTE_LENGTH = 512;
+const MAX_JSON_ACTION_LENGTH = 512;
+
+export type ApprovalRequestJson = {
+  version: typeof APPROVAL_REQUEST_JSON_VERSION;
+  approvalId: string;
+  taskId: string;
+  status: "requested";
+  requestedAt: string;
+  notes: string[];
+  nextActionOwner: "human";
+  nextAction: string;
+  pullRequest?: string;
+};
+
+function boundedNotes(notes: string[] | undefined): string[] {
+  return (notes ?? [])
+    .slice(0, MAX_JSON_NOTES)
+    .map((note) => note.slice(0, MAX_JSON_NOTE_LENGTH));
+}
+
+export function buildApprovalRequestJson(approval: ApprovalRecord): ApprovalRequestJson {
+  const requestedAt = approval.requestedAt;
+  if (!requestedAt) throw new Error("Approval request is missing requestedAt");
+  const nextAction = `Review Evidence and diff, then run npm run scwbs -- approval approve --task ${approval.taskId} --actor human with the exact TTY confirmation.`;
+  return {
+    version: APPROVAL_REQUEST_JSON_VERSION,
+    approvalId: approval.id,
+    taskId: approval.taskId,
+    status: "requested",
+    requestedAt,
+    notes: boundedNotes(approval.notes),
+    nextActionOwner: "human",
+    nextAction: nextAction.slice(0, MAX_JSON_ACTION_LENGTH),
+    ...(approval.pullRequest ? { pullRequest: approval.pullRequest } : {})
+  };
+}
+
 export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; actorId?: string; actorSource?: string; actorUrl?: string; verifiedAt?: string; verificationLevel?: string; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
   return {
     id: `APR-${taskId}`,
@@ -96,7 +136,7 @@ function evidenceSubject(root: string, taskId: string): { headCommit?: string; d
   };
 }
 
-export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
+export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean; json?: boolean }): number {
   try {
     const current = detectCurrentPullRequest(root);
     const evidencePullRequest = normalizePullRequestNumber(readEvidence(root, taskId).evidence?.git?.pullRequest);
@@ -118,14 +158,15 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
       return 1;
     }
 
-    const yaml = buildApprovalRequestYaml(taskId, {
+    const approval = buildApprovalRequest(taskId, {
       ...options,
       ...(current ? { pullRequest: `#${current.number}` } : {})
     });
+    const yaml = stringifySimpleYaml(approval as unknown as Record<string, unknown>);
     mkdirSync(path.dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, yaml, "utf8");
     syncRegistry(root);
-    process.stdout.write(yaml);
+    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval), null, 2)}\n` : yaml);
     return 0;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xmeta.github.io/ACED/scwbs.approval-request.v1.schema.json",
+  "title": "SC-WBS approval request JSON output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "approvalId", "taskId", "status", "requestedAt", "notes", "nextActionOwner", "nextAction"],
+  "properties": {
+    "version": { "const": "scwbs.approval-request.v1" },
+    "approvalId": { "type": "string", "pattern": "^APR-.+" },
+    "taskId": { "type": "string", "minLength": 1 },
+    "status": { "const": "requested" },
+    "requestedAt": { "type": "string", "format": "date-time" },
+    "notes": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string", "maxLength": 512 }
+    },
+    "nextActionOwner": { "const": "human" },
+    "nextAction": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "pullRequest": { "type": "string", "pattern": "^#[1-9][0-9]*$" }
+  }
+}

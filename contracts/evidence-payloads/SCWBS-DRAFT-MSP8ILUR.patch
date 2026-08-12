@@ -1,0 +1,373 @@
+diff --git a/contracts/discovery/PROBE-issue-556.yaml b/contracts/discovery/PROBE-issue-556.yaml
+new file mode 100644
+index 0000000..e43a54d
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-556.yaml
+@@ -0,0 +1,44 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-556
++type: discovery-probe
++status: concluded
++question: approval request の bounded versioned JSON summary を、既存 text/YAML output と Human Approval semantics を変えずに追加できるか
++hypotheses:
++  - approval request currently lacks --json
++  - existing versioned summary schema patterns can be reused
++  - request side effects and policy checks can remain unchanged
++activities:
++  - inspect approval request command and CLI registration
++  - compare versioned JSON summary schemas
++  - inspect approval request tests
++  - reproduce unknown option without mutation
++evidenceExpected:
++  - unknown --json reproduction
++  - current request output shape
++  - reusable schema conventions
++  - no approval auto-generation
++unknowns:
++  - exact stable field names for owner/action
++  - whether requestedAt and notes need bounded limits
++timebox: 45m
++costLimit: low
++exitConditions:
++  - response schema and bounds defined
++  - existing output/policy semantics remain unchanged
++  - delivery scope is limited to request response
++nextDecision: Create one delivery Task for scwbs.approval-request.v1 JSON response and schema regression coverage
++createdAt: "2026-08-11T22:27:51.538Z"
++startedAt: "2026-08-11T22:28:05.408Z"
++concludedAt: "2026-08-11T22:30:22.070Z"
++exitConditionsMet: true
++factsLearned:
++  - approval request has no json option and currently emits YAML only
++  - runApprovalRequest already creates requested-only approval and preserves pull-request force and evidence PR checks
++  - versioned JSON schema fixtures live under docs/scwbs/schemas and existing nextActionOwner human convention is reusable
++  - CLI parser joins note arguments before request and JSON projection can bound notes without changing stored YAML or plain output
++hypothesesRejected:
++  - AI approval automation
++  - Human Gate or delegated token semantics changes
++  - review merge repository permissions changes
++remainingUnknowns:
++  - none within the bounded request-response scope
+diff --git a/contracts/specs/SPEC-LITE-MSP8ILUR.yaml b/contracts/specs/SPEC-LITE-MSP8ILUR.yaml
+new file mode 100644
+index 0000000..86b424b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSP8ILUR.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSP8ILUR
++type: spec-contract
++featureId: F-MSP8ILUR
++title: "Issue #556: approval request versioned JSON response"
++status: approved
++version: 0.1.0
++summary: "bounded scwbs.approval-request.v1 output for requested approvals while preserving plain output and Human Approval semantics"
++approvedBy: user-requested-issue-556
++approvedAt: "2026-08-12T00:00:00+09:00"
++acceptanceCriteria:
++  - "approval request --json emits one JSON document whose schemaVersion is scwbs.approval-request.v1 and whose bounded fields include approval id, taskId, status, requestedAt, notes, nextActionOwner, and nextAction"
++  - "The JSON projection is bounded by fixed note count and note length limits and does not echo arbitrary input or approval artifacts beyond the documented fields"
++  - "The response always represents a requested approval and never fabricates approvedBy, approvedAt, provenance, delegated token, or approval authorization"
++  - "--pull-request and --force retain their existing validation and overwrite behavior; current-branch PR and Evidence mismatch checks remain fail-closed"
++  - "Without --json the existing YAML/text output and request artifact side effect are byte-compatible in behavior; unknown options remain Commander usage errors"
++  - "Unit/integration tests and the JSON schema fixture cover valid shape, bounded notes, plain output, option compatibility, unknown options, and no auto-approval"
++  - "No changes are made to approval record schema, Human Approval policy or permissions, review/merge behavior, dependencies, workflows, or distribution"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml b/contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
+new file mode 100644
+index 0000000..f8aba68
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
+@@ -0,0 +1,72 @@
++id: SCWBS-DRAFT-MSP8ILUR
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSP8ILUR
++branchName: task/SCWBS-DRAFT-MSP8ILUR-issue-556-approval-request-versioned-json-respon
++status: approved
++approvedBy: user-requested-issue-556
++approvedAt: "2026-08-12T00:00:00+09:00"
++allowedPaths:
++  - contracts/discovery/PROBE-issue-556.yaml
++  - contracts/specs/**
++  - src/commands/approval-request.ts
++  - src/cli/register-governance.ts
++  - tests/integration/approval.test.ts
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/approval-request.schema.json
++forbiddenPaths:
++  - wjs/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - .scwbs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/commands/approval-request.ts
++  - src/cli/register-governance.ts
++stopIf:
++  - approval record schema or provenance semantics change
++  - AI or delegated approval behavior change
++  - review or merge or repository permission change
++  - dependency or workflow or distribution change
++  - unbounded JSON output or scope expansion
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - approval request --json emits exactly one bounded scwbs.approval-request.v1 JSON document with stable approval id, task id, status, requestedAt, notes, nextActionOwner, and nextAction fields
++  - --pull-request, --force, existing Evidence/current-PR checks, requested-only status, and plain YAML output remain unchanged
++  - unknown options fail closed and AI, delegated approval, Human Gate provenance, review, merge, permissions, dependencies, workflows, and distribution remain unchanged
++  - schema fixture and unit/integration tests cover JSON shape, bounded notes, plain output, option compatibility, and no auto-approval
++specPath: contracts/specs/SPEC-LITE-MSP8ILUR.yaml
++specVersion: 0.1.0
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
++  - contracts/specs/SPEC-LITE-MSP8ILUR.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSP8ILUR.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSP8ILUR.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSP8ILUR.patch
++  - contracts/approvals/SCWBS-DRAFT-MSP8ILUR.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSP8ILUR.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d3123af285bba089412df8d78e3f7ae00ec3030fa05c8beed0193b7913159ddd
++  createdAt: "2026-08-11T22:48:15.235Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index e437404..09c55c2 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2008,3 +2008,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-11T22:18:07.295Z"
++  - id: SCWBS-DRAFT-MSP8ILUR
++    path: contracts/tasks/SCWBS-DRAFT-MSP8ILUR.yaml
++    branchName: task/SCWBS-DRAFT-MSP8ILUR-issue-556-approval-request-versioned-json-respon
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 75242c1..92c0466 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -438,6 +438,7 @@ npm run scwbs -- review-queue --verbose
+ npm run scwbs -- review route --task SCWBS-001
+ npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
+ npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
++npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
+ npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
+ SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
+@@ -501,6 +502,8 @@ notes:
+ 
+ `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+ 
++`approval request --json` emits one bounded `scwbs.approval-request.v1` document with `approvalId`, `taskId`, `status: requested`, `requestedAt`, bounded `notes`, `nextActionOwner: human`, and `nextAction`. Its schema is [`schemas/approval-request.schema.json`](schemas/approval-request.schema.json). JSON output is a response projection only: it does not approve the request, expose approval provenance, or change the existing YAML artifact and policy checks. Without `--json`, the existing YAML output remains unchanged.
++
+ `approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
+ 
+ ### Human GateとDelegated Approvalの違い
+diff --git a/docs/scwbs/schemas/approval-request.schema.json b/docs/scwbs/schemas/approval-request.schema.json
+new file mode 100644
+index 0000000..23472f0
+--- /dev/null
++++ b/docs/scwbs/schemas/approval-request.schema.json
+@@ -0,0 +1,23 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs.approval-request.v1.schema.json",
++  "title": "SC-WBS approval request JSON output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "approvalId", "taskId", "status", "requestedAt", "notes", "nextActionOwner", "nextAction"],
++  "properties": {
++    "version": { "const": "scwbs.approval-request.v1" },
++    "approvalId": { "type": "string", "pattern": "^APR-.+" },
++    "taskId": { "type": "string", "minLength": 1 },
++    "status": { "const": "requested" },
++    "requestedAt": { "type": "string", "format": "date-time" },
++    "notes": {
++      "type": "array",
++      "maxItems": 3,
++      "items": { "type": "string", "maxLength": 512 }
++    },
++    "nextActionOwner": { "const": "human" },
++    "nextAction": { "type": "string", "minLength": 1, "maxLength": 512 },
++    "pullRequest": { "type": "string", "pattern": "^#[1-9][0-9]*$" }
++  }
++}
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index af97312..24e682b 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -285,6 +285,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+     .option("--pull-request <id>", "pull request id")
+     .option("--note <text>", "approval note")
+     .option("--force", "force request")
++    .option("--json", "output a bounded versioned JSON summary")
+     .action((noteParts: string[], options) => {
+       if (!options.task) {
+         console.error("Missing --task <task-id>");
+@@ -296,7 +297,8 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+         runApprovalRequest(root, options.task, {
+           pullRequest: options.pullRequest,
+           note,
+-          force: options.force ?? false
++          force: options.force ?? false,
++          json: options.json ?? false
+         })
+       );
+     });
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index d6b0569..bd9613e 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -25,6 +25,46 @@ export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?
+   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
++const APPROVAL_REQUEST_JSON_VERSION = "scwbs.approval-request.v1" as const;
++const MAX_JSON_NOTES = 3;
++const MAX_JSON_NOTE_LENGTH = 512;
++const MAX_JSON_ACTION_LENGTH = 512;
++
++export type ApprovalRequestJson = {
++  version: typeof APPROVAL_REQUEST_JSON_VERSION;
++  approvalId: string;
++  taskId: string;
++  status: "requested";
++  requestedAt: string;
++  notes: string[];
++  nextActionOwner: "human";
++  nextAction: string;
++  pullRequest?: string;
++};
++
++function boundedNotes(notes: string[] | undefined): string[] {
++  return (notes ?? [])
++    .slice(0, MAX_JSON_NOTES)
++    .map((note) => note.slice(0, MAX_JSON_NOTE_LENGTH));
++}
++
++export function buildApprovalRequestJson(approval: ApprovalRecord): ApprovalRequestJson {
++  const requestedAt = approval.requestedAt;
++  if (!requestedAt) throw new Error("Approval request is missing requestedAt");
++  const nextAction = `Review Evidence and diff, then run npm run scwbs -- approval approve --task ${approval.taskId} --actor human with the exact TTY confirmation.`;
++  return {
++    version: APPROVAL_REQUEST_JSON_VERSION,
++    approvalId: approval.id,
++    taskId: approval.taskId,
++    status: "requested",
++    requestedAt,
++    notes: boundedNotes(approval.notes),
++    nextActionOwner: "human",
++    nextAction: nextAction.slice(0, MAX_JSON_ACTION_LENGTH),
++    ...(approval.pullRequest ? { pullRequest: approval.pullRequest } : {})
++  };
++}
++
+ export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; actorId?: string; actorSource?: string; actorUrl?: string; verifiedAt?: string; verificationLevel?: string; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+   return {
+     id: `APR-${taskId}`,
+@@ -96,7 +136,7 @@ function evidenceSubject(root: string, taskId: string): { headCommit?: string; d
+   };
+ }
+ 
+-export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean }): number {
++export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean; json?: boolean }): number {
+   try {
+     const current = detectCurrentPullRequest(root);
+     const evidencePullRequest = normalizePullRequestNumber(readEvidence(root, taskId).evidence?.git?.pullRequest);
+@@ -118,14 +158,15 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+       return 1;
+     }
+ 
+-    const yaml = buildApprovalRequestYaml(taskId, {
++    const approval = buildApprovalRequest(taskId, {
+       ...options,
+       ...(current ? { pullRequest: `#${current.number}` } : {})
+     });
++    const yaml = stringifySimpleYaml(approval as unknown as Record<string, unknown>);
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
+     syncRegistry(root);
+-    process.stdout.write(yaml);
++    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval), null, 2)}\n` : yaml);
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index f8337e4..bbb2787 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -2,6 +2,7 @@ import { chmodSync, readFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
+ import os from "node:os";
+ import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+@@ -128,6 +129,45 @@ describe("approval", () => {
+     expect(actual).toContain("  - Awaiting human review");
+   });
+ 
++  test("approval request --json emits a bounded versioned requested summary", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const note = "n".repeat(2048);
++    const output = captureOutput(() => main([
++      "approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", note, "--json"
++    ], root));
++
++    expect(output.result).toBe(0);
++    const json = JSON.parse(output.stdout) as Record<string, unknown>;
++    expect(json).toMatchObject({
++      version: "scwbs.approval-request.v1",
++      approvalId: "APR-WBS-001-004",
++      taskId: "WBS-001-004",
++      status: "requested",
++      nextActionOwner: "human",
++      pullRequest: "#42"
++    });
++    expect(json.requestedAt).toEqual(expect.any(String));
++    expect(json.notes).toEqual(["n".repeat(512)]);
++    expect(json.nextAction).toEqual(expect.stringContaining("approval approve --task WBS-001-004 --actor human"));
++    expect(json).not.toHaveProperty("approvedBy");
++    expect(json).not.toHaveProperty("approvedAt");
++    expect(output.stdout.length).toBeLessThan(2048);
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/approval-request.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
++  });
++
++  test("approval request --json preserves requested side effects and rejects unknown options", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const output = captureOutput(() => main([
++      "approval", "request", "--task", "WBS-001-004", "--json", "--unknown"
++    ], root));
++
++    expect(output.result).toBe(1);
++    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
++  });
++
+   test("approval approve writes a human approved record", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);

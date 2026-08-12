@@ -438,6 +438,7 @@ npm run scwbs -- review-queue --verbose
 npm run scwbs -- review route --task SCWBS-001
 npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
 npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
+npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
 npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
 SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
@@ -500,6 +501,8 @@ notes:
 ```
 
 `approval request` creates a `requested` record without fabricating human approval. `approval approve` is the explicit human action for turning a reviewed task into an approved record; it writes `status: approved`, `approvedBy: human`, and `approvedAt`. `--note` and `--reason` are available both as quoted multi-word arguments and inline syntax such as `--note=Awaiting human review` or `--reason=Evidence reviewed`.
+
+`approval request --json` emits one bounded `scwbs.approval-request.v1` document with `approvalId`, `taskId`, `status: requested`, `requestedAt`, bounded `notes`, `nextActionOwner: human`, and `nextAction`. Its schema is [`schemas/approval-request.schema.json`](schemas/approval-request.schema.json). JSON output is a response projection only: it does not approve the request, expose approval provenance, or change the existing YAML artifact and policy checks. Without `--json`, the existing YAML output remains unchanged.
 
 `approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
 

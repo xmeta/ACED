@@ -285,6 +285,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .option("--pull-request <id>", "pull request id")
     .option("--note <text>", "approval note")
     .option("--force", "force request")
+    .option("--json", "output a bounded versioned JSON summary")
     .action((noteParts: string[], options) => {
       if (!options.task) {
         console.error("Missing --task <task-id>");
@@ -296,7 +297,8 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         runApprovalRequest(root, options.task, {
           pullRequest: options.pullRequest,
           note,
-          force: options.force ?? false
+          force: options.force ?? false,
+          json: options.json ?? false
         })
       );
     });

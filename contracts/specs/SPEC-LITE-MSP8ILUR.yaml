@@ -1,0 +1,17 @@
+id: SPEC-LITE-MSP8ILUR
+type: spec-contract
+featureId: F-MSP8ILUR
+title: "Issue #556: approval request versioned JSON response"
+status: approved
+version: 0.1.0
+summary: "bounded scwbs.approval-request.v1 output for requested approvals while preserving plain output and Human Approval semantics"
+approvedBy: user-requested-issue-556
+approvedAt: "2026-08-12T00:00:00+09:00"
+acceptanceCriteria:
+  - "approval request --json emits one JSON document whose schemaVersion is scwbs.approval-request.v1 and whose bounded fields include approval id, taskId, status, requestedAt, notes, nextActionOwner, and nextAction"
+  - "The JSON projection is bounded by fixed note count and note length limits and does not echo arbitrary input or approval artifacts beyond the documented fields"
+  - "The response always represents a requested approval and never fabricates approvedBy, approvedAt, provenance, delegated token, or approval authorization"
+  - "--pull-request and --force retain their existing validation and overwrite behavior; current-branch PR and Evidence mismatch checks remain fail-closed"
+  - "Without --json the existing YAML/text output and request artifact side effect are byte-compatible in behavior; unknown options remain Commander usage errors"
+  - "Unit/integration tests and the JSON schema fixture cover valid shape, bounded notes, plain output, option compatibility, unknown options, and no auto-approval"
+  - "No changes are made to approval record schema, Human Approval policy or permissions, review/merge behavior, dependencies, workflows, or distribution"
