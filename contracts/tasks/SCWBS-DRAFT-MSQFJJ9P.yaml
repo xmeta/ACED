@@ -1,0 +1,77 @@
+id: SCWBS-DRAFT-MSQFJJ9P
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-588
+approvedAt: "2026-08-13T00:00:00+09:00"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQFJJ9P
+branchName: task/SCWBS-DRAFT-MSQFJJ9P-issue-588
+sourceIssue: 588
+allowedPaths:
+  - README.md
+  - docs/**
+  - src/core/document-lifecycle.ts
+  - tests/integration/docs-check.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+stopIf:
+  - DB schema or migration required
+  - authentication or approval-policy design change required
+  - external credential or billing change required
+  - package or CI configuration change required
+  - WBS/WJS/authority change required
+  - semantic contract or Human Gate boundary change required
+  - allowed path expansion required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - lint
+  - test:integration
+doneCriteria:
+  - 'lifecycle管理対象の全document setがlanguage: jaを宣言し、対象文書の自然言語本文と自然文見出しが日本語で統一されている'
+  - README.md、docs/README.md、docs/implementation-gaps.md、docs/sc-wbs-development.md、docs/wbs-conflict-mitigation.md、docs/scwbs/**/*.md、docs/sc-wbs-core/**、docs/sc-wbs-core-revision/**を確認し、技術識別子・コード例以外の英語自然文を翻訳している
+  - Task Contract、Evidence、Human Gate、command、option、schema field、error code、path、URL、製品名、コード例、JSON/YAML/Mermaid、Human-only境界の意味を変更していない
+  - docs checkが同一文書内のja/en自然文混在をdocs.language.mixedProseとしてfail-closedにし、path、line、declared language、detected language、expected languageを診断する
+  - fenced code（```と~~~）、indented code、inline code、URL/link destination、path、CLI option、schema field、error code、JSON/YAML/shell/Mermaid例を誤検知せず、Markdown表の自然文セルは検査する
+  - ja/en双方の混在、技術識別子、除外構文、Markdown表、診断行番号、現行manifest全体を対象とする回帰テストがある
+  - 翻訳後のdocs check、500行制限、期限付き例外、内部リンク検査がPASSし、docs.language.*エラーがゼロである
+  - '#572のcapability status検証ロジックを重複実装せず、package/CI、WBS、WJS、Approval、Human Gate、proposal statusの意味を変更しない'
+  - required checks、Evidence、check-diff、registry、protected mergeが最終HEADで収束している
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/specs/SPEC-LITE-MSQFJJ9P.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQFJJ9P.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQFJJ9P.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQFJJ9P.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQFJJ9P.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQFJJ9P.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQFJJ9P.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:060bd35fc2270c72fab0417160c557409adf2428d162144535dc89395d881b2e
+  createdAt: "2026-08-12T18:37:36.468Z"
