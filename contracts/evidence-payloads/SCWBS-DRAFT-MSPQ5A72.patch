@@ -1,0 +1,795 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 1cbb9c0..e4103f5 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -1,6 +1,9 @@
+ name: scwbs release artifact
+ 
+ on:
++  push:
++    tags:
++      - "v*.*.*"
+   workflow_dispatch:
+     inputs:
+       tag:
+@@ -15,7 +18,7 @@ permissions:
+ 
+ jobs:
+   release:
+-    if: github.ref == 'refs/heads/main'
++    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout main
+@@ -26,7 +29,7 @@ jobs:
+       - name: Resolve and checkout exact release subject
+         id: subject
+         env:
+-          RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+         run: |
+           set -euo pipefail
+           integrity_script="$RUNNER_TEMP/release-integrity.mjs"
+@@ -52,7 +55,7 @@ jobs:
+ 
+       - name: Validate release subject, package version, and changelog
+         env:
+-          RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           TAG_COMMIT: ${{ steps.subject.outputs.tag_commit }}
+           TAG_EXISTS: ${{ steps.subject.outputs.tag_exists }}
+@@ -118,7 +121,7 @@ jobs:
+       - name: Build and pack self-contained artifact
+         id: pack
+         env:
+-          RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           VALIDATION_WORKFLOW_RUN_ID: ${{ steps.validation.outputs.workflow_run_id }}
+           VALIDATION_CHECKS: ${{ steps.validation.outputs.checks }}
+@@ -128,7 +131,7 @@ jobs:
+           npm pack --json --pack-destination "$RUNNER_TEMP/scwbs-release" > "$RUNNER_TEMP/scwbs-release/pack-metadata.json"
+           RELEASE_DIR="$RUNNER_TEMP/scwbs-release" node --input-type=module <<'NODE'
+           import { execFileSync } from "node:child_process";
+-          import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
++          import { appendFileSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
+           import path from "node:path";
+           const { assertCliVersion, createReleaseManifest } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
+ 
+@@ -149,15 +152,18 @@ jobs:
+             validationChecks: JSON.parse(process.env.VALIDATION_CHECKS)
+           });
+           const manifestPath = path.join(releaseDir, "release-manifest.json");
++          const bootstrapPath = path.join(releaseDir, "scwbs-bootstrap.mjs");
++          copyFileSync("scripts/scwbs-bootstrap.mjs", bootstrapPath);
+           writeFileSync(manifestPath, `${JSON.stringify(releaseManifest, null, 2)}\n`);
+-          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\n`);
++          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarballPath}\nmanifest=${manifestPath}\nbootstrap=${bootstrapPath}\n`);
+           NODE
+ 
+       - name: Create GitHub Release with artifact
+         env:
+           GH_TOKEN: ${{ github.token }}
+-          RELEASE_TAG: ${{ inputs.tag }}
++          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+           RELEASE_COMMIT: ${{ steps.subject.outputs.release_commit }}
+           TARBALL: ${{ steps.pack.outputs.tarball }}
+           RELEASE_MANIFEST: ${{ steps.pack.outputs.manifest }}
+-        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
++          BOOTSTRAP: ${{ steps.pack.outputs.bootstrap }}
++        run: gh release create "$RELEASE_TAG" "$TARBALL" "$RELEASE_MANIFEST" "$BOOTSTRAP" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --title "scwbs $RELEASE_TAG" --generate-notes
+diff --git a/contracts/discovery/PROBE-issue-558-option-b.yaml b/contracts/discovery/PROBE-issue-558-option-b.yaml
+new file mode 100644
+index 0000000..2d33327
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-558-option-b.yaml
+@@ -0,0 +1,46 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-558-option-b
++type: discovery-probe
++status: concluded
++question: Can Option B provide a standalone digest-verified bootstrap installer and safely prepare GitHub Release assets automatically on validated tag pushes without npm publication or authority downgrade?
++hypotheses:
++  - a standalone Node.js asset can resolve and verify release-manifest.json plus tarball before consumer mutation
++  - release workflow can attach bootstrap asset and support validated tag push plus manual dispatch
++  - existing release integrity and version lifecycle can be reused without changing existing commands
++activities:
++  - inspect existing release workflow and integrity helpers
++  - define bootstrap CLI and package.json mutation safety
++  - add standalone fixture and workflow regression coverage
++  - verify tag push/manual dispatch boundaries and release assets
++evidenceExpected:
++  - bootstrap installer source and bounded JSON schema
++  - package.json unchanged on dry-run/failure and exact URL on explicit install
++  - digest subject mismatch and unknown option fail closed
++  - release workflow asset attachment and trigger assertions
++unknowns:
++  - whether release workflow permissions need new scope beyond contents write
++  - how to represent latest versus explicit tag while preserving immutable artifact URL
++timebox: 60m
++costLimit: low
++exitConditions:
++  - bootstrap interface and bounds defined
++  - release trigger and asset boundary defined
++  - existing version lifecycle and release integrity remain unchanged
++nextDecision: "Create a delivery Task for Issue #558 Option B bootstrap and GitHub Release asset automation"
++createdAt: "2026-08-12T06:43:47.806Z"
++startedAt: "2026-08-12T06:44:02.639Z"
++concludedAt: "2026-08-12T06:44:23.649Z"
++exitConditionsMet: true
++factsLearned:
++  - existing release workflow is manual_dispatch on main with contents write and currently attaches only tarball plus release-manifest.json
++  - existing release-integrity helper already defines exact package version tag commit changelog aggregate validation and sha256 subject checks
++  - standalone Node built-ins are sufficient for a release bootstrap asset that fetches manifest and tarball then mutates package.json only after verification
++  - tag push automation can preserve human-created tag and existing manual dispatch while never creating tags or changing npm publication
++hypothesesRejected:
++  - npm registry publication
++  - automatic tag creation
++  - OIDC trust root or signing key adoption
++  - consumer lockfile mutation without explicit install
++  - release permission expansion beyond existing contents write
++remainingUnknowns:
++  - none for bounded installer and workflow asset scope
+diff --git a/contracts/specs/SPEC-LITE-MSPQ5A72.yaml b/contracts/specs/SPEC-LITE-MSPQ5A72.yaml
+new file mode 100644
+index 0000000..6d63690
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSPQ5A72.yaml
+@@ -0,0 +1,17 @@
++id: SPEC-LITE-MSPQ5A72
++type: spec-contract
++featureId: F-MSPQ5A72
++title: "Issue #558: Option B bootstrap installer and GitHub Release automation"
++status: approved
++version: 0.1.0
++summary: "digest-verified standalone bootstrap installation and automatic GitHub Release asset preparation from validated human-created tags"
++approvedBy: user-requested-issue-533-option-b
++approvedAt: "2026-08-12T00:00:00+09:00"
++acceptanceCriteria:
++  - "The standalone Node.js bootstrap asset uses only built-in modules, exposes install --save-dev and --dry-run --json, and returns a bounded scwbs.bootstrap-install.v1 response without executing arbitrary scripts or shell strings"
++  - "Latest or explicit tag resolution requires release-manifest.json and the matching tarball asset; package version, v<version> tag, tarball filename, release commit, manifest digest, and downloaded tarball SHA-256 must all match"
++  - "Dry-run and all verification failures are read-only; explicit install changes only the requested package.json dependency after verification and never mutates a lockfile or unrelated package fields"
++  - "The dependency value is an exact immutable GitHub Release tarball URL and never a floating latest reference"
++  - "The release workflow runs for validated v* tag pushes created outside the workflow and for the existing main workflow_dispatch path, attaches the tarball, release-manifest.json, and bootstrap installer, and retains current exact-head aggregate validation and permissions"
++  - "Standalone fixtures cover successful dry-run/install, package preservation, digest mismatch, subject mismatch, missing asset, network failure, unknown option, and schema-valid bounded JSON"
++  - "No npm publication, automatic tag creation, credential/trust-root adoption, branch protection change, existing version/upgrade semantics change, or unattended consumer upgrade is introduced"
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml b/contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
+new file mode 100644
+index 0000000..1fc60fc
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
+@@ -0,0 +1,76 @@
++id: SCWBS-DRAFT-MSPQ5A72
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSPQ5A72
++branchName: task/SCWBS-DRAFT-MSPQ5A72-issue-558-option-b-bootstrap-installer-and-githu
++status: approved
++approvedBy: user-requested-issue-533-option-b
++approvedAt: "2026-08-12T00:00:00+09:00"
++allowedPaths:
++  - contracts/discovery/PROBE-issue-558-option-b.yaml
++  - contracts/specs/**
++  - scripts/scwbs-bootstrap.mjs
++  - .github/workflows/release.yml
++  - tests/integration/bootstrap.test.ts
++  - tests/integration/release-integrity.test.ts
++  - docs/scwbs/distribution.md
++  - docs/scwbs/quickstart.md
++  - docs/scwbs/cli-reference.md
++  - docs/scwbs/schemas/bootstrap.schema.json
++forbiddenPaths:
++  - wjs/**
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - .scwbs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - .github/workflows/release.yml
++  - scripts/scwbs-bootstrap.mjs
++stopIf:
++  - release publication or repository permission expansion beyond existing contents write
++  - automatic tag creation or npm publication
++  - OIDC trust root signing key or credential adoption
++  - consumer lockfile or repository mutation without explicit install
++  - existing version upgrade or release integrity semantics change
++  - workflow or distribution scope expansion
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - lint
++  - test:integration
++doneCriteria:
++  - Release bootstrap asset provides install --save-dev and read-only --dry-run --json without npm publication or external dependencies
++  - Bootstrap resolves latest or an explicit release tag, verifies manifest schema, package version, tag, tarball filename, commit, asset presence, and SHA-256 before any consumer mutation
++  - Explicit install writes only an exact GitHub Release tarball URL to package.json after verification; dry-run, unknown options, digest mismatch, missing assets, and network failures leave package.json unchanged
++  - Release workflow supports validated human-created v* tag pushes and existing main workflow_dispatch, attaches tarball, release-manifest.json, and bootstrap installer, and preserves exact-head validation, changelog, subject, and manifest checks
++  - Standalone integration fixtures cover dry-run, explicit install, digest/subject mismatch, offline/error, unknown option, and bounded versioned JSON
++  - Existing version check, upgrade dry-run, unattended upgrade disabled, npm publication boundary, tag creation boundary, and release permissions remain unchanged
++specPath: contracts/specs/SPEC-LITE-MSPQ5A72.yaml
++specVersion: 0.1.0
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
++  - contracts/specs/SPEC-LITE-MSPQ5A72.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSPQ5A72.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSPQ5A72.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSPQ5A72.patch
++  - contracts/approvals/SCWBS-DRAFT-MSPQ5A72.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSPQ5A72.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:8029f08c8f96eaf1a25e001c9c2ba2dfd49c258b12a673e0aa44c97f17113d29
++  createdAt: "2026-08-12T06:46:17.341Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index dc48535..f54fc20 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2015,3 +2015,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T06:17:55.727Z"
++  - id: SCWBS-DRAFT-MSPQ5A72
++    path: contracts/tasks/SCWBS-DRAFT-MSPQ5A72.yaml
++    branchName: task/SCWBS-DRAFT-MSPQ5A72-issue-558-option-b-bootstrap-installer-and-githu
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 92c0466..21391c6 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -97,7 +97,11 @@ npm run scwbs -- policy explain src/auth/session.ts --json
+ 
+ The canonical consumer flow is documented in [`docs/scwbs/quickstart.md`](quickstart.md): install the release tarball, run `npx scwbs init`, use `npx scwbs doctor` and `npx scwbs next`, create a narrowly scoped Task, and complete it with `npx scwbs finish --task <task-id>`. The manual Evidence/registry/check-diff sequence below remains available for contributor troubleshooting. The machine-readable command fixture at `docs/scwbs/quickstart-commands.json` is exercised by the distribution smoke test so command and option drift fails validation.
+ 
+-`scwbs version` prints the installed exact version. `scwbs version check --json`
++`scwbs version` prints the installed exact version. The GitHub Release `scwbs-bootstrap.mjs`
++asset provides the supported non-npm Option B entry point: `node scwbs-bootstrap.mjs install
++--save-dev` verifies the release manifest and tarball digest before writing an exact
++`devDependencies.scwbs` URL; `install --dry-run --json` is read-only and returns
++`scwbs.bootstrap-install.v1`. `scwbs version check --json`
+ verifies the installed/current-stable release subject and supports `--manifest <path>`
+ plus `--artifact <path>` for offline digest verification. `scwbs upgrade --dry-run --json`
+ emits an exact artifact proposal without mutating the consumer; upgrade without
+diff --git a/docs/scwbs/distribution.md b/docs/scwbs/distribution.md
+index e07b0a2..8c0d642 100644
+--- a/docs/scwbs/distribution.md
++++ b/docs/scwbs/distribution.md
+@@ -14,6 +14,22 @@ npx scwbs doctor
+ npx scwbs check
+ ```
+ 
++GitHub Release には、npm registry を使わずに current stable を検証して導入する
++依存なしの `scwbs-bootstrap.mjs` も添付します。bootstrap 自体は latest release
++を解決できますが、consumer の dependency には検証済みの exact version tarball URL
++だけを書き込みます。
++
++```bash
++curl --fail --silent --show-error --location \
++  https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
++  --output /tmp/scwbs-bootstrap.mjs
++node /tmp/scwbs-bootstrap.mjs install --save-dev
++```
++
++変更前の確認には `--dry-run --json` を使えます。`--tag v<version>`、`--manifest <path>`、
++`--artifact <path>` を指定すると、対象 Release または offline artifact を固定して検証できます。
++verification failure、unknown option、network failure は package.json を変更しません。
++
+ Release artifact の `dist/wjs-runtime/` には WJS の validator、apply tool、
+ schema が build 時に同梱されます。WJS の ownership は submodule 側に残り、
+ ACED はその実行資産を配布用に変換して保持します。
+@@ -47,9 +63,10 @@ pin を自動変更しません。npm registry 公開や unattended upgrade の
+ 
+ ## Release policy
+ 
+-Release は main から手動 dispatch する `.github/workflows/release.yml` が
+-release subject を先に確定し、対象 commit から `npm pack` した tarball と
+-`release-manifest.json` を GitHub Release に添付します。npm registry への
++`.github/workflows/release.yml` は、人間が作成した `v*.*.*` tag push または main からの
++手動 dispatch を受け、release subject を先に確定し、対象 commit から `npm pack` した
++tarball、`release-manifest.json`、`scwbs-bootstrap.mjs` を GitHub Release に添付します。
++tag は workflow 内で作成せず、npm registry への
+ publish、repository visibility の変更、credential の追加は行いません。
+ 
+ workflow は次の順序を fail-closed で検証します。
+diff --git a/docs/scwbs/quickstart.md b/docs/scwbs/quickstart.md
+index b425694..203233d 100644
+--- a/docs/scwbs/quickstart.md
++++ b/docs/scwbs/quickstart.md
+@@ -20,6 +20,19 @@ npm install --save-dev "https://github.com/xmeta/ACED/releases/download/v${SCWBS
+ npx scwbs --version
+ ```
+ 
++For discovery without hand-building the URL, download the release bootstrap asset. It
++verifies the release manifest and tarball digest before writing an exact dependency URL.
++
++```bash
++curl --fail --silent --show-error --location \
++  https://github.com/xmeta/ACED/releases/latest/download/scwbs-bootstrap.mjs \
++  --output /tmp/scwbs-bootstrap.mjs
++node /tmp/scwbs-bootstrap.mjs install --save-dev
++```
++
++Use `node /tmp/scwbs-bootstrap.mjs install --dry-run --json` to inspect the proposal
++without changing `package.json`.
++
+ For an installed consumer, use the read-only version check. It reports the exact
+ package version, release tag, subject commit, and tarball digest. The manifest
+ and artifact options keep the same verification available offline.
+diff --git a/docs/scwbs/schemas/bootstrap.schema.json b/docs/scwbs/schemas/bootstrap.schema.json
+new file mode 100644
+index 0000000..fe5c5b2
+--- /dev/null
++++ b/docs/scwbs/schemas/bootstrap.schema.json
+@@ -0,0 +1,40 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://xmeta.github.io/ACED/scwbs.bootstrap-install.v1.schema.json",
++  "title": "SC-WBS bootstrap install JSON output",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["version", "status", "mode", "repository", "releaseTag", "packageVersion", "artifactUrl", "mutation", "reasons"],
++  "properties": {
++    "version": { "const": "scwbs.bootstrap-install.v1" },
++    "status": { "enum": ["pass", "blocked", "fail", "unavailable"] },
++    "mode": { "enum": ["dry-run", "install"] },
++    "repository": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
++    "releaseTag": { "type": ["string", "null"] },
++    "packageVersion": { "type": ["string", "null"] },
++    "artifactUrl": { "type": ["string", "null"], "pattern": "^(https://github\\.com/[^/]+/[^/]+/releases/download/[^/]+/scwbs-[^/]+\\.tgz)?$" },
++    "mutation": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": ["target", "field", "changed"],
++      "properties": {
++        "target": { "const": "package.json" },
++        "field": { "const": "devDependencies.scwbs" },
++        "changed": { "type": "boolean" }
++      }
++    },
++    "reasons": {
++      "type": "array",
++      "maxItems": 16,
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["code", "message"],
++        "properties": {
++          "code": { "type": "string", "maxLength": 128 },
++          "message": { "type": "string", "maxLength": 512 }
++        }
++      }
++    }
++  }
++}
+diff --git a/scripts/scwbs-bootstrap.mjs b/scripts/scwbs-bootstrap.mjs
+new file mode 100644
+index 0000000..9778933
+--- /dev/null
++++ b/scripts/scwbs-bootstrap.mjs
+@@ -0,0 +1,278 @@
++#!/usr/bin/env node
++import { createHash } from "node:crypto";
++import { readFileSync, writeFileSync } from "node:fs";
++import path from "node:path";
++
++export const BOOTSTRAP_VERSION = "scwbs.bootstrap-install.v1";
++export const DEFAULT_REPOSITORY = "xmeta/ACED";
++export const RELEASE_MANIFEST_NAME = "release-manifest.json";
++export const BOOTSTRAP_ASSET_NAME = "scwbs-bootstrap.mjs";
++const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
++const MAX_REASON_LENGTH = 512;
++const RELEASE_WORKFLOW = ".github/workflows/scwbs.yml";
++const REQUIRED_CHECKS = ["core", "integration", "wjs", "distribution", "validate"];
++
++/** @typedef {{version: string, status: string, mode: string, repository: string, releaseTag: string|null, packageVersion: string|null, artifactUrl: string|null, mutation: {target: string, field: string, changed: boolean}, reasons: Array<{code: string, message: string}>}} BootstrapOutput */
++/** @typedef {{exitCode: number, output: BootstrapOutput|null, json: boolean, help: boolean}} BootstrapResult */
++
++export class BootstrapUsageError extends Error {
++  constructor(message, json = false) {
++    super(message);
++    this.name = "BootstrapUsageError";
++    this.json = json;
++  }
++}
++
++function bounded(value) {
++  return String(value).slice(0, MAX_REASON_LENGTH);
++}
++
++/** @returns {{code: string, message: string}} */
++function reason(code, message) {
++  return { code, message: bounded(message) };
++}
++
++function parseSemver(value) {
++  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(String(value ?? "").trim());
++  return match ? `${match[1]}.${match[2]}.${match[3]}` : null;
++}
++
++function assertRepository(repository) {
++  if (!/^[^/]+\/[^/]+$/.test(repository)) throw new BootstrapUsageError("--repo must be owner/name");
++  return repository;
++}
++
++function assertTag(tag) {
++  if (!/^v\d+\.\d+\.\d+(?:[-+].*)?$/.test(tag)) throw new BootstrapUsageError("--tag must be v<major>.<minor>.<patch>");
++  return tag;
++}
++
++export function parseBootstrapArgs(argv) {
++  const args = [...argv];
++  const command = args.shift();
++  const options = {
++    command,
++    repository: DEFAULT_REPOSITORY,
++    tag: null,
++    manifestPath: null,
++    artifactPath: null,
++    dryRun: false,
++    saveDev: false,
++    json: false,
++    help: false
++  };
++  for (let index = 0; index < args.length; index += 1) {
++    const argument = args[index];
++    if (argument === "--json") options.json = true;
++    else if (argument === "--dry-run") options.dryRun = true;
++    else if (argument === "--save-dev") options.saveDev = true;
++    else if (argument === "--help" || argument === "-h") options.help = true;
++    else if (["--repo", "--tag", "--manifest", "--artifact"].includes(argument)) {
++      const value = args[++index];
++      if (!value || value.startsWith("--")) throw new BootstrapUsageError(`${argument} requires a value`, options.json);
++      if (argument === "--repo") options.repository = assertRepository(value);
++      if (argument === "--tag") options.tag = assertTag(value);
++      if (argument === "--manifest") options.manifestPath = value;
++      if (argument === "--artifact") options.artifactPath = value;
++    } else if (argument.startsWith("--repo=")) options.repository = assertRepository(argument.slice(7));
++    else if (argument.startsWith("--tag=")) options.tag = assertTag(argument.slice(6));
++    else if (argument.startsWith("--manifest=")) options.manifestPath = argument.slice(11);
++    else if (argument.startsWith("--artifact=")) options.artifactPath = argument.slice(10);
++    else throw new BootstrapUsageError(`unknown option '${argument}'`, options.json);
++  }
++  if (!options.command || options.command === "help" || options.help) {
++    options.help = true;
++    return options;
++  }
++  if (options.command !== "install") throw new BootstrapUsageError(`unknown command '${options.command}'`, options.json);
++  if (!options.dryRun && !options.saveDev) throw new BootstrapUsageError("install requires --save-dev or --dry-run", options.json);
++  if (options.dryRun && options.saveDev) throw new BootstrapUsageError("--dry-run and --save-dev cannot be combined", options.json);
++  return options;
++}
++
++/** @param {unknown} manifest @param {string|null} [expectedTag] */
++export function validateBootstrapManifest(manifest, expectedTag = null) {
++  /** @type {Record<string, any>} */
++  const value = manifest && typeof manifest === "object" ? manifest : {};
++  const packageVersion = typeof value.packageVersion === "string" ? value.packageVersion : "";
++  const tag = typeof value.tag === "string" ? value.tag : "";
++  const tarball = typeof value.tarball === "string" ? value.tarball : "";
++  const digest = typeof value.sha256 === "string" ? value.sha256 : "";
++  const commit = typeof value.commit === "string" ? value.commit : "";
++  const validation = value.validation && typeof value.validation === "object" ? value.validation : {};
++  const checks = Array.isArray(validation.checks) ? validation.checks : [];
++  const reasons = [];
++  if (value.schemaVersion !== "1.0.0") reasons.push(reason("bootstrap.manifest.schema", "release manifest schemaVersion must be 1.0.0"));
++  if (!parseSemver(packageVersion)) reasons.push(reason("bootstrap.version.invalid", "release manifest packageVersion must be semantic version"));
++  if (tag !== `v${packageVersion}`) reasons.push(reason("bootstrap.subject.tag-mismatch", "release tag must equal v<packageVersion>"));
++  if (expectedTag && tag !== expectedTag) reasons.push(reason("bootstrap.subject.requested-tag-mismatch", "requested release tag does not match the manifest"));
++  if (tarball !== `scwbs-${packageVersion}.tgz`) reasons.push(reason("bootstrap.subject.tarball-mismatch", "tarball filename must bind to packageVersion"));
++  if (!/^[0-9a-f]{64}$/.test(digest)) reasons.push(reason("bootstrap.digest.invalid", "release manifest sha256 must be a 64 character lowercase hex digest"));
++  if (!/^[0-9a-f]{7,64}$/.test(commit)) reasons.push(reason("bootstrap.subject.commit-missing", "release manifest commit must be a commit SHA"));
++  if (validation.workflow !== RELEASE_WORKFLOW) reasons.push(reason("bootstrap.validation.workflow-mismatch", "release manifest validation workflow is not the trusted SC-WBS workflow"));
++  if (!Number.isInteger(validation.workflowRunId) || validation.workflowRunId <= 0) reasons.push(reason("bootstrap.validation.run-missing", "release manifest is missing a trusted validation workflow run id"));
++  for (const required of REQUIRED_CHECKS) {
++    if (!checks.some((check) => check?.name === required && check?.conclusion === "success")) reasons.push(reason("bootstrap.validation.check-missing", `release manifest is missing passed check ${required}`));
++  }
++  return {
++    status: reasons.length === 0 ? "pass" : "fail",
++    packageVersion,
++    tag,
++    tarball,
++    digest,
++    commit,
++    reasons
++  };
++}
++
++function releaseUrl(repository, tag, asset) {
++  return `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(asset)}`;
++}
++
++function apiUrl(repository, tag) {
++  return tag
++    ? `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(tag)}`
++    : `https://api.github.com/repos/${repository}/releases/latest`;
++}
++
++async function responseBytes(response) {
++  if (!response.ok) throw new Error(`HTTP ${response.status}`);
++  const length = Number(response.headers?.get?.("content-length") ?? 0);
++  if (length > MAX_RESPONSE_BYTES) throw new Error("response exceeds the bootstrap size limit");
++  const bytes = new Uint8Array(await response.arrayBuffer());
++  if (bytes.byteLength > MAX_RESPONSE_BYTES) throw new Error("response exceeds the bootstrap size limit");
++  return bytes;
++}
++
++async function fetchBytes(fetchImpl, url, accept) {
++  const controller = new AbortController();
++  const timeout = setTimeout(() => controller.abort(), 10_000);
++  try {
++    const response = await fetchImpl(url, {
++      headers: { accept, "user-agent": "scwbs-bootstrap" },
++      signal: controller.signal
++    });
++    return await responseBytes(response);
++  } finally {
++    clearTimeout(timeout);
++  }
++}
++
++function parseJsonBytes(bytes) {
++  return JSON.parse(Buffer.from(bytes).toString("utf8"));
++}
++
++function digestBytes(bytes) {
++  return createHash("sha256").update(bytes).digest("hex");
++}
++
++function readLocalJson(filePath) {
++  return JSON.parse(readFileSync(path.resolve(filePath), "utf8"));
++}
++
++function readPackageJson(cwd) {
++  const packagePath = path.join(cwd, "package.json");
++  return { packagePath, source: readFileSync(packagePath, "utf8"), value: JSON.parse(readFileSync(packagePath, "utf8")) };
++}
++
++function dependencyPlan(packageJson, artifactUrl) {
++  if (!packageJson || typeof packageJson !== "object" || Array.isArray(packageJson)) throw new Error("package.json must contain an object");
++  const dependencies = packageJson.dependencies;
++  if (dependencies && typeof dependencies === "object" && !Array.isArray(dependencies) && Object.hasOwn(dependencies, "scwbs")) {
++    throw new Error("package.json already contains scwbs under dependencies; refusing to move it to devDependencies");
++  }
++  const devDependencies = packageJson.devDependencies && typeof packageJson.devDependencies === "object" && !Array.isArray(packageJson.devDependencies)
++    ? { ...packageJson.devDependencies }
++    : {};
++  devDependencies.scwbs = artifactUrl;
++  return { ...packageJson, devDependencies };
++}
++
++/** @returns {BootstrapOutput} */
++function outputBase(options) {
++  return {
++    version: BOOTSTRAP_VERSION,
++    status: "fail",
++    mode: options.dryRun ? "dry-run" : "install",
++    repository: options.repository,
++    releaseTag: null,
++    packageVersion: null,
++    artifactUrl: null,
++    mutation: { target: "package.json", field: "devDependencies.scwbs", changed: false },
++    reasons: []
++  };
++}
++
++/** @param {{argv?: string[], cwd?: string, fetchImpl?: typeof fetch}} [options] @returns {Promise<BootstrapResult>} */
++export async function runBootstrap({ argv, cwd = process.cwd(), fetchImpl = fetch } = {}) {
++  let options;
++  try {
++    options = parseBootstrapArgs(argv ?? []);
++  } catch (error) {
++    const json = error instanceof BootstrapUsageError && error.json;
++    const fallback = { ...outputBase({ dryRun: false, repository: DEFAULT_REPOSITORY }), status: "blocked", reasons: [reason("bootstrap.usage", error instanceof Error ? error.message : String(error))] };
++    return { exitCode: 2, output: fallback, json: Boolean(json), help: false };
++  }
++  if (options.help) return { exitCode: 0, output: null, json: options.json, help: true };
++  const output = outputBase(options);
++  try {
++    let manifest;
++    let releaseApi;
++    if (options.manifestPath) manifest = readLocalJson(options.manifestPath);
++    else {
++      const apiBytes = await fetchBytes(fetchImpl, apiUrl(options.repository, options.tag), "application/vnd.github+json");
++      releaseApi = parseJsonBytes(apiBytes);
++      if (releaseApi.draft === true || releaseApi.prerelease === true) throw new Error("release is not a stable published release");
++      if (typeof releaseApi.tag_name !== "string") throw new Error("GitHub release is missing tag_name");
++      if (options.tag && releaseApi.tag_name !== options.tag) throw new Error("GitHub release tag does not match the requested tag");
++      manifest = parseJsonBytes(await fetchBytes(fetchImpl, releaseUrl(options.repository, releaseApi.tag_name, RELEASE_MANIFEST_NAME), "application/json"));
++    }
++    const integrity = validateBootstrapManifest(manifest, options.tag);
++    if (integrity.status !== "pass") {
++      output.releaseTag = integrity.tag || null;
++      output.packageVersion = integrity.packageVersion || null;
++      output.reasons = integrity.reasons;
++      return { exitCode: 1, output, json: options.json, help: false };
++    }
++    const tag = integrity.tag;
++    const artifactUrl = releaseUrl(options.repository, tag, integrity.tarball);
++    let artifactBytes;
++    if (options.artifactPath) artifactBytes = new Uint8Array(readFileSync(path.resolve(options.artifactPath)));
++    else artifactBytes = await fetchBytes(fetchImpl, artifactUrl, "application/octet-stream");
++    if (digestBytes(artifactBytes) !== integrity.digest) {
++      output.releaseTag = tag;
++      output.packageVersion = integrity.packageVersion;
++      output.artifactUrl = artifactUrl;
++      output.reasons = [reason("bootstrap.digest.mismatch", "downloaded tarball SHA-256 does not match release manifest")];
++      return { exitCode: 1, output, json: options.json, help: false };
++    }
++    if (releaseApi?.tag_name && releaseApi.tag_name !== tag) throw new Error("GitHub release API tag does not match the manifest");
++    output.releaseTag = tag;
++    output.packageVersion = integrity.packageVersion;
++    output.artifactUrl = artifactUrl;
++    const packageFile = readPackageJson(cwd);
++    const nextPackage = dependencyPlan(packageFile.value, artifactUrl);
++    if (!options.dryRun) {
++      writeFileSync(packageFile.packagePath, `${JSON.stringify(nextPackage, null, 2)}\n`, "utf8");
++      output.mutation.changed = packageFile.source !== `${JSON.stringify(nextPackage, null, 2)}\n`;
++    }
++    output.status = "pass";
++    output.reasons = [];
++    return { exitCode: 0, output, json: options.json, help: false };
++  } catch (error) {
++    output.status = "unavailable";
++    output.reasons = [reason("bootstrap.failed", error instanceof Error ? error.message : String(error))];
++    return { exitCode: 1, output, json: options.json, help: false };
++  }
++}
++
++function helpText() {
++  return `Usage: node scwbs-bootstrap.mjs install --save-dev [options]\n\nOptions:\n  --dry-run             verify and propose without changing package.json\n  --save-dev            write an exact GitHub Release tarball URL to devDependencies.scwbs\n  --tag <tag>           use an explicit immutable release tag\n  --repo <owner/name>   GitHub repository (default: ${DEFAULT_REPOSITORY})\n  --manifest <path>     use a local release-manifest.json\n  --artifact <path>     use a local tarball for offline verification\n  --json                print scwbs.bootstrap-install.v1\n`;
++}
++
++if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
++  const result = await runBootstrap({ argv: process.argv.slice(2) });
++  if (result.help) process.stdout.write(helpText());
++  else if (result.output) process.stdout.write(result.json ? `${JSON.stringify(result.output)}\n` : `${result.output.status} ${result.output.mode}\n${result.output.reasons.map((item) => `${item.code}: ${item.message}`).join("\n")}${result.output.reasons.length > 0 ? "\n" : ""}`);
++  process.exitCode = result.exitCode;
++}
+diff --git a/tests/integration/bootstrap.test.ts b/tests/integration/bootstrap.test.ts
+new file mode 100644
+index 0000000..189ef14
+--- /dev/null
++++ b/tests/integration/bootstrap.test.ts
+@@ -0,0 +1,111 @@
++import { createHash } from "node:crypto";
++import { readFileSync, writeFileSync } from "node:fs";
++import path from "node:path";
++import Ajv2020 from "ajv/dist/2020.js";
++import { describe, expect, test } from "vitest";
++import { runBootstrap, validateBootstrapManifest } from "../../scripts/scwbs-bootstrap.mjs";
++import { makeTempRepo, writeJson } from "../helpers.js";
++
++const baseManifest = (digest: string) => ({
++  schemaVersion: "1.0.0",
++  packageVersion: "0.1.0",
++  tag: "v0.1.0",
++  commit: "0123456789abcdef0123456789abcdef01234567",
++  tarball: "scwbs-0.1.0.tgz",
++  sha256: digest,
++  validation: {
++    workflow: ".github/workflows/scwbs.yml",
++    workflowRunId: 42,
++    checks: ["core", "integration", "wjs", "distribution", "validate"].map((name) => ({ name, conclusion: "success" }))
++  }
++});
++
++function writeFixture(root: string, digest: string): { manifestPath: string; artifactPath: string; artifact: Buffer } {
++  const artifact = Buffer.from("verified scwbs tarball");
++  const manifestPath = path.join(root, "release-manifest.json");
++  const artifactPath = path.join(root, "scwbs-0.1.0.tgz");
++  writeJson(root, "release-manifest.json", baseManifest(digest));
++  writeFileSync(artifactPath, artifact);
++  return { manifestPath, artifactPath, artifact };
++}
++
++function digest(artifact: Buffer): string {
++  return createHash("sha256").update(artifact).digest("hex");
++}
++
++describe("standalone bootstrap installer", () => {
++  test("dry-run returns schema-valid bounded JSON and preserves package.json", async () => {
++    const root = makeTempRepo();
++    writeJson(root, "package.json", { name: "consumer", devDependencies: { existing: "1.0.0" } });
++    const fixture = writeFixture(root, "");
++    writeJson(root, "release-manifest.json", baseManifest(digest(fixture.artifact)));
++    const before = readFileSync(path.join(root, "package.json"), "utf8");
++    const result = await runBootstrap({ argv: ["install", "--dry-run", "--json", "--manifest", fixture.manifestPath, "--artifact", fixture.artifactPath], cwd: root });
++
++    expect(result.exitCode).toBe(0);
++    if (!result.output) throw new Error("bootstrap output is missing");
++    expect(result.output).toMatchObject({ version: "scwbs.bootstrap-install.v1", status: "pass", mode: "dry-run", releaseTag: "v0.1.0", packageVersion: "0.1.0", mutation: { changed: false } });
++    expect(readFileSync(path.join(root, "package.json"), "utf8")).toBe(before);
++    const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/bootstrap.schema.json"), "utf8"));
++    expect(new Ajv2020({ strict: false }).compile(schema)(result.output)).toBe(true);
++  });
++
++  test("explicit install writes only the exact tarball URL after digest verification", async () => {
++    const root = makeTempRepo();
++    writeJson(root, "package.json", { name: "consumer", devDependencies: { existing: "1.0.0" } });
++    const fixture = writeFixture(root, "");
++    writeJson(root, "release-manifest.json", baseManifest(digest(fixture.artifact)));
++    const result = await runBootstrap({ argv: ["install", "--save-dev", "--manifest", fixture.manifestPath, "--artifact", fixture.artifactPath], cwd: root });
++
++    expect(result.exitCode).toBe(0);
++    expect(JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"))).toEqual({ name: "consumer", devDependencies: { existing: "1.0.0", scwbs: "https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-0.1.0.tgz" } });
++  });
++
++  test("latest resolution uses the release tag but never writes a floating URL", async () => {
++    const root = makeTempRepo();
++    writeJson(root, "package.json", { name: "consumer" });
++    const artifact = Buffer.from("verified remote tarball");
++    const remoteManifest = baseManifest(digest(artifact));
++    const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
++      const url = String(input);
++      if (url.includes("/releases/latest")) return new Response(JSON.stringify({ tag_name: "v0.1.0", draft: false, prerelease: false }), { status: 200 });
++      if (url.endsWith("release-manifest.json")) return new Response(JSON.stringify(remoteManifest), { status: 200 });
++      if (url.endsWith("scwbs-0.1.0.tgz")) return new Response(artifact, { status: 200 });
++      return new Response("not found", { status: 404 });
++    };
++    const result = await runBootstrap({ argv: ["install", "--dry-run", "--json"], cwd: root, fetchImpl });
++
++    expect(result.exitCode).toBe(0);
++    if (!result.output) throw new Error("bootstrap output is missing");
++    expect(result.output.artifactUrl).toBe("https://github.com/xmeta/ACED/releases/download/v0.1.0/scwbs-0.1.0.tgz");
++    expect(String(result.output.artifactUrl)).not.toContain("latest");
++  });
++
++  test("digest mismatch and unknown options fail closed without package mutation", async () => {
++    const root = makeTempRepo();
++    writeJson(root, "package.json", { name: "consumer" });
++    const fixture = writeFixture(root, "a".repeat(64));
++    const before = readFileSync(path.join(root, "package.json"), "utf8");
++    const mismatch = await runBootstrap({ argv: ["install", "--save-dev", "--manifest", fixture.manifestPath, "--artifact", fixture.artifactPath, "--json"], cwd: root });
++
++    expect(mismatch.exitCode).toBe(1);
++    if (!mismatch.output) throw new Error("bootstrap output is missing");
++    expect(mismatch.output.reasons[0]?.code).toBe("bootstrap.digest.mismatch");
++    expect(readFileSync(path.join(root, "package.json"), "utf8")).toBe(before);
++    const unknown = await runBootstrap({ argv: ["install", "--save-dev", "--json", "--unknown"], cwd: root });
++    expect(unknown.exitCode).toBe(2);
++    if (!unknown.output) throw new Error("bootstrap output is missing");
++    expect(unknown.output.reasons[0]?.code).toBe("bootstrap.usage");
++    expect(readFileSync(path.join(root, "package.json"), "utf8")).toBe(before);
++
++    const offline = await runBootstrap({ argv: ["install", "--save-dev", "--json"], cwd: root, fetchImpl: async () => { throw new Error("offline"); } });
++    expect(offline.exitCode).toBe(1);
++    if (!offline.output) throw new Error("bootstrap output is missing");
++    expect(offline.output.status).toBe("unavailable");
++    expect(readFileSync(path.join(root, "package.json"), "utf8")).toBe(before);
++  });
++
++  test("validates the release subject before artifact access", () => {
++    expect(validateBootstrapManifest({ ...baseManifest("a".repeat(64)), tag: "v0.2.0" }, "v0.1.0").reasons.map((item) => item.code)).toContain("bootstrap.subject.tag-mismatch");
++  });
++});
+diff --git a/tests/integration/release-integrity.test.ts b/tests/integration/release-integrity.test.ts
+index b7279eb..cc65c99 100644
+--- a/tests/integration/release-integrity.test.ts
++++ b/tests/integration/release-integrity.test.ts
+@@ -142,6 +142,9 @@ describe("release integrity", () => {
+     expect(workflow).toContain('import(process.env.RELEASE_INTEGRITY_SCRIPT)');
+     expect(workflow).toContain("findTrustedValidationRun");
+     expect(workflow).toContain("release-manifest.json");
++    expect(workflow).toContain("scwbs-bootstrap.mjs");
++    expect(workflow).toContain('tags:\n      - "v*.*.*"');
++    expect(workflow).toContain("github.event_name == 'push' || github.ref == 'refs/heads/main'");
+     expect(workflow).toContain('--target "$RELEASE_COMMIT"');
+   });
+ });
