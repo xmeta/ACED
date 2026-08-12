@@ -7,6 +7,7 @@ import {
   assertChangelogVersion,
   assertCliVersion,
   assertReleaseSubject,
+  assertStableReleaseVersion,
   classifyAutomatedRelease,
   createReleaseManifest,
   findTrustedValidationRun
@@ -117,6 +118,11 @@ describe("release integrity", () => {
     expect(() => assertCliVersion("0.2.0", "0.1.0")).toThrow(/expected 0.1.0/);
   });
 
+  test("accepts only stable package versions for automated publication", () => {
+    expect(assertStableReleaseVersion("0.1.0")).toBe("0.1.0");
+    expect(() => assertStableReleaseVersion("0.1.0-rc.1")).toThrow(/not a stable semantic version/);
+  });
+
   test("creates a manifest with the tarball checksum and validation provenance", () => {
     const root = mkdtempSync(path.join(tmpdir(), "scwbs-release-integrity-"));
     const tarballPath = path.join(root, "scwbs-0.1.0.tgz");
@@ -202,7 +208,7 @@ describe("release integrity", () => {
         releaseTag: "v0.1.0",
         releaseCommit: subject,
         tagExists: true,
-        tagCommit: otherSubject,
+        tagCommit: subject,
         release
       })
     ).toEqual({ action: "skip", createTag: false });
@@ -226,6 +232,16 @@ describe("release integrity", () => {
         release: { ...release, assets: [{ name: "release-manifest.json" }] }
       })
     ).toThrow(/missing scwbs-bootstrap/);
+    expect(() =>
+      classifyAutomatedRelease({
+        eventName: "workflow_run",
+        releaseTag: "v0.1.0",
+        releaseCommit: subject,
+        tagExists: true,
+        tagCommit: otherSubject,
+        release
+      })
+    ).toThrow(/exact release subject/);
   });
 
   test("builds bounded direct and bootstrap remote smoke URLs", () => {

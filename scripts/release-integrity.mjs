@@ -27,6 +27,13 @@ export function expectedReleaseTag(packageVersion) {
   return `v${packageVersion}`;
 }
 
+export function assertStableReleaseVersion(packageVersion) {
+  if (!/^\d+\.\d+\.\d+$/.test(String(packageVersion))) {
+    throw new Error(`release version ${packageVersion} is not a stable semantic version`);
+  }
+  return packageVersion;
+}
+
 export function assertReleaseSubject({
   releaseTag,
   packageVersion,
@@ -71,6 +78,9 @@ export function classifyAutomatedRelease({ eventName, releaseTag, releaseCommit,
   if (release && release.tag_name !== releaseTag) {
     throw new Error("existing GitHub Release tag does not match the requested release tag");
   }
+  if (tagExists && tagCommit !== releaseCommit) {
+    throw new Error("existing release tag does not resolve to the exact release subject");
+  }
   if (release && (release.draft === true || release.prerelease === true)) {
     throw new Error("existing GitHub Release is not a stable published release");
   }
@@ -83,9 +93,6 @@ export function classifyAutomatedRelease({ eventName, releaseTag, releaseCommit,
     if (!tagExists) throw new Error("existing GitHub Release has no matching Git tag");
     if (eventName === "workflow_run") return { action: "skip", createTag: false };
     throw new Error("stable GitHub Release already exists; refusing duplicate publication");
-  }
-  if (tagExists && tagCommit !== releaseCommit) {
-    throw new Error("existing release tag does not resolve to the exact release subject");
   }
   return { action: "publish", createTag: !tagExists };
 }

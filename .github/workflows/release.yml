@@ -151,9 +151,10 @@ jobs:
           node --input-type=module <<'NODE'
           import { execFileSync } from "node:child_process";
           import { readFileSync } from "node:fs";
-          const { assertChangelogVersion, assertReleaseSubject, expectedReleaseTag } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
+          const { assertChangelogVersion, assertReleaseSubject, assertStableReleaseVersion, expectedReleaseTag } = await import(process.env.RELEASE_INTEGRITY_SCRIPT);
 
           const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+          assertStableReleaseVersion(packageJson.version);
           if (process.env.RELEASE_ACTION === "publish") {
             const checkoutCommit = execFileSync("git", ["rev-parse", "HEAD^{commit}"], { encoding: "utf8" }).trim();
             assertReleaseSubject({
