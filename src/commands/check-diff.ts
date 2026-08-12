@@ -2,7 +2,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
-import { validateHumanGateApproval } from "../core/human-gate.js";
+import { buildHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
 import { collectCheckCoverageIssues } from "../core/check-coverage.js";
 import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
@@ -360,7 +360,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     const gateTask = taskWithGovernancePolicyGates(task, files);
     const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
     humanGateFiles = gate.requiredFiles;
-    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
+    nextAction = buildHumanApprovalCommand(taskId, evidence, readApproval(root, taskId).approval?.status)
+      ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
   }
 
   if (diffIssues.length === 0) {

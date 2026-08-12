@@ -5,6 +5,8 @@ import {
   approvalDelegationTokenSha256,
   authorizeDelegatedApproval,
   buildDelegationProof,
+  buildHumanApprovalCommand,
+  buildLeanHumanApprovalConfirmation,
   validateDelegatedApproval,
   validateHumanGateApproval
 } from "../../src/core/human-gate.js";
@@ -83,6 +85,19 @@ function addTaskMetadata(root: string, taskId: string): string {
 }
 
 describe("Human Gate security logic", () => {
+  test("builds the exact Evidence-bound Lean confirmation and fails closed without scope", () => {
+    const evidence = sampleEvidence({ subjectHeadCommit: "head123", diffHash: "sha256:diff123" });
+    expect(buildLeanHumanApprovalConfirmation("WBS-001-004", evidence)).toBe(
+      "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"
+    );
+    expect(buildHumanApprovalCommand("WBS-001-004", evidence)).toBe(
+      'npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"'
+    );
+    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved")).toContain(" --force");
+    expect(buildHumanApprovalCommand("WBS-001-004", sampleEvidence())).toBeUndefined();
+    expect(buildLeanHumanApprovalConfirmation("WBS-001-004", undefined)).toBeUndefined();
+  });
+
   test("authorizes a valid delegated approval with scoped provenance", () => {
     const result = authorizeDelegatedApproval(delegatedTask(), "human-gate", { token: TOKEN, now: new Date("2026-08-01T00:00:00.000Z") });
 

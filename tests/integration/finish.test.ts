@@ -810,7 +810,8 @@ describe("finish", () => {
     expect(text).toContain("  - src/security/secret.ts");
     expect(text).toContain("Current diff hash:");
     expect(text).toContain("Next action for human reviewer:");
-    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004"));
+    const evidence = readEvidence(root, "WBS-001-004").evidence;
+    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence));
     expect(text).toContain("AI agents must stop here.");
     expect(text).toContain("Do not approve this task yourself.");
   }, 30000);
@@ -853,7 +854,7 @@ describe("finish", () => {
     }
 
     const result = captureFinishJson(root, { taskId, baseRef: "base" });
-    const command = buildHumanApprovalCommand(taskId, status);
+    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status);
 
     expect(result.exitCode).toBe(1);
     expect(result.json).toMatchObject({
@@ -896,7 +897,7 @@ describe("finish", () => {
     }
 
     expect(output).toContain("  Action owner: human only");
-    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
+    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected")}`);
   }, 30000);
 
   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
@@ -919,7 +920,7 @@ describe("finish", () => {
         "contracts/evidence/WBS-001-004.yaml",
         "contracts/registry.yaml"
       ],
-      resumeCommand: buildHumanApprovalCommand("WBS-001-004")
+      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence)
     });
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);

@@ -1,0 +1,426 @@
+diff --git a/README.md b/README.md
+index 042fec7..ead87c3 100644
+--- a/README.md
++++ b/README.md
+@@ -161,13 +161,13 @@ must not run approval commands on behalf of a human.
+ 
+ ```bash
+ npm run scwbs -- review-queue
+-npm run scwbs -- approve --task <task-id> --pr <number> --actor human --reason "Evidence and PR reviewed"
++npm run scwbs -- approve --task <task-id> --pr <number> --actor human --reason "<exact TTY confirmation printed by scwbs>"
+ ```
+ 
+ The detailed command is also available:
+ 
+ ```bash
+-npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --actor human --reason "Evidence and PR reviewed"
++npm run scwbs -- approval approve --task <task-id> --pull-request "#<number>" --actor human --reason "<exact TTY confirmation printed by scwbs>"
+ ```
+ 
+ `finish` uses this implemented command shape for its Human Gate next action. It does not emit unsupported `--approved-by` or `--human-confirm` options.
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index 21391c6..2fac95c 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -443,7 +443,7 @@ npm run scwbs -- review route --task SCWBS-001
+ npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
+ npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
+ npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
+-npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
++npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
+ SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
+@@ -469,7 +469,7 @@ npm run scwbs -- risk accept RISK-EXAMPLE --actor human --reason "CONFIRM TTY RI
+ 
+ ```bash
+ npm run scwbs -- request-approval --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
+-npm run scwbs -- approve --task SCWBS-001 --pr 42 --actor human --reason "Evidence and PR reviewed"
++npm run scwbs -- approve --task SCWBS-001 --pr 42 --actor human --reason "<exact TTY confirmation printed by scwbs>"
+ ```
+ 
+ `review-queue` の既定出力は候補数に比例せず、review health集計、主要blocker集計、ready優先の上位候補、omitted件数、次のコマンドを表示する。候補の既定上限は5件で、`--limit <count>` で正の整数へ変更できる。従来の全候補・全理由・警告・blocker sectionが必要な場合は `--verbose`、機械処理には `--json` を使う。`--json` は明示した `--limit` がなければ全候補を返し、指定時は `candidates` と `omitted` に分ける。JSONの正式なshapeは [`schemas/review-queue-summary.schema.json`](schemas/review-queue-summary.schema.json) で定義する。`--json` と `--verbose` は同時指定できない。
+diff --git a/docs/scwbs/operations-profile-and-specs.md b/docs/scwbs/operations-profile-and-specs.md
+index 3612745..1a84913 100644
+--- a/docs/scwbs/operations-profile-and-specs.md
++++ b/docs/scwbs/operations-profile-and-specs.md
+@@ -127,7 +127,7 @@ npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note
+ ```
+ Human が Evidence と PR を確認して承認する場合は、YAML を手書きせずに `approved` record を生成できる。
+ ```bash
+-npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
++npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
+ ```
+ 複数の review-ready task を completed に進める場合は、まず dry-run で対象nodeと生成される changeset を確認し、明示的に `--apply` する。
+ ```bash
+diff --git a/docs/scwbs/quickstart.md b/docs/scwbs/quickstart.md
+index 1556f72..a26395a 100644
+--- a/docs/scwbs/quickstart.md
++++ b/docs/scwbs/quickstart.md
+@@ -113,6 +113,11 @@ npx scwbs approval approve \
+   --reason "<exact confirmation printed by scwbs>"
+ ```
+ 
++The confirmation is bound to the current Evidence subject head and diff hash
++(`CONFIRM TTY APPROVAL <task-id> <subjectHeadCommit> <diffHash>`). Do not reuse
++an older command after Evidence or the diff changes; rerun the command that
++`scwbs` prints for the current scope.
++
+ An AI must not substitute `--actor human`, approve its own work, or broaden a
+ Task Contract to avoid the gate.
+ 
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index bd9613e..ba2d236 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+-import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof } from "../core/human-gate.js";
++import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof, buildHumanApprovalCommand } from "../core/human-gate.js";
+ import { approvalPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+@@ -48,10 +48,13 @@ function boundedNotes(notes: string[] | undefined): string[] {
+     .map((note) => note.slice(0, MAX_JSON_NOTE_LENGTH));
+ }
+ 
+-export function buildApprovalRequestJson(approval: ApprovalRecord): ApprovalRequestJson {
++export function buildApprovalRequestJson(approval: ApprovalRecord, evidence?: Evidence): ApprovalRequestJson {
+   const requestedAt = approval.requestedAt;
+   if (!requestedAt) throw new Error("Approval request is missing requestedAt");
+-  const nextAction = `Review Evidence and diff, then run npm run scwbs -- approval approve --task ${approval.taskId} --actor human with the exact TTY confirmation.`;
++  const approvalCommand = buildHumanApprovalCommand(approval.taskId, evidence, approval.status);
++  const nextAction = approvalCommand
++    ? `Review Evidence and diff, then run: ${approvalCommand}`
++    : `Collect current Evidence with: npm run scwbs -- evidence collect --task ${approval.taskId} --force; then use the exact approval command printed by scwbs.`;
+   return {
+     version: APPROVAL_REQUEST_JSON_VERSION,
+     approvalId: approval.id,
+@@ -166,7 +169,8 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+     mkdirSync(path.dirname(fullPath), { recursive: true });
+     writeFileSync(fullPath, yaml, "utf8");
+     syncRegistry(root);
+-    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval), null, 2)}\n` : yaml);
++    const { evidence } = readEvidence(root, taskId);
++    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval, evidence), null, 2)}\n` : yaml);
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 88e4ca4..9e2aaba 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -2,7 +2,7 @@ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
+-import { validateHumanGateApproval } from "../core/human-gate.js";
++import { buildHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
+ import { collectCheckCoverageIssues } from "../core/check-coverage.js";
+ import { matchesManagedContractPath, taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { createConsoleReporter, hasErrors, printIssues, type Reporter, withDefaultFixCommand as remediate } from "../core/report.js";
+@@ -360,7 +360,8 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+     const gateTask = taskWithGovernancePolicyGates(task, files);
+     const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
+     humanGateFiles = gate.requiredFiles;
+-    nextAction = `npm run scwbs -- approval approve --task ${taskId} --actor human --reason "Evidence and diff reviewed"`;
++    nextAction = buildHumanApprovalCommand(taskId, evidence, readApproval(root, taskId).approval?.status)
++      ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
+   }
+ 
+   if (diffIssues.length === 0) {
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 8938ec1..96b68d7 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+ import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
+-import { validateHumanGateApproval } from "../core/human-gate.js";
++import { buildHumanApprovalCommand as buildEvidenceBoundHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
+ import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+@@ -392,9 +392,9 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
+   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
+ }
+ 
+-export function buildHumanApprovalCommand(taskId: string, approvalStatus?: ApprovalStatus): string {
+-  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
+-  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "Evidence and diff reviewed"`;
++export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus): string {
++  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus)
++    ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
+ }
+ 
+ function resumeFinishCommand(taskId: string): string {
+@@ -723,7 +723,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
+   if (humanGateIssues.length > 0) {
+-    const approvalCommand = buildHumanApprovalCommand(taskId, approval?.status);
++    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, approval?.status);
+     if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
+     emitJson(finishOutput({
+       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
+diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
+index 51def34..56707b1 100644
+--- a/src/core/human-gate.ts
++++ b/src/core/human-gate.ts
+@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+ import { matchesAny } from "./glob.js";
+ import { changedFilesBetween, isCommitAncestor } from "./git.js";
+ import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
+-import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
++import type { ApprovalDelegationScope, ApprovalRecord, ApprovalStatus, Evidence, Issue, TaskContract } from "./types.js";
+ 
+ export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+ 
+@@ -145,14 +145,34 @@ export function validateHumanApprovalProvenance(approval: ApprovalRecord, requir
+   return issues;
+ }
+ 
+-function evidenceHead(evidence: Evidence): string | undefined {
++export function evidenceSubjectHead(evidence: Evidence | undefined): string | undefined {
++  if (!evidence) return undefined;
+   return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+ }
+ 
+-function evidenceDiffHash(evidence: Evidence): string | undefined {
++export function evidenceDiffHash(evidence: Evidence | undefined): string | undefined {
++  if (!evidence) return undefined;
+   return evidence.diffHash ?? evidence.git?.diffHash;
+ }
+ 
++export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined): string | undefined {
++  const headCommit = evidenceSubjectHead(evidence);
++  const diffHash = evidenceDiffHash(evidence);
++  if (!headCommit || !diffHash) return undefined;
++  return `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
++}
++
++export function buildHumanApprovalCommand(
++  taskId: string,
++  evidence: Evidence | undefined,
++  approvalStatus?: ApprovalStatus
++): string | undefined {
++  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence);
++  if (!confirmation) return undefined;
++  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
++  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "${confirmation}"`;
++}
++
+ function isApprovalMetadataFile(taskId: string, file: string): boolean {
+   const normalized = file.replace(/\\/g, "/");
+   return taskLifecycleMetadataPaths(taskId).includes(normalized);
+@@ -170,7 +190,7 @@ export function validateHumanGateApproval(
+     return { required: false, requiredFiles, approved: true, issues: [] };
+   }
+ 
+-  const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
++  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status);
+   if (!approval) {
+     return {
+       required: true,
+@@ -195,20 +215,24 @@ export function validateHumanGateApproval(
+         severity: "error",
+         code: "approval.status",
+         message: `${task.id} changes Human Gate files but approval status is ${approval.status}`,
+-        fixCommand: approvalCommand,
+-        remediation: humanCommand(approvalCommand)
++        ...(approvalCommand ? { fixCommand: approvalCommand, remediation: humanCommand(approvalCommand) } : {})
+       }]
+     };
+   }
+ 
+   const issues: Issue[] = [];
+-  const addApprovalIssue = (code: string, message: string) => issues.push({ severity: "error", code, message, fixCommand: approvalCommand });
++  const addApprovalIssue = (code: string, message: string) => issues.push({
++    severity: "error",
++    code,
++    message,
++    ...(approvalCommand ? { fixCommand: approvalCommand } : {})
++  });
+   issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
+   if (approval.approvalMode === "delegated") {
+     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
+   }
+-  const subjectHead = evidence ? evidenceHead(evidence) : undefined;
+-  const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
++  const subjectHead = evidenceSubjectHead(evidence);
++  const subjectDiffHash = evidenceDiffHash(evidence);
+   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
+   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
+     addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);
+@@ -235,7 +259,7 @@ export function validateHumanGateApproval(
+     addApprovalIssue("approval.scope.diffHash", `${task.id} approved diffHash does not match Evidence diffHash`);
+   }
+   for (const issue of issues) {
+-    if (issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
++    if (approvalCommand && issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
+   }
+ 
+   return {
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index bbb2787..6a46273 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -132,6 +132,10 @@ describe("approval", () => {
+   test("approval request --json emits a bounded versioned requested summary", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234"
++    }) as unknown as Record<string, unknown>);
+     const note = "n".repeat(2048);
+     const output = captureOutput(() => main([
+       "approval", "request", "--task", "WBS-001-004", "--pull-request", "#42", "--note", note, "--json"
+@@ -149,7 +153,9 @@ describe("approval", () => {
+     });
+     expect(json.requestedAt).toEqual(expect.any(String));
+     expect(json.notes).toEqual(["n".repeat(512)]);
+-    expect(json.nextAction).toEqual(expect.stringContaining("approval approve --task WBS-001-004 --actor human"));
++    expect(json.nextAction).toEqual(expect.stringContaining(
++      'approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234"'
++    ));
+     expect(json).not.toHaveProperty("approvedBy");
+     expect(json).not.toHaveProperty("approvedAt");
+     expect(output.stdout.length).toBeLessThan(2048);
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index 3fccb94..d21e634 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -975,7 +975,7 @@ describe("check-diff", () => {
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       changedFiles: ["src/security/secret.ts"],
+       diffHash: "test-diff-hash",
+-      git: { diffHash: "test-diff-hash" }
++      git: { headCommit: "abc1234", diffHash: "test-diff-hash" }
+     }) as unknown as Record<string, unknown>);
+ 
+     const output: string[] = [];
+@@ -1019,7 +1019,7 @@ describe("check-diff", () => {
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       changedFiles: ["src/security/secret.ts"],
+       diffHash: "test-diff-hash",
+-      git: { diffHash: "test-diff-hash" }
++      git: { headCommit: "abc1234", diffHash: "test-diff-hash" }
+     }) as unknown as Record<string, unknown>);
+ 
+     const output: string[] = [];
+@@ -1034,7 +1034,7 @@ describe("check-diff", () => {
+     }
+ 
+     const result = JSON.parse(output.join("\n"));
+-    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "Evidence and diff reviewed"`;
++    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 test-diff-hash"`;
+     expect(result.requiresHumanApproval).toBe(true);
+     expect(result.nextAction).toBe(command);
+     expect(result).toMatchObject({
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index 7db3024..f87b0d1 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -810,7 +810,8 @@ describe("finish", () => {
+     expect(text).toContain("  - src/security/secret.ts");
+     expect(text).toContain("Current diff hash:");
+     expect(text).toContain("Next action for human reviewer:");
+-    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004"));
++    const evidence = readEvidence(root, "WBS-001-004").evidence;
++    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence));
+     expect(text).toContain("AI agents must stop here.");
+     expect(text).toContain("Do not approve this task yourself.");
+   }, 30000);
+@@ -853,7 +854,7 @@ describe("finish", () => {
+     }
+ 
+     const result = captureFinishJson(root, { taskId, baseRef: "base" });
+-    const command = buildHumanApprovalCommand(taskId, status);
++    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status);
+ 
+     expect(result.exitCode).toBe(1);
+     expect(result.json).toMatchObject({
+@@ -896,7 +897,7 @@ describe("finish", () => {
+     }
+ 
+     expect(output).toContain("  Action owner: human only");
+-    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, "rejected")}`);
++    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected")}`);
+   }, 30000);
+ 
+   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
+@@ -919,7 +920,7 @@ describe("finish", () => {
+         "contracts/evidence/WBS-001-004.yaml",
+         "contracts/registry.yaml"
+       ],
+-      resumeCommand: buildHumanApprovalCommand("WBS-001-004")
++      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence)
+     });
+     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
+diff --git a/tests/unit/finish.test.ts b/tests/unit/finish.test.ts
+index 9785562..336f5fd 100644
+--- a/tests/unit/finish.test.ts
++++ b/tests/unit/finish.test.ts
+@@ -4,6 +4,7 @@ import {
+   finishLifecycleStepOrder,
+   pullRequestNextAction
+ } from "../../src/commands/finish.js";
++import { sampleEvidence } from "../helpers.js";
+ 
+ describe("finish lifecycle decisions", () => {
+   test("keeps the lifecycle steps in their fixed-point order", () => {
+@@ -37,9 +38,14 @@ describe("finish lifecycle decisions", () => {
+   });
+ 
+   test("builds human approval commands without changing ownership", () => {
++    const evidence = sampleEvidence({ subjectHeadCommit: "HEAD", diffHash: "sha256:DIFF" });
+     expect(buildHumanApprovalCommand("TASK-A")).toBe(
+-      'npm run scwbs -- approval approve --task TASK-A --actor human --reason "Evidence and diff reviewed"'
++      "npm run scwbs -- evidence collect --task TASK-A --force"
+     );
+-    expect(buildHumanApprovalCommand("TASK-A", "approved")).toContain("--force");
++    expect(buildHumanApprovalCommand("TASK-A", evidence)).toBe(
++      'npm run scwbs -- approval approve --task TASK-A --actor human --reason "CONFIRM TTY APPROVAL TASK-A HEAD sha256:DIFF"'
++    );
++    expect(buildHumanApprovalCommand("TASK-A", evidence, "approved")).toContain("--force");
++    expect(buildHumanApprovalCommand("TASK-A", evidence, "rejected")).toContain("--force");
+   });
+ });
+diff --git a/tests/unit/human-gate.test.ts b/tests/unit/human-gate.test.ts
+index 646f370..b11cf58 100644
+--- a/tests/unit/human-gate.test.ts
++++ b/tests/unit/human-gate.test.ts
+@@ -5,6 +5,8 @@ import {
+   approvalDelegationTokenSha256,
+   authorizeDelegatedApproval,
+   buildDelegationProof,
++  buildHumanApprovalCommand,
++  buildLeanHumanApprovalConfirmation,
+   validateDelegatedApproval,
+   validateHumanGateApproval
+ } from "../../src/core/human-gate.js";
+@@ -83,6 +85,19 @@ function addTaskMetadata(root: string, taskId: string): string {
+ }
+ 
+ describe("Human Gate security logic", () => {
++  test("builds the exact Evidence-bound Lean confirmation and fails closed without scope", () => {
++    const evidence = sampleEvidence({ subjectHeadCommit: "head123", diffHash: "sha256:diff123" });
++    expect(buildLeanHumanApprovalConfirmation("WBS-001-004", evidence)).toBe(
++      "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"
++    );
++    expect(buildHumanApprovalCommand("WBS-001-004", evidence)).toBe(
++      'npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"'
++    );
++    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved")).toContain(" --force");
++    expect(buildHumanApprovalCommand("WBS-001-004", sampleEvidence())).toBeUndefined();
++    expect(buildLeanHumanApprovalConfirmation("WBS-001-004", undefined)).toBeUndefined();
++  });
++
+   test("authorizes a valid delegated approval with scoped provenance", () => {
+     const result = authorizeDelegatedApproval(delegatedTask(), "human-gate", { token: TOKEN, now: new Date("2026-08-01T00:00:00.000Z") });
+ 

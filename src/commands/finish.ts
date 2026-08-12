@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
-import { validateHumanGateApproval } from "../core/human-gate.js";
+import { buildHumanApprovalCommand as buildEvidenceBoundHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
 import { gitCommonDir } from "../core/required-check-run.js";
 import { defaultRegistryPath, evidencePath, evidencePayloadPath, resolveFrom } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
@@ -392,9 +392,9 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
 }
 
-export function buildHumanApprovalCommand(taskId: string, approvalStatus?: ApprovalStatus): string {
-  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
-  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "Evidence and diff reviewed"`;
+export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus): string {
+  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus)
+    ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
 }
 
 function resumeFinishCommand(taskId: string): string {
@@ -723,7 +723,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
   if (humanGateIssues.length > 0) {
-    const approvalCommand = buildHumanApprovalCommand(taskId, approval?.status);
+    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, approval?.status);
     if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
     emitJson(finishOutput({
       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,

@@ -4,6 +4,7 @@ import {
   finishLifecycleStepOrder,
   pullRequestNextAction
 } from "../../src/commands/finish.js";
+import { sampleEvidence } from "../helpers.js";
 
 describe("finish lifecycle decisions", () => {
   test("keeps the lifecycle steps in their fixed-point order", () => {
@@ -37,9 +38,14 @@ describe("finish lifecycle decisions", () => {
   });
 
   test("builds human approval commands without changing ownership", () => {
+    const evidence = sampleEvidence({ subjectHeadCommit: "HEAD", diffHash: "sha256:DIFF" });
     expect(buildHumanApprovalCommand("TASK-A")).toBe(
-      'npm run scwbs -- approval approve --task TASK-A --actor human --reason "Evidence and diff reviewed"'
+      "npm run scwbs -- evidence collect --task TASK-A --force"
     );
-    expect(buildHumanApprovalCommand("TASK-A", "approved")).toContain("--force");
+    expect(buildHumanApprovalCommand("TASK-A", evidence)).toBe(
+      'npm run scwbs -- approval approve --task TASK-A --actor human --reason "CONFIRM TTY APPROVAL TASK-A HEAD sha256:DIFF"'
+    );
+    expect(buildHumanApprovalCommand("TASK-A", evidence, "approved")).toContain("--force");
+    expect(buildHumanApprovalCommand("TASK-A", evidence, "rejected")).toContain("--force");
   });
 });

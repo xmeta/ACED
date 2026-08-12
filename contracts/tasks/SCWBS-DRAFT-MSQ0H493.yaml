@@ -1,0 +1,78 @@
+id: SCWBS-DRAFT-MSQ0H493
+type: task-contract
+status: approved
+approvedBy: user-requested-issue-565
+approvedAt: "2026-08-12T00:00:00Z"
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQ0H493
+branchName: task/SCWBS-DRAFT-MSQ0H493-issue-565-exact-tty-approval-command-generation
+allowedPaths:
+  - src/core/human-gate.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/commands/approval-request.ts
+  - tests/unit/human-gate.test.ts
+  - tests/unit/finish.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/approval.test.ts
+  - README.md
+  - docs/scwbs/quickstart.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/approval.test.ts
+stopIf:
+  - Evidence head or diff hash unavailable
+  - scope outside allowed paths
+  - Human Approval policy/provenance change
+  - AI approval execution
+  - required check coverage cannot be satisfied
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - 'Complete Issue #565 exact TTY approval command generation'
+  - A shared Evidence-bound builder produces the exact TTY confirmation and human Approval command.
+  - check-diff, finish, Human Gate validation, and approval-request JSON show the current Evidence-bound command.
+  - Missing Evidence subject head or diff hash fails closed without inventing an approval command.
+  - Existing approved/rejected --force behavior and AI approval prohibitions remain unchanged.
+  - Documentation and regression tests match the generated command contract.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - integration-test-result
+specPath: contracts/specs/SPEC-LITE-MSQ0H493.yaml
+specVersion: 0.1.0
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQ0H493.yaml
+  - contracts/specs/SPEC-LITE-MSQ0H493.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQ0H493.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQ0H493.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQ0H493.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQ0H493.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQ0H493.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:65757c2c37ee8fdea95f17c0f6e1eaec0399491c6170350578efff8945676e30
+  createdAt: "2026-08-12T11:35:02.325Z"

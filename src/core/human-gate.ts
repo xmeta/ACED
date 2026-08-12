@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { matchesAny } from "./glob.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
-import type { ApprovalDelegationScope, ApprovalRecord, Evidence, Issue, TaskContract } from "./types.js";
+import type { ApprovalDelegationScope, ApprovalRecord, ApprovalStatus, Evidence, Issue, TaskContract } from "./types.js";
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
 
@@ -145,12 +145,32 @@ export function validateHumanApprovalProvenance(approval: ApprovalRecord, requir
   return issues;
 }
 
-function evidenceHead(evidence: Evidence): string | undefined {
+export function evidenceSubjectHead(evidence: Evidence | undefined): string | undefined {
+  if (!evidence) return undefined;
   return evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
 }
 
-function evidenceDiffHash(evidence: Evidence): string | undefined {
+export function evidenceDiffHash(evidence: Evidence | undefined): string | undefined {
+  if (!evidence) return undefined;
   return evidence.diffHash ?? evidence.git?.diffHash;
+}
+
+export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined): string | undefined {
+  const headCommit = evidenceSubjectHead(evidence);
+  const diffHash = evidenceDiffHash(evidence);
+  if (!headCommit || !diffHash) return undefined;
+  return `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+}
+
+export function buildHumanApprovalCommand(
+  taskId: string,
+  evidence: Evidence | undefined,
+  approvalStatus?: ApprovalStatus
+): string | undefined {
+  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence);
+  if (!confirmation) return undefined;
+  const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
+  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "${confirmation}"`;
 }
 
 function isApprovalMetadataFile(taskId: string, file: string): boolean {
@@ -170,7 +190,7 @@ export function validateHumanGateApproval(
     return { required: false, requiredFiles, approved: true, issues: [] };
   }
 
-  const approvalCommand = `npm run scwbs -- approval approve --task ${task.id} --actor human --reason "Evidence and diff reviewed"`;
+  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status);
   if (!approval) {
     return {
       required: true,
@@ -195,20 +215,24 @@ export function validateHumanGateApproval(
         severity: "error",
         code: "approval.status",
         message: `${task.id} changes Human Gate files but approval status is ${approval.status}`,
-        fixCommand: approvalCommand,
-        remediation: humanCommand(approvalCommand)
+        ...(approvalCommand ? { fixCommand: approvalCommand, remediation: humanCommand(approvalCommand) } : {})
       }]
     };
   }
 
   const issues: Issue[] = [];
-  const addApprovalIssue = (code: string, message: string) => issues.push({ severity: "error", code, message, fixCommand: approvalCommand });
+  const addApprovalIssue = (code: string, message: string) => issues.push({
+    severity: "error",
+    code,
+    message,
+    ...(approvalCommand ? { fixCommand: approvalCommand } : {})
+  });
   issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
   if (approval.approvalMode === "delegated") {
     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
   }
-  const subjectHead = evidence ? evidenceHead(evidence) : undefined;
-  const subjectDiffHash = evidence ? evidenceDiffHash(evidence) : undefined;
+  const subjectHead = evidenceSubjectHead(evidence);
+  const subjectDiffHash = evidenceDiffHash(evidence);
   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
     addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);
@@ -235,7 +259,7 @@ export function validateHumanGateApproval(
     addApprovalIssue("approval.scope.diffHash", `${task.id} approved diffHash does not match Evidence diffHash`);
   }
   for (const issue of issues) {
-    if (issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
+    if (approvalCommand && issue.fixCommand === approvalCommand) issue.remediation = humanCommand(approvalCommand);
   }
 
   return {

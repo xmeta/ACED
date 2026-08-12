@@ -127,7 +127,7 @@ npm run scwbs -- approval request --task WBS-001-004 --pull-request "#42" --note
 ```
 Human が Evidence と PR を確認して承認する場合は、YAML を手書きせずに `approved` record を生成できる。
 ```bash
-npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "Evidence and PR reviewed"
+npm run scwbs -- approval approve --task WBS-001-004 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
 ```
 複数の review-ready task を completed に進める場合は、まず dry-run で対象nodeと生成される changeset を確認し、明示的に `--apply` する。
 ```bash
