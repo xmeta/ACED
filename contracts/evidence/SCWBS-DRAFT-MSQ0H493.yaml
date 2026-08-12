@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MSQ0H493
+type: evidence
+taskId: SCWBS-DRAFT-MSQ0H493
+commit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+subjectHeadCommit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+diffHash: sha256:3702bd02883418976480c8869233d3e3cdca8f90088163c930d0d8a2937b49f6
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+    treeHash: 2773a5614e4952e14e08984509b1775f13de7e6b
+    diffHash: sha256:3702bd02883418976480c8869233d3e3cdca8f90088163c930d0d8a2937b49f6
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQ0H493.patch
+    manifestHash: sha256:3702bd02883418976480c8869233d3e3cdca8f90088163c930d0d8a2937b49f6
+git:
+  branch: task/SCWBS-DRAFT-MSQ0H493-issue-565-exact-tty-approval-command-generation
+  base: f05e979
+  baseCommit: f05e979e0666584023b12c0ab014ba7db3fce5a9
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+  diffHash: sha256:3702bd02883418976480c8869233d3e3cdca8f90088163c930d0d8a2937b49f6
+  headCommit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+changedFiles:
+  - README.md
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/operations-profile-and-specs.md
+  - docs/scwbs/quickstart.md
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/commands/finish.ts
+  - src/core/human-gate.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/finish.test.ts
+  - tests/unit/finish.test.ts
+  - tests/unit/human-gate.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: f05e979e0666584023b12c0ab014ba7db3fce5a9
+    headCommit: 297c4d30597cf4c5d9e05f944e7f56121544c9b8
+    diffHash: sha256:3702bd02883418976480c8869233d3e3cdca8f90088163c930d0d8a2937b49f6
+  tests:
+    filesAdded: 0
+    filesModified: 5
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:e9c0b972ce06ca0750b99fb578100ff20386c843234dbd59779df36910657d70
+    durationMilliseconds: 26427
+    executedAt: "2026-08-12T12:07:26.125Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:0fd5fa804addd508f4f1f3319b43033c7356f39185bff5b0431ec5af441e141b
+    durationMilliseconds: 14557
+    executedAt: "2026-08-12T12:07:40.686Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:2f91df2055c21a11c9739a4af21925576c0cb9da208443abda153884fc89fe03
+    durationMilliseconds: 6254
+    executedAt: "2026-08-12T12:07:46.945Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:57e4d85a411dcdec7cf54c128b20da58a719598469f69607c433253c14e44097
+    durationMilliseconds: 406957
+    executedAt: "2026-08-12T12:14:33.906Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added exact Evidence-bound Human Approval command regression coverage
