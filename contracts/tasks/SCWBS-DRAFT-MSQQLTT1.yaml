@@ -1,0 +1,80 @@
+id: SCWBS-DRAFT-MSQQLTT1
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MSQQLTT1
+branchName: task/SCWBS-DRAFT-MSQQLTT1-issue-569-aggregate-risk-acceptance-scope-finger
+allowedPaths:
+  - src/core/risk.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/commands/risk.ts
+  - docs/scwbs/schemas/risk.schema.json
+  - docs/scwbs/cli-reference.md
+  - contracts/specs/SPEC-LITE-MSQQLTT1.yaml
+  - tests/unit/risk.test.ts
+  - tests/integration/risk.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - .github/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/risk.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/commands/risk.ts
+  - docs/scwbs/schemas/risk.schema.json
+  - contracts/risks/**
+stopIf:
+  - Human Gate required
+  - additional path required
+  - database or migration required
+  - remote hosted service required
+  - authentication or permission change
+  - AI risk acceptance
+  - unbounded output
+  - policy downgrade
+  - destructive source artifact deletion
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - All linked Task Evidence, Spec revisions, and Requirement revisions are represented in a canonical order-independent aggregate scope fingerprint.
+  - A change to any linked Task Evidence, linked Spec, or linked Requirement makes a prior fingerprinted Risk Acceptance stale.
+  - Missing or ambiguous Task Evidence, Spec, or Requirement identity is fail-closed and cannot produce a valid acceptance.
+  - Spec-only scopes can be accepted when all linked Spec and Requirement identities resolve completely.
+  - Legacy single Task/task-only acceptances retain the old subjectHeadCommit and diffHash behavior; legacy multi-scope acceptances without scopeFingerprint are stale.
+  - RiskAcceptance stores scopeFingerprint while preserving legacy subject fields, and risk JSON output exposes current and accepted scope fingerprints plus constituent diagnostics.
+  - The human-only risk accept command confirms the aggregate scope fingerprint and rejects AI actors or mismatched confirmation text.
+  - 'Issue #569 is implemented without residualRisk input/scoring changes from Issue #570, dependency changes, workflow changes, or WBS changes.'
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/specs/SPEC-LITE-MSQQLTT1.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/evidence/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MSQQLTT1.patch
+  - contracts/approvals/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/reviews/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:b76bffa6a13416ac24577ff47c026eff47960b77dadff03a19aba6124a8a2b88
+  createdAt: "2026-08-12T23:46:34.891Z"

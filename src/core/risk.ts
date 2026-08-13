@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { listRisks, readEvidence } from "./contracts.js";
+import { listRisks, listSpecs, readEvidence } from "./contracts.js";
+import { fileSha256 } from "./hash.js";
 import { defaultRisksDir, resolveFrom } from "./paths.js";
 import { stringifySimpleYaml } from "./yaml.js";
-import type { Evidence, Issue, Profile, RiskAcceptance, RiskLevel, RiskRecord, RiskStatus, RiskTreatmentStrategy } from "./types.js";
+import type { Evidence, Issue, Profile, RiskAcceptance, RiskLevel, RiskRecord, RiskStatus, RiskTreatmentStrategy, SpecRequirement, SpecContract } from "./types.js";
 
 export const riskSchemaVersion = "scwbs.risk.v1" as const;
 export const riskLevels: Readonly<Record<RiskLevel, { minimum: number; maximum: number }>> = {
@@ -17,6 +19,21 @@ const MAX_RISKS = 100;
 const MAX_ITEMS = 50;
 
 export type RiskAcceptanceStatus = "valid" | "missing" | "stale";
+
+type RiskScopeEntryStatus = "resolved" | "missing" | "invalid" | "ambiguous";
+
+export type RiskScopeConstituent =
+  | { kind: "task"; id: string; status: RiskScopeEntryStatus; subjectHeadCommit?: string; diffHash?: string; detail?: string }
+  | { kind: "spec"; id: string; status: RiskScopeEntryStatus; version?: string; revision?: string; detail?: string }
+  | { kind: "requirement"; id: string; status: RiskScopeEntryStatus; specId?: string; revision?: string; detail?: string };
+
+export type RiskCurrentScope = {
+  scopeFingerprint: string;
+  complete: boolean;
+  issues: string[];
+  constituents: RiskScopeConstituent[];
+  legacySubject: { subjectHeadCommit?: string; diffHash?: string };
+};
 
 export function riskScore(likelihood: number, impact: number): number {
   if (!Number.isInteger(likelihood) || likelihood < 1 || likelihood > 5) throw new Error("Risk likelihood must be an integer from 1 to 5");
@@ -39,23 +56,133 @@ function evidenceSubject(evidence: Evidence | undefined): { subjectHeadCommit?: 
   };
 }
 
-function linkedEvidence(root: string, risk: RiskRecord): Evidence | undefined {
-  for (const taskId of risk.scope.tasks.slice(0, MAX_ITEMS)) {
-    const result = readEvidence(root, taskId);
-    if (result.evidence) return result.evidence;
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonical(item)]));
   }
-  return undefined;
+  return value;
+}
+
+function fingerprint(value: unknown): string {
+  return `sha256:${createHash("sha256").update(JSON.stringify(canonical(value)), "utf8").digest("hex")}`;
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function requirementRevision(spec: SpecContract, requirement: SpecRequirement, specRevision: string): string {
+  return fingerprint({
+    specId: spec.id,
+    specVersion: spec.version,
+    specRevision,
+    requirementId: requirement.id,
+    content: {
+      acceptanceScenarios: requirement.acceptanceScenarios,
+      source: requirement.source,
+      statement: requirement.statement,
+      verificationMode: requirement.verificationMode
+    }
+  });
+}
+
+function resolveSpecs(root: string, ids: string[], constituents: RiskScopeConstituent[], issues: string[]): Map<string, { spec: SpecContract; path: string; revision: string }> {
+  const result = new Map<string, { spec: SpecContract; path: string; revision: string }>();
+  const entries = listSpecs(root);
+  for (const id of uniqueSorted(ids).slice(0, MAX_ITEMS)) {
+    const matches = entries.filter((entry) => entry.spec?.id === id);
+    if (matches.length !== 1 || !matches[0]?.spec) {
+      const status: RiskScopeEntryStatus = matches.length === 0 ? "missing" : matches.some((entry) => entry.issues.length > 0) ? "invalid" : "ambiguous";
+      const detail = matches.length === 0 ? `Spec ${id} is missing` : matches.length > 1 ? `Spec ${id} is ambiguous` : `Spec ${id} is invalid`;
+      constituents.push({ kind: "spec", id, status, detail });
+      issues.push(detail);
+      continue;
+    }
+    const entry = matches[0];
+    const spec = entry.spec;
+    if (!spec) {
+      const detail = `Spec ${id} is invalid`;
+      constituents.push({ kind: "spec", id, status: "invalid", detail });
+      issues.push(detail);
+      continue;
+    }
+    const revision = fileSha256(root, entry.path);
+    result.set(id, { spec, path: entry.path, revision });
+    constituents.push({ kind: "spec", id, status: "resolved", version: spec.version, revision });
+  }
+  return result;
+}
+
+export function riskCurrentScope(root: string, risk: RiskRecord): RiskCurrentScope {
+  const constituents: RiskScopeConstituent[] = [];
+  const issues: string[] = [];
+  const tasks = uniqueSorted(risk.scope.tasks).slice(0, MAX_ITEMS);
+  const specs = uniqueSorted(risk.scope.specs).slice(0, MAX_ITEMS);
+  const requirements = uniqueSorted(risk.scope.requirements).slice(0, MAX_ITEMS);
+
+  for (const taskId of tasks) {
+    const result = readEvidence(root, taskId);
+    if (!result.evidence) {
+      const status: RiskScopeEntryStatus = result.issues.some((issue) => issue.code.endsWith(".missing")) ? "missing" : "invalid";
+      const detail = result.issues.map((issue) => issue.message).join("; ") || `Evidence for Task ${taskId} is unavailable`;
+      constituents.push({ kind: "task", id: taskId, status, detail });
+      issues.push(detail);
+      continue;
+    }
+    const subject = evidenceSubject(result.evidence);
+    if (!subject.subjectHeadCommit || !subject.diffHash) {
+      const detail = `Evidence for Task ${taskId} has no subjectHeadCommit and diffHash`;
+      constituents.push({ kind: "task", id: taskId, status: "invalid", ...subject, detail });
+      issues.push(detail);
+      continue;
+    }
+    constituents.push({ kind: "task", id: taskId, status: "resolved", ...subject });
+  }
+
+  const resolvedSpecs = resolveSpecs(root, specs, constituents, issues);
+  for (const requirementId of requirements) {
+    const matches: Array<{ spec: SpecContract; specId: string; specRevision: string; requirement: SpecRequirement }> = [];
+    for (const { spec, revision } of resolvedSpecs.values()) {
+      const requirement = spec.requirements?.find((candidate) => candidate.id === requirementId);
+      if (requirement) matches.push({ spec, specId: spec.id, specRevision: revision, requirement });
+    }
+    if (matches.length !== 1) {
+      const detail = matches.length === 0 ? `Requirement ${requirementId} is missing from linked Specs` : `Requirement ${requirementId} is ambiguous across linked Specs`;
+      constituents.push({ kind: "requirement", id: requirementId, status: matches.length === 0 ? "missing" : "ambiguous", detail });
+      issues.push(detail);
+      continue;
+    }
+    const match = matches[0];
+    const revision = requirementRevision(match.spec, match.requirement, match.specRevision);
+    constituents.push({ kind: "requirement", id: requirementId, status: "resolved", specId: match.specId, revision });
+  }
+
+  if (tasks.length + specs.length + requirements.length === 0) issues.push("Risk scope is empty");
+  const sortedConstituents = [...constituents].sort((left, right) => `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`));
+  const scopeFingerprint = fingerprint({
+    schemaVersion: "scwbs.risk-scope.v1",
+    constituents: sortedConstituents
+  });
+  const legacySubject = tasks.length === 1
+    ? (() => { const task = sortedConstituents.find((entry): entry is Extract<RiskScopeConstituent, { kind: "task" }> => entry.kind === "task"); return { subjectHeadCommit: task?.subjectHeadCommit, diffHash: task?.diffHash }; })()
+    : {};
+  return { scopeFingerprint, complete: issues.length === 0, issues, constituents: sortedConstituents, legacySubject };
 }
 
 export function riskAcceptanceStatus(root: string, risk: RiskRecord): RiskAcceptanceStatus {
   if (!risk.acceptance) return "missing";
-  const subject = evidenceSubject(linkedEvidence(root, risk));
-  if (!subject.subjectHeadCommit || !subject.diffHash) return "stale";
-  return risk.acceptance.subjectHeadCommit === subject.subjectHeadCommit && risk.acceptance.diffHash === subject.diffHash ? "valid" : "stale";
+  const current = riskCurrentScope(root, risk);
+  if (risk.acceptance.scopeFingerprint) return current.complete && risk.acceptance.scopeFingerprint === current.scopeFingerprint ? "valid" : "stale";
+  const taskOnly = risk.scope.tasks.length === 1 && risk.scope.specs.length === 0 && risk.scope.requirements.length === 0;
+  if (!taskOnly || !current.complete) return "stale";
+  return risk.acceptance.subjectHeadCommit === current.legacySubject.subjectHeadCommit && risk.acceptance.diffHash === current.legacySubject.diffHash ? "valid" : "stale";
 }
 
 export function riskCurrentSubject(root: string, risk: RiskRecord): { subjectHeadCommit?: string; diffHash?: string } {
-  return evidenceSubject(linkedEvidence(root, risk));
+  return riskCurrentScope(root, risk).legacySubject;
 }
 
 export type RiskSummary = {
@@ -70,9 +197,15 @@ export type RiskSummary = {
   treatment: RiskTreatmentStrategy;
   acceptanceStatus: RiskAcceptanceStatus;
   scope: RiskRecord["scope"];
+  currentScopeFingerprint: string;
+  acceptedScopeFingerprint?: string;
+  scopeComplete: boolean;
+  scopeConstituents: RiskScopeConstituent[];
+  scopeIssues: string[];
 };
 
 export function summarizeRisk(root: string, risk: RiskRecord): RiskSummary {
+  const current = riskCurrentScope(root, risk);
   return {
     id: risk.id,
     title: risk.title,
@@ -84,7 +217,12 @@ export function summarizeRisk(root: string, risk: RiskRecord): RiskSummary {
     owner: risk.treatment.owner,
     treatment: risk.treatment.strategy,
     acceptanceStatus: riskAcceptanceStatus(root, risk),
-    scope: risk.scope
+    scope: risk.scope,
+    currentScopeFingerprint: current.scopeFingerprint,
+    ...(risk.acceptance?.scopeFingerprint ? { acceptedScopeFingerprint: risk.acceptance.scopeFingerprint } : {}),
+    scopeComplete: current.complete,
+    scopeConstituents: current.constituents,
+    scopeIssues: current.issues
   };
 }
 
@@ -208,11 +346,18 @@ export function acceptRisk(root: string, id: string, actor: string, reason: stri
   const entry = listRisks(root).find((candidate) => candidate.path === relativePath);
   if (!entry?.risk) throw new Error(`${relativePath} does not exist or is invalid`);
   const risk = entry.risk;
-  const subject = riskCurrentSubject(root, risk);
-  if (!subject.subjectHeadCommit || !subject.diffHash) throw new Error("risk.accept.subject-missing: linked current Evidence subjectHeadCommit and diffHash are required");
-  const expected = `CONFIRM TTY RISK ${id} ${subject.subjectHeadCommit} ${subject.diffHash}`;
+  const current = riskCurrentScope(root, risk);
+  if (!current.complete) throw new Error(`risk.accept.scope-incomplete: ${current.issues.join("; ")}`);
+  const expected = `CONFIRM TTY RISK ${id} ${current.scopeFingerprint}`;
   if (reason !== expected) throw new Error(`risk.accept.confirmation-required: exact reason required: ${expected}`);
-  const acceptance: RiskAcceptance = { acceptedBy: "human", acceptedAt: now, subjectHeadCommit: subject.subjectHeadCommit, diffHash: subject.diffHash, reason };
+  const acceptance: RiskAcceptance = {
+    acceptedBy: "human",
+    acceptedAt: now,
+    ...(current.legacySubject.subjectHeadCommit ? { subjectHeadCommit: current.legacySubject.subjectHeadCommit } : {}),
+    ...(current.legacySubject.diffHash ? { diffHash: current.legacySubject.diffHash } : {}),
+    scopeFingerprint: current.scopeFingerprint,
+    reason
+  };
   const updated: RiskRecord = { ...risk, status: "accepted", acceptance, updatedAt: now };
   writeFileSync(resolveFrom(root, relativePath), stringifySimpleYaml(updated as unknown as Record<string, unknown>), "utf8");
   return updated;
