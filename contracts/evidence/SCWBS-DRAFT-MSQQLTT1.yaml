@@ -1,0 +1,84 @@
+id: EVD-SCWBS-DRAFT-MSQQLTT1
+type: evidence
+taskId: SCWBS-DRAFT-MSQQLTT1
+commit: db8c657092282d5bb6670fffd1cd442184a108d4
+subjectHeadCommit: db8c657092282d5bb6670fffd1cd442184a108d4
+diffHash: sha256:7373873f49a2b8f43023f9330e68280f12bc9866242927ecbc19790f613ae89d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: db8c657092282d5bb6670fffd1cd442184a108d4
+    treeHash: 022c96b5a2203a4dcc8510ee1afa4bf07107fbb0
+    diffHash: sha256:7373873f49a2b8f43023f9330e68280f12bc9866242927ecbc19790f613ae89d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MSQQLTT1.patch
+    manifestHash: sha256:7373873f49a2b8f43023f9330e68280f12bc9866242927ecbc19790f613ae89d
+git:
+  branch: task/SCWBS-DRAFT-MSQQLTT1-issue-569-aggregate-risk-acceptance-scope-finger
+  base: origin/main
+  baseCommit: 24f9df84b3c71fb1d50788f2a438b0a48a4f899c
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: db8c657092282d5bb6670fffd1cd442184a108d4
+  diffHash: sha256:7373873f49a2b8f43023f9330e68280f12bc9866242927ecbc19790f613ae89d
+  headCommit: db8c657092282d5bb6670fffd1cd442184a108d4
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MSQQLTT1.yaml
+  - contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-reference.md
+  - docs/scwbs/schemas/risk.schema.json
+  - src/core/risk.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/risk.test.ts
+  - tests/unit/risk.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 24f9df84b3c71fb1d50788f2a438b0a48a4f899c
+    headCommit: db8c657092282d5bb6670fffd1cd442184a108d4
+    diffHash: sha256:7373873f49a2b8f43023f9330e68280f12bc9866242927ecbc19790f613ae89d
+  tests:
+    filesAdded: 0
+    filesModified: 2
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:3c5c496f354bf2f784fb3db989c35a052f04598f21d39a5658fa3f5947163875
+    durationMilliseconds: 22591
+    executedAt: "2026-08-13T00:00:44.942Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:074051649395dbafb04476507c47b74a28e2e258aeed832c8cbdf43951c268aa
+    durationMilliseconds: 11816
+    executedAt: "2026-08-13T00:00:56.763Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:1685610c858247f8d5a4770b8d6381f3efffa2e74e31e06121d72f3fffd8ea19
+    durationMilliseconds: 5055
+    executedAt: "2026-08-13T00:01:01.821Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:9e9a27d4e437fab5c2459450c9c862f38d567b2271165638f324e94c634773e3
+    durationMilliseconds: 273256
+    executedAt: "2026-08-13T00:09:44.997Z"

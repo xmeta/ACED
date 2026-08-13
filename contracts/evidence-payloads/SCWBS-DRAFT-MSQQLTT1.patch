@@ -1,0 +1,601 @@
+diff --git a/contracts/specs/SPEC-LITE-MSQQLTT1.yaml b/contracts/specs/SPEC-LITE-MSQQLTT1.yaml
+new file mode 100644
+index 0000000..8cd8201
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MSQQLTT1.yaml
+@@ -0,0 +1,18 @@
++id: SPEC-LITE-MSQQLTT1
++type: spec-contract
++featureId: F-MSQQLTT1
++title: "Issue #569: aggregate Risk Acceptance scope fingerprint"
++status: approved
++version: 0.1.0
++summary: "Bind Risk Acceptance freshness to every linked Task Evidence, Spec revision, and Requirement revision with fail-closed diagnostics and legacy compatibility."
++approvedBy: user-requested-issue-569-plan
++approvedAt: "2026-08-13T00:00:00+09:00"
++acceptanceCriteria:
++  - "All linked Task Evidence, Spec revisions, and Requirement revisions are represented in a canonical order-independent aggregate scope fingerprint."
++  - "A change to any linked Task Evidence, linked Spec, or linked Requirement makes a prior fingerprinted Risk Acceptance stale."
++  - "Missing or ambiguous Task Evidence, Spec, or Requirement identity is fail-closed and cannot produce a valid acceptance."
++  - "Spec-only scopes can be accepted when all linked Spec and Requirement identities resolve completely."
++  - "Legacy single Task/task-only acceptances retain the old subjectHeadCommit and diffHash behavior; legacy multi-scope acceptances without scopeFingerprint are stale."
++  - "RiskAcceptance stores scopeFingerprint while preserving legacy subject fields, and risk JSON output exposes current and accepted scope fingerprints plus constituent diagnostics."
++  - "The human-only risk accept command confirms the aggregate scope fingerprint and rejects AI actors or mismatched confirmation text."
++  - "Issue #569 does not change residualRisk input/scoring semantics, dependencies, workflows, or WBS."
+diff --git a/contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml b/contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
+new file mode 100644
+index 0000000..aedc50d
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
+@@ -0,0 +1,80 @@
++id: SCWBS-DRAFT-MSQQLTT1
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MSQQLTT1
++branchName: task/SCWBS-DRAFT-MSQQLTT1-issue-569-aggregate-risk-acceptance-scope-finger
++allowedPaths:
++  - src/core/risk.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/commands/risk.ts
++  - docs/scwbs/schemas/risk.schema.json
++  - docs/scwbs/cli-reference.md
++  - contracts/specs/SPEC-LITE-MSQQLTT1.yaml
++  - tests/unit/risk.test.ts
++  - tests/integration/risk.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - .github/**
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/risk.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/commands/risk.ts
++  - docs/scwbs/schemas/risk.schema.json
++  - contracts/risks/**
++stopIf:
++  - Human Gate required
++  - additional path required
++  - database or migration required
++  - remote hosted service required
++  - authentication or permission change
++  - AI risk acceptance
++  - unbounded output
++  - policy downgrade
++  - destructive source artifact deletion
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - All linked Task Evidence, Spec revisions, and Requirement revisions are represented in a canonical order-independent aggregate scope fingerprint.
++  - A change to any linked Task Evidence, linked Spec, or linked Requirement makes a prior fingerprinted Risk Acceptance stale.
++  - Missing or ambiguous Task Evidence, Spec, or Requirement identity is fail-closed and cannot produce a valid acceptance.
++  - Spec-only scopes can be accepted when all linked Spec and Requirement identities resolve completely.
++  - Legacy single Task/task-only acceptances retain the old subjectHeadCommit and diffHash behavior; legacy multi-scope acceptances without scopeFingerprint are stale.
++  - RiskAcceptance stores scopeFingerprint while preserving legacy subject fields, and risk JSON output exposes current and accepted scope fingerprints plus constituent diagnostics.
++  - The human-only risk accept command confirms the aggregate scope fingerprint and rejects AI actors or mismatched confirmation text.
++  - 'Issue #569 is implemented without residualRisk input/scoring changes from Issue #570, dependency changes, workflow changes, or WBS changes.'
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
++  - contracts/specs/SPEC-LITE-MSQQLTT1.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MSQQLTT1.yaml
++  - contracts/evidence/SCWBS-DRAFT-MSQQLTT1.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MSQQLTT1.patch
++  - contracts/approvals/SCWBS-DRAFT-MSQQLTT1.yaml
++  - contracts/reviews/SCWBS-DRAFT-MSQQLTT1.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:b76bffa6a13416ac24577ff47c026eff47960b77dadff03a19aba6124a8a2b88
++  createdAt: "2026-08-12T23:46:34.891Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index aaccf7c..24c826a 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2071,3 +2071,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-12T20:31:28.052Z"
++  - id: SCWBS-DRAFT-MSQQLTT1
++    path: contracts/tasks/SCWBS-DRAFT-MSQQLTT1.yaml
++    branchName: task/SCWBS-DRAFT-MSQQLTT1-issue-569-aggregate-risk-acceptance-scope-finger
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-reference.md b/docs/scwbs/cli-reference.md
+index e36c4a4..7d39cf9 100644
+--- a/docs/scwbs/cli-reference.md
++++ b/docs/scwbs/cli-reference.md
+@@ -11,3 +11,21 @@ Status: legacy/detail reference。
+ - [Mutation、read-only command、output](cli-mutation-output.md)
+ 
+ command example、JSON contract、Human-only boundary、proposal statusはlinked detail pageに残る。current workは引き続き`AGENTS.md`、active Task Contract、`docs/sc-wbs-core/00-index.md`から始める。
++
++## Risk Acceptance の aggregate scope fingerprint
++
++`risk accept` は、最初に見つかった Task Evidence ではなく、Risk の全 linked scope を canonical sort した `scopeFingerprint` を Human-only acceptance に保存する。構成要素は次のとおりである。
++
++- Task: Task ID、Evidence の `subjectHeadCommit`、`diffHash`
++- Spec: Spec ID、Spec version、Spec file の `sha256:` revision
++- Requirement: `(specId, specVersion, requirementId, canonical requirement content)` の `sha256:` revision
++
++`risk show --json` と `risk list --json` は `currentScopeFingerprint`、`acceptedScopeFingerprint`、`scopeConstituents`、`scopeComplete`、`scopeIssues` を返す。Evidence、Spec、Requirement が欠落・不正・曖昧な場合は `scopeComplete: false` となり、Acceptance は valid にならない。
++
++新しい受理の確認文字列は次の形式である。
++
++```text
++CONFIRM TTY RISK <risk-id> <scopeFingerprint>
++```
++
++旧 `subjectHeadCommit` / `diffHash` だけを持つ acceptance は、Task 1件だけの task-only scope に限って互換評価する。複数 Task、Spec、Requirement を含む legacy acceptance は stale として、人間による aggregate fingerprint の再受理が必要になる。
+diff --git a/docs/scwbs/schemas/risk.schema.json b/docs/scwbs/schemas/risk.schema.json
+index a66ad3c..5b5bef8 100644
+--- a/docs/scwbs/schemas/risk.schema.json
++++ b/docs/scwbs/schemas/risk.schema.json
+@@ -37,12 +37,13 @@
+     "acceptance": {
+       "type": "object",
+       "additionalProperties": false,
+-      "required": ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
++      "required": ["acceptedBy", "acceptedAt", "reason"],
+       "properties": {
+         "acceptedBy": { "const": "human" },
+         "acceptedAt": { "type": "string", "minLength": 1 },
+         "subjectHeadCommit": { "type": "string", "minLength": 1 },
+         "diffHash": { "type": "string", "minLength": 1 },
++        "scopeFingerprint": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+         "reason": { "type": "string", "minLength": 1 }
+       }
+     },
+diff --git a/src/core/risk.ts b/src/core/risk.ts
+index 504488c..7c2c221 100644
+--- a/src/core/risk.ts
++++ b/src/core/risk.ts
+@@ -1,9 +1,11 @@
++import { createHash } from "node:crypto";
+ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { listRisks, readEvidence } from "./contracts.js";
++import { listRisks, listSpecs, readEvidence } from "./contracts.js";
++import { fileSha256 } from "./hash.js";
+ import { defaultRisksDir, resolveFrom } from "./paths.js";
+ import { stringifySimpleYaml } from "./yaml.js";
+-import type { Evidence, Issue, Profile, RiskAcceptance, RiskLevel, RiskRecord, RiskStatus, RiskTreatmentStrategy } from "./types.js";
++import type { Evidence, Issue, Profile, RiskAcceptance, RiskLevel, RiskRecord, RiskStatus, RiskTreatmentStrategy, SpecRequirement, SpecContract } from "./types.js";
+ 
+ export const riskSchemaVersion = "scwbs.risk.v1" as const;
+ export const riskLevels: Readonly<Record<RiskLevel, { minimum: number; maximum: number }>> = {
+@@ -18,6 +20,21 @@ const MAX_ITEMS = 50;
+ 
+ export type RiskAcceptanceStatus = "valid" | "missing" | "stale";
+ 
++type RiskScopeEntryStatus = "resolved" | "missing" | "invalid" | "ambiguous";
++
++export type RiskScopeConstituent =
++  | { kind: "task"; id: string; status: RiskScopeEntryStatus; subjectHeadCommit?: string; diffHash?: string; detail?: string }
++  | { kind: "spec"; id: string; status: RiskScopeEntryStatus; version?: string; revision?: string; detail?: string }
++  | { kind: "requirement"; id: string; status: RiskScopeEntryStatus; specId?: string; revision?: string; detail?: string };
++
++export type RiskCurrentScope = {
++  scopeFingerprint: string;
++  complete: boolean;
++  issues: string[];
++  constituents: RiskScopeConstituent[];
++  legacySubject: { subjectHeadCommit?: string; diffHash?: string };
++};
++
+ export function riskScore(likelihood: number, impact: number): number {
+   if (!Number.isInteger(likelihood) || likelihood < 1 || likelihood > 5) throw new Error("Risk likelihood must be an integer from 1 to 5");
+   if (!Number.isInteger(impact) || impact < 1 || impact > 5) throw new Error("Risk impact must be an integer from 1 to 5");
+@@ -39,23 +56,133 @@ function evidenceSubject(evidence: Evidence | undefined): { subjectHeadCommit?:
+   };
+ }
+ 
+-function linkedEvidence(root: string, risk: RiskRecord): Evidence | undefined {
+-  for (const taskId of risk.scope.tasks.slice(0, MAX_ITEMS)) {
++function canonical(value: unknown): unknown {
++  if (Array.isArray(value)) return value.map(canonical);
++  if (value && typeof value === "object") {
++    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
++      .sort(([left], [right]) => left.localeCompare(right))
++      .map(([key, item]) => [key, canonical(item)]));
++  }
++  return value;
++}
++
++function fingerprint(value: unknown): string {
++  return `sha256:${createHash("sha256").update(JSON.stringify(canonical(value)), "utf8").digest("hex")}`;
++}
++
++function uniqueSorted(values: string[]): string[] {
++  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
++}
++
++function requirementRevision(spec: SpecContract, requirement: SpecRequirement, specRevision: string): string {
++  return fingerprint({
++    specId: spec.id,
++    specVersion: spec.version,
++    specRevision,
++    requirementId: requirement.id,
++    content: {
++      acceptanceScenarios: requirement.acceptanceScenarios,
++      source: requirement.source,
++      statement: requirement.statement,
++      verificationMode: requirement.verificationMode
++    }
++  });
++}
++
++function resolveSpecs(root: string, ids: string[], constituents: RiskScopeConstituent[], issues: string[]): Map<string, { spec: SpecContract; path: string; revision: string }> {
++  const result = new Map<string, { spec: SpecContract; path: string; revision: string }>();
++  const entries = listSpecs(root);
++  for (const id of uniqueSorted(ids).slice(0, MAX_ITEMS)) {
++    const matches = entries.filter((entry) => entry.spec?.id === id);
++    if (matches.length !== 1 || !matches[0]?.spec) {
++      const status: RiskScopeEntryStatus = matches.length === 0 ? "missing" : matches.some((entry) => entry.issues.length > 0) ? "invalid" : "ambiguous";
++      const detail = matches.length === 0 ? `Spec ${id} is missing` : matches.length > 1 ? `Spec ${id} is ambiguous` : `Spec ${id} is invalid`;
++      constituents.push({ kind: "spec", id, status, detail });
++      issues.push(detail);
++      continue;
++    }
++    const entry = matches[0];
++    const spec = entry.spec;
++    if (!spec) {
++      const detail = `Spec ${id} is invalid`;
++      constituents.push({ kind: "spec", id, status: "invalid", detail });
++      issues.push(detail);
++      continue;
++    }
++    const revision = fileSha256(root, entry.path);
++    result.set(id, { spec, path: entry.path, revision });
++    constituents.push({ kind: "spec", id, status: "resolved", version: spec.version, revision });
++  }
++  return result;
++}
++
++export function riskCurrentScope(root: string, risk: RiskRecord): RiskCurrentScope {
++  const constituents: RiskScopeConstituent[] = [];
++  const issues: string[] = [];
++  const tasks = uniqueSorted(risk.scope.tasks).slice(0, MAX_ITEMS);
++  const specs = uniqueSorted(risk.scope.specs).slice(0, MAX_ITEMS);
++  const requirements = uniqueSorted(risk.scope.requirements).slice(0, MAX_ITEMS);
++
++  for (const taskId of tasks) {
+     const result = readEvidence(root, taskId);
+-    if (result.evidence) return result.evidence;
++    if (!result.evidence) {
++      const status: RiskScopeEntryStatus = result.issues.some((issue) => issue.code.endsWith(".missing")) ? "missing" : "invalid";
++      const detail = result.issues.map((issue) => issue.message).join("; ") || `Evidence for Task ${taskId} is unavailable`;
++      constituents.push({ kind: "task", id: taskId, status, detail });
++      issues.push(detail);
++      continue;
++    }
++    const subject = evidenceSubject(result.evidence);
++    if (!subject.subjectHeadCommit || !subject.diffHash) {
++      const detail = `Evidence for Task ${taskId} has no subjectHeadCommit and diffHash`;
++      constituents.push({ kind: "task", id: taskId, status: "invalid", ...subject, detail });
++      issues.push(detail);
++      continue;
++    }
++    constituents.push({ kind: "task", id: taskId, status: "resolved", ...subject });
+   }
+-  return undefined;
++
++  const resolvedSpecs = resolveSpecs(root, specs, constituents, issues);
++  for (const requirementId of requirements) {
++    const matches: Array<{ spec: SpecContract; specId: string; specRevision: string; requirement: SpecRequirement }> = [];
++    for (const { spec, revision } of resolvedSpecs.values()) {
++      const requirement = spec.requirements?.find((candidate) => candidate.id === requirementId);
++      if (requirement) matches.push({ spec, specId: spec.id, specRevision: revision, requirement });
++    }
++    if (matches.length !== 1) {
++      const detail = matches.length === 0 ? `Requirement ${requirementId} is missing from linked Specs` : `Requirement ${requirementId} is ambiguous across linked Specs`;
++      constituents.push({ kind: "requirement", id: requirementId, status: matches.length === 0 ? "missing" : "ambiguous", detail });
++      issues.push(detail);
++      continue;
++    }
++    const match = matches[0];
++    const revision = requirementRevision(match.spec, match.requirement, match.specRevision);
++    constituents.push({ kind: "requirement", id: requirementId, status: "resolved", specId: match.specId, revision });
++  }
++
++  if (tasks.length + specs.length + requirements.length === 0) issues.push("Risk scope is empty");
++  const sortedConstituents = [...constituents].sort((left, right) => `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`));
++  const scopeFingerprint = fingerprint({
++    schemaVersion: "scwbs.risk-scope.v1",
++    constituents: sortedConstituents
++  });
++  const legacySubject = tasks.length === 1
++    ? (() => { const task = sortedConstituents.find((entry): entry is Extract<RiskScopeConstituent, { kind: "task" }> => entry.kind === "task"); return { subjectHeadCommit: task?.subjectHeadCommit, diffHash: task?.diffHash }; })()
++    : {};
++  return { scopeFingerprint, complete: issues.length === 0, issues, constituents: sortedConstituents, legacySubject };
+ }
+ 
+ export function riskAcceptanceStatus(root: string, risk: RiskRecord): RiskAcceptanceStatus {
+   if (!risk.acceptance) return "missing";
+-  const subject = evidenceSubject(linkedEvidence(root, risk));
+-  if (!subject.subjectHeadCommit || !subject.diffHash) return "stale";
+-  return risk.acceptance.subjectHeadCommit === subject.subjectHeadCommit && risk.acceptance.diffHash === subject.diffHash ? "valid" : "stale";
++  const current = riskCurrentScope(root, risk);
++  if (risk.acceptance.scopeFingerprint) return current.complete && risk.acceptance.scopeFingerprint === current.scopeFingerprint ? "valid" : "stale";
++  const taskOnly = risk.scope.tasks.length === 1 && risk.scope.specs.length === 0 && risk.scope.requirements.length === 0;
++  if (!taskOnly || !current.complete) return "stale";
++  return risk.acceptance.subjectHeadCommit === current.legacySubject.subjectHeadCommit && risk.acceptance.diffHash === current.legacySubject.diffHash ? "valid" : "stale";
+ }
+ 
+ export function riskCurrentSubject(root: string, risk: RiskRecord): { subjectHeadCommit?: string; diffHash?: string } {
+-  return evidenceSubject(linkedEvidence(root, risk));
++  return riskCurrentScope(root, risk).legacySubject;
+ }
+ 
+ export type RiskSummary = {
+@@ -70,9 +197,15 @@ export type RiskSummary = {
+   treatment: RiskTreatmentStrategy;
+   acceptanceStatus: RiskAcceptanceStatus;
+   scope: RiskRecord["scope"];
++  currentScopeFingerprint: string;
++  acceptedScopeFingerprint?: string;
++  scopeComplete: boolean;
++  scopeConstituents: RiskScopeConstituent[];
++  scopeIssues: string[];
+ };
+ 
+ export function summarizeRisk(root: string, risk: RiskRecord): RiskSummary {
++  const current = riskCurrentScope(root, risk);
+   return {
+     id: risk.id,
+     title: risk.title,
+@@ -84,7 +217,12 @@ export function summarizeRisk(root: string, risk: RiskRecord): RiskSummary {
+     owner: risk.treatment.owner,
+     treatment: risk.treatment.strategy,
+     acceptanceStatus: riskAcceptanceStatus(root, risk),
+-    scope: risk.scope
++    scope: risk.scope,
++    currentScopeFingerprint: current.scopeFingerprint,
++    ...(risk.acceptance?.scopeFingerprint ? { acceptedScopeFingerprint: risk.acceptance.scopeFingerprint } : {}),
++    scopeComplete: current.complete,
++    scopeConstituents: current.constituents,
++    scopeIssues: current.issues
+   };
+ }
+ 
+@@ -208,11 +346,18 @@ export function acceptRisk(root: string, id: string, actor: string, reason: stri
+   const entry = listRisks(root).find((candidate) => candidate.path === relativePath);
+   if (!entry?.risk) throw new Error(`${relativePath} does not exist or is invalid`);
+   const risk = entry.risk;
+-  const subject = riskCurrentSubject(root, risk);
+-  if (!subject.subjectHeadCommit || !subject.diffHash) throw new Error("risk.accept.subject-missing: linked current Evidence subjectHeadCommit and diffHash are required");
+-  const expected = `CONFIRM TTY RISK ${id} ${subject.subjectHeadCommit} ${subject.diffHash}`;
++  const current = riskCurrentScope(root, risk);
++  if (!current.complete) throw new Error(`risk.accept.scope-incomplete: ${current.issues.join("; ")}`);
++  const expected = `CONFIRM TTY RISK ${id} ${current.scopeFingerprint}`;
+   if (reason !== expected) throw new Error(`risk.accept.confirmation-required: exact reason required: ${expected}`);
+-  const acceptance: RiskAcceptance = { acceptedBy: "human", acceptedAt: now, subjectHeadCommit: subject.subjectHeadCommit, diffHash: subject.diffHash, reason };
++  const acceptance: RiskAcceptance = {
++    acceptedBy: "human",
++    acceptedAt: now,
++    ...(current.legacySubject.subjectHeadCommit ? { subjectHeadCommit: current.legacySubject.subjectHeadCommit } : {}),
++    ...(current.legacySubject.diffHash ? { diffHash: current.legacySubject.diffHash } : {}),
++    scopeFingerprint: current.scopeFingerprint,
++    reason
++  };
+   const updated: RiskRecord = { ...risk, status: "accepted", acceptance, updatedAt: now };
+   writeFileSync(resolveFrom(root, relativePath), stringifySimpleYaml(updated as unknown as Record<string, unknown>), "utf8");
+   return updated;
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index cde7866..77230a8 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -519,13 +519,14 @@ const riskRecordSchema = {
+     },
+     acceptance: {
+       type: "object",
+-      required: ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
++      required: ["acceptedBy", "acceptedAt", "reason"],
+       additionalProperties: false,
+       properties: {
+         acceptedBy: { const: "human" },
+         acceptedAt: { type: "string", minLength: 1 },
+         subjectHeadCommit: { type: "string", minLength: 1 },
+         diffHash: { type: "string", minLength: 1 },
++        scopeFingerprint: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
+         reason: { type: "string", minLength: 1 }
+       }
+     },
+diff --git a/src/core/types.ts b/src/core/types.ts
+index ad0d495..a220dce 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -517,8 +517,11 @@ export type RiskTreatmentStrategy = "avoid" | "mitigate" | "transfer" | "accept"
+ export type RiskAcceptance = {
+   acceptedBy: "human";
+   acceptedAt: string;
+-  subjectHeadCommit: string;
+-  diffHash: string;
++  /** Legacy single-task subject fields retained for v1 compatibility. */
++  subjectHeadCommit?: string;
++  diffHash?: string;
++  /** Aggregate subject for every linked Task, Spec, and Requirement. */
++  scopeFingerprint?: string;
+   reason: string;
+ };
+ 
+diff --git a/tests/integration/risk.test.ts b/tests/integration/risk.test.ts
+index 856b7b0..36d9f71 100644
+--- a/tests/integration/risk.test.ts
++++ b/tests/integration/risk.test.ts
+@@ -1,6 +1,9 @@
+ import { describe, expect, test } from "vitest";
+ import { main } from "../../src/cli.js";
++import { riskCurrentScope } from "../../src/core/risk.js";
++import { listRisks } from "../../src/core/contracts.js";
+ import { makeTempRepo } from "../helpers.js";
++import { sampleEvidence, writeYaml } from "../helpers.js";
+ 
+ function capture(root: string, args: string[]): { exitCode: number; stdout: string } {
+   const output: string[] = [];
+@@ -25,5 +28,20 @@ describe("risk CLI", () => {
+     const rejected = capture(root, ["risk", "accept", "RISK-CLI", "--actor", "ai-agent", "--reason", "anything", "--json"]);
+     expect(rejected.exitCode).toBe(1);
+     expect(JSON.parse(rejected.stdout)).toMatchObject({ version: "scwbs.risk-error.v1", status: "error" });
++    const shown = JSON.parse(capture(root, ["risk", "show", "RISK-CLI", "--json"]).stdout);
++    expect(shown.summary).toMatchObject({ scopeComplete: false, currentScopeFingerprint: expect.stringMatching(/^sha256:/) });
++  });
++
++  test("accepts the aggregate fingerprint through the human-only CLI contract", () => {
++    const root = makeTempRepo();
++    const added = capture(root, ["risk", "add", "--id", "RISK-ACCEPT", "--title", "Acceptance risk", "--likelihood", "4", "--impact", "4", "--owner", "team", "--tasks", "TASK-001", "--json"]);
++    expect(added.exitCode).toBe(0);
++    writeYaml(root, "contracts/evidence/TASK-001.yaml", sampleEvidence({ taskId: "TASK-001", subjectHeadCommit: "head-1", diffHash: "sha256:one" }));
++    const riskEntry = listRisks(root).find((entry) => entry.risk?.id === "RISK-ACCEPT");
++    if (!riskEntry?.risk) throw new Error("risk fixture was not readable");
++    const current = riskCurrentScope(root, riskEntry.risk);
++    const accepted = capture(root, ["risk", "accept", "RISK-ACCEPT", "--actor", "human", "--reason", `CONFIRM TTY RISK RISK-ACCEPT ${current.scopeFingerprint}`, "--json"]);
++    expect(accepted.exitCode).toBe(0);
++    expect(JSON.parse(accepted.stdout).risk.acceptance).toMatchObject({ acceptedBy: "human", scopeFingerprint: current.scopeFingerprint });
+   });
+ });
+diff --git a/tests/unit/risk.test.ts b/tests/unit/risk.test.ts
+index 8dda51e..ffc1c5f 100644
+--- a/tests/unit/risk.test.ts
++++ b/tests/unit/risk.test.ts
+@@ -1,9 +1,10 @@
+ import { describe, expect, test } from "vitest";
+-import { collectRiskIssues, riskAcceptanceStatus, riskLevel, riskScore } from "../../src/core/risk.js";
++import { collectRiskIssues, riskAcceptanceStatus, riskCurrentScope, riskLevel, riskScore } from "../../src/core/risk.js";
+ import { listRisks } from "../../src/core/contracts.js";
++import type { RiskRecord } from "../../src/core/types.js";
+ import { writeYaml, makeTempRepo, sampleEvidence } from "../helpers.js";
+ 
+-function risk(overrides: Record<string, unknown> = {}): Record<string, unknown> {
++function risk(overrides: Partial<RiskRecord> = {}): RiskRecord {
+   return {
+     schemaVersion: "scwbs.risk.v1",
+     id: "RISK-AUTH",
+@@ -19,6 +20,29 @@ function risk(overrides: Record<string, unknown> = {}): Record<string, unknown>
+   };
+ }
+ 
++function spec(overrides: Record<string, unknown> = {}): Record<string, unknown> {
++  return {
++    id: "SPEC-001",
++    type: "spec-contract",
++    featureId: "F-001",
++    title: "Risk scope fixture",
++    status: "approved",
++    version: "1.0.0",
++    acceptanceCriteria: ["Requirement is covered"],
++    requirementsVersion: "1.0.0",
++    approvedBy: "risk-test",
++    approvedAt: "2026-08-12T00:00:00+09:00",
++    requirements: [{
++      id: "REQ-001",
++      statement: "Requirement is covered",
++      acceptanceScenarios: ["Given evidence, then covered"],
++      verificationMode: "automated",
++      source: "tests/unit/risk.test.ts"
++    }],
++    ...overrides
++  };
++}
++
+ describe("Risk Register v1", () => {
+   test("uses the non-configurable product score and level boundaries", () => {
+     expect(riskScore(1, 1)).toBe(1);
+@@ -44,11 +68,75 @@ describe("Risk Register v1", () => {
+   test("marks acceptance stale when the linked Evidence subject changes", () => {
+     const root = makeTempRepo();
+     writeYaml(root, "contracts/evidence/TASK-001.yaml", sampleEvidence({ taskId: "TASK-001", subjectHeadCommit: "head-1", diffHash: "sha256:one" }));
+-    writeYaml(root, "contracts/risks/RISK-AUTH.yaml", risk({ acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", subjectHeadCommit: "head-1", diffHash: "sha256:one", reason: "reviewed" } }));
++    writeYaml(root, "contracts/risks/RISK-AUTH.yaml", risk({ scope: { tasks: ["TASK-001"], specs: [], requirements: [] }, acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", subjectHeadCommit: "head-1", diffHash: "sha256:one", reason: "reviewed" } }));
+     const entry = listRisks(root)[0];
+     expect(entry?.risk).toBeDefined();
+     expect(riskAcceptanceStatus(root, entry!.risk!)).toBe("valid");
+     writeYaml(root, "contracts/evidence/TASK-001.yaml", sampleEvidence({ taskId: "TASK-001", subjectHeadCommit: "head-2", diffHash: "sha256:two" }));
+     expect(riskAcceptanceStatus(root, entry!.risk!)).toBe("stale");
+   });
++
++  test("builds an order-independent aggregate fingerprint across Tasks, Specs, and Requirements", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/TASK-A.yaml", sampleEvidence({ taskId: "TASK-A", subjectHeadCommit: "head-a", diffHash: "sha256:a" }));
++    writeYaml(root, "contracts/evidence/TASK-B.yaml", sampleEvidence({ taskId: "TASK-B", subjectHeadCommit: "head-b", diffHash: "sha256:b" }));
++    writeYaml(root, "contracts/specs/SPEC-001.yaml", spec());
++    const first = risk({ scope: { tasks: ["TASK-B", "TASK-A"], specs: ["SPEC-001"], requirements: ["REQ-001"] } });
++    const second = { ...first, scope: { tasks: ["TASK-A", "TASK-B"], specs: ["SPEC-001"], requirements: ["REQ-001"] } };
++    const firstScope = riskCurrentScope(root, first);
++    const secondScope = riskCurrentScope(root, second);
++    expect(firstScope.complete).toBe(true);
++    expect(firstScope.scopeFingerprint).toBe(secondScope.scopeFingerprint);
++    expect(firstScope.constituents).toHaveLength(4);
++  });
++
++  test("marks acceptance stale when a non-first Task Evidence changes", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/TASK-A.yaml", sampleEvidence({ taskId: "TASK-A", subjectHeadCommit: "head-a", diffHash: "sha256:a" }));
++    writeYaml(root, "contracts/evidence/TASK-B.yaml", sampleEvidence({ taskId: "TASK-B", subjectHeadCommit: "head-b", diffHash: "sha256:b" }));
++    const current = riskCurrentScope(root, risk({ scope: { tasks: ["TASK-A", "TASK-B"], specs: [], requirements: [] } }));
++    writeYaml(root, "contracts/risks/RISK-AUTH.yaml", risk({
++      scope: { tasks: ["TASK-A", "TASK-B"], specs: [], requirements: [] },
++      acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", scopeFingerprint: current.scopeFingerprint, reason: "reviewed" }
++    }));
++    const acceptedEntry = listRisks(root)[0];
++    if (!acceptedEntry?.risk) throw new Error("risk fixture was not readable");
++    const accepted = acceptedEntry.risk;
++    expect(riskAcceptanceStatus(root, accepted)).toBe("valid");
++    writeYaml(root, "contracts/evidence/TASK-B.yaml", sampleEvidence({ taskId: "TASK-B", subjectHeadCommit: "head-b2", diffHash: "sha256:b2" }));
++    expect(riskAcceptanceStatus(root, accepted)).toBe("stale");
++  });
++
++  test("detects Task scope changes, Spec/Requirement changes, and missing scope identities", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/evidence/TASK-A.yaml", sampleEvidence({ taskId: "TASK-A", subjectHeadCommit: "head-a", diffHash: "sha256:a" }));
++    writeYaml(root, "contracts/evidence/TASK-B.yaml", sampleEvidence({ taskId: "TASK-B", subjectHeadCommit: "head-b", diffHash: "sha256:b" }));
++    writeYaml(root, "contracts/specs/SPEC-001.yaml", spec());
++    const base = risk({ scope: { tasks: ["TASK-A"], specs: ["SPEC-001"], requirements: ["REQ-001"] } });
++    const acceptedScope = riskCurrentScope(root, base);
++    const accepted: RiskRecord = { ...base, acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", scopeFingerprint: acceptedScope.scopeFingerprint, reason: "reviewed" } };
++    expect(riskAcceptanceStatus(root, accepted)).toBe("valid");
++    expect(riskAcceptanceStatus(root, { ...accepted, scope: { tasks: ["TASK-A", "TASK-B"], specs: ["SPEC-001"], requirements: ["REQ-001"] } })).toBe("stale");
++    writeYaml(root, "contracts/specs/SPEC-001.yaml", spec({ version: "1.0.1" }));
++    expect(riskAcceptanceStatus(root, accepted)).toBe("stale");
++    expect(riskAcceptanceStatus(root, { ...accepted, scope: { tasks: ["TASK-A"], specs: ["SPEC-MISSING"], requirements: ["REQ-001"] } })).toBe("stale");
++  });
++
++  test("supports complete Spec-only acceptance and rejects legacy multi-scope acceptance", () => {
++    const root = makeTempRepo();
++    writeYaml(root, "contracts/specs/SPEC-001.yaml", spec());
++    const specOnly = risk({ scope: { tasks: [], specs: ["SPEC-001"], requirements: [] } });
++    const current = riskCurrentScope(root, specOnly);
++    expect(current.complete).toBe(true);
++    expect(riskAcceptanceStatus(root, { ...specOnly, acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", scopeFingerprint: current.scopeFingerprint, reason: "reviewed" } })).toBe("valid");
++    expect(riskAcceptanceStatus(root, { ...specOnly, acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", subjectHeadCommit: "old", diffHash: "sha256:old", reason: "reviewed" } })).toBe("stale");
++  });
++
++  test("does not treat incomplete scope as valid even when the fingerprint is present", () => {
++    const root = makeTempRepo();
++    const value = risk({ scope: { tasks: ["TASK-MISSING"], specs: [], requirements: [] }, acceptance: { acceptedBy: "human", acceptedAt: "2026-08-12T00:00:00+09:00", scopeFingerprint: "sha256:" + "a".repeat(64), reason: "reviewed" } });
++    const current = riskCurrentScope(root, value);
++    expect(current.complete).toBe(false);
++    expect(riskAcceptanceStatus(root, value)).toBe("stale");
++  });
+ });
