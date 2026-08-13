@@ -519,13 +519,14 @@ const riskRecordSchema = {
     },
     acceptance: {
       type: "object",
-      required: ["acceptedBy", "acceptedAt", "subjectHeadCommit", "diffHash", "reason"],
+      required: ["acceptedBy", "acceptedAt", "reason"],
       additionalProperties: false,
       properties: {
         acceptedBy: { const: "human" },
         acceptedAt: { type: "string", minLength: 1 },
         subjectHeadCommit: { type: "string", minLength: 1 },
         diffHash: { type: "string", minLength: 1 },
+        scopeFingerprint: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
         reason: { type: "string", minLength: 1 }
       }
     },

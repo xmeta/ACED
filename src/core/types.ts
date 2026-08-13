@@ -517,8 +517,11 @@ export type RiskTreatmentStrategy = "avoid" | "mitigate" | "transfer" | "accept"
 export type RiskAcceptance = {
   acceptedBy: "human";
   acceptedAt: string;
-  subjectHeadCommit: string;
-  diffHash: string;
+  /** Legacy single-task subject fields retained for v1 compatibility. */
+  subjectHeadCommit?: string;
+  diffHash?: string;
+  /** Aggregate subject for every linked Task, Spec, and Requirement. */
+  scopeFingerprint?: string;
   reason: string;
 };
 
