@@ -1,0 +1,1005 @@
+diff --git a/contracts/specs/SPEC-LITE-MT1627DV.yaml b/contracts/specs/SPEC-LITE-MT1627DV.yaml
+new file mode 100644
+index 0000000..e1808d7
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MT1627DV.yaml
+@@ -0,0 +1,21 @@
++id: SPEC-LITE-MT1627DV
++type: spec-contract
++featureId: F-MT1627DV
++title: "Issue #593: lifecycle artifact identity fail-closed validation"
++sourceIssue: 593
++status: approved
++version: 0.1.0
++approvedBy: user-requested-issue-593
++approvedAt: "2026-08-20T00:00:00+09:00"
++summary: "Use one canonical file-stem identity mapping across lifecycle artifact readers, repository checks, and Registry rebuild validation."
++acceptanceCriteria:
++  - Task file stem equals task.id; Evidence, Approval, Review, and Block file stem equals taskId; Spec, Spec Change Proposal, and Risk file stem equals id.
++  - Readers and repository-wide checks reject mismatches, duplicate canonical identities, ambiguous duplicate paths, and Registry entries whose type, id, path, or relatedTask does not match the artifact.
++  - Registry rebuild --check returns non-zero for invalid artifacts and never silently normalizes a mismatched internal identity into a path-derived Registry entry.
++  - Valid active artifacts and archived artifacts remain accepted, with bounded error output containing only artifact type, path, expected identity, and actual identity.
++  - Unit and integration tests cover every artifact family, duplicate Registry identity/path, normal artifacts, archived artifacts, and rebuild check failure.
++nonGoals:
++  - automatic repair or identity inference for invalid artifacts
++  - promoting Registry to an authority source
++  - changing Task Contract authority fields or WBS semantics
++  - package, dependency, CI, release, external service, or WJS changes
+diff --git a/contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml b/contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
+new file mode 100644
+index 0000000..112fa44
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
+@@ -0,0 +1,78 @@
++id: SCWBS-DRAFT-MT1627DV
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MT1627DV
++branchName: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
++allowedPaths:
++  - src/core/contracts.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/core/schema/registries.ts
++  - src/commands/check.ts
++  - src/commands/registry-rebuild.ts
++  - tests/unit/contracts.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/misc.test.ts
++forbiddenPaths:
++  - wjs/**
++  - package.json
++  - package-lock.json
++  - contracts/wbs/project.wbs.json
++  - .github/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - src/core/contracts.ts
++  - src/core/schema/contracts.ts
++  - src/core/schema/records.ts
++  - src/core/schema/registries.ts
++  - src/commands/check.ts
++  - src/commands/registry-rebuild.ts
++stopIf:
++  - Human Gate required
++  - dependency or package change required
++  - workflow change required
++  - WBS change required
++  - authority semantics unclear
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - Task, Evidence, Approval, Review, and Block readers reject a file stem that does not match the artifact's canonical identity with a bounded machine-readable issue.
++  - Spec, Spec Change Proposal, and Risk repository scans reject a file stem that does not match the artifact's canonical id.
++  - Repository check validates artifact identity and Registry type, id, path, relatedTask, uniqueness, and archive handling without exposing artifact contents or secrets.
++  - Registry rebuild and registry rebuild check fail closed on identity drift or duplicate entries instead of silently normalizing the artifact into a different identity.
++  - Existing active and archive artifact fixtures remain valid, while each artifact family has mismatch, duplicate, and happy-path regression coverage.
++  - No artifact identity is inferred or automatically repaired, no authority fields are rewritten, and no dependency, package, CI, WBS, or WJS change is included.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++specPath: contracts/specs/SPEC-LITE-MT1627DV.yaml
++specVersion: 0.1.0
++status: approved
++approvedBy: user-requested-issue-593
++approvedAt: "2026-08-20T00:00:00+09:00"
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MT1627DV.yaml
++  - contracts/blocks/SCWBS-DRAFT-MT1627DV.yaml
++  - contracts/evidence/SCWBS-DRAFT-MT1627DV.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
++  - contracts/approvals/SCWBS-DRAFT-MT1627DV.yaml
++  - contracts/reviews/SCWBS-DRAFT-MT1627DV.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:021cfaf4b74d65a71200535778f6cfd0d325d395206a8285850a6b5a4e7b3a51
++  createdAt: "2026-08-20T06:57:25.516Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 11505b4..cfd3dfd 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2078,3 +2078,9 @@ tasks:
+     status: archived
+     dependsOn: []
+     archivedAt: "2026-08-13T04:43:30.640Z"
++  - id: SCWBS-DRAFT-MT1627DV
++    path: contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
++    branchName: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 8b0e160..fa07bf4 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -1,5 +1,5 @@
+ import { existsSync } from "node:fs";
+-import { evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
++import { evidenceExists, listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask, validateRegistryArtifactIdentity } from "../core/contracts.js";
+ import { workingTreeChangedFiles } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { fileSha256 } from "../core/hash.js";
+@@ -297,6 +297,7 @@ export function collectCheckIssues(root: string): Issue[] {
+   const { registry, issues: registryIssues } = hasRegistry ? readRegistry(root) : { registry: undefined, issues: [] };
+   issues.push(...registryIssues);
+   issues.push(...validateRegistryContracts(root, registry));
++  issues.push(...validateRegistryArtifactIdentity(root, registry));
+   if (!skipSpecValidation(profile)) {
+     issues.push(...validateIndexedSpecs(root, registry));
+     issues.push(...validateIndexedSpecChanges(root, registry));
+@@ -307,6 +308,15 @@ export function collectCheckIssues(root: string): Issue[] {
+   for (const entry of listBlocks(root)) {
+     issues.push(...entry.issues);
+   }
++  for (const entry of listEvidence(root)) {
++    issues.push(...entry.issues);
++  }
++  for (const entry of listReviews(root)) {
++    issues.push(...entry.issues);
++  }
++  for (const entry of listRisks(root)) {
++    issues.push(...entry.issues);
++  }
+ 
+   for (const entry of listTasks(root)) {
+     issues.push(...entry.issues);
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 50bc0dc..3937426 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -1,5 +1,5 @@
+ import { existsSync, readFileSync, writeFileSync } from "node:fs";
+-import { listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
++import { collectArtifactIdentityIssues, listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+ import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
+ import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+@@ -73,6 +73,10 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
+ }
+ 
+ export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
++  const identityIssues = collectArtifactIdentityIssues(root);
++  if (identityIssues.length > 0) {
++    throw new Error(identityIssues.map((item) => `${item.code}: ${item.message}`).join("; "));
++  }
+   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
+   const contracts: Record<string, unknown>[] = [];
+   const taskIndex = readTaskIndex(root);
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index ad6e1eb..dc054bd 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -70,6 +70,49 @@ import type {
+ } from "./types.js";
+ import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
+ 
++export type LifecycleArtifactKind =
++  | "task"
++  | "spec"
++  | "spec-change"
++  | "evidence"
++  | "approval"
++  | "review"
++  | "block"
++  | "risk";
++
++type CanonicalRegistryEntry = Pick<RegistryContract, "id" | "type" | "path" | "relatedTask">;
++
++function artifactStem(relativePath: string): string {
++  return path.parse(relativePath).name;
++}
++
++function artifactIdentityField(kind: LifecycleArtifactKind): "id" | "taskId" {
++  return kind === "task" || kind === "spec" || kind === "spec-change" || kind === "risk" ? "id" : "taskId";
++}
++
++export function validateArtifactPathIdentity(kind: LifecycleArtifactKind, relativePath: string, value: unknown): Issue[] {
++  if (!value || typeof value !== "object") return [];
++  const field = artifactIdentityField(kind);
++  const expected = (value as Record<string, unknown>)[field];
++  if (typeof expected !== "string" || expected.length === 0) return [];
++  const actual = artifactStem(relativePath);
++  if (actual === expected) return [];
++  return [{
++    severity: "error",
++    code: `${kind}.identity.path-mismatch`,
++    message: `${kind} artifact ${relativePath} stem ${actual} does not match ${field} ${expected}`
++  }];
++}
++
++function appendArtifactIdentityIssue(
++  issues: Issue[],
++  kind: LifecycleArtifactKind,
++  relativePath: string,
++  value: unknown
++): Issue[] {
++  return [...issues, ...validateArtifactPathIdentity(kind, relativePath, value)];
++}
++
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+   if (!existsSync(fullPath)) {
+@@ -92,7 +135,12 @@ export function readTask(root: string, taskId: string): { task?: TaskContract; i
+     return { issues: [{ severity: "error", code: "task.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateTaskContractSchema(value, relativePath), ...validateTaskContract(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateTaskContractSchema(value, relativePath), ...validateTaskContract(value, relativePath)],
++    "task",
++    relativePath,
++    value
++  );
+   return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues };
+ }
+ 
+@@ -102,7 +150,12 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
+     return { issues: [{ severity: "error", code: "spec.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)],
++    "spec",
++    relativePath,
++    value
++  );
+   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
+ }
+ 
+@@ -115,10 +168,10 @@ export function readSpecChange(
+     return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [
++  const issues = appendArtifactIdentityIssue([
+     ...validateSpecChangeProposalSchema(value, relativePath),
+     ...validateSpecChangeProposal(value, relativePath)
+-  ];
++  ], "spec-change", relativePath, value);
+   return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
+ }
+ 
+@@ -132,7 +185,12 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
+     return { issues: [{ severity: "error", code: "evidence.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateEvidenceSchema(value, relativePath), ...validateEvidence(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateEvidenceSchema(value, relativePath), ...validateEvidence(value, relativePath)],
++    "evidence",
++    relativePath,
++    value
++  );
+   return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues };
+ }
+ 
+@@ -146,7 +204,12 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
+     return { issues: [{ severity: "error", code: "approval.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateApprovalRecordSchema(value, relativePath), ...validateApprovalRecord(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateApprovalRecordSchema(value, relativePath), ...validateApprovalRecord(value, relativePath)],
++    "approval",
++    relativePath,
++    value
++  );
+   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
+ }
+ 
+@@ -160,7 +223,12 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
+     return { issues: [{ severity: "error", code: "review.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)],
++    "review",
++    relativePath,
++    value
++  );
+   return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
+ }
+ 
+@@ -174,7 +242,12 @@ export function readBlock(root: string, taskId: string): { block?: BlockRecord;
+     return { issues: [{ severity: "error", code: "block.missing", message: `${relativePath} does not exist` }] };
+   }
+   const value = readYamlFile<unknown>(fullPath);
+-  const issues = [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)];
++  const issues = appendArtifactIdentityIssue(
++    [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)],
++    "block",
++    relativePath,
++    value
++  );
+   return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues };
+ }
+ 
+@@ -186,7 +259,12 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
+     .map((file) => {
+       const path = `${defaultTasksDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)],
++        "task",
++        path,
++        value
++      );
+       return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues, path };
+     });
+ }
+@@ -203,7 +281,12 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
+     .map((file) => {
+       const path = `${defaultSpecsDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateSpecContractSchema(value, path), ...validateSpecContract(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateSpecContractSchema(value, path), ...validateSpecContract(value, path)],
++        "spec",
++        path,
++        value
++      );
+       return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues, path };
+     });
+ }
+@@ -218,7 +301,12 @@ export function listSpecChanges(
+     .map((file) => {
+       const path = `${defaultSpecChangesDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)],
++        "spec-change",
++        path,
++        value
++      );
+       return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues, path };
+     });
+ }
+@@ -231,7 +319,12 @@ export function listApprovals(root: string): Array<{ approval?: ApprovalRecord;
+     .map((file) => {
+       const path = `${defaultApprovalsDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateApprovalRecordSchema(value, path), ...validateApprovalRecord(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateApprovalRecordSchema(value, path), ...validateApprovalRecord(value, path)],
++        "approval",
++        path,
++        value
++      );
+       return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues, path };
+     });
+ }
+@@ -244,7 +337,12 @@ export function listEvidence(root: string): Array<{ evidence?: Evidence; issues:
+     .map((file) => {
+       const path = `${defaultEvidenceDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateEvidenceSchema(value, path), ...validateEvidence(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateEvidenceSchema(value, path), ...validateEvidence(value, path)],
++        "evidence",
++        path,
++        value
++      );
+       return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues, path };
+     });
+ }
+@@ -257,7 +355,12 @@ export function listReviews(root: string): Array<{ review?: ReviewRecord; issues
+     .map((file) => {
+       const path = `${defaultReviewsDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)],
++        "review",
++        path,
++        value
++      );
+       return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues, path };
+     });
+ }
+@@ -270,7 +373,12 @@ export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: I
+     .map((file) => {
+       const path = `${defaultBlocksDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, path));
+-      const issues = [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)],
++        "block",
++        path,
++        value
++      );
+       return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues, path };
+     });
+ }
+@@ -283,7 +391,12 @@ export function listRisks(root: string): Array<{ risk?: RiskRecord; issues: Issu
+     .map((file) => {
+       const relativePath = `${defaultRisksDir}/${file}`;
+       const value = readYamlFile<unknown>(resolveFrom(root, relativePath));
+-      const issues = [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)];
++      const issues = appendArtifactIdentityIssue(
++        [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)],
++        "risk",
++        relativePath,
++        value
++      );
+       return { risk: issues.length === 0 ? asRiskRecord(value) : undefined, issues, path: relativePath };
+     });
+ }
+@@ -295,6 +408,153 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
+   });
+ }
+ 
++type ArtifactInventoryEntry = {
++  kind: LifecycleArtifactKind;
++  id: string;
++  path: string;
++  relatedTask?: string;
++  issues: Issue[];
++};
++
++function artifactInventory(root: string): ArtifactInventoryEntry[] {
++  return [
++    ...listSpecs(root).map(({ spec, issues, path: artifactPath }) => spec ? {
++      kind: "spec" as const,
++      id: spec.id,
++      path: artifactPath,
++      issues
++    } : undefined),
++    ...listSpecChanges(root).map(({ specChange, issues, path: artifactPath }) => specChange ? {
++      kind: "spec-change" as const,
++      id: specChange.id,
++      path: artifactPath,
++      relatedTask: specChange.taskId,
++      issues
++    } : undefined),
++    ...listTasks(root).map(({ task, issues, path: artifactPath }) => task ? {
++      kind: "task" as const,
++      id: `TASK-${task.id}`,
++      path: artifactPath,
++      issues
++    } : undefined),
++    ...listEvidence(root).map(({ evidence, issues, path: artifactPath }) => evidence ? {
++      kind: "evidence" as const,
++      id: evidence.id,
++      path: artifactPath,
++      relatedTask: evidence.taskId,
++      issues
++    } : undefined),
++    ...listApprovals(root).map(({ approval, issues, path: artifactPath }) => approval ? {
++      kind: "approval" as const,
++      id: approval.id,
++      path: artifactPath,
++      relatedTask: approval.taskId,
++      issues
++    } : undefined),
++    ...listReviews(root).map(({ review, issues, path: artifactPath }) => review ? {
++      kind: "review" as const,
++      id: review.id,
++      path: artifactPath,
++      relatedTask: review.taskId,
++      issues
++    } : undefined),
++    ...listBlocks(root).map(({ block, issues, path: artifactPath }) => block ? {
++      kind: "block" as const,
++      id: block.id,
++      path: artifactPath,
++      relatedTask: block.taskId,
++      issues
++    } : undefined),
++    ...listRisks(root).map(({ risk, issues, path: artifactPath }) => risk ? {
++      kind: "risk" as const,
++      id: risk.id,
++      path: artifactPath,
++      issues
++    } : undefined)
++  ].filter((entry) => entry !== undefined) as ArtifactInventoryEntry[];
++}
++
++function toCanonicalRegistryEntry(entry: ArtifactInventoryEntry): CanonicalRegistryEntry {
++  return {
++    id: entry.id,
++    type: entry.kind,
++    path: entry.path,
++    ...(entry.relatedTask ? { relatedTask: entry.relatedTask } : {})
++  };
++}
++
++function identityMismatch(issue: Issue): boolean {
++  return issue.code.endsWith(".identity.path-mismatch");
++}
++
++export function collectArtifactIdentityIssues(root: string): Issue[] {
++  const listedEntries = [
++    ...listSpecs(root),
++    ...listSpecChanges(root),
++    ...listTasks(root),
++    ...listEvidence(root),
++    ...listApprovals(root),
++    ...listReviews(root),
++    ...listBlocks(root),
++    ...listRisks(root)
++  ];
++  const issues = listedEntries.flatMap((entry) => entry.issues.filter(identityMismatch));
++  const inventory = artifactInventory(root);
++  const seen = new Map<string, string>();
++  for (const entry of inventory) {
++    if (entry.issues.some(identityMismatch)) continue;
++    const key = `${entry.kind}:${entry.id}`;
++    const previousPath = seen.get(key);
++    if (previousPath) {
++      issues.push({
++        severity: "error",
++        code: "artifact.identity.duplicate",
++        message: `${entry.kind} identity ${entry.id} appears at ${previousPath} and ${entry.path}`
++      });
++    } else {
++      seen.set(key, entry.path);
++    }
++  }
++  return issues;
++}
++
++export function validateRegistryArtifactIdentity(root: string, registry: Registry | undefined): Issue[] {
++  if (!registry) return [];
++  const issues = collectArtifactIdentityIssues(root).filter((issue) => issue.code === "artifact.identity.duplicate");
++  const expectedEntries = artifactInventory(root)
++    .filter((entry) => !entry.issues.some(identityMismatch))
++    .map(toCanonicalRegistryEntry);
++  const expectedByPath = new Map(expectedEntries.map((entry) => [entry.path, entry]));
++  for (const entry of registry.contracts) {
++    const expected = expectedByPath.get(entry.path);
++    if (!expected) continue;
++    if (entry.type !== expected.type || entry.id !== expected.id) {
++      issues.push({
++        severity: "error",
++        code: "registry.identity.mismatch",
++        message: `registry ${entry.path} has type/id ${entry.type}/${entry.id}; expected ${expected.type}/${expected.id}`
++      });
++    }
++    if (expected.relatedTask !== undefined && entry.relatedTask !== expected.relatedTask) {
++      issues.push({
++        severity: "error",
++        code: "registry.identity.related-task",
++        message: `registry ${entry.path} relatedTask ${entry.relatedTask ?? "missing"} does not match ${expected.relatedTask}`
++      });
++    }
++  }
++  for (const expected of expectedEntries) {
++    if (!registry.contracts.some((entry) => entry.path === expected.path)) {
++      issues.push({
++        severity: "error",
++        code: "registry.identity.missing",
++        message: `registry is missing ${expected.type}/${expected.id} at ${expected.path}`
++      });
++    }
++  }
++  return issues;
++}
++
+ export function matchingRegistrySpecByPath(
+   registry: Registry | undefined,
+   specPath: string
+diff --git a/src/core/schema/registries.ts b/src/core/schema/registries.ts
+index a352892..dabea8f 100644
+--- a/src/core/schema/registries.ts
++++ b/src/core/schema/registries.ts
+@@ -57,6 +57,8 @@ export function validateRegistry(value: unknown): Issue[] {
+     issues.push(issue("registry.contracts", "registry.contracts must be an array"));
+     return issues;
+   }
++  const identities = new Map<string, number>();
++  const paths = new Map<string, number>();
+   value.contracts.forEach((contract, index) => {
+     if (!isObject(contract)) {
+       issues.push(issue("registry.contract", `contracts[${index}] must be an object`));
+@@ -67,6 +69,23 @@ export function validateRegistry(value: unknown): Issue[] {
+         issues.push(issue("registry.contract", `contracts[${index}].${key} must be a non-empty string`));
+       }
+     }
++    if (typeof contract.type === "string" && typeof contract.id === "string") {
++      const identity = `${contract.type}:${contract.id}`;
++      const previous = identities.get(identity);
++      if (previous !== undefined) {
++        issues.push(issue("registry.identity.duplicate", `contracts[${index}] duplicates ${identity} from contracts[${previous}]`));
++      } else {
++        identities.set(identity, index);
++      }
++    }
++    if (typeof contract.path === "string") {
++      const previous = paths.get(contract.path);
++      if (previous !== undefined) {
++        issues.push(issue("registry.path.duplicate", `contracts[${index}] duplicates path ${contract.path} from contracts[${previous}]`));
++      } else {
++        paths.set(contract.path, index);
++      }
++    }
+   });
+   return issues;
+ }
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+index 0c23a58..99d4337 100644
+--- a/tests/integration/check.test.ts
++++ b/tests/integration/check.test.ts
+@@ -36,6 +36,15 @@ describe("check", () => {
+     writeScwbsProject(root, "completed");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "approved", approvedBy: "Lead", approvedAt: "2026-06-27T10:00:00+09:00" }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
++        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
++        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" },
++        { id: "APR-WBS-001-004", type: "approval", path: "contracts/approvals/WBS-001-004.yaml", relatedTask: "WBS-001-004", status: "approved" }
++      ]
++    });
+ 
+     const output: string[] = [];
+     const originalLog = console.log;
+@@ -186,6 +195,14 @@ describe("check", () => {
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       changedFiles: ["src/feature.ts"]
+     }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
++        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
++        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" }
++      ]
++    });
+ 
+     const output: string[] = [];
+     const originalLog = console.log;
+@@ -219,6 +236,55 @@ describe("check", () => {
+     ]));
+   });
+ 
++  test("check fails closed for every lifecycle artifact stem mismatch and bounds diagnostics", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const secret = "check-fixture-secret-must-not-leak";
++    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", { ...sampleTask(), id: "SPEC-WRONG", type: "spec-contract", featureId: "F001", title: "Spec", status: "approved", version: "1.0.0", summary: "Spec", sourcePaths: [], acceptanceCriteria: [], approvedBy: "Owner", approvedAt: "2026-01-01T00:00:00Z", secret });
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", { id: "SCP-WRONG", type: "spec-change-proposal", status: "proposed", targetSpec: "SPEC-F001-API", currentVersion: "1.0.0", proposedVersion: "1.1.0", taskId: "WBS-001-004", level: 2, summary: "Change", rationale: ["Reason"], affectedPaths: [], approval: { required: true, status: "requested" }, risks: [], secret });
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...sampleTask(), id: "WBS-WRONG", secret });
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", { ...sampleEvidence({ taskId: "OTHER-TASK" }), secret });
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...sampleApproval({ taskId: "OTHER-TASK" }), secret });
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "OTHER-TASK", status: "requested", reviewProfile: "self-review", groundTruth: [], secret });
++    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", { id: "BLK-WBS-001-004", type: "block", taskId: "OTHER-TASK", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z", secret });
++    writeYaml(root, "contracts/risks/RISK-F001.yaml", { schemaVersion: "scwbs.risk.v1", id: "RISK-WRONG", type: "risk", title: "Risk", status: "open", scope: { tasks: [], specs: [], requirements: [] }, assessment: { likelihood: 1, impact: 1, score: 1, level: "low" }, treatment: { strategy: "mitigate", owner: "team", actions: ["Act"], verification: ["Verify"] }, residualRisk: { likelihood: 1, impact: 1, score: 1, level: "low" }, createdAt: "2026-08-20T00:00:00.000Z", secret });
++
++    const issues = collectCheckIssues(root);
++    expect(issues.map((issue) => issue.code)).toEqual(expect.arrayContaining([
++      "spec.identity.path-mismatch",
++      "spec-change.identity.path-mismatch",
++      "task.identity.path-mismatch",
++      "evidence.identity.path-mismatch",
++      "approval.identity.path-mismatch",
++      "review.identity.path-mismatch",
++      "block.identity.path-mismatch",
++      "risk.identity.path-mismatch"
++    ]));
++    expect(JSON.stringify(issues)).not.toContain(secret);
++  });
++
++  test("check rejects duplicate artifact identity and Registry type/id/relatedTask drift", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-004", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "WBS-001-004" },
++        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml" },
++        { id: "WRONG", type: "approval", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "OTHER-TASK" }
++      ]
++    });
++
++    const issues = collectCheckIssues(root);
++    expect(issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "artifact.identity.duplicate" }),
++      expect.objectContaining({ code: "registry.identity.mismatch" }),
++      expect.objectContaining({ code: "registry.identity.related-task" })
++    ]));
++  });
++
+   test("Human Gate rejects a post-finish delegated approval", () => {
+     const root = makeTempRepo();
+     const token = "0123456789abcdef0123456789abcdef";
+diff --git a/tests/integration/misc.test.ts b/tests/integration/misc.test.ts
+index 2cabf7d..94b4aa4 100644
+--- a/tests/integration/misc.test.ts
++++ b/tests/integration/misc.test.ts
+@@ -27,6 +27,8 @@ import {
+   sampleTask,
+   sampleWbs,
+   sampleEvidence,
++  sampleApproval,
++  sampleSpecChange,
+   writeScwbsProject,
+   writeJson,
+   writeText,
+@@ -167,6 +169,113 @@ describe("misc", () => {
+     });
+   });
+ 
++  test("registry rebuild accepts active and archived lifecycle artifacts and check stays synchronized", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "completed");
++    writeYaml(root, "contracts/tasks/index.yaml", {
++      tasks: [{
++        id: "WBS-001-004",
++        path: "contracts/tasks/WBS-001-004.yaml",
++        branchName: "task/WBS-001-004-api-implementation",
++        wbsNodeId: "node-api",
++        status: "archived",
++        dependsOn: [],
++        archivedAt: "2026-08-20T00:00:00.000Z"
++      }]
++    });
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", sampleSpecChange() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "closed",
++      reviewProfile: "self-review",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
++      id: "BLK-WBS-001-004",
++      type: "block",
++      taskId: "WBS-001-004",
++      status: "resolved",
++      level: 1,
++      category: "human-gate",
++      reason: "Resolved fixture",
++      requiredHumanDecision: "Decide",
++      createdAt: "2026-08-19T00:00:00.000Z",
++      resolvedAt: "2026-08-20T00:00:00.000Z",
++      resolvedBy: "human",
++      resolution: "Decision recorded"
++    });
++    writeYaml(root, "contracts/risks/RISK-F001.yaml", {
++      schemaVersion: "scwbs.risk.v1",
++      id: "RISK-F001",
++      type: "risk",
++      title: "Fixture risk",
++      status: "closed",
++      scope: { tasks: [], specs: [], requirements: [] },
++      assessment: { likelihood: 1, impact: 1, score: 1, level: "low" },
++      treatment: { strategy: "mitigate", owner: "team", actions: ["Act"], verification: ["Verify"] },
++      residualRisk: { likelihood: 1, impact: 1, score: 1, level: "low" },
++      createdAt: "2026-08-19T00:00:00.000Z"
++    });
++
++    expect(runRegistryRebuild(root, { check: false, force: true, quiet: true })).toBe(0);
++    const registry = parseSimpleYaml(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")) as { contracts: Array<Record<string, string | boolean>> };
++    expect(registry.contracts).toEqual(expect.arrayContaining([
++      expect.objectContaining({ id: "TASK-WBS-001-004", type: "task", status: "archived", active: false, archivedAt: "2026-08-20T00:00:00.000Z" }),
++      expect.objectContaining({ id: "SCP-F001-API-001", type: "spec-change" }),
++      expect.objectContaining({ id: "EVD-001-004", type: "evidence" }),
++      expect.objectContaining({ id: "APR-WBS-001-004", type: "approval" }),
++      expect.objectContaining({ id: "RVW-WBS-001-004", type: "review" }),
++      expect.objectContaining({ id: "BLK-WBS-001-004", type: "block" }),
++      expect.objectContaining({ id: "RISK-F001", type: "risk" })
++    ]));
++    expect(runRegistryRebuild(root, { check: true, force: false, quiet: true })).toBe(0);
++  });
++
++  test("registry rebuild and --check fail closed on identity drift without printing the artifact body", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const secret = "rebuild-fixture-secret-must-not-leak";
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
++      ...sampleEvidence({ taskId: "OTHER-TASK" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    const before = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
++
++    for (const options of [
++      { check: false, force: true },
++      { check: true, force: false }
++    ]) {
++      const output = captureOutput(() => runRegistryRebuild(root, options));
++      expect(output.result).toBe(1);
++      expect(output.stderr).toContain("evidence.identity.path-mismatch");
++      expect(output.stderr).not.toContain(secret);
++      expect(output.stderr).not.toContain("checks:");
++      expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(before);
++    }
++  });
++
++  test("registry rebuild and --check fail closed on duplicate canonical artifact identity", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-004", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
++    const before = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
++
++    for (const options of [
++      { check: false, force: true },
++      { check: true, force: false }
++    ]) {
++      const output = captureOutput(() => runRegistryRebuild(root, options));
++      expect(output.result).toBe(1);
++      expect(output.stderr).toContain("artifact.identity.duplicate");
++      expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(before);
++    }
++  });
++
+   test("check rejects direct WBS edits without a corresponding changeset", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -702,6 +811,14 @@ describe("misc", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
++        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
++        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" }
++      ]
++    });
+     expect(runCheck(root)).toBe(0);
+   });
+ 
+@@ -709,6 +826,14 @@ describe("misc", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
++        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
++        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" }
++      ]
++    });
+     writeText(
+       root,
+       "contracts/tasks/index.yaml",
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index 4b17074..97ea54e 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectCheckIssues } from "../../src/commands/check.js";
+-import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
++import { listRisks, listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+ import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
+ import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
+ 
+@@ -146,6 +146,107 @@ describe("contracts / schema", () => {
+     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("specChange."))).toBe(false);
+   });
+ 
++  test("every lifecycle reader rejects a mismatched file stem without exposing artifact contents", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const secret = "fixture-secret-must-not-leak";
++    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", {
++      ...sampleSpec({ id: "SPEC-WRONG" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", {
++      ...sampleSpecChange({ id: "SCP-WRONG" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
++      ...sampleTask({ id: "WBS-WRONG" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
++      ...sampleEvidence({ taskId: "OTHER-TASK" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      ...sampleApproval({ taskId: "OTHER-TASK" }),
++      secret
++    } as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "OTHER-TASK",
++      status: "requested",
++      reviewProfile: "self-review",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml"],
++      secret
++    });
++    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
++      id: "BLK-WBS-001-004",
++      type: "block",
++      taskId: "OTHER-TASK",
++      status: "blocked",
++      level: 1,
++      category: "human-gate",
++      reason: "Fixture block",
++      requiredHumanDecision: "Decide",
++      createdAt: "2026-08-20T00:00:00.000Z",
++      secret
++    });
++    writeYaml(root, "contracts/risks/RISK-F001.yaml", {
++      schemaVersion: "scwbs.risk.v1",
++      id: "RISK-WRONG",
++      type: "risk",
++      title: "Fixture risk",
++      status: "open",
++      scope: { tasks: [], specs: [], requirements: [] },
++      assessment: { likelihood: 1, impact: 1, score: 1, level: "low" },
++      treatment: { strategy: "mitigate", owner: "team", actions: ["Act"], verification: ["Verify"] },
++      residualRisk: { likelihood: 1, impact: 1, score: 1, level: "low" },
++      createdAt: "2026-08-20T00:00:00.000Z",
++      secret
++    });
++
++    const results = [
++      readSpec(root, "contracts/specs/SPEC-F001-API.yaml"),
++      readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml"),
++      readTask(root, "WBS-001-004"),
++      readEvidence(root, "WBS-001-004"),
++      readApproval(root, "WBS-001-004"),
++      readReview(root, "WBS-001-004"),
++      readBlock(root, "WBS-001-004"),
++      listRisks(root)[0]
++    ];
++    const codes = results.map((result) => result.issues.find((issue) => issue.code.endsWith(".identity.path-mismatch"))?.code);
++    expect(codes).toEqual([
++      "spec.identity.path-mismatch",
++      "spec-change.identity.path-mismatch",
++      "task.identity.path-mismatch",
++      "evidence.identity.path-mismatch",
++      "approval.identity.path-mismatch",
++      "review.identity.path-mismatch",
++      "block.identity.path-mismatch",
++      "risk.identity.path-mismatch"
++    ]);
++    expect(JSON.stringify(results)).not.toContain(secret);
++  });
++
++  test("Registry rejects duplicate type-id and path entries", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        { id: "EVD-001", type: "evidence", path: "contracts/evidence/one.yaml" },
++        { id: "EVD-001", type: "evidence", path: "contracts/evidence/two.yaml" },
++        { id: "APR-001", type: "approval", path: "contracts/evidence/two.yaml" }
++      ]
++    });
++
++    expect(readRegistry(root).issues).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "registry.identity.duplicate" }),
++      expect.objectContaining({ code: "registry.path.duplicate" })
++    ]));
++  });
++
+   test("YAML contract reads run JSON Schema validation after parsing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);

@@ -1,0 +1,90 @@
+id: EVD-SCWBS-DRAFT-MT1627DV
+type: evidence
+taskId: SCWBS-DRAFT-MT1627DV
+commit: a416907c17878914700ca5a030921a6f4d3e6407
+subjectHeadCommit: a416907c17878914700ca5a030921a6f4d3e6407
+diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: a416907c17878914700ca5a030921a6f4d3e6407
+    treeHash: 689c6a3f582e3e707fbfb7012e8de28771a402f3
+    diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
+    manifestHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+git:
+  branch: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
+  base: origin/main
+  baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: a416907c17878914700ca5a030921a6f4d3e6407
+  diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+  headCommit: a416907c17878914700ca5a030921a6f4d3e6407
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT1627DV.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/check.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/contracts.ts
+  - src/core/schema/registries.ts
+  - tests/integration/check.test.ts
+  - tests/integration/misc.test.ts
+  - tests/unit/contracts.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
+    headCommit: a416907c17878914700ca5a030921a6f4d3e6407
+    diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+  tests:
+    filesAdded: 0
+    filesModified: 3
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:8348de618ac28d2e56bd8395e821178fb6d43f5b71025bce10ec531cacb82c07
+    durationMilliseconds: 20977
+    executedAt: "2026-08-20T07:28:53.980Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:710d3ee29e9058bdf563eff60f89c6438644b0fded31f8321626cd9f26347561
+    durationMilliseconds: 12105
+    executedAt: "2026-08-20T07:29:06.090Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a5b3a14260fc4149ca4d16e016bf9aeb494ab70f2c2461a9a18af76f30641611
+    durationMilliseconds: 5159
+    executedAt: "2026-08-20T07:29:11.254Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:dda9193cd1e5b105a7f1dcc8726f23d4b3de1a6ad480bc0c085747f9dd9090b8
+    durationMilliseconds: 251428
+    executedAt: "2026-08-20T07:33:22.686Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added lifecycle artifact identity, Registry duplicate, drift, archive, and fail-closed rebuild regression coverage.
