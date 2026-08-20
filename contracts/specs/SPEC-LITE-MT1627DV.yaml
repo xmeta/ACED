@@ -1,0 +1,21 @@
+id: SPEC-LITE-MT1627DV
+type: spec-contract
+featureId: F-MT1627DV
+title: "Issue #593: lifecycle artifact identity fail-closed validation"
+sourceIssue: 593
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-593
+approvedAt: "2026-08-20T00:00:00+09:00"
+summary: "Use one canonical file-stem identity mapping across lifecycle artifact readers, repository checks, and Registry rebuild validation."
+acceptanceCriteria:
+  - Task file stem equals task.id; Evidence, Approval, Review, and Block file stem equals taskId; Spec, Spec Change Proposal, and Risk file stem equals id.
+  - Readers and repository-wide checks reject mismatches, duplicate canonical identities, ambiguous duplicate paths, and Registry entries whose type, id, path, or relatedTask does not match the artifact.
+  - Registry rebuild --check returns non-zero for invalid artifacts and never silently normalizes a mismatched internal identity into a path-derived Registry entry.
+  - Valid active artifacts and archived artifacts remain accepted, with bounded error output containing only artifact type, path, expected identity, and actual identity.
+  - Unit and integration tests cover every artifact family, duplicate Registry identity/path, normal artifacts, archived artifacts, and rebuild check failure.
+nonGoals:
+  - automatic repair or identity inference for invalid artifacts
+  - promoting Registry to an authority source
+  - changing Task Contract authority fields or WBS semantics
+  - package, dependency, CI, release, external service, or WJS changes
