@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectCheckIssues } from "../../src/commands/check.js";
-import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { listRisks, listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
 import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
 import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
 
@@ -144,6 +144,107 @@ describe("contracts / schema", () => {
     expect(specChange?.status).toBe("proposed");
     expect(listSpecChanges(root).some((entry) => entry.path === "contracts/spec-changes/SCP-F001-API-001.yaml" && entry.issues.length === 0)).toBe(true);
     expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("specChange."))).toBe(false);
+  });
+
+  test("every lifecycle reader rejects a mismatched file stem without exposing artifact contents", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const secret = "fixture-secret-must-not-leak";
+    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", {
+      ...sampleSpec({ id: "SPEC-WRONG" }),
+      secret
+    } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", {
+      ...sampleSpecChange({ id: "SCP-WRONG" }),
+      secret
+    } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", {
+      ...sampleTask({ id: "WBS-WRONG" }),
+      secret
+    } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
+      ...sampleEvidence({ taskId: "OTHER-TASK" }),
+      secret
+    } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      ...sampleApproval({ taskId: "OTHER-TASK" }),
+      secret
+    } as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "OTHER-TASK",
+      status: "requested",
+      reviewProfile: "self-review",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml"],
+      secret
+    });
+    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", {
+      id: "BLK-WBS-001-004",
+      type: "block",
+      taskId: "OTHER-TASK",
+      status: "blocked",
+      level: 1,
+      category: "human-gate",
+      reason: "Fixture block",
+      requiredHumanDecision: "Decide",
+      createdAt: "2026-08-20T00:00:00.000Z",
+      secret
+    });
+    writeYaml(root, "contracts/risks/RISK-F001.yaml", {
+      schemaVersion: "scwbs.risk.v1",
+      id: "RISK-WRONG",
+      type: "risk",
+      title: "Fixture risk",
+      status: "open",
+      scope: { tasks: [], specs: [], requirements: [] },
+      assessment: { likelihood: 1, impact: 1, score: 1, level: "low" },
+      treatment: { strategy: "mitigate", owner: "team", actions: ["Act"], verification: ["Verify"] },
+      residualRisk: { likelihood: 1, impact: 1, score: 1, level: "low" },
+      createdAt: "2026-08-20T00:00:00.000Z",
+      secret
+    });
+
+    const results = [
+      readSpec(root, "contracts/specs/SPEC-F001-API.yaml"),
+      readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml"),
+      readTask(root, "WBS-001-004"),
+      readEvidence(root, "WBS-001-004"),
+      readApproval(root, "WBS-001-004"),
+      readReview(root, "WBS-001-004"),
+      readBlock(root, "WBS-001-004"),
+      listRisks(root)[0]
+    ];
+    const codes = results.map((result) => result.issues.find((issue) => issue.code.endsWith(".identity.path-mismatch"))?.code);
+    expect(codes).toEqual([
+      "spec.identity.path-mismatch",
+      "spec-change.identity.path-mismatch",
+      "task.identity.path-mismatch",
+      "evidence.identity.path-mismatch",
+      "approval.identity.path-mismatch",
+      "review.identity.path-mismatch",
+      "block.identity.path-mismatch",
+      "risk.identity.path-mismatch"
+    ]);
+    expect(JSON.stringify(results)).not.toContain(secret);
+  });
+
+  test("Registry rejects duplicate type-id and path entries", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "EVD-001", type: "evidence", path: "contracts/evidence/one.yaml" },
+        { id: "EVD-001", type: "evidence", path: "contracts/evidence/two.yaml" },
+        { id: "APR-001", type: "approval", path: "contracts/evidence/two.yaml" }
+      ]
+    });
+
+    expect(readRegistry(root).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "registry.identity.duplicate" }),
+      expect.objectContaining({ code: "registry.path.duplicate" })
+    ]));
   });
 
   test("YAML contract reads run JSON Schema validation after parsing", () => {

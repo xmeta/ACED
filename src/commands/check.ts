@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { evidenceExists, listApprovals, listBlocks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+import { evidenceExists, listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readApproval, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask, validateRegistryArtifactIdentity } from "../core/contracts.js";
 import { workingTreeChangedFiles } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { fileSha256 } from "../core/hash.js";
@@ -297,6 +297,7 @@ export function collectCheckIssues(root: string): Issue[] {
   const { registry, issues: registryIssues } = hasRegistry ? readRegistry(root) : { registry: undefined, issues: [] };
   issues.push(...registryIssues);
   issues.push(...validateRegistryContracts(root, registry));
+  issues.push(...validateRegistryArtifactIdentity(root, registry));
   if (!skipSpecValidation(profile)) {
     issues.push(...validateIndexedSpecs(root, registry));
     issues.push(...validateIndexedSpecChanges(root, registry));
@@ -305,6 +306,15 @@ export function collectCheckIssues(root: string): Issue[] {
     issues.push(...entry.issues);
   }
   for (const entry of listBlocks(root)) {
+    issues.push(...entry.issues);
+  }
+  for (const entry of listEvidence(root)) {
+    issues.push(...entry.issues);
+  }
+  for (const entry of listReviews(root)) {
+    issues.push(...entry.issues);
+  }
+  for (const entry of listRisks(root)) {
     issues.push(...entry.issues);
   }
 

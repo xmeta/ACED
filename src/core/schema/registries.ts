@@ -57,6 +57,8 @@ export function validateRegistry(value: unknown): Issue[] {
     issues.push(issue("registry.contracts", "registry.contracts must be an array"));
     return issues;
   }
+  const identities = new Map<string, number>();
+  const paths = new Map<string, number>();
   value.contracts.forEach((contract, index) => {
     if (!isObject(contract)) {
       issues.push(issue("registry.contract", `contracts[${index}] must be an object`));
@@ -65,6 +67,23 @@ export function validateRegistry(value: unknown): Issue[] {
     for (const key of ["id", "type", "path"]) {
       if (typeof contract[key] !== "string" || contract[key].length === 0) {
         issues.push(issue("registry.contract", `contracts[${index}].${key} must be a non-empty string`));
+      }
+    }
+    if (typeof contract.type === "string" && typeof contract.id === "string") {
+      const identity = `${contract.type}:${contract.id}`;
+      const previous = identities.get(identity);
+      if (previous !== undefined) {
+        issues.push(issue("registry.identity.duplicate", `contracts[${index}] duplicates ${identity} from contracts[${previous}]`));
+      } else {
+        identities.set(identity, index);
+      }
+    }
+    if (typeof contract.path === "string") {
+      const previous = paths.get(contract.path);
+      if (previous !== undefined) {
+        issues.push(issue("registry.path.duplicate", `contracts[${index}] duplicates path ${contract.path} from contracts[${previous}]`));
+      } else {
+        paths.set(contract.path, index);
       }
     }
   });

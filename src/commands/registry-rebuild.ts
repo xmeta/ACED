@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+import { collectArtifactIdentityIssues, listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
 import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
@@ -73,6 +73,10 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
 }
 
 export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
+  const identityIssues = collectArtifactIdentityIssues(root);
+  if (identityIssues.length > 0) {
+    throw new Error(identityIssues.map((item) => `${item.code}: ${item.message}`).join("; "));
+  }
   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
   const contracts: Record<string, unknown>[] = [];
   const taskIndex = readTaskIndex(root);
