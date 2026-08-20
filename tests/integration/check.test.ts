@@ -36,6 +36,15 @@ describe("check", () => {
     writeScwbsProject(root, "completed");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "approved", approvedBy: "Lead", approvedAt: "2026-06-27T10:00:00+09:00" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
+        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
+        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" },
+        { id: "APR-WBS-001-004", type: "approval", path: "contracts/approvals/WBS-001-004.yaml", relatedTask: "WBS-001-004", status: "approved" }
+      ]
+    });
 
     const output: string[] = [];
     const originalLog = console.log;
@@ -186,6 +195,14 @@ describe("check", () => {
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       changedFiles: ["src/feature.ts"]
     }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", status: "approved", version: "1.0.0", featureId: "F001", relatedTask: "WBS-001-004" },
+        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", featureId: "F001" },
+        { id: "EVD-001-004", type: "evidence", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "WBS-001-004" }
+      ]
+    });
 
     const output: string[] = [];
     const originalLog = console.log;
@@ -217,6 +234,107 @@ describe("check", () => {
     expect(JSON.parse(output.join("\n")).issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "approval.status", severity: "error" })
     ]));
+  });
+
+  test("check fails closed for every lifecycle artifact stem mismatch and bounds diagnostics", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const secret = "check-fixture-secret-must-not-leak";
+    writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", { ...sampleTask(), id: "SPEC-WRONG", type: "spec-contract", featureId: "F001", title: "Spec", status: "approved", version: "1.0.0", summary: "Spec", sourcePaths: [], acceptanceCriteria: [], approvedBy: "Owner", approvedAt: "2026-01-01T00:00:00Z", secret });
+    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", { id: "SCP-WRONG", type: "spec-change-proposal", status: "proposed", targetSpec: "SPEC-F001-API", currentVersion: "1.0.0", proposedVersion: "1.1.0", taskId: "WBS-001-004", level: 2, summary: "Change", rationale: ["Reason"], affectedPaths: [], approval: { required: true, status: "requested" }, risks: [], secret });
+    writeYaml(root, "contracts/tasks/WBS-001-004.yaml", { ...sampleTask(), id: "WBS-WRONG", secret });
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", { ...sampleEvidence({ taskId: "OTHER-TASK" }), secret });
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...sampleApproval({ taskId: "OTHER-TASK" }), secret });
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", { id: "RVW-WBS-001-004", type: "review", taskId: "OTHER-TASK", status: "requested", reviewProfile: "self-review", groundTruth: [], secret });
+    writeYaml(root, "contracts/blocks/WBS-001-004.yaml", { id: "BLK-WBS-001-004", type: "block", taskId: "OTHER-TASK", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z", secret });
+    writeYaml(root, "contracts/risks/RISK-F001.yaml", { schemaVersion: "scwbs.risk.v1", id: "RISK-WRONG", type: "risk", title: "Risk", status: "open", scope: { tasks: [], specs: [], requirements: [] }, assessment: { likelihood: 1, impact: 1, score: 1, level: "low" }, treatment: { strategy: "mitigate", owner: "team", actions: ["Act"], verification: ["Verify"] }, residualRisk: { likelihood: 1, impact: 1, score: 1, level: "low" }, createdAt: "2026-08-20T00:00:00.000Z", secret });
+
+    const issues = collectCheckIssues(root);
+    expect(issues.map((issue) => issue.code)).toEqual(expect.arrayContaining([
+      "spec.identity.path-mismatch",
+      "spec-change.identity.path-mismatch",
+      "task.identity.path-mismatch",
+      "evidence.identity.path-mismatch",
+      "approval.identity.path-mismatch",
+      "review.identity.path-mismatch",
+      "block.identity.path-mismatch",
+      "risk.identity.path-mismatch"
+    ]));
+    expect(JSON.stringify(issues)).not.toContain(secret);
+  });
+
+  test("check rejects duplicate artifact identity and Registry type/id/relatedTask drift", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yml", sampleEvidence({ id: "EVD-OTHER", taskId: "WBS-001-004" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "WBS-001-004" },
+        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml" },
+        { id: "WRONG", type: "approval", path: "contracts/evidence/WBS-001-004.yaml", relatedTask: "OTHER-TASK" }
+      ]
+    });
+
+    const issues = collectCheckIssues(root);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "artifact.identity.duplicate" }),
+      expect.objectContaining({ code: "registry.identity.mismatch" }),
+      expect.objectContaining({ code: "registry.identity.related-task" })
+    ]));
+  });
+
+  test.each([
+    ["evidence", "contracts/evidence/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yml", sampleEvidence(), sampleEvidence({ id: "EVD-OTHER" })],
+    ["approval", "contracts/approvals/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yml", sampleApproval(), sampleApproval({ id: "APR-OTHER" })],
+    ["review", "contracts/reviews/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yml", { id: "RVW-A", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }, { id: "RVW-B", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }],
+    ["block", "contracts/blocks/WBS-001-004.yaml", "contracts/blocks/WBS-001-004.yml", { id: "BLK-A", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }, { id: "BLK-B", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }]
+  ] as const)("check rejects duplicate canonical path for task-bound %s artifacts across yaml and yml", (_kind, yamlPath, ymlPath, yamlArtifact, ymlArtifact) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, yamlPath, yamlArtifact as unknown as Record<string, unknown>);
+    writeYaml(root, ymlPath, ymlArtifact as unknown as Record<string, unknown>);
+
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "artifact.identity.duplicate" })
+    ]));
+  });
+
+  test("check rejects an existing inventory-external Registry lifecycle path", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [{ id: "EVD-001-004", type: "evidence", path: "contracts/wbs/project.wbs.json", relatedTask: "WBS-001-004" }]
+    });
+
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "registry.identity.path" })
+    ]));
+  });
+
+  test("check rejects non-canonical Task/Spec relatedTask while preserving feature-compatible Spec links", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "UNRELATED" },
+        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", relatedTask: "UNRELATED" }
+      ]
+    });
+
+    const issues = collectCheckIssues(root);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "registry.identity.related-task", message: expect.stringContaining("UNRELATED") })
+    ]));
+
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [{ id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "WBS-001-004" }]
+    });
+    expect(collectCheckIssues(root).some((issue) => issue.code === "registry.identity.related-task")).toBe(false);
   });
 
   test("Human Gate rejects a post-finish delegated approval", () => {

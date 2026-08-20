@@ -1,0 +1,78 @@
+id: SCWBS-DRAFT-MT1627DV
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT1627DV
+branchName: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
+allowedPaths:
+  - src/core/contracts.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/schema/registries.ts
+  - src/commands/check.ts
+  - src/commands/registry-rebuild.ts
+  - tests/unit/contracts.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/misc.test.ts
+forbiddenPaths:
+  - wjs/**
+  - package.json
+  - package-lock.json
+  - contracts/wbs/project.wbs.json
+  - .github/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/contracts.ts
+  - src/core/schema/contracts.ts
+  - src/core/schema/records.ts
+  - src/core/schema/registries.ts
+  - src/commands/check.ts
+  - src/commands/registry-rebuild.ts
+stopIf:
+  - Human Gate required
+  - dependency or package change required
+  - workflow change required
+  - WBS change required
+  - authority semantics unclear
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Task, Evidence, Approval, Review, and Block readers reject a file stem that does not match the artifact's canonical identity with a bounded machine-readable issue.
+  - Spec, Spec Change Proposal, and Risk repository scans reject a file stem that does not match the artifact's canonical id.
+  - Repository check validates artifact identity and Registry type, id, path, relatedTask, uniqueness, and archive handling without exposing artifact contents or secrets.
+  - Registry rebuild and registry rebuild check fail closed on identity drift or duplicate entries instead of silently normalizing the artifact into a different identity.
+  - Existing active and archive artifact fixtures remain valid, while each artifact family has mismatch, duplicate, and happy-path regression coverage.
+  - No artifact identity is inferred or automatically repaired, no authority fields are rewritten, and no dependency, package, CI, WBS, or WJS change is included.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT1627DV.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-requested-issue-593
+approvedAt: "2026-08-20T00:00:00+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT1627DV.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
+  - contracts/approvals/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:021cfaf4b74d65a71200535778f6cfd0d325d395206a8285850a6b5a4e7b3a51
+  createdAt: "2026-08-20T06:57:25.516Z"

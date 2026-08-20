@@ -1,0 +1,94 @@
+id: EVD-SCWBS-DRAFT-MT1627DV
+type: evidence
+taskId: SCWBS-DRAFT-MT1627DV
+commit: e264fb9008402a62f3fb365d662519f117b2c7aa
+subjectHeadCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: e264fb9008402a62f3fb365d662519f117b2c7aa
+    treeHash: d4c3d7310d238a784725af2e996e9d9234d48e58
+    diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
+    manifestHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+git:
+  branch: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
+  base: origin/main
+  baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
+  changedFilesBasis: branch-diff
+  pullRequest: "598"
+  subjectHeadCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+  diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+  headCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
+  - contracts/evidence/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT1627DV.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT1627DV.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/check.ts
+  - src/commands/registry-rebuild.ts
+  - src/core/contracts.ts
+  - src/core/schema/registries.ts
+  - tests/integration/check.test.ts
+  - tests/integration/misc.test.ts
+  - tests/unit/contracts.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
+    headCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+    diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+  tests:
+    filesAdded: 0
+    filesModified: 3
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:aff5ce46c5a1d38cc93ea1ee86645b937d0975f68b98ef1fe7a81c0c321dd318
+    durationMilliseconds: 22054
+    executedAt: "2026-08-20T09:12:37.183Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e3c57f9b43fe4071e1fd19e8c7bb4363b7e3edc0b20fe710143810f200014f1f
+    durationMilliseconds: 15388
+    executedAt: "2026-08-20T09:06:12.802Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:e2ad093c24f054bd85e9ad1b6f7cc7464ea5fc59e0094bfaa1f044ec8696f5a3
+    durationMilliseconds: 5893
+    executedAt: "2026-08-20T09:06:18.700Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:56ab26f27b8e2708176a1334fa7c59b99664c2dea20588da13cfc5a2d6a6643a
+    durationMilliseconds: 266563
+    executedAt: "2026-08-20T09:10:45.267Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added lifecycle artifact identity, Registry duplicate, drift, archive, and fail-closed rebuild regression coverage.

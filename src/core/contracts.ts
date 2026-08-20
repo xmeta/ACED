@@ -70,6 +70,49 @@ import type {
 } from "./types.js";
 import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
 
+export type LifecycleArtifactKind =
+  | "task"
+  | "spec"
+  | "spec-change"
+  | "evidence"
+  | "approval"
+  | "review"
+  | "block"
+  | "risk";
+
+type CanonicalRegistryEntry = Pick<RegistryContract, "id" | "type" | "path" | "relatedTask">;
+
+function artifactStem(relativePath: string): string {
+  return path.parse(relativePath).name;
+}
+
+function artifactIdentityField(kind: LifecycleArtifactKind): "id" | "taskId" {
+  return kind === "task" || kind === "spec" || kind === "spec-change" || kind === "risk" ? "id" : "taskId";
+}
+
+export function validateArtifactPathIdentity(kind: LifecycleArtifactKind, relativePath: string, value: unknown): Issue[] {
+  if (!value || typeof value !== "object") return [];
+  const field = artifactIdentityField(kind);
+  const expected = (value as Record<string, unknown>)[field];
+  if (typeof expected !== "string" || expected.length === 0) return [];
+  const actual = artifactStem(relativePath);
+  if (actual === expected) return [];
+  return [{
+    severity: "error",
+    code: `${kind}.identity.path-mismatch`,
+    message: `${kind} artifact ${relativePath} stem ${actual} does not match ${field} ${expected}`
+  }];
+}
+
+function appendArtifactIdentityIssue(
+  issues: Issue[],
+  kind: LifecycleArtifactKind,
+  relativePath: string,
+  value: unknown
+): Issue[] {
+  return [...issues, ...validateArtifactPathIdentity(kind, relativePath, value)];
+}
+
 export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
   const fullPath = resolveFrom(root, defaultRegistryPath);
   if (!existsSync(fullPath)) {
@@ -92,7 +135,12 @@ export function readTask(root: string, taskId: string): { task?: TaskContract; i
     return { issues: [{ severity: "error", code: "task.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateTaskContractSchema(value, relativePath), ...validateTaskContract(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateTaskContractSchema(value, relativePath), ...validateTaskContract(value, relativePath)],
+    "task",
+    relativePath,
+    value
+  );
   return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues };
 }
 
@@ -102,7 +150,12 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
     return { issues: [{ severity: "error", code: "spec.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateSpecContractSchema(value, relativePath), ...validateSpecContract(value, relativePath)],
+    "spec",
+    relativePath,
+    value
+  );
   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
 }
 
@@ -115,10 +168,10 @@ export function readSpecChange(
     return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [
+  const issues = appendArtifactIdentityIssue([
     ...validateSpecChangeProposalSchema(value, relativePath),
     ...validateSpecChangeProposal(value, relativePath)
-  ];
+  ], "spec-change", relativePath, value);
   return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
 }
 
@@ -132,7 +185,12 @@ export function readEvidence(root: string, taskId: string): { evidence?: Evidenc
     return { issues: [{ severity: "error", code: "evidence.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateEvidenceSchema(value, relativePath), ...validateEvidence(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateEvidenceSchema(value, relativePath), ...validateEvidence(value, relativePath)],
+    "evidence",
+    relativePath,
+    value
+  );
   return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues };
 }
 
@@ -146,7 +204,12 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
     return { issues: [{ severity: "error", code: "approval.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateApprovalRecordSchema(value, relativePath), ...validateApprovalRecord(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateApprovalRecordSchema(value, relativePath), ...validateApprovalRecord(value, relativePath)],
+    "approval",
+    relativePath,
+    value
+  );
   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
 }
 
@@ -160,7 +223,12 @@ export function readReview(root: string, taskId: string): { review?: ReviewRecor
     return { issues: [{ severity: "error", code: "review.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateReviewRecordSchema(value, relativePath), ...validateReviewRecord(value, relativePath)],
+    "review",
+    relativePath,
+    value
+  );
   return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues };
 }
 
@@ -174,7 +242,12 @@ export function readBlock(root: string, taskId: string): { block?: BlockRecord; 
     return { issues: [{ severity: "error", code: "block.missing", message: `${relativePath} does not exist` }] };
   }
   const value = readYamlFile<unknown>(fullPath);
-  const issues = [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)];
+  const issues = appendArtifactIdentityIssue(
+    [...validateBlockRecordSchema(value, relativePath), ...validateBlockRecord(value, relativePath)],
+    "block",
+    relativePath,
+    value
+  );
   return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues };
 }
 
@@ -186,7 +259,12 @@ export function listTasks(root: string): Array<{ task?: TaskContract; issues: Is
     .map((file) => {
       const path = `${defaultTasksDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateTaskContractSchema(value, path), ...validateTaskContract(value, path)],
+        "task",
+        path,
+        value
+      );
       return { task: issues.length === 0 ? asTaskContract(value) : undefined, issues, path };
     });
 }
@@ -203,7 +281,12 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
     .map((file) => {
       const path = `${defaultSpecsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateSpecContractSchema(value, path), ...validateSpecContract(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateSpecContractSchema(value, path), ...validateSpecContract(value, path)],
+        "spec",
+        path,
+        value
+      );
       return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues, path };
     });
 }
@@ -218,7 +301,12 @@ export function listSpecChanges(
     .map((file) => {
       const path = `${defaultSpecChangesDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)],
+        "spec-change",
+        path,
+        value
+      );
       return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues, path };
     });
 }
@@ -231,7 +319,12 @@ export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; 
     .map((file) => {
       const path = `${defaultApprovalsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateApprovalRecordSchema(value, path), ...validateApprovalRecord(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateApprovalRecordSchema(value, path), ...validateApprovalRecord(value, path)],
+        "approval",
+        path,
+        value
+      );
       return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues, path };
     });
 }
@@ -244,7 +337,12 @@ export function listEvidence(root: string): Array<{ evidence?: Evidence; issues:
     .map((file) => {
       const path = `${defaultEvidenceDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateEvidenceSchema(value, path), ...validateEvidence(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateEvidenceSchema(value, path), ...validateEvidence(value, path)],
+        "evidence",
+        path,
+        value
+      );
       return { evidence: issues.length === 0 ? asEvidence(value) : undefined, issues, path };
     });
 }
@@ -257,7 +355,12 @@ export function listReviews(root: string): Array<{ review?: ReviewRecord; issues
     .map((file) => {
       const path = `${defaultReviewsDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateReviewRecordSchema(value, path), ...validateReviewRecord(value, path)],
+        "review",
+        path,
+        value
+      );
       return { review: issues.length === 0 ? asReviewRecord(value) : undefined, issues, path };
     });
 }
@@ -270,7 +373,12 @@ export function listBlocks(root: string): Array<{ block?: BlockRecord; issues: I
     .map((file) => {
       const path = `${defaultBlocksDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, path));
-      const issues = [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateBlockRecordSchema(value, path), ...validateBlockRecord(value, path)],
+        "block",
+        path,
+        value
+      );
       return { block: issues.length === 0 ? asBlockRecord(value) : undefined, issues, path };
     });
 }
@@ -283,7 +391,12 @@ export function listRisks(root: string): Array<{ risk?: RiskRecord; issues: Issu
     .map((file) => {
       const relativePath = `${defaultRisksDir}/${file}`;
       const value = readYamlFile<unknown>(resolveFrom(root, relativePath));
-      const issues = [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)];
+      const issues = appendArtifactIdentityIssue(
+        [...validateRiskRecordSchema(value, relativePath), ...validateRiskRecord(value, relativePath)],
+        "risk",
+        relativePath,
+        value
+      );
       return { risk: issues.length === 0 ? asRiskRecord(value) : undefined, issues, path: relativePath };
     });
 }
@@ -293,6 +406,195 @@ export function matchingSpecContract(registry: Registry | undefined, task: TaskC
     if (contract.type !== "spec") return false;
     return contract.relatedTask === task.id || contract.featureId === task.featureId;
   });
+}
+
+type ArtifactInventoryEntry = {
+  kind: LifecycleArtifactKind;
+  id: string;
+  path: string;
+  featureId?: string;
+  relatedTask?: string;
+  issues: Issue[];
+};
+
+function artifactInventory(root: string): ArtifactInventoryEntry[] {
+  return [
+    ...listSpecs(root).map(({ spec, issues, path: artifactPath }) => spec ? {
+      kind: "spec" as const,
+      id: spec.id,
+      path: artifactPath,
+      featureId: spec.featureId,
+      issues
+    } : undefined),
+    ...listSpecChanges(root).map(({ specChange, issues, path: artifactPath }) => specChange ? {
+      kind: "spec-change" as const,
+      id: specChange.id,
+      path: artifactPath,
+      relatedTask: specChange.taskId,
+      issues
+    } : undefined),
+    ...listTasks(root).map(({ task, issues, path: artifactPath }) => task ? {
+      kind: "task" as const,
+      id: `TASK-${task.id}`,
+      path: artifactPath,
+      featureId: task.featureId,
+      issues
+    } : undefined),
+    ...listEvidence(root).map(({ evidence, issues, path: artifactPath }) => evidence ? {
+      kind: "evidence" as const,
+      id: evidence.id,
+      path: artifactPath,
+      relatedTask: evidence.taskId,
+      issues
+    } : undefined),
+    ...listApprovals(root).map(({ approval, issues, path: artifactPath }) => approval ? {
+      kind: "approval" as const,
+      id: approval.id,
+      path: artifactPath,
+      relatedTask: approval.taskId,
+      issues
+    } : undefined),
+    ...listReviews(root).map(({ review, issues, path: artifactPath }) => review ? {
+      kind: "review" as const,
+      id: review.id,
+      path: artifactPath,
+      relatedTask: review.taskId,
+      issues
+    } : undefined),
+    ...listBlocks(root).map(({ block, issues, path: artifactPath }) => block ? {
+      kind: "block" as const,
+      id: block.id,
+      path: artifactPath,
+      relatedTask: block.taskId,
+      issues
+    } : undefined),
+    ...listRisks(root).map(({ risk, issues, path: artifactPath }) => risk ? {
+      kind: "risk" as const,
+      id: risk.id,
+      path: artifactPath,
+      issues
+    } : undefined)
+  ].filter((entry) => entry !== undefined) as ArtifactInventoryEntry[];
+}
+
+function toCanonicalRegistryEntry(entry: ArtifactInventoryEntry): CanonicalRegistryEntry {
+  return {
+    id: entry.id,
+    type: entry.kind,
+    path: entry.path,
+    ...(entry.relatedTask ? { relatedTask: entry.relatedTask } : {})
+  };
+}
+
+function identityMismatch(issue: Issue): boolean {
+  return issue.code.endsWith(".identity.path-mismatch");
+}
+
+export function collectArtifactIdentityIssues(root: string): Issue[] {
+  const listedEntries = [
+    ...listSpecs(root),
+    ...listSpecChanges(root),
+    ...listTasks(root),
+    ...listEvidence(root),
+    ...listApprovals(root),
+    ...listReviews(root),
+    ...listBlocks(root),
+    ...listRisks(root)
+  ];
+  const issues = listedEntries.flatMap((entry) => entry.issues.filter(identityMismatch));
+  const inventory = artifactInventory(root);
+  const seen = new Map<string, string>();
+  for (const entry of inventory) {
+    if (entry.issues.some(identityMismatch)) continue;
+    const canonicalSubject = ["evidence", "approval", "review", "block"].includes(entry.kind)
+      ? entry.relatedTask
+      : entry.id;
+    if (!canonicalSubject) continue;
+    const key = `${entry.kind}:${canonicalSubject}`;
+    const previousPath = seen.get(key);
+    if (previousPath) {
+      issues.push({
+        severity: "error",
+        code: "artifact.identity.duplicate",
+        message: `${entry.kind} canonical identity ${canonicalSubject} appears at ${previousPath} and ${entry.path}`
+      });
+    } else {
+      seen.set(key, entry.path);
+    }
+  }
+  return issues;
+}
+
+export function validateRegistryArtifactIdentity(root: string, registry: Registry | undefined): Issue[] {
+  if (!registry) return [];
+  const issues = collectArtifactIdentityIssues(root).filter((issue) => issue.code === "artifact.identity.duplicate");
+  const inventory = artifactInventory(root);
+  const expectedEntries = inventory
+    .filter((entry) => !entry.issues.some(identityMismatch))
+    .map(toCanonicalRegistryEntry);
+  const expectedByPath = new Map(expectedEntries.map((entry) => [entry.path, entry]));
+  const inventoryByPath = new Map(inventory.map((entry) => [entry.path, entry]));
+  const lifecycleTypes = new Set<RegistryContract["type"]>([
+    "spec",
+    "spec-change",
+    "task",
+    "evidence",
+    "approval",
+    "review",
+    "block",
+    "risk"
+  ]);
+  for (const entry of registry.contracts) {
+    const expected = expectedByPath.get(entry.path);
+    if (!expected) {
+      if (lifecycleTypes.has(entry.type) && existsSync(resolveFrom(root, entry.path))) {
+        issues.push({
+          severity: "error",
+          code: "registry.identity.path",
+          message: `registry ${entry.type}/${entry.id} path ${entry.path} does not map to a valid lifecycle artifact`
+        });
+      }
+      continue;
+    }
+    if (entry.type !== expected.type || entry.id !== expected.id) {
+      issues.push({
+        severity: "error",
+        code: "registry.identity.mismatch",
+        message: `registry ${entry.path} has type/id ${entry.type}/${entry.id}; expected ${expected.type}/${expected.id}`
+      });
+    }
+    if (expected.relatedTask !== undefined && entry.relatedTask !== expected.relatedTask) {
+      issues.push({
+        severity: "error",
+        code: "registry.identity.related-task",
+        message: `registry ${entry.path} relatedTask ${entry.relatedTask ?? "missing"} does not match ${expected.relatedTask}`
+      });
+    } else if (expected.relatedTask === undefined && entry.relatedTask !== undefined) {
+      const source = inventoryByPath.get(entry.path);
+      const allowedSpecTasks = source?.kind === "spec"
+        ? inventory
+          .filter((candidate) => candidate.kind === "task" && candidate.featureId === source.featureId)
+          .map((candidate) => candidate.id.replace(/^TASK-/, ""))
+        : [];
+      if (!allowedSpecTasks.includes(entry.relatedTask)) {
+        issues.push({
+          severity: "error",
+          code: "registry.identity.related-task",
+          message: `registry ${entry.path} relatedTask ${entry.relatedTask} is not canonical for ${expected.type}/${expected.id}`
+        });
+      }
+    }
+  }
+  for (const expected of expectedEntries) {
+    if (!registry.contracts.some((entry) => entry.path === expected.path)) {
+      issues.push({
+        severity: "error",
+        code: "registry.identity.missing",
+        message: `registry is missing ${expected.type}/${expected.id} at ${expected.path}`
+      });
+    }
+  }
+  return issues;
 }
 
 export function matchingRegistrySpecByPath(

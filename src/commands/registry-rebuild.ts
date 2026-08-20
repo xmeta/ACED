@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+import { collectArtifactIdentityIssues, listApprovals, listBlocks, listEvidence, listReviews, listRisks, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
 import { defaultRegistryPath, defaultWbsPath, evidencePath, resolveFrom } from "../core/paths.js";
 import { parseSimpleYaml, stringifySimpleYaml } from "../core/yaml.js";
 import { readWbs } from "../core/wbs.js";
@@ -25,6 +25,22 @@ export type RegistryRebuildSummary = {
   removed: number;
   path: typeof defaultRegistryPath;
 };
+
+const MAX_IDENTITY_ERROR_LENGTH = 4096;
+const MAX_IDENTITY_ERROR_ISSUES = 16;
+
+function boundedIdentityError(issues: Array<{ code: string; message: string }>): string {
+  const visible = issues.slice(0, MAX_IDENTITY_ERROR_ISSUES).map((item) => {
+    const message = item.message.length > 256 ? `${item.message.slice(0, 256)}...` : item.message;
+    return `${item.code}: ${message}`;
+  });
+  const omitted = issues.length - visible.length;
+  if (omitted > 0) visible.push(`... ${omitted} additional identity issue(s) omitted`);
+  const rendered = visible.join("; ");
+  return rendered.length > MAX_IDENTITY_ERROR_LENGTH
+    ? `${rendered.slice(0, MAX_IDENTITY_ERROR_LENGTH - 3)}...`
+    : rendered;
+}
 
 function registryEntries(yaml: string): Map<string, string> {
   try {
@@ -73,6 +89,10 @@ function printSuccess(summary: RegistryRebuildSummary, yaml: string, options: Re
 }
 
 export function buildRegistryYaml(root: string, options: { evidence?: Evidence } = {}): string {
+  const identityIssues = collectArtifactIdentityIssues(root);
+  if (identityIssues.length > 0) {
+    throw new Error(boundedIdentityError(identityIssues));
+  }
   const projectId = existsSync(resolveFrom(root, defaultWbsPath)) ? readWbs(root).id : "scwbs";
   const contracts: Record<string, unknown>[] = [];
   const taskIndex = readTaskIndex(root);
