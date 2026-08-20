@@ -267,7 +267,7 @@ describe("check", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-004", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yml", sampleEvidence({ id: "EVD-OTHER", taskId: "WBS-001-004" }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/registry.yaml", {
       projectId: "test-wbs",
       contracts: [
@@ -283,6 +283,58 @@ describe("check", () => {
       expect.objectContaining({ code: "registry.identity.mismatch" }),
       expect.objectContaining({ code: "registry.identity.related-task" })
     ]));
+  });
+
+  test.each([
+    ["evidence", "contracts/evidence/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yml", sampleEvidence(), sampleEvidence({ id: "EVD-OTHER" })],
+    ["approval", "contracts/approvals/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yml", sampleApproval(), sampleApproval({ id: "APR-OTHER" })],
+    ["review", "contracts/reviews/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yml", { id: "RVW-A", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }, { id: "RVW-B", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }],
+    ["block", "contracts/blocks/WBS-001-004.yaml", "contracts/blocks/WBS-001-004.yml", { id: "BLK-A", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }, { id: "BLK-B", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }]
+  ] as const)("check rejects duplicate canonical path for task-bound %s artifacts across yaml and yml", (_kind, yamlPath, ymlPath, yamlArtifact, ymlArtifact) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, yamlPath, yamlArtifact as unknown as Record<string, unknown>);
+    writeYaml(root, ymlPath, ymlArtifact as unknown as Record<string, unknown>);
+
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "artifact.identity.duplicate" })
+    ]));
+  });
+
+  test("check rejects an existing inventory-external Registry lifecycle path", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [{ id: "EVD-001-004", type: "evidence", path: "contracts/wbs/project.wbs.json", relatedTask: "WBS-001-004" }]
+    });
+
+    expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "registry.identity.path" })
+    ]));
+  });
+
+  test("check rejects non-canonical Task/Spec relatedTask while preserving feature-compatible Spec links", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [
+        { id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "UNRELATED" },
+        { id: "TASK-WBS-001-004", type: "task", path: "contracts/tasks/WBS-001-004.yaml", relatedTask: "UNRELATED" }
+      ]
+    });
+
+    const issues = collectCheckIssues(root);
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "registry.identity.related-task", message: expect.stringContaining("UNRELATED") })
+    ]));
+
+    writeYaml(root, "contracts/registry.yaml", {
+      projectId: "test-wbs",
+      contracts: [{ id: "SPEC-F001-API", type: "spec", path: "contracts/specs/SPEC-F001-API.yaml", relatedTask: "WBS-001-004" }]
+    });
+    expect(collectCheckIssues(root).some((issue) => issue.code === "registry.identity.related-task")).toBe(false);
   });
 
   test("Human Gate rejects a post-finish delegated approval", () => {

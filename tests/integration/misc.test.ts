@@ -262,7 +262,7 @@ describe("misc", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-004", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yml", sampleEvidence({ id: "EVD-OTHER", taskId: "WBS-001-004" }) as unknown as Record<string, unknown>);
     const before = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
 
     for (const options of [
@@ -274,6 +274,41 @@ describe("misc", () => {
       expect(output.stderr).toContain("artifact.identity.duplicate");
       expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(before);
     }
+  });
+
+  test.each([
+    ["evidence", "contracts/evidence/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yml", sampleEvidence(), sampleEvidence({ id: "EVD-OTHER" })],
+    ["approval", "contracts/approvals/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yml", sampleApproval(), sampleApproval({ id: "APR-OTHER" })],
+    ["review", "contracts/reviews/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yml", { id: "RVW-A", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }, { id: "RVW-B", type: "review", taskId: "WBS-001-004", status: "requested", reviewProfile: "self-review", groundTruth: [] }],
+    ["block", "contracts/blocks/WBS-001-004.yaml", "contracts/blocks/WBS-001-004.yml", { id: "BLK-A", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }, { id: "BLK-B", type: "block", taskId: "WBS-001-004", status: "blocked", level: 1, category: "human-gate", reason: "Reason", requiredHumanDecision: "Decide", createdAt: "2026-08-20T00:00:00.000Z" }]
+  ] as const)("registry rebuild fails closed for duplicate task-bound %s yaml/yml paths", (_kind, yamlPath, ymlPath, yamlArtifact, ymlArtifact) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, yamlPath, yamlArtifact as unknown as Record<string, unknown>);
+    writeYaml(root, ymlPath, ymlArtifact as unknown as Record<string, unknown>);
+    const before = readFileSync(path.join(root, "contracts/registry.yaml"), "utf8");
+
+    const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true }));
+    expect(output.result).toBe(1);
+    expect(output.stderr).toContain("artifact.identity.duplicate");
+    expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(before);
+  });
+
+  test("registry rebuild bounds a long identity mismatch without leaking the body or secret", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const secret = "long-identity-secret-must-not-leak";
+    const longTaskId = "X".repeat(10_000);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", {
+      ...sampleEvidence({ taskId: longTaskId }),
+      secret
+    } as unknown as Record<string, unknown>);
+
+    const output = captureOutput(() => runRegistryRebuild(root, { check: false, force: true }));
+    expect(output.result).toBe(1);
+    expect(output.stderr.length).toBeLessThanOrEqual(4096);
+    expect(output.stderr).not.toContain(longTaskId);
+    expect(output.stderr).not.toContain(secret);
   });
 
   test("check rejects direct WBS edits without a corresponding changeset", () => {

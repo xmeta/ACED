@@ -412,6 +412,7 @@ type ArtifactInventoryEntry = {
   kind: LifecycleArtifactKind;
   id: string;
   path: string;
+  featureId?: string;
   relatedTask?: string;
   issues: Issue[];
 };
@@ -422,6 +423,7 @@ function artifactInventory(root: string): ArtifactInventoryEntry[] {
       kind: "spec" as const,
       id: spec.id,
       path: artifactPath,
+      featureId: spec.featureId,
       issues
     } : undefined),
     ...listSpecChanges(root).map(({ specChange, issues, path: artifactPath }) => specChange ? {
@@ -435,6 +437,7 @@ function artifactInventory(root: string): ArtifactInventoryEntry[] {
       kind: "task" as const,
       id: `TASK-${task.id}`,
       path: artifactPath,
+      featureId: task.featureId,
       issues
     } : undefined),
     ...listEvidence(root).map(({ evidence, issues, path: artifactPath }) => evidence ? {
@@ -503,13 +506,17 @@ export function collectArtifactIdentityIssues(root: string): Issue[] {
   const seen = new Map<string, string>();
   for (const entry of inventory) {
     if (entry.issues.some(identityMismatch)) continue;
-    const key = `${entry.kind}:${entry.id}`;
+    const canonicalSubject = ["evidence", "approval", "review", "block"].includes(entry.kind)
+      ? entry.relatedTask
+      : entry.id;
+    if (!canonicalSubject) continue;
+    const key = `${entry.kind}:${canonicalSubject}`;
     const previousPath = seen.get(key);
     if (previousPath) {
       issues.push({
         severity: "error",
         code: "artifact.identity.duplicate",
-        message: `${entry.kind} identity ${entry.id} appears at ${previousPath} and ${entry.path}`
+        message: `${entry.kind} canonical identity ${canonicalSubject} appears at ${previousPath} and ${entry.path}`
       });
     } else {
       seen.set(key, entry.path);
@@ -521,13 +528,34 @@ export function collectArtifactIdentityIssues(root: string): Issue[] {
 export function validateRegistryArtifactIdentity(root: string, registry: Registry | undefined): Issue[] {
   if (!registry) return [];
   const issues = collectArtifactIdentityIssues(root).filter((issue) => issue.code === "artifact.identity.duplicate");
-  const expectedEntries = artifactInventory(root)
+  const inventory = artifactInventory(root);
+  const expectedEntries = inventory
     .filter((entry) => !entry.issues.some(identityMismatch))
     .map(toCanonicalRegistryEntry);
   const expectedByPath = new Map(expectedEntries.map((entry) => [entry.path, entry]));
+  const inventoryByPath = new Map(inventory.map((entry) => [entry.path, entry]));
+  const lifecycleTypes = new Set<RegistryContract["type"]>([
+    "spec",
+    "spec-change",
+    "task",
+    "evidence",
+    "approval",
+    "review",
+    "block",
+    "risk"
+  ]);
   for (const entry of registry.contracts) {
     const expected = expectedByPath.get(entry.path);
-    if (!expected) continue;
+    if (!expected) {
+      if (lifecycleTypes.has(entry.type) && existsSync(resolveFrom(root, entry.path))) {
+        issues.push({
+          severity: "error",
+          code: "registry.identity.path",
+          message: `registry ${entry.type}/${entry.id} path ${entry.path} does not map to a valid lifecycle artifact`
+        });
+      }
+      continue;
+    }
     if (entry.type !== expected.type || entry.id !== expected.id) {
       issues.push({
         severity: "error",
@@ -541,6 +569,20 @@ export function validateRegistryArtifactIdentity(root: string, registry: Registr
         code: "registry.identity.related-task",
         message: `registry ${entry.path} relatedTask ${entry.relatedTask ?? "missing"} does not match ${expected.relatedTask}`
       });
+    } else if (expected.relatedTask === undefined && entry.relatedTask !== undefined) {
+      const source = inventoryByPath.get(entry.path);
+      const allowedSpecTasks = source?.kind === "spec"
+        ? inventory
+          .filter((candidate) => candidate.kind === "task" && candidate.featureId === source.featureId)
+          .map((candidate) => candidate.id.replace(/^TASK-/, ""))
+        : [];
+      if (!allowedSpecTasks.includes(entry.relatedTask)) {
+        issues.push({
+          severity: "error",
+          code: "registry.identity.related-task",
+          message: `registry ${entry.path} relatedTask ${entry.relatedTask} is not canonical for ${expected.type}/${expected.id}`
+        });
+      }
     }
   }
   for (const expected of expectedEntries) {
