@@ -1,28 +1,29 @@
 id: EVD-SCWBS-DRAFT-MT1627DV
 type: evidence
 taskId: SCWBS-DRAFT-MT1627DV
-commit: a416907c17878914700ca5a030921a6f4d3e6407
-subjectHeadCommit: a416907c17878914700ca5a030921a6f4d3e6407
-diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+commit: e264fb9008402a62f3fb365d662519f117b2c7aa
+subjectHeadCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
 provenance:
   schemaVersion: 1.0.0
   subject:
-    commit: a416907c17878914700ca5a030921a6f4d3e6407
-    treeHash: 689c6a3f582e3e707fbfb7012e8de28771a402f3
-    diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+    commit: e264fb9008402a62f3fb365d662519f117b2c7aa
+    treeHash: d4c3d7310d238a784725af2e996e9d9234d48e58
+    diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
     canonicalization: git-diff-binary-v1
   retention:
     mode: patch-artifact
     locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
-    manifestHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+    manifestHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
 git:
   branch: task/SCWBS-DRAFT-MT1627DV-issue-593-lifecycle-artifact-identity-fail-close
   base: origin/main
   baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
   changedFilesBasis: branch-diff
-  subjectHeadCommit: a416907c17878914700ca5a030921a6f4d3e6407
-  diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
-  headCommit: a416907c17878914700ca5a030921a6f4d3e6407
+  pullRequest: "598"
+  subjectHeadCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+  diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
+  headCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
 changedFiles:
   - contracts/approvals/SCWBS-DRAFT-MT1627DV.yaml
   - contracts/evidence-payloads/SCWBS-DRAFT-MT1627DV.patch
@@ -43,8 +44,8 @@ testQualityObservation:
   status: evaluated
   subject:
     baseCommit: 3a4bd3f8c376c1ff06952f3e3356da61cdbf9304
-    headCommit: a416907c17878914700ca5a030921a6f4d3e6407
-    diffHash: sha256:19520093827e4c19bf6196977c0f64e6ed074d0e73a4b80c4ec502a60c16847e
+    headCommit: e264fb9008402a62f3fb365d662519f117b2c7aa
+    diffHash: sha256:7a3f3eb1891162122a15ee98a36281511f1bb440259f6773a14736a274442f1d
   tests:
     filesAdded: 0
     filesModified: 3
@@ -58,33 +59,66 @@ testQualityObservation:
     method: phase-2-out-of-scope
 checks:
   - name: test
-    status: passed
+    status: failed
     source: local
     command: npm test
-    cacheKey: sha256:8348de618ac28d2e56bd8395e821178fb6d43f5b71025bce10ec531cacb82c07
-    durationMilliseconds: 20977
-    executedAt: "2026-08-20T07:28:53.980Z"
+    cacheKey: sha256:aff5ce46c5a1d38cc93ea1ee86645b937d0975f68b98ef1fe7a81c0c321dd318
+    durationMilliseconds: 30779
+    executedAt: "2026-08-20T09:05:57.406Z"
+    exitStatus: 1
+    stdoutSummary: |-
+      > scwbs@0.1.0 test
+      > vitest run tests/unit
+
+
+       RUN  v4.1.9 /home/x_meta/workspace/ACED
+
+       ❯ tests/unit/evidence-build.test.ts (2 tests | 1 failed) 17049ms
+           × builds the same Evidence shape from the core module 17034ms
+
+       Test Files  1 failed | 30 passed (31)
+            Tests  1 failed | 208 passed (209)
+         Start at  18:05:28
+         Duration  28.91s (transform 13.63s, setup 0ms, import 36.15s, tests 152.72s, environment 17ms)
+    stderrSummary: |-
+      (node:292372) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+      (Use `node --trace-warnings ...` to show where the warning was created)
+
+      ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+       FAIL  tests/unit/evidence-build.test.ts > evidence build module boundary > builds the same Evidence shape from the core module
+      Error: Test timed out in 15000ms.
+      If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+       ❯ tests/unit/evidence-build.test.ts:27:3
+           25|   });
+           26|
+           27|   it("builds the same Evidence shape from the core module", () => {
+             |   ^
+           28|     const root = makeTempRepo();
+           29|     tempRoots.push(root);
+
+      ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
   - name: typecheck
     status: passed
     source: local
     command: npm run typecheck
-    cacheKey: sha256:710d3ee29e9058bdf563eff60f89c6438644b0fded31f8321626cd9f26347561
-    durationMilliseconds: 12105
-    executedAt: "2026-08-20T07:29:06.090Z"
+    cacheKey: sha256:e3c57f9b43fe4071e1fd19e8c7bb4363b7e3edc0b20fe710143810f200014f1f
+    durationMilliseconds: 15388
+    executedAt: "2026-08-20T09:06:12.802Z"
   - name: build
     status: passed
     source: local
     command: npm run build
-    cacheKey: sha256:a5b3a14260fc4149ca4d16e016bf9aeb494ab70f2c2461a9a18af76f30641611
-    durationMilliseconds: 5159
-    executedAt: "2026-08-20T07:29:11.254Z"
+    cacheKey: sha256:e2ad093c24f054bd85e9ad1b6f7cc7464ea5fc59e0094bfaa1f044ec8696f5a3
+    durationMilliseconds: 5893
+    executedAt: "2026-08-20T09:06:18.700Z"
   - name: test:integration
     status: passed
     source: local
     command: npm run test:integration
-    cacheKey: sha256:dda9193cd1e5b105a7f1dcc8726f23d4b3de1a6ad480bc0c085747f9dd9090b8
-    durationMilliseconds: 251428
-    executedAt: "2026-08-20T07:33:22.686Z"
+    cacheKey: sha256:56ab26f27b8e2708176a1334fa7c59b99664c2dea20588da13cfc5a2d6a6643a
+    durationMilliseconds: 266563
+    executedAt: "2026-08-20T09:10:45.267Z"
 testQuality:
   assertionsAdded: true
   testsDisabled: false
