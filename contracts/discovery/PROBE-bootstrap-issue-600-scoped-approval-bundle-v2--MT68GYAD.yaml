@@ -1,0 +1,32 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-600-scoped-approval-bundle-v2--MT68GYAD
+type: discovery-probe
+status: concluded
+question: Issue 600 scoped Approval bundle v2 for human-gate and post-finish facts
+hypotheses:
+  - Existing repository capabilities can support the goal
+activities:
+  - Inspect current contracts and record bounded evidence
+evidenceExpected:
+  - Current-state inventory
+unknowns:
+  - Delivery scope and acceptance criteria
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - Decision-driving evidence recorded
+nextDecision: Create and lock one Human-Gated delivery Task for Issue 600 scoped Approval bundle v2
+createdAt: "2026-08-23T20:02:02.773Z"
+startedAt: "2026-08-23T20:02:16.514Z"
+concludedAt: "2026-08-23T20:02:21.907Z"
+exitConditionsMet: true
+factsLearned:
+  - single canonical Approval file avoids Registry and identity migration
+  - scopeApprovals object can structurally prevent duplicate scopes
+  - strict activeScope projection preserves legacy consumers
+  - v1 delegated scope is explicitly migratable while v1 human scope must not be inferred
+hypothesesRejected:
+  - multiple canonical Approval files
+  - scope fallback
+  - automatic legacy human scope migration
+remainingUnknowns: []
