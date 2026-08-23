@@ -85,6 +85,67 @@ describe("Human Gate approval scope", () => {
     expect(result).toMatchObject({ required: true, approved: true, issues: [] });
   });
 
+  test("selects only the human-gate slot from a complete v2 bundle", () => {
+    const result = validateHumanGateApproval(
+      task,
+      { ...evidence, changedFiles: ["package.json"] },
+      {
+        id: "APR-WBS-001-004",
+        type: "approval",
+        taskId: "WBS-001-004",
+        version: "scwbs.approval.v2",
+        activeScope: "post-finish",
+        scopeApprovals: {
+          "human-gate": { status: "requested" },
+          "post-finish": { status: "approved", approvedBy: "human", approvedAt: "2026-07-13T00:00:00.000Z", headCommit: "head123", diffHash: "diff123" }
+        },
+        status: "approved",
+        approvedBy: "human",
+        approvedAt: "2026-07-13T00:00:00.000Z",
+        headCommit: "head123",
+        diffHash: "diff123"
+      }
+    );
+    expect(result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.status" })]));
+  });
+
+  test.each([
+    ["headCommit", "stale-head", "approval.scope.headCommit"],
+    ["diffHash", "stale-diff", "approval.scope.diffHash"],
+    ["pullRequest", "#41", "approval.scope.pullRequest"]
+  ] as const)("rejects v2 Human Gate %s drift", (field, value, code) => {
+    const scopedEvidence = {
+      ...evidence,
+      changedFiles: ["package.json"],
+      git: { ...evidence.git, pullRequest: "#42" }
+    };
+    const slot = {
+      status: "approved" as const,
+      approvedBy: "human",
+      approvedAt: "2026-07-13T00:00:00.000Z",
+      approvalMode: "human" as const,
+      headCommit: "head123",
+      diffHash: "diff123",
+      pullRequest: "#42",
+      reason: "Human reviewed the scoped Evidence",
+      actorId: "human",
+      actorSource: "tty",
+      verifiedAt: "2026-07-13T00:00:00.000Z",
+      verificationLevel: "lean"
+    };
+    const drifted = { ...slot, [field]: value };
+    const result = validateHumanGateApproval(task, scopedEvidence, {
+      id: "APR-WBS-001-004",
+      type: "approval",
+      taskId: "WBS-001-004",
+      version: "scwbs.approval.v2",
+      activeScope: "human-gate",
+      scopeApprovals: { "human-gate": drifted },
+      ...drifted
+    });
+    expect(result.issues.map((issue) => issue.code)).toContain(code);
+  });
+
   test("rejects current approved records without recorded scope", () => {
     const result = validateHumanGateApproval(
       task,

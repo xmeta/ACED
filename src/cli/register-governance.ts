@@ -17,7 +17,7 @@ import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
 import { runAiPacket } from "../commands/ai-packet.js";
 import { runAiExecute, runAiRun } from "../commands/ai-run.js";
 import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js";
-import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
+import { runApprovalApprove, runApprovalReject, runApprovalRequest } from "../commands/approval-request.js";
 import { runCompletionApply } from "../commands/completion.js";
 import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
 import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain, runEvidenceVerifyAttestation } from "../commands/evidence-collect.js";
@@ -284,6 +284,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
     .option("--task <id>", "task id")
     .option("--pull-request <id>", "pull request id")
     .option("--note <text>", "approval note")
+    .option("--scope <scope>", "approval scope human-gate|post-finish")
     .option("--force", "force request")
     .option("--json", "output a bounded versioned JSON summary")
     .action((noteParts: string[], options) => {
@@ -297,6 +298,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
         runApprovalRequest(root, options.task, {
           pullRequest: options.pullRequest,
           note,
+          scope: options.scope,
           force: options.force ?? false,
           json: options.json ?? false
         })
@@ -327,6 +329,28 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
           force: options.force ?? false
         })
       );
+      });
+
+  approval
+    .command("reject")
+    .description("Reject a task approval")
+    .option("--task <id>", "task id")
+    .requiredOption("--actor <text>", "approval actor (human only)")
+    .option("--scope <scope>", "approval scope human-gate|post-finish")
+    .requiredOption("--reason <text>", "rejection reason")
+    .option("--force", "force rejection")
+    .action((options) => {
+      if (!options.task) {
+        console.error("Missing --task <task-id>");
+        setExitCode(2);
+        return;
+      }
+      setExitCode(runApprovalReject(root, options.task, {
+        actor: options.actor,
+        scope: options.scope,
+        reason: options.reason,
+        force: options.force ?? false
+      }));
     });
 
   const approvalDelegation = approval.command("delegation");

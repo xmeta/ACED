@@ -5,10 +5,37 @@ import { describe, expect, test } from "vitest";
 import { collectBranchIssues, collectCurrentPullRequestIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
 import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
 import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
 import { chmodSync } from "node:fs";
 
 const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+
+function scopedHumanApproval(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const slot = {
+    status: "approved",
+    approvedBy: "human",
+    approvedAt: "2026-07-05T14:30:00.000Z",
+    approvalMode: "human",
+    headCommit: "abc1234",
+    diffHash: "diff1234",
+    pullRequest: "#42",
+    reason: "Human reviewed the current Evidence",
+    actorId: "human",
+    actorSource: "tty",
+    verifiedAt: "2026-07-05T14:30:00.000Z",
+    verificationLevel: "lean",
+    ...overrides
+  };
+  return {
+    id: "APR-WBS-001-004",
+    type: "approval",
+    taskId: "WBS-001-004",
+    version: "scwbs.approval.v2",
+    activeScope: "human-gate",
+    scopeApprovals: { "human-gate": slot },
+    ...slot
+  };
+}
 
 function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
   return sampleTask({
@@ -251,7 +278,7 @@ describe("check-diff", () => {
     ]));
   });
 
-  test("authority changes accept current-scope Human Approval without creating approval records", () => {
+  test("authority changes remain blocked even when an Approval matches the current Evidence", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
     const baseTask = sampleTask({ managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"] });
@@ -268,15 +295,14 @@ describe("check-diff", () => {
       diffHash: "approved-authority-diff",
       changedFiles: ["contracts/tasks/WBS-001-004.yaml"]
     }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved",
-      approvedBy: "Human Reviewer",
-      approvedAt: "2026-07-14T00:00:00.000Z",
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({
       headCommit: subjectHead,
       diffHash: "approved-authority-diff"
-    }) as unknown as Record<string, unknown>);
+    }));
     const headTask = { ...baseTask, requiredChecks: ["test"] };
-    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual([]);
+    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "diff.taskAuthority.change" })
+    ]));
   });
 
   test("a separate existing governance task can change another task authority", () => {
@@ -563,11 +589,11 @@ describe("check-diff", () => {
       "contracts/evidence/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"
     ]);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
-      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash }
+      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
-    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({
+      approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
+    }));
     expect(collectDiffIssues(root, task, ["src/core/git.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(false);
 
     writeText(root, "src/core/git.ts", "export const value = 2;\n");
@@ -654,15 +680,10 @@ describe("check-diff", () => {
     const root = makeTempRepo();
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved",
-      approvedBy: "Human Reviewer",
-      approvedAt: "2026-07-05T14:30:00.000Z",
-      headCommit: "abc1234",
-      diffHash: "diff1234"
-    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval());
     const task = sampleTask({
       allowedPaths: [],
       humanGateRequiredPaths: ["tsconfig.json"]
@@ -676,15 +697,10 @@ describe("check-diff", () => {
     const root = makeTempRepo();
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
-      status: "approved",
-      approvedBy: "Human Reviewer",
-      approvedAt: "2026-07-05T14:30:00.000Z",
-      headCommit: "abc1234",
-      diffHash: "old-diff"
-    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({ diffHash: "old-diff" }));
     const task = sampleTask({
       allowedPaths: [],
       humanGateRequiredPaths: ["tsconfig.json"]
@@ -1034,7 +1050,7 @@ describe("check-diff", () => {
     }
 
     const result = JSON.parse(output.join("\n"));
-    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 test-diff-hash"`;
+    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --scope human-gate --reason "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 test-diff-hash"`;
     expect(result.requiresHumanApproval).toBe(true);
     expect(result.nextAction).toBe(command);
     expect(result).toMatchObject({

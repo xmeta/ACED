@@ -69,6 +69,32 @@ export type TaskIndex = {
 
 export type ApprovalStatus = "requested" | "approved" | "rejected";
 export type ApprovalDelegationScope = "human-gate" | "post-finish";
+export const APPROVAL_V2_VERSION = "scwbs.approval.v2" as const;
+
+export type ApprovalScope = ApprovalDelegationScope;
+
+export type ApprovalScopeRecord = {
+  status: ApprovalStatus;
+  requestedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  headCommit?: string;
+  diffHash?: string;
+  pullRequest?: string;
+  reason?: string;
+  approvalMode?: "human" | "delegated";
+  actorId?: string;
+  actorSource?: "github-review" | string;
+  actorUrl?: string;
+  verifiedAt?: string;
+  verificationLevel?: "standard" | string;
+  delegationSource?: string;
+  delegatedBy?: string;
+  executedBy?: "ai-agent";
+  delegationScope?: ApprovalDelegationScope;
+  delegationProof?: string;
+  notes?: string[];
+};
 
 export type ApprovalPolicy =
   | { mode: "human-only" }
@@ -436,6 +462,9 @@ export type ApprovalRecord = {
   type: "approval";
   taskId: string;
   status: ApprovalStatus;
+  version?: typeof APPROVAL_V2_VERSION;
+  activeScope?: ApprovalScope;
+  scopeApprovals?: Partial<Record<ApprovalScope, ApprovalScopeRecord>>;
   requestedAt?: string;
   approvedBy?: string;
   approvedAt?: string;

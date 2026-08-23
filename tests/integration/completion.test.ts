@@ -96,6 +96,66 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
   });
 
+  test("completion selects only the post-finish Approval slot", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit());
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004",
+      type: "approval",
+      taskId: "WBS-001-004",
+      version: "scwbs.approval.v2",
+      activeScope: "human-gate",
+      scopeApprovals: {
+        "human-gate": { status: "approved", approvedBy: "human", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "human", headCommit: "abc1234", diffHash: "sha256:fake-diff-hash", pullRequest: "#42", reason: "Human reviewed the gate", actorId: "human", actorSource: "tty", verifiedAt: "2026-07-14T00:00:00.000Z", verificationLevel: "lean" },
+        "post-finish": { status: "requested", requestedAt: "2026-07-14T00:00:00.000Z", pullRequest: "#42" }
+      },
+      status: "approved",
+      approvedBy: "human",
+      approvedAt: "2026-07-14T00:00:00.000Z",
+      approvalMode: "human",
+      headCommit: "abc1234",
+      diffHash: "sha256:fake-diff-hash",
+      pullRequest: "#42",
+      reason: "Human reviewed the gate",
+      actorId: "human",
+      actorSource: "tty",
+      verifiedAt: "2026-07-14T00:00:00.000Z",
+      verificationLevel: "lean"
+    });
+    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+  });
+
+  test.each([
+    ["headCommit", "stale-head"],
+    ["diffHash", "stale-diff"],
+    ["pullRequest", "#41"]
+  ] as const)("completion rejects stale v2 post-finish %s", (field, value) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit());
+    const slot = {
+      status: "approved",
+      approvedBy: "human",
+      approvedAt: "2026-07-14T00:00:00.000Z",
+      approvalMode: "human",
+      headCommit: "abc1234",
+      diffHash: "sha256:fake-diff-hash",
+      pullRequest: "#42",
+      reason: "Human reviewed the post-finish Evidence",
+      actorId: "human",
+      actorSource: "tty",
+      verifiedAt: "2026-07-14T00:00:00.000Z",
+      verificationLevel: "lean"
+    };
+    const drifted = { ...slot, [field]: value };
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
+      activeScope: "post-finish", scopeApprovals: { "post-finish": drifted }, ...drifted
+    });
+    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+  });
+
   test("completion apply dry-run previews node-level completion targets", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
@@ -112,7 +172,6 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
       humanGateRequiredPaths: []
     }) as unknown as Record<string, unknown>);
     writeApprovedApproval(root, "WBS-001-004", { pullRequest: "#41" });
-    writeApprovedApproval(root, "WBS-001-005", { headCommit: "abc1235", pullRequest: "#42" });
     writeApprovedApproval(root, "WBS-001-006", { headCommit: "abc1236", pullRequest: "#43" });
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       id: "EVD-001-004",
@@ -228,7 +287,6 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
       humanGateRequiredPaths: []
     }) as unknown as Record<string, unknown>);
     writeApprovedApproval(root, "WBS-001-004", { pullRequest: "#41" });
-    writeApprovedApproval(root, "WBS-001-005", { headCommit: "abc1235", pullRequest: "#42" });
     writeApprovedApproval(root, "WBS-001-006", { headCommit: "abc1236", pullRequest: "#43" });
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       id: "EVD-001-004",
@@ -320,7 +378,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
     try {
-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated completion review", force: false })).toBe(0);
       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(0);
     } finally {
       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
@@ -334,9 +392,9 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
     try {
-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", force: false })).toBe(0);
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", reason: "Delegated gate review", force: false })).toBe(0);
       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: true })).toBe(0);
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated completion review", force: true })).toBe(0);
       const approval = readApproval(root, "WBS-001-004").approval!;
       writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...approval, delegationProof: `hmac-sha256:${"a".repeat(64)}` } as unknown as Record<string, unknown>);
       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
