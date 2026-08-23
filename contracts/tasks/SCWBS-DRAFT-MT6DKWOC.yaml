@@ -1,0 +1,74 @@
+id: SCWBS-DRAFT-MT6DKWOC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT6DKWOC
+branchName: task/SCWBS-DRAFT-MT6DKWOC-issue-600-classify-approval-version-runtime-cove
+allowedPaths:
+  - contracts/check-coverage.yaml
+forbiddenPaths:
+  - src/**
+  - tests/**
+  - docs/**
+  - .github/**
+  - scripts/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - tsconfig.tests.json
+  - vitest.config.ts
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/check-coverage.yaml
+stopIf:
+  - new coverage rule required
+  - classification semantics change required
+  - required check reduction required
+  - source test or documentation change required
+  - additional unclassified path found
+  - allowedPaths expansion required
+  - WBS changeset package or CI change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+  - lint
+doneCriteria:
+  - src/core/approval-version.ts is classified exactly by the existing core-workflow-safety-integration rule.
+  - The classification continues to require test:integration without changing rule semantics or reducing checks.
+  - No unrelated check-coverage rules, paths, rationale, classification, or requirements change.
+  - Repository unit, integration, typecheck, build, lint, SC-WBS check, and Registry validation succeed.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT6DKWOC.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-approved-issue-600-coverage-follow-up
+approvedAt: "2026-08-24T07:25:10+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT6DKWOC.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6DKWOC.patch
+  - contracts/approvals/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:9e78145757abc52afa5f4f5a13e4a82d2c3300dc4c53ebf339a29c060258531d
+  createdAt: "2026-08-23T22:25:42.676Z"

@@ -1,0 +1,20 @@
+id: SPEC-LITE-MT6DKWOC
+type: spec-contract
+featureId: F-MT6DKWOC
+title: "Issue #600: classify Approval version runtime coverage"
+sourceIssue: 600
+status: approved
+version: 0.1.0
+approvedBy: user-approved-issue-600-coverage-follow-up
+approvedAt: "2026-08-24T07:25:10+09:00"
+summary: "Classify the Approval v2 runtime version module under the existing workflow-safety integration coverage rule so PR 602 can pass fail-closed repository validation."
+acceptanceCriteria:
+  - The existing core-workflow-safety-integration rule contains src/core/approval-version.ts exactly once.
+  - The rule retains behavior-critical classification and test:integration requirements.
+  - No new rule is introduced and no unrelated policy field or path is changed.
+  - SC-WBS check no longer reports checkCoverage.unclassified when the PR 602 implementation is present.
+  - Unit, integration, typecheck, build, lint, SC-WBS check, and Registry validation succeed.
+nonGoals:
+  - changing source, tests, documentation, package, build, CI, WBS, or changesets
+  - reducing required checks or changing classification semantics
+  - implementing or modifying the scoped Approval bundle itself
