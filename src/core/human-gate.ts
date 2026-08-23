@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { matchesAny } from "./glob.js";
 import { changedFilesBetween, isCommitAncestor } from "./git.js";
 import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
+import { APPROVAL_V2_VERSION } from "./approval-version.js";
 import type { ApprovalDelegationScope, ApprovalRecord, ApprovalStatus, Evidence, Issue, TaskContract } from "./types.js";
 
 export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
@@ -125,12 +126,13 @@ export type HumanGateValidation = {
   issues: Issue[];
 };
 
-export function validateHumanApprovalProvenance(approval: ApprovalRecord, required: boolean): Issue[] {
+export function validateHumanApprovalProvenance(approval: ApprovalRecord, required: boolean, strict = false): Issue[] {
   if (!required || approval.approvalMode === "delegated") return [];
   const provenanceKeys = ["actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel"] as const;
   // Existing approved records predate Standard provenance. Preserve those immutable
-  // historical records; any newly written PR-bound Approval is verified at creation.
-  if (!provenanceKeys.some((key) => approval[key] !== undefined)) return [];
+  // historical records unless the caller is validating a v2 slot, which has a
+  // complete provenance contract.
+  if (!strict && !provenanceKeys.some((key) => approval[key] !== undefined)) return [];
   const issues: Issue[] = [];
   const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
   for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
@@ -155,22 +157,25 @@ export function evidenceDiffHash(evidence: Evidence | undefined): string | undef
   return evidence.diffHash ?? evidence.git?.diffHash;
 }
 
-export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined): string | undefined {
+export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined, scope?: ApprovalDelegationScope): string | undefined {
   const headCommit = evidenceSubjectHead(evidence);
   const diffHash = evidenceDiffHash(evidence);
   if (!headCommit || !diffHash) return undefined;
-  return `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+  return scope
+    ? `CONFIRM TTY APPROVAL ${taskId} ${scope} ${headCommit} ${diffHash}`
+    : `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
 }
 
 export function buildHumanApprovalCommand(
   taskId: string,
   evidence: Evidence | undefined,
-  approvalStatus?: ApprovalStatus
+  approvalStatus?: ApprovalStatus,
+  scope?: ApprovalDelegationScope
 ): string | undefined {
-  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence);
+  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence, scope);
   if (!confirmation) return undefined;
   const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
-  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "${confirmation}"`;
+  return `npm run scwbs -- approval approve --task ${taskId} --actor human${scope ? ` --scope ${scope}` : ""}${force} --reason "${confirmation}"`;
 }
 
 function isApprovalMetadataFile(taskId: string, file: string): boolean {
@@ -185,12 +190,19 @@ export function validateHumanGateApproval(
   changedFiles: string[] = evidence?.changedFiles ?? [],
   root?: string
 ): HumanGateValidation {
+  const scopedApproval = approval?.version === APPROVAL_V2_VERSION
+    ? (() => {
+      const slot = approval.scopeApprovals?.["human-gate"];
+      return slot ? { id: approval.id, type: approval.type, taskId: approval.taskId, version: APPROVAL_V2_VERSION, activeScope: "human-gate" as const, ...slot } : undefined;
+    })()
+    : approval;
+  approval = scopedApproval;
   const requiredFiles = changedFiles.filter((file) => matchesAny(file, task.humanGateRequiredPaths));
   if (requiredFiles.length === 0) {
     return { required: false, requiredFiles, approved: true, issues: [] };
   }
 
-  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status);
+  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status, "human-gate");
   if (!approval) {
     return {
       required: true,
@@ -200,8 +212,8 @@ export function validateHumanGateApproval(
         severity: "error",
         code: "approval.missing",
         message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
-        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id}`)
+        fixCommand: `npm run scwbs -- approval request --task ${task.id} --scope human-gate`,
+        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id} --scope human-gate`)
       }]
     };
   }
@@ -227,12 +239,23 @@ export function validateHumanGateApproval(
     message,
     ...(approvalCommand ? { fixCommand: approvalCommand } : {})
   });
-  issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
+  issues.push(...validateHumanApprovalProvenance(
+    approval,
+    approval.status === "approved" && (approval.version === APPROVAL_V2_VERSION || Boolean(evidence?.git?.pullRequest)),
+    approval.version === APPROVAL_V2_VERSION
+  ));
   if (approval.approvalMode === "delegated") {
     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
   }
   const subjectHead = evidenceSubjectHead(evidence);
   const subjectDiffHash = evidenceDiffHash(evidence);
+  const evidencePullRequest = evidence?.git?.pullRequest;
+  if (approval.version === APPROVAL_V2_VERSION && !evidencePullRequest) {
+    addApprovalIssue("approval.scope.pullRequest", `${task.id} scoped Approval and Evidence must record pull request scope`);
+  }
+  if (approval.pullRequest && evidencePullRequest && approval.pullRequest !== evidencePullRequest) {
+    addApprovalIssue("approval.scope.pullRequest", `${task.id} approved pullRequest does not match Evidence pullRequest`);
+  }
   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
     addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);

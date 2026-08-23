@@ -51,6 +51,7 @@ import {
 } from "./schema.js";
 import { activeTaskEntries, readTaskIndex } from "./task-index.js";
 import type {
+  ApprovalDelegationScope,
   ArtifactDefinition,
   ArtifactWorkflow,
   ApprovalRecord,
@@ -68,6 +69,7 @@ import type {
   TaskContract,
   RiskRecord
 } from "./types.js";
+import { APPROVAL_V2_VERSION } from "./approval-version.js";
 import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
 
 export type LifecycleArtifactKind =
@@ -211,6 +213,36 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
     value
   );
   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
+}
+
+/** Select an Approval fact for one lifecycle scope without falling back between v2 slots. */
+export function selectApprovalScope(approval: ApprovalRecord | undefined, scope: ApprovalDelegationScope): ApprovalRecord | undefined {
+  if (!approval) return undefined;
+  if (approval.version !== APPROVAL_V2_VERSION) {
+    if (approval.approvalMode === "delegated" && approval.delegationScope !== scope) return undefined;
+    return approval;
+  }
+  const slot = approval.scopeApprovals?.[scope];
+  if (!slot) return undefined;
+  return {
+    id: approval.id,
+    type: approval.type,
+    taskId: approval.taskId,
+    version: APPROVAL_V2_VERSION,
+    activeScope: scope,
+    ...slot
+  };
+}
+
+export function readApprovalForScope(root: string, taskId: string, scope: ApprovalDelegationScope): { approval?: ApprovalRecord; issues: Issue[] } {
+  const result = readApproval(root, taskId);
+  const approval = selectApprovalScope(result.approval, scope);
+  if (approval || !result.approval) return { approval, issues: result.issues };
+  const code = result.approval.version === APPROVAL_V2_VERSION ? "approval.scope.missing" : "approval.scope.mismatch";
+  const message = result.approval.version === APPROVAL_V2_VERSION
+    ? `${taskId} has no ${scope} Approval slot`
+    : `${taskId} Approval delegationScope does not match ${scope}`;
+  return { approval, issues: [...result.issues, { severity: "error", code, message }] };
 }
 
 export function readReview(root: string, taskId: string): { review?: ReviewRecord; issues: Issue[] } {

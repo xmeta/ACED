@@ -34,6 +34,8 @@ describe("npm bin entrypoint", () => {
     };
 
     expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
+    expect(packed.files.some((file) => file.path === "dist/core/approval-version.js")).toBe(true);
+    expect(packed.files.some((file) => file.path === "dist/core/types.js")).toBe(false);
     expect(packed.files.length).toBeLessThan(120);
     expect(packed.size).toBeLessThan(300_000);
 

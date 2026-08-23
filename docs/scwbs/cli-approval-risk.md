@@ -25,8 +25,10 @@ npm run scwbs -- review-queue --verbose
 npm run scwbs -- review route --task SCWBS-001
 npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
 npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
+npm run scwbs -- approval request --task SCWBS-001 --scope human-gate --pull-request "#42" --note "Awaiting Human Gate review"
 npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
 npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
+npm run scwbs -- approval approve --task SCWBS-001 --scope human-gate --pull-request "#42" --actor human --reason "<exact scoped TTY confirmation printed by scwbs>"
 SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
 npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
@@ -89,7 +91,9 @@ notes:
 
 `approval request`はhuman approvalをfabricateせず`requested` recordを作る。`approval approve`はreview済みtaskをapproved recordへ変えるexplicit human actionで、`status: approved`、`approvedBy: human`、`approvedAt`を書き込む。`--note`と`--reason`はquoted multi-word argumentと`--note=Awaiting human review`、`--reason=Evidence reviewed`のようなinline syntaxの両方で使える。
 
-`approval request --json`は`approvalId`、`taskId`、`status: requested`、`requestedAt`、bounded `notes`、`nextActionOwner: human`、`nextAction`を持つboundedな`scwbs.approval-request.v1` documentを1件出力する。schemaは[`schemas/approval-request.schema.json`](schemas/approval-request.schema.json)である。JSON outputはresponse projectionだけで、requestをapproveせず、approval provenanceを公開せず、既存YAML artifactとpolicy checkを変更しない。`--json`なしではexisting YAML outputを維持する。
+Scoped Approval は既存の一Task一ファイルを `version: scwbs.approval.v2` として保持する。`scopeApprovals.human-gate` と `scopeApprovals.post-finish` が正本で、`activeScope` とlegacy top-level fieldsはactive slotの厳密なprojectionである。Human Gate consumerには`--scope human-gate`、completionには`--scope post-finish`を指定し、opposite scopeへのfallbackはない。既存v2 bundleを書き換えるrequest/approveにはscope指定が必須で、forceは選択scopeだけを置換する。
+
+`approval request --json`は`approvalId`、`taskId`、`status: requested`、`requestedAt`、bounded `notes`、`nextActionOwner: human`、`nextAction`を持つboundedな`scwbs.approval-request.v1` documentを1件出力する。scoped requestでは`scope`も出力する。schemaは[`schemas/approval-request.schema.json`](schemas/approval-request.schema.json)である。JSON outputはresponse projectionだけで、requestをapproveせず、approval provenanceや他scope全文を公開せず、既存YAML artifactとpolicy checkを変更しない。`--json`なしのscoped mutation outputは、選択scopeのstatus/timestamps/PRだけを含む固定summaryであり、notes・reason・proof・provenance・他scopeを出力しない。legacy v1のunscoped outputは従来形式を維持する。
 
 `approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
 
@@ -193,6 +197,6 @@ npm run scwbs -- completion apply \
   --reason "Reviewed and accepted"
 ```
 
-`completion apply`はhand-written YAMLなしでreview済みWBS nodeをcompleteする。既定はdry-runで、書き込む予定のapprovalと`changeNodeStatus` operationを表示する。`--apply`ではexisting approved recordをvalidateし、`contracts/changesets/<completion-task-id>-complete-reviewed-work.json`を書き、WBS changesetをapplyし、registryをrebuildする。既定ではroot-node completionを拒否し、`--allow-root`はexplicit human decision後だけ使う。
+`completion apply`はhand-written YAMLなしでreview済みWBS nodeをcompleteする。既定はdry-runで、書き込む予定のapprovalと`changeNodeStatus` operationを表示する。`--apply`ではexisting approved recordをvalidateし、`contracts/changesets/<completion-task-id>-complete-reviewed-work.json`を書き、WBS changesetをapplyし、registryをrebuildする。既定ではroot-node completionを拒否し、`--allow-root`はexplicit human decision後だけ使う。ここでの修正はpost-finish Approval slotを厳密に選択するだけであり、targetの完全なReview/Evidence/Approval評価はIssue #594のblocked dependencyとして残る。
 
 > **将来的な改善案**：`--tasks`/`--task` という命名は初見では区別しづらい。CLIの後方互換性を保つ必要がなければ、`--completed-tasks <ids>` と `--completion-task <id>` のような自己説明的な名前への変更を検討する価値がある（現行実装のoption名は変更していない）。

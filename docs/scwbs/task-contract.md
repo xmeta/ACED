@@ -18,6 +18,20 @@ npm run scwbs -- block resolve --task <task-id> --reason "<判断内容と結果
 
 ## 6. Task Contract
 
+### Scoped Approval bundle v2
+
+Approvalは通常 `contracts/approvals/<task-id>.yaml` に一つだけ保存する。scope別事実を同じTaskで保持する場合は `version: scwbs.approval.v2` を使い、`scopeApprovals.human-gate` と `scopeApprovals.post-finish` を正本とする。`activeScope` と既存top-level fieldsはactive slotの厳密なprojectionであり、不一致のrecordは無効である。
+
+```bash
+npm run scwbs -- approval request --task <task-id> --scope human-gate --pull-request "#42"
+npm run scwbs -- approval approve --task <task-id> --scope human-gate --actor human --reason "<exact scoped confirmation>"
+npm run scwbs -- approval request --task <task-id> --scope post-finish --pull-request "#42"
+npm run scwbs -- approval reject --task <task-id> --scope human-gate --actor human --reason "<rejection reason>"
+```
+
+Human Gateは`human-gate` slot、completionは`post-finish` slotだけを選択する。v2 bundleへのscopeなしwriteは拒否され、scoped forceは選択slot以外を変更しない。Scoped rejectはhuman actor専用で、TTY actor provenanceを記録する。Scoped mutationのtext summaryは選択slotのstatus/timestamps/PRだけを出力し、他scopeやproof/provenanceを公開しない。Legacy v1 human recordは既存のunscoped read互換を維持するが、scopeを推測・複製しない。Legacy v1 delegated recordは明示された`delegationScope`と一致するconsumerだけが受理される。Delegated HMAC proofとTask policyの意味は変更しない。
+Completion targetの完全なReview/Evidence/Approval評価はIssue #594のblocked dependencyであり、本仕様ではpost-finish slotの厳密なconsumer選択のみを扱う。
+
 Task Contractは、AIが実装する1作業単位に対する契約である。
 1つのTask Contractは、原則として1つのWBS nodeに対応させる。
 

@@ -90,7 +90,7 @@ function prepareFinishRepoWithHumanGate(): string {
   writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
     changedFiles: ["src/security/secret.ts"],
     diffHash: "test-diff-hash",
-    git: { diffHash: "test-diff-hash" }
+    git: { headCommit: "abc1234", diffHash: "test-diff-hash", pullRequest: "#42" }
   }) as unknown as Record<string, unknown>);
   writeYaml(root, "contracts/registry.yaml", {
     projectId: "test-wbs",
@@ -118,6 +118,52 @@ function prepareFinishRepoWithHumanGate(): string {
     ]
   });
   return root;
+}
+
+function scopedHumanGateApproval(taskId: string, status: "requested" | "approved" | "rejected", evidence: ReturnType<typeof readEvidence>["evidence"], overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit ?? "head";
+  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "diff";
+  const pullRequest = evidence?.git?.pullRequest ?? "#42";
+  const slot = status === "requested"
+    ? { status, requestedAt: "2026-07-17T00:00:00.000Z", pullRequest, ...overrides }
+    : status === "rejected"
+      ? {
+        status,
+        approvedBy: "human",
+        approvedAt: "2026-07-17T00:01:00.000Z",
+        reason: "Human rejected the gate",
+        approvalMode: "human",
+        actorId: "human",
+        actorSource: "tty",
+        verifiedAt: "2026-07-17T00:01:00.000Z",
+        verificationLevel: "lean",
+        pullRequest,
+        ...overrides
+      }
+      : {
+        status,
+        approvedBy: "human",
+        approvedAt: "2026-07-17T00:01:00.000Z",
+        approvalMode: "human",
+        headCommit,
+        diffHash,
+        pullRequest,
+        reason: "Human reviewed the current Evidence",
+        actorId: "human",
+        actorSource: "tty",
+        verifiedAt: "2026-07-17T00:01:00.000Z",
+        verificationLevel: "lean",
+        ...overrides
+      };
+  return {
+    id: `APR-${taskId}`,
+    type: "approval",
+    taskId,
+    version: "scwbs.approval.v2",
+    activeScope: "human-gate",
+    scopeApprovals: { "human-gate": slot },
+    ...slot
+  };
 }
 
 function prepareFinishRepo(requestedApproval = false): string {
@@ -811,7 +857,7 @@ describe("finish", () => {
     expect(text).toContain("Current diff hash:");
     expect(text).toContain("Next action for human reviewer:");
     const evidence = readEvidence(root, "WBS-001-004").evidence;
-    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence));
+    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence, undefined, "human-gate"));
     expect(text).toContain("AI agents must stop here.");
     expect(text).toContain("Do not approve this task yourself.");
   }, 30000);
@@ -834,27 +880,16 @@ describe("finish", () => {
       const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
       expect(headCommit).toBeTruthy();
       expect(diffHash).toBeTruthy();
-      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
-        id: `APR-${taskId}`,
-        type: "approval",
-        taskId,
-        status,
-        approvedBy: "human",
-        approvedAt: "2026-07-17T00:00:00.000Z",
+      writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, status, evidence, {
         headCommit: mismatch === "headCommit" ? "stale-head" : headCommit,
         diffHash: mismatch === "diffHash" ? "sha256:stale-diff" : diffHash
-      });
+      }));
     } else if (status) {
-      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
-        id: `APR-${taskId}`,
-        type: "approval",
-        taskId,
-        status
-      });
+      writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, status, readEvidence(root, taskId).evidence));
     }
 
     const result = captureFinishJson(root, { taskId, baseRef: "base" });
-    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status);
+    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status, "human-gate");
 
     expect(result.exitCode).toBe(1);
     expect(result.json).toMatchObject({
@@ -881,12 +916,7 @@ describe("finish", () => {
   test("plain Human Gate output uses the same forced recovery command as JSON", () => {
     const root = prepareFinishRepoWithHumanGate();
     const taskId = "WBS-001-004";
-    writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
-      id: `APR-${taskId}`,
-      type: "approval",
-      taskId,
-      status: "rejected"
-    });
+    writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, "rejected", readEvidence(root, taskId).evidence));
     const output: string[] = [];
     const originalLog = console.log;
     console.log = (message?: unknown) => output.push(String(message));
@@ -897,7 +927,7 @@ describe("finish", () => {
     }
 
     expect(output).toContain("  Action owner: human only");
-    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected")}`);
+    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected", "human-gate")}`);
   }, 30000);
 
   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
@@ -920,7 +950,7 @@ describe("finish", () => {
         "contracts/evidence/WBS-001-004.yaml",
         "contracts/registry.yaml"
       ],
-      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence)
+      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence, undefined, "human-gate")
     });
     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);

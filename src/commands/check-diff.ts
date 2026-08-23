@@ -1,4 +1,4 @@
-import { readApproval, readEvidence, readTask } from "../core/contracts.js";
+import { readApproval, readApprovalForScope, readEvidence, readTask } from "../core/contracts.js";
 import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
 import { matchesAny } from "../core/glob.js";
 import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
@@ -360,7 +360,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?: 
     const gateTask = taskWithGovernancePolicyGates(task, files);
     const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
     humanGateFiles = gate.requiredFiles;
-    nextAction = buildHumanApprovalCommand(taskId, evidence, readApproval(root, taskId).approval?.status)
+    nextAction = buildHumanApprovalCommand(taskId, evidence, readApprovalForScope(root, taskId, "human-gate").approval?.status, "human-gate")
       ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
   }
 
