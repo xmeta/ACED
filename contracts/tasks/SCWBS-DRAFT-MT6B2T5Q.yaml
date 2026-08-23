@@ -1,0 +1,104 @@
+id: SCWBS-DRAFT-MT6B2T5Q
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT6B2T5Q
+branchName: task/SCWBS-DRAFT-MT6B2T5Q-issue-600-follow-up-scoped-approval-bundle-v2-re
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/human-gate.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/finish.test.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+forbiddenPaths:
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+stopIf:
+  - scope fallback required
+  - legacy human scope inference required
+  - HMAC or delegation policy semantics change required
+  - multiple canonical Approval files or Registry identity change required
+  - Task-started delegation scope expansion required
+  - TTY actor verification weakening required
+  - allowedPaths expansion required
+  - Issue 594 Review evaluator work required
+  - package or build configuration change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+  - lint
+doneCriteria:
+  - v2 requested slots require requestedAt and reject terminal, Human, or delegated provenance fields.
+  - v2 rejected slots require a non-empty reason, decision actor and timestamp, and verified Human TTY provenance while rejecting delegated fields.
+  - v2 approved slots retain the existing strict Human or delegated authority validation, and every status rejects incompatible fields.
+  - Human Gate recovery commands explicitly select human-gate and completion continues to select only post-finish without scope fallback.
+  - Integration fixtures use self-contained scoped Approval facts with matching Evidence and do not weaken production authority checks.
+  - Legacy v1 compatibility, exact activeScope projection, other-slot preservation, rollback atomicity, and Issue 594 non-goals remain intact.
+  - Unit, integration, typecheck, build, and lint checks pass from a clean build.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT6B2T5Q.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-approved-follow-up-issue-600
+approvedAt: "2026-08-24T06:15:24+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT6B2T5Q.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT6B2T5Q.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT6B2T5Q.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT6B2T5Q.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6B2T5Q.patch
+  - contracts/approvals/SCWBS-DRAFT-MT6B2T5Q.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT6B2T5Q.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:45555852912bcca005e570b7c2f6b2e715af39de2589cf056922739e5b0e087f
+  createdAt: "2026-08-23T21:16:13.157Z"

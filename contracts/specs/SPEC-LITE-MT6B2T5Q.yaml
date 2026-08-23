@@ -1,0 +1,27 @@
+id: SPEC-LITE-MT6B2T5Q
+type: spec-contract
+featureId: F-MT6B2T5Q
+title: "Issue #600 follow-up: scoped Approval bundle v2 remediation"
+sourceIssue: 600
+status: approved
+version: 0.1.0
+approvedBy: user-approved-follow-up-issue-600
+approvedAt: "2026-08-24T06:15:24+09:00"
+summary: "Complete fail-closed status semantics and integration compatibility for the scoped Approval bundle v2 without weakening scope or authority boundaries."
+acceptanceCriteria:
+  - A requested v2 slot requires requestedAt and rejects approved, rejected, Human provenance, and delegated proof fields that are incompatible with requested status.
+  - A rejected v2 slot requires a non-empty reason, decision actor and timestamp, and verified Human TTY provenance while rejecting delegated provenance and proof fields.
+  - An approved v2 slot retains strict mutually exclusive Human or delegated authority validation, including Evidence, scope, and proof bindings.
+  - Every malformed slot or top-level activeScope projection mismatch invalidates the whole v2 record without fallback to the opposite scope or legacy top-level data.
+  - Human Gate reads and emits recovery commands only for human-gate; completion reads only post-finish.
+  - Scoped mutations preserve the other slot and transactional failure restores byte-identical Approval and Registry contents.
+  - Legacy v1 Human and explicitly scoped delegated records retain the compatibility defined by Issue 600 without inferred Human scope.
+  - check-diff and finish expectations include explicit human-gate scope, and delegated post-finish fixtures contain reason and matching Evidence PR metadata.
+  - A clean build followed by unit, integration, typecheck, build, and lint checks succeeds.
+nonGoals:
+  - scope fallback or treating human-gate and post-finish as one Approval fact
+  - AI-created Human Approval or weakening TTY actor verification
+  - changing delegation proof, policy fingerprint, token, expiry, or Registry identity semantics
+  - adding multiple canonical Approval files or bulk-migrating legacy records
+  - implementing the Issue 594 Review and completion blocker evaluator
+  - changing package, build, WBS, or GitHub workflow configuration
