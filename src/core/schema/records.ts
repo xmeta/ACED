@@ -1,5 +1,5 @@
 import type { ErrorObject } from "ajv";
-import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord, RiskRecord } from "../types.js";
+import { APPROVAL_V2_VERSION, type ApprovalRecord, type BlockRecord, type Evidence, type Issue, type ReviewRecord, type RiskRecord } from "../types.js";
 import { taskIdPatternSource } from "../paths.js";
 import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
 
@@ -365,6 +365,64 @@ const evidenceSchema = {
   }
 };
 
+const approvalScopeFields = [
+  "status", "requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason",
+  "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel",
+  "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof", "notes"
+] as const;
+
+const approvalScopeProperties = {
+  status: { type: "string", enum: ["requested", "approved", "rejected"] },
+  requestedAt: { type: "string" }, approvedBy: { type: "string" }, approvedAt: { type: "string" },
+  headCommit: { type: "string" }, diffHash: { type: "string" }, pullRequest: { type: "string" }, reason: { type: "string" },
+  approvalMode: { type: "string", enum: ["human", "delegated"] }, actorId: { type: "string", minLength: 1 },
+  actorSource: { type: "string", minLength: 1 }, actorUrl: { type: "string", minLength: 1 }, verifiedAt: { type: "string", minLength: 1 },
+  verificationLevel: { type: "string", minLength: 1 }, delegationSource: { type: "string" }, delegatedBy: { type: "string" },
+  executedBy: { const: "ai-agent" }, delegationScope: { type: "string", enum: ["human-gate", "post-finish"] },
+  delegationProof: { type: "string", pattern: "^hmac-sha256:[a-f0-9]{64}$" }, notes: stringArraySchema
+};
+
+const approvalScopeSchema = {
+  type: "object",
+  required: ["status"],
+  additionalProperties: false,
+  properties: approvalScopeProperties
+};
+
+function validateV2ApprovedSlot(value: Record<string, unknown>, filePath: string): Issue[] {
+  if (value.status !== "approved") return [];
+  const issues: Issue[] = [];
+  const add = (code: string, message: string): void => { issues.push(issue(code, message)); };
+  if (value.approvalMode !== "human" && value.approvalMode !== "delegated") {
+    add("approval.v2.provenance", `${filePath}.approvalMode must be human or delegated when status is approved`);
+    return issues;
+  }
+  for (const key of ["headCommit", "diffHash", "pullRequest"] as const) {
+    if (typeof value[key] !== "string" || value[key].length === 0) {
+      add("approval.v2.scope", `${filePath}.${key} must be present for an approved v2 slot`);
+    }
+  }
+  if (typeof value.reason !== "string" || value.reason.trim().length === 0) {
+    add("approval.v2.scope", `${filePath}.reason must be present for an approved v2 slot`);
+  }
+  if (value.approvalMode === "human") {
+    for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
+      if (typeof value[key] !== "string" || value[key].length === 0) {
+        add("approval.v2.provenance", `${filePath}.${key} must be present for an approved human v2 slot`);
+      }
+    }
+    if (value.actorSource !== "tty" || value.verificationLevel !== "lean") {
+      add("approval.v2.provenance", `${filePath} human provenance must be verified by an interactive TTY`);
+    }
+    if (typeof value.actorId === "string" && value.approvedBy !== value.actorId) {
+      add("approval.v2.provenance", `${filePath}.approvedBy must match actorId for an approved human v2 slot`);
+    }
+  } else if (["actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel"].some((key) => value[key] !== undefined)) {
+    add("approval.v2.provenance", `${filePath} delegated provenance must not contain human actor fields`);
+  }
+  return issues;
+}
+
 const approvalRecordSchema = {
   type: "object",
   required: ["id", "type", "taskId", "status"],
@@ -374,6 +432,18 @@ const approvalRecordSchema = {
     type: { const: "approval" },
     taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
     status: { type: "string", enum: ["requested", "approved", "rejected"] },
+    version: { const: APPROVAL_V2_VERSION },
+    activeScope: { type: "string", enum: ["human-gate", "post-finish"] },
+    scopeApprovals: {
+      type: "object",
+      minProperties: 1,
+      maxProperties: 2,
+      additionalProperties: false,
+      properties: {
+        "human-gate": approvalScopeSchema,
+        "post-finish": approvalScopeSchema
+      }
+    },
     requestedAt: { type: "string" },
     approvedBy: { type: "string" },
     approvedAt: { type: "string" },
@@ -682,13 +752,56 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
   }
-  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+  for (const key of ["version", "activeScope", "requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
     }
   }
   if (value.notes !== undefined && !isStringArray(value.notes)) {
     issues.push(issue("approval.notes", `${filePath}.notes must be a string array when present`));
+  }
+  if (value.version === APPROVAL_V2_VERSION || value.scopeApprovals !== undefined || value.activeScope !== undefined) {
+    if (value.version !== APPROVAL_V2_VERSION) issues.push(issue("approval.v2.version", `${filePath}.version must be ${APPROVAL_V2_VERSION} when scoped approvals are present`));
+    if (!isObject(value.scopeApprovals)) {
+      issues.push(issue("approval.v2.scopeApprovals", `${filePath}.scopeApprovals must be an object`));
+    }
+    const scopes = isObject(value.scopeApprovals) ? value.scopeApprovals : {};
+    const allowedV2Keys = new Set(["id", "type", "taskId", "version", "activeScope", "scopeApprovals", ...approvalScopeFields]);
+    for (const key of Object.keys(value)) {
+      if (!allowedV2Keys.has(key)) issues.push(issue("approval.v2.projection", `${filePath}.${key} is not a valid v2 projected field`));
+    }
+    const scopeKeys = Object.keys(scopes);
+    if (scopeKeys.length === 0 || scopeKeys.length > 2 || scopeKeys.some((scope) => scope !== "human-gate" && scope !== "post-finish")) {
+      issues.push(issue("approval.v2.scopeApprovals", `${filePath}.scopeApprovals must contain one or two known scopes`));
+    }
+    if (value.activeScope !== "human-gate" && value.activeScope !== "post-finish") {
+      issues.push(issue("approval.v2.activeScope", `${filePath}.activeScope must identify an available scope`));
+    }
+    const active = isObject(value.scopeApprovals) && (value.activeScope === "human-gate" || value.activeScope === "post-finish")
+      ? scopes[value.activeScope]
+      : undefined;
+    if (!isObject(active)) {
+      issues.push(issue("approval.v2.activeScope", `${filePath}.activeScope must reference a scope slot`));
+    } else {
+      for (const key of approvalScopeFields) {
+        const slotHas = Object.prototype.hasOwnProperty.call(active, key);
+        const topHas = Object.prototype.hasOwnProperty.call(value, key);
+        if (slotHas !== topHas || (slotHas && JSON.stringify(active[key]) !== JSON.stringify(value[key]))) {
+          issues.push(issue("approval.v2.projection", `${filePath}.${key} must exactly project activeScope ${value.activeScope}`));
+        }
+      }
+    }
+    for (const [scope, slot] of Object.entries(scopes)) {
+      if (!isObject(slot)) continue;
+      issues.push(...validateApprovalRecord({ id: `${String(value.id)}-${scope}`, type: "approval", taskId: value.taskId, ...slot }, `${filePath}.scopeApprovals.${scope}`));
+      issues.push(...validateV2ApprovedSlot(slot, `${filePath}.scopeApprovals.${scope}`));
+      if (slot.delegationScope !== undefined && slot.delegationScope !== scope) {
+        issues.push(issue("approval.v2.scope", `${filePath}.scopeApprovals.${scope}.delegationScope must match its scope key`));
+      }
+      if (slot.approvalMode === "delegated" && slot.delegationScope !== scope) {
+        issues.push(issue("approval.v2.scope", `${filePath}.scopeApprovals.${scope} delegated approval requires matching delegationScope`));
+      }
+    }
   }
   if (value.status === "approved") {
     for (const key of ["approvedBy", "approvedAt"]) {

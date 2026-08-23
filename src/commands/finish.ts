@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+import { readApproval, readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
 import { buildHumanApprovalCommand as buildEvidenceBoundHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
 import { gitCommonDir } from "../core/required-check-run.js";
@@ -392,8 +392,8 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
 }
 
-export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus): string {
-  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus)
+export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus, scope?: "human-gate" | "post-finish"): string {
+  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus, scope)
     ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
 }
 
@@ -507,7 +507,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
   }
 
   const evidenceRelativePath = evidencePath(taskId);
-  const approvalStatus = () => readApproval(root, taskId).approval?.status ?? "";
+  const approvalStatus = () => readApprovalForScope(root, taskId, "post-finish").approval?.status ?? "";
   const journalPath = finishJournalPath(root, taskId);
   if (existsSync(journalPath) && options.preflight) {
     const nextAction = resumeFinishCommand(taskId);
@@ -720,16 +720,17 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
   if (json) console.error("PASS registry check");
 
   const approval = readApproval(root, taskId).approval;
+  const humanGateApproval = readApprovalForScope(root, taskId, "human-gate").approval;
   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
   if (humanGateIssues.length > 0) {
-    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, approval?.status);
+    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, humanGateApproval?.status, "human-gate");
     if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
     emitJson(finishOutput({
       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
       requiresHumanApproval: true, changedFiles: evidence.changedFiles, violations: humanGateIssues,
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
-      approvalStatus: approval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
+      approvalStatus: humanGateApproval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
       mutatedFiles, humanGateFiles: gate.requiredFiles, diffHash, readinessWarnings: [],
       fixCommands: [approvalCommand], ...buildHumanGateActionOwnership(approvalCommand)
     }), json);
@@ -745,7 +746,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [issue],
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
-      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
+      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles,
       readinessWarnings: readinessWarnings([issue]),
       fixCommands: issue.fixCommand ? [issue.fixCommand] : []
     }), json);
@@ -763,7 +764,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
       status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
-      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
+      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles,
       readinessWarnings: readinessWarnings(readinessIssues),
       fixCommands: readinessFixCommands(readinessIssues)
     }), json);
@@ -800,7 +801,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
     status: "pass", phase: "complete", outcome: "completed", taskId,
     requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
     requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
-    approvalStatus: approval?.status ?? "", nextAction: next.command, resumeCommand: next.command,
+    approvalStatus: approvalStatus(), nextAction: next.command, resumeCommand: next.command,
     mutatedFiles, readinessWarnings: [], fixCommands: [],
     ...(readinessReport ? { mergeReadiness: summarizeMergeReadiness(readinessReport) } : {})
   }), json);

@@ -1,13 +1,13 @@
-import { chmodSync, readFileSync } from "node:fs";
+import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, test } from "vitest";
-import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+import { buildApprovalApproveYaml, runApprovalApprove, runApprovalReject, runApprovalRequest } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { main } from "../../src/cli.js";
-import { readApproval } from "../../src/core/contracts.js";
+import { readApproval, readApprovalForScope, readRegistry } from "../../src/core/contracts.js";
 import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 
 const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
@@ -73,6 +73,55 @@ describe("approval", () => {
     expect(actual).toContain('pullRequest: "#42"');
   });
 
+  test("scoped requests retain independent human-gate and post-finish slots", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", pullRequest: "#42", force: false })).toBe(0);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", pullRequest: "#42", force: false })).toBe(0);
+
+    const human = readApprovalForScope(root, "WBS-001-004", "human-gate").approval;
+    const postFinish = readApprovalForScope(root, "WBS-001-004", "post-finish").approval;
+    expect(human).toMatchObject({ version: "scwbs.approval.v2", activeScope: "human-gate", status: "requested", pullRequest: "#42" });
+    expect(postFinish).toMatchObject({ version: "scwbs.approval.v2", activeScope: "post-finish", status: "requested", pullRequest: "#42" });
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", pullRequest: "#43", note: "replacement", force: true })).toBe(0);
+    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested", pullRequest: "#42" });
+    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "requested", pullRequest: "#43" });
+    const raw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(raw).toContain("human-gate:");
+    expect(raw).toContain("post-finish:");
+  });
+
+  test("scoped write imports only an explicitly scoped v1 delegated record and never infers v1 human scope", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+      status: "approved",
+      approvalMode: "delegated",
+      approvedBy: "delegated:xmeta",
+      approvedAt: "2026-07-14T00:00:00.000Z",
+      delegationSource: "issue-222",
+      delegatedBy: "xmeta",
+      executedBy: "ai-agent",
+      delegationScope: "post-finish",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
+      reason: "Legacy delegated approval",
+      delegationProof: `hmac-sha256:${"a".repeat(64)}`
+    }) as unknown as Record<string, unknown>);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: true })).toBe(0);
+    const raw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(raw).toContain("post-finish:");
+    expect(raw).toContain("delegationScope: post-finish");
+    expect(raw).toContain("human-gate:");
+
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "approved", approvedBy: "old-human", approvedAt: "2026-07-14T00:00:00.000Z" }) as unknown as Record<string, unknown>);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", force: true })).toBe(0);
+    const humanRaw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(humanRaw).not.toContain("old-human");
+    expect(humanRaw).toContain("post-finish:");
+  });
+
   test("approval request records the detected current branch PR after Evidence matches", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -134,7 +183,13 @@ describe("approval", () => {
     writeScwbsProject(root);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
     }) as unknown as Record<string, unknown>);
     const note = "n".repeat(2048);
     const output = captureOutput(() => main([
@@ -204,6 +259,124 @@ describe("approval", () => {
     expect(actual).toContain("reason: CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234");
   });
 
+  test("scoped human approval requires scope-bound confirmation and preserves the other slot", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234",
+      diffHash: "diff1234",
+      git: { pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", pullRequest: "#42", force: false })).toBe(0);
+
+    const result = withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      scope: "human-gate",
+      pullRequest: "#42",
+      reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234",
+      actor: "human",
+      force: false
+    }));
+    expect(result).toBe(0);
+    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "approved", activeScope: "human-gate" });
+    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested", activeScope: "post-finish" });
+    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      scope: "post-finish", pullRequest: "#42",
+      reason: "CONFIRM TTY APPROVAL WBS-001-004 post-finish abc1234 diff1234", actor: "human", force: false
+    }))).toBe(0);
+    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      scope: "human-gate", pullRequest: "#42",
+      reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234", actor: "human", force: true
+    }))).toBe(0);
+    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "approved", activeScope: "post-finish" });
+    expect(readRegistry(root).registry?.contracts.filter((entry) => entry.type === "approval" && entry.relatedTask === "WBS-001-004")).toHaveLength(1);
+  });
+
+  test("scoped human rejection is isolated, TTY-bound, and bounded", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: false })).toBe(0);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", force: false })).toBe(0);
+    const output = captureOutput(() => withInteractiveTty(() => runApprovalReject(root, "WBS-001-004", {
+      actor: "human", scope: "human-gate", reason: "Human rejected the gate", force: false
+    })));
+    expect(output.result).toBe(0);
+    expect(output.stdout).toContain("activeScope: human-gate");
+    expect(output.stdout).not.toContain("post-finish:");
+    expect(output.stdout).not.toContain("Human rejected the gate");
+    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "rejected", reason: "Human rejected the gate" });
+    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested" });
+    expect(runApprovalReject(root, "WBS-001-004", { actor: "ai", scope: "post-finish", reason: "AI", force: true })).toBe(1);
+    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested" });
+  });
+
+  test("scoped human approval fails closed without Evidence PR, TTY, or exact confirmation", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234", diffHash: "diff1234", git: {
+        branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234"
+      }
+    }) as unknown as Record<string, unknown>);
+    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      actor: "human", scope: "human-gate", force: true, reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234"
+    }))).toBe(1);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      subjectHeadCommit: "abc1234", diffHash: "diff1234", git: {
+        branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42"
+      }
+    }) as unknown as Record<string, unknown>);
+    expect(runApprovalApprove(root, "WBS-001-004", {
+      actor: "human", scope: "human-gate", force: true, reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234"
+    })).toBe(1);
+    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
+      actor: "human", scope: "human-gate", force: true, reason: "wrong confirmation"
+    }))).toBe(1);
+    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
+  });
+
+  test("request and approve preserve an invalid v2 artifact even with force", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const invalid = {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
+      activeScope: "human-gate", scopeApprovals: { "human-gate": { status: "requested" } }, status: "approved"
+    };
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", invalid);
+    const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: true })).toBe(1);
+    expect(runApprovalApprove(root, "WBS-001-004", { actor: "human", scope: "human-gate", force: true, reason: "bad" })).toBe(1);
+    expect(runApprovalReject(root, "WBS-001-004", { actor: "human", scope: "human-gate", force: true, reason: "bad" })).toBe(1);
+    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
+  });
+
+  test("transactional approval mutation restores Approval and Registry bytes when sync fails", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runApprovalRequest(root, "WBS-001-004", { force: false })).toBe(0);
+    const approvalPath = path.join(root, "contracts/approvals/WBS-001-004.yaml");
+    const registryPath = path.join(root, "contracts/registry.yaml");
+    const beforeApproval = readFileSync(approvalPath, "utf8");
+    const beforeRegistry = readFileSync(registryPath, "utf8");
+    expect(runApprovalRequest(root, "WBS-001-004", {
+      force: true,
+      note: "replacement",
+      afterRegistrySync: () => {
+        writeFileSync(registryPath, "corrupted registry\n", "utf8");
+        throw new Error("forced registry failure");
+      }
+    })).toBe(1);
+    expect(readFileSync(approvalPath, "utf8")).toBe(beforeApproval);
+    expect(readFileSync(registryPath, "utf8")).toBe(beforeRegistry);
+  });
+
+  test("root reject alias reaches the approval reject writer", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    expect(runApprovalRequest(root, "WBS-001-004", { force: false })).toBe(0);
+    expect(main(["reject", "--task", "WBS-001-004", "--actor", "human", "--reason", "Human rejected"], root)).toBe(0);
+    expect(readApproval(root, "WBS-001-004").approval).toMatchObject({ status: "rejected", reason: "Human rejected" });
+  });
+
   test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
     const root = makeTempRepo();
     writeScwbsProject(root);
@@ -270,7 +443,13 @@ describe("approval", () => {
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: {
+        branch: "task/WBS-001-004-api-implementation",
+        base: "main",
+        headCommit: "abc1234",
+        pullRequest: "#42"
+      }
     }) as unknown as Record<string, unknown>);
     let output: ReturnType<typeof captureOutput>;
     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
@@ -332,7 +511,7 @@ describe("approval", () => {
     else delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
     let output: ReturnType<typeof captureOutput>;
     try {
-      output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope, force: false }));
+    output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope, reason: "Delegated evidence review", force: false }));
     } finally {
       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
     }

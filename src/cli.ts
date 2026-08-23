@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import path from "node:path";
 import { runAiBlock, runHumanBlockResolve } from "./commands/ai-queue.js";
 import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
-import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
+import { runApprovalApprove, runApprovalReject, runApprovalRequest } from "./commands/approval-request.js";
 import { runCheck } from "./commands/check.js";
 import { runDocsCheck } from "./commands/docs-check.js";
 import { buildStatusJsonOutput } from "./commands/status.js";
@@ -674,6 +674,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
     .option("--pr <number>", "pull request number")
     .option("--pull-request <number>", "pull request number (legacy)")
     .option("--note <text>", "approval note")
+    .option("--scope <scope>", "approval scope human-gate|post-finish")
     .option("--force", "force request")
     .action((opts) => {
       const taskId = opts.task;
@@ -685,6 +686,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
       exitCode = runApprovalRequest(root, taskId, {
         pullRequest: opts.pr ?? opts.pullRequest,
         note: opts.note,
+        scope: opts.scope,
         force: opts.force ?? false
       });
     });
@@ -711,6 +713,29 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
         reason: opts.reason,
         actor: opts.actor,
         scope: opts.scope,
+        force: opts.force ?? false
+      });
+    });
+
+  program
+    .command("reject")
+    .description("Reject a task approval")
+    .option("--task <id>", "task id")
+    .option("--scope <scope>", "approval scope human-gate|post-finish")
+    .option("--actor <text>", "approval actor")
+    .option("--reason <text>", "rejection reason")
+    .option("--force", "force rejection")
+    .action((opts) => {
+      const taskId = opts.task;
+      if (!taskId) {
+        console.error("Missing --task <task-id>");
+        exitCode = 2;
+        return;
+      }
+      exitCode = runApprovalReject(root, taskId, {
+        actor: opts.actor,
+        scope: opts.scope,
+        reason: opts.reason,
         force: opts.force ?? false
       });
     });

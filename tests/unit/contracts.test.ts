@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { collectCheckIssues } from "../../src/commands/check.js";
-import { listRisks, listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+import { listRisks, listSpecChanges, listSpecs, readApproval, readApprovalForScope, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
 import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
 import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
 
@@ -283,6 +283,79 @@ describe("contracts / schema", () => {
     expect(readEvidence(root, "WBS-001-004").issues.some((issue) => issue.code === "evidence.schema")).toBe(true);
     expect(readApproval(root, "WBS-001-004").issues.some((issue) => issue.code === "approval.schema")).toBe(true);
     expect(readReview(root, "WBS-001-004").issues.some((issue) => issue.code === "review.schema")).toBe(true);
+  });
+
+  test("v2 Approval projection and scope selection fail closed on projection drift", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004",
+      type: "approval",
+      taskId: "WBS-001-004",
+      version: "scwbs.approval.v2",
+      activeScope: "human-gate",
+      scopeApprovals: {
+        "human-gate": { status: "approved", approvedBy: "human" },
+        "post-finish": { status: "requested" }
+      },
+      status: "rejected",
+      approvedBy: "human"
+    });
+
+    const result = readApproval(root, "WBS-001-004");
+    expect(result.approval).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "approval.v2.projection")).toBe(true);
+    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toBeUndefined();
+  });
+
+  test.each([
+    ["human", { status: "approved", approvedBy: "human", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "human", headCommit: "head", diffHash: "diff", pullRequest: "#42" }, "approval.v2.provenance"],
+    ["delegated", { status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated", headCommit: "head", diffHash: "diff", pullRequest: "#42", delegationSource: "src", delegatedBy: "xmeta", executedBy: "ai-agent", delegationScope: "human-gate" }, "approval.delegation"]
+  ] as const)("v2 rejects incomplete approved %s provenance", (_name, slot, expectedCode) => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
+      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
+    });
+    const result = readApproval(root, "WBS-001-004");
+    expect(result.approval).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === expectedCode)).toBe(true);
+  });
+
+  test("v2 rejects a delegated slot whose delegationScope disagrees with its key", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const slot = {
+      status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated",
+      headCommit: "head", diffHash: "diff", pullRequest: "#42", delegationSource: "src", delegatedBy: "xmeta",
+      executedBy: "ai-agent", delegationScope: "post-finish", delegationProof: `hmac-sha256:${"a".repeat(64)}`
+    };
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
+      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
+    });
+    const result = readApproval(root, "WBS-001-004");
+    expect(result.approval).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "approval.v2.scope")).toBe(true);
+  });
+
+  test("v2 delegated approved slots reject human provenance fields", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root);
+    const slot = {
+      status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated",
+      headCommit: "head", diffHash: "diff", pullRequest: "#42", reason: "Delegated review", delegationSource: "src",
+      delegatedBy: "xmeta", executedBy: "ai-agent", delegationScope: "human-gate", delegationProof: `hmac-sha256:${"a".repeat(64)}`,
+      actorId: "human"
+    };
+    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
+      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
+      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
+    });
+    const result = readApproval(root, "WBS-001-004");
+    expect(result.approval).toBeUndefined();
+    expect(result.issues.some((issue) => issue.code === "approval.v2.provenance")).toBe(true);
   });
 
   test("semantic validation still owns repository consistency after schema validation", () => {
