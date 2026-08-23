@@ -1,0 +1,23 @@
+id: SPEC-LITE-MT67TGZ4
+type: spec-contract
+featureId: F-MT67TGZ4
+title: "Issue #594: fail-close WBS completion review and approval scope"
+sourceIssue: 594
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-594
+approvedAt: "2026-08-24T00:00:00+09:00"
+summary: "Use one completion evaluator for primary and target Tasks that requires approved Review identity and canonical Human Gate Approval scope validation."
+acceptanceCriteria:
+  - Node-level completion rejects requested and changes-requested Review status for its primary Task and every completionTaskId.
+  - Review taskId, pullRequest, headCommit, and diffHash are checked against the current Evidence subject for the same Task.
+  - Human Gate Tasks are accepted only when validateHumanGateApproval returns an approved result for current Evidence and changed files.
+  - Missing, requested, rejected, stale, provenance-incomplete, head-mismatched, and diff-mismatched Human Gate Approval records produce bounded Task-specific blockers.
+  - Primary and target Tasks share the same validation rules, and dry-run and --apply use the same plan and blocker evaluation.
+  - Approved Review, current Evidence, and scope-bound Approval generate a changeset in both primary and target happy paths.
+  - Integration fixtures use approved Review status and cover requested, changes-requested, Review scope mismatch, and Human Gate Approval scope mismatch failures.
+nonGoals:
+  - promoting AI review to Human Approval
+  - executing review approve or Human Approval on behalf of a human
+  - rewriting Task Contract, Evidence, Review, or Approval records to make completion pass
+  - redesigning lifecycle transitions or WBS node completion outside this command

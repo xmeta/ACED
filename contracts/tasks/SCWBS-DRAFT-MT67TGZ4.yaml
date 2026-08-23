@@ -1,0 +1,63 @@
+id: SCWBS-DRAFT-MT67TGZ4
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT67TGZ4
+branchName: task/SCWBS-DRAFT-MT67TGZ4-issue-594-fail-close-wbs-completion-review-and-a
+allowedPaths:
+  - src/commands/completion.ts
+  - tests/integration/completion.test.ts
+forbiddenPaths:
+  - src/core/human-gate.ts
+  - contracts/wbs/project.wbs.json
+  - .github/**
+  - package.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - WBS schema or lifecycle redesign required
+  - canonical Human Gate validator change required
+  - allowedPaths expansion required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Node-level completion accepts only approved Review records for the primary Task and every completionTaskId.
+  - Review taskId, pullRequest, headCommit, and diffHash match the current Evidence subject for the same Task.
+  - Human Gate completion reuses validateHumanGateApproval and rejects missing, requested, rejected, stale, or incompletely scoped Approval records.
+  - Primary and target Tasks use one bounded evaluator, and dry-run and --apply return the same blocker set without writing a changeset when blocked.
+  - Approved Review, current Evidence, and scope-bound Approval are covered for primary and target happy paths; requested, changes-requested, and scope mismatch cases have regression tests.
+  - Completion output identifies the blocked Task and failed review or approval scope without unbounded record contents.
+  - No Human Approval is synthesized, no Review lifecycle or WBS semantics are redesigned, and no canonical validator is duplicated.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT67TGZ4.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-requested-issue-594
+approvedAt: "2026-08-24T00:00:00+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT67TGZ4.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT67TGZ4.patch
+  - contracts/approvals/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:b4949a828906683d854d5d9b8ee5af992fa6412ee2181e7d1a2e0c62cd11645a
+  createdAt: "2026-08-23T19:45:24.857Z"
