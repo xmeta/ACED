@@ -1,0 +1,104 @@
+id: SCWBS-DRAFT-MT68HQ4F
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT68HQ4F
+branchName: task/SCWBS-DRAFT-MT68HQ4F-issue-600-scoped-approval-bundle-v2
+allowedPaths:
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - tests/helpers.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/human-gate.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/completion.test.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+forbiddenPaths:
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+stopIf:
+  - scope fallback required
+  - legacy human scope inference required
+  - HMAC or delegation policy semantics change required
+  - multiple canonical Approval files or Registry identity change required
+  - Task-started delegation scope expansion required
+  - TTY actor verification weakening required
+  - allowedPaths expansion required
+  - Issue 594 Review evaluator work required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+  - lint
+doneCriteria:
+  - One canonical Approval file can retain independent self-contained human-gate and post-finish facts for the same Task.
+  - scopeApprovals is authoritative in v2 and top-level fields are an exact activeScope projection; any projection mismatch invalidates the record.
+  - Human Gate selects only human-gate and completion selects only post-finish, with no opposite-scope fallback.
+  - Scoped request, approve, reject, and force operations preserve the other scope and reject scope-less writes that could destroy a v2 bundle.
+  - Human scoped Approval requires interactive TTY, verified OS actor, and scope-bound exact confirmation; AI cannot create Human Approval.
+  - Delegated policy, token, expiry, provenance, and HMAC proof rules remain unchanged and bind the slot key to delegationScope.
+  - Legacy v1 human and delegated records remain readable without bulk migration or inferred human scope; explicit v1 delegated scope may be safely imported on a scoped write.
+  - Registry continues to index one Approval artifact per Task and failed writer or registry synchronization restores the original file.
+  - Unit and integration tests cover schema, projection, both write orders, force isolation, consumer isolation, authority, rollback, and legacy compatibility.
+  - Documentation and approval-request JSON schema describe scoped commands and do not expose tokens or unbounded other-scope records.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT68HQ4F.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-requested-issue-600
+approvedAt: "2026-08-24T00:00:00+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT68HQ4F.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT68HQ4F.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT68HQ4F.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT68HQ4F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT68HQ4F.patch
+  - contracts/approvals/SCWBS-DRAFT-MT68HQ4F.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT68HQ4F.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:bf2ed3805f6ebcc8975f6c3b74b7e0612c18f8da312ccd1ed21424b3841e069b
+  createdAt: "2026-08-23T20:03:23.835Z"

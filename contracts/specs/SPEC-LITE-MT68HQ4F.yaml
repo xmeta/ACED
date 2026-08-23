@@ -1,0 +1,31 @@
+id: SPEC-LITE-MT68HQ4F
+type: spec-contract
+featureId: F-MT68HQ4F
+title: "Issue #600: scoped Approval bundle v2"
+sourceIssue: 600
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-600
+approvedAt: "2026-08-24T00:00:00+09:00"
+summary: "Retain independent canonical human-gate and post-finish Approval facts in one backward-compatible per-Task bundle."
+acceptanceCriteria:
+  - A scwbs.approval.v2 record keeps scopeApprovals.human-gate and scopeApprovals.post-finish as at most two self-contained authoritative slots in the existing per-Task Approval file.
+  - Each slot contains its own status, Evidence head and diff, pull request, human or delegated provenance, reason, timestamps, and delegated proof fields where applicable.
+  - activeScope and all legacy top-level Approval fields exactly project the active slot; any missing, extra, or mismatched projected field invalidates the whole v2 record.
+  - Human Gate reads only the human-gate slot and completion reads only the post-finish slot; an approved opposite slot never satisfies the consumer.
+  - The slot key, delegated delegationScope, fixed Task policy scope, and HMAC proof scope must agree without changing the proof algorithm or policy fingerprint.
+  - Scoped request and approval writes preserve the other slot, force only replaces the selected slot, and a scope-less write cannot mutate an existing v2 bundle.
+  - Human scoped approval requires interactive TTY, verified operating-system actor, and exact confirmation containing task id, scope, head, and diff; AI mode cannot create it.
+  - Legacy v1 delegated records remain valid only for their explicit delegationScope and may be imported into that exact slot on a later scoped write.
+  - Legacy v1 human records retain unscoped read compatibility until a scoped bundle exists, but their scope is never inferred or automatically copied.
+  - One Registry entry per Approval file is retained, and transactional write failure restores the original Approval and Registry state.
+  - JSON and text output are bounded, omit secrets, and do not disclose an unrelated scope record unless explicitly requested.
+  - Tests cover v1 compatibility, one-slot and two-slot v2 records, projection mismatch, malformed slots, both write orders, force isolation, consumer isolation, stale scope, rollback, and Human or delegated authority failures.
+nonGoals:
+  - scope fallback or treating both lifecycle consumers as one Approval fact
+  - AI-created Human Approval or Review-to-Approval promotion
+  - changing the delegation proof algorithm, policy fingerprint, token, or expiry semantics
+  - adding multiple canonical Approval files or changing Registry identity
+  - bulk migration or inferred scope for legacy Human Approval
+  - implementing the Issue 594 Review and completion blocker evaluator
+  - changing WBS lifecycle semantics
