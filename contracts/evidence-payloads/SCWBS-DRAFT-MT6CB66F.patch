@@ -1,0 +1,2370 @@
+diff --git a/contracts/specs/SPEC-LITE-MT6CB66F.yaml b/contracts/specs/SPEC-LITE-MT6CB66F.yaml
+new file mode 100644
+index 0000000..5cfb447
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MT6CB66F.yaml
+@@ -0,0 +1,26 @@
++id: SPEC-LITE-MT6CB66F
++type: spec-contract
++featureId: F-MT6CB66F
++title: "Issue #600 final: scoped Approval bundle completion"
++sourceIssue: 600
++status: approved
++version: 0.1.0
++approvedBy: user-approved-final-follow-up-issue-600
++approvedAt: "2026-08-24T06:49:35+09:00"
++summary: "Complete the scoped Approval bundle from blocked predecessor SCWBS-DRAFT-MT6B2T5Q at becbacf by isolating coverage waiver scope and removing the packaged runtime dependency on core/types.js."
++acceptanceCriteria:
++  - Coverage waiver auditable head and diff values come only from the nested human-gate slot while the complete raw bundle remains subject to canonical Human Gate validation.
++  - A matching human-gate slot remains valid with an active requested or stale post-finish projection; matching post-finish never satisfies a missing or stale human-gate slot.
++  - Coverage waiver recovery commands explicitly use approval request with scope human-gate.
++  - APPROVAL_V2_VERSION is exported from a runtime module retained by packaging, and runtime consumers do not import core/types.js.
++  - Type declarations use a type-only ApprovalV2Version binding without requiring core/types.js at runtime.
++  - Package and build configuration and existing generated-only pruning behavior remain unchanged.
++  - npm pack installs an isolated runnable CLI without dist/core/types.js, and existing MCP entrypoint tests pass after prepack.
++  - The predecessor v2 status matrix, exact projection, other-slot preservation, transaction rollback, authority verification, v1 compatibility, and Issue 594 non-goals remain unchanged.
++  - Clean sequential unit, integration, typecheck, build, packaging, and lint checks all succeed.
++nonGoals:
++  - restoring dist/core/types.js to the package or changing prepack pruning
++  - changing package, build, WBS, or GitHub workflow configuration
++  - scope fallback, inferred legacy Human scope, or multiple Approval artifacts
++  - changing Human TTY, delegated proof, policy fingerprint, token, or expiry semantics
++  - implementing the Issue 594 Review and completion blocker evaluator
+diff --git a/contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml b/contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
+new file mode 100644
+index 0000000..904a063
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
+@@ -0,0 +1,112 @@
++id: SCWBS-DRAFT-MT6CB66F
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MT6CB66F
++branchName: task/SCWBS-DRAFT-MT6CB66F-issue-600-final-scoped-approval-bundle-completio
++allowedPaths:
++  - src/core/approval-version.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/core/contracts.ts
++  - src/core/human-gate.ts
++  - src/core/check-coverage.ts
++  - src/commands/approval-request.ts
++  - src/commands/completion.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/cli/register-governance.ts
++  - src/cli.ts
++  - tests/unit/contracts.test.ts
++  - tests/unit/human-gate.test.ts
++  - tests/integration/approval.test.ts
++  - tests/integration/human-gate.test.ts
++  - tests/integration/completion.test.ts
++  - tests/integration/check-diff.test.ts
++  - tests/integration/check.test.ts
++  - tests/integration/finish.test.ts
++  - tests/integration/packaging.test.ts
++  - docs/scwbs/cli-approval-risk.md
++  - docs/scwbs/task-contract.md
++  - docs/scwbs/schemas/approval-request.schema.json
++forbiddenPaths:
++  - contracts/wbs/project.wbs.json
++  - contracts/changesets/**
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - scripts/build-wjs-runtime.mjs
++  - wjs/**
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - scripts/**
++  - src/core/approval-version.ts
++  - src/core/types.ts
++  - src/core/schema/records.ts
++  - src/core/contracts.ts
++  - src/core/human-gate.ts
++  - src/core/check-coverage.ts
++  - src/commands/approval-request.ts
++  - src/commands/completion.ts
++  - src/commands/finish.ts
++  - src/commands/check-diff.ts
++  - src/cli/register-governance.ts
++  - src/cli.ts
++  - docs/scwbs/cli-approval-risk.md
++  - docs/scwbs/task-contract.md
++  - docs/scwbs/schemas/approval-request.schema.json
++stopIf:
++  - package or build configuration change required
++  - dist core types restoration or prune policy change required
++  - Approval v2 authority or delegation semantics change required
++  - scope fallback required
++  - legacy human scope inference required
++  - multiple canonical Approval files or Registry identity change required
++  - Issue 594 Review evaluator work required
++  - allowedPaths expansion required
++  - existing WIP semantics change required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++  - lint
++doneCriteria:
++  - Coverage waiver audit fields are selected only from the exact human-gate slot and never from the active top-level or post-finish slot.
++  - A current human-gate slot remains valid when post-finish is requested or stale, while a missing or stale human-gate slot cannot be satisfied by post-finish.
++  - Coverage waiver recovery commands explicitly request human-gate scope.
++  - APPROVAL_V2_VERSION has one runtime source that remains in the packaged distribution, with no runtime import of core/types.js.
++  - Existing prepack pruning remains unchanged and packaged CLI plus MCP entrypoints run without dist/core/types.js.
++  - The predecessor scoped bundle implementation retains status validation, projection, authority, rollback, legacy compatibility, and scope isolation semantics.
++  - Unit, integration, typecheck, build, packaging, and lint checks pass from a clean sequential build.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++specPath: contracts/specs/SPEC-LITE-MT6CB66F.yaml
++specVersion: 0.1.0
++status: approved
++approvedBy: user-approved-final-follow-up-issue-600
++approvedAt: "2026-08-24T06:49:35+09:00"
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MT6CB66F.yaml
++  - contracts/blocks/SCWBS-DRAFT-MT6CB66F.yaml
++  - contracts/evidence/SCWBS-DRAFT-MT6CB66F.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MT6CB66F.patch
++  - contracts/approvals/SCWBS-DRAFT-MT6CB66F.yaml
++  - contracts/reviews/SCWBS-DRAFT-MT6CB66F.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:5f36e089092be530dc7d5b6ec942ccf80fdf88560cf734396bd23f6de4e6ca3a
++  createdAt: "2026-08-23T21:50:13.279Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index cfd3dfd..db5cbff 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -2084,3 +2084,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MT6CB66F
++    path: contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
++    branchName: task/SCWBS-DRAFT-MT6CB66F-issue-600-final-scoped-approval-bundle-completio
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-approval-risk.md b/docs/scwbs/cli-approval-risk.md
+index b54ed33..104007b 100644
+--- a/docs/scwbs/cli-approval-risk.md
++++ b/docs/scwbs/cli-approval-risk.md
+@@ -25,8 +25,10 @@ npm run scwbs -- review-queue --verbose
+ npm run scwbs -- review route --task SCWBS-001
+ npm run scwbs -- review request --task SCWBS-001 --pull-request "#42"
+ npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review"
++npm run scwbs -- approval request --task SCWBS-001 --scope human-gate --pull-request "#42" --note "Awaiting Human Gate review"
+ npm run scwbs -- approval request --task SCWBS-001 --pull-request "#42" --note "Awaiting human review" --json
+ npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor human --reason "<exact TTY confirmation printed by scwbs>"
++npm run scwbs -- approval approve --task SCWBS-001 --scope human-gate --pull-request "#42" --actor human --reason "<exact scoped TTY confirmation printed by scwbs>"
+ SCWBS_APPROVAL_DELEGATION_TOKEN="<secret>" npm run scwbs -- approval approve --task SCWBS-001 --pull-request "#42" --actor delegated-ai --scope post-finish --reason "Authorized unattended execution"
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted"
+ npm run scwbs -- completion apply --tasks SCWBS-001 --task SCWBS-999 --reason "Reviewed and accepted" --apply
+@@ -89,7 +91,9 @@ notes:
+ 
+ `approval request`はhuman approvalをfabricateせず`requested` recordを作る。`approval approve`はreview済みtaskをapproved recordへ変えるexplicit human actionで、`status: approved`、`approvedBy: human`、`approvedAt`を書き込む。`--note`と`--reason`はquoted multi-word argumentと`--note=Awaiting human review`、`--reason=Evidence reviewed`のようなinline syntaxの両方で使える。
+ 
+-`approval request --json`は`approvalId`、`taskId`、`status: requested`、`requestedAt`、bounded `notes`、`nextActionOwner: human`、`nextAction`を持つboundedな`scwbs.approval-request.v1` documentを1件出力する。schemaは[`schemas/approval-request.schema.json`](schemas/approval-request.schema.json)である。JSON outputはresponse projectionだけで、requestをapproveせず、approval provenanceを公開せず、既存YAML artifactとpolicy checkを変更しない。`--json`なしではexisting YAML outputを維持する。
++Scoped Approval は既存の一Task一ファイルを `version: scwbs.approval.v2` として保持する。`scopeApprovals.human-gate` と `scopeApprovals.post-finish` が正本で、`activeScope` とlegacy top-level fieldsはactive slotの厳密なprojectionである。Human Gate consumerには`--scope human-gate`、completionには`--scope post-finish`を指定し、opposite scopeへのfallbackはない。既存v2 bundleを書き換えるrequest/approveにはscope指定が必須で、forceは選択scopeだけを置換する。
++
++`approval request --json`は`approvalId`、`taskId`、`status: requested`、`requestedAt`、bounded `notes`、`nextActionOwner: human`、`nextAction`を持つboundedな`scwbs.approval-request.v1` documentを1件出力する。scoped requestでは`scope`も出力する。schemaは[`schemas/approval-request.schema.json`](schemas/approval-request.schema.json)である。JSON outputはresponse projectionだけで、requestをapproveせず、approval provenanceや他scope全文を公開せず、既存YAML artifactとpolicy checkを変更しない。`--json`なしのscoped mutation outputは、選択scopeのstatus/timestamps/PRだけを含む固定summaryであり、notes・reason・proof・provenance・他scopeを出力しない。legacy v1のunscoped outputは従来形式を維持する。
+ 
+ `approval request [note...]` はlegacy noteを正式な可変位置引数として表示・受理する。`status`、`health`、`finish`など引数を宣言しないcommandへ余分な位置引数を渡すとusage errorになる。
+ 
+@@ -193,6 +197,6 @@ npm run scwbs -- completion apply \
+   --reason "Reviewed and accepted"
+ ```
+ 
+-`completion apply`はhand-written YAMLなしでreview済みWBS nodeをcompleteする。既定はdry-runで、書き込む予定のapprovalと`changeNodeStatus` operationを表示する。`--apply`ではexisting approved recordをvalidateし、`contracts/changesets/<completion-task-id>-complete-reviewed-work.json`を書き、WBS changesetをapplyし、registryをrebuildする。既定ではroot-node completionを拒否し、`--allow-root`はexplicit human decision後だけ使う。
++`completion apply`はhand-written YAMLなしでreview済みWBS nodeをcompleteする。既定はdry-runで、書き込む予定のapprovalと`changeNodeStatus` operationを表示する。`--apply`ではexisting approved recordをvalidateし、`contracts/changesets/<completion-task-id>-complete-reviewed-work.json`を書き、WBS changesetをapplyし、registryをrebuildする。既定ではroot-node completionを拒否し、`--allow-root`はexplicit human decision後だけ使う。ここでの修正はpost-finish Approval slotを厳密に選択するだけであり、targetの完全なReview/Evidence/Approval評価はIssue #594のblocked dependencyとして残る。
+ 
+ > **将来的な改善案**：`--tasks`/`--task` という命名は初見では区別しづらい。CLIの後方互換性を保つ必要がなければ、`--completed-tasks <ids>` と `--completion-task <id>` のような自己説明的な名前への変更を検討する価値がある（現行実装のoption名は変更していない）。
+diff --git a/docs/scwbs/schemas/approval-request.schema.json b/docs/scwbs/schemas/approval-request.schema.json
+index 23472f0..91c21a9 100644
+--- a/docs/scwbs/schemas/approval-request.schema.json
++++ b/docs/scwbs/schemas/approval-request.schema.json
+@@ -18,6 +18,7 @@
+     },
+     "nextActionOwner": { "const": "human" },
+     "nextAction": { "type": "string", "minLength": 1, "maxLength": 512 },
++    "scope": { "type": "string", "enum": ["human-gate", "post-finish"] },
+     "pullRequest": { "type": "string", "pattern": "^#[1-9][0-9]*$" }
+   }
+ }
+diff --git a/docs/scwbs/task-contract.md b/docs/scwbs/task-contract.md
+index 21174dd..fe10f26 100644
+--- a/docs/scwbs/task-contract.md
++++ b/docs/scwbs/task-contract.md
+@@ -18,6 +18,20 @@ npm run scwbs -- block resolve --task <task-id> --reason "<判断内容と結果
+ 
+ ## 6. Task Contract
+ 
++### Scoped Approval bundle v2
++
++Approvalは通常 `contracts/approvals/<task-id>.yaml` に一つだけ保存する。scope別事実を同じTaskで保持する場合は `version: scwbs.approval.v2` を使い、`scopeApprovals.human-gate` と `scopeApprovals.post-finish` を正本とする。`activeScope` と既存top-level fieldsはactive slotの厳密なprojectionであり、不一致のrecordは無効である。
++
++```bash
++npm run scwbs -- approval request --task <task-id> --scope human-gate --pull-request "#42"
++npm run scwbs -- approval approve --task <task-id> --scope human-gate --actor human --reason "<exact scoped confirmation>"
++npm run scwbs -- approval request --task <task-id> --scope post-finish --pull-request "#42"
++npm run scwbs -- approval reject --task <task-id> --scope human-gate --actor human --reason "<rejection reason>"
++```
++
++Human Gateは`human-gate` slot、completionは`post-finish` slotだけを選択する。v2 bundleへのscopeなしwriteは拒否され、scoped forceは選択slot以外を変更しない。Scoped rejectはhuman actor専用で、TTY actor provenanceを記録する。Scoped mutationのtext summaryは選択slotのstatus/timestamps/PRだけを出力し、他scopeやproof/provenanceを公開しない。Legacy v1 human recordは既存のunscoped read互換を維持するが、scopeを推測・複製しない。Legacy v1 delegated recordは明示された`delegationScope`と一致するconsumerだけが受理される。Delegated HMAC proofとTask policyの意味は変更しない。
++Completion targetの完全なReview/Evidence/Approval評価はIssue #594のblocked dependencyであり、本仕様ではpost-finish slotの厳密なconsumer選択のみを扱う。
++
+ Task Contractは、AIが実装する1作業単位に対する契約である。
+ 1つのTask Contractは、原則として1つのWBS nodeに対応させる。
+ 
+diff --git a/src/cli.ts b/src/cli.ts
+index b4cd430..aa4035d 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
+ import path from "node:path";
+ import { runAiBlock, runHumanBlockResolve } from "./commands/ai-queue.js";
+ import { buildTinyPacket, runAiPacket, runCodeContextManifest } from "./commands/ai-packet.js";
+-import { runApprovalApprove, runApprovalRequest } from "./commands/approval-request.js";
++import { runApprovalApprove, runApprovalReject, runApprovalRequest } from "./commands/approval-request.js";
+ import { runCheck } from "./commands/check.js";
+ import { runDocsCheck } from "./commands/docs-check.js";
+ import { buildStatusJsonOutput } from "./commands/status.js";
+@@ -674,6 +674,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+     .option("--pr <number>", "pull request number")
+     .option("--pull-request <number>", "pull request number (legacy)")
+     .option("--note <text>", "approval note")
++    .option("--scope <scope>", "approval scope human-gate|post-finish")
+     .option("--force", "force request")
+     .action((opts) => {
+       const taskId = opts.task;
+@@ -685,6 +686,7 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       exitCode = runApprovalRequest(root, taskId, {
+         pullRequest: opts.pr ?? opts.pullRequest,
+         note: opts.note,
++        scope: opts.scope,
+         force: opts.force ?? false
+       });
+     });
+@@ -715,6 +717,29 @@ export function main(argv = process.argv.slice(2), root = process.cwd()): number
+       });
+     });
+ 
++  program
++    .command("reject")
++    .description("Reject a task approval")
++    .option("--task <id>", "task id")
++    .option("--scope <scope>", "approval scope human-gate|post-finish")
++    .option("--actor <text>", "approval actor")
++    .option("--reason <text>", "rejection reason")
++    .option("--force", "force rejection")
++    .action((opts) => {
++      const taskId = opts.task;
++      if (!taskId) {
++        console.error("Missing --task <task-id>");
++        exitCode = 2;
++        return;
++      }
++      exitCode = runApprovalReject(root, taskId, {
++        actor: opts.actor,
++        scope: opts.scope,
++        reason: opts.reason,
++        force: opts.force ?? false
++      });
++    });
++
+   program
+     .command("start")
+     .description("Legacy alias for Task pre-flight; accepts existing Task IDs only")
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index 24e682b..a854d63 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -17,7 +17,7 @@ import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
+ import { runAiPacket } from "../commands/ai-packet.js";
+ import { runAiExecute, runAiRun } from "../commands/ai-run.js";
+ import { runApprovalDelegationPrepare } from "../commands/approval-delegation.js";
+-import { runApprovalApprove, runApprovalRequest } from "../commands/approval-request.js";
++import { runApprovalApprove, runApprovalReject, runApprovalRequest } from "../commands/approval-request.js";
+ import { runCompletionApply } from "../commands/completion.js";
+ import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
+ import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain, runEvidenceVerifyAttestation } from "../commands/evidence-collect.js";
+@@ -284,6 +284,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+     .option("--task <id>", "task id")
+     .option("--pull-request <id>", "pull request id")
+     .option("--note <text>", "approval note")
++    .option("--scope <scope>", "approval scope human-gate|post-finish")
+     .option("--force", "force request")
+     .option("--json", "output a bounded versioned JSON summary")
+     .action((noteParts: string[], options) => {
+@@ -297,6 +298,7 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+         runApprovalRequest(root, options.task, {
+           pullRequest: options.pullRequest,
+           note,
++          scope: options.scope,
+           force: options.force ?? false,
+           json: options.json ?? false
+         })
+@@ -327,6 +329,28 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+           force: options.force ?? false
+         })
+       );
++      });
++
++  approval
++    .command("reject")
++    .description("Reject a task approval")
++    .option("--task <id>", "task id")
++    .requiredOption("--actor <text>", "approval actor (human only)")
++    .option("--scope <scope>", "approval scope human-gate|post-finish")
++    .requiredOption("--reason <text>", "rejection reason")
++    .option("--force", "force rejection")
++    .action((options) => {
++      if (!options.task) {
++        console.error("Missing --task <task-id>");
++        setExitCode(2);
++        return;
++      }
++      setExitCode(runApprovalReject(root, options.task, {
++        actor: options.actor,
++        scope: options.scope,
++        reason: options.reason,
++        force: options.force ?? false
++      }));
+     });
+ 
+   const approvalDelegation = approval.command("delegation");
+diff --git a/src/commands/approval-request.ts b/src/commands/approval-request.ts
+index ba2d236..36caccf 100644
+--- a/src/commands/approval-request.ts
++++ b/src/commands/approval-request.ts
+@@ -1,27 +1,79 @@
+-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
++import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+ import { readApproval, readEvidence, readTask } from "../core/contracts.js";
++import { validateApprovalRecord } from "../core/schema.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, authorizeDelegatedApproval, buildDelegationProof, buildHumanApprovalCommand } from "../core/human-gate.js";
+-import { approvalPath, resolveFrom } from "../core/paths.js";
++import { approvalPath, defaultRegistryPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { syncRegistry } from "./registry-rebuild.js";
+-import type { ApprovalDelegationScope, ApprovalRecord, Evidence } from "../core/types.js";
++import { APPROVAL_V2_VERSION } from "../core/approval-version.js";
++import type { ApprovalDelegationScope, ApprovalRecord, ApprovalScopeRecord, Evidence } from "../core/types.js";
+ import { detectCurrentPullRequest, normalizePullRequestNumber, pullRequestEvidenceCommand } from "./health.js";
+ 
+-export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): ApprovalRecord {
++export function buildApprovalRequest(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string; scope?: ApprovalDelegationScope }): ApprovalRecord {
++  const slot: ApprovalScopeRecord = {
++    status: "requested",
++    requestedAt: options.requestedAt ?? new Date().toISOString(),
++    ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
++    ...(options.note ? { notes: [options.note] } : {})
++  };
++  if (options.scope) return buildV2Approval(taskId, options.scope, slot);
+   return {
+     id: `APR-${taskId}`,
+     type: "approval",
+     taskId,
+     status: "requested",
+-    requestedAt: options.requestedAt ?? new Date().toISOString(),
++    requestedAt: slot.requestedAt,
+     ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+     ...(options.note ? { notes: [options.note] } : {})
+   };
+ }
+ 
+-export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string }): string {
++function scopeSlot(approval: ApprovalRecord | undefined, scope: ApprovalDelegationScope): ApprovalScopeRecord | undefined {
++  if (!approval) return undefined;
++  if (approval.version === APPROVAL_V2_VERSION) return approval.scopeApprovals?.[scope];
++  if (approval.approvalMode !== "delegated" || approval.delegationScope !== scope) return undefined;
++  const excluded = new Set(["id", "type", "taskId", "version", "activeScope", "scopeApprovals"]);
++  return Object.fromEntries(Object.entries(approval).filter(([key]) => !excluded.has(key))) as ApprovalScopeRecord;
++}
++
++function buildV2Approval(taskId: string, scope: ApprovalDelegationScope, slot: ApprovalScopeRecord, other: Partial<Record<ApprovalDelegationScope, ApprovalScopeRecord>> = {}): ApprovalRecord {
++  return {
++    id: `APR-${taskId}`,
++    type: "approval",
++    taskId,
++    version: APPROVAL_V2_VERSION,
++    activeScope: scope,
++    scopeApprovals: { ...other, [scope]: slot },
++    ...slot
++  };
++}
++
++function scopedApprovalSummary(approval: ApprovalRecord, scope: ApprovalDelegationScope): Record<string, unknown> {
++  const slot = scopeSlot(approval, scope);
++  if (!slot) throw new Error(`${approval.taskId} has no ${scope} Approval slot`);
++  return {
++    approvalId: approval.id,
++    taskId: approval.taskId,
++    version: APPROVAL_V2_VERSION,
++    activeScope: scope,
++    status: slot.status,
++    ...(slot.requestedAt ? { requestedAt: slot.requestedAt } : {}),
++    ...(slot.approvedAt ? { approvedAt: slot.approvedAt } : {}),
++    ...(slot.pullRequest ? { pullRequest: slot.pullRequest } : {})
++  };
++}
++
++function scopedSlots(existing: ApprovalRecord | undefined): Partial<Record<ApprovalDelegationScope, ApprovalScopeRecord>> {
++  if (!existing) return {};
++  if (existing.version === APPROVAL_V2_VERSION) return { ...(existing.scopeApprovals ?? {}) };
++  if (existing.approvalMode !== "delegated" || !existing.delegationScope) return {};
++  const imported = scopeSlot(existing, existing.delegationScope);
++  return imported ? { [existing.delegationScope]: imported } : {};
++}
++
++export function buildApprovalRequestYaml(taskId: string, options: { pullRequest?: string; note?: string; requestedAt?: string; scope?: ApprovalDelegationScope }): string {
+   return stringifySimpleYaml(buildApprovalRequest(taskId, options) as unknown as Record<string, unknown>);
+ }
+ 
+@@ -39,6 +91,7 @@ export type ApprovalRequestJson = {
+   notes: string[];
+   nextActionOwner: "human";
+   nextAction: string;
++  scope?: ApprovalDelegationScope;
+   pullRequest?: string;
+ };
+ 
+@@ -51,7 +104,7 @@ function boundedNotes(notes: string[] | undefined): string[] {
+ export function buildApprovalRequestJson(approval: ApprovalRecord, evidence?: Evidence): ApprovalRequestJson {
+   const requestedAt = approval.requestedAt;
+   if (!requestedAt) throw new Error("Approval request is missing requestedAt");
+-  const approvalCommand = buildHumanApprovalCommand(approval.taskId, evidence, approval.status);
++  const approvalCommand = buildHumanApprovalCommand(approval.taskId, evidence, approval.status, approval.version === APPROVAL_V2_VERSION ? approval.activeScope : undefined);
+   const nextAction = approvalCommand
+     ? `Review Evidence and diff, then run: ${approvalCommand}`
+     : `Collect current Evidence with: npm run scwbs -- evidence collect --task ${approval.taskId} --force; then use the exact approval command printed by scwbs.`;
+@@ -64,15 +117,35 @@ export function buildApprovalRequestJson(approval: ApprovalRecord, evidence?: Ev
+     notes: boundedNotes(approval.notes),
+     nextActionOwner: "human",
+     nextAction: nextAction.slice(0, MAX_JSON_ACTION_LENGTH),
++    ...(approval.version === APPROVAL_V2_VERSION && approval.activeScope ? { scope: approval.activeScope } : {}),
+     ...(approval.pullRequest ? { pullRequest: approval.pullRequest } : {})
+   };
+ }
+ 
+-export function buildApprovalApprove(taskId: string, options: { requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; actorId?: string; actorSource?: string; actorUrl?: string; verifiedAt?: string; verificationLevel?: string; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
+-  return {
+-    id: `APR-${taskId}`,
+-    type: "approval",
+-    taskId,
++type ApprovalRegistryAfterSync = (root: string) => void;
++
++function writeApprovalAndSync(root: string, fullPath: string, yaml: string, afterRegistrySync?: ApprovalRegistryAfterSync): void {
++  const registryPath = resolveFrom(root, defaultRegistryPath);
++  const approvalExisted = existsSync(fullPath);
++  const registryExisted = existsSync(registryPath);
++  const previousApproval = approvalExisted ? readFileSync(fullPath, "utf8") : undefined;
++  const previousRegistry = registryExisted ? readFileSync(registryPath, "utf8") : undefined;
++  mkdirSync(path.dirname(fullPath), { recursive: true });
++  try {
++    writeFileSync(fullPath, yaml, "utf8");
++    syncRegistry(root);
++    afterRegistrySync?.(root);
++  } catch (error) {
++    if (approvalExisted && previousApproval !== undefined) writeFileSync(fullPath, previousApproval, "utf8");
++    else if (existsSync(fullPath)) unlinkSync(fullPath);
++    if (registryExisted && previousRegistry !== undefined) writeFileSync(registryPath, previousRegistry, "utf8");
++    else if (existsSync(registryPath)) unlinkSync(registryPath);
++    throw error;
++  }
++}
++
++export function buildApprovalApprove(taskId: string, options: { scope?: ApprovalDelegationScope; requestedAt?: string; pullRequest?: string; reason?: string; approvedBy?: string; approvedAt?: string; headCommit?: string; diffHash?: string; approvalMode?: "human" | "delegated"; actorId?: string; actorSource?: string; actorUrl?: string; verifiedAt?: string; verificationLevel?: string; delegationSource?: string; delegatedBy?: string; executedBy?: "ai-agent"; delegationScope?: ApprovalDelegationScope; delegationProof?: string }): ApprovalRecord {
++  const slot: ApprovalScopeRecord = {
+     status: "approved",
+     ...(options.requestedAt ? { requestedAt: options.requestedAt } : {}),
+     approvedBy: options.approvedBy ?? "human",
+@@ -93,11 +166,28 @@ export function buildApprovalApprove(taskId: string, options: { requestedAt?: st
+     ...(options.delegationScope ? { delegationScope: options.delegationScope } : {}),
+     ...(options.delegationProof ? { delegationProof: options.delegationProof } : {})
+   };
++  if (options.scope) return buildV2Approval(taskId, options.scope, slot);
++  return { id: `APR-${taskId}`, type: "approval", taskId, ...slot };
+ }
+ 
+ type TtyHumanProvenance = Pick<ApprovalRecord, "actorId" | "actorSource" | "verifiedAt" | "verificationLevel">;
+ 
+-function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: string): TtyHumanProvenance {
++function verifyScopedHumanRejection(taskId: string, reason: string | undefined, scope: ApprovalDelegationScope): TtyHumanProvenance {
++  if (!reason?.trim()) throw new Error("Human Approval rejection requires --reason");
++  if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
++    throw new Error("Scoped human Approval rejection requires an interactive TTY");
++  }
++  let actorId: string;
++  try {
++    actorId = os.userInfo().username.trim();
++  } catch {
++    throw new Error(`Unable to verify the current OS user for ${taskId} ${scope} Approval rejection`);
++  }
++  if (!actorId) throw new Error(`The current OS user is unavailable for ${taskId} ${scope} Approval rejection`);
++  return { actorId, actorSource: "tty", verifiedAt: new Date().toISOString(), verificationLevel: "lean" };
++}
++
++function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: string, scope?: ApprovalDelegationScope): TtyHumanProvenance {
+   const headCommit = evidence.subjectHeadCommit ?? evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.commit;
+   const diffHash = evidence.diffHash ?? evidence.git?.diffHash;
+   if (!headCommit || !diffHash) {
+@@ -115,7 +205,9 @@ function verifyTtyHumanProvenance(taskId: string, evidence: Evidence, reason?: s
+   if (!actorId) {
+     throw new Error("The current OS user is unavailable for Lean human approval; approval remains unapproved");
+   }
+-  const confirmation = `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
++  const confirmation = scope
++    ? `CONFIRM TTY APPROVAL ${taskId} ${scope} ${headCommit} ${diffHash}`
++    : `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+   if (reason !== confirmation) {
+     throw new Error(`Lean human approval requires exact TTY confirmation in --reason: ${confirmation}`);
+   }
+@@ -139,8 +231,12 @@ function evidenceSubject(root: string, taskId: string): { headCommit?: string; d
+   };
+ }
+ 
+-export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean; json?: boolean }): number {
++export function runApprovalRequest(root: string, taskId: string, options: { pullRequest?: string; note?: string; force: boolean; json?: boolean; scope?: ApprovalDelegationScope; afterRegistrySync?: ApprovalRegistryAfterSync }): number {
+   try {
++    if (options.scope !== undefined && options.scope !== "human-gate" && options.scope !== "post-finish") {
++      console.error("approval scope must be human-gate or post-finish");
++      return 1;
++    }
+     const current = detectCurrentPullRequest(root);
+     const evidencePullRequest = normalizePullRequestNumber(readEvidence(root, taskId).evidence?.git?.pullRequest);
+     const requestedPullRequest = normalizePullRequestNumber(options.pullRequest);
+@@ -156,21 +252,43 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+     }
+     const relativePath = approvalPath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+-    if (existsSync(fullPath) && !options.force) {
++    const existingResult = readApproval(root, taskId);
++    const existing = existingResult.approval;
++    if (existingResult.issues.some((issue) => issue.code !== "approval.missing")) {
++      console.error(existingResult.issues.map((issue) => issue.message).join("\n"));
++      return 1;
++    }
++    if (existing?.version === APPROVAL_V2_VERSION && !options.scope) {
++      console.error(`${relativePath} is a scoped Approval bundle; --scope is required`);
++      return 1;
++    }
++    const selectedV2Slot = existing?.version === APPROVAL_V2_VERSION && options.scope ? existing.scopeApprovals?.[options.scope] : undefined;
++    if (existsSync(fullPath) && !options.force && (!existing || existing.version !== APPROVAL_V2_VERSION || selectedV2Slot)) {
+       console.error(`${relativePath} already exists`);
+       return 1;
+     }
+ 
+-    const approval = buildApprovalRequest(taskId, {
++    const requested = buildApprovalRequest(taskId, {
+       ...options,
+       ...(current ? { pullRequest: `#${current.number}` } : {})
+     });
++    const approval = options.scope
++      ? buildV2Approval(taskId, options.scope, scopeSlot(requested, options.scope)!, scopedSlots(existing))
++      : requested;
++    const approvalIssues = validateApprovalRecord(approval, relativePath);
++    if (approvalIssues.length > 0) throw new Error(approvalIssues.map((issue) => issue.message).join("\n"));
+     const yaml = stringifySimpleYaml(approval as unknown as Record<string, unknown>);
+-    mkdirSync(path.dirname(fullPath), { recursive: true });
+-    writeFileSync(fullPath, yaml, "utf8");
+-    syncRegistry(root);
++    writeApprovalAndSync(root, fullPath, yaml, options.afterRegistrySync);
+     const { evidence } = readEvidence(root, taskId);
+-    process.stdout.write(options.json ? `${JSON.stringify(buildApprovalRequestJson(approval, evidence), null, 2)}\n` : yaml);
++    const outputApproval = options.scope
++      ? scopedApprovalSummary(approval, options.scope)
++      : approval;
++    const jsonApproval = options.scope
++      ? buildV2Approval(taskId, options.scope, scopeSlot(approval, options.scope)!)
++      : approval;
++    process.stdout.write(options.json
++      ? `${JSON.stringify(buildApprovalRequestJson(jsonApproval, evidence), null, 2)}\n`
++      : stringifySimpleYaml(outputApproval));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+@@ -178,23 +296,28 @@ export function runApprovalRequest(root: string, taskId: string, options: { pull
+   }
+ }
+ 
+-export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string; scope?: string }): number {
++export function runApprovalApprove(root: string, taskId: string, options: { pullRequest?: string; reason?: string; approvedBy?: string; force: boolean; actor?: string; scope?: string; afterRegistrySync?: ApprovalRegistryAfterSync }): number {
+   try {
+     const resolvedActor = options.actor ?? process.env.SCWBS_AGENT_MODE;
+-    let delegatedSubject: { headCommit: string; diffHash: string } | undefined;
++    const scope = options.scope === "human-gate" || options.scope === "post-finish" ? options.scope : undefined;
++    if (options.scope !== undefined && !scope) {
++      console.error("approval scope must be human-gate or post-finish");
++      return 1;
++    }
++    let delegatedSubject: { headCommit: string; diffHash: string; pullRequest: string } | undefined;
+     let humanProvenance: TtyHumanProvenance | undefined;
+     let approvalExecution: Pick<ApprovalRecord, "approvedBy" | "approvedAt" | "approvalMode" | "delegationSource" | "delegatedBy" | "executedBy" | "delegationScope" | "delegationProof"> = {
+       approvedBy: options.approvedBy,
+       approvalMode: "human"
+     };
+     if (resolvedActor === "delegated-ai") {
+-      if (options.scope !== "human-gate" && options.scope !== "post-finish") {
++      if (!scope) {
+         console.error("delegated approval requires --scope human-gate or --scope post-finish");
+         return 1;
+       }
+       const { task, issues: taskIssues } = readTask(root, taskId);
+       if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
+-      const delegation = authorizeDelegatedApproval(task, options.scope, {
++      const delegation = authorizeDelegatedApproval(task, scope, {
+         token: process.env[APPROVAL_DELEGATION_TOKEN_ENV]
+       });
+       if (!delegation.approval) {
+@@ -208,7 +331,12 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+         console.error("delegated approval requires Evidence subjectHeadCommit and diffHash");
+         return 1;
+       }
+-      if (options.scope === "post-finish") {
++      const evidencePullRequest = normalizePullRequestNumber(evidence.git?.pullRequest);
++      if (evidencePullRequest === undefined) {
++        console.error("delegated approval requires Evidence pull request metadata");
++        return 1;
++      }
++      if (scope === "post-finish") {
+         const passedChecks = new Set(evidence.checks.filter((check) => check.status === "passed").map((check) => check.name));
+         const missingChecks = task.requiredChecks.filter((check) => !passedChecks.has(check));
+         if (missingChecks.length > 0) {
+@@ -216,7 +344,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+           return 1;
+         }
+       }
+-      delegatedSubject = { headCommit: subject.headCommit, diffHash: subject.diffHash };
++      delegatedSubject = { headCommit: subject.headCommit, diffHash: subject.diffHash, pullRequest: `#${evidencePullRequest}` };
+       const approvedAt = new Date().toISOString();
+       const token = process.env[APPROVAL_DELEGATION_TOKEN_ENV]!;
+       approvalExecution = {
+@@ -226,7 +354,7 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+           approvedAt,
+           headCommit: delegatedSubject.headCommit,
+           diffHash: delegatedSubject.diffHash,
+-          scope: options.scope
++          scope
+         })
+       };
+     } else if (resolvedActor === "ai") {
+@@ -244,11 +372,17 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     if (!missingApprovalOnly && !approval) {
+       throw new Error(issues.map((issue) => issue.message).join("\n"));
+     }
+-    if (approval?.status === "approved" && !options.force) {
++    if (approval?.version === APPROVAL_V2_VERSION && !scope) {
++      console.error(`${relativePath} is a scoped Approval bundle; --scope is required`);
++      return 1;
++    }
++    const selectedExisting = scopeSlot(approval, scope ?? "post-finish");
++    const currentForMutation = scope ? selectedExisting : approval;
++    if (currentForMutation?.status === "approved" && !options.force) {
+       console.error(`${relativePath} is already approved; rerun with --force to overwrite`);
+       return 1;
+     }
+-    if (approval?.status === "rejected" && !options.force) {
++    if (currentForMutation?.status === "rejected" && !options.force) {
+       console.error(`${relativePath} is rejected; rerun with --force to approve anyway`);
+       return 1;
+     }
+@@ -256,26 +390,108 @@ export function runApprovalApprove(root: string, taskId: string, options: { pull
+     const evidencePullRequest = normalizePullRequestNumber(evidence?.git?.pullRequest);
+     const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+     const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+-    if (resolvedActor === "human" && evidencePullRequest !== undefined && evidenceHead && evidenceDiffHash) {
++    if (resolvedActor === "human" && scope) {
+       if (!evidence) throw new Error("Lean human approval requires Evidence");
+-      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason);
++      if (evidencePullRequest === undefined || !evidenceHead || !evidenceDiffHash) {
++        throw new Error("Scoped human approval requires Evidence pull request, subjectHeadCommit, and diffHash");
++      }
++      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason, scope);
++      approvalExecution = {
++        ...approvalExecution,
++        approvedBy: humanProvenance.actorId
++      };
++    } else if (resolvedActor === "human" && evidencePullRequest !== undefined && evidenceHead && evidenceDiffHash) {
++      if (!evidence) throw new Error("Lean human approval requires Evidence");
++      humanProvenance = verifyTtyHumanProvenance(taskId, evidence, options.reason, scope);
+       approvalExecution = {
+         ...approvalExecution,
+         approvedBy: humanProvenance.actorId
+       };
+     }
+-    const yaml = buildApprovalApproveYaml(taskId, {
+-      requestedAt: approval?.requestedAt,
+-      pullRequest: options.pullRequest ?? approval?.pullRequest,
++    const built = buildApprovalApprove(taskId, {
++      scope,
++      requestedAt: currentForMutation?.requestedAt,
++      pullRequest: options.pullRequest ?? currentForMutation?.pullRequest ?? delegatedSubject?.pullRequest ?? (scope && evidencePullRequest !== undefined ? `#${evidencePullRequest}` : undefined),
+       reason: options.reason,
+       ...approvalExecution,
+       ...(humanProvenance ?? {}),
+       ...(delegatedSubject ?? evidenceSubject(root, taskId))
+     });
+-    mkdirSync(path.dirname(fullPath), { recursive: true });
+-    writeFileSync(fullPath, yaml, "utf8");
+-    syncRegistry(root);
+-    process.stdout.write(yaml);
++    const finalApproval = scope
++      ? buildV2Approval(taskId, scope, scopeSlot(built, scope)!, scopedSlots(approval))
++      : built;
++    const approvalIssues = validateApprovalRecord(finalApproval, relativePath);
++    if (approvalIssues.length > 0) throw new Error(approvalIssues.map((issue) => issue.message).join("\n"));
++    const yaml = stringifySimpleYaml(finalApproval as unknown as Record<string, unknown>);
++    writeApprovalAndSync(root, fullPath, yaml, options.afterRegistrySync);
++    const outputApproval = scope
++      ? scopedApprovalSummary(finalApproval, scope)
++      : finalApproval;
++    process.stdout.write(stringifySimpleYaml(outputApproval as unknown as Record<string, unknown>));
++    return 0;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
++export function runApprovalReject(root: string, taskId: string, options: { reason?: string; force: boolean; actor?: string; scope?: string; afterRegistrySync?: ApprovalRegistryAfterSync }): number {
++  try {
++    if (options.actor !== "human") {
++      console.error("approval reject requires --actor human");
++      return 1;
++    }
++    const scope = options.scope === "human-gate" || options.scope === "post-finish" ? options.scope : undefined;
++    if (options.scope !== undefined && !scope) {
++      console.error("approval scope must be human-gate or post-finish");
++      return 1;
++    }
++    const relativePath = approvalPath(taskId);
++    const fullPath = resolveFrom(root, relativePath);
++    const existingResult = readApproval(root, taskId);
++    if (existingResult.issues.some((issue) => issue.code !== "approval.missing")) {
++      console.error(existingResult.issues.map((issue) => issue.message).join("\n"));
++      return 1;
++    }
++    const existing = existingResult.approval;
++    if (!existing) {
++      console.error(existingResult.issues.map((issue) => issue.message).join("\n") || `${relativePath} does not exist`);
++      return 1;
++    }
++    if (existing.version === APPROVAL_V2_VERSION && !scope) {
++      console.error(`${relativePath} is a scoped Approval bundle; --scope is required`);
++      return 1;
++    }
++    const selectedExisting = scope ? scopeSlot(existing, scope) : existing;
++    if (!selectedExisting) {
++      console.error(`${taskId} has no existing Approval slot for ${scope}`);
++      return 1;
++    }
++    if ((selectedExisting.status === "approved" || selectedExisting.status === "rejected") && !options.force) {
++      console.error(`${relativePath} ${selectedExisting.status}; rerun with --force to reject it`);
++      return 1;
++    }
++    const provenance = scope ? verifyScopedHumanRejection(taskId, options.reason, scope) : undefined;
++    const withoutDelegation = Object.fromEntries(Object.entries(selectedExisting).filter(([key]) => ![
++      "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"
++    ].includes(key))) as unknown as ApprovalScopeRecord;
++    const rejectedSlot: ApprovalScopeRecord = {
++      ...withoutDelegation,
++      status: "rejected",
++      reason: options.reason,
++      approvalMode: "human",
++      ...(provenance ?? {}),
++      ...(provenance ? { approvedBy: provenance.actorId, approvedAt: provenance.verifiedAt } : {})
++    };
++    const finalApproval = scope
++      ? buildV2Approval(taskId, scope, rejectedSlot, scopedSlots(existing))
++      : { ...existing, ...rejectedSlot };
++    const approvalIssues = validateApprovalRecord(finalApproval, relativePath);
++    if (approvalIssues.length > 0) throw new Error(approvalIssues.map((issue) => issue.message).join("\n"));
++    const yaml = stringifySimpleYaml(finalApproval as unknown as Record<string, unknown>);
++    writeApprovalAndSync(root, fullPath, yaml, options.afterRegistrySync);
++    const outputApproval = scope ? scopedApprovalSummary(finalApproval, scope) : finalApproval;
++    process.stdout.write(stringifySimpleYaml(outputApproval as unknown as Record<string, unknown>));
+     return 0;
+   } catch (error) {
+     console.error(error instanceof Error ? error.message : String(error));
+diff --git a/src/commands/check-diff.ts b/src/commands/check-diff.ts
+index 9e2aaba..55df7fc 100644
+--- a/src/commands/check-diff.ts
++++ b/src/commands/check-diff.ts
+@@ -1,4 +1,4 @@
+-import { readApproval, readEvidence, readTask } from "../core/contracts.js";
++import { readApproval, readApprovalForScope, readEvidence, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, currentBranch, workingTreeChangedFiles, workingTreeState, type WorkingTreeState } from "../core/git.js";
+ import { matchesAny } from "../core/glob.js";
+ import { governancePathImpact, governancePolicyReason, isBroadAllowedPath, sensitiveMetaPaths } from "../core/governance-path-policy.js";
+@@ -360,7 +360,7 @@ export function runCheckDiff(root: string, taskId: string, options: { baseRef?:
+     const gateTask = taskWithGovernancePolicyGates(task, files);
+     const gate = validateHumanGateApproval(gateTask, evidence, readApproval(root, taskId).approval, files, root);
+     humanGateFiles = gate.requiredFiles;
+-    nextAction = buildHumanApprovalCommand(taskId, evidence, readApproval(root, taskId).approval?.status)
++    nextAction = buildHumanApprovalCommand(taskId, evidence, readApprovalForScope(root, taskId, "human-gate").approval?.status, "human-gate")
+       ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
+   }
+ 
+diff --git a/src/commands/completion.ts b/src/commands/completion.ts
+index 7989d1a..4997e2a 100644
+--- a/src/commands/completion.ts
++++ b/src/commands/completion.ts
+@@ -1,8 +1,8 @@
+ import { mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
+-import { validateDelegatedApproval } from "../core/human-gate.js";
++import { readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
++import { validateDelegatedApproval, validateHumanApprovalProvenance } from "../core/human-gate.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+ import { readWbs } from "../core/wbs.js";
+@@ -74,7 +74,7 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
+     }
+ 
+     const { evidence, issues: evidenceIssues } = readEvidence(root, targetTask.id);
+-    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
++    const { approval, issues: approvalIssues } = readApprovalForScope(root, targetTask.id, "post-finish");
+     const { review, issues: reviewIssues } = readReview(root, targetTask.id);
+     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
+     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+@@ -83,18 +83,19 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
+     const hasApproval = Boolean(approval) && !missingApprovalOnly;
+     const hasReview = Boolean(review) && !missingReviewOnly;
+     const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
++    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
+ 
+     if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
+     if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
+     if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
+-    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
+-    if (touchesHumanGate && !hasApproval) {
+-      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
++    if (!hasApproval && touchesHumanGate) {
++      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ") || `${targetTask.id} has no post-finish Approval record`;
++      blockers.push(`${targetTask.id} post-finish Approval unavailable: ${scopeMessage}`);
+     }
+     if (approval?.status === "requested") {
+-      blockers.push(`${targetTask.id} approval is still requested`);
++      blockers.push(`${targetTask.id} post-finish Approval is still requested`);
+     } else if (approval?.status === "rejected") {
+-      blockers.push(`${targetTask.id} approval was rejected`);
++      blockers.push(`${targetTask.id} post-finish Approval was rejected`);
+     }
+ 
+     targets.push({
+@@ -162,18 +163,22 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+     const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
+     if (!evidence) throw new Error(evidenceIssues.map((issue) => issue.message).join("\n"));
+ 
+-    const { approval, issues: approvalIssues } = readApproval(root, task.id);
++    const { approval, issues: approvalIssues } = readApprovalForScope(root, task.id, "post-finish");
+     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+     if (missingApprovalOnly || !approval) {
+-      throw new Error(`${task.id} has no approval record; run \`scwbs approval approve --task ${task.id}\` first`);
++      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ");
++      throw new Error(scopeMessage || `${task.id} has no post-finish Approval record; run \`scwbs approval approve --task ${task.id} --scope post-finish\` first`);
+     }
+-    if (approval.status === "requested") throw new Error(`${task.id} approval is still requested; approve it first`);
+-    if (approval.status === "rejected") throw new Error(`${task.id} approval is rejected`);
+-    if (approval.status !== "approved") throw new Error(`${task.id} approval status is ${approval.status}; only approved records can complete`);
++    if (approval.status === "requested") throw new Error(`${task.id} post-finish Approval is still requested; approve it first`);
++    if (approval.status === "rejected") throw new Error(`${task.id} post-finish Approval is rejected`);
++    if (approval.status !== "approved") throw new Error(`${task.id} post-finish Approval status is ${approval.status}; only approved records can complete`);
+ 
+     if (approval.approvalMode === "delegated") {
+       const delegationIssues = validateDelegatedApproval(task, approval, "post-finish");
+       if (delegationIssues.length > 0) throw new Error(delegationIssues.map((issue) => issue.message).join("\n"));
++    } else if (approval.version === "scwbs.approval.v2") {
++      const humanProvenanceIssues = validateHumanApprovalProvenance(approval, true, true);
++      if (humanProvenanceIssues.length > 0) throw new Error(humanProvenanceIssues.map((issue) => issue.message).join("\n"));
+     }
+ 
+     const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
+@@ -190,6 +195,10 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+ 
+     const pullRequest = evidence.git?.pullRequest ?? approval.pullRequest;
+     if (!pullRequest) throw new Error(`${task.id} has no pull request metadata in Evidence or Approval`);
++    if (approval.version === "scwbs.approval.v2") {
++      if (!evidence.git?.pullRequest) throw new Error(`${task.id} post-finish Approval requires Evidence pull request metadata`);
++      if (approval.pullRequest !== evidence.git.pullRequest) throw new Error(`${task.id} post-finish Approval pull request does not match Evidence`);
++    }
+ 
+     const { review, issues: reviewIssues } = readReview(root, task.id);
+     const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
+diff --git a/src/commands/finish.ts b/src/commands/finish.ts
+index 96b68d7..27ba443 100644
+--- a/src/commands/finish.ts
++++ b/src/commands/finish.ts
+@@ -1,7 +1,7 @@
+ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
+ import path from "node:path";
+-import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
++import { readApproval, readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { branchChangedFiles, buildPatchArtifact, currentBranch } from "../core/git.js";
+ import { buildHumanApprovalCommand as buildEvidenceBoundHumanApprovalCommand, validateHumanGateApproval } from "../core/human-gate.js";
+ import { gitCommonDir } from "../core/required-check-run.js";
+@@ -392,8 +392,8 @@ function inferTaskIdFromBranch(branch: string | undefined): string | undefined {
+   return branch?.match(/(SCWBS-(?:DRAFT-)?[A-Z0-9-]+)/)?.[1];
+ }
+ 
+-export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus): string {
+-  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus)
++export function buildHumanApprovalCommand(taskId: string, evidence?: Evidence, approvalStatus?: ApprovalStatus, scope?: "human-gate" | "post-finish"): string {
++  return buildEvidenceBoundHumanApprovalCommand(taskId, evidence, approvalStatus, scope)
+     ?? `npm run scwbs -- evidence collect --task ${taskId} --force`;
+ }
+ 
+@@ -507,7 +507,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+   }
+ 
+   const evidenceRelativePath = evidencePath(taskId);
+-  const approvalStatus = () => readApproval(root, taskId).approval?.status ?? "";
++  const approvalStatus = () => readApprovalForScope(root, taskId, "post-finish").approval?.status ?? "";
+   const journalPath = finishJournalPath(root, taskId);
+   if (existsSync(journalPath) && options.preflight) {
+     const nextAction = resumeFinishCommand(taskId);
+@@ -720,16 +720,17 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+   if (json) console.error("PASS registry check");
+ 
+   const approval = readApproval(root, taskId).approval;
++  const humanGateApproval = readApprovalForScope(root, taskId, "human-gate").approval;
+   const gate = validateHumanGateApproval(task, evidence, approval, evidence.changedFiles, root);
+   const diffHash = evidence.diffHash ?? evidence.git?.diffHash ?? "(not recorded)";
+   if (humanGateIssues.length > 0) {
+-    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, approval?.status);
++    const approvalCommand = buildHumanApprovalCommand(taskId, evidence, humanGateApproval?.status, "human-gate");
+     if (!json) printHumanGate(approvalCommand, gate.requiredFiles, diffHash);
+     emitJson(finishOutput({
+       status: "blocked", phase: "checkpoint", outcome: "awaiting-human-approval", taskId,
+       requiresHumanApproval: true, changedFiles: evidence.changedFiles, violations: humanGateIssues,
+       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+-      approvalStatus: approval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
++      approvalStatus: humanGateApproval?.status ?? "", nextAction: approvalCommand, resumeCommand: approvalCommand,
+       mutatedFiles, humanGateFiles: gate.requiredFiles, diffHash, readinessWarnings: [],
+       fixCommands: [approvalCommand], ...buildHumanGateActionOwnership(approvalCommand)
+     }), json);
+@@ -745,7 +746,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+       status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
+       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [issue],
+       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+-      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles,
+       readinessWarnings: readinessWarnings([issue]),
+       fixCommands: issue.fixCommand ? [issue.fixCommand] : []
+     }), json);
+@@ -763,7 +764,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+       status: "blocked", phase: "readiness", outcome: "readiness-blocked", taskId,
+       requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
+       requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+-      approvalStatus: approval?.status ?? "", nextAction, resumeCommand: nextAction, mutatedFiles,
++      approvalStatus: approvalStatus(), nextAction, resumeCommand: nextAction, mutatedFiles,
+       readinessWarnings: readinessWarnings(readinessIssues),
+       fixCommands: readinessFixCommands(readinessIssues)
+     }), json);
+@@ -800,7 +801,7 @@ function runFinishWorkflow(root: string, options: FinishOptions = {}): number {
+     status: "pass", phase: "complete", outcome: "completed", taskId,
+     requiresHumanApproval: false, changedFiles: evidence.changedFiles, violations: [],
+     requiredChecks: evidence.checks, evidencePath: evidenceRelativePath,
+-    approvalStatus: approval?.status ?? "", nextAction: next.command, resumeCommand: next.command,
++    approvalStatus: approvalStatus(), nextAction: next.command, resumeCommand: next.command,
+     mutatedFiles, readinessWarnings: [], fixCommands: [],
+     ...(readinessReport ? { mergeReadiness: summarizeMergeReadiness(readinessReport) } : {})
+   }), json);
+diff --git a/src/core/approval-version.ts b/src/core/approval-version.ts
+new file mode 100644
+index 0000000..1ef50c7
+--- /dev/null
++++ b/src/core/approval-version.ts
+@@ -0,0 +1,4 @@
++/** Runtime version marker for the canonical scoped Approval record. */
++export const APPROVAL_V2_VERSION = "scwbs.approval.v2" as const;
++
++export type ApprovalV2Version = typeof APPROVAL_V2_VERSION;
+diff --git a/src/core/check-coverage.ts b/src/core/check-coverage.ts
+index a913487..51aa9cd 100644
+--- a/src/core/check-coverage.ts
++++ b/src/core/check-coverage.ts
+@@ -1,6 +1,7 @@
+ import { existsSync, readdirSync, statSync } from "node:fs";
+ import path from "node:path";
+ import { readApproval, readEvidence } from "./contracts.js";
++import { APPROVAL_V2_VERSION } from "./approval-version.js";
+ import { matchesAny } from "./glob.js";
+ import { validateHumanGateApproval } from "./human-gate.js";
+ import { defaultCheckCoveragePath, resolveFrom } from "./paths.js";
+@@ -371,7 +372,10 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
+     const approval = readApproval(root, task.id).approval;
+     const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
+     const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+-    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && approval?.headCommit && approval.diffHash)
++    const humanGateSlot = approval?.version === APPROVAL_V2_VERSION
++      ? approval.scopeApprovals?.["human-gate"]
++      : approval;
++    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && humanGateSlot?.headCommit && humanGateSlot.diffHash)
+       && Boolean(evidence && evidenceIsCurrent(root, task, evidence));
+     const gate = validateHumanGateApproval(
+       syntheticGateTask,
+@@ -385,7 +389,7 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
+         severity: "error",
+         code: "checkCoverage.waiver.approval",
+         message: `${task.id} waives ${check} (${waiver.reason}) but requires Human Approval scoped to current Evidence`,
+-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
++        fixCommand: `npm run scwbs -- approval request --task ${task.id} --scope human-gate`
+       });
+     }
+   }
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index f7bc2b7..feb7d44 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -51,6 +51,7 @@ import {
+ } from "./schema.js";
+ import { activeTaskEntries, readTaskIndex } from "./task-index.js";
+ import type {
++  ApprovalDelegationScope,
+   ArtifactDefinition,
+   ArtifactWorkflow,
+   ApprovalRecord,
+@@ -68,6 +69,7 @@ import type {
+   TaskContract,
+   RiskRecord
+ } from "./types.js";
++import { APPROVAL_V2_VERSION } from "./approval-version.js";
+ import { asRiskRecord, validateRiskRecord, validateRiskRecordSchema } from "./schema/records.js";
+ 
+ export type LifecycleArtifactKind =
+@@ -213,6 +215,36 @@ export function readApproval(root: string, taskId: string): { approval?: Approva
+   return { approval: issues.length === 0 ? asApprovalRecord(value) : undefined, issues };
+ }
+ 
++/** Select an Approval fact for one lifecycle scope without falling back between v2 slots. */
++export function selectApprovalScope(approval: ApprovalRecord | undefined, scope: ApprovalDelegationScope): ApprovalRecord | undefined {
++  if (!approval) return undefined;
++  if (approval.version !== APPROVAL_V2_VERSION) {
++    if (approval.approvalMode === "delegated" && approval.delegationScope !== scope) return undefined;
++    return approval;
++  }
++  const slot = approval.scopeApprovals?.[scope];
++  if (!slot) return undefined;
++  return {
++    id: approval.id,
++    type: approval.type,
++    taskId: approval.taskId,
++    version: APPROVAL_V2_VERSION,
++    activeScope: scope,
++    ...slot
++  };
++}
++
++export function readApprovalForScope(root: string, taskId: string, scope: ApprovalDelegationScope): { approval?: ApprovalRecord; issues: Issue[] } {
++  const result = readApproval(root, taskId);
++  const approval = selectApprovalScope(result.approval, scope);
++  if (approval || !result.approval) return { approval, issues: result.issues };
++  const code = result.approval.version === APPROVAL_V2_VERSION ? "approval.scope.missing" : "approval.scope.mismatch";
++  const message = result.approval.version === APPROVAL_V2_VERSION
++    ? `${taskId} has no ${scope} Approval slot`
++    : `${taskId} Approval delegationScope does not match ${scope}`;
++  return { approval, issues: [...result.issues, { severity: "error", code, message }] };
++}
++
+ export function readReview(root: string, taskId: string): { review?: ReviewRecord; issues: Issue[] } {
+   if (!isValidTaskId(taskId)) {
+     return { issues: [{ severity: "error", code: "task.id.invalid", message: "Invalid task id" }] };
+diff --git a/src/core/human-gate.ts b/src/core/human-gate.ts
+index 56707b1..fee0fd6 100644
+--- a/src/core/human-gate.ts
++++ b/src/core/human-gate.ts
+@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+ import { matchesAny } from "./glob.js";
+ import { changedFilesBetween, isCommitAncestor } from "./git.js";
+ import { taskLifecycleMetadataPaths } from "./managed-contract-paths.js";
++import { APPROVAL_V2_VERSION } from "./approval-version.js";
+ import type { ApprovalDelegationScope, ApprovalRecord, ApprovalStatus, Evidence, Issue, TaskContract } from "./types.js";
+ 
+ export const APPROVAL_DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+@@ -125,12 +126,13 @@ export type HumanGateValidation = {
+   issues: Issue[];
+ };
+ 
+-export function validateHumanApprovalProvenance(approval: ApprovalRecord, required: boolean): Issue[] {
++export function validateHumanApprovalProvenance(approval: ApprovalRecord, required: boolean, strict = false): Issue[] {
+   if (!required || approval.approvalMode === "delegated") return [];
+   const provenanceKeys = ["actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel"] as const;
+   // Existing approved records predate Standard provenance. Preserve those immutable
+-  // historical records; any newly written PR-bound Approval is verified at creation.
+-  if (!provenanceKeys.some((key) => approval[key] !== undefined)) return [];
++  // historical records unless the caller is validating a v2 slot, which has a
++  // complete provenance contract.
++  if (!strict && !provenanceKeys.some((key) => approval[key] !== undefined)) return [];
+   const issues: Issue[] = [];
+   const add = (code: string, message: string): void => { issues.push({ severity: "error", code, message }); };
+   for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
+@@ -155,22 +157,25 @@ export function evidenceDiffHash(evidence: Evidence | undefined): string | undef
+   return evidence.diffHash ?? evidence.git?.diffHash;
+ }
+ 
+-export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined): string | undefined {
++export function buildLeanHumanApprovalConfirmation(taskId: string, evidence: Evidence | undefined, scope?: ApprovalDelegationScope): string | undefined {
+   const headCommit = evidenceSubjectHead(evidence);
+   const diffHash = evidenceDiffHash(evidence);
+   if (!headCommit || !diffHash) return undefined;
+-  return `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
++  return scope
++    ? `CONFIRM TTY APPROVAL ${taskId} ${scope} ${headCommit} ${diffHash}`
++    : `CONFIRM TTY APPROVAL ${taskId} ${headCommit} ${diffHash}`;
+ }
+ 
+ export function buildHumanApprovalCommand(
+   taskId: string,
+   evidence: Evidence | undefined,
+-  approvalStatus?: ApprovalStatus
++  approvalStatus?: ApprovalStatus,
++  scope?: ApprovalDelegationScope
+ ): string | undefined {
+-  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence);
++  const confirmation = buildLeanHumanApprovalConfirmation(taskId, evidence, scope);
+   if (!confirmation) return undefined;
+   const force = approvalStatus === "approved" || approvalStatus === "rejected" ? " --force" : "";
+-  return `npm run scwbs -- approval approve --task ${taskId} --actor human${force} --reason "${confirmation}"`;
++  return `npm run scwbs -- approval approve --task ${taskId} --actor human${scope ? ` --scope ${scope}` : ""}${force} --reason "${confirmation}"`;
+ }
+ 
+ function isApprovalMetadataFile(taskId: string, file: string): boolean {
+@@ -185,12 +190,19 @@ export function validateHumanGateApproval(
+   changedFiles: string[] = evidence?.changedFiles ?? [],
+   root?: string
+ ): HumanGateValidation {
++  const scopedApproval = approval?.version === APPROVAL_V2_VERSION
++    ? (() => {
++      const slot = approval.scopeApprovals?.["human-gate"];
++      return slot ? { id: approval.id, type: approval.type, taskId: approval.taskId, version: APPROVAL_V2_VERSION, activeScope: "human-gate" as const, ...slot } : undefined;
++    })()
++    : approval;
++  approval = scopedApproval;
+   const requiredFiles = changedFiles.filter((file) => matchesAny(file, task.humanGateRequiredPaths));
+   if (requiredFiles.length === 0) {
+     return { required: false, requiredFiles, approved: true, issues: [] };
+   }
+ 
+-  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status);
++  const approvalCommand = buildHumanApprovalCommand(task.id, evidence, approval?.status, "human-gate");
+   if (!approval) {
+     return {
+       required: true,
+@@ -200,8 +212,8 @@ export function validateHumanGateApproval(
+         severity: "error",
+         code: "approval.missing",
+         message: `${task.id} changes Human Gate files but no approval record was found: ${requiredFiles.join(", ")}`,
+-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`,
+-        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id}`)
++        fixCommand: `npm run scwbs -- approval request --task ${task.id} --scope human-gate`,
++        remediation: humanCommand(`npm run scwbs -- approval request --task ${task.id} --scope human-gate`)
+       }]
+     };
+   }
+@@ -227,12 +239,23 @@ export function validateHumanGateApproval(
+     message,
+     ...(approvalCommand ? { fixCommand: approvalCommand } : {})
+   });
+-  issues.push(...validateHumanApprovalProvenance(approval, Boolean(evidence?.git?.pullRequest)));
++  issues.push(...validateHumanApprovalProvenance(
++    approval,
++    approval.status === "approved" && (approval.version === APPROVAL_V2_VERSION || Boolean(evidence?.git?.pullRequest)),
++    approval.version === APPROVAL_V2_VERSION
++  ));
+   if (approval.approvalMode === "delegated") {
+     issues.push(...validateDelegatedApproval(task, approval, "human-gate"));
+   }
+   const subjectHead = evidenceSubjectHead(evidence);
+   const subjectDiffHash = evidenceDiffHash(evidence);
++  const evidencePullRequest = evidence?.git?.pullRequest;
++  if (approval.version === APPROVAL_V2_VERSION && !evidencePullRequest) {
++    addApprovalIssue("approval.scope.pullRequest", `${task.id} scoped Approval and Evidence must record pull request scope`);
++  }
++  if (approval.pullRequest && evidencePullRequest && approval.pullRequest !== evidencePullRequest) {
++    addApprovalIssue("approval.scope.pullRequest", `${task.id} approved pullRequest does not match Evidence pullRequest`);
++  }
+   const legacyUnscoped = evidence?.git?.changedFilesBasis === "legacy-recorded" || !subjectHead || !subjectDiffHash;
+   if ((!approval.headCommit || !subjectHead) && !legacyUnscoped) {
+     addApprovalIssue("approval.scope.headCommit", `${task.id} approval and Evidence must record matching headCommit scope`);
+diff --git a/src/core/schema/records.ts b/src/core/schema/records.ts
+index 77230a8..fd6c85d 100644
+--- a/src/core/schema/records.ts
++++ b/src/core/schema/records.ts
+@@ -1,4 +1,5 @@
+ import type { ErrorObject } from "ajv";
++import { APPROVAL_V2_VERSION } from "../approval-version.js";
+ import type { ApprovalRecord, BlockRecord, Evidence, Issue, ReviewRecord, RiskRecord } from "../types.js";
+ import { taskIdPatternSource } from "../paths.js";
+ import { ajv, formatSchemaPath, isObject, isStringArray, issue, stringArraySchema } from "./shared.js";
+@@ -365,6 +366,111 @@ const evidenceSchema = {
+   }
+ };
+ 
++const approvalScopeFields = [
++  "status", "requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason",
++  "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel",
++  "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof", "notes"
++] as const;
++
++const approvalScopeProperties = {
++  status: { type: "string", enum: ["requested", "approved", "rejected"] },
++  requestedAt: { type: "string" }, approvedBy: { type: "string" }, approvedAt: { type: "string" },
++  headCommit: { type: "string" }, diffHash: { type: "string" }, pullRequest: { type: "string" }, reason: { type: "string" },
++  approvalMode: { type: "string", enum: ["human", "delegated"] }, actorId: { type: "string", minLength: 1 },
++  actorSource: { type: "string", minLength: 1 }, actorUrl: { type: "string", minLength: 1 }, verifiedAt: { type: "string", minLength: 1 },
++  verificationLevel: { type: "string", minLength: 1 }, delegationSource: { type: "string" }, delegatedBy: { type: "string" },
++  executedBy: { const: "ai-agent" }, delegationScope: { type: "string", enum: ["human-gate", "post-finish"] },
++  delegationProof: { type: "string", pattern: "^hmac-sha256:[a-f0-9]{64}$" }, notes: stringArraySchema
++};
++
++const approvalScopeSchema = {
++  type: "object",
++  required: ["status"],
++  additionalProperties: false,
++  properties: approvalScopeProperties
++};
++
++const approvalHumanProvenanceFields = ["actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel"] as const;
++const approvalDelegatedFields = ["delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"] as const;
++
++function validateV2Slot(value: Record<string, unknown>, filePath: string): Issue[] {
++  const issues: Issue[] = [];
++  const add = (code: string, message: string): void => { issues.push(issue(code, message)); };
++
++  if (value.status === "requested") {
++    if (typeof value.requestedAt !== "string" || value.requestedAt.trim().length === 0) {
++      add("approval.v2.status", `${filePath}.requestedAt must be present for a requested v2 slot`);
++    }
++    for (const key of ["approvedBy", "approvedAt", "headCommit", "diffHash", "reason", "approvalMode", ...approvalHumanProvenanceFields, ...approvalDelegatedFields]) {
++      if (value[key] !== undefined) {
++        add("approval.v2.status", `${filePath}.${key} is incompatible with requested status`);
++      }
++    }
++    return issues;
++  }
++
++  if (value.status === "rejected") {
++    if (typeof value.reason !== "string" || value.reason.trim().length === 0) {
++      add("approval.v2.status", `${filePath}.reason must be present for a rejected v2 slot`);
++    }
++    for (const key of ["approvedBy", "approvedAt", "actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
++      if (typeof value[key] !== "string" || value[key].trim().length === 0) {
++        add("approval.v2.status", `${filePath}.${key} must be present for a rejected v2 slot`);
++      }
++    }
++    if (value.approvalMode !== "human") {
++      add("approval.v2.provenance", `${filePath}.approvalMode must be human for a rejected v2 slot`);
++    }
++    if (value.actorSource !== "tty" || value.verificationLevel !== "lean") {
++      add("approval.v2.provenance", `${filePath} rejected provenance must be verified by an interactive TTY`);
++    }
++    if (typeof value.actorId === "string" && typeof value.approvedBy === "string" && value.approvedBy !== value.actorId) {
++      add("approval.v2.provenance", `${filePath}.approvedBy must match actorId for a rejected human v2 slot`);
++    }
++    for (const key of approvalDelegatedFields) {
++      if (value[key] !== undefined) {
++        add("approval.v2.provenance", `${filePath} rejected human provenance must not contain delegated field ${key}`);
++      }
++    }
++    return issues;
++  }
++
++  if (value.status !== "approved") return issues;
++  if (value.approvalMode !== "human" && value.approvalMode !== "delegated") {
++    add("approval.v2.provenance", `${filePath}.approvalMode must be human or delegated when status is approved`);
++    return issues;
++  }
++  for (const key of ["headCommit", "diffHash", "pullRequest"] as const) {
++    if (typeof value[key] !== "string" || value[key].length === 0) {
++      add("approval.v2.scope", `${filePath}.${key} must be present for an approved v2 slot`);
++    }
++  }
++  if (typeof value.reason !== "string" || value.reason.trim().length === 0) {
++    add("approval.v2.scope", `${filePath}.reason must be present for an approved v2 slot`);
++  }
++  if (value.approvalMode === "human") {
++    for (const key of ["actorId", "actorSource", "verifiedAt", "verificationLevel"] as const) {
++      if (typeof value[key] !== "string" || value[key].length === 0) {
++        add("approval.v2.provenance", `${filePath}.${key} must be present for an approved human v2 slot`);
++      }
++    }
++    if (value.actorSource !== "tty" || value.verificationLevel !== "lean") {
++      add("approval.v2.provenance", `${filePath} human provenance must be verified by an interactive TTY`);
++    }
++    if (typeof value.actorId === "string" && value.approvedBy !== value.actorId) {
++      add("approval.v2.provenance", `${filePath}.approvedBy must match actorId for an approved human v2 slot`);
++    }
++    for (const key of approvalDelegatedFields) {
++      if (value[key] !== undefined) {
++        add("approval.v2.provenance", `${filePath} human provenance must not contain delegated field ${key}`);
++      }
++    }
++  } else if (approvalHumanProvenanceFields.some((key) => value[key] !== undefined)) {
++    add("approval.v2.provenance", `${filePath} delegated provenance must not contain human actor fields`);
++  }
++  return issues;
++}
++
+ const approvalRecordSchema = {
+   type: "object",
+   required: ["id", "type", "taskId", "status"],
+@@ -374,6 +480,18 @@ const approvalRecordSchema = {
+     type: { const: "approval" },
+     taskId: { type: "string", minLength: 1, pattern: taskIdPatternSource },
+     status: { type: "string", enum: ["requested", "approved", "rejected"] },
++    version: { const: APPROVAL_V2_VERSION },
++    activeScope: { type: "string", enum: ["human-gate", "post-finish"] },
++    scopeApprovals: {
++      type: "object",
++      minProperties: 1,
++      maxProperties: 2,
++      additionalProperties: false,
++      properties: {
++        "human-gate": approvalScopeSchema,
++        "post-finish": approvalScopeSchema
++      }
++    },
+     requestedAt: { type: "string" },
+     approvedBy: { type: "string" },
+     approvedAt: { type: "string" },
+@@ -682,7 +800,7 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+   if (value.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.status))) {
+     issues.push(issue("approval.status", `${filePath}.status must be requested, approved, or rejected`));
+   }
+-  for (const key of ["requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
++  for (const key of ["version", "activeScope", "requestedAt", "approvedBy", "approvedAt", "headCommit", "diffHash", "pullRequest", "reason", "approvalMode", "actorId", "actorSource", "actorUrl", "verifiedAt", "verificationLevel", "delegationSource", "delegatedBy", "executedBy", "delegationScope", "delegationProof"]) {
+     if (value[key] !== undefined && typeof value[key] !== "string") {
+       issues.push(issue("approval.field", `${filePath}.${key} must be a string when present`));
+     }
+@@ -690,6 +808,49 @@ export function validateApprovalRecord(value: unknown, filePath = "approval"): I
+   if (value.notes !== undefined && !isStringArray(value.notes)) {
+     issues.push(issue("approval.notes", `${filePath}.notes must be a string array when present`));
+   }
++  if (value.version === APPROVAL_V2_VERSION || value.scopeApprovals !== undefined || value.activeScope !== undefined) {
++    if (value.version !== APPROVAL_V2_VERSION) issues.push(issue("approval.v2.version", `${filePath}.version must be ${APPROVAL_V2_VERSION} when scoped approvals are present`));
++    if (!isObject(value.scopeApprovals)) {
++      issues.push(issue("approval.v2.scopeApprovals", `${filePath}.scopeApprovals must be an object`));
++    }
++    const scopes = isObject(value.scopeApprovals) ? value.scopeApprovals : {};
++    const allowedV2Keys = new Set(["id", "type", "taskId", "version", "activeScope", "scopeApprovals", ...approvalScopeFields]);
++    for (const key of Object.keys(value)) {
++      if (!allowedV2Keys.has(key)) issues.push(issue("approval.v2.projection", `${filePath}.${key} is not a valid v2 projected field`));
++    }
++    const scopeKeys = Object.keys(scopes);
++    if (scopeKeys.length === 0 || scopeKeys.length > 2 || scopeKeys.some((scope) => scope !== "human-gate" && scope !== "post-finish")) {
++      issues.push(issue("approval.v2.scopeApprovals", `${filePath}.scopeApprovals must contain one or two known scopes`));
++    }
++    if (value.activeScope !== "human-gate" && value.activeScope !== "post-finish") {
++      issues.push(issue("approval.v2.activeScope", `${filePath}.activeScope must identify an available scope`));
++    }
++    const active = isObject(value.scopeApprovals) && (value.activeScope === "human-gate" || value.activeScope === "post-finish")
++      ? scopes[value.activeScope]
++      : undefined;
++    if (!isObject(active)) {
++      issues.push(issue("approval.v2.activeScope", `${filePath}.activeScope must reference a scope slot`));
++    } else {
++      for (const key of approvalScopeFields) {
++        const slotHas = Object.prototype.hasOwnProperty.call(active, key);
++        const topHas = Object.prototype.hasOwnProperty.call(value, key);
++        if (slotHas !== topHas || (slotHas && JSON.stringify(active[key]) !== JSON.stringify(value[key]))) {
++          issues.push(issue("approval.v2.projection", `${filePath}.${key} must exactly project activeScope ${value.activeScope}`));
++        }
++      }
++    }
++    for (const [scope, slot] of Object.entries(scopes)) {
++      if (!isObject(slot)) continue;
++      issues.push(...validateApprovalRecord({ id: `${String(value.id)}-${scope}`, type: "approval", taskId: value.taskId, ...slot }, `${filePath}.scopeApprovals.${scope}`));
++      issues.push(...validateV2Slot(slot, `${filePath}.scopeApprovals.${scope}`));
++      if (slot.delegationScope !== undefined && slot.delegationScope !== scope) {
++        issues.push(issue("approval.v2.scope", `${filePath}.scopeApprovals.${scope}.delegationScope must match its scope key`));
++      }
++      if (slot.approvalMode === "delegated" && slot.delegationScope !== scope) {
++        issues.push(issue("approval.v2.scope", `${filePath}.scopeApprovals.${scope} delegated approval requires matching delegationScope`));
++      }
++    }
++  }
+   if (value.status === "approved") {
+     for (const key of ["approvedBy", "approvedAt"]) {
+       if (typeof value[key] !== "string" || value[key].length === 0) {
+diff --git a/src/core/types.ts b/src/core/types.ts
+index a220dce..84e8e0a 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -1,3 +1,5 @@
++import type { ApprovalV2Version } from "./approval-version.js";
++
+ export type IssueSeverity = "error" | "warn";
+ 
+ export type Remediation =
+@@ -70,6 +72,31 @@ export type TaskIndex = {
+ export type ApprovalStatus = "requested" | "approved" | "rejected";
+ export type ApprovalDelegationScope = "human-gate" | "post-finish";
+ 
++export type ApprovalScope = ApprovalDelegationScope;
++
++export type ApprovalScopeRecord = {
++  status: ApprovalStatus;
++  requestedAt?: string;
++  approvedBy?: string;
++  approvedAt?: string;
++  headCommit?: string;
++  diffHash?: string;
++  pullRequest?: string;
++  reason?: string;
++  approvalMode?: "human" | "delegated";
++  actorId?: string;
++  actorSource?: "github-review" | string;
++  actorUrl?: string;
++  verifiedAt?: string;
++  verificationLevel?: "standard" | string;
++  delegationSource?: string;
++  delegatedBy?: string;
++  executedBy?: "ai-agent";
++  delegationScope?: ApprovalDelegationScope;
++  delegationProof?: string;
++  notes?: string[];
++};
++
+ export type ApprovalPolicy =
+   | { mode: "human-only" }
+   | {
+@@ -436,6 +463,9 @@ export type ApprovalRecord = {
+   type: "approval";
+   taskId: string;
+   status: ApprovalStatus;
++  version?: ApprovalV2Version;
++  activeScope?: ApprovalScope;
++  scopeApprovals?: Partial<Record<ApprovalScope, ApprovalScopeRecord>>;
+   requestedAt?: string;
+   approvedBy?: string;
+   approvedAt?: string;
+diff --git a/tests/integration/approval.test.ts b/tests/integration/approval.test.ts
+index 6a46273..be82374 100644
+--- a/tests/integration/approval.test.ts
++++ b/tests/integration/approval.test.ts
+@@ -1,13 +1,13 @@
+-import { chmodSync, readFileSync } from "node:fs";
++import { chmodSync, readFileSync, writeFileSync } from "node:fs";
+ import { execFileSync } from "node:child_process";
+ import os from "node:os";
+ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+-import { buildApprovalApproveYaml, runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
++import { buildApprovalApproveYaml, runApprovalApprove, runApprovalReject, runApprovalRequest } from "../../src/commands/approval-request.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ import { main } from "../../src/cli.js";
+-import { readApproval } from "../../src/core/contracts.js";
++import { readApproval, readApprovalForScope, readRegistry } from "../../src/core/contracts.js";
+ import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ 
+ const STRONG_TOKEN = "0123456789abcdef0123456789abcdef";
+@@ -73,6 +73,55 @@ describe("approval", () => {
+     expect(actual).toContain('pullRequest: "#42"');
+   });
+ 
++  test("scoped requests retain independent human-gate and post-finish slots", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", pullRequest: "#42", force: false })).toBe(0);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", pullRequest: "#42", force: false })).toBe(0);
++
++    const human = readApprovalForScope(root, "WBS-001-004", "human-gate").approval;
++    const postFinish = readApprovalForScope(root, "WBS-001-004", "post-finish").approval;
++    expect(human).toMatchObject({ version: "scwbs.approval.v2", activeScope: "human-gate", status: "requested", pullRequest: "#42" });
++    expect(postFinish).toMatchObject({ version: "scwbs.approval.v2", activeScope: "post-finish", status: "requested", pullRequest: "#42" });
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", pullRequest: "#43", note: "replacement", force: true })).toBe(0);
++    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested", pullRequest: "#42" });
++    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "requested", pullRequest: "#43" });
++    const raw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
++    expect(raw).toContain("human-gate:");
++    expect(raw).toContain("post-finish:");
++  });
++
++  test("scoped write imports only an explicitly scoped v1 delegated record and never infers v1 human scope", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
++      status: "approved",
++      approvalMode: "delegated",
++      approvedBy: "delegated:xmeta",
++      approvedAt: "2026-07-14T00:00:00.000Z",
++      delegationSource: "issue-222",
++      delegatedBy: "xmeta",
++      executedBy: "ai-agent",
++      delegationScope: "post-finish",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
++      reason: "Legacy delegated approval",
++      delegationProof: `hmac-sha256:${"a".repeat(64)}`
++    }) as unknown as Record<string, unknown>);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: true })).toBe(0);
++    const raw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
++    expect(raw).toContain("post-finish:");
++    expect(raw).toContain("delegationScope: post-finish");
++    expect(raw).toContain("human-gate:");
++
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({ status: "approved", approvedBy: "old-human", approvedAt: "2026-07-14T00:00:00.000Z" }) as unknown as Record<string, unknown>);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", force: true })).toBe(0);
++    const humanRaw = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
++    expect(humanRaw).not.toContain("old-human");
++    expect(humanRaw).toContain("post-finish:");
++  });
++
+   test("approval request records the detected current branch PR after Evidence matches", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -134,7 +183,13 @@ describe("approval", () => {
+     writeScwbsProject(root);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       subjectHeadCommit: "abc1234",
+-      diffHash: "diff1234"
++      diffHash: "diff1234",
++      git: {
++        branch: "task/WBS-001-004-api-implementation",
++        base: "main",
++        headCommit: "abc1234",
++        pullRequest: "#42"
++      }
+     }) as unknown as Record<string, unknown>);
+     const note = "n".repeat(2048);
+     const output = captureOutput(() => main([
+@@ -204,6 +259,124 @@ describe("approval", () => {
+     expect(actual).toContain("reason: CONFIRM TTY APPROVAL WBS-001-004 abc1234 diff1234");
+   });
+ 
++  test("scoped human approval requires scope-bound confirmation and preserves the other slot", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234",
++      diffHash: "diff1234",
++      git: { pullRequest: "#42" }
++    }) as unknown as Record<string, unknown>);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", pullRequest: "#42", force: false })).toBe(0);
++
++    const result = withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      scope: "human-gate",
++      pullRequest: "#42",
++      reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234",
++      actor: "human",
++      force: false
++    }));
++    expect(result).toBe(0);
++    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "approved", activeScope: "human-gate" });
++    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested", activeScope: "post-finish" });
++    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      scope: "post-finish", pullRequest: "#42",
++      reason: "CONFIRM TTY APPROVAL WBS-001-004 post-finish abc1234 diff1234", actor: "human", force: false
++    }))).toBe(0);
++    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      scope: "human-gate", pullRequest: "#42",
++      reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234", actor: "human", force: true
++    }))).toBe(0);
++    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "approved", activeScope: "post-finish" });
++    expect(readRegistry(root).registry?.contracts.filter((entry) => entry.type === "approval" && entry.relatedTask === "WBS-001-004")).toHaveLength(1);
++  });
++
++  test("scoped human rejection is isolated, TTY-bound, and bounded", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: false })).toBe(0);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "post-finish", force: false })).toBe(0);
++    const output = captureOutput(() => withInteractiveTty(() => runApprovalReject(root, "WBS-001-004", {
++      actor: "human", scope: "human-gate", reason: "Human rejected the gate", force: false
++    })));
++    expect(output.result).toBe(0);
++    expect(output.stdout).toContain("activeScope: human-gate");
++    expect(output.stdout).not.toContain("post-finish:");
++    expect(output.stdout).not.toContain("Human rejected the gate");
++    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toMatchObject({ status: "rejected", reason: "Human rejected the gate" });
++    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested" });
++    expect(runApprovalReject(root, "WBS-001-004", { actor: "ai", scope: "post-finish", reason: "AI", force: true })).toBe(1);
++    expect(readApprovalForScope(root, "WBS-001-004", "post-finish").approval).toMatchObject({ status: "requested" });
++  });
++
++  test("scoped human approval fails closed without Evidence PR, TTY, or exact confirmation", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234", diffHash: "diff1234", git: {
++        branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234"
++      }
++    }) as unknown as Record<string, unknown>);
++    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      actor: "human", scope: "human-gate", force: true, reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234"
++    }))).toBe(1);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      subjectHeadCommit: "abc1234", diffHash: "diff1234", git: {
++        branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42"
++      }
++    }) as unknown as Record<string, unknown>);
++    expect(runApprovalApprove(root, "WBS-001-004", {
++      actor: "human", scope: "human-gate", force: true, reason: "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 diff1234"
++    })).toBe(1);
++    expect(withInteractiveTty(() => runApprovalApprove(root, "WBS-001-004", {
++      actor: "human", scope: "human-gate", force: true, reason: "wrong confirmation"
++    }))).toBe(1);
++    expect(readApproval(root, "WBS-001-004").approval).toBeUndefined();
++  });
++
++  test("request and approve preserve an invalid v2 artifact even with force", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const invalid = {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": { status: "requested" } }, status: "approved"
++    };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", invalid);
++    const before = readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8");
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: true })).toBe(1);
++    expect(runApprovalApprove(root, "WBS-001-004", { actor: "human", scope: "human-gate", force: true, reason: "bad" })).toBe(1);
++    expect(runApprovalReject(root, "WBS-001-004", { actor: "human", scope: "human-gate", force: true, reason: "bad" })).toBe(1);
++    expect(readFileSync(path.join(root, "contracts/approvals/WBS-001-004.yaml"), "utf8")).toBe(before);
++  });
++
++  test("transactional approval mutation restores Approval and Registry bytes when sync fails", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runApprovalRequest(root, "WBS-001-004", { force: false })).toBe(0);
++    const approvalPath = path.join(root, "contracts/approvals/WBS-001-004.yaml");
++    const registryPath = path.join(root, "contracts/registry.yaml");
++    const beforeApproval = readFileSync(approvalPath, "utf8");
++    const beforeRegistry = readFileSync(registryPath, "utf8");
++    expect(runApprovalRequest(root, "WBS-001-004", {
++      force: true,
++      note: "replacement",
++      afterRegistrySync: () => {
++        writeFileSync(registryPath, "corrupted registry\n", "utf8");
++        throw new Error("forced registry failure");
++      }
++    })).toBe(1);
++    expect(readFileSync(approvalPath, "utf8")).toBe(beforeApproval);
++    expect(readFileSync(registryPath, "utf8")).toBe(beforeRegistry);
++  });
++
++  test("root reject alias reaches the approval reject writer", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    expect(runApprovalRequest(root, "WBS-001-004", { force: false })).toBe(0);
++    expect(main(["reject", "--task", "WBS-001-004", "--actor", "human", "--reason", "Human rejected"], root)).toBe(0);
++    expect(readApproval(root, "WBS-001-004").approval).toMatchObject({ status: "rejected", reason: "Human rejected" });
++  });
++
+   test("approval approve fails closed when the Evidence PR has no matching approved review", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -270,7 +443,13 @@ describe("approval", () => {
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       subjectHeadCommit: "abc1234",
+-      diffHash: "diff1234"
++      diffHash: "diff1234",
++      git: {
++        branch: "task/WBS-001-004-api-implementation",
++        base: "main",
++        headCommit: "abc1234",
++        pullRequest: "#42"
++      }
+     }) as unknown as Record<string, unknown>);
+     let output: ReturnType<typeof captureOutput>;
+     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
+@@ -332,7 +511,7 @@ describe("approval", () => {
+     else delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+     let output: ReturnType<typeof captureOutput>;
+     try {
+-      output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope, force: false }));
++    output = captureOutput(() => runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope, reason: "Delegated evidence review", force: false }));
+     } finally {
+       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+     }
+diff --git a/tests/integration/check-diff.test.ts b/tests/integration/check-diff.test.ts
+index d21e634..b762fdc 100644
+--- a/tests/integration/check-diff.test.ts
++++ b/tests/integration/check-diff.test.ts
+@@ -5,11 +5,38 @@ import { describe, expect, test } from "vitest";
+ import { collectBranchIssues, collectCurrentPullRequestIssues, collectDiffIssues, collectEvidenceGateIssues, runCheckDiff } from "../../src/commands/check-diff.js";
+ import { baseBranchStatus, branchChangedFiles, branchDiffHash, filesAddedOnBothSides, headCommit, workingTreeChangedFiles, workingTreeState } from "../../src/core/git.js";
+ import { changedTaskAuthorityFields, collectTaskAuthorityIssues } from "../../src/core/task-authority.js";
+-import { makeTempRepo, sampleTask, sampleEvidence, sampleApproval, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
++import { makeTempRepo, sampleTask, sampleEvidence, writeScwbsProject, writeJson, writeText, writeYaml } from "../helpers.js";
+ import { chmodSync } from "node:fs";
+ 
+ const standardHumanGatePaths = ["package.json", "package-lock.json", "tsconfig.json", "vitest.config.ts", ".github/**"];
+ 
++function scopedHumanApproval(overrides: Record<string, unknown> = {}): Record<string, unknown> {
++  const slot = {
++    status: "approved",
++    approvedBy: "human",
++    approvedAt: "2026-07-05T14:30:00.000Z",
++    approvalMode: "human",
++    headCommit: "abc1234",
++    diffHash: "diff1234",
++    pullRequest: "#42",
++    reason: "Human reviewed the current Evidence",
++    actorId: "human",
++    actorSource: "tty",
++    verifiedAt: "2026-07-05T14:30:00.000Z",
++    verificationLevel: "lean",
++    ...overrides
++  };
++  return {
++    id: "APR-WBS-001-004",
++    type: "approval",
++    taskId: "WBS-001-004",
++    version: "scwbs.approval.v2",
++    activeScope: "human-gate",
++    scopeApprovals: { "human-gate": slot },
++    ...slot
++  };
++}
++
+ function safeNewTask(taskId = "SCWBS-DRAFT-NEW") {
+   return sampleTask({
+     id: taskId,
+@@ -251,7 +278,7 @@ describe("check-diff", () => {
+     ]));
+   });
+ 
+-  test("authority changes accept current-scope Human Approval without creating approval records", () => {
++  test("authority changes remain blocked even when an Approval matches the current Evidence", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+     const baseTask = sampleTask({ managedContractPaths: ["contracts/tasks/WBS-001-004.yaml"] });
+@@ -268,15 +295,14 @@ describe("check-diff", () => {
+       diffHash: "approved-authority-diff",
+       changedFiles: ["contracts/tasks/WBS-001-004.yaml"]
+     }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+-      status: "approved",
+-      approvedBy: "Human Reviewer",
+-      approvedAt: "2026-07-14T00:00:00.000Z",
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({
+       headCommit: subjectHead,
+       diffHash: "approved-authority-diff"
+-    }) as unknown as Record<string, unknown>);
++    }));
+     const headTask = { ...baseTask, requiredChecks: ["test"] };
+-    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual([]);
++    expect(collectTaskAuthorityIssues(root, headTask, "base", ["contracts/tasks/WBS-001-004.yaml"])).toEqual(expect.arrayContaining([
++      expect.objectContaining({ code: "diff.taskAuthority.change" })
++    ]));
+   });
+ 
+   test("a separate existing governance task can change another task authority", () => {
+@@ -563,11 +589,11 @@ describe("check-diff", () => {
+       "contracts/evidence/WBS-001-004.yaml", "contracts/approvals/WBS-001-004.yaml", "contracts/reviews/WBS-001-004.yaml", "contracts/registry.yaml"
+     ]);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+-      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash }
+-    }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+-      status: "approved", approvedBy: "Human Reviewer", approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
++      subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, git: { base: "base", subjectHeadCommit: subjectHead, diffHash: subjectDiffHash, pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({
++      approvedAt: "2026-07-13T10:00:00Z", headCommit: subjectHead, diffHash: subjectDiffHash
++    }));
+     expect(collectDiffIssues(root, task, ["src/core/git.ts"]).some((issue) => issue.code === "diff.checkCoverage.waiver.approval")).toBe(false);
+ 
+     writeText(root, "src/core/git.ts", "export const value = 2;\n");
+@@ -654,15 +680,10 @@ describe("check-diff", () => {
+     const root = makeTempRepo();
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       subjectHeadCommit: "abc1234",
+-      diffHash: "diff1234"
+-    }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+-      status: "approved",
+-      approvedBy: "Human Reviewer",
+-      approvedAt: "2026-07-05T14:30:00.000Z",
+-      headCommit: "abc1234",
+-      diffHash: "diff1234"
++      diffHash: "diff1234",
++      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval());
+     const task = sampleTask({
+       allowedPaths: [],
+       humanGateRequiredPaths: ["tsconfig.json"]
+@@ -676,15 +697,10 @@ describe("check-diff", () => {
+     const root = makeTempRepo();
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       subjectHeadCommit: "abc1234",
+-      diffHash: "diff1234"
+-    }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", sampleApproval({
+-      status: "approved",
+-      approvedBy: "Human Reviewer",
+-      approvedAt: "2026-07-05T14:30:00.000Z",
+-      headCommit: "abc1234",
+-      diffHash: "old-diff"
++      diffHash: "diff1234",
++      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", scopedHumanApproval({ diffHash: "old-diff" }));
+     const task = sampleTask({
+       allowedPaths: [],
+       humanGateRequiredPaths: ["tsconfig.json"]
+@@ -1034,7 +1050,7 @@ describe("check-diff", () => {
+     }
+ 
+     const result = JSON.parse(output.join("\n"));
+-    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 abc1234 test-diff-hash"`;
++    const command = `npm run scwbs -- approval approve --task WBS-001-004 --actor human --scope human-gate --reason "CONFIRM TTY APPROVAL WBS-001-004 human-gate abc1234 test-diff-hash"`;
+     expect(result.requiresHumanApproval).toBe(true);
+     expect(result.nextAction).toBe(command);
+     expect(result).toMatchObject({
+diff --git a/tests/integration/check.test.ts b/tests/integration/check.test.ts
+index 7252a67..68557b6 100644
+--- a/tests/integration/check.test.ts
++++ b/tests/integration/check.test.ts
+@@ -3,7 +3,7 @@ import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
+ import { collectDiffIssues } from "../../src/commands/check-diff.js";
+ import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
+ import { readTask } from "../../src/core/contracts.js";
+-import { runApprovalApprove } from "../../src/commands/approval-request.js";
++import { runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ 
+ describe("check", () => {
+@@ -354,13 +354,15 @@ describe("check", () => {
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       changedFiles: ["src/security/key.ts"],
+       subjectHeadCommit: "abc1234",
+-      diffHash: "diff1234"
++      diffHash: "diff1234",
++      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
++    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: false })).toBe(0);
+     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
+     try {
+-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated post-finish Evidence and checks reviewed", force: false })).toBe(0);
+       expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
+-        expect.objectContaining({ code: "approval.delegation.scope", severity: "error" })
++        expect.objectContaining({ code: "approval.status", severity: "error" })
+       ]));
+     } finally {
+       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+diff --git a/tests/integration/completion.test.ts b/tests/integration/completion.test.ts
+index ee7618b..2773578 100644
+--- a/tests/integration/completion.test.ts
++++ b/tests/integration/completion.test.ts
+@@ -96,6 +96,66 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(readApproval(root, "WBS-001-004").approval?.status).toBe("approved");
+   });
+ 
++  test("completion selects only the post-finish Approval slot", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit());
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004",
++      type: "approval",
++      taskId: "WBS-001-004",
++      version: "scwbs.approval.v2",
++      activeScope: "human-gate",
++      scopeApprovals: {
++        "human-gate": { status: "approved", approvedBy: "human", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "human", headCommit: "abc1234", diffHash: "sha256:fake-diff-hash", pullRequest: "#42", reason: "Human reviewed the gate", actorId: "human", actorSource: "tty", verifiedAt: "2026-07-14T00:00:00.000Z", verificationLevel: "lean" },
++        "post-finish": { status: "requested", requestedAt: "2026-07-14T00:00:00.000Z", pullRequest: "#42" }
++      },
++      status: "approved",
++      approvedBy: "human",
++      approvedAt: "2026-07-14T00:00:00.000Z",
++      approvalMode: "human",
++      headCommit: "abc1234",
++      diffHash: "sha256:fake-diff-hash",
++      pullRequest: "#42",
++      reason: "Human reviewed the gate",
++      actorId: "human",
++      actorSource: "tty",
++      verifiedAt: "2026-07-14T00:00:00.000Z",
++      verificationLevel: "lean"
++    });
++    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
++  });
++
++  test.each([
++    ["headCommit", "stale-head"],
++    ["diffHash", "stale-diff"],
++    ["pullRequest", "#41"]
++  ] as const)("completion rejects stale v2 post-finish %s", (field, value) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit());
++    const slot = {
++      status: "approved",
++      approvedBy: "human",
++      approvedAt: "2026-07-14T00:00:00.000Z",
++      approvalMode: "human",
++      headCommit: "abc1234",
++      diffHash: "sha256:fake-diff-hash",
++      pullRequest: "#42",
++      reason: "Human reviewed the post-finish Evidence",
++      actorId: "human",
++      actorSource: "tty",
++      verifiedAt: "2026-07-14T00:00:00.000Z",
++      verificationLevel: "lean"
++    };
++    const drifted = { ...slot, [field]: value };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "post-finish", scopeApprovals: { "post-finish": drifted }, ...drifted
++    });
++    expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
++  });
++
+   test("completion apply dry-run previews node-level completion targets", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+@@ -112,7 +172,6 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+       humanGateRequiredPaths: []
+     }) as unknown as Record<string, unknown>);
+     writeApprovedApproval(root, "WBS-001-004", { pullRequest: "#41" });
+-    writeApprovedApproval(root, "WBS-001-005", { headCommit: "abc1235", pullRequest: "#42" });
+     writeApprovedApproval(root, "WBS-001-006", { headCommit: "abc1236", pullRequest: "#43" });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       id: "EVD-001-004",
+@@ -228,7 +287,6 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+       humanGateRequiredPaths: []
+     }) as unknown as Record<string, unknown>);
+     writeApprovedApproval(root, "WBS-001-004", { pullRequest: "#41" });
+-    writeApprovedApproval(root, "WBS-001-005", { headCommit: "abc1235", pullRequest: "#42" });
+     writeApprovedApproval(root, "WBS-001-006", { headCommit: "abc1236", pullRequest: "#43" });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       id: "EVD-001-004",
+@@ -320,7 +378,7 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
+     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
+     try {
+-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated completion review", force: false })).toBe(0);
+       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(0);
+     } finally {
+       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+@@ -334,9 +392,9 @@ fs.writeFileSync(outputPath, JSON.stringify(wbs, null, 2) + "\\n");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidenceWithGit({ subjectHeadCommit: "abc1234", diffHash: "sha256:fake-diff-hash" }));
+     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = delegationToken;
+     try {
+-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", force: false })).toBe(0);
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "human-gate", reason: "Delegated gate review", force: false })).toBe(0);
+       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: true })).toBe(0);
++      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated completion review", force: true })).toBe(0);
+       const approval = readApproval(root, "WBS-001-004").approval!;
+       writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...approval, delegationProof: `hmac-sha256:${"a".repeat(64)}` } as unknown as Record<string, unknown>);
+       expect(runCompletionApply(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", apply: false, allowRoot: false })).toBe(1);
+diff --git a/tests/integration/finish.test.ts b/tests/integration/finish.test.ts
+index f87b0d1..578bb74 100644
+--- a/tests/integration/finish.test.ts
++++ b/tests/integration/finish.test.ts
+@@ -90,7 +90,7 @@ function prepareFinishRepoWithHumanGate(): string {
+   writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+     changedFiles: ["src/security/secret.ts"],
+     diffHash: "test-diff-hash",
+-    git: { diffHash: "test-diff-hash" }
++    git: { headCommit: "abc1234", diffHash: "test-diff-hash", pullRequest: "#42" }
+   }) as unknown as Record<string, unknown>);
+   writeYaml(root, "contracts/registry.yaml", {
+     projectId: "test-wbs",
+@@ -120,6 +120,52 @@ function prepareFinishRepoWithHumanGate(): string {
+   return root;
+ }
+ 
++function scopedHumanGateApproval(taskId: string, status: "requested" | "approved" | "rejected", evidence: ReturnType<typeof readEvidence>["evidence"], overrides: Record<string, unknown> = {}): Record<string, unknown> {
++  const headCommit = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit ?? "head";
++  const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash ?? "diff";
++  const pullRequest = evidence?.git?.pullRequest ?? "#42";
++  const slot = status === "requested"
++    ? { status, requestedAt: "2026-07-17T00:00:00.000Z", pullRequest, ...overrides }
++    : status === "rejected"
++      ? {
++        status,
++        approvedBy: "human",
++        approvedAt: "2026-07-17T00:01:00.000Z",
++        reason: "Human rejected the gate",
++        approvalMode: "human",
++        actorId: "human",
++        actorSource: "tty",
++        verifiedAt: "2026-07-17T00:01:00.000Z",
++        verificationLevel: "lean",
++        pullRequest,
++        ...overrides
++      }
++      : {
++        status,
++        approvedBy: "human",
++        approvedAt: "2026-07-17T00:01:00.000Z",
++        approvalMode: "human",
++        headCommit,
++        diffHash,
++        pullRequest,
++        reason: "Human reviewed the current Evidence",
++        actorId: "human",
++        actorSource: "tty",
++        verifiedAt: "2026-07-17T00:01:00.000Z",
++        verificationLevel: "lean",
++        ...overrides
++      };
++  return {
++    id: `APR-${taskId}`,
++    type: "approval",
++    taskId,
++    version: "scwbs.approval.v2",
++    activeScope: "human-gate",
++    scopeApprovals: { "human-gate": slot },
++    ...slot
++  };
++}
++
+ function prepareFinishRepo(requestedApproval = false): string {
+   const root = makeTempRepo();
+   writeScwbsProject(root);
+@@ -811,7 +857,7 @@ describe("finish", () => {
+     expect(text).toContain("Current diff hash:");
+     expect(text).toContain("Next action for human reviewer:");
+     const evidence = readEvidence(root, "WBS-001-004").evidence;
+-    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence));
++    expect(text).toContain(buildHumanApprovalCommand("WBS-001-004", evidence, undefined, "human-gate"));
+     expect(text).toContain("AI agents must stop here.");
+     expect(text).toContain("Do not approve this task yourself.");
+   }, 30000);
+@@ -834,27 +880,16 @@ describe("finish", () => {
+       const diffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
+       expect(headCommit).toBeTruthy();
+       expect(diffHash).toBeTruthy();
+-      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+-        id: `APR-${taskId}`,
+-        type: "approval",
+-        taskId,
+-        status,
+-        approvedBy: "human",
+-        approvedAt: "2026-07-17T00:00:00.000Z",
++      writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, status, evidence, {
+         headCommit: mismatch === "headCommit" ? "stale-head" : headCommit,
+         diffHash: mismatch === "diffHash" ? "sha256:stale-diff" : diffHash
+-      });
++      }));
+     } else if (status) {
+-      writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+-        id: `APR-${taskId}`,
+-        type: "approval",
+-        taskId,
+-        status
+-      });
++      writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, status, readEvidence(root, taskId).evidence));
+     }
+ 
+     const result = captureFinishJson(root, { taskId, baseRef: "base" });
+-    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status);
++    const command = buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, status, "human-gate");
+ 
+     expect(result.exitCode).toBe(1);
+     expect(result.json).toMatchObject({
+@@ -881,12 +916,7 @@ describe("finish", () => {
+   test("plain Human Gate output uses the same forced recovery command as JSON", () => {
+     const root = prepareFinishRepoWithHumanGate();
+     const taskId = "WBS-001-004";
+-    writeYaml(root, `contracts/approvals/${taskId}.yaml`, {
+-      id: `APR-${taskId}`,
+-      type: "approval",
+-      taskId,
+-      status: "rejected"
+-    });
++    writeYaml(root, `contracts/approvals/${taskId}.yaml`, scopedHumanGateApproval(taskId, "rejected", readEvidence(root, taskId).evidence));
+     const output: string[] = [];
+     const originalLog = console.log;
+     console.log = (message?: unknown) => output.push(String(message));
+@@ -897,7 +927,7 @@ describe("finish", () => {
+     }
+ 
+     expect(output).toContain("  Action owner: human only");
+-    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected")}`);
++    expect(output).toContain(`  ${buildHumanApprovalCommand(taskId, readEvidence(root, taskId).evidence, "rejected", "human-gate")}`);
+   }, 30000);
+ 
+   test("Human Gate waiting persists one synchronized checkpoint and reports how to resume", () => {
+@@ -920,7 +950,7 @@ describe("finish", () => {
+         "contracts/evidence/WBS-001-004.yaml",
+         "contracts/registry.yaml"
+       ],
+-      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence)
++      resumeCommand: buildHumanApprovalCommand("WBS-001-004", readEvidence(root, "WBS-001-004").evidence, undefined, "human-gate")
+     });
+     expect(readFileSync(path.join(root, "contracts/registry.yaml"), "utf8")).toBe(buildRegistryYaml(root));
+     expect(readFileSync(path.join(root, "contracts/evidence/WBS-001-004.yaml"), "utf8")).not.toBe(beforeEvidence);
+diff --git a/tests/integration/human-gate.test.ts b/tests/integration/human-gate.test.ts
+index b25de1a..0a728bc 100644
+--- a/tests/integration/human-gate.test.ts
++++ b/tests/integration/human-gate.test.ts
+@@ -85,6 +85,67 @@ describe("Human Gate approval scope", () => {
+     expect(result).toMatchObject({ required: true, approved: true, issues: [] });
+   });
+ 
++  test("selects only the human-gate slot from a complete v2 bundle", () => {
++    const result = validateHumanGateApproval(
++      task,
++      { ...evidence, changedFiles: ["package.json"] },
++      {
++        id: "APR-WBS-001-004",
++        type: "approval",
++        taskId: "WBS-001-004",
++        version: "scwbs.approval.v2",
++        activeScope: "post-finish",
++        scopeApprovals: {
++          "human-gate": { status: "requested" },
++          "post-finish": { status: "approved", approvedBy: "human", approvedAt: "2026-07-13T00:00:00.000Z", headCommit: "head123", diffHash: "diff123" }
++        },
++        status: "approved",
++        approvedBy: "human",
++        approvedAt: "2026-07-13T00:00:00.000Z",
++        headCommit: "head123",
++        diffHash: "diff123"
++      }
++    );
++    expect(result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "approval.status" })]));
++  });
++
++  test.each([
++    ["headCommit", "stale-head", "approval.scope.headCommit"],
++    ["diffHash", "stale-diff", "approval.scope.diffHash"],
++    ["pullRequest", "#41", "approval.scope.pullRequest"]
++  ] as const)("rejects v2 Human Gate %s drift", (field, value, code) => {
++    const scopedEvidence = {
++      ...evidence,
++      changedFiles: ["package.json"],
++      git: { ...evidence.git, pullRequest: "#42" }
++    };
++    const slot = {
++      status: "approved" as const,
++      approvedBy: "human",
++      approvedAt: "2026-07-13T00:00:00.000Z",
++      approvalMode: "human" as const,
++      headCommit: "head123",
++      diffHash: "diff123",
++      pullRequest: "#42",
++      reason: "Human reviewed the scoped Evidence",
++      actorId: "human",
++      actorSource: "tty",
++      verifiedAt: "2026-07-13T00:00:00.000Z",
++      verificationLevel: "lean"
++    };
++    const drifted = { ...slot, [field]: value };
++    const result = validateHumanGateApproval(task, scopedEvidence, {
++      id: "APR-WBS-001-004",
++      type: "approval",
++      taskId: "WBS-001-004",
++      version: "scwbs.approval.v2",
++      activeScope: "human-gate",
++      scopeApprovals: { "human-gate": drifted },
++      ...drifted
++    });
++    expect(result.issues.map((issue) => issue.code)).toContain(code);
++  });
++
+   test("rejects current approved records without recorded scope", () => {
+     const result = validateHumanGateApproval(
+       task,
+diff --git a/tests/integration/packaging.test.ts b/tests/integration/packaging.test.ts
+index 6e7ecd5..1995a95 100644
+--- a/tests/integration/packaging.test.ts
++++ b/tests/integration/packaging.test.ts
+@@ -34,6 +34,8 @@ describe("npm bin entrypoint", () => {
+     };
+ 
+     expect(packed.files.some((file) => file.path === "dist/cli.js")).toBe(true);
++    expect(packed.files.some((file) => file.path === "dist/core/approval-version.js")).toBe(true);
++    expect(packed.files.some((file) => file.path === "dist/core/types.js")).toBe(false);
+     expect(packed.files.length).toBeLessThan(120);
+     expect(packed.size).toBeLessThan(300_000);
+ 
+diff --git a/tests/unit/contracts.test.ts b/tests/unit/contracts.test.ts
+index 97ea54e..6da5c3e 100644
+--- a/tests/unit/contracts.test.ts
++++ b/tests/unit/contracts.test.ts
+@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test } from "vitest";
+ import { collectCheckIssues } from "../../src/commands/check.js";
+-import { listRisks, listSpecChanges, listSpecs, readApproval, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
++import { listRisks, listSpecChanges, listSpecs, readApproval, readApprovalForScope, readBlock, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../../src/core/contracts.js";
+ import { approvalPath, blockPath, evidencePath, reviewPath, specChangePath, specPath, taskPath } from "../../src/core/paths.js";
+ import { makeTempRepo, sampleTask, sampleSpec, sampleSpecChange, sampleEvidence, sampleApproval, writeScwbsProject, writeYaml } from "../helpers.js";
+ 
+@@ -285,6 +285,128 @@ describe("contracts / schema", () => {
+     expect(readReview(root, "WBS-001-004").issues.some((issue) => issue.code === "review.schema")).toBe(true);
+   });
+ 
++  test("v2 Approval projection and scope selection fail closed on projection drift", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004",
++      type: "approval",
++      taskId: "WBS-001-004",
++      version: "scwbs.approval.v2",
++      activeScope: "human-gate",
++      scopeApprovals: {
++        "human-gate": { status: "approved", approvedBy: "human" },
++        "post-finish": { status: "requested" }
++      },
++      status: "rejected",
++      approvedBy: "human"
++    });
++
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "approval.v2.projection")).toBe(true);
++    expect(readApprovalForScope(root, "WBS-001-004", "human-gate").approval).toBeUndefined();
++  });
++
++  test.each([
++    ["human", { status: "approved", approvedBy: "human", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "human", headCommit: "head", diffHash: "diff", pullRequest: "#42" }, "approval.v2.provenance"],
++    ["delegated", { status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated", headCommit: "head", diffHash: "diff", pullRequest: "#42", delegationSource: "src", delegatedBy: "xmeta", executedBy: "ai-agent", delegationScope: "human-gate" }, "approval.delegation"]
++  ] as const)("v2 rejects incomplete approved %s provenance", (_name, slot, expectedCode) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
++    });
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === expectedCode)).toBe(true);
++  });
++
++  test("v2 rejects a delegated slot whose delegationScope disagrees with its key", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const slot = {
++      status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated",
++      headCommit: "head", diffHash: "diff", pullRequest: "#42", delegationSource: "src", delegatedBy: "xmeta",
++      executedBy: "ai-agent", delegationScope: "post-finish", delegationProof: `hmac-sha256:${"a".repeat(64)}`
++    };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
++    });
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "approval.v2.scope")).toBe(true);
++  });
++
++  test("v2 delegated approved slots reject human provenance fields", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const slot = {
++      status: "approved", approvedBy: "delegated:xmeta", approvedAt: "2026-07-14T00:00:00.000Z", approvalMode: "delegated",
++      headCommit: "head", diffHash: "diff", pullRequest: "#42", reason: "Delegated review", delegationSource: "src",
++      delegatedBy: "xmeta", executedBy: "ai-agent", delegationScope: "human-gate", delegationProof: `hmac-sha256:${"a".repeat(64)}`,
++      actorId: "human"
++    };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
++    });
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "approval.v2.provenance")).toBe(true);
++  });
++
++  test("v2 requested and rejected slots enforce status-specific semantics", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    const requested = {
++      status: "requested",
++      requestedAt: "2026-07-14T00:00:00.000Z",
++      pullRequest: "#42"
++    };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": requested }, ...requested
++    });
++    expect(readApproval(root, "WBS-001-004").issues).toEqual([]);
++
++    const rejected = {
++      status: "rejected",
++      approvedBy: "human",
++      approvedAt: "2026-07-14T00:01:00.000Z",
++      reason: "Human rejected the gate",
++      approvalMode: "human",
++      actorId: "human",
++      actorSource: "tty",
++      verifiedAt: "2026-07-14T00:01:00.000Z",
++      verificationLevel: "lean"
++    };
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": rejected }, ...rejected
++    });
++    expect(readApproval(root, "WBS-001-004").issues).toEqual([]);
++  });
++
++  test.each([
++    ["requested without requestedAt", { status: "requested" }],
++    ["requested with terminal fields", { status: "requested", requestedAt: "now", approvedAt: "later" }],
++    ["rejected without reason", { status: "rejected", approvedBy: "human", approvedAt: "now", approvalMode: "human", actorId: "human", actorSource: "tty", verifiedAt: "now", verificationLevel: "lean" }],
++    ["rejected with delegated provenance", { status: "rejected", approvedBy: "human", approvedAt: "now", reason: "no", approvalMode: "human", actorId: "human", actorSource: "tty", verifiedAt: "now", verificationLevel: "lean", delegationScope: "human-gate" }]
++  ] as const)("v2 rejects %s", (_name, slot) => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/approvals/WBS-001-004.yaml", {
++      id: "APR-WBS-001-004", type: "approval", taskId: "WBS-001-004", version: "scwbs.approval.v2",
++      activeScope: "human-gate", scopeApprovals: { "human-gate": slot }, ...slot
++    });
++    const result = readApproval(root, "WBS-001-004");
++    expect(result.approval).toBeUndefined();
++    expect(result.issues.some((issue) => issue.code === "approval.v2.status" || issue.code === "approval.v2.provenance")).toBe(true);
++  });
++
+   test("semantic validation still owns repository consistency after schema validation", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/unit/human-gate.test.ts b/tests/unit/human-gate.test.ts
+index b11cf58..c08374f 100644
+--- a/tests/unit/human-gate.test.ts
++++ b/tests/unit/human-gate.test.ts
+@@ -94,6 +94,8 @@ describe("Human Gate security logic", () => {
+       'npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"'
+     );
+     expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved")).toContain(" --force");
++    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "requested", "human-gate")).not.toContain(" --force");
++    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved", "human-gate")).toContain("--scope human-gate --force");
+     expect(buildHumanApprovalCommand("WBS-001-004", sampleEvidence())).toBeUndefined();
+     expect(buildLeanHumanApprovalConfirmation("WBS-001-004", undefined)).toBeUndefined();
+   });
+@@ -158,7 +160,7 @@ describe("Human Gate security logic", () => {
+     const evidence = sampleEvidence({ changedFiles: ["package.json"] });
+     const issue = validateHumanGateApproval(task, evidence, undefined).issues[0]!;
+     expect(issue.remediation).toMatchObject({ kind: "command", owner: "human", safeToAutoRun: false });
+-    expect(issue.remediation).toMatchObject({ argv: ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id] });
++    expect(issue.remediation).toMatchObject({ argv: ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id, "--scope", "human-gate"] });
+   });
+ 
+   test("preserves a matching Approval through metadata-only descendant commits", () => {
