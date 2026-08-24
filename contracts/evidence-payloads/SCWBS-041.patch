@@ -1,0 +1,645 @@
+diff --git a/contracts/spec-changes/SCP-SCWBS-041.yaml b/contracts/spec-changes/SCP-SCWBS-041.yaml
+new file mode 100644
+index 0000000..62d1e35
+--- /dev/null
++++ b/contracts/spec-changes/SCP-SCWBS-041.yaml
+@@ -0,0 +1,26 @@
++id: SCP-SCWBS-041
++type: spec-change-proposal
++status: approved
++targetSpec: SPEC-SCWBS-METHOD
++currentVersion: 0.1.0
++proposedVersion: 0.1.1
++taskId: SCWBS-041
++level: 2
++summary: Add Spec Change Proposal as a first-class SC-WBS contract artifact.
++rationale:
++  - Level 2 specification changes need a canonical proposal artifact before approved specs are updated.
++  - The design resolution plan selected Spec Change Proposal as the next missing control artifact.
++affectedPaths:
++  - src/core/types.ts
++  - src/core/schema.ts
++  - src/core/contracts.ts
++  - src/commands/check.ts
++  - src/commands/registry-rebuild.ts
++  - docs/scwbs/operations-profile-and-specs.md
++approval:
++  required: true
++  status: approved
++risks:
++  - Future tasks still need a command-level workflow for creating proposals.
++approvedBy: human
++approvedAt: "2026-07-02T00:00:00+09:00"
+diff --git a/contracts/tasks/SCWBS-041.yaml b/contracts/tasks/SCWBS-041.yaml
+new file mode 100644
+index 0000000..7a5a9ab
+--- /dev/null
++++ b/contracts/tasks/SCWBS-041.yaml
+@@ -0,0 +1,36 @@
++id: SCWBS-041
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-SCWBS-GOVERNANCE
++branchName: codex/scwbs-041-spec-change-proposal
++allowedPaths:
++  - src/core/**
++  - src/commands/registry-rebuild.ts
++  - src/commands/check.ts
++  - tests/**
++  - docs/scwbs/operations-profile-and-specs.md
++  - docs/implementation-gaps.md
++  - contracts/spec-changes/**
++  - contracts/tasks/SCWBS-041.yaml
++  - contracts/evidence/SCWBS-041.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - Spec Change Proposal files are first-class contract artifacts under contracts/spec-changes.
++  - scwbs check validates Spec Change Proposal schema and required approval metadata.
++  - registry rebuild indexes Spec Change Proposal files.
++  - Documentation describes the artifact and its minimal workflow.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-02T00:00:00.000Z"
+diff --git a/docs/implementation-gaps.md b/docs/implementation-gaps.md
+index 049ecc0..88f9085 100644
+--- a/docs/implementation-gaps.md
++++ b/docs/implementation-gaps.md
+@@ -13,6 +13,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ - Optional Contract Lock metadata validation
+ - Task Contract Lock generation from WBS and Spec content hashes
+ - First-class Spec Contract files under `contracts/specs/*.yaml` with required metadata validation
++- First-class Spec Change Proposal files under `contracts/spec-changes/*.yaml` with required metadata validation
+ - Evidence `testQuality` metadata validation
+ - Base/head-aware Evidence changed file collection
+ - AI blocked-task change-set generation
+@@ -30,7 +31,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ |---|---|---|
+ | Contract freshness | Lock refresh policy and commands | Approved Spec Contract artifacts now exist, but the CLI does not yet define when stale locks may be refreshed |
+ | Contract locking | Stale lock refresh flow | The CLI can create lock metadata, but it does not yet define when stale locks may be refreshed |
+-| Change control | Spec Change Proposal format and command | Spec gaps still rely on ad hoc human coordination |
++| Change control | Spec Change Proposal command and workflow enforcement | Spec Change Proposal files exist, but creation and Level 2 gating are not yet automated |
+ | Risk management | Risk Register format and command | Strict workflows still need a formal risk log |
+ | Evidence trust | CI artifact verification and stronger provenance checks | Evidence is still mostly heuristic and metadata-driven |
+ | Evidence diff basis | Richer PR metadata and CI correlation | `evidence collect` records branch-diff provenance, but PR number and CI run correlation are still optional metadata |
+@@ -46,7 +47,7 @@ This document tracks the pieces that are intentionally still missing from the cu
+ ## Near-Term Follow-Ups
+ 
+ - Define a lock refresh policy for stale Task Contracts.
+-- Introduce a lightweight spec-change proposal artifact.
++- Add a command to create lightweight spec-change proposal artifacts.
+ - Parse test diffs or coverage summaries instead of relying only on `testQuality` metadata. Prefer AST-based assertion counting where practical, and coverage-report comparison as the lower-cost first step.
+ - Make `ai next-task` priority-aware.
+ - Implement a low-cost WBS semantic merge helper before full distributed WBS support.
+diff --git a/docs/scwbs/operations-profile-and-specs.md b/docs/scwbs/operations-profile-and-specs.md
+index 73f1a61..93ca05a 100644
+--- a/docs/scwbs/operations-profile-and-specs.md
++++ b/docs/scwbs/operations-profile-and-specs.md
+@@ -38,8 +38,6 @@ Human Gateで責任ある判断を制御する。
+ 
+ 次段階の正式候補は以下である。
+ 
+-* Spec Contractに `status`、`version`、`approvedBy`、`approvedAt` を持たせる
+-* Spec Change Proposalの形式を定義する
+ * Strict Profile向けにRisk Registerの形式を定義する
+ 
+ ## 17. Subtree Phase
+@@ -58,6 +56,46 @@ subtreeのphaseは `nodes[].extensions.scwbs.phase` に記録する。
+ Spec Contract files live under `contracts/specs/*.yaml`.
+ Approved Spec Contracts must include `status`, `version`, `approvedBy`, and `approvedAt`.
+ 
++## 19. Spec Change Proposal Files
++
++Spec Change Proposal files live under `contracts/spec-changes/*.yaml`.
++They describe proposed Level 1 or Level 2 changes before the approved Spec Contract is updated.
++
++Minimum form:
++
++```yaml
++id: SCP-SCWBS-001
++type: spec-change-proposal
++status: proposed
++targetSpec: SPEC-SCWBS-METHOD
++currentVersion: 0.1.0
++proposedVersion: 0.2.0
++taskId: SCWBS-041
++level: 2
++summary: Define a new contract artifact.
++rationale:
++  - The current approved spec does not define the changed behavior.
++affectedPaths:
++  - docs/scwbs/operations-profile-and-specs.md
++approval:
++  required: true
++  status: requested
++risks:
++  - Existing task locks may need refresh after approval.
++```
++
++`status` is one of:
++
++| Status | Meaning |
++|---|---|
++| `proposed` | Proposed and not yet approved |
++| `approved` | Human-approved and ready to drive Spec Contract updates |
++| `rejected` | Not accepted |
++| `superseded` | Replaced by another proposal |
++
++When `status: approved`, `approvedBy` and `approvedAt` are required.
++`scwbs check` validates Spec Change Proposal files and requires them to be indexed by `contracts/registry.yaml`.
++
+ ### Approval Record 補足
+ 
+ Human approval record は `contracts/approvals/*.yaml` に置く。
+diff --git a/src/commands/check.ts b/src/commands/check.ts
+index 591b817..873add0 100644
+--- a/src/commands/check.ts
++++ b/src/commands/check.ts
+@@ -1,5 +1,5 @@
+ import { existsSync } from "node:fs";
+-import { approvalExists, evidenceExists, listApprovals, listSpecs, listTasks, matchingRegistrySpecByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
++import { approvalExists, evidenceExists, listApprovals, listSpecChanges, listSpecs, listTasks, matchingRegistrySpecByPath, matchingRegistrySpecChangeByPath, readEvidence, readRegistry, readSpecFromRegistryContract, resolveSpecForTask } from "../core/contracts.js";
+ import { workingTreeChangedFiles } from "../core/git.js";
+ import { fileSha256 } from "../core/hash.js";
+ import { defaultWbsPath, resolveFrom } from "../core/paths.js";
+@@ -146,6 +146,23 @@ function validateIndexedSpecs(root: string, registry: Registry | undefined): Iss
+   return issues;
+ }
+ 
++function validateIndexedSpecChanges(root: string, registry: Registry | undefined): Issue[] {
++  const issues: Issue[] = [];
++  for (const entry of listSpecChanges(root)) {
++    issues.push(...entry.issues);
++    if (!entry.specChange) continue;
++    const registryContract = matchingRegistrySpecChangeByPath(registry, entry.path);
++    if (!registryContract) {
++      issues.push({
++        severity: "error",
++        code: "specChange.registry.missing",
++        message: `${entry.path} is not indexed by contracts/registry.yaml`
++      });
++    }
++  }
++  return issues;
++}
++
+ export function collectWbsChangesetGateIssues(files: string[]): Issue[] {
+   const issues: Issue[] = [];
+   const changesWbs = files.some((file) => file.replace(/\\/g, "/") === "contracts/wbs/project.wbs.json");
+@@ -178,6 +195,7 @@ export function collectCheckIssues(root: string): Issue[] {
+   issues.push(...registryIssues);
+   issues.push(...validateRegistryContracts(root, registry));
+   issues.push(...validateIndexedSpecs(root, registry));
++  issues.push(...validateIndexedSpecChanges(root, registry));
+   for (const entry of listApprovals(root)) {
+     issues.push(...entry.issues);
+   }
+diff --git a/src/commands/registry-rebuild.ts b/src/commands/registry-rebuild.ts
+index 35364cc..c880302 100644
+--- a/src/commands/registry-rebuild.ts
++++ b/src/commands/registry-rebuild.ts
+@@ -1,5 +1,5 @@
+ import { existsSync, readFileSync, writeFileSync } from "node:fs";
+-import { listApprovals, listEvidence, listReviews, listSpecs, listTasks } from "../core/contracts.js";
++import { listApprovals, listEvidence, listReviews, listSpecChanges, listSpecs, listTasks } from "../core/contracts.js";
+ import { defaultRegistryPath, resolveFrom } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import { readWbs } from "../core/wbs.js";
+@@ -11,6 +11,10 @@ export function buildRegistryYaml(root: string): string {
+     if (!spec) continue;
+     contracts.push({ id: spec.id, type: "spec", path, status: spec.status, version: spec.version, featureId: spec.featureId });
+   }
++  for (const { specChange, path } of listSpecChanges(root)) {
++    if (!specChange) continue;
++    contracts.push({ id: specChange.id, type: "spec-change", path, status: specChange.status, version: specChange.proposedVersion, relatedTask: specChange.taskId });
++  }
+   for (const { task, path } of listTasks(root)) {
+     if (!task) continue;
+     contracts.push({ id: `TASK-${task.id}`, type: "task", path, featureId: task.featureId });
+diff --git a/src/core/contracts.ts b/src/core/contracts.ts
+index 805a3c0..0b28141 100644
+--- a/src/core/contracts.ts
++++ b/src/core/contracts.ts
+@@ -1,8 +1,8 @@
+ import { existsSync, readdirSync } from "node:fs";
+ import { readYamlFile } from "./yaml.js";
+-import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
+-import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
+-import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecContract, TaskContract } from "./types.js";
++import { approvalPath, defaultApprovalsDir, defaultEvidenceDir, defaultRegistryPath, defaultReviewsDir, defaultSpecChangesDir, defaultSpecsDir, defaultTasksDir, resolveFrom, reviewPath, taskPath, evidencePath } from "./paths.js";
++import { asApprovalRecord, asEvidence, asRegistry, asReviewRecord, asSpecChangeProposal, asSpecContract, asTaskContract, validateApprovalRecord, validateApprovalRecordSchema, validateEvidence, validateEvidenceSchema, validateRegistry, validateRegistrySchema, validateReviewRecord, validateReviewRecordSchema, validateSpecChangeProposal, validateSpecChangeProposalSchema, validateSpecContract, validateSpecContractSchema, validateTaskContract, validateTaskContractSchema } from "./schema.js";
++import type { ApprovalRecord, Evidence, Issue, Registry, RegistryContract, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract } from "./types.js";
+ 
+ export function readRegistry(root: string): { registry?: Registry; issues: Issue[] } {
+   const fullPath = resolveFrom(root, defaultRegistryPath);
+@@ -35,6 +35,16 @@ export function readSpec(root: string, relativePath: string): { spec?: SpecContr
+   return { spec: issues.length === 0 ? asSpecContract(value) : undefined, issues };
+ }
+ 
++export function readSpecChange(root: string, relativePath: string): { specChange?: SpecChangeProposal; issues: Issue[] } {
++  const fullPath = resolveFrom(root, relativePath);
++  if (!existsSync(fullPath)) {
++    return { issues: [{ severity: "error", code: "specChange.missing", message: `${relativePath} does not exist` }] };
++  }
++  const value = readYamlFile<unknown>(fullPath);
++  const issues = [...validateSpecChangeProposalSchema(value, relativePath), ...validateSpecChangeProposal(value, relativePath)];
++  return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues };
++}
++
+ export function readEvidence(root: string, taskId: string): { evidence?: Evidence; issues: Issue[] } {
+   const relativePath = evidencePath(taskId);
+   const fullPath = resolveFrom(root, relativePath);
+@@ -94,6 +104,19 @@ export function listSpecs(root: string): Array<{ spec?: SpecContract; issues: Is
+     });
+ }
+ 
++export function listSpecChanges(root: string): Array<{ specChange?: SpecChangeProposal; issues: Issue[]; path: string }> {
++  const dir = resolveFrom(root, defaultSpecChangesDir);
++  if (!existsSync(dir)) return [];
++  return readdirSync(dir)
++    .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"))
++    .map((file) => {
++      const path = `${defaultSpecChangesDir}/${file}`;
++      const value = readYamlFile<unknown>(resolveFrom(root, path));
++      const issues = [...validateSpecChangeProposalSchema(value, path), ...validateSpecChangeProposal(value, path)];
++      return { specChange: issues.length === 0 ? asSpecChangeProposal(value) : undefined, issues, path };
++    });
++}
++
+ export function listApprovals(root: string): Array<{ approval?: ApprovalRecord; issues: Issue[]; path: string }> {
+   const dir = resolveFrom(root, defaultApprovalsDir);
+   if (!existsSync(dir)) return [];
+@@ -144,6 +167,10 @@ export function matchingRegistrySpecByPath(registry: Registry | undefined, specP
+   return registry?.contracts.find((contract) => contract.type === "spec" && contract.path === specPath);
+ }
+ 
++export function matchingRegistrySpecChangeByPath(registry: Registry | undefined, specChangePath: string): RegistryContract | undefined {
++  return registry?.contracts.find((contract) => contract.type === "spec-change" && contract.path === specChangePath);
++}
++
+ export function readSpecFromRegistryContract(root: string, contract: RegistryContract): { spec?: SpecContract; path: string; issues: Issue[] } {
+   const { spec, issues } = readSpec(root, contract.path);
+   return { spec, path: contract.path, issues };
+diff --git a/src/core/paths.ts b/src/core/paths.ts
+index b5111df..95f35d2 100644
+--- a/src/core/paths.ts
++++ b/src/core/paths.ts
+@@ -3,6 +3,7 @@ import path from "node:path";
+ export const defaultWbsPath = "contracts/wbs/project.wbs.json";
+ export const defaultRegistryPath = "contracts/registry.yaml";
+ export const defaultSpecsDir = "contracts/specs";
++export const defaultSpecChangesDir = "contracts/spec-changes";
+ export const defaultTasksDir = "contracts/tasks";
+ export const defaultEvidenceDir = "contracts/evidence";
+ export const defaultApprovalsDir = "contracts/approvals";
+@@ -20,6 +21,10 @@ export function specPath(specId: string): string {
+   return `${defaultSpecsDir}/${specId}.yaml`;
+ }
+ 
++export function specChangePath(specChangeId: string): string {
++  return `${defaultSpecChangesDir}/${specChangeId}.yaml`;
++}
++
+ export function evidencePath(taskId: string): string {
+   return `${defaultEvidenceDir}/${taskId}.yaml`;
+ }
+diff --git a/src/core/schema.ts b/src/core/schema.ts
+index e82579f..dd13b33 100644
+--- a/src/core/schema.ts
++++ b/src/core/schema.ts
+@@ -1,5 +1,5 @@
+ import { Ajv, type ErrorObject } from "ajv";
+-import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecContract, TaskContract, WbsDocument } from "./types.js";
++import type { ApprovalRecord, Evidence, Issue, Registry, ReviewRecord, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "./types.js";
+ 
+ function isObject(value: unknown): value is Record<string, unknown> {
+   return typeof value === "object" && value !== null && !Array.isArray(value);
+@@ -34,7 +34,7 @@ const registrySchema = {
+         additionalProperties: true,
+         properties: {
+           id: { type: "string", minLength: 1 },
+-          type: { type: "string", enum: ["requirement", "spec", "task", "evidence", "approval", "review", "adr"] },
++          type: { type: "string", enum: ["requirement", "spec", "spec-change", "task", "evidence", "approval", "review", "adr"] },
+           path: { type: "string", minLength: 1 },
+           status: { type: "string" },
+           version: { type: "string" },
+@@ -65,6 +65,36 @@ const specContractSchema = {
+   }
+ };
+ 
++const specChangeProposalSchema = {
++  type: "object",
++  required: ["id", "type", "status", "targetSpec", "currentVersion", "proposedVersion", "taskId", "level", "summary", "rationale", "affectedPaths"],
++  additionalProperties: true,
++  properties: {
++    id: { type: "string", minLength: 1 },
++    type: { const: "spec-change-proposal" },
++    status: { type: "string", enum: ["proposed", "approved", "rejected", "superseded"] },
++    targetSpec: { type: "string", minLength: 1 },
++    currentVersion: { type: "string", minLength: 1 },
++    proposedVersion: { type: "string", minLength: 1 },
++    taskId: { type: "string", minLength: 1 },
++    level: { type: "integer", enum: [0, 1, 2] },
++    summary: { type: "string", minLength: 1 },
++    rationale: stringArraySchema,
++    affectedPaths: stringArraySchema,
++    approval: {
++      type: "object",
++      additionalProperties: true,
++      properties: {
++        required: { type: "boolean" },
++        status: { type: "string", enum: ["requested", "approved", "rejected"] }
++      }
++    },
++    risks: stringArraySchema,
++    approvedBy: { type: "string" },
++    approvedAt: { type: "string" }
++  }
++};
++
+ const taskContractSchema = {
+   type: "object",
+   required: ["id", "type", "wbsNodeId", "featureId", "allowedPaths", "forbiddenPaths", "humanGateRequiredPaths", "requiredChecks", "doneCriteria", "evidenceRequired"],
+@@ -200,6 +230,7 @@ const reviewRecordSchema = {
+ const schemaValidators = {
+   registry: ajv.compile(registrySchema),
+   spec: ajv.compile(specContractSchema),
++  specChange: ajv.compile(specChangeProposalSchema),
+   task: ajv.compile(taskContractSchema),
+   evidence: ajv.compile(evidenceSchema),
+   approval: ajv.compile(approvalRecordSchema),
+@@ -224,6 +255,10 @@ export function validateSpecContractSchema(value: unknown, filePath = "spec"): I
+   return schemaIssues("spec", value, filePath);
+ }
+ 
++export function validateSpecChangeProposalSchema(value: unknown, filePath = "spec-change"): Issue[] {
++  return schemaIssues("specChange", value, filePath);
++}
++
+ export function validateTaskContractSchema(value: unknown, filePath = "task"): Issue[] {
+   return schemaIssues("task", value, filePath);
+ }
+@@ -308,6 +343,64 @@ export function asSpecContract(value: unknown): SpecContract {
+   return value as SpecContract;
+ }
+ 
++export function validateSpecChangeProposal(value: unknown, filePath = "spec-change"): Issue[] {
++  const issues: Issue[] = [];
++  if (!isObject(value)) return [issue("specChange.invalid", `${filePath} must be an object`)];
++
++  for (const key of ["id", "type", "status", "targetSpec", "currentVersion", "proposedVersion", "taskId", "summary"]) {
++    if (typeof value[key] !== "string" || value[key].length === 0) {
++      issues.push(issue("specChange.field", `${filePath}.${key} must be a non-empty string`));
++    }
++  }
++  if (value.type !== "spec-change-proposal") {
++    issues.push(issue("specChange.type", `${filePath}.type must be spec-change-proposal`));
++  }
++  if (value.status !== undefined && !["proposed", "approved", "rejected", "superseded"].includes(String(value.status))) {
++    issues.push(issue("specChange.status", `${filePath}.status must be proposed, approved, rejected, or superseded`));
++  }
++  if (value.level !== 0 && value.level !== 1 && value.level !== 2) {
++    issues.push(issue("specChange.level", `${filePath}.level must be 0, 1, or 2`));
++  }
++  if (!isStringArray(value.rationale)) {
++    issues.push(issue("specChange.rationale", `${filePath}.rationale must be a string array`));
++  }
++  if (!isStringArray(value.affectedPaths)) {
++    issues.push(issue("specChange.affectedPaths", `${filePath}.affectedPaths must be a string array`));
++  }
++  if (value.risks !== undefined && !isStringArray(value.risks)) {
++    issues.push(issue("specChange.risks", `${filePath}.risks must be a string array when present`));
++  }
++  if (value.approval !== undefined) {
++    if (!isObject(value.approval)) {
++      issues.push(issue("specChange.approval", `${filePath}.approval must be an object when present`));
++    } else {
++      if (value.approval.required !== undefined && typeof value.approval.required !== "boolean") {
++        issues.push(issue("specChange.approval", `${filePath}.approval.required must be a boolean when present`));
++      }
++      if (value.approval.status !== undefined && !["requested", "approved", "rejected"].includes(String(value.approval.status))) {
++        issues.push(issue("specChange.approval", `${filePath}.approval.status must be requested, approved, or rejected`));
++      }
++    }
++  }
++  for (const key of ["approvedBy", "approvedAt"]) {
++    if (value[key] !== undefined && typeof value[key] !== "string") {
++      issues.push(issue("specChange.field", `${filePath}.${key} must be a string when present`));
++    }
++  }
++  if (value.status === "approved") {
++    for (const key of ["approvedBy", "approvedAt"]) {
++      if (typeof value[key] !== "string" || value[key].length === 0) {
++        issues.push(issue("specChange.approval", `${filePath}.${key} must be present when status is approved`));
++      }
++    }
++  }
++  return issues;
++}
++
++export function asSpecChangeProposal(value: unknown): SpecChangeProposal {
++  return value as SpecChangeProposal;
++}
++
+ export function validateTaskContract(value: unknown, filePath = "task"): Issue[] {
+   const issues: Issue[] = [];
+   if (!isObject(value)) return [issue("task.invalid", `${filePath} must be an object`)];
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 5bb8dc7..2fe4904 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -6,7 +6,7 @@ export type Issue = {
+   message: string;
+ };
+ 
+-export type RegistryContractType = "requirement" | "spec" | "task" | "evidence" | "approval" | "review" | "adr";
++export type RegistryContractType = "requirement" | "spec" | "spec-change" | "task" | "evidence" | "approval" | "review" | "adr";
+ 
+ export type RegistryContract = {
+   id: string;
+@@ -26,6 +26,7 @@ export type Registry = {
+ export type ApprovalStatus = "requested" | "approved" | "rejected";
+ 
+ export type SpecContractStatus = "draft" | "approved" | "superseded";
++export type SpecChangeProposalStatus = "proposed" | "approved" | "rejected" | "superseded";
+ 
+ export type SpecContract = {
+   id: string;
+@@ -41,6 +42,27 @@ export type SpecContract = {
+   approvedAt?: string;
+ };
+ 
++export type SpecChangeProposal = {
++  id: string;
++  type: "spec-change-proposal";
++  status: SpecChangeProposalStatus;
++  targetSpec: string;
++  currentVersion: string;
++  proposedVersion: string;
++  taskId: string;
++  level: 0 | 1 | 2;
++  summary: string;
++  rationale: string[];
++  affectedPaths: string[];
++  approval?: {
++    required?: boolean;
++    status?: ApprovalStatus;
++  };
++  risks?: string[];
++  approvedBy?: string;
++  approvedAt?: string;
++};
++
+ export type TaskContract = {
+   id: string;
+   type: "task-contract";
+diff --git a/tests/helpers.ts b/tests/helpers.ts
+index 7f91e97..a0673e1 100644
+--- a/tests/helpers.ts
++++ b/tests/helpers.ts
+@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import path from "node:path";
+ import { execFileSync } from "node:child_process";
+-import type { ApprovalRecord, Evidence, SpecContract, TaskContract, WbsDocument } from "../src/core/types.js";
++import type { ApprovalRecord, Evidence, SpecChangeProposal, SpecContract, TaskContract, WbsDocument } from "../src/core/types.js";
+ import { stringifySimpleYaml } from "../src/core/yaml.js";
+ 
+ export function makeTempRepo(): string {
+@@ -110,6 +110,28 @@ export function sampleSpec(overrides: Partial<SpecContract> = {}): SpecContract
+   };
+ }
+ 
++export function sampleSpecChange(overrides: Partial<SpecChangeProposal> = {}): SpecChangeProposal {
++  return {
++    id: "SCP-F001-API-001",
++    type: "spec-change-proposal",
++    status: "proposed",
++    targetSpec: "SPEC-F001-API",
++    currentVersion: "1.0.0",
++    proposedVersion: "1.1.0",
++    taskId: "WBS-001-004",
++    level: 2,
++    summary: "Propose an API spec change.",
++    rationale: ["The current spec does not define the changed behavior."],
++    affectedPaths: ["contracts/specs/SPEC-F001-API.yaml"],
++    approval: {
++      required: true,
++      status: "requested"
++    },
++    risks: ["Existing tasks may need lock refresh."],
++    ...overrides
++  };
++}
++
+ export function sampleEvidence(overrides: Partial<Evidence> = {}): Evidence {
+   return {
+     id: "EVD-001-004",
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 4f4c5ed..7bc0894 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -23,11 +23,11 @@ import { buildNextAction } from "../src/commands/next.js";
+ import { buildDraftTaskYaml, runTaskGenerate } from "../src/commands/task-generate.js";
+ import { buildLockedTask, runTaskLock } from "../src/commands/task-lock.js";
+ import { runWbsValidate, runWbsApply } from "../src/commands/wbs.js";
+-import { listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readTask } from "../src/core/contracts.js";
++import { listSpecChanges, listSpecs, readApproval, readEvidence, readRegistry, readReview, readSpec, readSpecChange, readTask } from "../src/core/contracts.js";
+ import { baseBranchStatus, branchChangedFiles, filesAddedOnBothSides, headCommit, workingTreeChangedFiles } from "../src/core/git.js";
+ import { validateWbsDocument } from "../src/core/wbs.js";
+ import { main } from "../src/cli.js";
+-import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
++import { makeTempRepo, sampleApproval, sampleTask, sampleWbs, sampleSpec, sampleSpecChange, writeJson, writeScwbsProject, writeText, writeYaml, sampleEvidence } from "./helpers.js";
+ 
+ describe("scwbs MVP", () => {
+   test("init creates a valid minimal WJS document", () => {
+@@ -67,6 +67,47 @@ describe("scwbs MVP", () => {
+     expect(listSpecs(root).some((entry) => entry.path === "contracts/specs/SPEC-F001-API.yaml" && entry.issues.length === 0)).toBe(true);
+   });
+ 
++  test("spec change proposals are first-class files with required metadata", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", sampleSpecChange() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/registry.yaml", {
++      projectId: "test-wbs",
++      contracts: [
++        {
++          id: "SPEC-F001-API",
++          type: "spec",
++          path: "contracts/specs/SPEC-F001-API.yaml",
++          status: "approved",
++          version: "1.0.0",
++          featureId: "F001",
++          relatedTask: "WBS-001-004"
++        },
++        {
++          id: "SCP-F001-API-001",
++          type: "spec-change",
++          path: "contracts/spec-changes/SCP-F001-API-001.yaml",
++          status: "proposed",
++          version: "1.1.0",
++          relatedTask: "WBS-001-004"
++        },
++        {
++          id: "TASK-WBS-001-004",
++          type: "task",
++          path: "contracts/tasks/WBS-001-004.yaml",
++          featureId: "F001"
++        }
++      ]
++    });
++
++    const { specChange, issues } = readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml");
++    expect(issues).toEqual([]);
++    expect(specChange?.type).toBe("spec-change-proposal");
++    expect(specChange?.status).toBe("proposed");
++    expect(listSpecChanges(root).some((entry) => entry.path === "contracts/spec-changes/SCP-F001-API-001.yaml" && entry.issues.length === 0)).toBe(true);
++    expect(collectCheckIssues(root).some((issue) => issue.code.startsWith("specChange."))).toBe(false);
++  });
++
+   test("YAML contract reads run JSON Schema validation after parsing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+@@ -85,6 +126,7 @@ describe("scwbs MVP", () => {
+     writeScwbsProject(root);
+     writeYaml(root, "contracts/registry.yaml", { projectId: "test-wbs", contracts: [{ id: "TASK-WBS-001-004", type: "bad", path: "contracts/tasks/WBS-001-004.yaml" }] });
+     writeYaml(root, "contracts/specs/SPEC-F001-API.yaml", { ...sampleSpec(), status: "archived" });
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", { ...sampleSpecChange(), status: "waiting" });
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", { ...sampleEvidence(), checks: [{ name: "test", status: "unknown" }] });
+     writeYaml(root, "contracts/approvals/WBS-001-004.yaml", { ...sampleApproval(), status: "waiting" });
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -98,6 +140,7 @@ describe("scwbs MVP", () => {
+ 
+     expect(readRegistry(root).issues.some((issue) => issue.code === "registry.schema")).toBe(true);
+     expect(readSpec(root, "contracts/specs/SPEC-F001-API.yaml").issues.some((issue) => issue.code === "spec.schema")).toBe(true);
++    expect(readSpecChange(root, "contracts/spec-changes/SCP-F001-API-001.yaml").issues.some((issue) => issue.code === "specChange.schema")).toBe(true);
+     expect(readEvidence(root, "WBS-001-004").issues.some((issue) => issue.code === "evidence.schema")).toBe(true);
+     expect(readApproval(root, "WBS-001-004").issues.some((issue) => issue.code === "approval.schema")).toBe(true);
+     expect(readReview(root, "WBS-001-004").issues.some((issue) => issue.code === "review.schema")).toBe(true);
+@@ -982,6 +1025,14 @@ describe("scwbs MVP", () => {
+     expect(issues.some((issue) => issue.code === "spec.registry.missing")).toBe(true);
+   });
+ 
++  test("check errors when a spec change file is not indexed in the registry", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root);
++    writeYaml(root, "contracts/spec-changes/SCP-F001-API-001.yaml", sampleSpecChange() as unknown as Record<string, unknown>);
++    const issues = collectCheckIssues(root);
++    expect(issues.some((issue) => issue.code === "specChange.registry.missing")).toBe(true);
++  });
++
+   test("check errors when a task lock references a missing spec", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
