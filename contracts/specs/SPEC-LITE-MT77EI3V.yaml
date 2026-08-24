@@ -1,0 +1,24 @@
+id: SPEC-LITE-MT77EI3V
+type: spec-contract
+featureId: F-MT77EI3V
+title: Main-based transitive completion readiness and AI navigation
+status: approved
+version: 0.1.0
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-24T21:15:11+09:00"
+summary: Deliver the reviewed cycle-safe completion readiness and navigation convergence from a clean main baseline, including full AI navigation regression coverage.
+acceptanceCriteria:
+  - SCWBS-048-shaped nested completion transitively evaluates SCWBS-046 and SCWBS-041 through SCWBS-045 with shared structured blocker parity.
+  - Traversal is deterministic, cycle-safe, same-node constrained, bounded, and evaluates diamond targets once while retaining parent paths.
+  - Evidence, Review, pull request, head commit, diff hash, post-finish Approval, and Human Gate identity checks fail closed where required.
+  - Review approve accepts only a current requested Review with exact Evidence identity, and force cannot bypass actor, status, or subject checks.
+  - review-queue and next select the same prioritized causal blocker and generate an executable command for that blocker Task.
+  - Active Block Tasks are excluded from actionable remediation without hiding later eligible work.
+  - Incomplete Evidence subject identity is remediated before Review or Human action; existing artifacts use force only when replacement is required.
+  - Blocked dry-run and apply do not mutate WBS, changesets, Review, Approval, Registry, or other lifecycle artifacts.
+  - Ordinary non-node completion remains compatible, and node completion does not grandfather legacy unscoped Approval.
+  - Unit, typecheck, build, targeted integration, and full integration checks pass.
+nonGoals:
+  - Migrating SCWBS-041 through SCWBS-048 lifecycle artifacts or reconstructing their legacy subjects.
+  - Changing WBS state, changesets, contractLock lifecycle, Approval v2, Human Gate semantics, package configuration, or CI.
+  - Approving Review or Approval records on behalf of a human.
