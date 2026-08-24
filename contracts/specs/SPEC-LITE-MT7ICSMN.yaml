@@ -1,0 +1,28 @@
+id: SPEC-LITE-MT7ICSMN
+type: spec-contract
+featureId: F-MT7ICSMN
+title: Atomic SCWBS-041 through SCWBS-048 lifecycle subject migration
+status: approved
+version: 0.1.0
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-25T02:26:40+09:00"
+summary: Atomically migrate the eight legacy node-completion cohort subjects to canonical retained Evidence, then obtain independent human Review and scoped post-finish v2 Approval without changing source, WBS, or Task authority.
+acceptanceCriteria:
+  - "SCWBS-041: PR 43, subject 573796f072b40fce28017ac75d972b912c04941b, diffHash sha256:519b67f535c53b5af33abc547f6a49c2362b9a4eaea8736298dba0ff546475b8."
+  - "SCWBS-042: PR 44, subject b832efb9d0c29bb3db38729d472a296c3b8bb528, diffHash sha256:cdff4722d4301f395c101f5efcdb9034e8649d727152968bcc3646d104aab645."
+  - "SCWBS-043: PR 45, subject 9e06e3dcdff2270cb43a976e10e3fb45ed83b9b0, diffHash sha256:64fca6d7020f9107c73f16ad2c24d5aefe3d2c39d33801d34fb0dfa7eb0c0e63."
+  - "SCWBS-044: PR 46, subject 33f7f918b0a1ef648ce917bde7111a27781ad1ff, diffHash sha256:657f8d1ec21acadc9fbdccca858ad4b85f6eedd7a6d63f6b49ad56147edade21."
+  - "SCWBS-045: PR 47, subject d541daa873978f88e8d693f43e64f41a535f4c38, diffHash sha256:583c77b2c50a69a5b0f54d2b36c1c355422cfc6c5dd82385421a5f382fe0580a."
+  - "SCWBS-046: PR 48, subject aad4134dd7d49c55cc86aface971884cc443c7cb, diffHash sha256:5eb49b6afa32f6e074d3b36ed6e819e835d82d9fb949540a37853942762fad3b."
+  - "SCWBS-047: PR 49, subject 557390043386bbcaa92e99495b7ab3337827d6bf, diffHash sha256:77c1ddc36c117b88dd93034caa0b7a4246f6a9ce0ab41ac891da1ee0ec22c21e."
+  - "SCWBS-048: PR 50, subject ee504c805f41276bb1f2981d43b4a39db4a0f4c9, diffHash sha256:10f4801ca9ad6f4302c6cb3a6d2f09708a7fd5692aebbcfbb95f5fc4ab62a3fa."
+  - Every authoritative dry-run verifies historical base and subject objects, origin PR ancestry, canonical changedFiles, git-diff-binary-v1 diffHash, and untruncated output before any tracked mutation.
+  - Evidence retention preserves historical checks and testQuality facts, creates reproducible patch payload provenance, and changes no source, test, documentation, WBS, changeset, or existing Task Contract.
+  - Review requests are replaced only after all eight Evidence subjects are stable; AI never approves, rejects, closes, or marks changes requested.
+  - Post-finish v2 Approval requests are created for the historical PR of each subject, and only human TTY approvals with exact current Evidence identity satisfy readiness.
+  - "The cohort is all-or-nothing: any mismatch or human rejection blocks the migration Task and no partial migration is merged."
+nonGoals:
+  - Changing implementation source, tests, documentation, schemas, package configuration, CI, authentication, WBS, changesets, or Task authority.
+  - Reusing SCWBS-053 or an existing node-completion changeset.
+  - Performing Review or Approval decisions on behalf of a human.
+  - Completing the WBS node or refreshing the 227 Task contract locks affected by a future node status transition.

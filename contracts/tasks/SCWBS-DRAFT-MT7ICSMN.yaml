@@ -1,0 +1,145 @@
+id: SCWBS-DRAFT-MT7ICSMN
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT7ICSMN
+branchName: task/SCWBS-DRAFT-MT7ICSMN-migrate-scwbs-041-through-scwbs-048-lifecycle-su
+allowedPaths:
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/evidence-payloads/SCWBS-041.patch
+  - contracts/reviews/SCWBS-041.yaml
+  - contracts/approvals/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-042.yaml
+  - contracts/evidence-payloads/SCWBS-042.patch
+  - contracts/reviews/SCWBS-042.yaml
+  - contracts/approvals/SCWBS-042.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/evidence-payloads/SCWBS-043.patch
+  - contracts/reviews/SCWBS-043.yaml
+  - contracts/approvals/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/evidence-payloads/SCWBS-044.patch
+  - contracts/reviews/SCWBS-044.yaml
+  - contracts/approvals/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/evidence-payloads/SCWBS-045.patch
+  - contracts/reviews/SCWBS-045.yaml
+  - contracts/approvals/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-046.yaml
+  - contracts/evidence-payloads/SCWBS-046.patch
+  - contracts/reviews/SCWBS-046.yaml
+  - contracts/approvals/SCWBS-046.yaml
+  - contracts/evidence/SCWBS-047.yaml
+  - contracts/evidence-payloads/SCWBS-047.patch
+  - contracts/reviews/SCWBS-047.yaml
+  - contracts/approvals/SCWBS-047.yaml
+  - contracts/evidence/SCWBS-048.yaml
+  - contracts/evidence-payloads/SCWBS-048.patch
+  - contracts/reviews/SCWBS-048.yaml
+  - contracts/approvals/SCWBS-048.yaml
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - contracts/discovery/**
+  - contracts/tasks/SCWBS-0**
+  - contracts/spec-changes/**
+  - src/**
+  - tests/**
+  - docs/**
+  - scripts/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - contracts/evidence/SCWBS-041.yaml
+  - contracts/evidence-payloads/SCWBS-041.patch
+  - contracts/reviews/SCWBS-041.yaml
+  - contracts/approvals/SCWBS-041.yaml
+  - contracts/evidence/SCWBS-042.yaml
+  - contracts/evidence-payloads/SCWBS-042.patch
+  - contracts/reviews/SCWBS-042.yaml
+  - contracts/approvals/SCWBS-042.yaml
+  - contracts/evidence/SCWBS-043.yaml
+  - contracts/evidence-payloads/SCWBS-043.patch
+  - contracts/reviews/SCWBS-043.yaml
+  - contracts/approvals/SCWBS-043.yaml
+  - contracts/evidence/SCWBS-044.yaml
+  - contracts/evidence-payloads/SCWBS-044.patch
+  - contracts/reviews/SCWBS-044.yaml
+  - contracts/approvals/SCWBS-044.yaml
+  - contracts/evidence/SCWBS-045.yaml
+  - contracts/evidence-payloads/SCWBS-045.patch
+  - contracts/reviews/SCWBS-045.yaml
+  - contracts/approvals/SCWBS-045.yaml
+  - contracts/evidence/SCWBS-046.yaml
+  - contracts/evidence-payloads/SCWBS-046.patch
+  - contracts/reviews/SCWBS-046.yaml
+  - contracts/approvals/SCWBS-046.yaml
+  - contracts/evidence/SCWBS-047.yaml
+  - contracts/evidence-payloads/SCWBS-047.patch
+  - contracts/reviews/SCWBS-047.yaml
+  - contracts/approvals/SCWBS-047.yaml
+  - contracts/evidence/SCWBS-048.yaml
+  - contracts/evidence-payloads/SCWBS-048.patch
+  - contracts/reviews/SCWBS-048.yaml
+  - contracts/approvals/SCWBS-048.yaml
+stopIf:
+  - any migration dry-run is blocked or truncated
+  - PR base or subject ancestry cannot be authoritatively verified
+  - non-lifecycle changedFiles drift appears
+  - evidence retain produces a mismatch or writes outside exact scope
+  - historical fields beyond declared subject changedFiles and provenance would change
+  - any Review or Approval transition would be performed by AI
+  - any Review or Approval is rejected changes-requested non-human or subject-mismatched
+  - source WBS changeset Task authority or schema change is required
+  - authority expansion is required
+  - partial cohort migration would be merged
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Immediately before mutation, authoritative migration dry-runs for SCWBS-041 through SCWBS-048 are ready with no blockers or truncation and exactly match the approved subject, pull request, changedFiles, and diffHash matrix in the Spec.
+  - Each target Evidence records canonical subjectHeadCommit and diffHash at the top level and in git metadata, canonical changedFiles, and reproducible patch-artifact provenance while preserving historical branch, base, pull request, checks, and test-quality facts.
+  - Each retained payload reproduces the recorded implementation subject from its historical base in a fresh clone and passes existing Evidence verification.
+  - Each target Review is independently requested and then human-approved with taskId, pull request, headCommit, and diffHash exactly matching current Evidence.
+  - Each target Approval is a scoped v2 post-finish human Approval with lean TTY provenance and exact Evidence pull request, headCommit, and diffHash; legacy unscoped fallback is not accepted.
+  - Review and Approval approval operations remain human-only, and AI performs request operations only after the migrated Evidence subjects are stable.
+  - Shared completion readiness reports no Evidence, Review, pull request, subject, or post-finish Approval blocker for SCWBS-041 through SCWBS-048.
+  - Only the 32 exact cohort artifact paths and this Task's managed contract paths change; no partial cohort migration is merged.
+  - Unit, typecheck, build, full integration, diff guard, registry, Human Gate, post-finish Approval, CI, and merge checks pass.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT7ICSMN.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT7ICSMN.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT7ICSMN.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT7ICSMN.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT7ICSMN.patch
+  - contracts/approvals/SCWBS-DRAFT-MT7ICSMN.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT7ICSMN.yaml
+  - contracts/registry.yaml
+specPath: contracts/specs/SPEC-LITE-MT7ICSMN.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-25T02:26:40+09:00"
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:4aad6ea73543309a2af7e55721e19171f22ef383659b651a21ace9ea6072d7ba
+  createdAt: "2026-08-24T17:42:15.316Z"
