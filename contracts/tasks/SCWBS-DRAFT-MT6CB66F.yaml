@@ -1,0 +1,112 @@
+id: SCWBS-DRAFT-MT6CB66F
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT6CB66F
+branchName: task/SCWBS-DRAFT-MT6CB66F-issue-600-final-scoped-approval-bundle-completio
+allowedPaths:
+  - src/core/approval-version.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/core/check-coverage.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/human-gate.test.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/packaging.test.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+forbiddenPaths:
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - scripts/build-wjs-runtime.mjs
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - scripts/**
+  - src/core/approval-version.ts
+  - src/core/types.ts
+  - src/core/schema/records.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/core/check-coverage.ts
+  - src/commands/approval-request.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/commands/check-diff.ts
+  - src/cli/register-governance.ts
+  - src/cli.ts
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/task-contract.md
+  - docs/scwbs/schemas/approval-request.schema.json
+stopIf:
+  - package or build configuration change required
+  - dist core types restoration or prune policy change required
+  - Approval v2 authority or delegation semantics change required
+  - scope fallback required
+  - legacy human scope inference required
+  - multiple canonical Approval files or Registry identity change required
+  - Issue 594 Review evaluator work required
+  - allowedPaths expansion required
+  - existing WIP semantics change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+  - lint
+doneCriteria:
+  - Coverage waiver audit fields are selected only from the exact human-gate slot and never from the active top-level or post-finish slot.
+  - A current human-gate slot remains valid when post-finish is requested or stale, while a missing or stale human-gate slot cannot be satisfied by post-finish.
+  - Coverage waiver recovery commands explicitly request human-gate scope.
+  - APPROVAL_V2_VERSION has one runtime source that remains in the packaged distribution, with no runtime import of core/types.js.
+  - Existing prepack pruning remains unchanged and packaged CLI plus MCP entrypoints run without dist/core/types.js.
+  - The predecessor scoped bundle implementation retains status validation, projection, authority, rollback, legacy compatibility, and scope isolation semantics.
+  - Unit, integration, typecheck, build, packaging, and lint checks pass from a clean sequential build.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT6CB66F.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-approved-final-follow-up-issue-600
+approvedAt: "2026-08-24T06:49:35+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT6CB66F.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6CB66F.patch
+  - contracts/approvals/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:5f36e089092be530dc7d5b6ec942ccf80fdf88560cf734396bd23f6de4e6ca3a
+  createdAt: "2026-08-23T21:50:13.279Z"

@@ -3,7 +3,7 @@ import { runCheck, collectCheckIssues } from "../../src/commands/check.js";
 import { collectDiffIssues } from "../../src/commands/check-diff.js";
 import { makeTempRepo, sampleApproval, sampleEvidence, sampleTask, writeScwbsProject, writeText, writeYaml } from "../helpers.js";
 import { readTask } from "../../src/core/contracts.js";
-import { runApprovalApprove } from "../../src/commands/approval-request.js";
+import { runApprovalApprove, runApprovalRequest } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 
 describe("check", () => {
@@ -354,13 +354,15 @@ describe("check", () => {
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
       changedFiles: ["src/security/key.ts"],
       subjectHeadCommit: "abc1234",
-      diffHash: "diff1234"
+      diffHash: "diff1234",
+      git: { headCommit: "abc1234", diffHash: "diff1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
+    expect(runApprovalRequest(root, "WBS-001-004", { scope: "human-gate", force: false })).toBe(0);
     process.env[APPROVAL_DELEGATION_TOKEN_ENV] = token;
     try {
-      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", force: false })).toBe(0);
+      expect(runApprovalApprove(root, "WBS-001-004", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated post-finish Evidence and checks reviewed", force: false })).toBe(0);
       expect(collectCheckIssues(root)).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "approval.delegation.scope", severity: "error" })
+        expect.objectContaining({ code: "approval.status", severity: "error" })
       ]));
     } finally {
       delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];

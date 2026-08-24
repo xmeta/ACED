@@ -94,6 +94,8 @@ describe("Human Gate security logic", () => {
       'npm run scwbs -- approval approve --task WBS-001-004 --actor human --reason "CONFIRM TTY APPROVAL WBS-001-004 head123 sha256:diff123"'
     );
     expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved")).toContain(" --force");
+    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "requested", "human-gate")).not.toContain(" --force");
+    expect(buildHumanApprovalCommand("WBS-001-004", evidence, "approved", "human-gate")).toContain("--scope human-gate --force");
     expect(buildHumanApprovalCommand("WBS-001-004", sampleEvidence())).toBeUndefined();
     expect(buildLeanHumanApprovalConfirmation("WBS-001-004", undefined)).toBeUndefined();
   });
@@ -158,7 +160,7 @@ describe("Human Gate security logic", () => {
     const evidence = sampleEvidence({ changedFiles: ["package.json"] });
     const issue = validateHumanGateApproval(task, evidence, undefined).issues[0]!;
     expect(issue.remediation).toMatchObject({ kind: "command", owner: "human", safeToAutoRun: false });
-    expect(issue.remediation).toMatchObject({ argv: ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id] });
+    expect(issue.remediation).toMatchObject({ argv: ["npm", "run", "scwbs", "--", "approval", "request", "--task", task.id, "--scope", "human-gate"] });
   });
 
   test("preserves a matching Approval through metadata-only descendant commits", () => {

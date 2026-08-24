@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readApproval, readEvidence, readReview, readTask } from "../core/contracts.js";
-import { validateDelegatedApproval } from "../core/human-gate.js";
+import { readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
+import { validateDelegatedApproval, validateHumanApprovalProvenance } from "../core/human-gate.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readWbs } from "../core/wbs.js";
@@ -74,7 +74,7 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
     }
 
     const { evidence, issues: evidenceIssues } = readEvidence(root, targetTask.id);
-    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
+    const { approval, issues: approvalIssues } = readApprovalForScope(root, targetTask.id, "post-finish");
     const { review, issues: reviewIssues } = readReview(root, targetTask.id);
     const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
@@ -83,18 +83,19 @@ function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: Tas
     const hasApproval = Boolean(approval) && !missingApprovalOnly;
     const hasReview = Boolean(review) && !missingReviewOnly;
     const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
+    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
 
     if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
     if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
     if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
-    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
-    if (touchesHumanGate && !hasApproval) {
-      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
+    if (!hasApproval && touchesHumanGate) {
+      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ") || `${targetTask.id} has no post-finish Approval record`;
+      blockers.push(`${targetTask.id} post-finish Approval unavailable: ${scopeMessage}`);
     }
     if (approval?.status === "requested") {
-      blockers.push(`${targetTask.id} approval is still requested`);
+      blockers.push(`${targetTask.id} post-finish Approval is still requested`);
     } else if (approval?.status === "rejected") {
-      blockers.push(`${targetTask.id} approval was rejected`);
+      blockers.push(`${targetTask.id} post-finish Approval was rejected`);
     }
 
     targets.push({
@@ -162,18 +163,22 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
     const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
     if (!evidence) throw new Error(evidenceIssues.map((issue) => issue.message).join("\n"));
 
-    const { approval, issues: approvalIssues } = readApproval(root, task.id);
+    const { approval, issues: approvalIssues } = readApprovalForScope(root, task.id, "post-finish");
     const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
     if (missingApprovalOnly || !approval) {
-      throw new Error(`${task.id} has no approval record; run \`scwbs approval approve --task ${task.id}\` first`);
+      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ");
+      throw new Error(scopeMessage || `${task.id} has no post-finish Approval record; run \`scwbs approval approve --task ${task.id} --scope post-finish\` first`);
     }
-    if (approval.status === "requested") throw new Error(`${task.id} approval is still requested; approve it first`);
-    if (approval.status === "rejected") throw new Error(`${task.id} approval is rejected`);
-    if (approval.status !== "approved") throw new Error(`${task.id} approval status is ${approval.status}; only approved records can complete`);
+    if (approval.status === "requested") throw new Error(`${task.id} post-finish Approval is still requested; approve it first`);
+    if (approval.status === "rejected") throw new Error(`${task.id} post-finish Approval is rejected`);
+    if (approval.status !== "approved") throw new Error(`${task.id} post-finish Approval status is ${approval.status}; only approved records can complete`);
 
     if (approval.approvalMode === "delegated") {
       const delegationIssues = validateDelegatedApproval(task, approval, "post-finish");
       if (delegationIssues.length > 0) throw new Error(delegationIssues.map((issue) => issue.message).join("\n"));
+    } else if (approval.version === "scwbs.approval.v2") {
+      const humanProvenanceIssues = validateHumanApprovalProvenance(approval, true, true);
+      if (humanProvenanceIssues.length > 0) throw new Error(humanProvenanceIssues.map((issue) => issue.message).join("\n"));
     }
 
     const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
@@ -190,6 +195,10 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
 
     const pullRequest = evidence.git?.pullRequest ?? approval.pullRequest;
     if (!pullRequest) throw new Error(`${task.id} has no pull request metadata in Evidence or Approval`);
+    if (approval.version === "scwbs.approval.v2") {
+      if (!evidence.git?.pullRequest) throw new Error(`${task.id} post-finish Approval requires Evidence pull request metadata`);
+      if (approval.pullRequest !== evidence.git.pullRequest) throw new Error(`${task.id} post-finish Approval pull request does not match Evidence`);
+    }
 
     const { review, issues: reviewIssues } = readReview(root, task.id);
     const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";

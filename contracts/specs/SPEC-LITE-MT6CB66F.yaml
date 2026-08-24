@@ -1,0 +1,26 @@
+id: SPEC-LITE-MT6CB66F
+type: spec-contract
+featureId: F-MT6CB66F
+title: "Issue #600 final: scoped Approval bundle completion"
+sourceIssue: 600
+status: approved
+version: 0.1.0
+approvedBy: user-approved-final-follow-up-issue-600
+approvedAt: "2026-08-24T06:49:35+09:00"
+summary: "Complete the scoped Approval bundle from blocked predecessor SCWBS-DRAFT-MT6B2T5Q at becbacf by isolating coverage waiver scope and removing the packaged runtime dependency on core/types.js."
+acceptanceCriteria:
+  - Coverage waiver auditable head and diff values come only from the nested human-gate slot while the complete raw bundle remains subject to canonical Human Gate validation.
+  - A matching human-gate slot remains valid with an active requested or stale post-finish projection; matching post-finish never satisfies a missing or stale human-gate slot.
+  - Coverage waiver recovery commands explicitly use approval request with scope human-gate.
+  - APPROVAL_V2_VERSION is exported from a runtime module retained by packaging, and runtime consumers do not import core/types.js.
+  - Type declarations use a type-only ApprovalV2Version binding without requiring core/types.js at runtime.
+  - Package and build configuration and existing generated-only pruning behavior remain unchanged.
+  - npm pack installs an isolated runnable CLI without dist/core/types.js, and existing MCP entrypoint tests pass after prepack.
+  - The predecessor v2 status matrix, exact projection, other-slot preservation, transaction rollback, authority verification, v1 compatibility, and Issue 594 non-goals remain unchanged.
+  - Clean sequential unit, integration, typecheck, build, packaging, and lint checks all succeed.
+nonGoals:
+  - restoring dist/core/types.js to the package or changing prepack pruning
+  - changing package, build, WBS, or GitHub workflow configuration
+  - scope fallback, inferred legacy Human scope, or multiple Approval artifacts
+  - changing Human TTY, delegated proof, policy fingerprint, token, or expiry semantics
+  - implementing the Issue 594 Review and completion blocker evaluator

@@ -1,0 +1,119 @@
+id: EVD-SCWBS-DRAFT-MT6CB66F
+type: evidence
+taskId: SCWBS-DRAFT-MT6CB66F
+commit: 24f31daab54b30fa6241cf614290849fc2a2f167
+subjectHeadCommit: 24f31daab54b30fa6241cf614290849fc2a2f167
+diffHash: sha256:0d208b08d86fa82f5b894fe4b65e1a860b6f170f19ccbabff1fbe76fc992581e
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 24f31daab54b30fa6241cf614290849fc2a2f167
+    treeHash: d73417a325acfdfb4c9430152626e820dbc9846e
+    diffHash: sha256:0d208b08d86fa82f5b894fe4b65e1a860b6f170f19ccbabff1fbe76fc992581e
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT6CB66F.patch
+    manifestHash: sha256:0d208b08d86fa82f5b894fe4b65e1a860b6f170f19ccbabff1fbe76fc992581e
+git:
+  branch: task/SCWBS-DRAFT-MT6CB66F-issue-600-final-scoped-approval-bundle-completio
+  base: origin/main
+  baseCommit: e886487e3bd54914a6547d8ef6f2b60ae7d357d0
+  changedFilesBasis: branch-diff
+  pullRequest: "602"
+  subjectHeadCommit: 24f31daab54b30fa6241cf614290849fc2a2f167
+  diffHash: sha256:0d208b08d86fa82f5b894fe4b65e1a860b6f170f19ccbabff1fbe76fc992581e
+  headCommit: 24f31daab54b30fa6241cf614290849fc2a2f167
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6CB66F.patch
+  - contracts/evidence/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT6CB66F.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT6CB66F.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-approval-risk.md
+  - docs/scwbs/schemas/approval-request.schema.json
+  - docs/scwbs/task-contract.md
+  - src/cli.ts
+  - src/cli/register-governance.ts
+  - src/commands/approval-request.ts
+  - src/commands/check-diff.ts
+  - src/commands/completion.ts
+  - src/commands/finish.ts
+  - src/core/approval-version.ts
+  - src/core/check-coverage.ts
+  - src/core/contracts.ts
+  - src/core/human-gate.ts
+  - src/core/schema/records.ts
+  - src/core/types.ts
+  - tests/integration/approval.test.ts
+  - tests/integration/check-diff.test.ts
+  - tests/integration/check.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/finish.test.ts
+  - tests/integration/human-gate.test.ts
+  - tests/integration/packaging.test.ts
+  - tests/unit/contracts.test.ts
+  - tests/unit/human-gate.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: e886487e3bd54914a6547d8ef6f2b60ae7d357d0
+    headCommit: 24f31daab54b30fa6241cf614290849fc2a2f167
+    diffHash: sha256:0d208b08d86fa82f5b894fe4b65e1a860b6f170f19ccbabff1fbe76fc992581e
+  tests:
+    filesAdded: 0
+    filesModified: 9
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:903bb0f02f4b4fa6cfbff0d8482fac2042201bb6815026812eb83ef71c339090
+    durationMilliseconds: 8940
+    executedAt: "2026-08-24T01:31:02.196Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:a1ede81305d1ce6b2d3b8d470c95148f8286827b304d61b1178c6ea8b93df034
+    durationMilliseconds: 19374
+    executedAt: "2026-08-24T01:31:21.575Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:9e5e07931716dbc274246c7b54041584af592cfc288150d0af0945bd4870929a
+    durationMilliseconds: 7469
+    executedAt: "2026-08-24T01:31:29.052Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:77d0bc8b7927bc33c420492db8bb024216b2feed673b761d3812172bbbd04c11
+    durationMilliseconds: 293504
+    executedAt: "2026-08-24T01:36:22.561Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:0d75e76ca995cba6f58680da2ddf44afc8789b887a06481d2dfadb0f8a618f98
+    durationMilliseconds: 7570
+    executedAt: "2026-08-24T01:36:30.138Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added scoped Approval status, isolation, rollback, packaging, and lifecycle regression assertions.

@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { readApproval, readEvidence } from "./contracts.js";
+import { APPROVAL_V2_VERSION } from "./approval-version.js";
 import { matchesAny } from "./glob.js";
 import { validateHumanGateApproval } from "./human-gate.js";
 import { defaultCheckCoveragePath, resolveFrom } from "./paths.js";
@@ -371,7 +372,10 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
     const approval = readApproval(root, task.id).approval;
     const evidenceHead = evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit;
     const evidenceDiffHash = evidence?.diffHash ?? evidence?.git?.diffHash;
-    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && approval?.headCommit && approval.diffHash)
+    const humanGateSlot = approval?.version === APPROVAL_V2_VERSION
+      ? approval.scopeApprovals?.["human-gate"]
+      : approval;
+    const auditableScope = Boolean(evidenceHead && evidenceDiffHash && humanGateSlot?.headCommit && humanGateSlot.diffHash)
       && Boolean(evidence && evidenceIsCurrent(root, task, evidence));
     const gate = validateHumanGateApproval(
       syntheticGateTask,
@@ -385,7 +389,7 @@ export function collectCheckCoverageIssues(root: string, task: TaskContract, fil
         severity: "error",
         code: "checkCoverage.waiver.approval",
         message: `${task.id} waives ${check} (${waiver.reason}) but requires Human Approval scoped to current Evidence`,
-        fixCommand: `npm run scwbs -- approval request --task ${task.id}`
+        fixCommand: `npm run scwbs -- approval request --task ${task.id} --scope human-gate`
       });
     }
   }
