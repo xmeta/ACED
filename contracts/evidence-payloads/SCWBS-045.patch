@@ -1,0 +1,126 @@
+diff --git a/contracts/tasks/SCWBS-045.yaml b/contracts/tasks/SCWBS-045.yaml
+new file mode 100644
+index 0000000..d77da23
+--- /dev/null
++++ b/contracts/tasks/SCWBS-045.yaml
+@@ -0,0 +1,30 @@
++id: SCWBS-045
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-SCWBS-GOVERNANCE
++branchName: codex/scwbs-045-next-respects-review-blockers
++allowedPaths:
++  - src/commands/next.ts
++  - tests/scwbs.test.ts
++  - contracts/tasks/SCWBS-045.yaml
++  - contracts/evidence/SCWBS-045.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - next uses the Ready for completion review section before suggesting human completion review.
++  - next does not suggest human completion review when every review candidate is blocked.
++  - Existing missing Evidence and unblocked review guidance remains covered.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-02T00:00:00.000Z"
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index d12bd26..f7d8242 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -7,6 +7,11 @@ function taskIdFromMessage(message: string): string | undefined {
+   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
+ }
+ 
++function taskIdFromSection(queue: string, heading: string): string | undefined {
++  const section = new RegExp(`${heading}:\\n([\\s\\S]*?)(?:\\n\\n|$)`).exec(queue)?.[1] ?? "";
++  return /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(section)?.[1];
++}
++
+ export function buildNextAction(root: string): string {
+   const stale = collectCheckIssues(root).find((issue) => issue.code.startsWith("task.contractLock"));
+   if (stale) {
+@@ -36,7 +41,7 @@ Command:
+   }
+ 
+   const queue = buildReviewQueue(root);
+-  const reviewTask = /^- ([A-Z]+-\d+(?:-\d+)?)/m.exec(queue)?.[1];
++  const reviewTask = taskIdFromSection(queue, "Ready for completion review");
+   if (reviewTask) {
+     if (reviewExists(root, reviewTask)) {
+       return `Next suggested action:
+@@ -59,6 +64,18 @@ Command:
+   scwbs review request --task ${reviewTask}
+ `;
+   }
++  const blockedReviewTask = taskIdFromSection(queue, "Blocked review candidates");
++  if (blockedReviewTask) {
++    return `Next suggested action:
++
++Review blocked candidates
++Reason:
++- Review candidates exist, but completion is blocked by prerequisites
++
++Command:
++  scwbs review-queue
++`;
++  }
+ 
+   const nextTask = buildNextTask(root);
+   return `Next suggested action:
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 913c021..6732a82 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -639,6 +639,41 @@ describe("scwbs MVP", () => {
+     expect(next).not.toContain("scwbs review request --task WBS-001-004");
+   });
+ 
++  test("next does not suggest completion review when review candidates are blocked", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      git: {
++        branch: "task/WBS-001-004-api-implementation",
++        base: "main",
++        headCommit: "abc1234",
++        pullRequest: "#42"
++      }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
++      id: "EVD-001-005",
++      taskId: "WBS-001-005"
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "requested",
++      reviewProfile: "independent-ai-review",
++      pullRequest: "#42",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++
++    const next = buildNextAction(root);
++    expect(next).toContain("Review blocked candidates");
++    expect(next).toContain("completion is blocked by prerequisites");
++    expect(next).not.toContain("Human review for WBS-001-004");
++  });
++
+   test("health warns when evidence has only low-trust checks", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "completed");
