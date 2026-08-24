@@ -1,0 +1,30 @@
+schemaVersion: 1.0.0
+id: PROBE-bootstrap-issue-594-reject-unapproved-review-a-MT67RN7E
+type: discovery-probe
+status: concluded
+question: Issue 594 reject unapproved Review and unbound Human Approval during WBS node completion
+hypotheses:
+  - Existing repository capabilities can support the goal
+activities:
+  - Inspect current contracts and record bounded evidence
+evidenceExpected:
+  - Current-state inventory
+unknowns:
+  - Delivery scope and acceptance criteria
+timebox: 1h
+costLimit: one engineer-hour
+exitConditions:
+  - Decision-driving evidence recorded
+nextDecision: Create and lock one bounded delivery Task for Issue 594 completion safety validation
+createdAt: "2026-08-23T19:42:22.010Z"
+startedAt: "2026-08-23T19:42:33.605Z"
+concludedAt: "2026-08-23T19:43:13.198Z"
+exitConditionsMet: true
+factsLearned:
+  - completion checks review existence but not approved status
+  - completion uses partial approval scope checks instead of validateHumanGateApproval
+  - fix is bounded to completion evaluator and integration tests
+hypothesesRejected:
+  - new approval validator is required
+  - WBS schema change is required
+remainingUnknowns: []
