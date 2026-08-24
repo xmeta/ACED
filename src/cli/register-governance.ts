@@ -21,6 +21,7 @@ import { runApprovalApprove, runApprovalReject, runApprovalRequest } from "../co
 import { runCompletionApply } from "../commands/completion.js";
 import { runEvidenceAnnotate } from "../commands/evidence-annotate.js";
 import { runEvidenceCollect, runEvidenceImportCi, runEvidencePrune, runEvidenceRetain, runEvidenceVerifyAttestation } from "../commands/evidence-collect.js";
+import { runEvidenceMigrateSubject } from "../commands/evidence-migrate-subject.js";
 import { runProfileSet, runProfileShow } from "../commands/profile.js";
 import { runRegistryRebuild } from "../commands/registry-rebuild.js";
 import {
@@ -429,6 +430,19 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
           output: options.output
         })
       );
+    });
+
+  evidence
+    .command("migrate-subject")
+    .description("Reconstruct a legacy Evidence subject from verified Git history (dry-run only)")
+    .requiredOption("--task <id>", "task id")
+    .option("--fetch-pr-head", "explicitly fetch origin refs/pull/<n>/head for PR ancestry verification")
+    .option("--json", "print a versioned JSON migration report")
+    .action((options) => {
+      setExitCode(runEvidenceMigrateSubject(root, options.task, {
+        json: options.json ?? false,
+        fetchPrHead: options.fetchPrHead ?? false
+      }));
     });
 
   evidence

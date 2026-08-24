@@ -181,6 +181,18 @@ export function resolveCommit(root: string, ref: string): string | undefined {
   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
 }
 
+/** Fetch an authoritative PR head into FETCH_HEAD without updating a local PR ref. */
+export function fetchPullRequestHead(root: string, pullRequest: string): string | undefined {
+  const number = pullRequest.trim().replace(/^#/, "");
+  if (!/^[1-9][0-9]*$/.test(number)) return undefined;
+  const result = spawnSync("git", ["fetch", "--no-tags", "origin", `refs/pull/${number}/head`], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) return undefined;
+  return resolveCommit(root, "FETCH_HEAD");
+}
+
 export function commitTreeHash(root: string, commit: string): string | undefined {
   const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{tree}`], {
     cwd: root,

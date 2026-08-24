@@ -193,3 +193,29 @@ Generated contract commandは、explicitな`--force` optionがdocumentされ指�
 | `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする             | changeset自体のバリデーション。Task/Approvalは参照しない |
 
 `evidence collect --force` と `task generate --force` は、それぞれの表に記載したfail-closed境界を無効化しない。一方、`wbs apply` はTask IDを受け取らずApproval recordも検証しないため、`--force`実行前のHuman GateはTask Contractと運用手順で別途保証する必要がある。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
+
+### Legacy Evidence subject の dry-run 移行確認
+
+過去のEvidenceで `diffHash` または subject の記録が欠落している場合は、次の専用コマンドで
+Git履歴から再構築できるかを確認できる。
+
+```bash
+npm run scwbs -- evidence migrate-subject --task SCWBS-001 --json
+# PR ancestry verification is opt-in and fetches origin's authoritative head:
+npm run scwbs -- evidence migrate-subject --task SCWBS-001 --fetch-pr-head --json
+```
+
+このコマンドは常にdry-runで、現在のworking-tree diffを参照せず、記録された
+`git.baseCommit` と歴史上の subject commit のGit object、base ancestry、`git-diff-binary-v1`
+canonicalizationを確認する。PRが記録されている場合、既定ではローカルの
+`refs/pull/*`を信頼せずfail-closedとなる。`--fetch-pr-head`を明示したときだけ
+configured `origin` の `refs/pull/<n>/head` を `FETCH_HEAD` に取得し、その取得結果の
+ancestryを検証する。既存のローカルPR refは参照・上書きしない。
+結果は `scwbs.evidence-subject-migration.v1` の bounded な `ready` / `blocked` reportとして
+出力される。`changedFiles` の差分は現在の task lifecycle metadata 除外対象だけが許容され、
+その他の差分、欠落・浅い履歴・曖昧なcommit・PR ancestry不一致はfail-closedとなる。
+
+この確認はEvidence、Evidence payload、Registry、Review、Approvalを作成・更新せず、
+Review/Approvalの承認も行わない。`ready` の後続作業は、別のartifact migration Taskで
+scoped Review request → 人間のReview approve → post-finish v2 Approval request → 人間の
+Approval の順に実施する。
