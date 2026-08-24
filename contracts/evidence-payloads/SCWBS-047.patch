@@ -1,0 +1,52 @@
+diff --git a/contracts/tasks/SCWBS-046.yaml b/contracts/tasks/SCWBS-046.yaml
+index 37ecb9b..1089ba0 100644
+--- a/contracts/tasks/SCWBS-046.yaml
++++ b/contracts/tasks/SCWBS-046.yaml
+@@ -1,5 +1,12 @@
+ id: SCWBS-046
+ type: task-contract
++completionScope: node
++completionTaskIds:
++  - SCWBS-041
++  - SCWBS-042
++  - SCWBS-043
++  - SCWBS-044
++  - SCWBS-045
+ wbsNodeId: node-governance-maintenance
+ featureId: F-1-10
+ branchName: codex/scwbs-046-node-level-completion-task
+diff --git a/contracts/tasks/SCWBS-047.yaml b/contracts/tasks/SCWBS-047.yaml
+new file mode 100644
+index 0000000..b10525b
+--- /dev/null
++++ b/contracts/tasks/SCWBS-047.yaml
+@@ -0,0 +1,29 @@
++id: SCWBS-047
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-1-10
++branchName: codex/scwbs-047-node-completion-contract-metadata
++allowedPaths:
++  - contracts/tasks/SCWBS-046.yaml
++  - contracts/tasks/SCWBS-047.yaml
++  - contracts/evidence/SCWBS-047.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - SCWBS-046 is explicitly marked as a node-level completion task for node-governance-maintenance.
++  - SCWBS-046 completion targets enumerate the shared-node task contracts that must be ready before node completion.
++  - review-queue and completion apply recognize SCWBS-046 as the dedicated node-level completion task instead of a generic shared-node candidate.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-02T17:12:29.932Z"
