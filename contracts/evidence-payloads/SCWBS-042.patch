@@ -1,0 +1,87 @@
+diff --git a/contracts/tasks/SCWBS-042.yaml b/contracts/tasks/SCWBS-042.yaml
+new file mode 100644
+index 0000000..7befc5f
+--- /dev/null
++++ b/contracts/tasks/SCWBS-042.yaml
+@@ -0,0 +1,30 @@
++id: SCWBS-042
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-SCWBS-GOVERNANCE
++branchName: codex/scwbs-042-ai-next-task-evidence-filter
++allowedPaths:
++  - src/commands/ai-queue.ts
++  - tests/scwbs.test.ts
++  - contracts/tasks/SCWBS-042.yaml
++  - contracts/evidence/SCWBS-042.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - ai next-task excludes Task Contracts that already have Evidence.
++  - ai next-task still reports follow-up work when review or evidence follow-up remains.
++  - Existing planned-task dependency and Human Gate filters are preserved.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-02T00:00:00.000Z"
+diff --git a/src/commands/ai-queue.ts b/src/commands/ai-queue.ts
+index 72f493e..e968547 100644
+--- a/src/commands/ai-queue.ts
++++ b/src/commands/ai-queue.ts
+@@ -66,6 +66,7 @@ export function buildNextTask(root: string): string {
+   const candidates = tasks
+     .flatMap(({ task }) => {
+       if (!task || task.humanGateRequiredPaths.length > 0) return [];
++      if (evidenceExists(root, task.id)) return [];
+       const node = findNode(wbs, task.wbsNodeId);
+       if (!node) return [];
+       const status = node.status ?? "planned";
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 7bc0894..9ea69eb 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -564,6 +564,34 @@ describe("scwbs MVP", () => {
+     expect(buildNextTask(root)).toBe("Planned task candidates:\n- WBS-001-004 | API Implementation | 1.1\n");
+   });
+ 
++  test("ai next-task excludes a planned task that already has evidence", () => {
++    const root = makeTempRepo();
++    const wbs = sampleWbs("planned");
++    wbs.nodes[0].status = "completed";
++    wbs.relations = [
++      ...(wbs.relations ?? []),
++      {
++        id: "rel-api-depends-on-root",
++        type: "dependsOn",
++        source: "node-api",
++        target: "node-root"
++      }
++    ];
++    writeScwbsProject(root);
++    writeJson(root, "contracts/wbs/project.wbs.json", wbs);
++    writeYaml(
++      root,
++      "contracts/tasks/WBS-001-004.yaml",
++      sampleTask({
++        humanGateRequiredPaths: []
++      }) as unknown as Record<string, unknown>
++    );
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++
++    expect(buildNextTask(root)).toContain("No available planned tasks.");
++    expect(buildNextTask(root)).toContain("Run `scwbs next` for Evidence or review guidance.");
++  });
++
+   test("ai next-task points to scwbs next when no planned task is available but evidence is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
