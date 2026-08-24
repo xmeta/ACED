@@ -1,29 +1,50 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
+import { readApproval, readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
-import { validateDelegatedApproval, validateHumanApprovalProvenance } from "../core/human-gate.js";
+import { validateDelegatedApproval, validateHumanApprovalProvenance, validateHumanGateApproval } from "../core/human-gate.js";
 import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
 import { defaultWbsPath, resolveFrom } from "../core/paths.js";
 import { readWbs } from "../core/wbs.js";
-import type { ApprovalRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
+import type { ApprovalRecord, Evidence, ReviewRecord, TaskContract, WbsDocument, WbsNode } from "../core/types.js";
 import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-policy.js";
 import { runRegistryRebuild } from "./registry-rebuild.js";
 import { runWbsApply } from "./wbs.js";
+
+type CompletionTarget = {
+  taskId: string;
+  nodeCode: string;
+  nodeName: string;
+  pullRequest?: string;
+  approvalStatus?: string;
+  reviewStatus?: string;
+};
 
 type CompletionPlanItem = {
   taskId: string;
   node: WbsNode;
   pullRequest?: string;
-  approval: ApprovalRecord;
-  completionTargets?: Array<{
-    taskId: string;
-    nodeCode: string;
-    nodeName: string;
-    pullRequest?: string;
-    approvalStatus?: string;
-    reviewStatus?: string;
-  }>;
+  approval?: ApprovalRecord;
+  reviewRequired: boolean;
+  completionTargets?: CompletionTarget[];
+};
+
+type CompletionBlocker = { taskId: string; message: string };
+
+type CompletionPlan = {
+  wbs: WbsDocument;
+  items: CompletionPlanItem[];
+  reason: string;
+  blockers: CompletionBlocker[];
+};
+
+type EvaluatedTask = {
+  task: TaskContract;
+  evidence?: Evidence;
+  review?: ReviewRecord;
+  approval?: ApprovalRecord;
+  pullRequest?: string;
+  blockers: CompletionBlocker[];
 };
 
 type CompletionChangeSet = {
@@ -41,216 +62,173 @@ type CompletionChangeSet = {
   }>;
 };
 
+function blocker(taskId: string, message: string): CompletionBlocker {
+  return { taskId, message };
+}
 
+function issueCode(issues: Array<{ code: string }>, fallback: string): string {
+  return issues[0]?.code ?? fallback;
+}
 
-function validateNodeCompletionTargets(root: string, wbs: WbsDocument, task: TaskContract): { blockers: string[]; targets: NonNullable<CompletionPlanItem["completionTargets"]> } {
-  const blockers: string[] = [];
-  const targets: NonNullable<CompletionPlanItem["completionTargets"]> = [];
+function evidenceSubject(evidence: Evidence | undefined): { pullRequest?: string; headCommit?: string; diffHash?: string } {
+  return {
+    pullRequest: evidence?.git?.pullRequest,
+    headCommit: evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit,
+    diffHash: evidence?.diffHash ?? evidence?.git?.diffHash
+  };
+}
+
+/** Evaluate Evidence, Review, post-finish Approval, then canonical Human Gate. */
+function evaluateTask(root: string, task: TaskContract, requireReview: boolean): EvaluatedTask {
+  const blockers: CompletionBlocker[] = [];
+  const evidenceResult = readEvidence(root, task.id);
+  const evidence = evidenceResult.evidence;
+  if (!evidence) blockers.push(blocker(task.id, `Evidence unavailable (${issueCode(evidenceResult.issues, "evidence.invalid")})`));
+
+  const reviewResult = requireReview ? readReview(root, task.id) : { review: undefined, issues: [] };
+  const review = reviewResult.review;
+  const subject = evidenceSubject(evidence);
+  if (requireReview && !review) {
+    blockers.push(blocker(task.id, `Review unavailable (${issueCode(reviewResult.issues, "review.invalid")})`));
+  } else if (requireReview && review) {
+    if (review.status !== "approved") blockers.push(blocker(task.id, `Review status is ${review.status}; approved is required`));
+    if (review.taskId !== task.id) blockers.push(blocker(task.id, "Review taskId does not match Task"));
+    if (!subject.pullRequest || !review.pullRequest || review.pullRequest !== subject.pullRequest) blockers.push(blocker(task.id, "Review pullRequest does not match Evidence"));
+    if (!subject.headCommit || !review.headCommit || review.headCommit !== subject.headCommit) blockers.push(blocker(task.id, "Review headCommit does not match Evidence"));
+    if (!subject.diffHash || !review.diffHash || review.diffHash !== subject.diffHash) blockers.push(blocker(task.id, "Review diffHash does not match Evidence"));
+  }
+
+  const postFinishResult = readApprovalForScope(root, task.id, "post-finish");
+  const approval = postFinishResult.approval;
+  if (!approval) {
+    blockers.push(blocker(task.id, `post-finish Approval unavailable (${issueCode(postFinishResult.issues, "approval.invalid")})`));
+  } else {
+    if (approval.status !== "approved") blockers.push(blocker(task.id, `post-finish Approval status is ${approval.status}; approved is required`));
+    if (approval.approvalMode === "delegated") blockers.push(...validateDelegatedApproval(task, approval, "post-finish").map((issue) => blocker(task.id, `post-finish Approval invalid (${issue.code})`)));
+    else if (approval.version === "scwbs.approval.v2") blockers.push(...validateHumanApprovalProvenance(approval, true, true).map((issue) => blocker(task.id, `post-finish Approval invalid (${issue.code})`)));
+    if (!subject.pullRequest || !approval.pullRequest || approval.pullRequest !== subject.pullRequest) blockers.push(blocker(task.id, "post-finish Approval pullRequest does not match Evidence"));
+    if (!subject.headCommit || !approval.headCommit || approval.headCommit !== subject.headCommit) blockers.push(blocker(task.id, "post-finish Approval headCommit does not match Evidence"));
+    if (!subject.diffHash || !approval.diffHash || approval.diffHash !== subject.diffHash) blockers.push(blocker(task.id, "post-finish Approval diffHash does not match Evidence"));
+  }
+
+  const changedFiles = evidence?.changedFiles ?? [];
+  if (changedFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths))) {
+    const gate = validateHumanGateApproval(task, evidence, readApproval(root, task.id).approval, changedFiles, root);
+    blockers.push(...gate.issues.map((issue) => blocker(task.id, `Human Gate Approval invalid (${issue.code})`)));
+    if (gate.required && !gate.approved && gate.issues.length === 0) blockers.push(blocker(task.id, "Human Gate Approval is not approved"));
+  }
+
+  return { task, evidence, review, approval, pullRequest: subject.pullRequest, blockers };
+}
+
+function validateNodeTargets(root: string, wbs: WbsDocument, task: TaskContract, cache: Map<string, EvaluatedTask>): { targets: CompletionTarget[]; blockers: CompletionBlocker[] } {
+  const targets: CompletionTarget[] = [];
+  const blockers: CompletionBlocker[] = [];
   const seen = new Set<string>();
-
   for (const targetId of completionTaskIds(task)) {
     if (targetId === task.id) {
-      blockers.push(`${task.id} completionTaskIds must not include itself`);
+      blockers.push(blocker(task.id, "completionTaskIds must not include itself"));
       continue;
     }
     if (seen.has(targetId)) continue;
     seen.add(targetId);
-
-    const { task: targetTask, issues: targetTaskIssues } = readTask(root, targetId);
+    const targetResult = readTask(root, targetId);
+    const targetTask = targetResult.task;
     if (!targetTask) {
-      blockers.push(targetTaskIssues.map((issue) => issue.message).join("\n"));
+      blockers.push(blocker(task.id, `completion target ${targetId} is unavailable (${issueCode(targetResult.issues, "task.invalid")})`));
       continue;
     }
-
-    const targetAssociation = taskWbsAssociation(wbs, targetTask);
-    if (targetAssociation.kind !== "node") {
-      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
+    const association = taskWbsAssociation(wbs, targetTask);
+    if (association.kind !== "node") {
+      blockers.push(blocker(targetTask.id, `completion target references missing WBS node ${association.nodeId}`));
       continue;
     }
-    const targetNode = targetAssociation.node;
-    if (targetNode.id !== task.wbsNodeId) {
-      blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+    if (association.node.id !== task.wbsNodeId) {
+      blockers.push(blocker(targetTask.id, `completion target WBS node ${association.node.id} does not match ${task.wbsNodeId}`));
       continue;
     }
-
-    const { evidence, issues: evidenceIssues } = readEvidence(root, targetTask.id);
-    const { approval, issues: approvalIssues } = readApprovalForScope(root, targetTask.id, "post-finish");
-    const { review, issues: reviewIssues } = readReview(root, targetTask.id);
-    const missingEvidenceOnly = evidenceIssues.length === 1 && evidenceIssues[0]?.code === "evidence.missing";
-    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
-    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
-    const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
-    const hasApproval = Boolean(approval) && !missingApprovalOnly;
-    const hasReview = Boolean(review) && !missingReviewOnly;
-    const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
-    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
-
-    if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
-    if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
-    if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
-    if (!hasApproval && touchesHumanGate) {
-      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ") || `${targetTask.id} has no post-finish Approval record`;
-      blockers.push(`${targetTask.id} post-finish Approval unavailable: ${scopeMessage}`);
-    }
-    if (approval?.status === "requested") {
-      blockers.push(`${targetTask.id} post-finish Approval is still requested`);
-    } else if (approval?.status === "rejected") {
-      blockers.push(`${targetTask.id} post-finish Approval was rejected`);
-    }
-
-    targets.push({
-      taskId: targetTask.id,
-      nodeCode: targetNode.code,
-      nodeName: targetNode.name,
-      pullRequest,
-      approvalStatus: approval?.status,
-      reviewStatus: review?.status
-    });
+    const evaluated = cache.get(targetTask.id) ?? evaluateTask(root, targetTask, true);
+    cache.set(targetTask.id, evaluated);
+    blockers.push(...evaluated.blockers);
+    targets.push({ taskId: targetTask.id, nodeCode: association.node.code, nodeName: association.node.name, pullRequest: evaluated.pullRequest, approvalStatus: evaluated.approval?.status, reviewStatus: evaluated.review?.status });
   }
-
-  return { blockers, targets };
+  return { targets, blockers };
 }
 
 function buildCompletionChangeSet(wbs: WbsDocument, completionTaskId: string, reason: string, items: CompletionPlanItem[]): CompletionChangeSet {
   return {
-    schemaVersion: "0.1.0",
-    targetWbsId: wbs.id,
-    changeSetId: `changeset-${completionTaskId}-complete-reviewed-work`,
-    author: "human",
-    reason,
-    dryRun: false,
-    operations: items.map((item, index) => ({
-      operationId: `op-${String(index + 1).padStart(3, "0")}`,
-      operation: "changeNodeStatus",
-      nodeId: item.node.id,
-      status: "completed"
-    }))
+    schemaVersion: "0.1.0", targetWbsId: wbs.id, changeSetId: `changeset-${completionTaskId}-complete-reviewed-work`, author: "human", reason, dryRun: false,
+    operations: items.map((item, index) => ({ operationId: `op-${String(index + 1).padStart(3, "0")}`, operation: "changeNodeStatus", nodeId: item.node.id, status: "completed" }))
   };
 }
 
-export function buildCompletionPlan(root: string, taskIdsValue: string | undefined, options: { reason?: string; allowRoot: boolean }): { wbs: WbsDocument; items: CompletionPlanItem[]; reason: string } {
+export function buildCompletionPlan(root: string, taskIdsValue: string | undefined, options: { reason?: string; allowRoot: boolean }): CompletionPlan {
   const taskIds = parseTaskIds(taskIdsValue);
   if (taskIds.length === 0) throw new Error("Missing --tasks <task-id[,task-id...]>");
-
   const wbs = readWbs(root);
   const reason = options.reason ?? "Human approved completion through scwbs completion apply";
-  const seenNodes = new Set<string>();
+  const blockers: CompletionBlocker[] = [];
   const items: CompletionPlanItem[] = [];
-
+  const cache = new Map<string, EvaluatedTask>();
+  const seenNodes = new Set<string>();
   for (const taskId of taskIds) {
-    const { task, issues: taskIssues } = readTask(root, taskId);
-    if (!task) throw new Error(taskIssues.map((issue) => issue.message).join("\n"));
+    const taskResult = readTask(root, taskId);
+    const task = taskResult.task;
+    if (!task) {
+      blockers.push(blocker(taskId, `Task is unavailable (${issueCode(taskResult.issues, "task.invalid")})`));
+      continue;
+    }
     const association = taskWbsAssociation(wbs, task);
-    if (association.kind === "wbs-less") throw new Error(`${task.id} is WBS-less and cannot complete a WBS node; assign an explicit --wbs-node in a new trusted contract before completion`);
-    if (association.kind === "missing-node") throw new Error(missingTaskWbsNodeMessage(task, association));
+    if (association.kind === "wbs-less") {
+      blockers.push(blocker(task.id, "Task is WBS-less and cannot complete a WBS node"));
+      continue;
+    }
+    if (association.kind === "missing-node") {
+      blockers.push(blocker(task.id, missingTaskWbsNodeMessage(task, association)));
+      continue;
+    }
     const node = association.node;
-    if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) {
-      throw new Error(`${task.id} targets root WBS node ${node.id}; rerun with --allow-root only after explicit human decision`);
-    }
-    if (node.status !== "ready") {
-      throw new Error(`${task.id} targets WBS node ${node.id} with status ${node.status ?? "planned"}; completion apply only handles ready nodes`);
-    }
-    if (seenNodes.has(node.id)) {
-      throw new Error(`multiple tasks target WBS node ${node.id}; complete it through one reviewed task`);
-    }
+    if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) blockers.push(blocker(task.id, `Task targets root WBS node ${node.id}; --allow-root is required`));
+    if (node.status !== "ready") blockers.push(blocker(task.id, `Task targets WBS node ${node.id} with status ${node.status ?? "planned"}`));
+    if (seenNodes.has(node.id)) blockers.push(blocker(task.id, `multiple tasks target WBS node ${node.id}`));
     seenNodes.add(node.id);
-
-    const blockers = incompleteDependencies(node.id, wbs);
-    if (blockers.length > 0) {
-      throw new Error(`${task.id} has incomplete dependencies: ${blockers.join(", ")}`);
+    for (const dependency of incompleteDependencies(node.id, wbs)) blockers.push(blocker(task.id, `incomplete dependency ${dependency}`));
+    const evaluated = cache.get(task.id) ?? evaluateTask(root, task, isNodeCompletionTask(task));
+    cache.set(task.id, evaluated);
+    blockers.push(...evaluated.blockers);
+    let completionTargets: CompletionTarget[] = [];
+    if (isNodeCompletionTask(task)) {
+      const targetResult = validateNodeTargets(root, wbs, task, cache);
+      completionTargets = targetResult.targets;
+      blockers.push(...targetResult.blockers);
     }
-
-    const { evidence, issues: evidenceIssues } = readEvidence(root, task.id);
-    if (!evidence) throw new Error(evidenceIssues.map((issue) => issue.message).join("\n"));
-
-    const { approval, issues: approvalIssues } = readApprovalForScope(root, task.id, "post-finish");
-    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
-    if (missingApprovalOnly || !approval) {
-      const scopeMessage = approvalIssues.map((issue) => issue.message).join("; ");
-      throw new Error(scopeMessage || `${task.id} has no post-finish Approval record; run \`scwbs approval approve --task ${task.id} --scope post-finish\` first`);
-    }
-    if (approval.status === "requested") throw new Error(`${task.id} post-finish Approval is still requested; approve it first`);
-    if (approval.status === "rejected") throw new Error(`${task.id} post-finish Approval is rejected`);
-    if (approval.status !== "approved") throw new Error(`${task.id} post-finish Approval status is ${approval.status}; only approved records can complete`);
-
-    if (approval.approvalMode === "delegated") {
-      const delegationIssues = validateDelegatedApproval(task, approval, "post-finish");
-      if (delegationIssues.length > 0) throw new Error(delegationIssues.map((issue) => issue.message).join("\n"));
-    } else if (approval.version === "scwbs.approval.v2") {
-      const humanProvenanceIssues = validateHumanApprovalProvenance(approval, true, true);
-      if (humanProvenanceIssues.length > 0) throw new Error(humanProvenanceIssues.map((issue) => issue.message).join("\n"));
-    }
-
-    const evidenceHeadCommit = evidence.git?.subjectHeadCommit ?? evidence.git?.headCommit ?? evidence.subjectHeadCommit;
-    const evidenceDiffHash = evidence.git?.diffHash ?? evidence.diffHash;
-    if (approval.approvalMode === "delegated" && (!approval.headCommit || !approval.diffHash || !evidenceHeadCommit || !evidenceDiffHash)) {
-      throw new Error(`${task.id} delegated approval and Evidence require headCommit and diffHash`);
-    }
-    if (approval.headCommit !== undefined && evidenceHeadCommit !== undefined && approval.headCommit !== evidenceHeadCommit) {
-      throw new Error(`${task.id} approval headCommit does not match Evidence`);
-    }
-    if (approval.diffHash !== undefined && evidenceDiffHash !== undefined && approval.diffHash !== evidenceDiffHash) {
-      throw new Error(`${task.id} approval diffHash does not match Evidence`);
-    }
-
-    const pullRequest = evidence.git?.pullRequest ?? approval.pullRequest;
-    if (!pullRequest) throw new Error(`${task.id} has no pull request metadata in Evidence or Approval`);
-    if (approval.version === "scwbs.approval.v2") {
-      if (!evidence.git?.pullRequest) throw new Error(`${task.id} post-finish Approval requires Evidence pull request metadata`);
-      if (approval.pullRequest !== evidence.git.pullRequest) throw new Error(`${task.id} post-finish Approval pull request does not match Evidence`);
-    }
-
-    const { review, issues: reviewIssues } = readReview(root, task.id);
-    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
-    if (isNodeCompletionTask(task) && !review && !missingReviewOnly) {
-      throw new Error(reviewIssues.map((issue) => issue.message).join("\n"));
-    }
-    if (isNodeCompletionTask(task) && !review) {
-      throw new Error(`${task.id} is a node-level completion task and requires review metadata before completion`);
-    }
-
-    const completionTargets = isNodeCompletionTask(task) ? validateNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] };
-    if (isNodeCompletionTask(task) && completionTargets.blockers.length > 0) {
-      throw new Error(`${task.id} cannot complete shared WBS node ${node.id} until:\n- ${completionTargets.blockers.join("\n- ")}`);
-    }
-
-    items.push({
-      taskId: task.id,
-      node,
-      pullRequest,
-      approval,
-      completionTargets: completionTargets.targets
-    });
+    items.push({ taskId: task.id, node, pullRequest: evaluated.pullRequest, approval: evaluated.approval, reviewRequired: isNodeCompletionTask(task), completionTargets });
   }
-
-  return { wbs, items, reason };
+  return { wbs, items, reason, blockers };
 }
 
-export function buildCompletionPreview(root: string, taskIdsValue: string | undefined, completionTaskId: string, options: { reason?: string; allowRoot: boolean }): string {
-  const { wbs, items, reason } = buildCompletionPlan(root, taskIdsValue, options);
-  const changeSet = buildCompletionChangeSet(wbs, completionTaskId, reason, items);
+function renderCompletionPreview(plan: CompletionPlan, completionTaskId: string): string {
+  if (plan.blockers.length > 0) return `${["Completion apply blocked:", ...plan.blockers.map((item) => `- ${item.taskId}: ${item.message}`)].join("\n")}\n`;
+  const changeSet = buildCompletionChangeSet(plan.wbs, completionTaskId, plan.reason, plan.items);
   const lines = ["Completion apply dry-run:", ""];
-  for (const item of items) {
-    lines.push(`- ${item.taskId}: ${item.node.code} ${item.node.name} -> completed`);
-    lines.push(`  pullRequest: ${item.pullRequest}`);
-    lines.push("  approval: approved record validated");
+  for (const item of plan.items) {
+    lines.push(`- ${item.taskId}: ${item.node.code} ${item.node.name} -> completed`, `  pullRequest: ${item.pullRequest}`);
+    if (item.reviewRequired) lines.push("  review: approved record validated");
+    lines.push("  post-finish approval: approved record validated");
     if (item.completionTargets && item.completionTargets.length > 0) {
       lines.push("  completionTargets:");
       for (const target of item.completionTargets) {
-        const details = [
-          target.pullRequest ? `PR ${target.pullRequest}` : "no PR",
-          target.reviewStatus ? `review ${target.reviewStatus}` : "no review",
-          target.approvalStatus ? `approval ${target.approvalStatus}` : "no approval"
-        ].join(", ");
+        const details = [target.pullRequest ? `PR ${target.pullRequest}` : "no PR", target.reviewStatus ? `review ${target.reviewStatus}` : "no review", target.approvalStatus ? `approval ${target.approvalStatus}` : "no approval"].join(", ");
         lines.push(`    - ${target.taskId}: ${target.nodeCode} ${target.nodeName} (${details})`);
       }
     }
   }
-  lines.push("");
-  lines.push(`changeset: contracts/changesets/${completionTaskId}-complete-reviewed-work.json`);
-  lines.push(`operations: ${changeSet.operations.length}`);
-  lines.push("rerun with --apply to apply the WBS changeset and rebuild the registry");
+  lines.push("", `changeset: contracts/changesets/${completionTaskId}-complete-reviewed-work.json`, `operations: ${changeSet.operations.length}`, "rerun with --apply to apply the WBS changeset and rebuild the registry");
   return `${lines.join("\n")}\n`;
+}
+
+export function buildCompletionPreview(root: string, taskIdsValue: string | undefined, completionTaskId: string, options: { reason?: string; allowRoot: boolean }): string {
+  return renderCompletionPreview(buildCompletionPlan(root, taskIdsValue, options), completionTaskId);
 }
 
 export function runCompletionApply(root: string, taskIdsValue: string | undefined, completionTaskId: string | undefined, options: { reason?: string; apply: boolean; allowRoot: boolean }): number {
@@ -260,17 +238,19 @@ export function runCompletionApply(root: string, taskIdsValue: string | undefine
       return 2;
     }
     const plan = buildCompletionPlan(root, taskIdsValue, options);
+    if (plan.blockers.length > 0) {
+      process.stderr.write(renderCompletionPreview(plan, completionTaskId));
+      return 1;
+    }
     if (!options.apply) {
-      process.stdout.write(buildCompletionPreview(root, taskIdsValue, completionTaskId, options));
+      process.stdout.write(renderCompletionPreview(plan, completionTaskId));
       return 0;
     }
-
     const changeSetPath = `contracts/changesets/${completionTaskId}-complete-reviewed-work.json`;
     const changeSet = buildCompletionChangeSet(plan.wbs, completionTaskId, plan.reason, plan.items);
     mkdirSync(path.dirname(resolveFrom(root, changeSetPath)), { recursive: true });
     writeFileSync(resolveFrom(root, changeSetPath), `${JSON.stringify(changeSet, null, 2)}\n`, "utf8");
     console.log(`wrote ${changeSetPath}`);
-
     const applyResult = runWbsApply(root, changeSetPath, { force: true, output: defaultWbsPath });
     if (applyResult !== 0) return applyResult;
     return runRegistryRebuild(root, { check: false, force: true });
