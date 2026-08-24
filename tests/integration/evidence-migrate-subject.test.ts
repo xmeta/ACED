@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { evaluateEvidenceSubjectMigration, runEvidenceMigrateSubject } from "../../src/commands/evidence-migrate-subject.js";
+import { evaluateEvidenceSubjectMigration, runEvidenceMigrateSubject } from "../../src/cli/register-governance.js";
 import { diffBinary, hashDiffBinary, headCommit, resolveCommit } from "../../src/core/git.js";
 import { taskLifecycleMetadataPaths } from "../../src/core/managed-contract-paths.js";
 import { makeTempRepo, sampleTask, writeText, writeYaml } from "../helpers.js";
