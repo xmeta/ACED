@@ -1,0 +1,28 @@
+id: SPEC-LITE-MT6MY4FO
+type: spec-contract
+featureId: F-MT6MY4FO
+title: "Issue #594: fail-close WBS completion review and approval scope"
+sourceIssue: 594
+status: approved
+version: 0.1.0
+approvedBy: user-requested-issue-594
+approvedAt: "2026-08-24T00:00:00+09:00"
+summary: "Use one bounded completion evaluator for node-level primary and target Tasks that validates current approved Review and independent scoped Approval facts."
+acceptanceCriteria:
+  - Node-level completion rejects missing, requested, changes-requested, and stale Review for its primary Task and every completionTaskId.
+  - Review taskId, pullRequest, headCommit, and diffHash exactly match the current Evidence subject for the same Task.
+  - Every node-level subject requires an approved post-finish Approval slot bound to current Evidence.
+  - Human Gate subjects additionally require validateHumanGateApproval to approve the independent human-gate slot for the same current Evidence.
+  - Human-gate and post-finish Approval scopes cannot substitute for one another.
+  - Missing, requested, rejected, stale, provenance-incomplete, and scope-mismatched records produce bounded Task-specific blockers.
+  - Primary and target Tasks share one evaluator, and dry-run and --apply use the same plan and blocker set.
+  - A blocker prevents changeset, WBS, and Approval writes.
+  - Approved Review, current Evidence, valid post-finish Approval, and when required valid human-gate Approval generate a changeset for primary and target happy paths.
+  - Ordinary non-node completion remains compatible and does not require Review.
+  - Integration tests cover Review status and identity failures, both Approval scopes, delegated proof tampering, happy paths, and dry-run/apply parity.
+nonGoals:
+  - promoting AI review to Human Approval
+  - executing review approve or Human Approval on behalf of a human
+  - rewriting lifecycle records to make completion pass
+  - changing the canonical Human Gate validator or Approval schema
+  - redesigning lifecycle transitions or WBS node completion outside this command
