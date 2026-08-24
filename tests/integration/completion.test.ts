@@ -283,6 +283,26 @@ describe("completion apply", () => {
     expect(buildCompletionPreview(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain("Human Gate Approval invalid (approval.status)");
   });
 
+  test("node-level completion rejects one legacy Approval reused for both scopes", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004", "WBS-001-005"],
+      humanGateRequiredPaths: ["src/security/**"]
+    }) as unknown as Record<string, unknown>);
+    writeEvidence(root, "WBS-001-006", SUBJECT, ["src/security/policy.ts"]);
+    writeReview(root, "WBS-001-006");
+    writePostFinishApproval(root, "WBS-001-006");
+
+    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
+    expect(preview).toContain("Human Gate Approval requires an independent scoped Approval record");
+    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(1);
+    expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
+  });
+
   test("accepts valid delegated post-finish proof", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
