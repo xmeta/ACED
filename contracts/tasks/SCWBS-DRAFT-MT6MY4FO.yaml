@@ -1,0 +1,71 @@
+id: SCWBS-DRAFT-MT6MY4FO
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT6MY4FO
+branchName: task/SCWBS-DRAFT-MT6MY4FO-issue-594-fail-close-wbs-completion-review-and-a
+allowedPaths:
+  - src/commands/completion.ts
+  - tests/integration/completion.test.ts
+forbiddenPaths:
+  - wjs/**
+  - src/core/human-gate.ts
+  - contracts/wbs/project.wbs.json
+  - contracts/changesets/**
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - WBS schema or lifecycle redesign required
+  - canonical Human Gate validator change required
+  - Approval schema or scoped bundle change required
+  - allowedPaths expansion required
+  - Issue 594 acceptance change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - Node-level completion accepts only approved Review records for the primary Task and every completionTaskId.
+  - Review taskId, pullRequest, headCommit, and diffHash match the current Evidence subject for the same Task.
+  - Every node-level subject has an approved post-finish Approval slot bound to current Evidence; Human Gate subjects independently pass validateHumanGateApproval without scope substitution.
+  - Missing, requested, rejected, stale, provenance-incomplete, or scope-mismatched lifecycle records produce bounded Task-specific blockers.
+  - Primary and target Tasks use one evaluator, and dry-run and --apply return the same blocker set without writing a changeset when blocked.
+  - Approved Review, current Evidence, post-finish Approval, and when required Human Gate Approval are covered for primary and target happy paths and failure regressions.
+  - Ordinary non-node completion does not gain a Review requirement.
+  - No Human Approval is synthesized, no Review lifecycle or WBS semantics are redesigned, and no canonical validator is duplicated.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+specPath: contracts/specs/SPEC-LITE-MT6MY4FO.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-requested-issue-594
+approvedAt: "2026-08-24T00:00:00+09:00"
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT6MY4FO.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT6MY4FO.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT6MY4FO.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT6MY4FO.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6MY4FO.patch
+  - contracts/approvals/SCWBS-DRAFT-MT6MY4FO.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT6MY4FO.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:f177ed0d1c7d91328d8750dc42f7e569832a28750bdefe58e77aa981508a8b8c
+  createdAt: "2026-08-24T02:48:23.939Z"
