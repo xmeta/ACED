@@ -1,0 +1,81 @@
+id: EVD-SCWBS-DRAFT-MT67TGZ4
+type: evidence
+taskId: SCWBS-DRAFT-MT67TGZ4
+commit: f203914efdd79012d9fa310be0ba80e2f6b30490
+subjectHeadCommit: f203914efdd79012d9fa310be0ba80e2f6b30490
+diffHash: sha256:41eaa02df0952cea524a916c125a3e22af977314c7101a0911196389c213bb69
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: f203914efdd79012d9fa310be0ba80e2f6b30490
+    treeHash: aa306cdf8822744dbd067a1a477ada0445282758
+    diffHash: sha256:41eaa02df0952cea524a916c125a3e22af977314c7101a0911196389c213bb69
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT67TGZ4.patch
+    manifestHash: sha256:41eaa02df0952cea524a916c125a3e22af977314c7101a0911196389c213bb69
+git:
+  branch: task/SCWBS-DRAFT-MT67TGZ4-issue-594-fail-close-wbs-completion-review-and-a
+  base: origin/main
+  baseCommit: 079141e5724b6d17d26a9b55bd40353712426096
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: f203914efdd79012d9fa310be0ba80e2f6b30490
+  diffHash: sha256:41eaa02df0952cea524a916c125a3e22af977314c7101a0911196389c213bb69
+  headCommit: f203914efdd79012d9fa310be0ba80e2f6b30490
+changedFiles:
+  - contracts/blocks/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/discovery/PROBE-bootstrap-issue-594-reject-unapproved-review-a-MT67RN7E.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT67TGZ4.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT67TGZ4.yaml
+  - contracts/tasks/index.yaml
+  - src/commands/completion.ts
+  - tests/integration/completion.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 079141e5724b6d17d26a9b55bd40353712426096
+    headCommit: f203914efdd79012d9fa310be0ba80e2f6b30490
+    diffHash: sha256:41eaa02df0952cea524a916c125a3e22af977314c7101a0911196389c213bb69
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:d078a9ef5ba99f343d28b10f3f58e77361241bfd83d977e452a28e4726c15d95
+    durationMilliseconds: 9108
+    executedAt: "2026-08-24T02:31:30.799Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:3d2fcf35bb830f9487487c81b3ccc3e4eac01cb6de8c3e9f928f4c3b48e02f34
+    durationMilliseconds: 18779
+    executedAt: "2026-08-24T02:31:49.584Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:a05a83331f4234044f50b734496aaf3e1410694d7778570c031a5ab34edc9667
+    durationMilliseconds: 7073
+    executedAt: "2026-08-24T02:31:56.663Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:9062bb660c78c8a9230f1ca067f72f338b5e55f7f721700d5f414f9e3d8a5935
+    durationMilliseconds: 305310
+    executedAt: "2026-08-24T02:37:01.977Z"
