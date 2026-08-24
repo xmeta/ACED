@@ -1,0 +1,605 @@
+diff --git a/contracts/specs/SPEC-LITE-MT7EDHZC.yaml b/contracts/specs/SPEC-LITE-MT7EDHZC.yaml
+new file mode 100644
+index 0000000..a7da96b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MT7EDHZC.yaml
+@@ -0,0 +1,23 @@
++id: SPEC-LITE-MT7EDHZC
++type: spec-contract
++featureId: F-MT7EDHZC
++title: Fail-closed legacy Evidence subject migration tooling
++status: approved
++version: 0.1.0
++approvedBy: user-provided-remediation-objective
++approvedAt: "2026-08-25T00:35:21+09:00"
++summary: Add a dry-run-first command that reconstructs legacy Evidence subject identity from verified Git history while keeping lifecycle artifact mutation and every human decision in later, separately contracted steps.
++acceptanceCriteria:
++  - The command derives canonical changedFiles and diffHash from the recorded baseCommit and historical subject commit using git-diff-binary-v1 and task lifecycle metadata exclusions.
++  - Base and subject commits must exist, the base must be an ancestor of the subject, and a recorded pull request must contain the subject in its verified head ancestry.
++  - Default execution is read-only and returns a bounded versioned plan with deterministic ready or blocked status and reason codes.
++  - Differences between recorded and canonical changedFiles are tolerated only when every difference is classified task lifecycle metadata; all other differences fail closed.
++  - Missing Git objects, shallow or unverifiable history, invalid PR metadata, ancestry mismatch, ambiguous inputs, and canonicalization failure never produce an executable-looking migration result.
++  - The tooling does not mutate SCWBS-041 through SCWBS-048 artifacts and does not create, approve, reject, close, or otherwise transition Review or Approval records.
++  - Documentation defines the later order as scoped Review request, human Review approval, post-finish v2 Approval request, and human Approval after a separate artifact migration Task.
++  - Regression tests cover ready reconstruction plus missing object, non-ancestor, PR mismatch, lifecycle-only changedFiles drift, unexpected drift, and no-write behavior.
++nonGoals:
++  - Applying reconstructed values to legacy Evidence or payload artifacts.
++  - Migrating Review or Approval records or performing human-only actions.
++  - Completing a WBS node, refreshing contract locks, reusing SCWBS-053, or changing WBS and changesets.
++  - Changing Approval v2, Human Gate, package, CI, schema, authentication, or external-service semantics.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml b/contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
+new file mode 100644
+index 0000000..ca9dcc1
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
+@@ -0,0 +1,83 @@
++id: SCWBS-DRAFT-MT7EDHZC
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MT7EDHZC
++branchName: task/SCWBS-DRAFT-MT7EDHZC-add-fail-closed-legacy-evidence-subject-migratio
++allowedPaths:
++  - src/commands/evidence-migrate-subject.ts
++  - src/cli/register-governance.ts
++  - src/core/git.ts
++  - tests/integration/evidence-migrate-subject.test.ts
++  - docs/scwbs/cli-task-evidence.md
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - contracts/tasks/SCWBS-0**
++  - contracts/evidence/SCWBS-0**
++  - contracts/evidence-payloads/SCWBS-0**
++  - contracts/reviews/SCWBS-0**
++  - contracts/approvals/SCWBS-0**
++  - src/core/schema/**
++  - src/commands/approval-*.ts
++  - src/commands/review-*.ts
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - legacy lifecycle artifact mutation required
++  - Approval or Review status transition required
++  - authority field expansion required
++  - WBS or changeset modification required
++  - canonical reconstruction is ambiguous
++  - Git base subject or PR ancestry cannot be verified
++  - package workflow schema auth or external-service change required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - A dedicated evidence subject migration command reconstructs canonical identity from recorded baseCommit and historical subject commit without using the current working-tree diff.
++  - The command verifies base and subject object availability, base ancestry, recorded pull request ancestry when present, and the current git-diff-binary-v1 canonicalization before reporting a migratable result.
++  - Dry-run is the default and emits a bounded versioned result containing task, base, subject, pull request, canonical changedFiles, diffHash, and deterministic blocker codes without tracked writes.
++  - Apply is not implemented by this tooling Task; SCWBS-041 through SCWBS-048 Evidence, Review, Approval, WBS, changeset, and Task authority artifacts remain byte-for-byte unchanged.
++  - Recorded changedFiles differences are classified only when they are task lifecycle metadata excluded by current canonicalization; any other mismatch fails closed.
++  - Missing, ambiguous, non-ancestor, cross-PR, shallow/unavailable, and unexpected changedFiles cases fail closed without fabricating a subject or diffHash.
++  - The command never creates or transitions Review or Approval records and documentation keeps human Review and Approval as explicit later steps.
++  - Unit, typecheck, build, targeted integration, and full integration checks pass.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MT7EDHZC.yaml
++  - contracts/blocks/SCWBS-DRAFT-MT7EDHZC.yaml
++  - contracts/evidence/SCWBS-DRAFT-MT7EDHZC.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MT7EDHZC.patch
++  - contracts/approvals/SCWBS-DRAFT-MT7EDHZC.yaml
++  - contracts/reviews/SCWBS-DRAFT-MT7EDHZC.yaml
++  - contracts/registry.yaml
++specPath: contracts/specs/SPEC-LITE-MT7EDHZC.yaml
++specVersion: 0.1.0
++status: approved
++approvedBy: user-provided-remediation-objective
++approvedAt: "2026-08-25T00:35:21+09:00"
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:8852d71f8bba56bdc57f8faa457628ce32ba38f1e01802a11c4d7623773daa10
++  createdAt: "2026-08-24T15:36:08.895Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 10af9f1..dc257bb 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1811,3 +1811,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MT7EDHZC
++    path: contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
++    branchName: task/SCWBS-DRAFT-MT7EDHZC-add-fail-closed-legacy-evidence-subject-migratio
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/cli-task-evidence.md b/docs/scwbs/cli-task-evidence.md
+index bb20d55..8a1263c 100644
+--- a/docs/scwbs/cli-task-evidence.md
++++ b/docs/scwbs/cli-task-evidence.md
+@@ -193,3 +193,29 @@ Generated contract commandは、explicitな`--force` optionがdocumentされ指
+ | `wbs apply <change-set> --force` | `dryRun: true` のchangesetをpreviewではなく適用対象にする             | changeset自体のバリデーション。Task/Approvalは参照しない |
+ 
+ `evidence collect --force` と `task generate --force` は、それぞれの表に記載したfail-closed境界を無効化しない。一方、`wbs apply` はTask IDを受け取らずApproval recordも検証しないため、`--force`実行前のHuman GateはTask Contractと運用手順で別途保証する必要がある。個別コマンドの`--help`または本節の説明で対象範囲を確認すること。
++
++### Legacy Evidence subject の dry-run 移行確認
++
++過去のEvidenceで `diffHash` または subject の記録が欠落している場合は、次の専用コマンドで
++Git履歴から再構築できるかを確認できる。
++
++```bash
++npm run scwbs -- evidence migrate-subject --task SCWBS-001 --json
++# PR ancestry verification is opt-in and fetches origin's authoritative head:
++npm run scwbs -- evidence migrate-subject --task SCWBS-001 --fetch-pr-head --json
++```
++
++このコマンドは常にdry-runで、現在のworking-tree diffを参照せず、記録された
++`git.baseCommit` と歴史上の subject commit のGit object、base ancestry、`git-diff-binary-v1`
++canonicalizationを確認する。PRが記録されている場合、既定ではローカルの
++`refs/pull/*`を信頼せずfail-closedとなる。`--fetch-pr-head`を明示したときだけ
++configured `origin` の `refs/pull/<n>/head` を `FETCH_HEAD` に取得し、その取得結果の
++ancestryを検証する。既存のローカルPR refは参照・上書きしない。
++結果は `scwbs.evidence-subject-migration.v1` の bounded な `ready` / `blocked` reportとして
++出力される。`changedFiles` の差分は現在の task lifecycle metadata 除外対象だけが許容され、
++その他の差分、欠落・浅い履歴・曖昧なcommit・PR ancestry不一致はfail-closedとなる。
++
++この確認はEvidence、Evidence payload、Registry、Review、Approvalを作成・更新せず、
++Review/Approvalの承認も行わない。`ready` の後続作業は、別のartifact migration Taskで
++scoped Review request → 人間のReview approve → post-finish v2 Approval request → 人間の
++Approval の順に実施する。
+diff --git a/src/cli/register-governance.ts b/src/cli/register-governance.ts
+index a854d63..b4509cd 100644
+--- a/src/cli/register-governance.ts
++++ b/src/cli/register-governance.ts
+@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+ import { type Command } from "commander";
+ import {
++  readEvidence,
+   readSpec,
+   readTask,
+   runArtifactWorkflowInstructions,
+@@ -10,9 +11,19 @@ import {
+   runPlanningStoreShow,
+   runValidateFeature
+ } from "../core/contracts.js";
++import {
++  changedFilesBetweenRefs,
++  diffBinary,
++  fetchPullRequestHead,
++  hashDiffBinary,
++  isCommitAncestor,
++  isShallowRepository,
++  resolveCommit
++} from "../core/git.js";
++import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
+ import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+-import type { SpecChangeProposal } from "../core/types.js";
++import type { Evidence, SpecChangeProposal } from "../core/types.js";
+ import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
+ import { runAiPacket } from "../commands/ai-packet.js";
+ import { runAiExecute, runAiRun } from "../commands/ai-run.js";
+@@ -101,6 +112,232 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
+   }
+ }
+ 
++export const EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION = "1.0.0" as const;
++export const EVIDENCE_SUBJECT_MIGRATION_TYPE = "scwbs.evidence-subject-migration.v1" as const;
++
++const MAX_RESULT_FILES = 256;
++const MAX_BLOCKER_CODES = 32;
++
++export type EvidenceSubjectMigrationStatus = "ready" | "blocked";
++
++export type EvidenceSubjectMigrationReport = {
++  schemaVersion: typeof EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION;
++  type: typeof EVIDENCE_SUBJECT_MIGRATION_TYPE;
++  status: EvidenceSubjectMigrationStatus;
++  taskId: string;
++  baseCommit: string | null;
++  subjectHeadCommit: string | null;
++  pullRequest: string | null;
++  canonicalization: "git-diff-binary-v1";
++  changedFiles: string[];
++  diffHash: string | null;
++  classifiedLifecycleMetadata: string[];
++  blockerCodes: string[];
++  truncated: {
++    changedFiles: boolean;
++    classifiedLifecycleMetadata: boolean;
++    blockerCodes: boolean;
++  };
++};
++
++type CommitCandidate = { label: string; value: string };
++
++function migrationNormalizePath(value: string): string {
++  return value.replace(/\\/g, "/").replace(/^\.\//, "");
++}
++
++function migrationSortedUnique(values: string[]): string[] {
++  return [...new Set(values.map(migrationNormalizePath))].sort();
++}
++
++function migrationNormalizePullRequest(value: string | undefined): string | undefined {
++  const match = value?.trim().match(/^#?([1-9][0-9]*)$/);
++  return match ? `#${match[1]}` : undefined;
++}
++
++function migrationPullRequestNumber(value: string): string {
++  return value.replace(/^#/, "");
++}
++
++function migrationSubjectCandidates(evidence: Evidence): CommitCandidate[] {
++  return [
++    ["subjectHeadCommit", evidence.subjectHeadCommit],
++    ["git.subjectHeadCommit", evidence.git?.subjectHeadCommit],
++    ["commit", evidence.commit],
++    ["git.headCommit", evidence.git?.headCommit]
++  ]
++    .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
++    .map(([label, value]) => ({ label, value: value.trim() }));
++}
++
++function migrationUniqueCandidateValues(candidates: CommitCandidate[]): string[] {
++  return [...new Set(candidates.map((candidate) => candidate.value))];
++}
++
++function migrationBounded(values: string[], limit: number): { values: string[]; truncated: boolean } {
++  return { values: values.slice(0, limit), truncated: values.length > limit };
++}
++
++function migrationCreateReport(taskId: string, values: Partial<EvidenceSubjectMigrationReport> = {}): EvidenceSubjectMigrationReport {
++  return {
++    schemaVersion: EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION,
++    type: EVIDENCE_SUBJECT_MIGRATION_TYPE,
++    status: "blocked",
++    taskId,
++    baseCommit: null,
++    subjectHeadCommit: null,
++    pullRequest: null,
++    canonicalization: "git-diff-binary-v1",
++    changedFiles: [],
++    diffHash: null,
++    classifiedLifecycleMetadata: [],
++    blockerCodes: [],
++    truncated: { changedFiles: false, classifiedLifecycleMetadata: false, blockerCodes: false },
++    ...values
++  };
++}
++
++function migrationAddBlocker(codes: string[], code: string): void {
++  if (!codes.includes(code)) codes.push(code);
++}
++
++function migrationPullRequestValue(evidence: Evidence): { value?: string; invalid: boolean; mismatch: boolean } {
++  const gitValue = evidence.git?.pullRequest?.trim();
++  const receiptValue = evidence.ciReceipt?.pullRequest?.trim();
++  const gitPullRequest = migrationNormalizePullRequest(gitValue);
++  const receiptPullRequest = migrationNormalizePullRequest(receiptValue);
++  return {
++    value: gitPullRequest ?? receiptPullRequest,
++    invalid: Boolean((gitValue && !gitPullRequest) || (receiptValue && !receiptPullRequest)),
++    mismatch: Boolean(gitPullRequest && receiptPullRequest && gitPullRequest !== receiptPullRequest)
++  };
++}
++
++function migrationClassifyChangedFiles(recorded: string[], canonical: string[], metadataFiles: string[]): { metadata: string[]; unexpected: boolean } {
++  const recordedSet = new Set(migrationSortedUnique(recorded));
++  const canonicalSet = new Set(migrationSortedUnique(canonical));
++  const differences = migrationSortedUnique([
++    ...[...recordedSet].filter((file) => !canonicalSet.has(file)),
++    ...[...canonicalSet].filter((file) => !recordedSet.has(file))
++  ]);
++  const metadata = differences.filter((file) => metadataFiles.includes(file));
++  return { metadata, unexpected: differences.some((file) => !metadataFiles.includes(file)) };
++}
++
++export function evaluateEvidenceSubjectMigration(
++  root: string,
++  taskId: string,
++  options: { fetchPrHead?: boolean } = {}
++): EvidenceSubjectMigrationReport {
++  const report = migrationCreateReport(taskId);
++  const taskResult = readTask(root, taskId);
++  if (!taskResult.task) {
++    report.blockerCodes = migrationBounded(["task.missing"], MAX_BLOCKER_CODES).values;
++    return report;
++  }
++
++  const evidenceResult = readEvidence(root, taskId);
++  if (!evidenceResult.evidence) {
++    const issueCodes = evidenceResult.issues.map((issue) => issue.code);
++    report.blockerCodes = migrationBounded(issueCodes.length > 0 ? issueCodes : ["evidence.missing"], MAX_BLOCKER_CODES).values;
++    return report;
++  }
++  const evidence = evidenceResult.evidence;
++  const blockers: string[] = [];
++  const baseRecorded = evidence.git?.baseCommit?.trim();
++  if (!baseRecorded) migrationAddBlocker(blockers, "base.missing");
++  const subjectValues = migrationUniqueCandidateValues(migrationSubjectCandidates(evidence));
++  if (subjectValues.length === 0) migrationAddBlocker(blockers, "subject.missing");
++  if (subjectValues.length > 1) migrationAddBlocker(blockers, "subject.ambiguous");
++
++  const baseCommit = baseRecorded ? resolveCommit(root, baseRecorded) : undefined;
++  if (baseRecorded && !baseCommit) migrationAddBlocker(blockers, "base.unavailable");
++  const subjectRecorded = subjectValues.length === 1 ? subjectValues[0] : undefined;
++  const subjectCommit = subjectRecorded ? resolveCommit(root, subjectRecorded) : undefined;
++  if (subjectRecorded && !subjectCommit) migrationAddBlocker(blockers, "subject.unavailable");
++  report.baseCommit = baseCommit ?? (baseRecorded ?? null);
++  report.subjectHeadCommit = subjectCommit ?? (subjectRecorded ?? null);
++
++  if (isShallowRepository(root)) migrationAddBlocker(blockers, "history.shallow");
++  if (baseCommit && subjectCommit && !isCommitAncestor(root, baseCommit, subjectCommit)) {
++    migrationAddBlocker(blockers, "base.not-ancestor");
++  }
++
++  const pullRequest = migrationPullRequestValue(evidence);
++  report.pullRequest = pullRequest.value ?? null;
++  if (pullRequest.invalid) migrationAddBlocker(blockers, "pull-request.invalid");
++  if (pullRequest.mismatch) migrationAddBlocker(blockers, "pull-request.metadata-mismatch");
++  if (pullRequest.value) {
++    const prHead = options.fetchPrHead
++      ? fetchPullRequestHead(root, migrationPullRequestNumber(pullRequest.value))
++      : undefined;
++    if (!options.fetchPrHead) {
++      migrationAddBlocker(blockers, "pull-request.ancestry-unavailable");
++    } else if (!prHead) {
++      migrationAddBlocker(blockers, "pull-request.fetch-failed");
++      migrationAddBlocker(blockers, "pull-request.ancestry-unavailable");
++    } else if (subjectCommit && !isCommitAncestor(root, subjectCommit, prHead)) {
++      migrationAddBlocker(blockers, "pull-request.ancestry-mismatch");
++    }
++    if (baseCommit && prHead && !isCommitAncestor(root, baseCommit, prHead)) {
++      migrationAddBlocker(blockers, "pull-request.base-mismatch");
++    }
++  }
++
++  const metadataFiles = taskLifecycleMetadataPaths(taskId).map(migrationNormalizePath);
++  if (baseCommit && subjectCommit && !blockers.includes("base.not-ancestor")) {
++    try {
++      const canonicalChangedFiles = migrationSortedUnique(changedFilesBetweenRefs(root, baseCommit, subjectCommit, metadataFiles));
++      const canonicalDiffHash = hashDiffBinary(diffBinary(root, baseCommit, subjectCommit, metadataFiles));
++      const changedFilesResult = migrationBounded(canonicalChangedFiles, MAX_RESULT_FILES);
++      report.changedFiles = changedFilesResult.values;
++      report.truncated.changedFiles = changedFilesResult.truncated;
++      report.diffHash = canonicalDiffHash;
++      if (changedFilesResult.truncated) migrationAddBlocker(blockers, "result.changed-files-limit");
++
++      const drift = migrationClassifyChangedFiles(evidence.changedFiles, canonicalChangedFiles, metadataFiles);
++      const metadataResult = migrationBounded(drift.metadata, MAX_RESULT_FILES);
++      report.classifiedLifecycleMetadata = metadataResult.values;
++      report.truncated.classifiedLifecycleMetadata = metadataResult.truncated;
++      if (metadataResult.truncated) migrationAddBlocker(blockers, "result.metadata-drift-limit");
++      if (drift.unexpected) migrationAddBlocker(blockers, "changed-files.unexpected-drift");
++      const recordedDiffHash = evidence.diffHash ?? evidence.git?.diffHash;
++      if (recordedDiffHash && recordedDiffHash !== canonicalDiffHash) migrationAddBlocker(blockers, "diff-hash.mismatch");
++    } catch {
++      migrationAddBlocker(blockers, "canonicalization.failed");
++    }
++  }
++
++  const blockerResult = migrationBounded([...new Set(blockers)].sort(), MAX_BLOCKER_CODES);
++  report.blockerCodes = blockerResult.values;
++  report.truncated.blockerCodes = blockerResult.truncated;
++  report.status = report.blockerCodes.length === 0 ? "ready" : "blocked";
++  return report;
++}
++
++export type EvidenceSubjectMigrationOptions = { json?: boolean; fetchPrHead?: boolean };
++
++export function runEvidenceMigrateSubject(root: string, taskId: string, options: EvidenceSubjectMigrationOptions = {}): number {
++  try {
++    const report = evaluateEvidenceSubjectMigration(root, taskId, { fetchPrHead: options.fetchPrHead });
++    if (options.json) {
++      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
++    } else {
++      process.stdout.write(`${report.status === "ready" ? "READY" : "BLOCKED"} evidence subject migration ${taskId}\n`);
++      process.stdout.write(`baseCommit: ${report.baseCommit ?? "(missing)"}\n`);
++      process.stdout.write(`subjectHeadCommit: ${report.subjectHeadCommit ?? "(missing)"}\n`);
++      process.stdout.write(`pullRequest: ${report.pullRequest ?? "(not recorded)"}\n`);
++      process.stdout.write(`changedFiles: ${report.changedFiles.length}\n`);
++      process.stdout.write(`diffHash: ${report.diffHash ?? "(not computed)"}\n`);
++      process.stdout.write(`blockerCodes: ${report.blockerCodes.join(", ") || "none"}\n`);
++    }
++    return report.status === "ready" ? 0 : 1;
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 1;
++  }
++}
++
+ export function registerGovernanceCommands(program: Command, context: CommandContext): void {
+   const { root, setExitCode } = context;
+   program
+@@ -431,6 +668,19 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
+       );
+     });
+ 
++  evidence
++    .command("migrate-subject")
++    .description("Reconstruct a legacy Evidence subject from verified Git history (dry-run only)")
++    .requiredOption("--task <id>", "task id")
++    .option("--fetch-pr-head", "explicitly fetch origin refs/pull/<n>/head for PR ancestry verification")
++    .option("--json", "print a versioned JSON migration report")
++    .action((options) => {
++      setExitCode(runEvidenceMigrateSubject(root, options.task, {
++        json: options.json ?? false,
++        fetchPrHead: options.fetchPrHead ?? false
++      }));
++    });
++
+   evidence
+     .command("import-ci")
+     .description("Import provenance-verified CI Evidence from a readiness artifact")
+diff --git a/src/core/git.ts b/src/core/git.ts
+index 1d30fe0..30a3f97 100644
+--- a/src/core/git.ts
++++ b/src/core/git.ts
+@@ -181,6 +181,18 @@ export function resolveCommit(root: string, ref: string): string | undefined {
+   return result.status === 0 ? result.stdout.trim() || undefined : undefined;
+ }
+ 
++/** Fetch an authoritative PR head into FETCH_HEAD without updating a local PR ref. */
++export function fetchPullRequestHead(root: string, pullRequest: string): string | undefined {
++  const number = pullRequest.trim().replace(/^#/, "");
++  if (!/^[1-9][0-9]*$/.test(number)) return undefined;
++  const result = spawnSync("git", ["fetch", "--no-tags", "origin", `refs/pull/${number}/head`], {
++    cwd: root,
++    encoding: "utf8"
++  });
++  if (result.status !== 0) return undefined;
++  return resolveCommit(root, "FETCH_HEAD");
++}
++
+ export function commitTreeHash(root: string, commit: string): string | undefined {
+   const result = spawnSync("git", ["rev-parse", "--verify", `${commit}^{tree}`], {
+     cwd: root,
+diff --git a/tests/integration/evidence-migrate-subject.test.ts b/tests/integration/evidence-migrate-subject.test.ts
+new file mode 100644
+index 0000000..3c70cc4
+--- /dev/null
++++ b/tests/integration/evidence-migrate-subject.test.ts
+@@ -0,0 +1,124 @@
++import { execFileSync } from "node:child_process";
++import { mkdtempSync, readFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { describe, expect, test } from "vitest";
++import { evaluateEvidenceSubjectMigration, runEvidenceMigrateSubject } from "../../src/cli/register-governance.js";
++import { diffBinary, hashDiffBinary, headCommit, resolveCommit } from "../../src/core/git.js";
++import { taskLifecycleMetadataPaths } from "../../src/core/managed-contract-paths.js";
++import { makeTempRepo, sampleTask, writeText, writeYaml } from "../helpers.js";
++
++function commit(root: string, message: string): string {
++  execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
++  execFileSync("git", ["commit", "-m", message], { cwd: root, stdio: "ignore" });
++  return headCommit(root)!;
++}
++
++function prepareRepo(taskId = "MIG-001"): { root: string; taskId: string; base: string; subject: string } {
++  const root = makeTempRepo();
++  writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ id: taskId, branchName: `task/${taskId}` }) as unknown as Record<string, unknown>);
++  writeText(root, "src/feature.ts", "export const before = true;\n");
++  const base = commit(root, "base");
++  writeText(root, "src/feature.ts", "export const after = true;\n");
++  writeText(root, "docs/implementation.md", "implementation\n");
++  const subject = commit(root, "implementation subject");
++  return { root, taskId, base, subject };
++}
++
++function writeLegacyEvidence(root: string, taskId: string, base: string, subject: string, changedFiles: string[], pullRequest?: string): void {
++  writeYaml(root, `contracts/evidence/${taskId}.yaml`, {
++    id: `EVD-${taskId}`,
++    type: "evidence",
++    taskId,
++    commit: subject,
++    changedFiles,
++    git: {
++      baseCommit: base,
++      ...(pullRequest ? { pullRequest } : {})
++    },
++    checks: []
++  });
++}
++
++describe("evidence migrate-subject", () => {
++  test("reconstructs a ready subject and classifies lifecycle-only changedFiles drift", () => {
++    const { root, taskId, base, subject } = prepareRepo();
++    writeLegacyEvidence(root, taskId, base, subject, [
++      "docs/implementation.md",
++      "src/feature.ts",
++      `contracts/evidence/${taskId}.yaml`,
++      "contracts/registry.yaml"
++    ]);
++
++    const report = evaluateEvidenceSubjectMigration(root, taskId);
++    expect(report).toMatchObject({
++      status: "ready",
++      taskId,
++      baseCommit: base,
++      subjectHeadCommit: subject,
++      changedFiles: ["docs/implementation.md", "src/feature.ts"],
++      diffHash: hashDiffBinary(diffBinary(root, base, subject, taskLifecycleMetadataPaths(taskId))),
++      classifiedLifecycleMetadata: [`contracts/evidence/${taskId}.yaml`, "contracts/registry.yaml"],
++      blockerCodes: []
++    });
++  });
++
++  test("rejects spoofed local PR refs and uses only an explicit authoritative fetch", () => {
++    const { root, taskId, base, subject } = prepareRepo("MIG-PR");
++    writeLegacyEvidence(root, taskId, base, subject, ["docs/implementation.md", "src/feature.ts"], "#42");
++    execFileSync("git", ["update-ref", "refs/pull/42/head", base], { cwd: root });
++    expect(evaluateEvidenceSubjectMigration(root, taskId).blockerCodes).toContain("pull-request.ancestry-unavailable");
++    expect(evaluateEvidenceSubjectMigration(root, taskId).blockerCodes).not.toContain("pull-request.ancestry-mismatch");
++
++    const remote = mkdtempSync(path.join(tmpdir(), "scwbs-bare-"));
++    execFileSync("git", ["init", "--bare", remote], { stdio: "ignore" });
++    execFileSync("git", ["remote", "add", "origin", remote], { cwd: root });
++    execFileSync("git", ["push", "origin", `${subject}:refs/pull/42/head`], { cwd: root, stdio: "ignore" });
++    expect(evaluateEvidenceSubjectMigration(root, taskId, { fetchPrHead: true }).status).toBe("ready");
++    expect(resolveCommit(root, "refs/pull/42/head")).toBe(base);
++  });
++
++  test("reports deterministic fetch failure when PR ancestry is explicitly requested", () => {
++    const { root, taskId, base, subject } = prepareRepo("MIG-PR-FAIL");
++    writeLegacyEvidence(root, taskId, base, subject, ["docs/implementation.md", "src/feature.ts"], "#42");
++    const report = evaluateEvidenceSubjectMigration(root, taskId, { fetchPrHead: true });
++    expect(report.blockerCodes).toEqual(expect.arrayContaining(["pull-request.fetch-failed", "pull-request.ancestry-unavailable"]));
++  });
++
++  test("fails closed for missing objects, non-ancestor history, and unexpected drift", () => {
++    const { root, taskId, base, subject } = prepareRepo("MIG-BLOCK");
++    writeLegacyEvidence(root, taskId, base, subject, ["src/feature.ts", "docs/unexpected.md"]);
++    const unexpected = evaluateEvidenceSubjectMigration(root, taskId);
++    expect(unexpected.status).toBe("blocked");
++    expect(unexpected.blockerCodes).toContain("changed-files.unexpected-drift");
++
++    writeLegacyEvidence(root, taskId, "0".repeat(40), subject, ["src/feature.ts"]);
++    expect(evaluateEvidenceSubjectMigration(root, taskId).blockerCodes).toContain("base.unavailable");
++
++    writeLegacyEvidence(root, taskId, subject, base, ["src/feature.ts"]);
++    expect(evaluateEvidenceSubjectMigration(root, taskId).blockerCodes).toContain("base.not-ancestor");
++  });
++
++  test("is read-only and emits a versioned JSON report", () => {
++    const { root, taskId, base, subject } = prepareRepo("MIG-READONLY");
++    writeLegacyEvidence(root, taskId, base, subject, ["docs/implementation.md", "src/feature.ts"]);
++    const before = readFileSync(`${root}/contracts/evidence/${taskId}.yaml`, "utf8");
++    const statusBefore = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" });
++
++    const output: string[] = [];
++    const originalWrite = process.stdout.write;
++    process.stdout.write = ((chunk: string | Uint8Array) => {
++      output.push(String(chunk));
++      return true;
++    }) as typeof process.stdout.write;
++    try {
++      expect(runEvidenceMigrateSubject(root, taskId, { json: true })).toBe(0);
++    } finally {
++      process.stdout.write = originalWrite;
++    }
++
++    expect(JSON.parse(output.join(""))).toMatchObject({ schemaVersion: "1.0.0", type: "scwbs.evidence-subject-migration.v1", status: "ready" });
++    expect(readFileSync(`${root}/contracts/evidence/${taskId}.yaml`, "utf8")).toBe(before);
++    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe(statusBefore);
++  });
++});

@@ -1,0 +1,87 @@
+id: EVD-SCWBS-DRAFT-MT7EDHZC
+type: evidence
+taskId: SCWBS-DRAFT-MT7EDHZC
+commit: a529d81ef6748aecb5e896346acf3766ae8edd45
+subjectHeadCommit: a529d81ef6748aecb5e896346acf3766ae8edd45
+diffHash: sha256:fac629693b3d755651e4edc463d729c83d41cc118df57aefc99a14f56f5bcb97
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: a529d81ef6748aecb5e896346acf3766ae8edd45
+    treeHash: 3b6e7c877fbf45e2f9b544b84e18fe68838fdbf8
+    diffHash: sha256:fac629693b3d755651e4edc463d729c83d41cc118df57aefc99a14f56f5bcb97
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT7EDHZC.patch
+    manifestHash: sha256:fac629693b3d755651e4edc463d729c83d41cc118df57aefc99a14f56f5bcb97
+git:
+  branch: task/SCWBS-DRAFT-MT7EDHZC-add-fail-closed-legacy-evidence-subject-migratio
+  base: origin/main
+  baseCommit: 0a2f3eb1e81f57e0bdd69a8d6e2c2d2ca9a514f1
+  changedFilesBasis: branch-diff
+  subjectHeadCommit: a529d81ef6748aecb5e896346acf3766ae8edd45
+  diffHash: sha256:fac629693b3d755651e4edc463d729c83d41cc118df57aefc99a14f56f5bcb97
+  headCommit: a529d81ef6748aecb5e896346acf3766ae8edd45
+changedFiles:
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT7EDHZC.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/cli-task-evidence.md
+  - src/cli/register-governance.ts
+  - src/core/git.ts
+  - tests/integration/evidence-migrate-subject.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 0a2f3eb1e81f57e0bdd69a8d6e2c2d2ca9a514f1
+    headCommit: a529d81ef6748aecb5e896346acf3766ae8edd45
+    diffHash: sha256:fac629693b3d755651e4edc463d729c83d41cc118df57aefc99a14f56f5bcb97
+  tests:
+    filesAdded: 1
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:4079f1a0a6d0d26f52a144c05dad9bad7f67694ce4edd3d7e6e8e2b9a065ee7f
+    durationMilliseconds: 6374
+    executedAt: "2026-08-24T16:50:41.191Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:e5dad26bf0ad39b1adedefb1a792a8cab21cad8d7304bc6d87083e12d11a71d5
+    durationMilliseconds: 13136
+    executedAt: "2026-08-24T16:50:54.331Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:501190f5b0f18120c5e2bcb385b2bcf63f39a84be81c7ac94c509c94658a26b7
+    durationMilliseconds: 5477
+    executedAt: "2026-08-24T16:50:59.812Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:b80a68b3291322d2d57017743dcd17bd6e7b54b2e5d65a046e6e56799a582b03
+    durationMilliseconds: 252581
+    executedAt: "2026-08-24T16:55:12.397Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added fail-closed legacy Evidence subject migration coverage including authoritative PR fetch, spoofed local-ref rejection, no-write behavior, and packaging budget validation
