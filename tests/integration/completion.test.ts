@@ -303,6 +303,50 @@ describe("completion apply", () => {
     expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
   });
 
+  test("node-level completion accepts independent human v2 Human Gate and post-finish slots", () => {
+    const root = makeTempRepo();
+    writeFakeWjsApply(root);
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004", "WBS-001-005"],
+      humanGateRequiredPaths: ["src/security/**"]
+    }) as unknown as Record<string, unknown>);
+    writeEvidence(root, "WBS-001-006", SUBJECT, ["src/security/policy.ts"]);
+    writeReview(root, "WBS-001-006");
+    writeV2Approval(root, "WBS-001-006");
+
+    expect(buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain("Completion apply dry-run:");
+    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(0);
+  });
+
+  test("node-level completion accepts independent delegated v2 Human Gate and post-finish proofs", () => {
+    const root = makeTempRepo();
+    writeFakeWjsApply(root);
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", {
+      ...delegatedTask(),
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004", "WBS-001-005"],
+      humanGateRequiredPaths: ["src/security/**"]
+    } as unknown as Record<string, unknown>);
+    writeEvidence(root, "WBS-001-006", SUBJECT, ["src/security/policy.ts"]);
+    writeReview(root, "WBS-001-006");
+    process.env[APPROVAL_DELEGATION_TOKEN_ENV] = DELEGATION_TOKEN;
+    try {
+      expect(runApprovalApprove(root, "WBS-001-006", { actor: "delegated-ai", scope: "human-gate", reason: "Delegated gate review", force: true })).toBe(0);
+      expect(runApprovalApprove(root, "WBS-001-006", { actor: "delegated-ai", scope: "post-finish", reason: "Delegated completion review", force: true })).toBe(0);
+      expect(buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain("Completion apply dry-run:");
+      expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(0);
+    } finally {
+      delete process.env[APPROVAL_DELEGATION_TOKEN_ENV];
+    }
+  });
+
   test("accepts valid delegated post-finish proof", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");

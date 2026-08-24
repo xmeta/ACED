@@ -117,10 +117,11 @@ function evaluateTask(root: string, task: TaskContract, requireReview: boolean):
       ? readApprovalForScope(root, task.id, "human-gate")
       : readApproval(root, task.id);
     const humanGateApproval = humanGateResult.approval;
+    const humanGateApprovalBundle = readApproval(root, task.id).approval;
     if (requireReview && humanGateApproval && humanGateApproval.version !== "scwbs.approval.v2" && !(humanGateApproval.approvalMode === "delegated" && humanGateApproval.delegationScope === "human-gate")) {
       blockers.push(blocker(task.id, "Human Gate Approval requires an independent scoped Approval record"));
     } else {
-      const gate = validateHumanGateApproval(task, evidence, humanGateApproval, changedFiles, root);
+      const gate = validateHumanGateApproval(task, evidence, humanGateApprovalBundle, changedFiles, root);
       blockers.push(...gate.issues.map((issue) => blocker(task.id, `Human Gate Approval invalid (${issue.code})`)));
       if (gate.required && !gate.approved && gate.issues.length === 0) blockers.push(blocker(task.id, "Human Gate Approval is not approved"));
     }
