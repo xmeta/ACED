@@ -1,0 +1,95 @@
+id: EVD-SCWBS-DRAFT-MT6DKWOC
+type: evidence
+taskId: SCWBS-DRAFT-MT6DKWOC
+commit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+subjectHeadCommit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+diffHash: sha256:d4f0d90463f8e845b9772e2d17c7fa104c813157e7cffbff8022ea953aa16413
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+    treeHash: 125b98adefe65d337e19c0c2a929673d40afcd81
+    diffHash: sha256:d4f0d90463f8e845b9772e2d17c7fa104c813157e7cffbff8022ea953aa16413
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT6DKWOC.patch
+    manifestHash: sha256:d4f0d90463f8e845b9772e2d17c7fa104c813157e7cffbff8022ea953aa16413
+git:
+  branch: task/SCWBS-DRAFT-MT6DKWOC-issue-600-classify-approval-version-runtime-cove
+  base: origin/main
+  baseCommit: 8b1e6ceba8f0be425364bcf09f0700319bed7177
+  changedFilesBasis: branch-diff
+  pullRequest: "603"
+  subjectHeadCommit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+  diffHash: sha256:d4f0d90463f8e845b9772e2d17c7fa104c813157e7cffbff8022ea953aa16413
+  headCommit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/check-coverage.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT6DKWOC.patch
+  - contracts/evidence/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/registry.yaml
+  - contracts/specs/SPEC-LITE-MT6DKWOC.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT6DKWOC.yaml
+  - contracts/tasks/index.yaml
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: 8b1e6ceba8f0be425364bcf09f0700319bed7177
+    headCommit: 7ad57840004f97cd147eb132ec8d49c67f642b36
+    diffHash: sha256:d4f0d90463f8e845b9772e2d17c7fa104c813157e7cffbff8022ea953aa16413
+  tests:
+    filesAdded: 0
+    filesModified: 0
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:85e281ebf525cf6d84c1c51cb50fcde60907cb363873bb4ac49bc4f8a216204c
+    durationMilliseconds: 6248
+    executedAt: "2026-08-23T22:38:44.723Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:5863cf0261871d2692359c8373561892adcde7cd42d626720ce7f3db2538e486
+    durationMilliseconds: 11213
+    executedAt: "2026-08-23T22:38:55.940Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:8941e0117222d273ead8c062d50d5c099e76eadc4f6fe22b00ba5220ef294970
+    durationMilliseconds: 4793
+    executedAt: "2026-08-23T22:39:00.738Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:284c19d790f8fdddf739ffd6fb197ee8b8d8786394596c9a77dfa563a35cf572
+    durationMilliseconds: 235304
+    executedAt: "2026-08-23T22:42:56.045Z"
+  - name: lint
+    status: passed
+    source: local
+    command: npm run lint
+    cacheKey: sha256:6d73b8e4eadfc7c334afb19bba559c06a1291fd8e81a26e708e77f816b791b46
+    durationMilliseconds: 5882
+    executedAt: "2026-08-23T22:43:01.931Z"
+testQuality:
+  assertionsAdded: false
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Coverage policy classification only; no test code changed.
