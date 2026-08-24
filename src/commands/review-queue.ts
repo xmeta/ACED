@@ -1,11 +1,11 @@
-import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
+import { readApproval, listActiveTasks, readEvidence, readReview } from "../core/contracts.js";
 import { matchesAny } from "../core/glob.js";
-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
+import { isNodeCompletionTask } from "../core/node-utils.js";
 import { isDoneNode, readWbs } from "../core/wbs.js";
-import type { TaskContract } from "../core/types.js";
 import { taskWbsAssociation } from "../core/task-wbs-policy.js";
+import { evaluateCompletionReadiness, evidenceSubject, reviewSubjectMismatch, type CompletionBlocker, type CompletionTarget } from "./completion.js";
 
-type ReviewQueueEntry = {
+export type ReviewQueueEntry = {
   taskId: string;
   nodeCode: string;
   nodeName: string;
@@ -18,6 +18,10 @@ type ReviewQueueEntry = {
   approvalStatus?: string;
   reviewStatus?: string;
   suggestedAction: string;
+  actionStage: "evidence-remediation" | "review-request" | "review-refresh" | "human-review" | "scoped-approval" | "completion-blocked" | "completion-ready" | "terminal";
+  completionReady: boolean;
+  blockers: CompletionBlocker[];
+  omittedBlockerCount: number;
 };
 
 export type ReviewQueueOptions = {
@@ -40,97 +44,76 @@ export type ReviewQueueSummary = {
   limit: number | null;
 };
 
-type NodeCompletionTarget = {
-  taskId: string;
-  nodeCode: string;
-  nodeName: string;
-  pullRequest?: string;
-  approvalStatus?: string;
-  reviewStatus?: string;
+type NodeCompletionTarget = CompletionTarget;
+
+type CausalAction = {
+  stage: ReviewQueueEntry["actionStage"];
+  blocker?: CompletionBlocker;
 };
 
-function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readWbs>, task: TaskContract): { blockers: string[]; targets: NodeCompletionTarget[] } {
-  const blockers: string[] = [];
-  const targets: NodeCompletionTarget[] = [];
-  const seen = new Set<string>();
+function reviewStatus(blocker: CompletionBlocker): string | undefined {
+  return /^Review status is ([^;]+)/.exec(blocker.message)?.[1];
+}
 
-  for (const targetId of completionTaskIds(task)) {
-    if (targetId === task.id) {
-      blockers.push(`${task.id} completionTaskIds must not include itself`);
-      continue;
-    }
-    if (seen.has(targetId)) continue;
-    seen.add(targetId);
+/** Select one causal blocker for both stage display and the next command. */
+function selectCausalAction(blockers: CompletionBlocker[]): CausalAction {
+  const evidence = blockers.find((item) => item.phase === "evidence");
+  if (evidence) return { stage: "evidence-remediation", blocker: evidence };
 
-    const taskEntry = listTasks(root).find((entry) => entry.task?.id === targetId);
-    const targetTask = taskEntry?.task;
-    if (!targetTask) {
-      blockers.push(`missing completion target task ${targetId}`);
-      continue;
-    }
+  const reviewBlockers = blockers.filter((item) => item.phase === "review");
+  const refresh = reviewBlockers.find((item) => item.code.includes("mismatch")
+    || (item.code === "review.status" && reviewStatus(item) !== "requested"));
+  if (refresh) return { stage: "review-refresh", blocker: refresh };
+  const request = reviewBlockers.find((item) => item.code === "review.missing");
+  if (request) return { stage: "review-request", blocker: request };
+  const human = reviewBlockers.find((item) => item.code === "review.status" && reviewStatus(item) === "requested");
+  if (human) return { stage: "human-review", blocker: human };
 
-    const targetAssociation = taskWbsAssociation(wbs, targetTask);
-    if (targetAssociation.kind !== "node") {
-      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
-      continue;
-    }
-    const targetNode = targetAssociation.node;
-    if (targetNode.id !== task.wbsNodeId) {
-      blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
-      continue;
-    }
+  const scopedApproval = blockers.find((item) => item.phase === "approval" || item.phase === "human-gate");
+  if (scopedApproval) return { stage: "scoped-approval", blocker: scopedApproval };
+  const structural = blockers.find((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency");
+  if (structural) return { stage: "completion-blocked", blocker: structural };
+  return { stage: "completion-ready" };
+}
 
-    const { evidence, issues } = readEvidence(root, targetTask.id);
-    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
-    const { review, issues: reviewIssues } = readReview(root, targetTask.id);
-    const missingEvidenceOnly = issues.length === 1 && issues[0]?.code === "evidence.missing";
-    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
-    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
-    const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
-    const hasApproval = Boolean(approval) && !missingApprovalOnly;
-    const hasReview = Boolean(review) && !missingReviewOnly;
-    const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
-
-    if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
-    if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
-    if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
-    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
-    if (touchesHumanGate && !hasApproval) {
-      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
-    }
-    if (approval?.status === "requested") {
-      blockers.push(`${targetTask.id} approval is still requested`);
-    } else if (approval?.status === "rejected") {
-      blockers.push(`${targetTask.id} approval was rejected`);
-    }
-
-    targets.push({
-      taskId: targetTask.id,
-      nodeCode: targetNode.code,
-      nodeName: targetNode.name,
-      pullRequest,
-      approvalStatus: approval?.status,
-      reviewStatus: review?.status
-    });
+function deriveActionStage(input: {
+  evidence: ReturnType<typeof readEvidence>["evidence"];
+  review: ReturnType<typeof readReview>["review"];
+  blockers: CompletionBlocker[];
+  hasEvidence: boolean;
+  hasPullRequest: boolean;
+  nodeCompletionTask: boolean;
+  evidenceSubjectIncomplete: boolean;
+  reviewSubjectStale: boolean;
+}): ReviewQueueEntry["actionStage"] {
+  // An active Block is a hard stop for this Task. Keep the entry visible for
+  // queue diagnostics, but never expose its Evidence/Review lifecycle as an
+  // executable next action.
+  if (input.blockers.some((item) => item.code === "wbs.active-block")) return "completion-blocked";
+  const evidence = input.blockers.find((item) => item.phase === "evidence");
+  if (evidence) return "evidence-remediation";
+  if (!input.hasEvidence || !input.hasPullRequest || input.evidenceSubjectIncomplete) return "evidence-remediation";
+  if (!input.nodeCompletionTask) {
+    if (!input.review) return "review-request";
+    if (input.reviewSubjectStale) return "review-refresh";
+    if (input.review.status === "requested") return "human-review";
+    if (input.review.status === "changes-requested" || input.review.status === "closed") return "review-refresh";
   }
-
-  return { blockers, targets };
+  const causal = selectCausalAction(input.blockers);
+  if (causal.blocker) return causal.stage;
+  return "completion-ready";
 }
 
-function nodeReadinessBlocker(node: Extract<ReturnType<typeof taskWbsAssociation>, { kind: "node" }>["node"]): string | undefined {
-  return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
+export function isHardCompletionBlock(entry: Pick<ReviewQueueEntry, "actionStage" | "blockers" | "completionBlockedBy">): boolean {
+  if (entry.completionBlockedBy.some((item) => item.includes("multiple Task Contracts"))) return true;
+  if (entry.actionStage === "review-request" || entry.actionStage === "human-review" || entry.actionStage === "review-refresh") return false;
+  return entry.actionStage === "evidence-remediation" || entry.actionStage === "scoped-approval" || entry.actionStage === "completion-blocked" || entry.blockers.some((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency");
 }
 
-function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+export function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
   const wbs = readWbs(root);
   const entries: ReviewQueueEntry[] = [];
   const tasks = listActiveTasks(root);
-  const taskCountByNode = new Map<string, number>();
-  for (const entry of tasks) {
-    if (!entry.task) continue;
-    taskCountByNode.set(entry.task.wbsNodeId, (taskCountByNode.get(entry.task.wbsNodeId) ?? 0) + 1);
-  }
-
   for (const entry of tasks) {
     const task = entry.task;
     if (!task) continue;
@@ -140,13 +123,16 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
 
     const reasons: string[] = [];
     const warnings: string[] = [];
-    const completionBlockedBy = incompleteDependencies(node.id, wbs);
-    const { block } = readBlock(root, task.id);
-    if (block?.status === "blocked") {
-      completionBlockedBy.push(`active Block: ${block.reason}`);
-    }
-    const readinessBlocker = nodeReadinessBlocker(node);
-    const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
+    const readiness = evaluateCompletionReadiness(root, task.id);
+    // WBS/dependency blockers come only from the shared evaluator. This keeps
+    // queue output and completion output in parity and avoids double-counting
+    // the same dependency, active Block, or submodule failure.
+    const completionBlockedBy = [...new Set(readiness.blockers
+      .filter((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency")
+      .map((item) => item.message))];
+    const nodeCompletionTargets = isNodeCompletionTask(task)
+      ? { blockers: readiness.blockers, targets: readiness.targets as NodeCompletionTarget[] }
+      : { blockers: [] as CompletionBlocker[], targets: [] as NodeCompletionTarget[] };
     const { evidence, issues } = readEvidence(root, task.id);
     const { approval, issues: approvalIssues } = readApproval(root, task.id);
     const { review, issues: reviewIssues } = readReview(root, task.id);
@@ -156,40 +142,43 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
     const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
     const hasApproval = Boolean(approval) && !missingApprovalOnly;
     const hasReview = Boolean(review) && !missingReviewOnly;
-    const isTerminalReview = Boolean(review) && hasReview && (review!.status === "approved" || review!.status === "changes-requested" || review!.status === "closed");
+    const subject = evidenceSubject(evidence);
+    const evidenceSubjectIncomplete = hasEvidence && (!subject.pullRequest || !subject.headCommit || !subject.diffHash);
+    const queueBlockers = [...readiness.blockers];
+    if (evidenceSubjectIncomplete) {
+      const missingSubject = [
+        !subject.pullRequest ? "pullRequest" : undefined,
+        !subject.headCommit ? "headCommit" : undefined,
+        !subject.diffHash ? "diffHash" : undefined
+      ].filter((item): item is string => Boolean(item));
+      queueBlockers.push({
+        code: "evidence.subject-incomplete",
+        rootTaskId: task.id,
+        taskId: task.id,
+        phase: "evidence",
+        message: `Evidence subject is incomplete: missing ${missingSubject.join(", ")}`
+      });
+    }
+    const reviewSubjectStale = Boolean(review && hasReview && reviewSubjectMismatch(task.id, evidence, review).length > 0);
+    // An approved Review is terminal for ordinary Tasks. Node-level completion
+    // remains active until its scoped completion prerequisites are satisfied.
+    const isTerminalReview = Boolean(review) && hasReview && review!.status === "approved" && !isNodeCompletionTask(task) && !reviewSubjectStale && !evidenceSubjectIncomplete;
 
     for (const submodule of evidence?.submodules ?? []) {
       warnings.push(`submodule ${submodule.path}: ${submodule.baseCommit} -> ${submodule.headCommit}; merge dependent PR ${submodule.pullRequest ?? "not recorded"} before parent PR; upstream target ${submodule.upstreamRef}`);
-      if (!submodule.upstreamReachable) completionBlockedBy.push(`submodule ${submodule.path} head is not upstream-reachable`);
-      for (const check of submodule.checks ?? []) {
-        if (check.status !== "passed") completionBlockedBy.push(`submodule ${submodule.path} check ${check.name} is ${check.status}`);
-      }
     }
 
     if (hasEvidence && !isDoneNode(node) && !isTerminalReview) {
       reasons.push(
-        !readinessBlocker && completionBlockedBy.length === 0
+        completionBlockedBy.length === 0
           ? "evidence exists and the WBS node is ready for human review"
           : "evidence exists and the WBS node is not completed"
       );
     }
 
-    if (completionBlockedBy.length > 0) {
-      for (const blockedBy of completionBlockedBy) {
-        warnings.push(`dependsOn node ${blockedBy} is not completed`);
-      }
-    }
-    if (readinessBlocker) {
-      completionBlockedBy.push(readinessBlocker);
-      warnings.push(readinessBlocker);
-    }
-    if (!isNodeCompletionTask(task) && (taskCountByNode.get(node.id) ?? 0) > 1) {
-      completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
-    }
-    if (isNodeCompletionTask(task) && nodeCompletionTargets.blockers.length > 0) {
-      for (const blockedBy of nodeCompletionTargets.blockers) {
-        completionBlockedBy.push(blockedBy);
-      }
+    for (const item of readiness.blockers.filter((blocker) => blocker.phase === "wbs" || blocker.phase === "dependency")) {
+      const warning = item.code === "wbs.dependency-not-completed" ? `dependsOn node ${item.message} is not completed` : item.message;
+      if (!warnings.includes(warning)) warnings.push(warning);
     }
 
     if (evidence) {
@@ -214,21 +203,43 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
       warnings.push("human review approval was rejected");
     }
 
-    if (reasons.length > 0) {
+    if (isTerminalReview) continue;
+
+    const actionStage = deriveActionStage({ evidence, review, blockers: queueBlockers, hasEvidence, hasPullRequest: Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest), nodeCompletionTask: isNodeCompletionTask(task), evidenceSubjectIncomplete, reviewSubjectStale });
+    const evidenceRemediationCandidate = actionStage === "evidence-remediation" && queueBlockers.some((item) => item.phase === "evidence");
+    const reviewRemediationCandidate = ["review-request", "review-refresh", "human-review"].includes(actionStage) && (isNodeCompletionTask(task) || hasReview || reviewSubjectStale);
+    if (reasons.length > 0 || evidenceRemediationCandidate || reviewRemediationCandidate || actionStage === "scoped-approval" || (isNodeCompletionTask(task) && actionStage === "completion-blocked")) {
       const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
       const sharedNodeCompletionBlocked = completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
       const nodeCompletionTaskBlocked = isNodeCompletionTask(task) && completionBlockedBy.length > 0;
-      const suggestedAction = completionBlockedBy.length > 0
-        ? nodeCompletionTaskBlocked
-          ? "review evidence now, but defer node completion until the completion targets are ready"
-          : sharedNodeCompletionBlocked
+      const lifecycleBlocker = queueBlockers.some((item) => item.phase === "evidence" || item.phase === "review" || item.phase === "approval" || item.phase === "human-gate");
+      const structuralBlocker = readiness.blockers.some((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency") || completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
+      const structuralSuggestedAction = nodeCompletionTaskBlocked
+        ? "review evidence now, but defer node completion until the completion targets are ready"
+        : sharedNodeCompletionBlocked
           ? "review evidence now, but defer WBS completion to a dedicated node-level completion task"
-          : "review evidence now, but defer completion until dependencies are completed"
-        : !hasPullRequest
-          ? "create or record PR, then human review for completion"
-          : !hasReview
-            ? "request review for this task"
-            : "human review for completion";
+          : "review evidence now, but defer completion until dependencies are completed";
+      const suggestedAction = actionStage === "evidence-remediation"
+        ? structuralBlocker
+          ? structuralSuggestedAction
+          : !hasPullRequest
+            ? "create or record PR, then human review for completion"
+            : "remediate Evidence before requesting or approving Review"
+        : actionStage === "human-review"
+          ? structuralBlocker ? "human review for completion; defer completion until prerequisites are ready" : "human review for completion"
+        : actionStage === "review-request"
+          ? "request review for this task"
+        : actionStage === "review-refresh"
+          ? "refresh the Review request against current Evidence"
+        : actionStage === "scoped-approval"
+          ? "request the missing scoped Approval action"
+        : structuralBlocker
+          ? structuralSuggestedAction
+        : (!lifecycleBlocker && completionBlockedBy.length > 0)
+          ? "review evidence now, but defer completion until dependencies are completed"
+          : !hasPullRequest
+            ? "create or record PR, then human review for completion"
+            : "completion-ready";
       entries.push({
         taskId: task.id,
         nodeCode: node.code,
@@ -241,7 +252,11 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
         pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
         approvalStatus: approval?.status,
         reviewStatus: review?.status,
-        suggestedAction
+        suggestedAction,
+        actionStage,
+        completionReady: readiness.canApply,
+        blockers: queueBlockers,
+        omittedBlockerCount: readiness.omittedBlockerCount
       });
     }
   }
@@ -269,7 +284,12 @@ function blockerCode(blocker: string): string {
 function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count: number }> {
   const counts = new Map<string, number>();
   for (const entry of entries) {
+    const structuredMessages = new Set(entry.blockers.map((item) => item.message));
+    for (const blocker of entry.blockers) {
+      counts.set(blocker.code, (counts.get(blocker.code) ?? 0) + 1);
+    }
     for (const blocker of entry.completionBlockedBy) {
+      if (structuredMessages.has(blocker)) continue;
       const code = blockerCode(blocker);
       counts.set(code, (counts.get(code) ?? 0) + 1);
     }
@@ -283,34 +303,89 @@ function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count
 
 function prioritizeEntries(entries: ReviewQueueEntry[]): ReviewQueueEntry[] {
   return [...entries].sort((a, b) => {
-    const readyDifference = Number(a.completionBlockedBy.length > 0) - Number(b.completionBlockedBy.length > 0);
+    const readyDifference = Number(isHardCompletionBlock(a)) - Number(isHardCompletionBlock(b));
     if (readyDifference !== 0) return readyDifference;
     const pullRequestDifference = Number(!a.pullRequest) - Number(!b.pullRequest);
     return pullRequestDifference || a.taskId.localeCompare(b.taskId);
   });
 }
 
-function candidateNextCommand(entry: ReviewQueueEntry): string {
-  if (!entry.pullRequest) return `scwbs evidence collect --task ${entry.taskId} --pull-request <number>`;
-  if (!entry.reviewStatus) return `scwbs review request --task ${entry.taskId}`;
-  if (entry.reviewStatus === "requested" && entry.completionBlockedBy.length === 0) {
-    return `scwbs review approve --task ${entry.taskId} --actor human`;
+export type ReviewQueueAction = {
+  kind: "collect-evidence" | "request-review" | "refresh-review" | "human-review" | "request-approval" | "inspect-review-queue";
+  owner: "ai" | "human";
+  taskId?: string;
+  command: string;
+  aiStop?: boolean;
+  reasonCode: string;
+  reasonMessage: string;
+};
+
+export function reviewQueueNextAction(entry: ReviewQueueEntry): ReviewQueueAction {
+  const causal = selectCausalAction(entry.blockers).blocker;
+  const reviewTaskId = causal?.phase === "review"
+    ? causal.taskId
+    : entry.blockers.find((item) => item.phase === "review")?.taskId ?? entry.taskId;
+  const scopedBlocker = causal?.phase === "approval" || causal?.phase === "human-gate"
+    ? causal
+    : entry.blockers.find((item) => item.phase === "approval" || item.phase === "human-gate");
+  if (entry.actionStage === "evidence-remediation") {
+    const evidenceBlocker = causal?.phase === "evidence"
+      ? causal
+      : entry.blockers.find((item) => item.phase === "evidence");
+    const evidenceTaskId = evidenceBlocker?.taskId ?? entry.taskId;
+    const refreshExistingEvidence = Boolean(evidenceBlocker && (
+      evidenceBlocker.code !== "evidence.invalid"
+      || !evidenceBlocker.message.includes("(evidence.missing)")
+    ));
+    return {
+      kind: "collect-evidence", owner: "ai", taskId: evidenceTaskId,
+      command: `scwbs evidence collect --task ${evidenceTaskId}${refreshExistingEvidence ? " --force" : ""}`,
+      reasonCode: "evidence.remediation.required",
+      reasonMessage: entry.suggestedAction
+    };
   }
-  return "scwbs review-queue --verbose";
+  if (entry.actionStage === "review-request") {
+    return { kind: "request-review", owner: "ai", taskId: reviewTaskId, command: `scwbs review request --task ${reviewTaskId}`, reasonCode: "review.request_missing", reasonMessage: entry.suggestedAction };
+  }
+  if (entry.actionStage === "review-refresh") {
+    return { kind: "refresh-review", owner: "ai", taskId: reviewTaskId, command: `scwbs review request --task ${reviewTaskId} --force`, reasonCode: "review.refresh_required", reasonMessage: entry.suggestedAction };
+  }
+  if (entry.actionStage === "human-review" && (entry.reviewStatus === "requested" || entry.blockers.some((item) => item.code === "review.status"))) {
+    return { kind: "human-review", owner: "human", taskId: reviewTaskId, command: `scwbs review approve --task ${reviewTaskId} --actor human`, aiStop: true, reasonCode: "review.human_decision_required", reasonMessage: entry.suggestedAction };
+  }
+  if (entry.actionStage === "scoped-approval") {
+    const scope = scopedBlocker?.scope ?? "post-finish";
+    const taskId = scopedBlocker?.taskId ?? entry.taskId;
+    const missingArtifact = scopedBlocker?.code === "approval.post-finish-missing"
+      && (scopedBlocker.message.includes("(approval.missing)") || scopedBlocker.message.includes("(approval.scope.missing)"));
+    return {
+      kind: "request-approval",
+      owner: "ai",
+      taskId,
+      command: `scwbs request-approval --task ${taskId} --scope ${scope}${missingArtifact ? "" : " --force"}`,
+      reasonCode: "approval.scoped_action_required",
+      reasonMessage: entry.suggestedAction
+    };
+  }
+  return { kind: "inspect-review-queue", owner: "ai", command: "scwbs review-queue", reasonCode: "review.blocked", reasonMessage: entry.suggestedAction };
+}
+
+function candidateNextCommand(entry: ReviewQueueEntry): string {
+  return reviewQueueNextAction(entry).command;
 }
 
 export function buildReviewQueueSummary(root: string, limit?: number): ReviewQueueSummary {
   const entries = collectReviewQueueEntries(root);
   const prioritized = prioritizeEntries(entries);
   const selected = limit === undefined ? prioritized : prioritized.slice(0, limit);
-  const blocked = entries.filter((entry) => entry.completionBlockedBy.length > 0).length;
+  const blocked = entries.filter((entry) => isHardCompletionBlock(entry)).length;
   return {
     schemaVersion: "1.0.0",
     health: {
       candidates: entries.length,
       missingPullRequest: entries.filter((entry) => !entry.pullRequest).length,
       blocked,
-      ready: entries.length - blocked
+      ready: entries.filter((entry) => entry.completionReady).length
     },
     blockerCounts: blockerCounts(entries),
     candidates: selected,
@@ -332,7 +407,7 @@ function formatReviewQueueSummary(summary: ReviewQueueSummary): string {
   if (summary.candidates.length === 0) lines.push("- None");
   else {
     for (const entry of summary.candidates) {
-      const state = entry.completionBlockedBy.length === 0 ? "ready" : "blocked";
+      const state = entry.completionReady ? "completion-ready" : entry.actionStage;
       lines.push(`- ${entry.taskId} | ${state} | ${entry.suggestedAction}`);
       lines.push(`  next: ${candidateNextCommand(entry)}`);
     }
@@ -351,8 +426,8 @@ export function buildReviewQueue(root: string): string {
   }
 
   const missingPullRequestCount = sortedEntries.filter((item) => !item.pullRequest).length;
-  const blockedCount = sortedEntries.filter((item) => item.completionBlockedBy.length > 0).length;
-  const readyCount = sortedEntries.length - blockedCount;
+  const blockedCount = sortedEntries.filter((item) => isHardCompletionBlock(item)).length;
+  const readyCount = sortedEntries.filter((item) => item.completionReady).length;
 
   lines.push("");
   lines.push("Review Health:");
@@ -376,6 +451,8 @@ export function buildReviewQueue(root: string): string {
     if (item.reviewStatus) {
       lines.push(`  reviewStatus: ${item.reviewStatus}`);
     }
+    lines.push(`  actionStage: ${item.actionStage}`);
+    lines.push(`  completionReady: ${item.completionReady}`);
     for (const reason of item.reasons) {
       lines.push(`  reason: ${reason}`);
     }
@@ -384,6 +461,9 @@ export function buildReviewQueue(root: string): string {
     }
     for (const blockedBy of item.completionBlockedBy) {
       lines.push(`  completionBlockedBy: ${blockedBy}`);
+    }
+    for (const itemBlocker of item.blockers) {
+      lines.push(`  blocker: [${itemBlocker.code}] ${itemBlocker.message}`);
     }
     if (item.completionTargets && item.completionTargets.length > 0) {
       lines.push("  completionTargets:");
@@ -399,16 +479,19 @@ export function buildReviewQueue(root: string): string {
     lines.push(`  suggestedAction: ${item.suggestedAction}`);
   }
 
-  const readyEntries = sortedEntries.filter((item) => item.completionBlockedBy.length === 0);
-  const blockedEntries = sortedEntries.filter((item) => item.completionBlockedBy.length > 0);
+  const readyEntries = sortedEntries.filter((item) => item.completionReady);
+  const humanReviewEntries = sortedEntries.filter((item) => item.actionStage === "human-review");
+  const blockedEntries = sortedEntries.filter((item) => isHardCompletionBlock(item));
   const missingPullRequestEntries = sortedEntries.filter((item) => !item.pullRequest);
 
   lines.push("");
   lines.push("Ready for completion review:");
   if (readyEntries.length === 0) {
-    lines.push("- None");
+    if (humanReviewEntries.length === 0) lines.push("- None");
+    else for (const item of humanReviewEntries) lines.push(`- ${item.taskId} (human review; completion prerequisites remain) `);
   } else {
     for (const item of readyEntries) lines.push(`- ${item.taskId}`);
+    for (const item of humanReviewEntries) if (!readyEntries.some((ready) => ready.taskId === item.taskId)) lines.push(`- ${item.taskId} (human review; completion prerequisites remain)`);
   }
 
   lines.push("");

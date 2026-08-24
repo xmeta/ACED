@@ -1,0 +1,90 @@
+id: SCWBS-DRAFT-MT77EI3V
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT77EI3V
+branchName: task/SCWBS-DRAFT-MT77EI3V-main-based-transitive-completion-readiness-and-a
+allowedPaths:
+  - src/commands/completion.ts
+  - src/commands/review-queue.ts
+  - src/commands/review-request.ts
+  - src/commands/next.ts
+  - docs/scwbs/schemas/review-queue-summary.schema.json
+  - tests/integration/completion.test.ts
+  - tests/integration/review.test.ts
+  - tests/integration/navigation-json.test.ts
+  - tests/integration/ai.test.ts
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - contracts/evidence/SCWBS-0**
+  - contracts/evidence-payloads/SCWBS-0**
+  - contracts/reviews/SCWBS-0**
+  - contracts/approvals/SCWBS-0**
+  - contracts/tasks/SCWBS-046.yaml
+  - contracts/tasks/SCWBS-048.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT6XU8MS.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT722W8G.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT75VYCC.yaml
+  - src/core/schema/**
+  - src/commands/approval-request.ts
+  - src/commands/evidence-collect.ts
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - docs/scwbs/schemas/review-queue-summary.schema.json
+stopIf:
+  - Legacy lifecycle artifact mutation is required
+  - Evidence subject migration tooling is required
+  - WBS or changeset or contractLock lifecycle changes are required
+  - Existing Task authority fields must change
+  - Approval v2 or Human Gate semantics must change
+  - Review or Approval must be executed by AI
+  - Allowed paths expansion is required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - The Task is based directly on main so check-diff contains no predecessor Probe, Task, Block, Spec, Evidence, Review, Approval, WBS, or changeset artifacts.
+  - Node completion evaluates every transitively reachable completionTaskId with deterministic cycle detection, diamond de-duplication, same-node enforcement, and bounded structured blockers.
+  - completion dry-run/apply, review-queue, Review approval preflight, and next navigation share fail-closed Evidence, Review, and scoped Approval subject rules.
+  - Active Block Tasks cannot produce actionable Evidence or Review navigation, while later eligible candidates remain discoverable.
+  - SCWBS-048-shaped regression reaches SCWBS-046 and SCWBS-041 through SCWBS-045 without modifying their lifecycle artifacts.
+  - Full integration passes with complete Evidence and Review subject fixtures and without weakening ordinary non-node compatibility.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT77EI3V.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT77EI3V.patch
+  - contracts/approvals/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/registry.yaml
+specPath: contracts/specs/SPEC-LITE-MT77EI3V.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-24T21:15:11+09:00"
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:d6d3c89b5f52e294a0913686822caebfacc9802a8a43d3d558cb299bd6f7003a
+  createdAt: "2026-08-24T12:20:32.760Z"

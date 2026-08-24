@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
+import { buildCompletionPreview, evaluateCompletionReadiness, runCompletionApply } from "../../src/commands/completion.js";
 import { runApprovalApprove } from "../../src/commands/approval-request.js";
 import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
 import { readApproval } from "../../src/core/contracts.js";
@@ -192,6 +192,194 @@ describe("completion apply", () => {
     expect(preview).not.toMatch(/WBS-001-004:.*WBS-001-004/);
   });
 
+  test("traverses nested node-completion Tasks in declaration order", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-007"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
+      id: "WBS-001-007",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004", "WBS-001-005"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
+    writeV2Approval(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
+    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
+    expect(preview.indexOf("- WBS-001-007:")).toBeLessThan(preview.indexOf("- WBS-001-004:"));
+    expect(preview).toContain("- WBS-001-005: 1.1 API Implementation");
+    expect(preview.match(/- WBS-001-004: 1\.1 API Implementation/g)).toHaveLength(1);
+  });
+
+  test("SCWBS-048 traverses SCWBS-046 and all SCWBS-041..045 descendants with blocker parity", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    const leaves = ["SCWBS-041", "SCWBS-042", "SCWBS-043", "SCWBS-044", "SCWBS-045"];
+    writeYaml(root, "contracts/tasks/SCWBS-048.yaml", sampleTask({
+      id: "SCWBS-048", completionScope: "node", completionTaskIds: ["SCWBS-046"], humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/SCWBS-046.yaml", sampleTask({
+      id: "SCWBS-046", completionScope: "node", completionTaskIds: leaves, humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    for (const taskId of [...leaves, "SCWBS-046", "SCWBS-048"]) {
+      writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ id: taskId, humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
+      writeEvidence(root, taskId);
+      writeReview(root, taskId);
+    }
+    writeYaml(root, "contracts/tasks/SCWBS-048.yaml", sampleTask({
+      id: "SCWBS-048", completionScope: "node", completionTaskIds: ["SCWBS-046"], humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/SCWBS-046.yaml", sampleTask({
+      id: "SCWBS-046", completionScope: "node", completionTaskIds: leaves, humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+
+    const readiness = evaluateCompletionReadiness(root, "SCWBS-048");
+    expect(readiness.evaluatedTaskIds).toEqual(["SCWBS-048", "SCWBS-046", ...leaves]);
+    expect(new Set(readiness.blockers
+      .filter((item) => item.code === "approval.post-finish-missing")
+      .map((item) => item.taskId))).toEqual(new Set(["SCWBS-048", "SCWBS-046", ...leaves]));
+    const preview = buildCompletionPreview(root, "SCWBS-048", "SCWBS-999", { reason: "Reviewed", allowRoot: false });
+    for (const taskId of ["SCWBS-046", ...leaves]) expect(preview).toContain(taskId);
+  });
+
+  test("preserves diamond parent paths while evaluating the shared target once", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
+      id: "WBS-001-007",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-008.yaml", sampleTask({
+      id: "WBS-001-008",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-007", "WBS-001-008"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
+    writeLifecycle(root, "WBS-001-008", { pullRequest: "#48", headCommit: "abc1238", diffHash: SUBJECT.diffHash });
+
+    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
+    const sharedTarget = readiness.targets.find((target) => target.taskId === "WBS-001-004");
+    expect(sharedTarget?.graphPaths).toEqual([
+      ["WBS-001-006", "WBS-001-007", "WBS-001-004"],
+      ["WBS-001-006", "WBS-001-008", "WBS-001-004"]
+    ]);
+    expect(readiness.evaluatedTaskIds.filter((taskId) => taskId === "WBS-001-004")).toHaveLength(1);
+  });
+
+  test("fails closed on a cross-node target without evaluating its children", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
+      id: "WBS-001-007",
+      wbsNodeId: "node-root",
+      completionScope: "node",
+      completionTaskIds: ["WBS-MISSING-CHILD"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-007"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+
+    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
+    expect(readiness.blockers.some((item) => item.code === "completion.target-node-mismatch")).toBe(true);
+    expect(readiness.blockers.some((item) => item.code === "completion.target-missing" && item.taskId === "WBS-MISSING-CHILD")).toBe(true);
+  });
+
+  test("reports bounded blockers once and keeps dry-run/apply fail-closed", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    const missingTargets = Array.from({ length: 300 }, (_, index) => `WBS-MISSING-${String(index).padStart(3, "0")}`);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: missingTargets,
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
+    expect(readiness.blockers).toHaveLength(128);
+    expect(readiness.omittedBlockerCount).toBe(175);
+    const trackedPaths = [
+      "contracts/wbs/project.wbs.json",
+      "contracts/registry.yaml",
+      "contracts/reviews/WBS-001-006.yaml",
+      "contracts/approvals/WBS-001-006.yaml"
+    ];
+    const before = trackedPaths.map((relativePath) => {
+      const fullPath = path.join(root, relativePath);
+      return existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
+    });
+    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
+    expect(preview.match(/additional blockers omitted/g)).toHaveLength(1);
+    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(1);
+    expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
+    expect(trackedPaths.map((relativePath) => {
+      const fullPath = path.join(root, relativePath);
+      return existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
+    })).toEqual(before);
+  });
+
+  test("shared ordinary and root-node guards are part of readiness", () => {
+    const sharedRoot = makeTempRepo();
+    writeScwbsProject(sharedRoot, "ready");
+    writeYaml(sharedRoot, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
+    writeEvidence(sharedRoot, "WBS-001-004");
+    writePostFinishApproval(sharedRoot, "WBS-001-004");
+    const shared = evaluateCompletionReadiness(sharedRoot, "WBS-001-004");
+    expect(shared.blockers.some((item) => item.code === "wbs.shared-node-task")).toBe(true);
+
+    const rootTaskRoot = makeTempRepo();
+    writeScwbsProject(rootTaskRoot, "ready");
+    writeYaml(rootTaskRoot, "contracts/tasks/WBS-001-004.yaml", sampleTask({ wbsNodeId: "node-root", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
+    writeEvidence(rootTaskRoot, "WBS-001-004");
+    writePostFinishApproval(rootTaskRoot, "WBS-001-004");
+    const rootReadiness = evaluateCompletionReadiness(rootTaskRoot, "WBS-001-004");
+    expect(rootReadiness.blockers.some((item) => item.code === "wbs.root-not-allowed")).toBe(true);
+  });
+
+  test("rejects cross-Task completion cycles with a bounded deterministic path", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-007"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
+      id: "WBS-001-007",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-006"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
+    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
+    expect(preview).toContain("[completion.graph-cycle]");
+    expect(preview).toContain("WBS-001-006 -> WBS-001-007 -> WBS-001-006");
+    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(1);
+    expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
+  });
+
   test.each(["requested", "changes-requested"] as const)("node primary rejects %s Review", (status) => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
@@ -251,6 +439,16 @@ describe("completion apply", () => {
     writeEvidence(root, "WBS-001-004");
     writePostFinishApproval(root, "WBS-001-004", SUBJECT, { status });
     expect(buildCompletionPreview(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain(message);
+  });
+
+  test("rejects an approved legacy v1 post-finish Approval for node-level completion", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeNodeFixture(root);
+    writePostFinishApproval(root, "WBS-001-004");
+    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
+    expect(readiness.blockers.some((item) => item.code === "approval.legacy-version" && item.taskId === "WBS-001-004")).toBe(true);
+    expect(buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain("approval.legacy-version");
   });
 
   test.each([

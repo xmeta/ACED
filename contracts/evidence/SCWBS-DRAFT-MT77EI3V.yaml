@@ -1,0 +1,98 @@
+id: EVD-SCWBS-DRAFT-MT77EI3V
+type: evidence
+taskId: SCWBS-DRAFT-MT77EI3V
+commit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+subjectHeadCommit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+diffHash: sha256:bbd3c1172022f1f3aab6bbe17d3d87356bc26118e63db9420a176dcea0920889
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+    treeHash: d3d7bffc3d0218be334f809301763a9e9935e936
+    diffHash: sha256:bbd3c1172022f1f3aab6bbe17d3d87356bc26118e63db9420a176dcea0920889
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MT77EI3V.patch
+    manifestHash: sha256:bbd3c1172022f1f3aab6bbe17d3d87356bc26118e63db9420a176dcea0920889
+git:
+  branch: task/SCWBS-DRAFT-MT77EI3V-main-based-transitive-completion-readiness-and-a
+  base: origin/main
+  baseCommit: d532b6d018337eb11911cdaacc6d03e47490f4fc
+  changedFilesBasis: branch-diff
+  pullRequest: "607"
+  subjectHeadCommit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+  diffHash: sha256:bbd3c1172022f1f3aab6bbe17d3d87356bc26118e63db9420a176dcea0920889
+  headCommit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+changedFiles:
+  - contracts/approvals/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT77EI3V.patch
+  - contracts/evidence/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/specs/SPEC-LITE-MT77EI3V.yaml
+  - contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/schemas/review-queue-summary.schema.json
+  - src/commands/completion.ts
+  - src/commands/next.ts
+  - src/commands/review-queue.ts
+  - src/commands/review-request.ts
+  - tests/integration/ai.test.ts
+  - tests/integration/completion.test.ts
+  - tests/integration/navigation-json.test.ts
+  - tests/integration/review.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: d532b6d018337eb11911cdaacc6d03e47490f4fc
+    headCommit: 4cd7b1ca6dcdc29cba531dd51a0e20646482e6ba
+    diffHash: sha256:bbd3c1172022f1f3aab6bbe17d3d87356bc26118e63db9420a176dcea0920889
+  tests:
+    filesAdded: 0
+    filesModified: 4
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:938759694e347054fa8b549a83ddd54c990d76d0723efd56cf6b415a8d50be1c
+    durationMilliseconds: 4859
+    executedAt: "2026-08-24T12:25:33.249Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:18ff0eccdab6b86cd051c80172e7fb38425cc39692eaf33a44d7aa2a7a75244a
+    durationMilliseconds: 10680
+    executedAt: "2026-08-24T12:25:43.932Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:11497bb7ad8c159ba6aee9435b71330a16fa1aff1718beebd2cf9541353a9b42
+    durationMilliseconds: 4164
+    executedAt: "2026-08-24T12:25:48.101Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:0e75705c07340a8c2e0b2e06d6979f332555e2b3eb93f445c8f29791ee3c78ea
+    durationMilliseconds: 199567
+    executedAt: "2026-08-24T12:29:07.670Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - Added transitive completion readiness and AI navigation regression coverage with full-suite validation
