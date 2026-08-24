@@ -32,7 +32,65 @@
     },
     "candidates": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "nodeCode", "nodeName", "reasons", "warnings", "completionBlockedBy", "suggestedAction", "actionStage", "completionReady", "blockers", "omittedBlockerCount"],
+        "properties": {
+          "taskId": { "type": "string", "minLength": 1 },
+          "nodeCode": { "type": "string", "minLength": 1 },
+          "nodeName": { "type": "string", "minLength": 1 },
+          "reasons": { "type": "array", "items": { "type": "string" } },
+          "warnings": { "type": "array", "items": { "type": "string" } },
+          "completionBlockedBy": { "type": "array", "items": { "type": "string" } },
+          "completionTargets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["taskId", "nodeCode", "nodeName"],
+              "properties": {
+                "taskId": { "type": "string", "minLength": 1 },
+                "nodeCode": { "type": "string", "minLength": 1 },
+                "nodeName": { "type": "string", "minLength": 1 },
+                "pullRequest": { "type": "string" },
+                "approvalStatus": { "type": "string" },
+                "reviewStatus": { "type": "string" },
+                "graphPath": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                "graphPaths": {
+                  "type": "array",
+                  "items": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+                }
+              }
+            }
+          },
+          "branchName": { "type": "string" },
+          "pullRequest": { "type": "string" },
+          "approvalStatus": { "type": "string" },
+          "reviewStatus": { "type": "string" },
+          "suggestedAction": { "type": "string", "minLength": 1 },
+          "actionStage": { "enum": ["evidence-remediation", "review-request", "review-refresh", "human-review", "scoped-approval", "completion-blocked", "completion-ready", "terminal"] },
+          "completionReady": { "type": "boolean" },
+          "omittedBlockerCount": { "type": "integer", "minimum": 0 },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "rootTaskId", "taskId", "phase", "message"],
+              "properties": {
+                "code": { "type": "string", "minLength": 1 },
+                "rootTaskId": { "type": "string", "minLength": 1 },
+                "taskId": { "type": "string", "minLength": 1 },
+                "phase": { "enum": ["graph", "wbs", "evidence", "review", "approval", "human-gate", "dependency"] },
+                "message": { "type": "string", "minLength": 1 },
+                "scope": { "enum": ["human-gate", "post-finish"] },
+                "graphPath": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+              }
+            }
+          }
+        }
+      }
     },
     "omitted": { "type": "integer", "minimum": 0 },
     "limit": { "type": ["integer", "null"], "minimum": 1 }

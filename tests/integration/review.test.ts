@@ -64,6 +64,15 @@ function captureReviewRequest(root: string, taskId: string, options: { pullReque
 function prepareLargeReviewQueue(count = 120): string {
   const root = makeTempRepo();
   writeScwbsProject(root, "ready");
+  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+    diffHash: "base-diff",
+    git: { ...sampleEvidence().git, pullRequest: "#42" }
+  }) as unknown as Record<string, unknown>);
+  writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+    id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved",
+    reviewProfile: "independent-ai-review", pullRequest: "#42", headCommit: "abc1234", diffHash: "base-diff",
+    groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+  });
   for (let index = 0; index < count; index += 1) {
     const taskId = `WBS-QUEUE-${String(index).padStart(3, "0")}`;
     writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
@@ -112,6 +121,70 @@ describe("review queue + review request", () => {
     expect(json.candidates).toHaveLength(3);
     const schema = JSON.parse(readFileSync(path.join(process.cwd(), "docs/scwbs/schemas/review-queue-summary.schema.json"), "utf8"));
     expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+  });
+
+  test("node completion navigation targets a reachable descendant Review task", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "base-diff",
+      git: { ...sampleEvidence().git, pullRequest: "#59" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004",
+      type: "review",
+      taskId: "WBS-001-004",
+      status: "approved",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#59",
+      headCommit: "abc1234",
+      diffHash: "base-diff",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-007"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({ id: "WBS-001-007", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({ taskId: "WBS-001-006", id: "EVD-WBS-001-006", diffHash: "root-diff", git: { ...sampleEvidence().git, pullRequest: "#60", headCommit: "root-head" } }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-007.yaml", sampleEvidence({ taskId: "WBS-001-007", id: "EVD-WBS-001-007", diffHash: "child-diff", git: { ...sampleEvidence().git, pullRequest: "#61", headCommit: "child-head" } }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", { id: "RVW-WBS-001-006", type: "review", taskId: "WBS-001-006", status: "approved", reviewProfile: "independent-ai-review", pullRequest: "#60", headCommit: "root-head", diffHash: "root-diff", groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"] });
+    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007");
+  });
+
+  test("node completion navigation uses the descendant Review status and taskId", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "base-diff",
+      git: { ...sampleEvidence().git, pullRequest: "#59" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+      id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved",
+      reviewProfile: "independent-ai-review", pullRequest: "#59", headCommit: "abc1234", diffHash: "base-diff",
+      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+    });
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006", completionScope: "node", completionTaskIds: ["WBS-001-007"], humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({ id: "WBS-001-007", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({ taskId: "WBS-001-006", id: "EVD-WBS-001-006", diffHash: "root-diff", git: { ...sampleEvidence().git, pullRequest: "#60", headCommit: "root-head" } }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-007.yaml", sampleEvidence({ taskId: "WBS-001-007", id: "EVD-WBS-001-007", diffHash: "child-diff", git: { ...sampleEvidence().git, pullRequest: "#61", headCommit: "child-head" } }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", { id: "RVW-WBS-001-006", type: "review", taskId: "WBS-001-006", status: "approved", reviewProfile: "independent-ai-review", pullRequest: "#60", headCommit: "root-head", diffHash: "root-diff", groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"] });
+    const childReview = (status: "requested" | "changes-requested" | "closed") => writeYaml(root, "contracts/reviews/WBS-001-007.yaml", {
+      id: "RVW-WBS-001-007", type: "review", taskId: "WBS-001-007", status, reviewProfile: "independent-ai-review",
+      pullRequest: "#61", headCommit: "child-head", diffHash: "child-diff",
+      groundTruth: ["contracts/tasks/WBS-001-007.yaml", "contracts/evidence/WBS-001-007.yaml"]
+    });
+
+    childReview("requested");
+    expect(buildNextAction(root)).toContain("scwbs review approve --task WBS-001-007 --actor human");
+    childReview("changes-requested");
+    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007 --force");
+    childReview("closed");
+    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007 --force");
   });
 
   test("review queue rejects conflicting modes and invalid limits", () => {
@@ -226,7 +299,8 @@ describe("review queue + review request", () => {
           base: "main",
           headCommit: "abc1234",
           pullRequest: "#42"
-        }
+        },
+        diffHash: "diff1234"
       }) as unknown as Record<string, unknown>
     );
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -236,14 +310,17 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 
     const queue = buildReviewQueue(root);
     expect(queue).toContain("completionBlockedBy: WBS node status is planned; completion requires ready");
     expect(queue).toContain("- 0 candidates ready for completion review");
-    expect(queue).toContain("Ready for completion review:\n- None");
-    expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
+    expect(queue).toContain("Ready for completion review:\n- WBS-001-004 (human review; completion prerequisites remain)");
+    expect(queue).toContain("suggestedAction: human review for completion; defer completion until prerequisites are ready");
+    expect(buildNextAction(root)).toContain("scwbs review approve --task WBS-001-004 --actor human");
   });
 
   test("review queue blocks on active Blocks and ignores resolved Blocks", () => {
@@ -395,7 +472,8 @@ describe("review queue + review request", () => {
           base: "main",
           headCommit: "abc1234",
           pullRequest: "#42"
-        }
+        },
+        diffHash: "diff1234"
       }) as unknown as Record<string, unknown>
     );
     const queue = buildReviewQueue(root);
@@ -435,7 +513,8 @@ describe("review queue + review request", () => {
           base: "main",
           headCommit: "abc1234",
           pullRequest: "#42"
-        }
+        },
+        diffHash: "diff1234"
       }) as unknown as Record<string, unknown>
     );
 
@@ -456,7 +535,8 @@ describe("review queue + review request", () => {
           base: "main",
           headCommit: "abc1234",
           pullRequest: "#42"
-        }
+        },
+        diffHash: "diff1234"
       }) as unknown as Record<string, unknown>
     );
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -466,6 +546,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 
@@ -473,6 +555,43 @@ describe("review queue + review request", () => {
     expect(queue).toContain("reviewStatus: requested");
     expect(queue).toContain("suggestedAction: human review for completion");
     expect(queue).not.toContain("warning: no review request is recorded for this review candidate");
+  });
+
+  test("review queue routes a stale node Review to refresh without suggesting approve", () => {
+    const root = makeTempRepo();
+    writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
+      id: "WBS-001-006",
+      completionScope: "node",
+      completionTaskIds: ["WBS-001-004"],
+      humanGateRequiredPaths: []
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "sha256:current",
+      git: { branch: "task/WBS-001-004-api", base: "main", headCommit: "current-head", pullRequest: "#41" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({
+      taskId: "WBS-001-006",
+      id: "EVD-WBS-001-006",
+      diffHash: "sha256:current-root",
+      git: { branch: "task/WBS-001-006-node", base: "main", headCommit: "current-root", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", {
+      id: "RVW-WBS-001-006",
+      type: "review",
+      taskId: "WBS-001-006",
+      status: "requested",
+      reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      headCommit: "stale-root",
+      diffHash: "sha256:stale",
+      groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"]
+    });
+
+    const summary = JSON.parse(captureReviewQueue(root, { json: true }).stdout) as { candidates: Array<{ taskId: string; actionStage: string }> };
+    expect(summary.candidates.find((candidate) => candidate.taskId === "WBS-001-006")?.actionStage).toBe("review-refresh");
+    expect(buildReviewQueue(root)).not.toContain("review approve");
+    expect(buildNextAction(root)).not.toContain("scwbs review approve");
   });
 
   test("review queue warns when pull request metadata is missing", () => {
@@ -507,17 +626,19 @@ describe("review queue + review request", () => {
     expect(queue).toContain("human gate paths were changed but no approval record exists");
   });
 
-  test("review queue is empty when there is nothing pending", () => {
+  test("review queue lists missing Evidence as a remediation candidate", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "planned");
     const queue = buildReviewQueue(root);
-    expect(queue).toBe("Review Queue:\n- None\n");
+    expect(queue).toContain("WBS-001-004");
+    expect(queue).toContain("blocker: [evidence.invalid] Evidence unavailable (evidence.missing)");
   });
 
   test("review approve transitions a requested review to approved", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -527,6 +648,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", findings: "looks good", force: false })).toBe(0);
@@ -541,6 +664,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -550,6 +674,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "human", findings: "fix typo", force: false })).toBe(0);
@@ -563,6 +689,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -572,6 +699,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(0);
@@ -585,6 +714,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -594,6 +724,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 
@@ -616,6 +748,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -625,6 +758,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 
@@ -678,6 +813,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -687,6 +823,8 @@ describe("review queue + review request", () => {
       status: "approved",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     const queue = buildReviewQueue(root);
@@ -698,6 +836,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -707,6 +846,8 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     const next = buildNextAction(root);
@@ -717,6 +858,7 @@ describe("review queue + review request", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -742,6 +884,7 @@ describe("review queue + review request", () => {
       humanGateRequiredPaths: []
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
@@ -751,12 +894,13 @@ describe("review queue + review request", () => {
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
     const next = buildNextAction(root);
     expect(next).not.toContain("scwbs review-queue");
-    expect(next).toContain("Planned task candidates:");
-    expect(next).toContain("WBS-001-005");
+    expect(next).toContain("scwbs evidence collect --task WBS-001-005");
   });
 
   test("force overwrite allows transitioning from a terminal review state", () => {
@@ -812,16 +956,23 @@ describe("review queue + review request", () => {
   test("approve on already-closed review fails without force", () => {
     const root = makeTempRepo();
     writeScwbsProject(root, "ready");
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+      diffHash: "diff1234",
+      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+    }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
       id: "RVW-WBS-001-004",
       type: "review",
       taskId: "WBS-001-004",
       status: "closed",
       reviewProfile: "independent-ai-review",
+      pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff1234",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml"]
     });
     expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
-    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(0);
+    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(1);
   });
 
   test("review queue includes review health summary sections", () => {

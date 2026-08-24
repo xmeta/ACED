@@ -1,7 +1,7 @@
 import { collectCheckIssues } from "./check.js";
-import { buildReviewQueue } from "./review-queue.js";
+import { buildReviewQueueSummary, isHardCompletionBlock, reviewQueueNextAction, type ReviewQueueAction, type ReviewQueueEntry } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
-import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
+import { listActiveTasks, evidenceExists, readBlock, readEvidence } from "../core/contracts.js";
 import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
 import { readWbs } from "../core/wbs.js";
 
@@ -11,11 +11,6 @@ function hasActiveBlock(root: string, taskId: string): boolean {
 
 function taskIdFromMessage(message: string): string | undefined {
   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
-}
-
-function taskIdsFromSection(queue: string, heading: string): string[] {
-  const section = new RegExp(`${heading}:\\n([\\s\\S]*?)(?:\\n\\n|$)`).exec(queue)?.[1] ?? "";
-  return [...section.matchAll(/^- ([A-Z]+-\d+(?:-\d+)?)/gm)].map((match) => match[1]!);
 }
 
 function discoveryGuidance(root: string): string {
@@ -31,33 +26,74 @@ function discoveryGuidance(root: string): string {
 export type NextJsonOutput = {
   version: "scwbs.next.v1";
   status: "actionable" | "waiting" | "idle";
-  action: {
-    kind: string;
-    owner: "ai" | "human";
-    taskId?: string;
-    command?: string;
-    aiStop?: boolean;
-  } | null;
+  action: { kind: string; owner: "ai" | "human"; taskId?: string; command?: string; aiStop?: boolean } | null;
   reasons: Array<{ code: string; message: string }>;
 };
 
-function nextJsonAction(
-  status: NextJsonOutput["status"],
-  action: NextJsonOutput["action"],
-  reasons: NextJsonOutput["reasons"]
-): NextJsonOutput {
+function nextJsonAction(status: NextJsonOutput["status"], action: NextJsonOutput["action"], reasons: NextJsonOutput["reasons"]): NextJsonOutput {
   return { version: "scwbs.next.v1", status, action, reasons };
 }
 
 function plannedTaskJson(message: string): NextJsonOutput {
-  return nextJsonAction("actionable", {
-    kind: "select-planned-task",
-    owner: "ai",
-    command: "scwbs ai next-task"
-  }, [{ code: "task.planned.available", message }]);
+  return nextJsonAction("actionable", { kind: "select-planned-task", owner: "ai", command: "scwbs ai next-task" }, [{ code: "task.planned.available", message }]);
 }
 
-export function buildNextJsonOutput(root: string): NextJsonOutput {
+function queueEntries(root: string): ReviewQueueEntry[] {
+  return buildReviewQueueSummary(root).candidates;
+}
+
+function inspectBlockedAction(): ReviewQueueAction {
+  return { kind: "inspect-review-queue", owner: "ai", command: "scwbs review-queue", reasonCode: "review.blocked", reasonMessage: "Review candidates exist, but completion is blocked by prerequisites" };
+}
+
+function missingEvidenceAction(root: string): ReviewQueueAction | undefined {
+  const task = listActiveTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id))?.task;
+  if (!task) return undefined;
+  return {
+    kind: "collect-evidence",
+    owner: "ai",
+    taskId: task.id,
+    command: `scwbs evidence collect --task ${task.id}`,
+    reasonCode: "evidence.missing",
+    reasonMessage: "Task has no Evidence file yet"
+  };
+}
+
+/** Resolve navigation from the same structured queue entries used by review-queue. */
+function queueNavigation(root: string): ReviewQueueAction | undefined {
+  const entries = queueEntries(root);
+  const evidenceRemediation = entries.find((entry) => entry.actionStage === "evidence-remediation");
+  if (evidenceRemediation) return reviewQueueNextAction(evidenceRemediation);
+  const missingEvidence = missingEvidenceAction(root);
+  if (missingEvidence) return missingEvidence;
+  const refresh = entries.find((entry) => entry.actionStage === "review-refresh");
+  if (refresh) return reviewQueueNextAction(refresh);
+  const request = entries.find((entry) => entry.actionStage === "review-request");
+  if (request) return reviewQueueNextAction(request);
+  const humanReview = entries.find((entry) => entry.actionStage === "human-review");
+  if (humanReview) return reviewQueueNextAction(humanReview);
+  const scopedApproval = entries.find((entry) => entry.actionStage === "scoped-approval");
+  if (scopedApproval) return reviewQueueNextAction(scopedApproval);
+  const blocked = entries.find((entry) => isHardCompletionBlock(entry)
+    && entry.actionStage !== "evidence-remediation"
+    && entry.actionStage !== "scoped-approval"
+    && entry.actionStage !== "review-request"
+    && entry.actionStage !== "review-refresh"
+    && entry.actionStage !== "human-review");
+  if (blocked) return inspectBlockedAction();
+  return undefined;
+}
+
+function queueActionJson(action: ReviewQueueAction): NextJsonOutput {
+  return nextJsonAction(action.owner === "human" ? "waiting" : "actionable", { kind: action.kind, owner: action.owner, ...(action.taskId ? { taskId: action.taskId } : {}), command: action.command, ...(action.aiStop ? { aiStop: true } : {}) }, [{ code: action.reasonCode, message: action.reasonMessage }]);
+}
+
+function queueActionText(discovery: string, action: ReviewQueueAction): string {
+  const label = action.kind === "human-review" ? "Human review" : action.kind === "inspect-review-queue" ? "Review blocked candidates" : action.kind === "refresh-review" ? "Refresh Review" : action.kind === "request-review" ? "Request Review" : action.kind === "request-approval" ? "Request scoped Approval" : "Remediate Evidence";
+  return `Next suggested action:\n\n${discovery}${label}\nReason:\n- ${action.reasonMessage}\n\nCommand:\n  ${action.command}\n`;
+}
+
+function staleTaskAction(root: string): { taskId: string; message: string; code: string } | undefined {
   const activeTasks = listActiveTasks(root);
   const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
   const stale = collectCheckIssues(root).find((issue) => {
@@ -65,213 +101,52 @@ export function buildNextJsonOutput(root: string): NextJsonOutput {
     const taskId = activeTaskIds.find((id) => issue.message.includes(id));
     return Boolean(taskId) && !hasActiveBlock(root, taskId!);
   });
-  if (stale) {
-    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
-    return nextJsonAction("actionable", {
-      kind: "refresh-task",
-      owner: "ai",
-      taskId,
-      command: `scwbs task refresh --task ${taskId}`
-    }, [{ code: stale.code, message: stale.message }]);
-  }
+  if (!stale) return undefined;
+  return { taskId: activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>", message: stale.message, code: stale.code };
+}
 
-  const failedCheck = activeTasks.flatMap((entry) => {
+function failedCheckAction(root: string): { taskId: string; checkName: string } | undefined {
+  return listActiveTasks(root).flatMap((entry) => {
     if (!entry.task || hasActiveBlock(root, entry.task.id)) return [];
     const { evidence } = readEvidence(root, entry.task.id);
     const failed = evidence?.checks.find((check) => check.status === "failed");
-    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
+    return failed ? [{ taskId: entry.task.id, checkName: failed.name }] : [];
   })[0];
-  if (failedCheck) {
-    return nextJsonAction("actionable", {
-      kind: "fix-check",
-      owner: "ai",
-      taskId: failedCheck.task.id,
-      command: `scwbs finish --task ${failedCheck.task.id}`
-    }, [{ code: "evidence.check.failed", message: `Evidence check failed: ${failedCheck.checkName}` }]);
-  }
+}
 
-  const queue = buildReviewQueue(root);
-  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
-  if (blockedReviewTask) {
+export function buildNextJsonOutput(root: string): NextJsonOutput {
+  const stale = staleTaskAction(root);
+  if (stale) return nextJsonAction("actionable", { kind: "refresh-task", owner: "ai", taskId: stale.taskId, command: `scwbs task refresh --task ${stale.taskId}` }, [{ code: stale.code, message: stale.message }]);
+  const failedCheck = failedCheckAction(root);
+  if (failedCheck) return nextJsonAction("actionable", { kind: "fix-check", owner: "ai", taskId: failedCheck.taskId, command: `scwbs finish --task ${failedCheck.taskId}` }, [{ code: "evidence.check.failed", message: `Evidence check failed: ${failedCheck.checkName}` }]);
+  const queueAction = queueNavigation(root);
+  if (queueAction?.kind === "inspect-review-queue") {
     const plannedTasks = buildNextTask(root).trim();
     if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) return plannedTaskJson(plannedTasks);
-    return nextJsonAction("actionable", {
-      kind: "inspect-review-queue",
-      owner: "ai",
-      command: "scwbs review-queue"
-    }, [{ code: "review.blocked", message: "Review candidates exist, but completion is blocked by prerequisites" }]);
+    return queueActionJson(queueAction);
   }
-
-  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
-  if (missingEvidence?.task) {
-    return nextJsonAction("actionable", {
-      kind: "collect-evidence",
-      owner: "ai",
-      taskId: missingEvidence.task.id,
-      command: `scwbs evidence collect --task ${missingEvidence.task.id}`
-    }, [{ code: "evidence.missing", message: "Task has no Evidence file yet" }]);
-  }
-
-  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
-  if (reviewTask) {
-    if (reviewExists(root, reviewTask)) {
-      const { review } = readReview(root, reviewTask);
-      if (review?.status === "requested") {
-        return nextJsonAction("waiting", {
-          kind: "human-review",
-          owner: "human",
-          taskId: reviewTask,
-          command: `scwbs review approve --task ${reviewTask} --actor human`,
-          aiStop: true
-        }, [{ code: "review.human_decision_required", message: "Evidence and review metadata exist; human completion review is next" }]);
-      }
-      return nextJsonAction("waiting", {
-        kind: "human-review",
-        owner: "human",
-        taskId: reviewTask,
-        command: "scwbs review-queue",
-        aiStop: true
-      }, [{ code: "review.human_decision_required", message: "Evidence exists and human completion review is next" }]);
-    }
-    return nextJsonAction("actionable", {
-      kind: "request-review",
-      owner: "ai",
-      taskId: reviewTask,
-      command: `scwbs review request --task ${reviewTask}`
-    }, [{ code: "review.request_missing", message: "Evidence exists and a review request is needed" }]);
-  }
-
+  if (queueAction) return queueActionJson(queueAction);
   const nextTask = buildNextTask(root).trim();
   if (nextTask.startsWith("Planned task candidates:")) return plannedTaskJson(nextTask);
-  if (nextTask.startsWith("No available planned tasks.")) {
-    return nextJsonAction("idle", null, [{ code: "task.none.available", message: nextTask }]);
-  }
-  return nextJsonAction("actionable", {
-    kind: "inspect-next",
-    owner: "ai",
-    command: "scwbs next"
-  }, [{ code: "task.follow_up.pending", message: nextTask || "No available action." }]);
+  if (nextTask.startsWith("No available planned tasks.")) return nextJsonAction("idle", null, [{ code: "task.none.available", message: nextTask }]);
+  return nextJsonAction("actionable", { kind: "inspect-next", owner: "ai", command: "scwbs next" }, [{ code: "task.follow_up.pending", message: nextTask || "No available action." }]);
 }
 
 export function buildNextAction(root: string): string {
   const discovery = discoveryGuidance(root);
-  const activeTasks = listActiveTasks(root);
-  const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
-  const stale = collectCheckIssues(root).find((issue) => {
-    if (!issue.code.startsWith("task.contractLock")) return false;
-    const taskId = activeTaskIds.find((id) => issue.message.includes(id));
-    return Boolean(taskId) && !hasActiveBlock(root, taskId!);
-  });
-  if (stale) {
-    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
-    return `Next suggested action:
-
-${discovery}Refresh stale task ${taskId}
-Reason:
-- ${stale.message}
-
-Command:
-  scwbs task refresh --task ${taskId}
-`;
-  }
-
-  const failedCheck = activeTasks.flatMap((entry) => {
-    if (!entry.task) return [];
-    if (hasActiveBlock(root, entry.task.id)) return [];
-    const { evidence } = readEvidence(root, entry.task.id);
-    const failed = evidence?.checks.find((check) => check.status === "failed");
-    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
-  })[0];
-  if (failedCheck) {
-    return `Next suggested action:
-
-${discovery}Fix failed check for ${failedCheck.task.id}
-Reason:
-- Evidence check failed: ${failedCheck.checkName}
-
-Command:
-  scwbs finish --task ${failedCheck.task.id}
-`;
-  }
-
-  const queue = buildReviewQueue(root);
-  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
-  if (blockedReviewTask) {
+  const stale = staleTaskAction(root);
+  if (stale) return `Next suggested action:\n\n${discovery}Refresh stale task ${stale.taskId}\nReason:\n- ${stale.message}\n\nCommand:\n  scwbs task refresh --task ${stale.taskId}\n`;
+  const failedCheck = failedCheckAction(root);
+  if (failedCheck) return `Next suggested action:\n\n${discovery}Fix failed check for ${failedCheck.taskId}\nReason:\n- Evidence check failed: ${failedCheck.checkName}\n\nCommand:\n  scwbs finish --task ${failedCheck.taskId}\n`;
+  const queueAction = queueNavigation(root);
+  if (queueAction?.kind === "inspect-review-queue") {
     const plannedTasks = buildNextTask(root).trim();
-    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) {
-      return `Next suggested action:
-
-${discovery}${plannedTasks}
-`;
-    }
-    return `Next suggested action:
-
-${discovery}Review blocked candidates
-Reason:
-- Review candidates exist, but completion is blocked by prerequisites
-
-Command:
-  scwbs review-queue
-`;
+    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) return `Next suggested action:\n\n${discovery}${plannedTasks}\n`;
+    return queueActionText(discovery, queueAction);
   }
-
-  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
-  if (missingEvidence?.task) {
-    return `Next suggested action:
-
-${discovery}Collect evidence for ${missingEvidence.task.id}
-Reason:
-- Task has no Evidence file yet
-
-Command:
-  scwbs evidence collect --task ${missingEvidence.task.id}
-`;
-  }
-
-  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
-  if (reviewTask) {
-    if (reviewExists(root, reviewTask)) {
-      const { review } = readReview(root, reviewTask);
-      if (review?.status === "requested") {
-        return `Next suggested action:
-
-${discovery}Human review for ${reviewTask}
-Reason:
-- Evidence and review metadata exist; review decision is next
-
-Command:
-  scwbs review approve --task ${reviewTask} --actor human
-
-Queue context:
-  scwbs review-queue
-`;
-      }
-      return `Next suggested action:
-
-${discovery}Human review for ${reviewTask}
-Reason:
-- Evidence and review metadata exist; human completion review is next
-
-Command:
-  scwbs review-queue
-`;
-    }
-    return `Next suggested action:
-
-${discovery}Review ${reviewTask}
-Reason:
-- Evidence exists and review queue has a candidate
-
-Command:
-  scwbs review request --task ${reviewTask}
-`;
-  }
-
+  if (queueAction) return queueActionText(discovery, queueAction);
   const nextTask = buildNextTask(root);
-  return `Next suggested action:
-
-${discovery}${nextTask.trim() || "No available action."}
-`;
+  return `Next suggested action:\n\n${discovery}${nextTask.trim() || "No available action."}\n`;
 }
 
 export function runNext(root: string, options: { json?: boolean } = {}): number {

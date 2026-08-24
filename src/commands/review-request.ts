@@ -6,6 +6,7 @@ import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath } 
 import { buildRegistryYaml, syncRegistry } from "./registry-rebuild.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
 import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
+import { reviewSubjectMismatch } from "./completion.js";
 
 type RequestedReviewer = NonNullable<ReviewRecord["requestedReviewers"]>[number];
 
@@ -59,6 +60,7 @@ function evidenceSubject(evidence: Evidence | undefined): { headCommit?: string;
 
 export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): ReviewRecord {
   const subject = evidenceSubject(options.evidence);
+  const pullRequest = options.pullRequest ?? options.evidence?.git?.pullRequest;
   return {
     id: `RVW-${taskId}`,
     type: "review",
@@ -66,7 +68,7 @@ export function buildReviewRequest(taskId: string, options: { pullRequest?: stri
     status: "requested",
     reviewProfile: "independent-ai-review",
     ...subject,
-    ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
+    ...(pullRequest ? { pullRequest } : {}),
     groundTruth: [
       taskPath(taskId),
       evidencePath(taskId)
@@ -263,12 +265,19 @@ export function runReviewApprove(root: string, taskId: string, options: { review
     const relativePath = reviewPath(taskId);
     const fullPath = resolveFrom(root, relativePath);
     const review = readExistingReview(root, taskId);
-    if (review.status === "approved" && !options.force) {
-      console.error(`${relativePath} is already approved; rerun with --force to overwrite`);
-      return 1;
+    const evidenceResult = readEvidence(root, taskId);
+    if (!evidenceResult.evidence) {
+      throw new Error(`Review approval requires current Evidence (${evidenceResult.issues.map((issue) => issue.code).join(", ") || "evidence.invalid"}); start Evidence remediation, then request Review again`);
     }
-    if (review.status === "closed" && !options.force) {
-      console.error(`${relativePath} is closed; rerun with --force to approve anyway`);
+    const subjectMismatches = reviewSubjectMismatch(taskId, evidenceResult.evidence, review);
+    if (subjectMismatches.length > 0) {
+      throw new Error(`${subjectMismatches.join("; ")}; refresh the Review request before approval`);
+    }
+    // Approval is a transition on the current requested Review only. `--force`
+    // may refresh a requested record's write, but it cannot reopen an approved,
+    // closed, or changes-requested Review or bypass subject validation above.
+    if (review.status !== "requested") {
+      console.error(`${relativePath} is ${review.status}; only the current requested Review can be approved`);
       return 1;
     }
 
