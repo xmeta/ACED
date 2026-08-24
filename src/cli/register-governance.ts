@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { type Command } from "commander";
 import {
+  readEvidence,
   readSpec,
   readTask,
   runArtifactWorkflowInstructions,
@@ -10,9 +11,19 @@ import {
   runPlanningStoreShow,
   runValidateFeature
 } from "../core/contracts.js";
+import {
+  changedFilesBetweenRefs,
+  diffBinary,
+  fetchPullRequestHead,
+  hashDiffBinary,
+  isCommitAncestor,
+  isShallowRepository,
+  resolveCommit
+} from "../core/git.js";
+import { taskLifecycleMetadataPaths } from "../core/managed-contract-paths.js";
 import { resolveFrom, specChangePath, specPath } from "../core/paths.js";
 import { stringifySimpleYaml } from "../core/yaml.js";
-import type { SpecChangeProposal } from "../core/types.js";
+import type { Evidence, SpecChangeProposal } from "../core/types.js";
 import { runAiBlock, runAiNextTask } from "../commands/ai-queue.js";
 import { runAiPacket } from "../commands/ai-packet.js";
 import { runAiExecute, runAiRun } from "../commands/ai-run.js";
@@ -95,6 +106,232 @@ function runSpecChangeNew(root: string, options: SpecChangeNewOptions): number {
     process.stdout.write(`Level: ${proposal.level}\n`);
     process.stdout.write(`Approval: ${proposal.approval?.status}\n`);
     return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+export const EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION = "1.0.0" as const;
+export const EVIDENCE_SUBJECT_MIGRATION_TYPE = "scwbs.evidence-subject-migration.v1" as const;
+
+const MAX_RESULT_FILES = 256;
+const MAX_BLOCKER_CODES = 32;
+
+export type EvidenceSubjectMigrationStatus = "ready" | "blocked";
+
+export type EvidenceSubjectMigrationReport = {
+  schemaVersion: typeof EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION;
+  type: typeof EVIDENCE_SUBJECT_MIGRATION_TYPE;
+  status: EvidenceSubjectMigrationStatus;
+  taskId: string;
+  baseCommit: string | null;
+  subjectHeadCommit: string | null;
+  pullRequest: string | null;
+  canonicalization: "git-diff-binary-v1";
+  changedFiles: string[];
+  diffHash: string | null;
+  classifiedLifecycleMetadata: string[];
+  blockerCodes: string[];
+  truncated: {
+    changedFiles: boolean;
+    classifiedLifecycleMetadata: boolean;
+    blockerCodes: boolean;
+  };
+};
+
+type CommitCandidate = { label: string; value: string };
+
+function migrationNormalizePath(value: string): string {
+  return value.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function migrationSortedUnique(values: string[]): string[] {
+  return [...new Set(values.map(migrationNormalizePath))].sort();
+}
+
+function migrationNormalizePullRequest(value: string | undefined): string | undefined {
+  const match = value?.trim().match(/^#?([1-9][0-9]*)$/);
+  return match ? `#${match[1]}` : undefined;
+}
+
+function migrationPullRequestNumber(value: string): string {
+  return value.replace(/^#/, "");
+}
+
+function migrationSubjectCandidates(evidence: Evidence): CommitCandidate[] {
+  return [
+    ["subjectHeadCommit", evidence.subjectHeadCommit],
+    ["git.subjectHeadCommit", evidence.git?.subjectHeadCommit],
+    ["commit", evidence.commit],
+    ["git.headCommit", evidence.git?.headCommit]
+  ]
+    .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
+    .map(([label, value]) => ({ label, value: value.trim() }));
+}
+
+function migrationUniqueCandidateValues(candidates: CommitCandidate[]): string[] {
+  return [...new Set(candidates.map((candidate) => candidate.value))];
+}
+
+function migrationBounded(values: string[], limit: number): { values: string[]; truncated: boolean } {
+  return { values: values.slice(0, limit), truncated: values.length > limit };
+}
+
+function migrationCreateReport(taskId: string, values: Partial<EvidenceSubjectMigrationReport> = {}): EvidenceSubjectMigrationReport {
+  return {
+    schemaVersion: EVIDENCE_SUBJECT_MIGRATION_SCHEMA_VERSION,
+    type: EVIDENCE_SUBJECT_MIGRATION_TYPE,
+    status: "blocked",
+    taskId,
+    baseCommit: null,
+    subjectHeadCommit: null,
+    pullRequest: null,
+    canonicalization: "git-diff-binary-v1",
+    changedFiles: [],
+    diffHash: null,
+    classifiedLifecycleMetadata: [],
+    blockerCodes: [],
+    truncated: { changedFiles: false, classifiedLifecycleMetadata: false, blockerCodes: false },
+    ...values
+  };
+}
+
+function migrationAddBlocker(codes: string[], code: string): void {
+  if (!codes.includes(code)) codes.push(code);
+}
+
+function migrationPullRequestValue(evidence: Evidence): { value?: string; invalid: boolean; mismatch: boolean } {
+  const gitValue = evidence.git?.pullRequest?.trim();
+  const receiptValue = evidence.ciReceipt?.pullRequest?.trim();
+  const gitPullRequest = migrationNormalizePullRequest(gitValue);
+  const receiptPullRequest = migrationNormalizePullRequest(receiptValue);
+  return {
+    value: gitPullRequest ?? receiptPullRequest,
+    invalid: Boolean((gitValue && !gitPullRequest) || (receiptValue && !receiptPullRequest)),
+    mismatch: Boolean(gitPullRequest && receiptPullRequest && gitPullRequest !== receiptPullRequest)
+  };
+}
+
+function migrationClassifyChangedFiles(recorded: string[], canonical: string[], metadataFiles: string[]): { metadata: string[]; unexpected: boolean } {
+  const recordedSet = new Set(migrationSortedUnique(recorded));
+  const canonicalSet = new Set(migrationSortedUnique(canonical));
+  const differences = migrationSortedUnique([
+    ...[...recordedSet].filter((file) => !canonicalSet.has(file)),
+    ...[...canonicalSet].filter((file) => !recordedSet.has(file))
+  ]);
+  const metadata = differences.filter((file) => metadataFiles.includes(file));
+  return { metadata, unexpected: differences.some((file) => !metadataFiles.includes(file)) };
+}
+
+export function evaluateEvidenceSubjectMigration(
+  root: string,
+  taskId: string,
+  options: { fetchPrHead?: boolean } = {}
+): EvidenceSubjectMigrationReport {
+  const report = migrationCreateReport(taskId);
+  const taskResult = readTask(root, taskId);
+  if (!taskResult.task) {
+    report.blockerCodes = migrationBounded(["task.missing"], MAX_BLOCKER_CODES).values;
+    return report;
+  }
+
+  const evidenceResult = readEvidence(root, taskId);
+  if (!evidenceResult.evidence) {
+    const issueCodes = evidenceResult.issues.map((issue) => issue.code);
+    report.blockerCodes = migrationBounded(issueCodes.length > 0 ? issueCodes : ["evidence.missing"], MAX_BLOCKER_CODES).values;
+    return report;
+  }
+  const evidence = evidenceResult.evidence;
+  const blockers: string[] = [];
+  const baseRecorded = evidence.git?.baseCommit?.trim();
+  if (!baseRecorded) migrationAddBlocker(blockers, "base.missing");
+  const subjectValues = migrationUniqueCandidateValues(migrationSubjectCandidates(evidence));
+  if (subjectValues.length === 0) migrationAddBlocker(blockers, "subject.missing");
+  if (subjectValues.length > 1) migrationAddBlocker(blockers, "subject.ambiguous");
+
+  const baseCommit = baseRecorded ? resolveCommit(root, baseRecorded) : undefined;
+  if (baseRecorded && !baseCommit) migrationAddBlocker(blockers, "base.unavailable");
+  const subjectRecorded = subjectValues.length === 1 ? subjectValues[0] : undefined;
+  const subjectCommit = subjectRecorded ? resolveCommit(root, subjectRecorded) : undefined;
+  if (subjectRecorded && !subjectCommit) migrationAddBlocker(blockers, "subject.unavailable");
+  report.baseCommit = baseCommit ?? (baseRecorded ?? null);
+  report.subjectHeadCommit = subjectCommit ?? (subjectRecorded ?? null);
+
+  if (isShallowRepository(root)) migrationAddBlocker(blockers, "history.shallow");
+  if (baseCommit && subjectCommit && !isCommitAncestor(root, baseCommit, subjectCommit)) {
+    migrationAddBlocker(blockers, "base.not-ancestor");
+  }
+
+  const pullRequest = migrationPullRequestValue(evidence);
+  report.pullRequest = pullRequest.value ?? null;
+  if (pullRequest.invalid) migrationAddBlocker(blockers, "pull-request.invalid");
+  if (pullRequest.mismatch) migrationAddBlocker(blockers, "pull-request.metadata-mismatch");
+  if (pullRequest.value) {
+    const prHead = options.fetchPrHead
+      ? fetchPullRequestHead(root, migrationPullRequestNumber(pullRequest.value))
+      : undefined;
+    if (!options.fetchPrHead) {
+      migrationAddBlocker(blockers, "pull-request.ancestry-unavailable");
+    } else if (!prHead) {
+      migrationAddBlocker(blockers, "pull-request.fetch-failed");
+      migrationAddBlocker(blockers, "pull-request.ancestry-unavailable");
+    } else if (subjectCommit && !isCommitAncestor(root, subjectCommit, prHead)) {
+      migrationAddBlocker(blockers, "pull-request.ancestry-mismatch");
+    }
+    if (baseCommit && prHead && !isCommitAncestor(root, baseCommit, prHead)) {
+      migrationAddBlocker(blockers, "pull-request.base-mismatch");
+    }
+  }
+
+  const metadataFiles = taskLifecycleMetadataPaths(taskId).map(migrationNormalizePath);
+  if (baseCommit && subjectCommit && !blockers.includes("base.not-ancestor")) {
+    try {
+      const canonicalChangedFiles = migrationSortedUnique(changedFilesBetweenRefs(root, baseCommit, subjectCommit, metadataFiles));
+      const canonicalDiffHash = hashDiffBinary(diffBinary(root, baseCommit, subjectCommit, metadataFiles));
+      const changedFilesResult = migrationBounded(canonicalChangedFiles, MAX_RESULT_FILES);
+      report.changedFiles = changedFilesResult.values;
+      report.truncated.changedFiles = changedFilesResult.truncated;
+      report.diffHash = canonicalDiffHash;
+      if (changedFilesResult.truncated) migrationAddBlocker(blockers, "result.changed-files-limit");
+
+      const drift = migrationClassifyChangedFiles(evidence.changedFiles, canonicalChangedFiles, metadataFiles);
+      const metadataResult = migrationBounded(drift.metadata, MAX_RESULT_FILES);
+      report.classifiedLifecycleMetadata = metadataResult.values;
+      report.truncated.classifiedLifecycleMetadata = metadataResult.truncated;
+      if (metadataResult.truncated) migrationAddBlocker(blockers, "result.metadata-drift-limit");
+      if (drift.unexpected) migrationAddBlocker(blockers, "changed-files.unexpected-drift");
+      const recordedDiffHash = evidence.diffHash ?? evidence.git?.diffHash;
+      if (recordedDiffHash && recordedDiffHash !== canonicalDiffHash) migrationAddBlocker(blockers, "diff-hash.mismatch");
+    } catch {
+      migrationAddBlocker(blockers, "canonicalization.failed");
+    }
+  }
+
+  const blockerResult = migrationBounded([...new Set(blockers)].sort(), MAX_BLOCKER_CODES);
+  report.blockerCodes = blockerResult.values;
+  report.truncated.blockerCodes = blockerResult.truncated;
+  report.status = report.blockerCodes.length === 0 ? "ready" : "blocked";
+  return report;
+}
+
+export type EvidenceSubjectMigrationOptions = { json?: boolean; fetchPrHead?: boolean };
+
+export function runEvidenceMigrateSubject(root: string, taskId: string, options: EvidenceSubjectMigrationOptions = {}): number {
+  try {
+    const report = evaluateEvidenceSubjectMigration(root, taskId, { fetchPrHead: options.fetchPrHead });
+    if (options.json) {
+      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${report.status === "ready" ? "READY" : "BLOCKED"} evidence subject migration ${taskId}\n`);
+      process.stdout.write(`baseCommit: ${report.baseCommit ?? "(missing)"}\n`);
+      process.stdout.write(`subjectHeadCommit: ${report.subjectHeadCommit ?? "(missing)"}\n`);
+      process.stdout.write(`pullRequest: ${report.pullRequest ?? "(not recorded)"}\n`);
+      process.stdout.write(`changedFiles: ${report.changedFiles.length}\n`);
+      process.stdout.write(`diffHash: ${report.diffHash ?? "(not computed)"}\n`);
+      process.stdout.write(`blockerCodes: ${report.blockerCodes.join(", ") || "none"}\n`);
+    }
+    return report.status === "ready" ? 0 : 1;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;
@@ -429,6 +666,19 @@ export function registerGovernanceCommands(program: Command, context: CommandCon
           output: options.output
         })
       );
+    });
+
+  evidence
+    .command("migrate-subject")
+    .description("Reconstruct a legacy Evidence subject from verified Git history (dry-run only)")
+    .requiredOption("--task <id>", "task id")
+    .option("--fetch-pr-head", "explicitly fetch origin refs/pull/<n>/head for PR ancestry verification")
+    .option("--json", "print a versioned JSON migration report")
+    .action((options) => {
+      setExitCode(runEvidenceMigrateSubject(root, options.task, {
+        json: options.json ?? false,
+        fetchPrHead: options.fetchPrHead ?? false
+      }));
     });
 
   evidence
