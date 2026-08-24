@@ -1,12 +1,12 @@
 id: BLK-SCWBS-DRAFT-MT67TGZ4
 type: block
 taskId: SCWBS-DRAFT-MT67TGZ4
-status: resolved
-category: human-gate
-level: 1
-requiredHumanDecision: Complete the required human gate decision before implementation continues.
-reason: "Issue #594 acceptance requires the current delegated Approval to satisfy both human-gate and post-finish consumers, but canonical scopes are mutually exclusive; Human Decision and lifecycle contract redesign are required"
-createdAt: "2026-08-23T19:53:39.053Z"
+status: blocked
+category: auth
+level: 2
+requiredHumanDecision: Decide authentication or permission design before implementation continues.
+reason: Current check-diff requires wjs/** in the Task creation forbiddenPaths and rejects the Issue 594 Discovery Probe in the delivery diff; the locked Task authority cannot be amended.
+createdAt: "2026-08-24T02:38:51.600Z"
 history:
   - status: blocked
     at: "2026-08-23T19:53:39.053Z"
@@ -16,6 +16,7 @@ history:
     at: "2026-08-24T01:55:47.317Z"
     reason: "Issue #600 and PR #602 merged; canonical Approval v2 now retains independent human-gate and post-finish scoped facts, resolving the Issue #594 prerequisite."
     by: human
-resolvedAt: "2026-08-24T01:55:47.317Z"
-resolvedBy: human
-resolution: "Issue #600 and PR #602 merged; canonical Approval v2 now retains independent human-gate and post-finish scoped facts, resolving the Issue #594 prerequisite."
+  - status: blocked
+    at: "2026-08-24T02:38:51.600Z"
+    reason: Current check-diff requires wjs/** in the Task creation forbiddenPaths and rejects the Issue 594 Discovery Probe in the delivery diff; the locked Task authority cannot be amended.
+    by: ai-agent
