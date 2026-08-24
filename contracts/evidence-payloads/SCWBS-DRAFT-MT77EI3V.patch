@@ -1,0 +1,2420 @@
+diff --git a/contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml b/contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml
+new file mode 100644
+index 0000000..7cacae1
+--- /dev/null
++++ b/contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml
+@@ -0,0 +1,21 @@
++id: BLK-SCWBS-DRAFT-MT77EI3V
++type: block
++taskId: SCWBS-DRAFT-MT77EI3V
++status: resolved
++category: db
++level: 2
++requiredHumanDecision: Decide database schema or migration scope before implementation continues.
++reason: Human Gate required before applying the reviewed versioned review-queue schema change on the final main-based Task
++createdAt: "2026-08-24T12:21:02.521Z"
++history:
++  - status: blocked
++    at: "2026-08-24T12:21:02.521Z"
++    reason: Human Gate required before applying the reviewed versioned review-queue schema change on the final main-based Task
++    by: ai-agent
++  - status: resolved
++    at: "2026-08-24T12:23:18.500Z"
++    reason: Approve applying the reviewed versioned review-queue schema within the locked main-based Task Contract
++    by: human
++resolvedAt: "2026-08-24T12:23:18.500Z"
++resolvedBy: human
++resolution: Approve applying the reviewed versioned review-queue schema within the locked main-based Task Contract
+diff --git a/contracts/specs/SPEC-LITE-MT77EI3V.yaml b/contracts/specs/SPEC-LITE-MT77EI3V.yaml
+new file mode 100644
+index 0000000..2b6626b
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MT77EI3V.yaml
+@@ -0,0 +1,24 @@
++id: SPEC-LITE-MT77EI3V
++type: spec-contract
++featureId: F-MT77EI3V
++title: Main-based transitive completion readiness and AI navigation
++status: approved
++version: 0.1.0
++approvedBy: user-provided-remediation-objective
++approvedAt: "2026-08-24T21:15:11+09:00"
++summary: Deliver the reviewed cycle-safe completion readiness and navigation convergence from a clean main baseline, including full AI navigation regression coverage.
++acceptanceCriteria:
++  - SCWBS-048-shaped nested completion transitively evaluates SCWBS-046 and SCWBS-041 through SCWBS-045 with shared structured blocker parity.
++  - Traversal is deterministic, cycle-safe, same-node constrained, bounded, and evaluates diamond targets once while retaining parent paths.
++  - Evidence, Review, pull request, head commit, diff hash, post-finish Approval, and Human Gate identity checks fail closed where required.
++  - Review approve accepts only a current requested Review with exact Evidence identity, and force cannot bypass actor, status, or subject checks.
++  - review-queue and next select the same prioritized causal blocker and generate an executable command for that blocker Task.
++  - Active Block Tasks are excluded from actionable remediation without hiding later eligible work.
++  - Incomplete Evidence subject identity is remediated before Review or Human action; existing artifacts use force only when replacement is required.
++  - Blocked dry-run and apply do not mutate WBS, changesets, Review, Approval, Registry, or other lifecycle artifacts.
++  - Ordinary non-node completion remains compatible, and node completion does not grandfather legacy unscoped Approval.
++  - Unit, typecheck, build, targeted integration, and full integration checks pass.
++nonGoals:
++  - Migrating SCWBS-041 through SCWBS-048 lifecycle artifacts or reconstructing their legacy subjects.
++  - Changing WBS state, changesets, contractLock lifecycle, Approval v2, Human Gate semantics, package configuration, or CI.
++  - Approving Review or Approval records on behalf of a human.
+diff --git a/contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml b/contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
+new file mode 100644
+index 0000000..0f68bda
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
+@@ -0,0 +1,90 @@
++id: SCWBS-DRAFT-MT77EI3V
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MT77EI3V
++branchName: task/SCWBS-DRAFT-MT77EI3V-main-based-transitive-completion-readiness-and-a
++allowedPaths:
++  - src/commands/completion.ts
++  - src/commands/review-queue.ts
++  - src/commands/review-request.ts
++  - src/commands/next.ts
++  - docs/scwbs/schemas/review-queue-summary.schema.json
++  - tests/integration/completion.test.ts
++  - tests/integration/review.test.ts
++  - tests/integration/navigation-json.test.ts
++  - tests/integration/ai.test.ts
++forbiddenPaths:
++  - wjs/**
++  - contracts/wbs/**
++  - contracts/changesets/**
++  - contracts/evidence/SCWBS-0**
++  - contracts/evidence-payloads/SCWBS-0**
++  - contracts/reviews/SCWBS-0**
++  - contracts/approvals/SCWBS-0**
++  - contracts/tasks/SCWBS-046.yaml
++  - contracts/tasks/SCWBS-048.yaml
++  - contracts/tasks/SCWBS-DRAFT-MT6XU8MS.yaml
++  - contracts/tasks/SCWBS-DRAFT-MT722W8G.yaml
++  - contracts/tasks/SCWBS-DRAFT-MT75VYCC.yaml
++  - src/core/schema/**
++  - src/commands/approval-request.ts
++  - src/commands/evidence-collect.ts
++  - .github/**
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++  - docs/scwbs/schemas/review-queue-summary.schema.json
++stopIf:
++  - Legacy lifecycle artifact mutation is required
++  - Evidence subject migration tooling is required
++  - WBS or changeset or contractLock lifecycle changes are required
++  - Existing Task authority fields must change
++  - Approval v2 or Human Gate semantics must change
++  - Review or Approval must be executed by AI
++  - Allowed paths expansion is required
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - The Task is based directly on main so check-diff contains no predecessor Probe, Task, Block, Spec, Evidence, Review, Approval, WBS, or changeset artifacts.
++  - Node completion evaluates every transitively reachable completionTaskId with deterministic cycle detection, diamond de-duplication, same-node enforcement, and bounded structured blockers.
++  - completion dry-run/apply, review-queue, Review approval preflight, and next navigation share fail-closed Evidence, Review, and scoped Approval subject rules.
++  - Active Block Tasks cannot produce actionable Evidence or Review navigation, while later eligible candidates remain discoverable.
++  - SCWBS-048-shaped regression reaches SCWBS-046 and SCWBS-041 through SCWBS-045 without modifying their lifecycle artifacts.
++  - Full integration passes with complete Evidence and Review subject fixtures and without weakening ordinary non-node compatibility.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
++  - contracts/tasks/index.yaml
++  - contracts/specs/SPEC-LITE-MT77EI3V.yaml
++  - contracts/blocks/SCWBS-DRAFT-MT77EI3V.yaml
++  - contracts/evidence/SCWBS-DRAFT-MT77EI3V.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MT77EI3V.patch
++  - contracts/approvals/SCWBS-DRAFT-MT77EI3V.yaml
++  - contracts/reviews/SCWBS-DRAFT-MT77EI3V.yaml
++  - contracts/registry.yaml
++specPath: contracts/specs/SPEC-LITE-MT77EI3V.yaml
++specVersion: 0.1.0
++status: approved
++approvedBy: user-provided-remediation-objective
++approvedAt: "2026-08-24T21:15:11+09:00"
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:d6d3c89b5f52e294a0913686822caebfacc9802a8a43d3d558cb299bd6f7003a
++  createdAt: "2026-08-24T12:20:32.760Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 76cf288..10af9f1 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1805,3 +1805,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MT77EI3V
++    path: contracts/tasks/SCWBS-DRAFT-MT77EI3V.yaml
++    branchName: task/SCWBS-DRAFT-MT77EI3V-main-based-transitive-completion-readiness-and-a
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/schemas/review-queue-summary.schema.json b/docs/scwbs/schemas/review-queue-summary.schema.json
+index 282ebcc..e9fdfa8 100644
+--- a/docs/scwbs/schemas/review-queue-summary.schema.json
++++ b/docs/scwbs/schemas/review-queue-summary.schema.json
+@@ -32,7 +32,65 @@
+     },
+     "candidates": {
+       "type": "array",
+-      "items": { "type": "object" }
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["taskId", "nodeCode", "nodeName", "reasons", "warnings", "completionBlockedBy", "suggestedAction", "actionStage", "completionReady", "blockers", "omittedBlockerCount"],
++        "properties": {
++          "taskId": { "type": "string", "minLength": 1 },
++          "nodeCode": { "type": "string", "minLength": 1 },
++          "nodeName": { "type": "string", "minLength": 1 },
++          "reasons": { "type": "array", "items": { "type": "string" } },
++          "warnings": { "type": "array", "items": { "type": "string" } },
++          "completionBlockedBy": { "type": "array", "items": { "type": "string" } },
++          "completionTargets": {
++            "type": "array",
++            "items": {
++              "type": "object",
++              "additionalProperties": false,
++              "required": ["taskId", "nodeCode", "nodeName"],
++              "properties": {
++                "taskId": { "type": "string", "minLength": 1 },
++                "nodeCode": { "type": "string", "minLength": 1 },
++                "nodeName": { "type": "string", "minLength": 1 },
++                "pullRequest": { "type": "string" },
++                "approvalStatus": { "type": "string" },
++                "reviewStatus": { "type": "string" },
++                "graphPath": { "type": "array", "items": { "type": "string", "minLength": 1 } },
++                "graphPaths": {
++                  "type": "array",
++                  "items": { "type": "array", "items": { "type": "string", "minLength": 1 } }
++                }
++              }
++            }
++          },
++          "branchName": { "type": "string" },
++          "pullRequest": { "type": "string" },
++          "approvalStatus": { "type": "string" },
++          "reviewStatus": { "type": "string" },
++          "suggestedAction": { "type": "string", "minLength": 1 },
++          "actionStage": { "enum": ["evidence-remediation", "review-request", "review-refresh", "human-review", "scoped-approval", "completion-blocked", "completion-ready", "terminal"] },
++          "completionReady": { "type": "boolean" },
++          "omittedBlockerCount": { "type": "integer", "minimum": 0 },
++          "blockers": {
++            "type": "array",
++            "items": {
++              "type": "object",
++              "additionalProperties": false,
++              "required": ["code", "rootTaskId", "taskId", "phase", "message"],
++              "properties": {
++                "code": { "type": "string", "minLength": 1 },
++                "rootTaskId": { "type": "string", "minLength": 1 },
++                "taskId": { "type": "string", "minLength": 1 },
++                "phase": { "enum": ["graph", "wbs", "evidence", "review", "approval", "human-gate", "dependency"] },
++                "message": { "type": "string", "minLength": 1 },
++                "scope": { "enum": ["human-gate", "post-finish"] },
++                "graphPath": { "type": "array", "items": { "type": "string", "minLength": 1 } }
++              }
++            }
++          }
++        }
++      }
+     },
+     "omitted": { "type": "integer", "minimum": 0 },
+     "limit": { "type": ["integer", "null"], "minimum": 1 }
+diff --git a/src/commands/completion.ts b/src/commands/completion.ts
+index 9480f24..ee395cc 100644
+--- a/src/commands/completion.ts
++++ b/src/commands/completion.ts
+@@ -1,6 +1,6 @@
+ import { mkdirSync, writeFileSync } from "node:fs";
+ import path from "node:path";
+-import { readApproval, readApprovalForScope, readEvidence, readReview, readTask } from "../core/contracts.js";
++import { listActiveTasks, readApproval, readApprovalForScope, readBlock, readEvidence, readReview, readTask } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+ import { validateDelegatedApproval, validateHumanApprovalProvenance, validateHumanGateApproval } from "../core/human-gate.js";
+ import { completionTaskIds, incompleteDependencies, isNodeCompletionTask, parseTaskIds } from "../core/node-utils.js";
+@@ -11,13 +11,16 @@ import { missingTaskWbsNodeMessage, taskWbsAssociation } from "../core/task-wbs-
+ import { runRegistryRebuild } from "./registry-rebuild.js";
+ import { runWbsApply } from "./wbs.js";
+ 
+-type CompletionTarget = {
++export type CompletionTarget = {
+   taskId: string;
+   nodeCode: string;
+   nodeName: string;
+   pullRequest?: string;
+   approvalStatus?: string;
+   reviewStatus?: string;
++  graphPath?: string[];
++  /** All deterministic parent paths which reach this de-duplicated target. */
++  graphPaths?: string[][];
+ };
+ 
+ type CompletionPlanItem = {
+@@ -29,13 +32,22 @@ type CompletionPlanItem = {
+   completionTargets?: CompletionTarget[];
+ };
+ 
+-type CompletionBlocker = { taskId: string; message: string };
++export type CompletionBlocker = {
++  code: string;
++  rootTaskId: string;
++  taskId: string;
++  phase: "graph" | "wbs" | "evidence" | "review" | "approval" | "human-gate" | "dependency";
++  message: string;
++  scope?: "human-gate" | "post-finish";
++  graphPath?: string[];
++};
+ 
+ type CompletionPlan = {
+   wbs: WbsDocument;
+   items: CompletionPlanItem[];
+   reason: string;
+   blockers: CompletionBlocker[];
++  omittedBlockerCount: number;
+ };
+ 
+ type EvaluatedTask = {
+@@ -47,6 +59,19 @@ type EvaluatedTask = {
+   blockers: CompletionBlocker[];
+ };
+ 
++export type CompletionReadiness = {
++  rootTaskId: string;
++  evaluatedTaskIds: string[];
++  targets: CompletionTarget[];
++  blockers: CompletionBlocker[];
++  omittedBlockerCount: number;
++  canApply: boolean;
++};
++
++const MAX_GRAPH_DEPTH = 64;
++const MAX_GRAPH_TASKS = 256;
++const MAX_BLOCKERS = 128;
++
+ type CompletionChangeSet = {
+   schemaVersion: "0.1.0";
+   targetWbsId: string;
+@@ -62,15 +87,15 @@ type CompletionChangeSet = {
+   }>;
+ };
+ 
+-function blocker(taskId: string, message: string): CompletionBlocker {
+-  return { taskId, message };
++function blocker(rootTaskId: string, taskId: string, phase: CompletionBlocker["phase"], code: string, message: string, extra: Partial<Pick<CompletionBlocker, "scope" | "graphPath">> = {}): CompletionBlocker {
++  return { code, rootTaskId, taskId, phase, message, ...extra };
+ }
+ 
+ function issueCode(issues: Array<{ code: string }>, fallback: string): string {
+   return issues[0]?.code ?? fallback;
+ }
+ 
+-function evidenceSubject(evidence: Evidence | undefined): { pullRequest?: string; headCommit?: string; diffHash?: string } {
++export function evidenceSubject(evidence: Evidence | undefined): { pullRequest?: string; headCommit?: string; diffHash?: string } {
+   return {
+     pullRequest: evidence?.git?.pullRequest,
+     headCommit: evidence?.subjectHeadCommit ?? evidence?.git?.subjectHeadCommit ?? evidence?.git?.headCommit ?? evidence?.commit,
+@@ -78,40 +103,59 @@ function evidenceSubject(evidence: Evidence | undefined): { pullRequest?: string
+   };
+ }
+ 
++export function reviewSubjectMismatch(taskId: string, evidence: Evidence | undefined, review: ReviewRecord | undefined): string[] {
++  const subject = evidenceSubject(evidence);
++  const mismatches: string[] = [];
++  if (!review) return ["Review unavailable; request or refresh the Review record"];
++  if (review.taskId !== taskId) mismatches.push("Review taskId does not match Evidence Task");
++  if (!subject.pullRequest || !review.pullRequest || review.pullRequest !== subject.pullRequest) mismatches.push("Review pullRequest does not match Evidence");
++  if (!subject.headCommit || !review.headCommit || review.headCommit !== subject.headCommit) mismatches.push("Review headCommit does not match Evidence");
++  if (!subject.diffHash || !review.diffHash || review.diffHash !== subject.diffHash) mismatches.push("Review diffHash does not match Evidence");
++  return mismatches;
++}
++
+ /** Evaluate Evidence, Review, post-finish Approval, then canonical Human Gate. */
+-function evaluateTask(root: string, task: TaskContract, requireReview: boolean): EvaluatedTask {
++function evaluateTask(root: string, rootTaskId: string, task: TaskContract, requireReview: boolean, graphPath: string[]): EvaluatedTask {
+   const blockers: CompletionBlocker[] = [];
+   const evidenceResult = readEvidence(root, task.id);
+   const evidence = evidenceResult.evidence;
+-  if (!evidence) blockers.push(blocker(task.id, `Evidence unavailable (${issueCode(evidenceResult.issues, "evidence.invalid")})`));
++  if (!evidence) blockers.push(blocker(rootTaskId, task.id, "evidence", "evidence.invalid", `Evidence unavailable (${issueCode(evidenceResult.issues, "evidence.invalid")})`, { graphPath }));
+ 
+   const reviewResult = requireReview ? readReview(root, task.id) : { review: undefined, issues: [] };
+   const review = reviewResult.review;
+   const subject = evidenceSubject(evidence);
+   if (requireReview && !review) {
+-    blockers.push(blocker(task.id, `Review unavailable (${issueCode(reviewResult.issues, "review.invalid")})`));
++    blockers.push(blocker(rootTaskId, task.id, "review", "review.missing", `Review unavailable (${issueCode(reviewResult.issues, "review.invalid")})`, { graphPath }));
+   } else if (requireReview && review) {
+-    if (review.status !== "approved") blockers.push(blocker(task.id, `Review status is ${review.status}; approved is required`));
+-    if (review.taskId !== task.id) blockers.push(blocker(task.id, "Review taskId does not match Task"));
+-    if (!subject.pullRequest || !review.pullRequest || review.pullRequest !== subject.pullRequest) blockers.push(blocker(task.id, "Review pullRequest does not match Evidence"));
+-    if (!subject.headCommit || !review.headCommit || review.headCommit !== subject.headCommit) blockers.push(blocker(task.id, "Review headCommit does not match Evidence"));
+-    if (!subject.diffHash || !review.diffHash || review.diffHash !== subject.diffHash) blockers.push(blocker(task.id, "Review diffHash does not match Evidence"));
++    if (review.status !== "approved") blockers.push(blocker(rootTaskId, task.id, "review", "review.status", `Review status is ${review.status}; approved is required`, { graphPath }));
++    for (const mismatch of reviewSubjectMismatch(task.id, evidence, review)) {
++      const code = mismatch.includes("taskId") ? "review.task-mismatch" : mismatch.includes("pullRequest") ? "review.pull-request-mismatch" : mismatch.includes("headCommit") ? "review.head-mismatch" : "review.diff-mismatch";
++      blockers.push(blocker(rootTaskId, task.id, "review", code, mismatch, { graphPath }));
++    }
+   }
+ 
+   const postFinishResult = readApprovalForScope(root, task.id, "post-finish");
+   const approval = postFinishResult.approval;
+   if (!approval) {
+-    blockers.push(blocker(task.id, `post-finish Approval unavailable (${issueCode(postFinishResult.issues, "approval.invalid")})`));
++    blockers.push(blocker(rootTaskId, task.id, "approval", "approval.post-finish-missing", `post-finish Approval unavailable (${issueCode(postFinishResult.issues, "approval.invalid")})`, { scope: "post-finish", graphPath }));
+   } else {
+-    if (approval.status !== "approved") blockers.push(blocker(task.id, `post-finish Approval status is ${approval.status}; approved is required`));
+-    if (approval.approvalMode === "delegated") blockers.push(...validateDelegatedApproval(task, approval, "post-finish").map((issue) => blocker(task.id, `post-finish Approval invalid (${issue.code})`)));
+-    else if (approval.version === "scwbs.approval.v2") blockers.push(...validateHumanApprovalProvenance(approval, true, true).map((issue) => blocker(task.id, `post-finish Approval invalid (${issue.code})`)));
+-    if (!subject.pullRequest || !approval.pullRequest || approval.pullRequest !== subject.pullRequest) blockers.push(blocker(task.id, "post-finish Approval pullRequest does not match Evidence"));
+-    if (!subject.headCommit || !approval.headCommit || approval.headCommit !== subject.headCommit) blockers.push(blocker(task.id, "post-finish Approval headCommit does not match Evidence"));
+-    if (!subject.diffHash || !approval.diffHash || approval.diffHash !== subject.diffHash) blockers.push(blocker(task.id, "post-finish Approval diffHash does not match Evidence"));
++    if (approval.status !== "approved") blockers.push(blocker(rootTaskId, task.id, "approval", "approval.post-finish-status", `post-finish Approval status is ${approval.status}; approved is required`, { scope: "post-finish", graphPath }));
++    if (requireReview && approval.version !== "scwbs.approval.v2" && !(approval.approvalMode === "delegated" && approval.delegationScope === "post-finish")) {
++      blockers.push(blocker(rootTaskId, task.id, "approval", "approval.legacy-version", "node-level completion requires a current scoped post-finish Approval; legacy unscoped Approval cannot substitute", { scope: "post-finish", graphPath }));
++    }
++    if (approval.approvalMode === "delegated") blockers.push(...validateDelegatedApproval(task, approval, "post-finish").map((issue) => blocker(rootTaskId, task.id, "approval", issue.code, `post-finish Approval invalid (${issue.code})`, { scope: "post-finish", graphPath })));
++    else if (approval.version === "scwbs.approval.v2") blockers.push(...validateHumanApprovalProvenance(approval, true, true).map((issue) => blocker(rootTaskId, task.id, "approval", issue.code, `post-finish Approval invalid (${issue.code})`, { scope: "post-finish", graphPath })));
++    if (!subject.pullRequest || !approval.pullRequest || approval.pullRequest !== subject.pullRequest) blockers.push(blocker(rootTaskId, task.id, "approval", "approval.pull-request-mismatch", "post-finish Approval pullRequest does not match Evidence", { scope: "post-finish", graphPath }));
++    if (!subject.headCommit || !approval.headCommit || approval.headCommit !== subject.headCommit) blockers.push(blocker(rootTaskId, task.id, "approval", "approval.head-mismatch", "post-finish Approval headCommit does not match Evidence", { scope: "post-finish", graphPath }));
++    if (!subject.diffHash || !approval.diffHash || approval.diffHash !== subject.diffHash) blockers.push(blocker(rootTaskId, task.id, "approval", "approval.diff-mismatch", "post-finish Approval diffHash does not match Evidence", { scope: "post-finish", graphPath }));
+   }
+ 
+   const changedFiles = evidence?.changedFiles ?? [];
++  if (requireReview && evidence) {
++    if (!subject.pullRequest) blockers.push(blocker(rootTaskId, task.id, "evidence", "evidence.pull-request-missing", "Evidence does not record a pullRequest subject", { graphPath }));
++    if (!subject.headCommit) blockers.push(blocker(rootTaskId, task.id, "evidence", "evidence.subject-head-missing", "Evidence does not record a subjectHeadCommit", { graphPath }));
++    if (!subject.diffHash) blockers.push(blocker(rootTaskId, task.id, "evidence", "evidence.diff-hash-missing", "Evidence does not record a diffHash", { graphPath }));
++  }
+   if (changedFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths))) {
+     const humanGateResult = requireReview
+       ? readApprovalForScope(root, task.id, "human-gate")
+@@ -119,49 +163,177 @@ function evaluateTask(root: string, task: TaskContract, requireReview: boolean):
+     const humanGateApproval = humanGateResult.approval;
+     const humanGateApprovalBundle = readApproval(root, task.id).approval;
+     if (requireReview && humanGateApproval && humanGateApproval.version !== "scwbs.approval.v2" && !(humanGateApproval.approvalMode === "delegated" && humanGateApproval.delegationScope === "human-gate")) {
+-      blockers.push(blocker(task.id, "Human Gate Approval requires an independent scoped Approval record"));
++      blockers.push(blocker(rootTaskId, task.id, "human-gate", "approval.human-gate-scope", "Human Gate Approval requires an independent scoped Approval record", { scope: "human-gate", graphPath }));
+     } else {
+       const gate = validateHumanGateApproval(task, evidence, humanGateApprovalBundle, changedFiles, root);
+-      blockers.push(...gate.issues.map((issue) => blocker(task.id, `Human Gate Approval invalid (${issue.code})`)));
+-      if (gate.required && !gate.approved && gate.issues.length === 0) blockers.push(blocker(task.id, "Human Gate Approval is not approved"));
++      blockers.push(...gate.issues.map((issue) => blocker(rootTaskId, task.id, "human-gate", issue.code, `Human Gate Approval invalid (${issue.code})`, { scope: "human-gate", graphPath })));
++      if (gate.required && !gate.approved && gate.issues.length === 0) blockers.push(blocker(rootTaskId, task.id, "human-gate", "approval.human-gate-status", "Human Gate Approval is not approved", { scope: "human-gate", graphPath }));
+     }
+   }
+ 
+   return { task, evidence, review, approval, pullRequest: subject.pullRequest, blockers };
+ }
+ 
+-function validateNodeTargets(root: string, wbs: WbsDocument, task: TaskContract, cache: Map<string, EvaluatedTask>): { targets: CompletionTarget[]; blockers: CompletionBlocker[] } {
+-  const targets: CompletionTarget[] = [];
+-  const blockers: CompletionBlocker[] = [];
++function boundBlockers(blockers: CompletionBlocker[]): { blockers: CompletionBlocker[]; omittedBlockerCount: number } {
++  const unique: CompletionBlocker[] = [];
+   const seen = new Set<string>();
+-  for (const targetId of completionTaskIds(task)) {
+-    if (targetId === task.id) {
+-      blockers.push(blocker(task.id, "completionTaskIds must not include itself"));
+-      continue;
++  for (const item of blockers) {
++    const key = `${item.code}|${item.rootTaskId}|${item.taskId}|${item.phase}|${item.message}|${item.graphPath?.join(">") ?? ""}`;
++    if (seen.has(key)) continue;
++    seen.add(key);
++    unique.push(item);
++  }
++  return { blockers: unique.slice(0, MAX_BLOCKERS), omittedBlockerCount: Math.max(0, unique.length - MAX_BLOCKERS) };
++}
++
++function evaluateGraph(root: string, wbs: WbsDocument, rootTask: TaskContract, options: { allowRoot?: boolean } = {}): CompletionReadiness {
++  const blockers: CompletionBlocker[] = [];
++  const targets: CompletionTarget[] = [];
++  const evaluatedTaskIds: string[] = [];
++  const cache = new Map<string, EvaluatedTask>();
++  const visited = new Set<string>();
++  const active = new Set<string>();
++  const pathsByTask = new Map<string, string[][]>();
++  const targetsByTask = new Map<string, CompletionTarget>();
++  let graphCount = 0;
++
++  const recordPath = (taskId: string, graphPath: string[]): string[][] => {
++    const paths = pathsByTask.get(taskId) ?? [];
++    if (!paths.some((path) => path.length === graphPath.length && path.every((part, index) => part === graphPath[index]))) paths.push([...graphPath]);
++    pathsByTask.set(taskId, paths);
++    return paths;
++  };
++
++  const recordTarget = (target: CompletionTarget): void => {
++    const paths = recordPath(target.taskId, target.graphPath ?? [target.taskId]);
++    const previous = targetsByTask.get(target.taskId);
++    if (previous) {
++      previous.graphPaths = paths.map((path) => [...path]);
++      previous.graphPath = paths[0];
++      return;
+     }
+-    if (seen.has(targetId)) continue;
+-    seen.add(targetId);
+-    const targetResult = readTask(root, targetId);
+-    const targetTask = targetResult.task;
+-    if (!targetTask) {
+-      blockers.push(blocker(task.id, `completion target ${targetId} is unavailable (${issueCode(targetResult.issues, "task.invalid")})`));
+-      continue;
++    target.graphPaths = paths.map((path) => [...path]);
++    target.graphPath = paths[0];
++    targetsByTask.set(target.taskId, target);
++    targets.push(target);
++  };
++
++  const taskCountsByNode = new Map<string, number>();
++  // The shared-node policy is part of the evaluator so queue and completion
++  // cannot disagree about ordinary Tasks sharing a WBS node.
++  for (const entry of listActiveTasks(root)) {
++    if (entry.task) taskCountsByNode.set(entry.task.wbsNodeId, (taskCountsByNode.get(entry.task.wbsNodeId) ?? 0) + 1);
++  }
++
++  const addCommonBlockers = (task: TaskContract, association: Extract<ReturnType<typeof taskWbsAssociation>, { kind: "node" }>, evaluation: EvaluatedTask, graphPath: string[]) => {
++    const node = association.node;
++    if (node.status !== "ready") blockers.push(blocker(rootTask.id, task.id, "wbs", "wbs.node-not-ready", `WBS node status is ${node.status ?? "planned"}; completion requires ready`, { graphPath }));
++    for (const dependency of incompleteDependencies(node.id, wbs)) blockers.push(blocker(rootTask.id, task.id, "dependency", "wbs.dependency-not-completed", dependency, { graphPath }));
++    const { block } = readBlock(root, task.id);
++    if (block?.status === "blocked") blockers.push(blocker(rootTask.id, task.id, "wbs", "wbs.active-block", `active Block: ${block.reason}`, { graphPath }));
++    for (const submodule of evaluation.evidence?.submodules ?? []) {
++      if (!submodule.upstreamReachable) blockers.push(blocker(rootTask.id, task.id, "dependency", "submodule.not-upstream-reachable", `submodule ${submodule.path} head is not upstream-reachable`, { graphPath }));
++      for (const check of submodule.checks ?? []) if (check.status !== "passed") blockers.push(blocker(rootTask.id, task.id, "dependency", "submodule.check-failed", `submodule ${submodule.path} check ${check.name} is ${check.status}`, { graphPath }));
++    }
++  };
++
++  const visit = (taskId: string, graphPath: string[], depth: number): void => {
++    if (depth > MAX_GRAPH_DEPTH) {
++      blockers.push(blocker(rootTask.id, taskId, "graph", "completion.graph-depth-exceeded", `completion graph depth exceeds ${MAX_GRAPH_DEPTH}`, { graphPath }));
++      return;
++    }
++    recordPath(taskId, graphPath);
++    if (active.has(taskId)) {
++      blockers.push(blocker(rootTask.id, taskId, "graph", "completion.graph-cycle", `completionTaskIds cycle detected: ${graphPath.join(" -> ")}`, { graphPath }));
++      return;
++    }
++    if (visited.has(taskId)) {
++      const existing = targetsByTask.get(taskId);
++      if (existing) {
++        const paths = pathsByTask.get(taskId) ?? [graphPath];
++        existing.graphPaths = paths.map((path) => [...path]);
++        existing.graphPath = paths[0];
++      }
++      return;
++    }
++    if (graphCount >= MAX_GRAPH_TASKS) {
++      blockers.push(blocker(rootTask.id, taskId, "graph", "completion.graph-task-limit", `completion graph exceeds ${MAX_GRAPH_TASKS} evaluated Tasks`, { graphPath }));
++      return;
++    }
++    graphCount += 1;
++    active.add(taskId);
++    const result = readTask(root, taskId);
++    const task = result.task;
++    if (!task) {
++      blockers.push(blocker(rootTask.id, taskId, "graph", "completion.target-missing", `completion target ${taskId} is unavailable (${issueCode(result.issues, "task.invalid")})`, { graphPath }));
++      active.delete(taskId);
++      visited.add(taskId);
++      return;
+     }
+-    const association = taskWbsAssociation(wbs, targetTask);
++    const association = taskWbsAssociation(wbs, task);
+     if (association.kind !== "node") {
+-      blockers.push(blocker(targetTask.id, `completion target references missing WBS node ${association.nodeId}`));
+-      continue;
++      blockers.push(blocker(rootTask.id, task.id, "graph", association.kind === "wbs-less" ? "completion.target-wbs-less" : "completion.target-node-missing", `completion target references ${association.kind === "wbs-less" ? "WBS-less" : `missing WBS node ${association.nodeId}`}`, { graphPath }));
++      active.delete(taskId);
++      visited.add(taskId);
++      return;
+     }
+-    if (association.node.id !== task.wbsNodeId) {
+-      blockers.push(blocker(targetTask.id, `completion target WBS node ${association.node.id} does not match ${task.wbsNodeId}`));
+-      continue;
++    if (association.node.id !== rootTask.wbsNodeId) blockers.push(blocker(rootTask.id, task.id, "graph", "completion.target-node-mismatch", `completion target WBS node ${association.node.id} does not match ${rootTask.wbsNodeId}`, { graphPath }));
++    if (!options.allowRoot && (association.node.id === wbs.rootId || association.node.parentId === null)) {
++      blockers.push(blocker(rootTask.id, task.id, "wbs", "wbs.root-not-allowed", `Task targets root WBS node ${association.node.id}; --allow-root is required`, { graphPath }));
+     }
+-    const evaluated = cache.get(targetTask.id) ?? evaluateTask(root, targetTask, true);
+-    cache.set(targetTask.id, evaluated);
+-    blockers.push(...evaluated.blockers);
+-    targets.push({ taskId: targetTask.id, nodeCode: association.node.code, nodeName: association.node.name, pullRequest: evaluated.pullRequest, approvalStatus: evaluated.approval?.status, reviewStatus: evaluated.review?.status });
++    if (task.id === rootTask.id && !isNodeCompletionTask(task) && (taskCountsByNode.get(task.wbsNodeId) ?? 0) > 1) {
++      blockers.push(blocker(rootTask.id, task.id, "wbs", "wbs.shared-node-task", "node has multiple Task Contracts; completion requires a dedicated node-level completion task", { graphPath }));
++    }
++    // A target on another node is structurally invalid. Keep the target visible
++    // for diagnostics, but continue traversing its reachable completion graph:
++    // this reports every cross-node edge and still detects descendants/cycles.
++    if (association.node.id !== rootTask.wbsNodeId) {
++      if (task.id !== rootTask.id) recordTarget({ taskId: task.id, nodeCode: association.node.code, nodeName: association.node.name, graphPath });
++      if (isNodeCompletionTask(task)) {
++        for (const childId of completionTaskIds(task)) {
++          if (childId === task.id) {
++            blockers.push(blocker(rootTask.id, task.id, "graph", "completion.self-reference", "completionTaskIds must not include itself", { graphPath: [...graphPath, childId] }));
++            continue;
++          }
++          visit(childId, [...graphPath, childId], depth + 1);
++        }
++      }
++      active.delete(taskId);
++      visited.add(taskId);
++      return;
++    }
++    const requireReview = task.id === rootTask.id ? isNodeCompletionTask(task) : true;
++    const evaluation = cache.get(task.id) ?? evaluateTask(root, rootTask.id, task, requireReview, graphPath);
++    cache.set(task.id, evaluation);
++    evaluatedTaskIds.push(task.id);
++    blockers.push(...evaluation.blockers);
++    addCommonBlockers(task, association, evaluation, graphPath);
++    if (task.id !== rootTask.id) recordTarget({ taskId: task.id, nodeCode: association.node.code, nodeName: association.node.name, pullRequest: evaluation.pullRequest, approvalStatus: evaluation.approval?.status, reviewStatus: evaluation.review?.status, graphPath });
++    if (isNodeCompletionTask(task)) {
++      for (const childId of completionTaskIds(task)) {
++        if (childId === task.id) {
++          blockers.push(blocker(rootTask.id, task.id, "graph", "completion.self-reference", "completionTaskIds must not include itself", { graphPath: [...graphPath, childId] }));
++          continue;
++        }
++        visit(childId, [...graphPath, childId], depth + 1);
++      }
++    }
++    active.delete(taskId);
++    visited.add(taskId);
++  };
++
++  visit(rootTask.id, [rootTask.id], 0);
++  const bounded = boundBlockers(blockers);
++  return { rootTaskId: rootTask.id, evaluatedTaskIds, targets, ...bounded, canApply: bounded.blockers.length === 0 && bounded.omittedBlockerCount === 0 };
++}
++
++export function evaluateCompletionReadiness(root: string, taskId: string, options: { allowRoot?: boolean } = {}): CompletionReadiness {
++  const taskResult = readTask(root, taskId);
++  if (!taskResult.task) {
++    const item = blocker(taskId, taskId, "graph", "task.invalid", `Task is unavailable (${issueCode(taskResult.issues, "task.invalid")})`, { graphPath: [taskId] });
++    return { rootTaskId: taskId, evaluatedTaskIds: [], targets: [], blockers: [item], omittedBlockerCount: 0, canApply: false };
+   }
+-  return { targets, blockers };
++  return evaluateGraph(root, readWbs(root), taskResult.task, options);
+ }
+ 
+ function buildCompletionChangeSet(wbs: WbsDocument, completionTaskId: string, reason: string, items: CompletionPlanItem[]): CompletionChangeSet {
+@@ -178,46 +350,45 @@ export function buildCompletionPlan(root: string, taskIdsValue: string | undefin
+   const reason = options.reason ?? "Human approved completion through scwbs completion apply";
+   const blockers: CompletionBlocker[] = [];
+   const items: CompletionPlanItem[] = [];
+-  const cache = new Map<string, EvaluatedTask>();
+   const seenNodes = new Set<string>();
++  let readinessOmitted = 0;
+   for (const taskId of taskIds) {
+     const taskResult = readTask(root, taskId);
+     const task = taskResult.task;
+     if (!task) {
+-      blockers.push(blocker(taskId, `Task is unavailable (${issueCode(taskResult.issues, "task.invalid")})`));
++      blockers.push(blocker(taskId, taskId, "graph", "task.invalid", `Task is unavailable (${issueCode(taskResult.issues, "task.invalid")})`, { graphPath: [taskId] }));
+       continue;
+     }
+     const association = taskWbsAssociation(wbs, task);
+     if (association.kind === "wbs-less") {
+-      blockers.push(blocker(task.id, "Task is WBS-less and cannot complete a WBS node"));
++      blockers.push(blocker(task.id, task.id, "wbs", "task.wbs-less", "Task is WBS-less and cannot complete a WBS node", { graphPath: [task.id] }));
+       continue;
+     }
+     if (association.kind === "missing-node") {
+-      blockers.push(blocker(task.id, missingTaskWbsNodeMessage(task, association)));
++      blockers.push(blocker(task.id, task.id, "wbs", "task.node-missing", missingTaskWbsNodeMessage(task, association), { graphPath: [task.id] }));
+       continue;
+     }
+     const node = association.node;
+-    if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) blockers.push(blocker(task.id, `Task targets root WBS node ${node.id}; --allow-root is required`));
+-    if (node.status !== "ready") blockers.push(blocker(task.id, `Task targets WBS node ${node.id} with status ${node.status ?? "planned"}`));
+-    if (seenNodes.has(node.id)) blockers.push(blocker(task.id, `multiple tasks target WBS node ${node.id}`));
++    if (!options.allowRoot && (node.id === wbs.rootId || node.parentId === null)) blockers.push(blocker(task.id, task.id, "wbs", "wbs.root-not-allowed", `Task targets root WBS node ${node.id}; --allow-root is required`, { graphPath: [task.id] }));
++    if (seenNodes.has(node.id)) blockers.push(blocker(task.id, task.id, "wbs", "wbs.multiple-tasks", `multiple tasks target WBS node ${node.id}`, { graphPath: [task.id] }));
+     seenNodes.add(node.id);
+-    for (const dependency of incompleteDependencies(node.id, wbs)) blockers.push(blocker(task.id, `incomplete dependency ${dependency}`));
+-    const evaluated = cache.get(task.id) ?? evaluateTask(root, task, isNodeCompletionTask(task));
+-    cache.set(task.id, evaluated);
+-    blockers.push(...evaluated.blockers);
+-    let completionTargets: CompletionTarget[] = [];
+-    if (isNodeCompletionTask(task)) {
+-      const targetResult = validateNodeTargets(root, wbs, task, cache);
+-      completionTargets = targetResult.targets;
+-      blockers.push(...targetResult.blockers);
+-    }
+-    items.push({ taskId: task.id, node, pullRequest: evaluated.pullRequest, approval: evaluated.approval, reviewRequired: isNodeCompletionTask(task), completionTargets });
++    const readiness = evaluateCompletionReadiness(root, task.id, { allowRoot: options.allowRoot });
++    blockers.push(...readiness.blockers);
++    readinessOmitted += readiness.omittedBlockerCount;
++    const evaluatedEvidence = readEvidence(root, task.id).evidence;
++    const evaluatedApproval = readApprovalForScope(root, task.id, "post-finish").approval;
++    items.push({ taskId: task.id, node, pullRequest: evidenceSubject(evaluatedEvidence).pullRequest, approval: evaluatedApproval, reviewRequired: isNodeCompletionTask(task), completionTargets: readiness.targets });
+   }
+-  return { wbs, items, reason, blockers };
++  const bounded = boundBlockers(blockers);
++  return { wbs, items, reason, blockers: bounded.blockers, omittedBlockerCount: readinessOmitted + bounded.omittedBlockerCount };
+ }
+ 
+ function renderCompletionPreview(plan: CompletionPlan, completionTaskId: string): string {
+-  if (plan.blockers.length > 0) return `${["Completion apply blocked:", ...plan.blockers.map((item) => `- ${item.taskId}: ${item.message}`)].join("\n")}\n`;
++  if (plan.blockers.length > 0 || plan.omittedBlockerCount > 0) {
++    const lines = ["Completion apply blocked:", ...plan.blockers.map((item) => `- [${item.code}] ${item.rootTaskId}/${item.taskId} (${item.phase}): ${item.message}${item.graphPath ? ` [path: ${item.graphPath.join(" -> ")}]` : ""}`)];
++    if (plan.omittedBlockerCount > 0) lines.push(`- ${plan.omittedBlockerCount} additional blockers omitted`);
++    return `${lines.join("\n")}\n`;
++  }
+   const changeSet = buildCompletionChangeSet(plan.wbs, completionTaskId, plan.reason, plan.items);
+   const lines = ["Completion apply dry-run:", ""];
+   for (const item of plan.items) {
+@@ -247,7 +418,7 @@ export function runCompletionApply(root: string, taskIdsValue: string | undefine
+       return 2;
+     }
+     const plan = buildCompletionPlan(root, taskIdsValue, options);
+-    if (plan.blockers.length > 0) {
++    if (plan.blockers.length > 0 || plan.omittedBlockerCount > 0) {
+       process.stderr.write(renderCompletionPreview(plan, completionTaskId));
+       return 1;
+     }
+diff --git a/src/commands/next.ts b/src/commands/next.ts
+index 92f0c38..bcd7775 100644
+--- a/src/commands/next.ts
++++ b/src/commands/next.ts
+@@ -1,7 +1,7 @@
+ import { collectCheckIssues } from "./check.js";
+-import { buildReviewQueue } from "./review-queue.js";
++import { buildReviewQueueSummary, reviewQueueNextAction, type ReviewQueueAction, type ReviewQueueEntry } from "./review-queue.js";
+ import { buildNextTask } from "./ai-queue.js";
+-import { listActiveTasks, evidenceExists, readBlock, readEvidence, readReview, reviewExists } from "../core/contracts.js";
++import { listActiveTasks, evidenceExists, readBlock, readEvidence } from "../core/contracts.js";
+ import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
+ import { readWbs } from "../core/wbs.js";
+ 
+@@ -13,11 +13,6 @@ function taskIdFromMessage(message: string): string | undefined {
+   return /\b[A-Z]+-\d+(?:-\d+)?\b/.exec(message)?.[0];
+ }
+ 
+-function taskIdsFromSection(queue: string, heading: string): string[] {
+-  const section = new RegExp(`${heading}:\\n([\\s\\S]*?)(?:\\n\\n|$)`).exec(queue)?.[1] ?? "";
+-  return [...section.matchAll(/^- ([A-Z]+-\d+(?:-\d+)?)/gm)].map((match) => match[1]!);
+-}
+-
+ function discoveryGuidance(root: string): string {
+   const items = readWbs(root).nodes
+     .filter((node) => node.workMode === "discovery" && node.discovery)
+@@ -31,33 +26,84 @@ function discoveryGuidance(root: string): string {
+ export type NextJsonOutput = {
+   version: "scwbs.next.v1";
+   status: "actionable" | "waiting" | "idle";
+-  action: {
+-    kind: string;
+-    owner: "ai" | "human";
+-    taskId?: string;
+-    command?: string;
+-    aiStop?: boolean;
+-  } | null;
++  action: { kind: string; owner: "ai" | "human"; taskId?: string; command?: string; aiStop?: boolean } | null;
+   reasons: Array<{ code: string; message: string }>;
+ };
+ 
+-function nextJsonAction(
+-  status: NextJsonOutput["status"],
+-  action: NextJsonOutput["action"],
+-  reasons: NextJsonOutput["reasons"]
+-): NextJsonOutput {
++function nextJsonAction(status: NextJsonOutput["status"], action: NextJsonOutput["action"], reasons: NextJsonOutput["reasons"]): NextJsonOutput {
+   return { version: "scwbs.next.v1", status, action, reasons };
+ }
+ 
+ function plannedTaskJson(message: string): NextJsonOutput {
+-  return nextJsonAction("actionable", {
+-    kind: "select-planned-task",
++  return nextJsonAction("actionable", { kind: "select-planned-task", owner: "ai", command: "scwbs ai next-task" }, [{ code: "task.planned.available", message }]);
++}
++
++function queueEntries(root: string): ReviewQueueEntry[] {
++  return buildReviewQueueSummary(root).candidates;
++}
++
++function inspectBlockedAction(): ReviewQueueAction {
++  return { kind: "inspect-review-queue", owner: "ai", command: "scwbs review-queue", reasonCode: "review.blocked", reasonMessage: "Review candidates exist, but completion is blocked by prerequisites" };
++}
++
++function missingEvidenceAction(root: string): ReviewQueueAction | undefined {
++  const task = listActiveTasks(root).find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id))?.task;
++  if (!task) return undefined;
++  return {
++    kind: "collect-evidence",
+     owner: "ai",
+-    command: "scwbs ai next-task"
+-  }, [{ code: "task.planned.available", message }]);
++    taskId: task.id,
++    command: `scwbs evidence collect --task ${task.id}`,
++    reasonCode: "evidence.remediation.required",
++    reasonMessage: `Collect evidence for ${task.id}`
++  };
+ }
+ 
+-export function buildNextJsonOutput(root: string): NextJsonOutput {
++function hasActiveBlockEntry(root: string, entry: ReviewQueueEntry): boolean {
++  return hasActiveBlock(root, entry.taskId) || entry.blockers.some((item) => item.code === "wbs.active-block");
++}
++
++function hasStructuralBlock(entry: ReviewQueueEntry): boolean {
++  // A shared-node/graph/dependency blocker means this candidate cannot be
++  // advanced by an Evidence or Review command. A merely not-yet-ready WBS
++  // node still permits human review of the Evidence while completion waits.
++  return entry.blockers.some((item) => item.phase === "graph" || item.phase === "dependency" || item.code === "wbs.shared-node-task")
++    || entry.completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
++}
++
++/** Resolve navigation from the same structured queue entries used by review-queue. */
++function queueNavigation(root: string): ReviewQueueAction | undefined {
++  const entries = queueEntries(root);
++  // Active Blocks and structural completion blockers remain visible in the
++  // review queue, but neither may preempt an eligible lifecycle action.
++  const actionable = entries.filter((entry) => !hasActiveBlockEntry(root, entry) && !hasStructuralBlock(entry));
++  const missingEvidence = missingEvidenceAction(root);
++  if (missingEvidence) return missingEvidence;
++  const evidenceRemediation = actionable.find((entry) => entry.actionStage === "evidence-remediation");
++  if (evidenceRemediation) return reviewQueueNextAction(evidenceRemediation);
++  const refresh = actionable.find((entry) => entry.actionStage === "review-refresh");
++  if (refresh) return reviewQueueNextAction(refresh);
++  const request = actionable.find((entry) => entry.actionStage === "review-request");
++  if (request) return reviewQueueNextAction(request);
++  const humanReview = actionable.find((entry) => entry.actionStage === "human-review");
++  if (humanReview) return reviewQueueNextAction(humanReview);
++  const scopedApproval = actionable.find((entry) => entry.actionStage === "scoped-approval");
++  if (scopedApproval) return reviewQueueNextAction(scopedApproval);
++  const blocked = entries.find((entry) => !hasActiveBlockEntry(root, entry) && hasStructuralBlock(entry));
++  if (blocked) return inspectBlockedAction();
++  return undefined;
++}
++
++function queueActionJson(action: ReviewQueueAction): NextJsonOutput {
++  return nextJsonAction(action.owner === "human" ? "waiting" : "actionable", { kind: action.kind, owner: action.owner, ...(action.taskId ? { taskId: action.taskId } : {}), command: action.command, ...(action.aiStop ? { aiStop: true } : {}) }, [{ code: action.reasonCode, message: action.reasonMessage }]);
++}
++
++function queueActionText(discovery: string, action: ReviewQueueAction): string {
++  const label = action.kind === "human-review" ? "Human review" : action.kind === "inspect-review-queue" ? "Review blocked candidates" : action.kind === "refresh-review" ? "Refresh Review" : action.kind === "request-review" ? "Request Review" : action.kind === "request-approval" ? "Request scoped Approval" : action.reasonMessage.startsWith("Collect evidence for") ? action.reasonMessage : "Remediate Evidence";
++  return `Next suggested action:\n\n${discovery}${label}\nReason:\n- ${action.reasonMessage}\n\nCommand:\n  ${action.command}\n`;
++}
++
++function staleTaskAction(root: string): { taskId: string; message: string; code: string } | undefined {
+   const activeTasks = listActiveTasks(root);
+   const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
+   const stale = collectCheckIssues(root).find((issue) => {
+@@ -65,213 +111,52 @@ export function buildNextJsonOutput(root: string): NextJsonOutput {
+     const taskId = activeTaskIds.find((id) => issue.message.includes(id));
+     return Boolean(taskId) && !hasActiveBlock(root, taskId!);
+   });
+-  if (stale) {
+-    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
+-    return nextJsonAction("actionable", {
+-      kind: "refresh-task",
+-      owner: "ai",
+-      taskId,
+-      command: `scwbs task refresh --task ${taskId}`
+-    }, [{ code: stale.code, message: stale.message }]);
+-  }
++  if (!stale) return undefined;
++  return { taskId: activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>", message: stale.message, code: stale.code };
++}
+ 
+-  const failedCheck = activeTasks.flatMap((entry) => {
++function failedCheckAction(root: string): { taskId: string; checkName: string } | undefined {
++  return listActiveTasks(root).flatMap((entry) => {
+     if (!entry.task || hasActiveBlock(root, entry.task.id)) return [];
+     const { evidence } = readEvidence(root, entry.task.id);
+     const failed = evidence?.checks.find((check) => check.status === "failed");
+-    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
++    return failed ? [{ taskId: entry.task.id, checkName: failed.name }] : [];
+   })[0];
+-  if (failedCheck) {
+-    return nextJsonAction("actionable", {
+-      kind: "fix-check",
+-      owner: "ai",
+-      taskId: failedCheck.task.id,
+-      command: `scwbs finish --task ${failedCheck.task.id}`
+-    }, [{ code: "evidence.check.failed", message: `Evidence check failed: ${failedCheck.checkName}` }]);
+-  }
++}
+ 
+-  const queue = buildReviewQueue(root);
+-  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
+-  if (blockedReviewTask) {
++export function buildNextJsonOutput(root: string): NextJsonOutput {
++  const stale = staleTaskAction(root);
++  if (stale) return nextJsonAction("actionable", { kind: "refresh-task", owner: "ai", taskId: stale.taskId, command: `scwbs task refresh --task ${stale.taskId}` }, [{ code: stale.code, message: stale.message }]);
++  const failedCheck = failedCheckAction(root);
++  if (failedCheck) return nextJsonAction("actionable", { kind: "fix-check", owner: "ai", taskId: failedCheck.taskId, command: `scwbs finish --task ${failedCheck.taskId}` }, [{ code: "evidence.check.failed", message: `Evidence check failed: ${failedCheck.checkName}` }]);
++  const queueAction = queueNavigation(root);
++  if (queueAction?.kind === "inspect-review-queue") {
+     const plannedTasks = buildNextTask(root).trim();
+     if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) return plannedTaskJson(plannedTasks);
+-    return nextJsonAction("actionable", {
+-      kind: "inspect-review-queue",
+-      owner: "ai",
+-      command: "scwbs review-queue"
+-    }, [{ code: "review.blocked", message: "Review candidates exist, but completion is blocked by prerequisites" }]);
+-  }
+-
+-  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+-  if (missingEvidence?.task) {
+-    return nextJsonAction("actionable", {
+-      kind: "collect-evidence",
+-      owner: "ai",
+-      taskId: missingEvidence.task.id,
+-      command: `scwbs evidence collect --task ${missingEvidence.task.id}`
+-    }, [{ code: "evidence.missing", message: "Task has no Evidence file yet" }]);
++    return queueActionJson(queueAction);
+   }
+-
+-  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
+-  if (reviewTask) {
+-    if (reviewExists(root, reviewTask)) {
+-      const { review } = readReview(root, reviewTask);
+-      if (review?.status === "requested") {
+-        return nextJsonAction("waiting", {
+-          kind: "human-review",
+-          owner: "human",
+-          taskId: reviewTask,
+-          command: `scwbs review approve --task ${reviewTask} --actor human`,
+-          aiStop: true
+-        }, [{ code: "review.human_decision_required", message: "Evidence and review metadata exist; human completion review is next" }]);
+-      }
+-      return nextJsonAction("waiting", {
+-        kind: "human-review",
+-        owner: "human",
+-        taskId: reviewTask,
+-        command: "scwbs review-queue",
+-        aiStop: true
+-      }, [{ code: "review.human_decision_required", message: "Evidence exists and human completion review is next" }]);
+-    }
+-    return nextJsonAction("actionable", {
+-      kind: "request-review",
+-      owner: "ai",
+-      taskId: reviewTask,
+-      command: `scwbs review request --task ${reviewTask}`
+-    }, [{ code: "review.request_missing", message: "Evidence exists and a review request is needed" }]);
+-  }
+-
++  if (queueAction) return queueActionJson(queueAction);
+   const nextTask = buildNextTask(root).trim();
+   if (nextTask.startsWith("Planned task candidates:")) return plannedTaskJson(nextTask);
+-  if (nextTask.startsWith("No available planned tasks.")) {
+-    return nextJsonAction("idle", null, [{ code: "task.none.available", message: nextTask }]);
+-  }
+-  return nextJsonAction("actionable", {
+-    kind: "inspect-next",
+-    owner: "ai",
+-    command: "scwbs next"
+-  }, [{ code: "task.follow_up.pending", message: nextTask || "No available action." }]);
++  if (nextTask.startsWith("No available planned tasks.")) return nextJsonAction("idle", null, [{ code: "task.none.available", message: nextTask }]);
++  return nextJsonAction("actionable", { kind: "inspect-next", owner: "ai", command: "scwbs next" }, [{ code: "task.follow_up.pending", message: nextTask || "No available action." }]);
+ }
+ 
+ export function buildNextAction(root: string): string {
+   const discovery = discoveryGuidance(root);
+-  const activeTasks = listActiveTasks(root);
+-  const activeTaskIds = activeTasks.flatMap((entry) => entry.task ? [entry.task.id] : []);
+-  const stale = collectCheckIssues(root).find((issue) => {
+-    if (!issue.code.startsWith("task.contractLock")) return false;
+-    const taskId = activeTaskIds.find((id) => issue.message.includes(id));
+-    return Boolean(taskId) && !hasActiveBlock(root, taskId!);
+-  });
+-  if (stale) {
+-    const taskId = activeTaskIds.find((id) => stale.message.includes(id)) ?? taskIdFromMessage(stale.message) ?? "<task-id>";
+-    return `Next suggested action:
+-
+-${discovery}Refresh stale task ${taskId}
+-Reason:
+-- ${stale.message}
+-
+-Command:
+-  scwbs task refresh --task ${taskId}
+-`;
+-  }
+-
+-  const failedCheck = activeTasks.flatMap((entry) => {
+-    if (!entry.task) return [];
+-    if (hasActiveBlock(root, entry.task.id)) return [];
+-    const { evidence } = readEvidence(root, entry.task.id);
+-    const failed = evidence?.checks.find((check) => check.status === "failed");
+-    return failed ? [{ task: entry.task, checkName: failed.name }] : [];
+-  })[0];
+-  if (failedCheck) {
+-    return `Next suggested action:
+-
+-${discovery}Fix failed check for ${failedCheck.task.id}
+-Reason:
+-- Evidence check failed: ${failedCheck.checkName}
+-
+-Command:
+-  scwbs finish --task ${failedCheck.task.id}
+-`;
+-  }
+-
+-  const queue = buildReviewQueue(root);
+-  const blockedReviewTask = taskIdsFromSection(queue, "Blocked review candidates").find((taskId) => !hasActiveBlock(root, taskId));
+-  if (blockedReviewTask) {
++  const stale = staleTaskAction(root);
++  if (stale) return `Next suggested action:\n\n${discovery}Refresh stale task ${stale.taskId}\nReason:\n- ${stale.message}\n\nCommand:\n  scwbs task refresh --task ${stale.taskId}\n`;
++  const failedCheck = failedCheckAction(root);
++  if (failedCheck) return `Next suggested action:\n\n${discovery}Fix failed check for ${failedCheck.taskId}\nReason:\n- Evidence check failed: ${failedCheck.checkName}\n\nCommand:\n  scwbs finish --task ${failedCheck.taskId}\n`;
++  const queueAction = queueNavigation(root);
++  if (queueAction?.kind === "inspect-review-queue") {
+     const plannedTasks = buildNextTask(root).trim();
+-    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) {
+-      return `Next suggested action:
+-
+-${discovery}${plannedTasks}
+-`;
+-    }
+-    return `Next suggested action:
+-
+-${discovery}Review blocked candidates
+-Reason:
+-- Review candidates exist, but completion is blocked by prerequisites
+-
+-Command:
+-  scwbs review-queue
+-`;
+-  }
+-
+-  const missingEvidence = activeTasks.find((entry) => entry.task && !hasActiveBlock(root, entry.task.id) && !evidenceExists(root, entry.task.id));
+-  if (missingEvidence?.task) {
+-    return `Next suggested action:
+-
+-${discovery}Collect evidence for ${missingEvidence.task.id}
+-Reason:
+-- Task has no Evidence file yet
+-
+-Command:
+-  scwbs evidence collect --task ${missingEvidence.task.id}
+-`;
+-  }
+-
+-  const reviewTask = taskIdsFromSection(queue, "Ready for completion review").find((taskId) => !hasActiveBlock(root, taskId));
+-  if (reviewTask) {
+-    if (reviewExists(root, reviewTask)) {
+-      const { review } = readReview(root, reviewTask);
+-      if (review?.status === "requested") {
+-        return `Next suggested action:
+-
+-${discovery}Human review for ${reviewTask}
+-Reason:
+-- Evidence and review metadata exist; review decision is next
+-
+-Command:
+-  scwbs review approve --task ${reviewTask} --actor human
+-
+-Queue context:
+-  scwbs review-queue
+-`;
+-      }
+-      return `Next suggested action:
+-
+-${discovery}Human review for ${reviewTask}
+-Reason:
+-- Evidence and review metadata exist; human completion review is next
+-
+-Command:
+-  scwbs review-queue
+-`;
+-    }
+-    return `Next suggested action:
+-
+-${discovery}Review ${reviewTask}
+-Reason:
+-- Evidence exists and review queue has a candidate
+-
+-Command:
+-  scwbs review request --task ${reviewTask}
+-`;
++    if (plannedTasks && plannedTasks.startsWith("Planned task candidates:")) return `Next suggested action:\n\n${discovery}${plannedTasks}\n`;
++    return queueActionText(discovery, queueAction);
+   }
+-
++  if (queueAction) return queueActionText(discovery, queueAction);
+   const nextTask = buildNextTask(root);
+-  return `Next suggested action:
+-
+-${discovery}${nextTask.trim() || "No available action."}
+-`;
++  return `Next suggested action:\n\n${discovery}${nextTask.trim() || "No available action."}\n`;
+ }
+ 
+ export function runNext(root: string, options: { json?: boolean } = {}): number {
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index 5048e39..b6d4787 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -1,11 +1,11 @@
+-import { readApproval, listActiveTasks, listTasks, readBlock, readEvidence, readReview } from "../core/contracts.js";
++import { readApproval, listActiveTasks, readEvidence, readReview } from "../core/contracts.js";
+ import { matchesAny } from "../core/glob.js";
+-import { completionTaskIds, incompleteDependencies, isNodeCompletionTask } from "../core/node-utils.js";
++import { isNodeCompletionTask } from "../core/node-utils.js";
+ import { isDoneNode, readWbs } from "../core/wbs.js";
+-import type { TaskContract } from "../core/types.js";
+ import { taskWbsAssociation } from "../core/task-wbs-policy.js";
++import { evaluateCompletionReadiness, evidenceSubject, reviewSubjectMismatch, type CompletionBlocker, type CompletionTarget } from "./completion.js";
+ 
+-type ReviewQueueEntry = {
++export type ReviewQueueEntry = {
+   taskId: string;
+   nodeCode: string;
+   nodeName: string;
+@@ -18,6 +18,10 @@ type ReviewQueueEntry = {
+   approvalStatus?: string;
+   reviewStatus?: string;
+   suggestedAction: string;
++  actionStage: "evidence-remediation" | "review-request" | "review-refresh" | "human-review" | "scoped-approval" | "completion-blocked" | "completion-ready" | "terminal";
++  completionReady: boolean;
++  blockers: CompletionBlocker[];
++  omittedBlockerCount: number;
+ };
+ 
+ export type ReviewQueueOptions = {
+@@ -40,97 +44,76 @@ export type ReviewQueueSummary = {
+   limit: number | null;
+ };
+ 
+-type NodeCompletionTarget = {
+-  taskId: string;
+-  nodeCode: string;
+-  nodeName: string;
+-  pullRequest?: string;
+-  approvalStatus?: string;
+-  reviewStatus?: string;
+-};
++type NodeCompletionTarget = CompletionTarget;
+ 
+-function collectNodeCompletionTargets(root: string, wbs: ReturnType<typeof readWbs>, task: TaskContract): { blockers: string[]; targets: NodeCompletionTarget[] } {
+-  const blockers: string[] = [];
+-  const targets: NodeCompletionTarget[] = [];
+-  const seen = new Set<string>();
+-
+-  for (const targetId of completionTaskIds(task)) {
+-    if (targetId === task.id) {
+-      blockers.push(`${task.id} completionTaskIds must not include itself`);
+-      continue;
+-    }
+-    if (seen.has(targetId)) continue;
+-    seen.add(targetId);
+-
+-    const taskEntry = listTasks(root).find((entry) => entry.task?.id === targetId);
+-    const targetTask = taskEntry?.task;
+-    if (!targetTask) {
+-      blockers.push(`missing completion target task ${targetId}`);
+-      continue;
+-    }
++type CausalAction = {
++  stage: ReviewQueueEntry["actionStage"];
++  blocker?: CompletionBlocker;
++};
+ 
+-    const targetAssociation = taskWbsAssociation(wbs, targetTask);
+-    if (targetAssociation.kind !== "node") {
+-      blockers.push(`${targetTask.id} references missing WBS node: ${targetAssociation.nodeId}`);
+-      continue;
+-    }
+-    const targetNode = targetAssociation.node;
+-    if (targetNode.id !== task.wbsNodeId) {
+-      blockers.push(`${targetTask.id} targets WBS node ${targetNode.id}, not ${task.wbsNodeId}`);
+-      continue;
+-    }
++function reviewStatus(blocker: CompletionBlocker): string | undefined {
++  return /^Review status is ([^;]+)/.exec(blocker.message)?.[1];
++}
+ 
+-    const { evidence, issues } = readEvidence(root, targetTask.id);
+-    const { approval, issues: approvalIssues } = readApproval(root, targetTask.id);
+-    const { review, issues: reviewIssues } = readReview(root, targetTask.id);
+-    const missingEvidenceOnly = issues.length === 1 && issues[0]?.code === "evidence.missing";
+-    const missingApprovalOnly = approvalIssues.length === 1 && approvalIssues[0]?.code === "approval.missing";
+-    const missingReviewOnly = reviewIssues.length === 1 && reviewIssues[0]?.code === "review.missing";
+-    const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
+-    const hasApproval = Boolean(approval) && !missingApprovalOnly;
+-    const hasReview = Boolean(review) && !missingReviewOnly;
+-    const pullRequest = evidence?.git?.pullRequest ?? approval?.pullRequest;
+-
+-    if (!hasEvidence) blockers.push(`${targetTask.id} is missing evidence`);
+-    if (!pullRequest) blockers.push(`${targetTask.id} is missing pull request metadata`);
+-    if (!hasReview) blockers.push(`${targetTask.id} is missing review metadata`);
+-    const touchesHumanGate = evidence?.changedFiles.some((file) => matchesAny(file, targetTask.humanGateRequiredPaths)) ?? false;
+-    if (touchesHumanGate && !hasApproval) {
+-      blockers.push(`${targetTask.id} changed human gate paths but no approved approval record exists`);
+-    }
+-    if (approval?.status === "requested") {
+-      blockers.push(`${targetTask.id} approval is still requested`);
+-    } else if (approval?.status === "rejected") {
+-      blockers.push(`${targetTask.id} approval was rejected`);
+-    }
++/** Select one causal blocker for both stage display and the next command. */
++function selectCausalAction(blockers: CompletionBlocker[]): CausalAction {
++  const evidence = blockers.find((item) => item.phase === "evidence");
++  if (evidence) return { stage: "evidence-remediation", blocker: evidence };
++
++  const reviewBlockers = blockers.filter((item) => item.phase === "review");
++  const refresh = reviewBlockers.find((item) => item.code.includes("mismatch")
++    || (item.code === "review.status" && reviewStatus(item) !== "requested"));
++  if (refresh) return { stage: "review-refresh", blocker: refresh };
++  const request = reviewBlockers.find((item) => item.code === "review.missing");
++  if (request) return { stage: "review-request", blocker: request };
++  const human = reviewBlockers.find((item) => item.code === "review.status" && reviewStatus(item) === "requested");
++  if (human) return { stage: "human-review", blocker: human };
++
++  const scopedApproval = blockers.find((item) => item.phase === "approval" || item.phase === "human-gate");
++  if (scopedApproval) return { stage: "scoped-approval", blocker: scopedApproval };
++  const structural = blockers.find((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency");
++  if (structural) return { stage: "completion-blocked", blocker: structural };
++  return { stage: "completion-ready" };
++}
+ 
+-    targets.push({
+-      taskId: targetTask.id,
+-      nodeCode: targetNode.code,
+-      nodeName: targetNode.name,
+-      pullRequest,
+-      approvalStatus: approval?.status,
+-      reviewStatus: review?.status
+-    });
++function deriveActionStage(input: {
++  evidence: ReturnType<typeof readEvidence>["evidence"];
++  review: ReturnType<typeof readReview>["review"];
++  blockers: CompletionBlocker[];
++  hasEvidence: boolean;
++  hasPullRequest: boolean;
++  nodeCompletionTask: boolean;
++  evidenceSubjectIncomplete: boolean;
++  reviewSubjectStale: boolean;
++}): ReviewQueueEntry["actionStage"] {
++  // An active Block is a hard stop for this Task. Keep the entry visible for
++  // queue diagnostics, but never expose its Evidence/Review lifecycle as an
++  // executable next action.
++  if (input.blockers.some((item) => item.code === "wbs.active-block")) return "completion-blocked";
++  const evidence = input.blockers.find((item) => item.phase === "evidence");
++  if (evidence) return "evidence-remediation";
++  if (!input.hasEvidence || !input.hasPullRequest || input.evidenceSubjectIncomplete) return "evidence-remediation";
++  if (!input.nodeCompletionTask) {
++    if (!input.review) return "review-request";
++    if (input.reviewSubjectStale) return "review-refresh";
++    if (input.review.status === "requested") return "human-review";
++    if (input.review.status === "changes-requested" || input.review.status === "closed") return "review-refresh";
+   }
+-
+-  return { blockers, targets };
++  const causal = selectCausalAction(input.blockers);
++  if (causal.blocker) return causal.stage;
++  return "completion-ready";
+ }
+ 
+-function nodeReadinessBlocker(node: Extract<ReturnType<typeof taskWbsAssociation>, { kind: "node" }>["node"]): string | undefined {
+-  return node.status === "ready" ? undefined : `WBS node status is ${node.status ?? "planned"}; completion requires ready`;
++export function isHardCompletionBlock(entry: Pick<ReviewQueueEntry, "actionStage" | "blockers" | "completionBlockedBy">): boolean {
++  if (entry.completionBlockedBy.some((item) => item.includes("multiple Task Contracts"))) return true;
++  if (entry.actionStage === "review-request" || entry.actionStage === "human-review" || entry.actionStage === "review-refresh") return false;
++  return entry.actionStage === "evidence-remediation" || entry.actionStage === "scoped-approval" || entry.actionStage === "completion-blocked" || entry.blockers.some((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency");
+ }
+ 
+-function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
++export function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+   const wbs = readWbs(root);
+   const entries: ReviewQueueEntry[] = [];
+   const tasks = listActiveTasks(root);
+-  const taskCountByNode = new Map<string, number>();
+-  for (const entry of tasks) {
+-    if (!entry.task) continue;
+-    taskCountByNode.set(entry.task.wbsNodeId, (taskCountByNode.get(entry.task.wbsNodeId) ?? 0) + 1);
+-  }
+-
+   for (const entry of tasks) {
+     const task = entry.task;
+     if (!task) continue;
+@@ -140,13 +123,16 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+ 
+     const reasons: string[] = [];
+     const warnings: string[] = [];
+-    const completionBlockedBy = incompleteDependencies(node.id, wbs);
+-    const { block } = readBlock(root, task.id);
+-    if (block?.status === "blocked") {
+-      completionBlockedBy.push(`active Block: ${block.reason}`);
+-    }
+-    const readinessBlocker = nodeReadinessBlocker(node);
+-    const nodeCompletionTargets = isNodeCompletionTask(task) ? collectNodeCompletionTargets(root, wbs, task) : { blockers: [], targets: [] as NodeCompletionTarget[] };
++    const readiness = evaluateCompletionReadiness(root, task.id);
++    // WBS/dependency blockers come only from the shared evaluator. This keeps
++    // queue output and completion output in parity and avoids double-counting
++    // the same dependency, active Block, or submodule failure.
++    const completionBlockedBy = [...new Set(readiness.blockers
++      .filter((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency")
++      .map((item) => item.message))];
++    const nodeCompletionTargets = isNodeCompletionTask(task)
++      ? { blockers: readiness.blockers, targets: readiness.targets as NodeCompletionTarget[] }
++      : { blockers: [] as CompletionBlocker[], targets: [] as NodeCompletionTarget[] };
+     const { evidence, issues } = readEvidence(root, task.id);
+     const { approval, issues: approvalIssues } = readApproval(root, task.id);
+     const { review, issues: reviewIssues } = readReview(root, task.id);
+@@ -156,40 +142,43 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+     const hasEvidence = Boolean(evidence) && !missingEvidenceOnly;
+     const hasApproval = Boolean(approval) && !missingApprovalOnly;
+     const hasReview = Boolean(review) && !missingReviewOnly;
+-    const isTerminalReview = Boolean(review) && hasReview && (review!.status === "approved" || review!.status === "changes-requested" || review!.status === "closed");
++    const subject = evidenceSubject(evidence);
++    const evidenceSubjectIncomplete = hasEvidence && (!subject.pullRequest || !subject.headCommit || !subject.diffHash);
++    const queueBlockers = [...readiness.blockers];
++    if (evidenceSubjectIncomplete) {
++      const missingSubject = [
++        !subject.pullRequest ? "pullRequest" : undefined,
++        !subject.headCommit ? "headCommit" : undefined,
++        !subject.diffHash ? "diffHash" : undefined
++      ].filter((item): item is string => Boolean(item));
++      queueBlockers.push({
++        code: "evidence.subject-incomplete",
++        rootTaskId: task.id,
++        taskId: task.id,
++        phase: "evidence",
++        message: `Evidence subject is incomplete: missing ${missingSubject.join(", ")}`
++      });
++    }
++    const reviewSubjectStale = Boolean(review && hasReview && reviewSubjectMismatch(task.id, evidence, review).length > 0);
++    // An approved Review is terminal for ordinary Tasks. Node-level completion
++    // remains active until its scoped completion prerequisites are satisfied.
++    const isTerminalReview = Boolean(review) && hasReview && review!.status === "approved" && !isNodeCompletionTask(task) && !reviewSubjectStale && !evidenceSubjectIncomplete;
+ 
+     for (const submodule of evidence?.submodules ?? []) {
+       warnings.push(`submodule ${submodule.path}: ${submodule.baseCommit} -> ${submodule.headCommit}; merge dependent PR ${submodule.pullRequest ?? "not recorded"} before parent PR; upstream target ${submodule.upstreamRef}`);
+-      if (!submodule.upstreamReachable) completionBlockedBy.push(`submodule ${submodule.path} head is not upstream-reachable`);
+-      for (const check of submodule.checks ?? []) {
+-        if (check.status !== "passed") completionBlockedBy.push(`submodule ${submodule.path} check ${check.name} is ${check.status}`);
+-      }
+     }
+ 
+     if (hasEvidence && !isDoneNode(node) && !isTerminalReview) {
+       reasons.push(
+-        !readinessBlocker && completionBlockedBy.length === 0
++        completionBlockedBy.length === 0
+           ? "evidence exists and the WBS node is ready for human review"
+           : "evidence exists and the WBS node is not completed"
+       );
+     }
+ 
+-    if (completionBlockedBy.length > 0) {
+-      for (const blockedBy of completionBlockedBy) {
+-        warnings.push(`dependsOn node ${blockedBy} is not completed`);
+-      }
+-    }
+-    if (readinessBlocker) {
+-      completionBlockedBy.push(readinessBlocker);
+-      warnings.push(readinessBlocker);
+-    }
+-    if (!isNodeCompletionTask(task) && (taskCountByNode.get(node.id) ?? 0) > 1) {
+-      completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
+-    }
+-    if (isNodeCompletionTask(task) && nodeCompletionTargets.blockers.length > 0) {
+-      for (const blockedBy of nodeCompletionTargets.blockers) {
+-        completionBlockedBy.push(blockedBy);
+-      }
++    for (const item of readiness.blockers.filter((blocker) => blocker.phase === "wbs" || blocker.phase === "dependency")) {
++      const warning = item.code === "wbs.dependency-not-completed" ? `dependsOn node ${item.message} is not completed` : item.message;
++      if (!warnings.includes(warning)) warnings.push(warning);
+     }
+ 
+     if (evidence) {
+@@ -214,21 +203,43 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+       warnings.push("human review approval was rejected");
+     }
+ 
+-    if (reasons.length > 0) {
++    if (isTerminalReview) continue;
++
++    const actionStage = deriveActionStage({ evidence, review, blockers: queueBlockers, hasEvidence, hasPullRequest: Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest), nodeCompletionTask: isNodeCompletionTask(task), evidenceSubjectIncomplete, reviewSubjectStale });
++    const evidenceRemediationCandidate = actionStage === "evidence-remediation" && queueBlockers.some((item) => item.phase === "evidence");
++    const reviewRemediationCandidate = ["review-request", "review-refresh", "human-review"].includes(actionStage) && (isNodeCompletionTask(task) || hasReview || reviewSubjectStale);
++    if (reasons.length > 0 || evidenceRemediationCandidate || reviewRemediationCandidate || actionStage === "scoped-approval" || (isNodeCompletionTask(task) && actionStage === "completion-blocked")) {
+       const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
+       const sharedNodeCompletionBlocked = completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
+       const nodeCompletionTaskBlocked = isNodeCompletionTask(task) && completionBlockedBy.length > 0;
+-      const suggestedAction = completionBlockedBy.length > 0
+-        ? nodeCompletionTaskBlocked
+-          ? "review evidence now, but defer node completion until the completion targets are ready"
+-          : sharedNodeCompletionBlocked
++      const lifecycleBlocker = queueBlockers.some((item) => item.phase === "evidence" || item.phase === "review" || item.phase === "approval" || item.phase === "human-gate");
++      const structuralBlocker = readiness.blockers.some((item) => item.phase === "graph" || item.phase === "wbs" || item.phase === "dependency") || completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
++      const structuralSuggestedAction = nodeCompletionTaskBlocked
++        ? "review evidence now, but defer node completion until the completion targets are ready"
++        : sharedNodeCompletionBlocked
+           ? "review evidence now, but defer WBS completion to a dedicated node-level completion task"
+-          : "review evidence now, but defer completion until dependencies are completed"
+-        : !hasPullRequest
+-          ? "create or record PR, then human review for completion"
+-          : !hasReview
+-            ? "request review for this task"
+-            : "human review for completion";
++          : "review evidence now, but defer completion until dependencies are completed";
++      const suggestedAction = actionStage === "evidence-remediation"
++        ? structuralBlocker
++          ? structuralSuggestedAction
++          : !hasPullRequest
++            ? "create or record PR, then human review for completion"
++            : "remediate Evidence before requesting or approving Review"
++        : actionStage === "human-review"
++          ? structuralBlocker ? "human review for completion; defer completion until prerequisites are ready" : "human review for completion"
++        : actionStage === "review-request"
++          ? "request review for this task"
++        : actionStage === "review-refresh"
++          ? "refresh the Review request against current Evidence"
++        : actionStage === "scoped-approval"
++          ? "request the missing scoped Approval action"
++        : structuralBlocker
++          ? structuralSuggestedAction
++        : (!lifecycleBlocker && completionBlockedBy.length > 0)
++          ? "review evidence now, but defer completion until dependencies are completed"
++          : !hasPullRequest
++            ? "create or record PR, then human review for completion"
++            : "completion-ready";
+       entries.push({
+         taskId: task.id,
+         nodeCode: node.code,
+@@ -241,7 +252,11 @@ function collectReviewQueueEntries(root: string): ReviewQueueEntry[] {
+         pullRequest: evidence?.git?.pullRequest ?? approval?.pullRequest,
+         approvalStatus: approval?.status,
+         reviewStatus: review?.status,
+-        suggestedAction
++        suggestedAction,
++        actionStage,
++        completionReady: readiness.canApply,
++        blockers: queueBlockers,
++        omittedBlockerCount: readiness.omittedBlockerCount
+       });
+     }
+   }
+@@ -269,7 +284,12 @@ function blockerCode(blocker: string): string {
+ function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count: number }> {
+   const counts = new Map<string, number>();
+   for (const entry of entries) {
++    const structuredMessages = new Set(entry.blockers.map((item) => item.message));
++    for (const blocker of entry.blockers) {
++      counts.set(blocker.code, (counts.get(blocker.code) ?? 0) + 1);
++    }
+     for (const blocker of entry.completionBlockedBy) {
++      if (structuredMessages.has(blocker)) continue;
+       const code = blockerCode(blocker);
+       counts.set(code, (counts.get(code) ?? 0) + 1);
+     }
+@@ -283,34 +303,89 @@ function blockerCounts(entries: ReviewQueueEntry[]): Array<{ code: string; count
+ 
+ function prioritizeEntries(entries: ReviewQueueEntry[]): ReviewQueueEntry[] {
+   return [...entries].sort((a, b) => {
+-    const readyDifference = Number(a.completionBlockedBy.length > 0) - Number(b.completionBlockedBy.length > 0);
++    const readyDifference = Number(isHardCompletionBlock(a)) - Number(isHardCompletionBlock(b));
+     if (readyDifference !== 0) return readyDifference;
+     const pullRequestDifference = Number(!a.pullRequest) - Number(!b.pullRequest);
+     return pullRequestDifference || a.taskId.localeCompare(b.taskId);
+   });
+ }
+ 
+-function candidateNextCommand(entry: ReviewQueueEntry): string {
+-  if (!entry.pullRequest) return `scwbs evidence collect --task ${entry.taskId} --pull-request <number>`;
+-  if (!entry.reviewStatus) return `scwbs review request --task ${entry.taskId}`;
+-  if (entry.reviewStatus === "requested" && entry.completionBlockedBy.length === 0) {
+-    return `scwbs review approve --task ${entry.taskId} --actor human`;
++export type ReviewQueueAction = {
++  kind: "collect-evidence" | "request-review" | "refresh-review" | "human-review" | "request-approval" | "inspect-review-queue";
++  owner: "ai" | "human";
++  taskId?: string;
++  command: string;
++  aiStop?: boolean;
++  reasonCode: string;
++  reasonMessage: string;
++};
++
++export function reviewQueueNextAction(entry: ReviewQueueEntry): ReviewQueueAction {
++  const causal = selectCausalAction(entry.blockers).blocker;
++  const reviewTaskId = causal?.phase === "review"
++    ? causal.taskId
++    : entry.blockers.find((item) => item.phase === "review")?.taskId ?? entry.taskId;
++  const scopedBlocker = causal?.phase === "approval" || causal?.phase === "human-gate"
++    ? causal
++    : entry.blockers.find((item) => item.phase === "approval" || item.phase === "human-gate");
++  if (entry.actionStage === "evidence-remediation") {
++    const evidenceBlocker = causal?.phase === "evidence"
++      ? causal
++      : entry.blockers.find((item) => item.phase === "evidence");
++    const evidenceTaskId = evidenceBlocker?.taskId ?? entry.taskId;
++    const refreshExistingEvidence = Boolean(evidenceBlocker && (
++      evidenceBlocker.code !== "evidence.invalid"
++      || !evidenceBlocker.message.includes("(evidence.missing)")
++    ));
++    return {
++      kind: "collect-evidence", owner: "ai", taskId: evidenceTaskId,
++      command: `scwbs evidence collect --task ${evidenceTaskId}${refreshExistingEvidence ? " --force" : ""}`,
++      reasonCode: "evidence.remediation.required",
++      reasonMessage: entry.suggestedAction
++    };
++  }
++  if (entry.actionStage === "review-request") {
++    return { kind: "request-review", owner: "ai", taskId: reviewTaskId, command: `scwbs review request --task ${reviewTaskId}`, reasonCode: "review.request_missing", reasonMessage: entry.suggestedAction };
++  }
++  if (entry.actionStage === "review-refresh") {
++    return { kind: "refresh-review", owner: "ai", taskId: reviewTaskId, command: `scwbs review request --task ${reviewTaskId} --force`, reasonCode: "review.refresh_required", reasonMessage: entry.suggestedAction };
++  }
++  if (entry.actionStage === "human-review" && (entry.reviewStatus === "requested" || entry.blockers.some((item) => item.code === "review.status"))) {
++    return { kind: "human-review", owner: "human", taskId: reviewTaskId, command: `scwbs review approve --task ${reviewTaskId} --actor human`, aiStop: true, reasonCode: "review.human_decision_required", reasonMessage: entry.suggestedAction };
+   }
+-  return "scwbs review-queue --verbose";
++  if (entry.actionStage === "scoped-approval") {
++    const scope = scopedBlocker?.scope ?? "post-finish";
++    const taskId = scopedBlocker?.taskId ?? entry.taskId;
++    const missingArtifact = scopedBlocker?.code === "approval.post-finish-missing"
++      && (scopedBlocker.message.includes("(approval.missing)") || scopedBlocker.message.includes("(approval.scope.missing)"));
++    return {
++      kind: "request-approval",
++      owner: "ai",
++      taskId,
++      command: `scwbs request-approval --task ${taskId} --scope ${scope}${missingArtifact ? "" : " --force"}`,
++      reasonCode: "approval.scoped_action_required",
++      reasonMessage: entry.suggestedAction
++    };
++  }
++  return { kind: "inspect-review-queue", owner: "ai", command: "scwbs review-queue", reasonCode: "review.blocked", reasonMessage: entry.suggestedAction };
++}
++
++function candidateNextCommand(entry: ReviewQueueEntry): string {
++  return reviewQueueNextAction(entry).command;
+ }
+ 
+ export function buildReviewQueueSummary(root: string, limit?: number): ReviewQueueSummary {
+   const entries = collectReviewQueueEntries(root);
+   const prioritized = prioritizeEntries(entries);
+   const selected = limit === undefined ? prioritized : prioritized.slice(0, limit);
+-  const blocked = entries.filter((entry) => entry.completionBlockedBy.length > 0).length;
++  const blocked = entries.filter((entry) => isHardCompletionBlock(entry)).length;
+   return {
+     schemaVersion: "1.0.0",
+     health: {
+       candidates: entries.length,
+       missingPullRequest: entries.filter((entry) => !entry.pullRequest).length,
+       blocked,
+-      ready: entries.length - blocked
++      ready: entries.filter((entry) => entry.completionReady).length
+     },
+     blockerCounts: blockerCounts(entries),
+     candidates: selected,
+@@ -332,7 +407,7 @@ function formatReviewQueueSummary(summary: ReviewQueueSummary): string {
+   if (summary.candidates.length === 0) lines.push("- None");
+   else {
+     for (const entry of summary.candidates) {
+-      const state = entry.completionBlockedBy.length === 0 ? "ready" : "blocked";
++      const state = entry.completionReady ? "completion-ready" : entry.actionStage;
+       lines.push(`- ${entry.taskId} | ${state} | ${entry.suggestedAction}`);
+       lines.push(`  next: ${candidateNextCommand(entry)}`);
+     }
+@@ -351,8 +426,8 @@ export function buildReviewQueue(root: string): string {
+   }
+ 
+   const missingPullRequestCount = sortedEntries.filter((item) => !item.pullRequest).length;
+-  const blockedCount = sortedEntries.filter((item) => item.completionBlockedBy.length > 0).length;
+-  const readyCount = sortedEntries.length - blockedCount;
++  const blockedCount = sortedEntries.filter((item) => isHardCompletionBlock(item)).length;
++  const readyCount = sortedEntries.filter((item) => item.completionReady).length;
+ 
+   lines.push("");
+   lines.push("Review Health:");
+@@ -376,6 +451,8 @@ export function buildReviewQueue(root: string): string {
+     if (item.reviewStatus) {
+       lines.push(`  reviewStatus: ${item.reviewStatus}`);
+     }
++    lines.push(`  actionStage: ${item.actionStage}`);
++    lines.push(`  completionReady: ${item.completionReady}`);
+     for (const reason of item.reasons) {
+       lines.push(`  reason: ${reason}`);
+     }
+@@ -385,6 +462,9 @@ export function buildReviewQueue(root: string): string {
+     for (const blockedBy of item.completionBlockedBy) {
+       lines.push(`  completionBlockedBy: ${blockedBy}`);
+     }
++    for (const itemBlocker of item.blockers) {
++      lines.push(`  blocker: [${itemBlocker.code}] ${itemBlocker.message}`);
++    }
+     if (item.completionTargets && item.completionTargets.length > 0) {
+       lines.push("  completionTargets:");
+       for (const target of item.completionTargets) {
+@@ -399,16 +479,19 @@ export function buildReviewQueue(root: string): string {
+     lines.push(`  suggestedAction: ${item.suggestedAction}`);
+   }
+ 
+-  const readyEntries = sortedEntries.filter((item) => item.completionBlockedBy.length === 0);
+-  const blockedEntries = sortedEntries.filter((item) => item.completionBlockedBy.length > 0);
++  const readyEntries = sortedEntries.filter((item) => item.completionReady);
++  const humanReviewEntries = sortedEntries.filter((item) => item.actionStage === "human-review");
++  const blockedEntries = sortedEntries.filter((item) => isHardCompletionBlock(item));
+   const missingPullRequestEntries = sortedEntries.filter((item) => !item.pullRequest);
+ 
+   lines.push("");
+   lines.push("Ready for completion review:");
+   if (readyEntries.length === 0) {
+-    lines.push("- None");
++    if (humanReviewEntries.length === 0) lines.push("- None");
++    else for (const item of humanReviewEntries) lines.push(`- ${item.taskId} (human review; completion prerequisites remain) `);
+   } else {
+     for (const item of readyEntries) lines.push(`- ${item.taskId}`);
++    for (const item of humanReviewEntries) if (!readyEntries.some((ready) => ready.taskId === item.taskId)) lines.push(`- ${item.taskId} (human review; completion prerequisites remain)`);
+   }
+ 
+   lines.push("");
+diff --git a/src/commands/review-request.ts b/src/commands/review-request.ts
+index 407e8ed..2ee7945 100644
+--- a/src/commands/review-request.ts
++++ b/src/commands/review-request.ts
+@@ -6,6 +6,7 @@ import { defaultRegistryPath, evidencePath, resolveFrom, reviewPath, taskPath }
+ import { buildRegistryYaml, syncRegistry } from "./registry-rebuild.js";
+ import { stringifySimpleYaml } from "../core/yaml.js";
+ import type { Evidence, ReviewRecord, TaskContract } from "../core/types.js";
++import { reviewSubjectMismatch } from "./completion.js";
+ 
+ type RequestedReviewer = NonNullable<ReviewRecord["requestedReviewers"]>[number];
+ 
+@@ -59,6 +60,7 @@ function evidenceSubject(evidence: Evidence | undefined): { headCommit?: string;
+ 
+ export function buildReviewRequest(taskId: string, options: { pullRequest?: string; requestedReviewers?: RequestedReviewer[]; evidence?: Evidence }): ReviewRecord {
+   const subject = evidenceSubject(options.evidence);
++  const pullRequest = options.pullRequest ?? options.evidence?.git?.pullRequest;
+   return {
+     id: `RVW-${taskId}`,
+     type: "review",
+@@ -66,7 +68,7 @@ export function buildReviewRequest(taskId: string, options: { pullRequest?: stri
+     status: "requested",
+     reviewProfile: "independent-ai-review",
+     ...subject,
+-    ...(options.pullRequest ? { pullRequest: options.pullRequest } : {}),
++    ...(pullRequest ? { pullRequest } : {}),
+     groundTruth: [
+       taskPath(taskId),
+       evidencePath(taskId)
+@@ -263,12 +265,19 @@ export function runReviewApprove(root: string, taskId: string, options: { review
+     const relativePath = reviewPath(taskId);
+     const fullPath = resolveFrom(root, relativePath);
+     const review = readExistingReview(root, taskId);
+-    if (review.status === "approved" && !options.force) {
+-      console.error(`${relativePath} is already approved; rerun with --force to overwrite`);
+-      return 1;
++    const evidenceResult = readEvidence(root, taskId);
++    if (!evidenceResult.evidence) {
++      throw new Error(`Review approval requires current Evidence (${evidenceResult.issues.map((issue) => issue.code).join(", ") || "evidence.invalid"}); start Evidence remediation, then request Review again`);
++    }
++    const subjectMismatches = reviewSubjectMismatch(taskId, evidenceResult.evidence, review);
++    if (subjectMismatches.length > 0) {
++      throw new Error(`${subjectMismatches.join("; ")}; refresh the Review request before approval`);
+     }
+-    if (review.status === "closed" && !options.force) {
+-      console.error(`${relativePath} is closed; rerun with --force to approve anyway`);
++    // Approval is a transition on the current requested Review only. `--force`
++    // may refresh a requested record's write, but it cannot reopen an approved,
++    // closed, or changes-requested Review or bypass subject validation above.
++    if (review.status !== "requested") {
++      console.error(`${relativePath} is ${review.status}; only the current requested Review can be approved`);
+       return 1;
+     }
+ 
+diff --git a/tests/integration/ai.test.ts b/tests/integration/ai.test.ts
+index ab5f5dc..811e76d 100644
+--- a/tests/integration/ai.test.ts
++++ b/tests/integration/ai.test.ts
+@@ -459,8 +459,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
+       branchName: "task/WBS-001-005-follow-up",
+       humanGateRequiredPaths: []
+     }) as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
+-    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ diffHash: "diff-001-004" }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005", diffHash: "diff-001-005" }) as unknown as Record<string, unknown>);
+     expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
+     expect(buildNextAction(root)).toContain("Review blocked candidates");
+   });
+@@ -533,6 +533,7 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
+       root,
+       "contracts/evidence/WBS-001-004.yaml",
+       sampleEvidence({
++        diffHash: "diff-001-004",
+         git: {
+           branch: "task/WBS-001-004-api-implementation",
+           base: "main",
+@@ -548,12 +549,14 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff-001-004",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+     const next = buildNextAction(root);
+-    expect(next).toContain("Human review for WBS-001-004");
+-    expect(next).toContain("scwbs review-queue");
++    expect(next).toContain("Human review");
++    expect(next).toContain("scwbs review approve --task WBS-001-004 --actor human");
+     expect(next).not.toContain("scwbs review request --task WBS-001-004");
+   });
+ 
+@@ -570,7 +573,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
+         base: "main",
+         headCommit: "abc1234",
+         pullRequest: "#42"
+-      }
++      },
++      diffHash: "diff-001-004"
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
+       id: "EVD-001-005",
+@@ -583,6 +587,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff-001-004",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+diff --git a/tests/integration/completion.test.ts b/tests/integration/completion.test.ts
+index f3d6d11..3d36e82 100644
+--- a/tests/integration/completion.test.ts
++++ b/tests/integration/completion.test.ts
+@@ -1,7 +1,7 @@
+ import { existsSync, mkdirSync, readFileSync } from "node:fs";
+ import path from "node:path";
+ import { describe, expect, test, vi } from "vitest";
+-import { buildCompletionPreview, runCompletionApply } from "../../src/commands/completion.js";
++import { buildCompletionPreview, evaluateCompletionReadiness, runCompletionApply } from "../../src/commands/completion.js";
+ import { runApprovalApprove } from "../../src/commands/approval-request.js";
+ import { APPROVAL_DELEGATION_TOKEN_ENV, approvalDelegationTokenSha256 } from "../../src/core/human-gate.js";
+ import { readApproval } from "../../src/core/contracts.js";
+@@ -192,6 +192,194 @@ describe("completion apply", () => {
+     expect(preview).not.toMatch(/WBS-001-004:.*WBS-001-004/);
+   });
+ 
++  test("traverses nested node-completion Tasks in declaration order", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeNodeFixture(root);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-007"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
++      id: "WBS-001-007",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-004", "WBS-001-005"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
++    writeV2Approval(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
++    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
++    expect(preview.indexOf("- WBS-001-007:")).toBeLessThan(preview.indexOf("- WBS-001-004:"));
++    expect(preview).toContain("- WBS-001-005: 1.1 API Implementation");
++    expect(preview.match(/- WBS-001-004: 1\.1 API Implementation/g)).toHaveLength(1);
++  });
++
++  test("SCWBS-048 traverses SCWBS-046 and all SCWBS-041..045 descendants with blocker parity", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    const leaves = ["SCWBS-041", "SCWBS-042", "SCWBS-043", "SCWBS-044", "SCWBS-045"];
++    writeYaml(root, "contracts/tasks/SCWBS-048.yaml", sampleTask({
++      id: "SCWBS-048", completionScope: "node", completionTaskIds: ["SCWBS-046"], humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/SCWBS-046.yaml", sampleTask({
++      id: "SCWBS-046", completionScope: "node", completionTaskIds: leaves, humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    for (const taskId of [...leaves, "SCWBS-046", "SCWBS-048"]) {
++      writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({ id: taskId, humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++      writeEvidence(root, taskId);
++      writeReview(root, taskId);
++    }
++    writeYaml(root, "contracts/tasks/SCWBS-048.yaml", sampleTask({
++      id: "SCWBS-048", completionScope: "node", completionTaskIds: ["SCWBS-046"], humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/SCWBS-046.yaml", sampleTask({
++      id: "SCWBS-046", completionScope: "node", completionTaskIds: leaves, humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++
++    const readiness = evaluateCompletionReadiness(root, "SCWBS-048");
++    expect(readiness.evaluatedTaskIds).toEqual(["SCWBS-048", "SCWBS-046", ...leaves]);
++    expect(new Set(readiness.blockers
++      .filter((item) => item.code === "approval.post-finish-missing")
++      .map((item) => item.taskId))).toEqual(new Set(["SCWBS-048", "SCWBS-046", ...leaves]));
++    const preview = buildCompletionPreview(root, "SCWBS-048", "SCWBS-999", { reason: "Reviewed", allowRoot: false });
++    for (const taskId of ["SCWBS-046", ...leaves]) expect(preview).toContain(taskId);
++  });
++
++  test("preserves diamond parent paths while evaluating the shared target once", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeNodeFixture(root);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
++      id: "WBS-001-007",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-004"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-008.yaml", sampleTask({
++      id: "WBS-001-008",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-004"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-007", "WBS-001-008"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
++    writeLifecycle(root, "WBS-001-008", { pullRequest: "#48", headCommit: "abc1238", diffHash: SUBJECT.diffHash });
++
++    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
++    const sharedTarget = readiness.targets.find((target) => target.taskId === "WBS-001-004");
++    expect(sharedTarget?.graphPaths).toEqual([
++      ["WBS-001-006", "WBS-001-007", "WBS-001-004"],
++      ["WBS-001-006", "WBS-001-008", "WBS-001-004"]
++    ]);
++    expect(readiness.evaluatedTaskIds.filter((taskId) => taskId === "WBS-001-004")).toHaveLength(1);
++  });
++
++  test("fails closed on a cross-node target without evaluating its children", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeNodeFixture(root);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
++      id: "WBS-001-007",
++      wbsNodeId: "node-root",
++      completionScope: "node",
++      completionTaskIds: ["WBS-MISSING-CHILD"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-007"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++
++    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
++    expect(readiness.blockers.some((item) => item.code === "completion.target-node-mismatch")).toBe(true);
++    expect(readiness.blockers.some((item) => item.code === "completion.target-missing" && item.taskId === "WBS-MISSING-CHILD")).toBe(true);
++  });
++
++  test("reports bounded blockers once and keeps dry-run/apply fail-closed", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    const missingTargets = Array.from({ length: 300 }, (_, index) => `WBS-MISSING-${String(index).padStart(3, "0")}`);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: missingTargets,
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
++    expect(readiness.blockers).toHaveLength(128);
++    expect(readiness.omittedBlockerCount).toBe(175);
++    const trackedPaths = [
++      "contracts/wbs/project.wbs.json",
++      "contracts/registry.yaml",
++      "contracts/reviews/WBS-001-006.yaml",
++      "contracts/approvals/WBS-001-006.yaml"
++    ];
++    const before = trackedPaths.map((relativePath) => {
++      const fullPath = path.join(root, relativePath);
++      return existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
++    });
++    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
++    expect(preview.match(/additional blockers omitted/g)).toHaveLength(1);
++    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(1);
++    expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
++    expect(trackedPaths.map((relativePath) => {
++      const fullPath = path.join(root, relativePath);
++      return existsSync(fullPath) ? readFileSync(fullPath, "utf8") : undefined;
++    })).toEqual(before);
++  });
++
++  test("shared ordinary and root-node guards are part of readiness", () => {
++    const sharedRoot = makeTempRepo();
++    writeScwbsProject(sharedRoot, "ready");
++    writeYaml(sharedRoot, "contracts/tasks/WBS-001-005.yaml", sampleTask({ id: "WBS-001-005", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++    writeEvidence(sharedRoot, "WBS-001-004");
++    writePostFinishApproval(sharedRoot, "WBS-001-004");
++    const shared = evaluateCompletionReadiness(sharedRoot, "WBS-001-004");
++    expect(shared.blockers.some((item) => item.code === "wbs.shared-node-task")).toBe(true);
++
++    const rootTaskRoot = makeTempRepo();
++    writeScwbsProject(rootTaskRoot, "ready");
++    writeYaml(rootTaskRoot, "contracts/tasks/WBS-001-004.yaml", sampleTask({ wbsNodeId: "node-root", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++    writeEvidence(rootTaskRoot, "WBS-001-004");
++    writePostFinishApproval(rootTaskRoot, "WBS-001-004");
++    const rootReadiness = evaluateCompletionReadiness(rootTaskRoot, "WBS-001-004");
++    expect(rootReadiness.blockers.some((item) => item.code === "wbs.root-not-allowed")).toBe(true);
++  });
++
++  test("rejects cross-Task completion cycles with a bounded deterministic path", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeNodeFixture(root);
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-007"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({
++      id: "WBS-001-007",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-006"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeLifecycle(root, "WBS-001-007", { pullRequest: "#47", headCommit: "abc1237", diffHash: SUBJECT.diffHash });
++    const preview = buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false });
++    expect(preview).toContain("[completion.graph-cycle]");
++    expect(preview).toContain("WBS-001-006 -> WBS-001-007 -> WBS-001-006");
++    expect(runCompletionApply(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", apply: true, allowRoot: false })).toBe(1);
++    expect(existsSync(path.join(root, "contracts/changesets/WBS-001-999-complete-reviewed-work.json"))).toBe(false);
++  });
++
+   test.each(["requested", "changes-requested"] as const)("node primary rejects %s Review", (status) => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+@@ -253,6 +441,16 @@ describe("completion apply", () => {
+     expect(buildCompletionPreview(root, "WBS-001-004", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain(message);
+   });
+ 
++  test("rejects an approved legacy v1 post-finish Approval for node-level completion", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeNodeFixture(root);
++    writePostFinishApproval(root, "WBS-001-004");
++    const readiness = evaluateCompletionReadiness(root, "WBS-001-006");
++    expect(readiness.blockers.some((item) => item.code === "approval.legacy-version" && item.taskId === "WBS-001-004")).toBe(true);
++    expect(buildCompletionPreview(root, "WBS-001-006", "WBS-001-999", { reason: "Reviewed", allowRoot: false })).toContain("approval.legacy-version");
++  });
++
+   test.each([
+     ["pullRequest", "#41"],
+     ["headCommit", "stale-head"],
+diff --git a/tests/integration/navigation-json.test.ts b/tests/integration/navigation-json.test.ts
+index c3b89fc..1040799 100644
+--- a/tests/integration/navigation-json.test.ts
++++ b/tests/integration/navigation-json.test.ts
+@@ -3,7 +3,8 @@ import path from "node:path";
+ import Ajv2020 from "ajv/dist/2020.js";
+ import { describe, expect, test } from "vitest";
+ import { main } from "../../src/cli.js";
+-import { buildNextJsonOutput } from "../../src/commands/next.js";
++import { buildNextAction, buildNextJsonOutput } from "../../src/commands/next.js";
++import { buildReviewQueueSummary, reviewQueueNextAction, type ReviewQueueEntry } from "../../src/commands/review-queue.js";
+ import { sampleEvidence, sampleTask, makeTempRepo, writeScwbsProject, writeYaml } from "../helpers.js";
+ 
+ function captureStdout(run: () => number): { code: number; output: string } {
+@@ -47,7 +48,7 @@ describe("versioned navigation JSON", () => {
+       version: "scwbs.next.v1",
+       status: "actionable",
+       action: { kind: "collect-evidence", owner: "ai", taskId: "WBS-001-004" },
+-      reasons: [{ code: "evidence.missing" }]
++      reasons: [{ code: "evidence.remediation.required" }]
+     });
+     validateSchema("docs/scwbs/schemas/next.schema.json", output);
+   });
+@@ -59,24 +60,86 @@ describe("versioned navigation JSON", () => {
+     writeYaml(root, "contracts/tasks/WBS-001-004.yaml", task as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
+       changedFiles: ["src/security/policy.ts"],
++      diffHash: "diff1234",
+       git: { ...sampleEvidence().git, pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+       id: "RVW-WBS-001-004",
+       type: "review",
+       taskId: "WBS-001-004",
+-      status: "requested"
++      status: "requested",
++      pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
++      reviewProfile: "independent-ai-review",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+     const output = buildNextJsonOutput(root);
+     expect(output).toMatchObject({
+       version: "scwbs.next.v1",
+       status: "waiting",
+-      action: { owner: "human", aiStop: true, taskId: "WBS-001-004" },
++      action: { owner: "human", kind: "human-review", taskId: "WBS-001-004", command: "scwbs review approve --task WBS-001-004 --actor human", aiStop: true },
+       reasons: [{ code: "review.human_decision_required" }]
+     });
+   });
+ 
++  test("next text and JSON share the structured Review refresh action", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      git: { ...sampleEvidence().git, pullRequest: "#42", headCommit: "current-head" },
++      diffHash: "current-diff"
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "requested",
++      reviewProfile: "independent-ai-review",
++      pullRequest: "#42",
++      headCommit: "stale-head",
++      diffHash: "current-diff",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++
++    const summary = buildReviewQueueSummary(root);
++    const candidate = summary.candidates.find((item) => item.taskId === "WBS-001-004");
++    expect(candidate?.actionStage).toBe("review-refresh");
++    expect(buildNextJsonOutput(root).action?.command).toBe("scwbs review request --task WBS-001-004 --force");
++    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-004 --force");
++  });
++
++  test("incomplete Evidence subject routes force collection before Review refresh", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: undefined,
++      git: { branch: "task/WBS-001-004-api-implementation", base: "main", pullRequest: "#42", headCommit: undefined }
++    }) as unknown as Record<string, unknown>);
++
++    const next = buildNextAction(root);
++    expect(next).toContain("scwbs evidence collect --task WBS-001-004 --force");
++    expect(next).not.toContain("scwbs review request");
++  });
++
++  test("queue actions use executable force commands for existing remediation artifacts", () => {
++    const entry = (actionStage: ReviewQueueEntry["actionStage"], blockers: ReviewQueueEntry["blockers"], reasons: string[] = []): ReviewQueueEntry => ({
++      taskId: "WBS-001-007", nodeCode: "1.1", nodeName: "API", reasons, warnings: [], completionBlockedBy: [],
++      suggestedAction: "remediate", actionStage, completionReady: false, blockers, omittedBlockerCount: 0
++    });
++    const evidenceBlocker = { code: "evidence.subject-head-missing", rootTaskId: "WBS-001-006", taskId: "WBS-001-007", phase: "evidence", message: "Evidence does not record a subjectHeadCommit" } as const;
++    expect(reviewQueueNextAction(entry("evidence-remediation", [evidenceBlocker], ["evidence exists"])).command)
++      .toBe("scwbs evidence collect --task WBS-001-007 --force");
++
++    const staleApproval = { code: "approval.head-mismatch", rootTaskId: "WBS-001-006", taskId: "WBS-001-007", phase: "approval", scope: "post-finish", message: "post-finish Approval headCommit does not match Evidence" } as const;
++    expect(reviewQueueNextAction(entry("scoped-approval", [staleApproval])).command)
++      .toBe("scwbs request-approval --task WBS-001-007 --scope post-finish --force");
++    const missingApproval = { code: "approval.post-finish-missing", rootTaskId: "WBS-001-006", taskId: "WBS-001-007", phase: "approval", scope: "post-finish", message: "post-finish Approval unavailable (approval.missing)" } as const;
++    expect(reviewQueueNextAction(entry("scoped-approval", [missingApproval])).command)
++      .toBe("scwbs request-approval --task WBS-001-007 --scope post-finish");
++  });
++
+   test("ui --json aggregates versioned status, next, review, and doctor sections", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root);
+diff --git a/tests/integration/review.test.ts b/tests/integration/review.test.ts
+index 74b51f8..67170aa 100644
+--- a/tests/integration/review.test.ts
++++ b/tests/integration/review.test.ts
+@@ -64,6 +64,15 @@ function captureReviewRequest(root: string, taskId: string, options: { pullReque
+ function prepareLargeReviewQueue(count = 120): string {
+   const root = makeTempRepo();
+   writeScwbsProject(root, "ready");
++  writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++    diffHash: "base-diff",
++    git: { ...sampleEvidence().git, pullRequest: "#42" }
++  }) as unknown as Record<string, unknown>);
++  writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++    id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved",
++    reviewProfile: "independent-ai-review", pullRequest: "#42", headCommit: "abc1234", diffHash: "base-diff",
++    groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++  });
+   for (let index = 0; index < count; index += 1) {
+     const taskId = `WBS-QUEUE-${String(index).padStart(3, "0")}`;
+     writeYaml(root, `contracts/tasks/${taskId}.yaml`, sampleTask({
+@@ -114,6 +123,70 @@ describe("review queue + review request", () => {
+     expect(new Ajv2020({ strict: false }).compile(schema)(json)).toBe(true);
+   });
+ 
++  test("node completion navigation targets a reachable descendant Review task", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "base-diff",
++      git: { ...sampleEvidence().git, pullRequest: "#59" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004",
++      type: "review",
++      taskId: "WBS-001-004",
++      status: "approved",
++      reviewProfile: "independent-ai-review",
++      pullRequest: "#59",
++      headCommit: "abc1234",
++      diffHash: "base-diff",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-007"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({ id: "WBS-001-007", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({ taskId: "WBS-001-006", id: "EVD-WBS-001-006", diffHash: "root-diff", git: { ...sampleEvidence().git, pullRequest: "#60", headCommit: "root-head" } }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-007.yaml", sampleEvidence({ taskId: "WBS-001-007", id: "EVD-WBS-001-007", diffHash: "child-diff", git: { ...sampleEvidence().git, pullRequest: "#61", headCommit: "child-head" } }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", { id: "RVW-WBS-001-006", type: "review", taskId: "WBS-001-006", status: "approved", reviewProfile: "independent-ai-review", pullRequest: "#60", headCommit: "root-head", diffHash: "root-diff", groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"] });
++    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007");
++  });
++
++  test("node completion navigation uses the descendant Review status and taskId", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "base-diff",
++      git: { ...sampleEvidence().git, pullRequest: "#59" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
++      id: "RVW-WBS-001-004", type: "review", taskId: "WBS-001-004", status: "approved",
++      reviewProfile: "independent-ai-review", pullRequest: "#59", headCommit: "abc1234", diffHash: "base-diff",
++      groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
++    });
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006", completionScope: "node", completionTaskIds: ["WBS-001-007"], humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/tasks/WBS-001-007.yaml", sampleTask({ id: "WBS-001-007", humanGateRequiredPaths: [] }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({ taskId: "WBS-001-006", id: "EVD-WBS-001-006", diffHash: "root-diff", git: { ...sampleEvidence().git, pullRequest: "#60", headCommit: "root-head" } }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-007.yaml", sampleEvidence({ taskId: "WBS-001-007", id: "EVD-WBS-001-007", diffHash: "child-diff", git: { ...sampleEvidence().git, pullRequest: "#61", headCommit: "child-head" } }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", { id: "RVW-WBS-001-006", type: "review", taskId: "WBS-001-006", status: "approved", reviewProfile: "independent-ai-review", pullRequest: "#60", headCommit: "root-head", diffHash: "root-diff", groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"] });
++    const childReview = (status: "requested" | "changes-requested" | "closed") => writeYaml(root, "contracts/reviews/WBS-001-007.yaml", {
++      id: "RVW-WBS-001-007", type: "review", taskId: "WBS-001-007", status, reviewProfile: "independent-ai-review",
++      pullRequest: "#61", headCommit: "child-head", diffHash: "child-diff",
++      groundTruth: ["contracts/tasks/WBS-001-007.yaml", "contracts/evidence/WBS-001-007.yaml"]
++    });
++
++    childReview("requested");
++    expect(buildNextAction(root)).toContain("scwbs review approve --task WBS-001-007 --actor human");
++    childReview("changes-requested");
++    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007 --force");
++    childReview("closed");
++    expect(buildNextAction(root)).toContain("scwbs review request --task WBS-001-007 --force");
++  });
++
+   test("review queue rejects conflicting modes and invalid limits", () => {
+     const root = prepareLargeReviewQueue(1);
+     expect(captureReviewQueue(root, { json: true, verbose: true })).toMatchObject({
+@@ -226,7 +299,8 @@ describe("review queue + review request", () => {
+           base: "main",
+           headCommit: "abc1234",
+           pullRequest: "#42"
+-        }
++        },
++        diffHash: "diff1234"
+       }) as unknown as Record<string, unknown>
+     );
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -236,14 +310,17 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+     const queue = buildReviewQueue(root);
+     expect(queue).toContain("completionBlockedBy: WBS node status is planned; completion requires ready");
+     expect(queue).toContain("- 0 candidates ready for completion review");
+-    expect(queue).toContain("Ready for completion review:\n- None");
+-    expect(buildNextAction(root)).not.toContain("Human review for WBS-001-004");
++    expect(queue).toContain("Ready for completion review:\n- WBS-001-004 (human review; completion prerequisites remain)");
++    expect(queue).toContain("suggestedAction: human review for completion; defer completion until prerequisites are ready");
++    expect(buildNextAction(root)).toContain("scwbs review approve --task WBS-001-004 --actor human");
+   });
+ 
+   test("review queue blocks on active Blocks and ignores resolved Blocks", () => {
+@@ -395,7 +472,8 @@ describe("review queue + review request", () => {
+           base: "main",
+           headCommit: "abc1234",
+           pullRequest: "#42"
+-        }
++        },
++        diffHash: "diff1234"
+       }) as unknown as Record<string, unknown>
+     );
+     const queue = buildReviewQueue(root);
+@@ -435,7 +513,8 @@ describe("review queue + review request", () => {
+           base: "main",
+           headCommit: "abc1234",
+           pullRequest: "#42"
+-        }
++        },
++        diffHash: "diff1234"
+       }) as unknown as Record<string, unknown>
+     );
+ 
+@@ -456,7 +535,8 @@ describe("review queue + review request", () => {
+           base: "main",
+           headCommit: "abc1234",
+           pullRequest: "#42"
+-        }
++        },
++        diffHash: "diff1234"
+       }) as unknown as Record<string, unknown>
+     );
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -466,6 +546,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+@@ -475,6 +557,43 @@ describe("review queue + review request", () => {
+     expect(queue).not.toContain("warning: no review request is recorded for this review candidate");
+   });
+ 
++  test("review queue routes a stale node Review to refresh without suggesting approve", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/tasks/WBS-001-006.yaml", sampleTask({
++      id: "WBS-001-006",
++      completionScope: "node",
++      completionTaskIds: ["WBS-001-004"],
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "sha256:current",
++      git: { branch: "task/WBS-001-004-api", base: "main", headCommit: "current-head", pullRequest: "#41" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-006.yaml", sampleEvidence({
++      taskId: "WBS-001-006",
++      id: "EVD-WBS-001-006",
++      diffHash: "sha256:current-root",
++      git: { branch: "task/WBS-001-006-node", base: "main", headCommit: "current-root", pullRequest: "#42" }
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/reviews/WBS-001-006.yaml", {
++      id: "RVW-WBS-001-006",
++      type: "review",
++      taskId: "WBS-001-006",
++      status: "requested",
++      reviewProfile: "independent-ai-review",
++      pullRequest: "#42",
++      headCommit: "stale-root",
++      diffHash: "sha256:stale",
++      groundTruth: ["contracts/tasks/WBS-001-006.yaml", "contracts/evidence/WBS-001-006.yaml"]
++    });
++
++    const summary = JSON.parse(captureReviewQueue(root, { json: true }).stdout) as { candidates: Array<{ taskId: string; actionStage: string }> };
++    expect(summary.candidates.find((candidate) => candidate.taskId === "WBS-001-006")?.actionStage).toBe("review-refresh");
++    expect(buildReviewQueue(root)).not.toContain("review approve");
++    expect(buildNextAction(root)).not.toContain("scwbs review approve");
++  });
++
+   test("review queue warns when pull request metadata is missing", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
+@@ -507,17 +626,19 @@ describe("review queue + review request", () => {
+     expect(queue).toContain("human gate paths were changed but no approval record exists");
+   });
+ 
+-  test("review queue is empty when there is nothing pending", () => {
++  test("review queue lists missing Evidence as a remediation candidate", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
+     const queue = buildReviewQueue(root);
+-    expect(queue).toBe("Review Queue:\n- None\n");
++    expect(queue).toContain("WBS-001-004");
++    expect(queue).toContain("blocker: [evidence.invalid] Evidence unavailable (evidence.missing)");
+   });
+ 
+   test("review approve transitions a requested review to approved", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -527,6 +648,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", findings: "looks good", force: false })).toBe(0);
+@@ -541,6 +664,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -550,6 +674,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     expect(runReviewChangesRequested(root, "WBS-001-004", { reviewedBy: "human", findings: "fix typo", force: false })).toBe(0);
+@@ -563,6 +689,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -572,6 +699,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     expect(runReviewClose(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(0);
+@@ -585,6 +714,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -594,6 +724,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+@@ -616,6 +748,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -625,6 +758,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+ 
+@@ -678,6 +813,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -687,6 +823,8 @@ describe("review queue + review request", () => {
+       status: "approved",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     const queue = buildReviewQueue(root);
+@@ -698,6 +836,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -707,6 +846,8 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     const next = buildNextAction(root);
+@@ -717,6 +858,7 @@ describe("review queue + review request", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -742,6 +884,7 @@ describe("review queue + review request", () => {
+       humanGateRequiredPaths: []
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
+       git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
+     }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+@@ -751,12 +894,13 @@ describe("review queue + review request", () => {
+       status: "requested",
+       reviewProfile: "independent-ai-review",
+       pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
+     });
+     const next = buildNextAction(root);
+     expect(next).not.toContain("scwbs review-queue");
+-    expect(next).toContain("Planned task candidates:");
+-    expect(next).toContain("WBS-001-005");
++    expect(next).toContain("scwbs evidence collect --task WBS-001-005");
+   });
+ 
+   test("force overwrite allows transitioning from a terminal review state", () => {
+@@ -812,16 +956,23 @@ describe("review queue + review request", () => {
+   test("approve on already-closed review fails without force", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "ready");
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({
++      diffHash: "diff1234",
++      git: { branch: "task/WBS-001-004-api-implementation", base: "main", headCommit: "abc1234", pullRequest: "#42" }
++    }) as unknown as Record<string, unknown>);
+     writeYaml(root, "contracts/reviews/WBS-001-004.yaml", {
+       id: "RVW-WBS-001-004",
+       type: "review",
+       taskId: "WBS-001-004",
+       status: "closed",
+       reviewProfile: "independent-ai-review",
++      pullRequest: "#42",
++      headCommit: "abc1234",
++      diffHash: "diff1234",
+       groundTruth: ["contracts/tasks/WBS-001-004.yaml"]
+     });
+     expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: false })).toBe(1);
+-    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(0);
++    expect(runReviewApprove(root, "WBS-001-004", { reviewedBy: "human", force: true })).toBe(1);
+   });
+ 
+   test("review queue includes review health summary sections", () => {
