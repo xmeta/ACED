@@ -1,0 +1,60 @@
+schemaVersion: 1.0.0
+id: PROBE-node-completion-readiness-remediation
+type: discovery-probe
+status: concluded
+question: Can nested node-completion readiness and SCWBS-041 through SCWBS-048 legacy lifecycle subjects be remediated without weakening Issue 594 or Issue 600 authority?
+hypotheses:
+  - Cycle-safe transitive evaluation can preserve nested compatibility
+  - Historical Git objects can reproduce canonical subject identity
+  - A shared evaluator can align queue review preflight and completion apply
+activities:
+  - Inventory SCWBS-041 through SCWBS-048 lifecycle subjects
+  - Reproduce nested bypass and readiness drift
+  - Compare transitive evaluation with flat replacement
+  - Classify historical diff reconstruction feasibility
+  - Define delivery Task boundaries and human-only approval steps
+evidenceExpected:
+  - Per-Task subject inventory
+  - Reproducible blocker matrix
+  - Evaluation policy decision
+  - Legacy migration safety contract
+  - Minimal delivery scopes
+unknowns:
+  - Whether every historical subject object remains available
+  - Whether every canonical diff reproduces changedFiles
+  - Exact final completion cohort
+  - Bounded cycle and graph limits
+timebox: 2h
+costLimit: two engineer-hours
+exitConditions:
+  - SCWBS-041 through SCWBS-048 inventory is complete
+  - Nested bypass and queue drift are reproducible
+  - Evaluation policy and graph bounds are decided
+  - Legacy migration inputs outputs and fail-closed conditions are defined
+  - Human Review and Approval boundaries are explicit
+  - Delivery scopes retain wjs forbidden and preserve existing authority
+nextDecision: Create and lock Delivery A for shared transitive completion readiness first; then create separate legacy migration tooling and artifact migration Tasks; do not create final node completion until contractLock lifecycle policy is decided
+createdAt: "2026-08-24T07:38:40.328Z"
+startedAt: "2026-08-24T07:39:17.888Z"
+concludedAt: "2026-08-24T07:47:13.360Z"
+exitConditionsMet: true
+factsLearned:
+  - SCWBS-048 transitively reaches SCWBS-046 and SCWBS-041 through SCWBS-045 but current evaluation is direct-only
+  - All SCWBS-041 through SCWBS-048 base and subject Git objects exist and are reachable from main
+  - All eight Evidence records lack current diffHash
+  - SCWBS-041 through SCWBS-045 and SCWBS-048 recorded changedFiles include lifecycle metadata excluded by current canonicalization
+  - All eight Reviews are requested and lack current subject fields
+  - SCWBS-041 through SCWBS-046 use legacy unscoped Approval while SCWBS-047 and SCWBS-048 have none
+  - Cycle-safe transitive evaluation with deterministic dedup and bounded structured blockers preserves existing nested contracts
+  - Queue review preflight and completion must share one readiness evaluator
+  - Legacy migration must reconstruct canonical diff and never generate approved Review or Approval
+  - Completing node-governance-maintenance would stale lock v2 scope revision for 227 Tasks
+hypothesesRejected:
+  - Grandfathering legacy Approval as current scoped Approval
+  - Nested evaluation that checks only direct targets
+  - Automatic Review or Approval approval
+  - Bulk refreshing 227 authority locks inside the completion Task
+  - Reusing SCWBS-053 or an existing completion changeset
+remainingUnknowns:
+  - ContractLock lifecycle policy for node status transitions before final completion apply
+  - Human decision for cases where recorded changedFiles differ beyond classified lifecycle metadata
