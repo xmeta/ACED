@@ -1,0 +1,109 @@
+diff --git a/contracts/tasks/SCWBS-043.yaml b/contracts/tasks/SCWBS-043.yaml
+new file mode 100644
+index 0000000..f1dfe45
+--- /dev/null
++++ b/contracts/tasks/SCWBS-043.yaml
+@@ -0,0 +1,30 @@
++id: SCWBS-043
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-SCWBS-GOVERNANCE
++branchName: codex/scwbs-043-review-queue-shared-node-completion
++allowedPaths:
++  - src/commands/review-queue.ts
++  - tests/scwbs.test.ts
++  - contracts/tasks/SCWBS-043.yaml
++  - contracts/evidence/SCWBS-043.yaml
++  - contracts/registry.yaml
++forbiddenPaths:
++  - wjs/**
++humanGateRequiredPaths:
++requiredChecks:
++  - test
++  - typecheck
++  - build
++doneCriteria:
++  - review-queue does not treat shared WBS nodes as directly ready for completion.
++  - review-queue explains that shared node completion requires a dedicated node-level completion task.
++  - Existing single-task review queue behavior is preserved.
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++contractLock:
++  wbsRevision: "sha256:a14ccfee62771d89523fa01fdfce3be720b9a3feda3026ebbf24d15456d82457"
++  wbsNodeId: node-governance-maintenance
++  createdAt: "2026-07-02T00:00:00.000Z"
+diff --git a/src/commands/review-queue.ts b/src/commands/review-queue.ts
+index 1da4875..9db7fcf 100644
+--- a/src/commands/review-queue.ts
++++ b/src/commands/review-queue.ts
+@@ -30,8 +30,14 @@ function incompleteDependencies(rootNodeId: string, wbs: ReturnType<typeof readW
+ export function buildReviewQueue(root: string): string {
+   const wbs = readWbs(root);
+   const entries: ReviewQueueEntry[] = [];
++  const tasks = listTasks(root);
++  const taskCountByNode = new Map<string, number>();
++  for (const entry of tasks) {
++    if (!entry.task) continue;
++    taskCountByNode.set(entry.task.wbsNodeId, (taskCountByNode.get(entry.task.wbsNodeId) ?? 0) + 1);
++  }
+ 
+-  for (const entry of listTasks(root)) {
++  for (const entry of tasks) {
+     const task = entry.task;
+     if (!task) continue;
+     const node = findNode(wbs, task.wbsNodeId);
+@@ -63,6 +69,9 @@ export function buildReviewQueue(root: string): string {
+         warnings.push(`dependsOn node ${blockedBy} is not completed`);
+       }
+     }
++    if ((taskCountByNode.get(node.id) ?? 0) > 1) {
++      completionBlockedBy.push("node has multiple Task Contracts; completion requires a dedicated node-level completion task");
++    }
+ 
+     if (evidence) {
+       const touchesHumanGate = evidence.changedFiles.some((file) => matchesAny(file, task.humanGateRequiredPaths));
+@@ -88,8 +97,11 @@ export function buildReviewQueue(root: string): string {
+ 
+     if (reasons.length > 0) {
+       const hasPullRequest = Boolean(evidence?.git?.pullRequest ?? approval?.pullRequest);
++      const sharedNodeCompletionBlocked = completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
+       const suggestedAction = completionBlockedBy.length > 0
+-        ? "review evidence now, but defer completion until dependencies are completed"
++        ? sharedNodeCompletionBlocked
++          ? "review evidence now, but defer WBS completion to a dedicated node-level completion task"
++          : "review evidence now, but defer completion until dependencies are completed"
+         : !hasPullRequest
+           ? "create or record PR, then human review for completion"
+           : !hasReview
+diff --git a/tests/scwbs.test.ts b/tests/scwbs.test.ts
+index 9ea69eb..d5f4db9 100644
+--- a/tests/scwbs.test.ts
++++ b/tests/scwbs.test.ts
+@@ -1432,6 +1432,25 @@ fs.writeFileSync(wbsPath, JSON.stringify(wbs, null, 2) + "\\n");
+     expect(queue).toContain("suggestedAction: review evidence now, but defer completion until dependencies are completed");
+   });
+ 
++  test("review queue defers completion for shared WBS nodes", () => {
++    const root = makeTempRepo();
++    writeScwbsProject(root, "planned");
++    writeYaml(root, "contracts/tasks/WBS-001-005.yaml", sampleTask({
++      id: "WBS-001-005",
++      humanGateRequiredPaths: []
++    }) as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
++    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
++      id: "EVD-001-005",
++      taskId: "WBS-001-005"
++    }) as unknown as Record<string, unknown>);
++
++    const queue = buildReviewQueue(root);
++    expect(queue).toContain("completionBlockedBy: node has multiple Task Contracts; completion requires a dedicated node-level completion task");
++    expect(queue).toContain("suggestedAction: review evidence now, but defer WBS completion to a dedicated node-level completion task");
++    expect(queue).toContain("Ready for completion review:\n- None");
++  });
++
+   test("review queue shows pull request metadata when present", () => {
+     const root = makeTempRepo();
+     writeScwbsProject(root, "planned");
