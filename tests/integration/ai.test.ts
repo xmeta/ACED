@@ -459,8 +459,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
       branchName: "task/WBS-001-005-follow-up",
       humanGateRequiredPaths: []
     }) as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence() as unknown as Record<string, unknown>);
-    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-004.yaml", sampleEvidence({ diffHash: "diff-001-004" }) as unknown as Record<string, unknown>);
+    writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({ id: "EVD-001-005", taskId: "WBS-001-005", diffHash: "diff-001-005" }) as unknown as Record<string, unknown>);
     expect(main(["ai", "block", "--task", "WBS-001-004", "--reason", "Human Gate required"], root)).toBe(0);
     expect(buildNextAction(root)).toContain("Review blocked candidates");
   });
@@ -533,6 +533,7 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
       root,
       "contracts/evidence/WBS-001-004.yaml",
       sampleEvidence({
+        diffHash: "diff-001-004",
         git: {
           branch: "task/WBS-001-004-api-implementation",
           base: "main",
@@ -548,12 +549,14 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff-001-004",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 
     const next = buildNextAction(root);
-    expect(next).toContain("Human review for WBS-001-004");
-    expect(next).toContain("scwbs review-queue");
+    expect(next).toContain("Human review");
+    expect(next).toContain("scwbs review approve --task WBS-001-004 --actor human");
     expect(next).not.toContain("scwbs review request --task WBS-001-004");
   });
 
@@ -570,7 +573,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
         base: "main",
         headCommit: "abc1234",
         pullRequest: "#42"
-      }
+      },
+      diffHash: "diff-001-004"
     }) as unknown as Record<string, unknown>);
     writeYaml(root, "contracts/evidence/WBS-001-005.yaml", sampleEvidence({
       id: "EVD-001-005",
@@ -583,6 +587,8 @@ if (input.role !== "reviewer" || input.freshContext !== true || typeof input.dif
       status: "requested",
       reviewProfile: "independent-ai-review",
       pullRequest: "#42",
+      headCommit: "abc1234",
+      diffHash: "diff-001-004",
       groundTruth: ["contracts/tasks/WBS-001-004.yaml", "contracts/evidence/WBS-001-004.yaml"]
     });
 

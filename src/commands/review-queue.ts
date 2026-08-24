@@ -86,6 +86,10 @@ function deriveActionStage(input: {
   evidenceSubjectIncomplete: boolean;
   reviewSubjectStale: boolean;
 }): ReviewQueueEntry["actionStage"] {
+  // An active Block is a hard stop for this Task. Keep the entry visible for
+  // queue diagnostics, but never expose its Evidence/Review lifecycle as an
+  // executable next action.
+  if (input.blockers.some((item) => item.code === "wbs.active-block")) return "completion-blocked";
   const evidence = input.blockers.find((item) => item.phase === "evidence");
   if (evidence) return "evidence-remediation";
   if (!input.hasEvidence || !input.hasPullRequest || input.evidenceSubjectIncomplete) return "evidence-remediation";

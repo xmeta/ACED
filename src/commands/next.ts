@@ -1,5 +1,5 @@
 import { collectCheckIssues } from "./check.js";
-import { buildReviewQueueSummary, isHardCompletionBlock, reviewQueueNextAction, type ReviewQueueAction, type ReviewQueueEntry } from "./review-queue.js";
+import { buildReviewQueueSummary, reviewQueueNextAction, type ReviewQueueAction, type ReviewQueueEntry } from "./review-queue.js";
 import { buildNextTask } from "./ai-queue.js";
 import { listActiveTasks, evidenceExists, readBlock, readEvidence } from "../core/contracts.js";
 import { discoveryNextLine, discoveryStateFromProbe, listDiscoveryProbes } from "../core/discovery.js";
@@ -54,32 +54,42 @@ function missingEvidenceAction(root: string): ReviewQueueAction | undefined {
     owner: "ai",
     taskId: task.id,
     command: `scwbs evidence collect --task ${task.id}`,
-    reasonCode: "evidence.missing",
-    reasonMessage: "Task has no Evidence file yet"
+    reasonCode: "evidence.remediation.required",
+    reasonMessage: `Collect evidence for ${task.id}`
   };
+}
+
+function hasActiveBlockEntry(root: string, entry: ReviewQueueEntry): boolean {
+  return hasActiveBlock(root, entry.taskId) || entry.blockers.some((item) => item.code === "wbs.active-block");
+}
+
+function hasStructuralBlock(entry: ReviewQueueEntry): boolean {
+  // A shared-node/graph/dependency blocker means this candidate cannot be
+  // advanced by an Evidence or Review command. A merely not-yet-ready WBS
+  // node still permits human review of the Evidence while completion waits.
+  return entry.blockers.some((item) => item.phase === "graph" || item.phase === "dependency" || item.code === "wbs.shared-node-task")
+    || entry.completionBlockedBy.some((item) => item.includes("multiple Task Contracts"));
 }
 
 /** Resolve navigation from the same structured queue entries used by review-queue. */
 function queueNavigation(root: string): ReviewQueueAction | undefined {
   const entries = queueEntries(root);
-  const evidenceRemediation = entries.find((entry) => entry.actionStage === "evidence-remediation");
-  if (evidenceRemediation) return reviewQueueNextAction(evidenceRemediation);
+  // Active Blocks and structural completion blockers remain visible in the
+  // review queue, but neither may preempt an eligible lifecycle action.
+  const actionable = entries.filter((entry) => !hasActiveBlockEntry(root, entry) && !hasStructuralBlock(entry));
   const missingEvidence = missingEvidenceAction(root);
   if (missingEvidence) return missingEvidence;
-  const refresh = entries.find((entry) => entry.actionStage === "review-refresh");
+  const evidenceRemediation = actionable.find((entry) => entry.actionStage === "evidence-remediation");
+  if (evidenceRemediation) return reviewQueueNextAction(evidenceRemediation);
+  const refresh = actionable.find((entry) => entry.actionStage === "review-refresh");
   if (refresh) return reviewQueueNextAction(refresh);
-  const request = entries.find((entry) => entry.actionStage === "review-request");
+  const request = actionable.find((entry) => entry.actionStage === "review-request");
   if (request) return reviewQueueNextAction(request);
-  const humanReview = entries.find((entry) => entry.actionStage === "human-review");
+  const humanReview = actionable.find((entry) => entry.actionStage === "human-review");
   if (humanReview) return reviewQueueNextAction(humanReview);
-  const scopedApproval = entries.find((entry) => entry.actionStage === "scoped-approval");
+  const scopedApproval = actionable.find((entry) => entry.actionStage === "scoped-approval");
   if (scopedApproval) return reviewQueueNextAction(scopedApproval);
-  const blocked = entries.find((entry) => isHardCompletionBlock(entry)
-    && entry.actionStage !== "evidence-remediation"
-    && entry.actionStage !== "scoped-approval"
-    && entry.actionStage !== "review-request"
-    && entry.actionStage !== "review-refresh"
-    && entry.actionStage !== "human-review");
+  const blocked = entries.find((entry) => !hasActiveBlockEntry(root, entry) && hasStructuralBlock(entry));
   if (blocked) return inspectBlockedAction();
   return undefined;
 }
@@ -89,7 +99,7 @@ function queueActionJson(action: ReviewQueueAction): NextJsonOutput {
 }
 
 function queueActionText(discovery: string, action: ReviewQueueAction): string {
-  const label = action.kind === "human-review" ? "Human review" : action.kind === "inspect-review-queue" ? "Review blocked candidates" : action.kind === "refresh-review" ? "Refresh Review" : action.kind === "request-review" ? "Request Review" : action.kind === "request-approval" ? "Request scoped Approval" : "Remediate Evidence";
+  const label = action.kind === "human-review" ? "Human review" : action.kind === "inspect-review-queue" ? "Review blocked candidates" : action.kind === "refresh-review" ? "Refresh Review" : action.kind === "request-review" ? "Request Review" : action.kind === "request-approval" ? "Request scoped Approval" : action.reasonMessage.startsWith("Collect evidence for") ? action.reasonMessage : "Remediate Evidence";
   return `Next suggested action:\n\n${discovery}${label}\nReason:\n- ${action.reasonMessage}\n\nCommand:\n  ${action.command}\n`;
 }
 
