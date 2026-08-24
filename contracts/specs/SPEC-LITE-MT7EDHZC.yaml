@@ -1,0 +1,23 @@
+id: SPEC-LITE-MT7EDHZC
+type: spec-contract
+featureId: F-MT7EDHZC
+title: Fail-closed legacy Evidence subject migration tooling
+status: approved
+version: 0.1.0
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-25T00:35:21+09:00"
+summary: Add a dry-run-first command that reconstructs legacy Evidence subject identity from verified Git history while keeping lifecycle artifact mutation and every human decision in later, separately contracted steps.
+acceptanceCriteria:
+  - The command derives canonical changedFiles and diffHash from the recorded baseCommit and historical subject commit using git-diff-binary-v1 and task lifecycle metadata exclusions.
+  - Base and subject commits must exist, the base must be an ancestor of the subject, and a recorded pull request must contain the subject in its verified head ancestry.
+  - Default execution is read-only and returns a bounded versioned plan with deterministic ready or blocked status and reason codes.
+  - Differences between recorded and canonical changedFiles are tolerated only when every difference is classified task lifecycle metadata; all other differences fail closed.
+  - Missing Git objects, shallow or unverifiable history, invalid PR metadata, ancestry mismatch, ambiguous inputs, and canonicalization failure never produce an executable-looking migration result.
+  - The tooling does not mutate SCWBS-041 through SCWBS-048 artifacts and does not create, approve, reject, close, or otherwise transition Review or Approval records.
+  - Documentation defines the later order as scoped Review request, human Review approval, post-finish v2 Approval request, and human Approval after a separate artifact migration Task.
+  - Regression tests cover ready reconstruction plus missing object, non-ancestor, PR mismatch, lifecycle-only changedFiles drift, unexpected drift, and no-write behavior.
+nonGoals:
+  - Applying reconstructed values to legacy Evidence or payload artifacts.
+  - Migrating Review or Approval records or performing human-only actions.
+  - Completing a WBS node, refreshing contract locks, reusing SCWBS-053, or changing WBS and changesets.
+  - Changing Approval v2, Human Gate, package, CI, schema, authentication, or external-service semantics.

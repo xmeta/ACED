@@ -1,0 +1,83 @@
+id: SCWBS-DRAFT-MT7EDHZC
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MT7EDHZC
+branchName: task/SCWBS-DRAFT-MT7EDHZC-add-fail-closed-legacy-evidence-subject-migratio
+allowedPaths:
+  - src/commands/evidence-migrate-subject.ts
+  - src/cli/register-governance.ts
+  - src/core/git.ts
+  - tests/integration/evidence-migrate-subject.test.ts
+  - docs/scwbs/cli-task-evidence.md
+forbiddenPaths:
+  - wjs/**
+  - contracts/wbs/**
+  - contracts/changesets/**
+  - contracts/tasks/SCWBS-0**
+  - contracts/evidence/SCWBS-0**
+  - contracts/evidence-payloads/SCWBS-0**
+  - contracts/reviews/SCWBS-0**
+  - contracts/approvals/SCWBS-0**
+  - src/core/schema/**
+  - src/commands/approval-*.ts
+  - src/commands/review-*.ts
+  - .github/**
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - legacy lifecycle artifact mutation required
+  - Approval or Review status transition required
+  - authority field expansion required
+  - WBS or changeset modification required
+  - canonical reconstruction is ambiguous
+  - Git base subject or PR ancestry cannot be verified
+  - package workflow schema auth or external-service change required
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - A dedicated evidence subject migration command reconstructs canonical identity from recorded baseCommit and historical subject commit without using the current working-tree diff.
+  - The command verifies base and subject object availability, base ancestry, recorded pull request ancestry when present, and the current git-diff-binary-v1 canonicalization before reporting a migratable result.
+  - Dry-run is the default and emits a bounded versioned result containing task, base, subject, pull request, canonical changedFiles, diffHash, and deterministic blocker codes without tracked writes.
+  - Apply is not implemented by this tooling Task; SCWBS-041 through SCWBS-048 Evidence, Review, Approval, WBS, changeset, and Task authority artifacts remain byte-for-byte unchanged.
+  - Recorded changedFiles differences are classified only when they are task lifecycle metadata excluded by current canonicalization; any other mismatch fails closed.
+  - Missing, ambiguous, non-ancestor, cross-PR, shallow/unavailable, and unexpected changedFiles cases fail closed without fabricating a subject or diffHash.
+  - The command never creates or transitions Review or Approval records and documentation keeps human Review and Approval as explicit later steps.
+  - Unit, typecheck, build, targeted integration, and full integration checks pass.
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/tasks/index.yaml
+  - contracts/specs/SPEC-LITE-MT7EDHZC.yaml
+  - contracts/blocks/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/evidence/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MT7EDHZC.patch
+  - contracts/approvals/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/reviews/SCWBS-DRAFT-MT7EDHZC.yaml
+  - contracts/registry.yaml
+specPath: contracts/specs/SPEC-LITE-MT7EDHZC.yaml
+specVersion: 0.1.0
+status: approved
+approvedBy: user-provided-remediation-objective
+approvedAt: "2026-08-25T00:35:21+09:00"
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:8852d71f8bba56bdc57f8faa457628ce32ba38f1e01802a11c4d7623773daa10
+  createdAt: "2026-08-24T15:36:08.895Z"
