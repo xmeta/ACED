@@ -1,0 +1,69 @@
+id: SCWBS-DRAFT-MTG793F3
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MTG793F3
+branchName: task/SCWBS-DRAFT-MTG793F3-issue-595-phase-b-workflow-integrity-merge-enfor
+status: approved
+approvedBy: xmeta
+sourceIssue: 595
+allowedPaths:
+  - src/core/merge-preflight.ts
+  - src/commands/merge.ts
+  - tests/integration/merge.test.ts
+  - docs/scwbs/schemas/merge-preflight.schema.json
+  - docs/scwbs/merge-protection.md
+forbiddenPaths:
+  - wjs/**
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+  - src/core/merge-preflight.ts
+  - src/commands/merge.ts
+  - docs/scwbs/schemas/merge-preflight.schema.json
+stopIf:
+  - workflow verifier変更が必要
+  - allowedPaths外の変更が必要
+  - GitHub権限またはruleset変更が必要
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - current PR diffをGitHub APIから再分類し、merge control surface変更時だけworkflow-integrity receiptを必須にする
+  - workflow-integrity checkがmissing、pending、failed、stale、ambiguous、provenance不一致の場合はmerge preflightをfail closedにする
+  - receiptのrepository、PR、base/head、control manifest、trusted workflow digest、verifier run、triggering runをcurrent GitHub stateへ再検証する
+  - control surface変更時はPR番号から一意に解決したTask EvidenceとHuman Approvalのsubject head、diff hash、PR scope一致を要求する
+  - source-only PRは既存のexact-head validate成功経路を維持し、workflow-integrity receiptを要求しない
+  - merge preflight JSON schemaと日本語運用文書がworkflow trust status、trusted revision、reason codes、next actionを説明する
+  - negative fixtureがvalidate成功だけのcontrol surface PRを拒否し、API failure、pagination、digest、approval境界を回帰検証する
+  - Phase B PR上でmain由来verifierのworkflow-integrity checkとartifactをlive smokeし、main反映後の次control PRでenforcementを確認する手順を残す
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - workflow-integrity-live-smoke
+  - human-approval
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MTG793F3.yaml
+  - contracts/specs/SPEC-LITE-MTG793F3.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MTG793F3.yaml
+  - contracts/evidence/SCWBS-DRAFT-MTG793F3.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MTG793F3.patch
+  - contracts/approvals/SCWBS-DRAFT-MTG793F3.yaml
+  - contracts/reviews/SCWBS-DRAFT-MTG793F3.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:bfc1b5cc99e76b0751912834b9fa36f89e023e018413a52d6b520effdcf7f1e5
+  createdAt: "2026-08-30T19:26:46.277Z"
