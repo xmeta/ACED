@@ -1,0 +1,892 @@
+diff --git a/.github/workflows/scwbs-workflow-integrity.yml b/.github/workflows/scwbs-workflow-integrity.yml
+new file mode 100644
+index 0000000..3c156d7
+--- /dev/null
++++ b/.github/workflows/scwbs-workflow-integrity.yml
+@@ -0,0 +1,222 @@
++name: scwbs-workflow-integrity
++
++on:
++  workflow_run:
++    workflows: ["scwbs"]
++    types: [completed]
++
++# This workflow is evaluated from the default branch for workflow_run events. It
++# deliberately never checks out or executes the pull request head.
++permissions:
++  contents: read
++  actions: read
++  pull-requests: read
++  checks: write
++
++concurrency:
++  group: scwbs-workflow-integrity-${{ github.event.workflow_run.head_sha }}
++  cancel-in-progress: false
++
++jobs:
++  receipt:
++    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
++    runs-on: ubuntu-latest
++    steps:
++      - name: Verify triggering run and write bounded integrity receipt
++        id: receipt
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
++        env:
++          TRIGGERING_RUN_ID: ${{ github.event.workflow_run.id }}
++        with:
++          script: |
++            const crypto = require("crypto");
++            const fs = require("fs");
++            const WORKFLOW_PATH = ".github/workflows/scwbs.yml";
++            const VERIFIER_PATH = ".github/workflows/scwbs-workflow-integrity.yml";
++            const RECEIPT_VERSION = "scwbs.workflow-integrity.v1";
++            const MAX_CHANGED_FILES = 256;
++            const controlSurface = [
++              { kind: "workflow", pattern: ".github/workflows/**" },
++              { kind: "local-action", pattern: ".github/actions/**" },
++              { kind: "ci-runner", pattern: "scripts/**" },
++              { kind: "package-config", pattern: "package.json" },
++              { kind: "package-config", pattern: "package-lock.json" },
++              { kind: "package-config", pattern: "tsconfig.json" },
++              { kind: "package-config", pattern: "vitest.config.ts" },
++              { kind: "merge-enforcement", pattern: "src/core/merge-preflight.ts" },
++              { kind: "merge-enforcement", pattern: "src/commands/merge.ts" },
++              { kind: "merge-enforcement", pattern: "src/commands/finish.ts" },
++              { kind: "merge-enforcement", pattern: "src/cli.ts" }
++            ];
++            const sha256 = (value) => `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
++            const matches = (file, entry) => entry.pattern.endsWith("/**")
++              ? file.startsWith(entry.pattern.slice(0, -2))
++              : file === entry.pattern;
++            const owner = context.repo.owner;
++            const repo = context.repo.repo;
++            const runId = Number(process.env.TRIGGERING_RUN_ID);
++            if (!Number.isInteger(runId) || runId <= 0) throw new Error("workflow-integrity: triggering run id is invalid");
++            const run = (await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId })).data;
++            const headRepository = run.head_repository?.full_name;
++            const headBranch = run.head_branch;
++            if (run.id !== runId || run.event !== "pull_request" || run.conclusion !== "success" || run.path !== WORKFLOW_PATH || typeof headRepository !== "string" || headRepository.length === 0 || typeof headBranch !== "string" || headBranch.length === 0 || !Array.isArray(run.pull_requests)) {
++              throw new Error("workflow-integrity: triggering run identity is invalid");
++            }
++            const associated = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
++              owner,
++              repo,
++              commit_sha: run.head_sha,
++              per_page: 100
++            });
++            const readPull = async () => (await github.rest.pulls.get({ owner, repo, pull_number: pullNumber })).data;
++            const matchingPulls = [];
++            for (const candidate of associated) {
++              if (!Number.isInteger(candidate?.number)) throw new Error("workflow-integrity: associated pull request is invalid");
++              const candidatePull = await (async () => (await github.rest.pulls.get({ owner, repo, pull_number: candidate.number })).data)();
++              if (candidatePull.state === "open" && candidatePull.base?.ref === "main" && candidatePull.base?.repo?.full_name === `${owner}/${repo}` && candidatePull.head?.sha === run.head_sha && candidatePull.head?.repo?.full_name === headRepository && candidatePull.head?.ref === headBranch) {
++                matchingPulls.push(candidatePull);
++              }
++            }
++            if (matchingPulls.length !== 1 || !Number.isInteger(matchingPulls[0]?.number)) {
++              throw new Error("workflow-integrity: triggering run must have exactly one matching open main pull request");
++            }
++            const pullNumber = matchingPulls[0].number;
++            if (run.pull_requests.length > 0 && (run.pull_requests.length !== 1 || run.pull_requests[0]?.number !== matchingPulls[0].number || run.pull_requests[0]?.id !== matchingPulls[0].id)) {
++              throw new Error("workflow-integrity: triggering run pull request metadata does not match the candidate");
++            }
++            const before = await readPull();
++            if (before.state !== "open" || before.head?.sha !== run.head_sha || before.head?.repo?.full_name !== headRepository || before.head?.ref !== headBranch || before.base?.ref !== "main" || before.base?.repo?.full_name !== `${owner}/${repo}` || !before.base?.sha || !Number.isInteger(before.changed_files)) {
++              throw new Error("workflow-integrity: pull request head/base does not match the triggering run");
++            }
++            const files = [];
++            for (let page = 1; ; page += 1) {
++              const response = await github.rest.pulls.listFiles({ owner, repo, pull_number: pullNumber, per_page: 100, page });
++              files.push(...response.data);
++              if (files.length > MAX_CHANGED_FILES) throw new Error("workflow-integrity: changed-file limit exceeded");
++              if (response.data.length < 100) break;
++            }
++            const after = await readPull();
++            if (after.head?.sha !== before.head.sha || after.head?.repo?.full_name !== headRepository || after.head?.ref !== headBranch || after.base?.sha !== before.base.sha || after.base?.ref !== "main" || after.base?.repo?.full_name !== `${owner}/${repo}` || after.changed_files !== before.changed_files) {
++              throw new Error("workflow-integrity: pull request changed while files were enumerated");
++            }
++            if (files.length !== after.changed_files) throw new Error("workflow-integrity: changed-file pagination is incomplete or exceeds the API limit");
++            const names = files.map((file) => file.filename);
++            if (names.some((file) => typeof file !== "string") || new Set(names).size !== names.length) {
++              throw new Error("workflow-integrity: changed-file list is invalid");
++            }
++            const baseWorkflow = (await github.rest.repos.getContent({ owner, repo, path: WORKFLOW_PATH, ref: after.base.sha })).data;
++            if (Array.isArray(baseWorkflow) || typeof baseWorkflow.content !== "string" || baseWorkflow.encoding !== "base64") {
++              throw new Error("workflow-integrity: trusted base workflow content is unavailable");
++            }
++            const verifierWorkflow = (await github.rest.repos.getContent({ owner, repo, path: VERIFIER_PATH, ref: context.sha })).data;
++            if (Array.isArray(verifierWorkflow) || typeof verifierWorkflow.content !== "string" || verifierWorkflow.encoding !== "base64") {
++              throw new Error("workflow-integrity: verifier workflow content is unavailable");
++            }
++            const controlFiles = files.flatMap((file) => {
++              if (typeof file.filename !== "string" || typeof file.status !== "string") throw new Error("workflow-integrity: changed-file entry is invalid");
++              const renamed = file.status === "renamed";
++              const removed = file.status === "removed";
++              if (!["added", "modified", "removed", "renamed"].includes(file.status)) throw new Error("workflow-integrity: changed-file status is invalid");
++              if (renamed && (typeof file.previous_filename !== "string" || file.previous_filename.length === 0)) throw new Error("workflow-integrity: renamed file is missing previous_filename");
++              if (!renamed && file.previous_filename !== undefined) throw new Error("workflow-integrity: non-renamed file has previous_filename");
++              const currentEntries = controlSurface.filter((entry) => matches(file.filename, entry));
++              const headBlobSha = typeof file.sha === "string" && /^[a-f0-9]{40}$/i.test(file.sha) ? file.sha : null;
++              if (currentEntries.length > 0 && !headBlobSha) throw new Error("workflow-integrity: control file is missing a valid blob SHA");
++              const classify = (name, role, counterpart, observedHeadBlobSha, previousBlobSha) => controlSurface.filter((entry) => matches(name, entry)).map((entry) => ({
++                file: name,
++                kind: entry.kind,
++                role,
++                counterpart,
++                status: file.status,
++                headBlobSha: observedHeadBlobSha,
++                previousBlobSha
++              }));
++              if (removed) return classify(file.filename, "previous", null, null, headBlobSha);
++              const current = classify(file.filename, "current", renamed ? file.previous_filename : null, headBlobSha, null);
++              return renamed ? [...current, ...classify(file.previous_filename, "previous", file.filename, null, null)] : current;
++            }).sort((left, right) => left.file.localeCompare(right.file) || left.kind.localeCompare(right.kind));
++            const manifest = JSON.stringify(controlSurface);
++            const observedDigest = sha256(JSON.stringify(controlFiles));
++            const receipt = {
++              type: RECEIPT_VERSION,
++              repository: `${owner}/${repo}`,
++              pullRequest: pullNumber,
++              baseCommit: after.base.sha,
++              headCommit: after.head.sha,
++              triggeringRun: {
++                id: runId,
++                url: run.html_url,
++                workflowPath: WORKFLOW_PATH,
++                headRepository,
++                headBranch
++              },
++              trustedWorkflow: {
++                path: WORKFLOW_PATH,
++                sha256: sha256(Buffer.from(baseWorkflow.content, "base64"))
++              },
++              controlSurface: {
++                version: "1",
++                manifestDigest: sha256(manifest),
++                observedDigest,
++                controlFiles
++              },
++              verifier: {
++                workflowPath: VERIFIER_PATH,
++                runId: context.runId,
++                runUrl: `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
++                definitionCommit: context.sha,
++                sha256: sha256(Buffer.from(verifierWorkflow.content, "base64"))
++              }
++            };
++            const encoded = `${JSON.stringify(receipt, null, 2)}\n`;
++            if (Buffer.byteLength(encoded, "utf8") > 32 * 1024) throw new Error("workflow-integrity: receipt exceeds its bound");
++            fs.writeFileSync("workflow-integrity-receipt.json", encoded);
++            core.setOutput("artifact_name", `scwbs-workflow-integrity-v1-${runId}`);
++      - name: Upload trusted workflow integrity receipt
++        if: ${{ success() }}
++        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
++        with:
++          name: ${{ steps.receipt.outputs.artifact_name }}
++          path: workflow-integrity-receipt.json
++          if-no-files-found: error
++      - name: Publish receipt to the current pull request head
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
++        with:
++          script: |
++            const fs = require("fs");
++            const receipt = JSON.parse(fs.readFileSync("workflow-integrity-receipt.json", "utf8"));
++            const owner = context.repo.owner;
++            const repo = context.repo.repo;
++            if (receipt.type !== "scwbs.workflow-integrity.v1" || receipt.repository !== `${owner}/${repo}` || !Number.isInteger(receipt.pullRequest)) {
++              throw new Error("workflow-integrity: persisted receipt identity is invalid");
++            }
++            const current = (await github.rest.pulls.get({ owner, repo, pull_number: receipt.pullRequest })).data;
++            if (current.state !== "open" || current.base?.ref !== "main" || current.base?.repo?.full_name !== `${owner}/${repo}` || current.base?.sha !== receipt.baseCommit || current.head?.sha !== receipt.headCommit) {
++              throw new Error("workflow-integrity: pull request changed before check publication");
++            }
++            const externalId = `${receipt.type}:${receipt.triggeringRun.id}:${receipt.baseCommit}:${receipt.headCommit}`;
++            const checkPayload = {
++              owner,
++              repo,
++              name: "workflow-integrity",
++              head_sha: receipt.headCommit,
++              status: "completed",
++              conclusion: "success",
++              details_url: receipt.verifier.runUrl,
++              external_id: externalId,
++              output: { title: "Trusted workflow integrity receipt", summary: `${JSON.stringify(receipt, null, 2)}\n` }
++            };
++            const existing = await github.paginate(github.rest.checks.listForRef, {
++              owner, repo, ref: receipt.headCommit, check_name: "workflow-integrity", filter: "all", per_page: 100
++            });
++            const named = existing.filter((check) => check.name === "workflow-integrity");
++            if (named.length > 1) throw new Error("workflow-integrity: existing managed checks are ambiguous");
++            if (named.length === 1) {
++              if (named[0].app?.slug !== "github-actions" || typeof named[0].external_id !== "string" || !named[0].external_id.startsWith("scwbs.workflow-integrity.v1:") || typeof named[0].details_url !== "string" || !named[0].details_url.startsWith(`${context.serverUrl}/${owner}/${repo}/actions/runs/`)) {
++                throw new Error("workflow-integrity: existing check is unmanaged");
++              }
++              const { head_sha: _headSha, ...updatePayload } = checkPayload;
++              await github.rest.checks.update({ ...updatePayload, check_run_id: named[0].id });
++            } else {
++              await github.rest.checks.create(checkPayload);
++            }
+diff --git a/contracts/discovery/PROBE-issue-595-workflow-trust.yaml b/contracts/discovery/PROBE-issue-595-workflow-trust.yaml
+new file mode 100644
+index 0000000..988d7dd
+--- /dev/null
++++ b/contracts/discovery/PROBE-issue-595-workflow-trust.yaml
+@@ -0,0 +1,40 @@
++schemaVersion: 1.0.0
++id: PROBE-issue-595-workflow-trust
++type: discovery-probe
++status: concluded
++question: PRが変更したCI制御面から独立してworkflow trust receiptを生成し、後続merge preflightが検証できる最小bootstrap境界は何か
++hypotheses:
++  - default branch由来workflow_run verifierを先に導入すれば後続Taskでfail-closed enforcementを有効化できる
++  - 初回PRに新verifierを遡及適用することはできない
++activities:
++  - current workflowとmerge preflightを監査する
++  - live rulesetとbranch protectionを確認する
++  - credentialなしのGitHub API receipt設計を決める
++evidenceExpected:
++  - trusted trigger identity
++  - control surface manifest
++  - bootstrap sequencing
++  - negative test boundary
++unknowns:
++  - control surfaceの最小範囲
++  - 初回導入のbootstrap制約
++timebox: 2h
++costLimit: one agent-day
++exitConditions:
++  - trusted verifierのtriggerと権限が確定する
++  - 二段階導入順序が確定する
++  - Human Gate境界が確定する
++nextDecision: Phase Aでread-only integrity verifierを導入しmain反映後にPhase Bでmerge preflight enforcementを実装する
++createdAt: "2026-08-30T18:03:56.560Z"
++startedAt: "2026-08-30T18:04:03.662Z"
++concludedAt: "2026-08-30T18:04:10.680Z"
++exitConditionsMet: true
++factsLearned:
++  - workflow_run verifierはdefault branch definitionから実行できる
++  - mainはpublicかつruleset 0でbranch protectionなし
++  - 既存PR head validateだけではworkflow identityを保証しない
++  - 新verifierは導入PR自身へ遡及適用できないため二段階導入が必要
++hypothesesRejected:
++  - 単一PRで新verifierとその必須化を同時に安全にbootstrapできる
++  - PR head workflowのsuccessだけで独立trustを証明できる
++remainingUnknowns: []
+diff --git a/contracts/specs/SPEC-LITE-MTG4CMZ8.yaml b/contracts/specs/SPEC-LITE-MTG4CMZ8.yaml
+new file mode 100644
+index 0000000..531ba74
+--- /dev/null
++++ b/contracts/specs/SPEC-LITE-MTG4CMZ8.yaml
+@@ -0,0 +1,25 @@
++id: SPEC-LITE-MTG4CMZ8
++type: spec-contract
++featureId: F-MTG4CMZ8
++title: "Issue #595 Phase A: trusted workflow integrity verifierをbootstrapする"
++status: approved
++version: 0.1.0
++summary: PR headのvalidateと独立したdefault branch由来のverifierが、CI control surfaceのprovenance receiptをcurrent PR headへ記録する
++approvedBy: xmeta
++approvedAt: "2026-08-31T03:05:00+09:00"
++acceptanceCriteria:
++  - verifierはdefault branchのworkflow_run definitionからのみ起動し、untrusted PR headをcheckoutまたは実行しない
++  - workflow permissionはcontents actions pull-requestsのreadとchecks writeに限定し、secretやdelegation tokenを使用しない
++  - triggering scwbs runがpull_request・success・既知workflow pathであり、repository、PR、base SHA、current head SHAの一意な一致を求める
++  - control surfaceは.github workflows/actions、CI runner script、package/config、merge enforcement実装を明示的に分類する
++  - receiptはversionedかつboundedで、repository、PR、base/head、triggering run、trusted scwbs workflow pathとSHA-256、control files、manifest digestを含む
++  - current head上のworkflow-integrity checkを一意にupsertし、trusted verifier run URLをdetails URLに持つ
++  - changed-filesの欠落・上限超過・API failure・曖昧なPR・stale headはfail closedにする
++  - bootstrap制約、Human Gate、main反映後のPhase B merge-preflight enforcementを文書化する
++  - integration testがworkflow trigger、permission、no-checkout、receipt fields、control paths、failure boundaryを回帰検証する
++nonGoals:
++  - Phase AだけでIssue #595のmerge-preflight enforcement完了を宣言すること
++  - existing scwbs workflow、readiness reporter、local action、source codeを変更すること
++  - PR head codeをtrusted credential付きで実行すること
++  - repository ruleset、branch protection、visibility、planを変更すること
++  - receiptでHuman Approvalを代替すること
+diff --git a/contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml b/contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
+new file mode 100644
+index 0000000..29bf962
+--- /dev/null
++++ b/contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
+@@ -0,0 +1,78 @@
++id: SCWBS-DRAFT-MTG4CMZ8
++type: task-contract
++wbsNodeId: node-governance-maintenance
++featureId: F-MTG4CMZ8
++branchName: task/SCWBS-DRAFT-MTG4CMZ8-issue-595-phase-a-trusted-workflow-integrity-ver
++status: approved
++approvedBy: xmeta
++sourceIssue: 595
++allowedPaths:
++  - contracts/discovery/PROBE-issue-595-workflow-trust.yaml
++  - .github/workflows/scwbs-workflow-integrity.yml
++  - tests/integration/workflow-security.test.ts
++  - docs/scwbs/merge-protection.md
++forbiddenPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/workflows/scwbs.yml
++  - .github/workflows/scwbs-readiness-reporter.yml
++  - .github/actions/**
++  - src/**
++  - wjs/**
++  - contracts/wbs/project.wbs.json
++humanGateRequiredPaths:
++  - package.json
++  - package-lock.json
++  - tsconfig.json
++  - vitest.config.ts
++  - .github/**
++stopIf:
++  - untrusted PR code execution is required
++  - secrets or delegation tokens are required
++  - existing workflow or local action must change
++  - repository protection plan or external permissions must change
++  - scope outside allowedPaths is required
++  - bootstrap trust design changes
++requiredChecks:
++  - test
++  - typecheck
++  - build
++  - test:integration
++doneCriteria:
++  - default branch definition由来のworkflow_run verifierがscwbs pull_request runの完了後だけ動作し、PR headのcodeやlocal actionをcheckout・実行しない
++  - verifierはcontents actions pull-requestsのreadとchecks write以外の権限、secret、delegation tokenを持たない
++  - triggering run、repository、PR、base SHA、current head SHAが一意に一致しない場合はworkflow-integrity checkをsuccessにしない
++  - control surfaceはworkflow、local action、CI runner script、package/config、merge enforcement実装を明示的に分類する
++  - versioned bounded receiptがrepository、PR、base/head、triggering run、trusted workflow pathとSHA-256、control files、manifest digestを記録する
++  - workflow-integrity checkはcurrent PR headへ一意にupsertされ、details URLがtrusted verifier runを指す
++  - changed file pagination不整合、API failure、曖昧なPR association、stale headはfail closedになる
++  - bootstrap PR自身へ新verifierを遡及適用できない制約と、main反映後のPhase B enforcementがIssue closeに必要なことを文書化する
++  - workflow security regression testsがpermission、trigger、no-checkout、control surface、bounded receipt、failure boundaryを検証する
++evidenceRequired:
++  - test-result
++  - typecheck-result
++  - build-result
++  - test:integration-result
++  - workflow-security-result
++  - human-approval
++  - registry-check
++managedContractPaths:
++  - contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
++  - contracts/specs/SPEC-LITE-MTG4CMZ8.yaml
++  - contracts/tasks/index.yaml
++  - contracts/blocks/SCWBS-DRAFT-MTG4CMZ8.yaml
++  - contracts/evidence/SCWBS-DRAFT-MTG4CMZ8.yaml
++  - contracts/evidence-payloads/SCWBS-DRAFT-MTG4CMZ8.patch
++  - contracts/approvals/SCWBS-DRAFT-MTG4CMZ8.yaml
++  - contracts/reviews/SCWBS-DRAFT-MTG4CMZ8.yaml
++  - contracts/registry.yaml
++contractLock:
++  lockVersion: "2"
++  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
++  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
++  wbsNodeId: node-governance-maintenance
++  specVersion: 0.1.0
++  specRevision: sha256:29b19efa1bac10de11dd181dc515ce9ba4343e393bc9d74c188815d499f6410a
++  createdAt: "2026-08-30T18:05:55.151Z"
+diff --git a/contracts/tasks/index.yaml b/contracts/tasks/index.yaml
+index 8791920..ad47fdf 100644
+--- a/contracts/tasks/index.yaml
++++ b/contracts/tasks/index.yaml
+@@ -1823,3 +1823,9 @@ tasks:
+     wbsNodeId: node-governance-maintenance
+     status: planned
+     dependsOn: []
++  - id: SCWBS-DRAFT-MTG4CMZ8
++    path: contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
++    branchName: task/SCWBS-DRAFT-MTG4CMZ8-issue-595-phase-a-trusted-workflow-integrity-ver
++    wbsNodeId: node-governance-maintenance
++    status: planned
++    dependsOn: []
+diff --git a/docs/scwbs/merge-protection.md b/docs/scwbs/merge-protection.md
+index d800333..67d6863 100644
+--- a/docs/scwbs/merge-protection.md
++++ b/docs/scwbs/merge-protection.md
+@@ -4,14 +4,14 @@
+ 
+ ## 現在のrepository状態
+ 
+-2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という
+-historical snapshotを記録している。この記録は現在のvisibilityや保護状態を
+-保証しないため、作業前に `gh repo view xmeta/ACED --json visibility` と
++2026-08-31時点のGitHub API観測では、このrepositoryはpublic、repository rulesetsは
++0件、`main` branch protection APIは404 `Branch not protected` である。このsnapshotは
++現在のvisibilityや保護状態を保証しないため、作業前に
++`gh repo view xmeta/ACED --json visibility`、`gh api repos/xmeta/ACED/rulesets`、
+ `gh api repos/xmeta/ACED/branches/main/protection` を再確認する。
+-`main` branch protectionとrepository rulesetsの読取は、どちらも次の403を返す。
+ 
+ ```text
+-Upgrade to GitHub Pro or make this repository public to enable this feature.
++Branch not protected
+ ```
+ 
+ repository設定ではmerge commit、squash merge、rebase mergeの3方式が有効である。
+@@ -59,6 +59,47 @@ gh pr merge <number> --squash --delete-branch \
+ commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
+ `finish`もchecks成功後のnext actionとしてこのcommandを案内する。
+ 
++## Phase A: 信頼済みワークフロー整合性receipt
++
++Issue #595 のPhase Aでは、`scwbs` のpull request runがsuccessで完了した後だけ、
++default branch上の `scwbs-workflow-integrity` workflowが動く。このworkflowはPR
++headをcheckoutまたは実行せず、contents/actions/pull-requestsのreadと、current PR headへ
++receiptを記録するためのchecks writeだけで、triggering run、repository、関連PR、base/head
++SHA、changed-filesを再検証する。
++APIのpagination結果、件数、PR head/baseの再読込が一致しない場合、または256 files
++を超える場合はreceiptを生成しない。
++
++同じhead SHAに対するverifier runはconcurrency groupで直列化し、cancelしない。最初の
++stepはreceipt fileだけを生成し、artifact uploadがsuccessになった後の別stepがreceiptを
++再読込してPRのopen/main/base repository/base SHA/head SHAを再確認してからcustom checkを
++create/updateする。この順序によりartifact upload失敗時にsuccess checkを残さない。
++
++receiptはtrusted verifier runのartifactとして保存し、`scwbs.workflow-integrity.v1`
++のtype、repository、PR、base/head、triggering run、base側
++`.github/workflows/scwbs.yml` とverifier definition自身のSHA-256、versioned
++control-surface manifestとdigest、control files、verifier runを含む。control filesは
++filename、status、role、counterpart、head/previous blob SHAをpattern順にdeterministicに
++正規化し、その観測値digestも含む。added/modified/current renameはhead blob SHAを持つ。
++renameのprevious側はhead treeに存在しないため両blob SHAをnullとし、removedは
++`role: previous`、`headBlobSha: null`、`previousBlobSha: file.sha` として記録する。
++control surfaceはworkflow/local action、CI runner、
++package/config、merge enforcement implementationを明示的に分類する。同じreceiptはcurrent
++PR headの `workflow-integrity` custom checkへ一意にupsertし、details URLはtrusted
++verifier runを指す。artifactはPhase Bの独立した再取得候補でもある。forkの
++`workflow_run.pull_requests` payloadにはPR情報がない場合があるため、verifierはpayloadを
++信頼せずCommits APIの `listPullRequestsAssociatedWithCommit` を読み、ちょうど1件であることを
++要求する。custom checkの
++作成自体がGitHub APIで拒否される場合はsuccessを生成せずworkflowをfailureにする。
++main反映後も、same-repository PRとfork PRの双方でcustom checkの作成、artifact取得、
++Phase B API verificationを実際にsmokeするまではfork supportを完了扱いにしない。
++
++このPhase A receiptはHuman Approval、Review、`validate`、merge enforcementを代替しない。
++bootstrap PR自身には新しいdefault-branch verifierを遡及適用できない。main反映後の
++Phase Bで、`scwbs merge --preflight-only` がGitHub APIからtrusted verifier runと
++artifactを取得し、current repository/PR/base/head/run/path/digestを検証して初めて
++workflow-control PRをmerge-readyにできる。Phase Bはcurrent Evidence/Approvalの
++headCommitとdiffHashも検証し、Human Gateをreceiptで置換してはならない。
++
+ ## fail-closedとなるケース
+ 
+ 次の場合はmerge subprocessを起動しない。
+@@ -74,12 +115,12 @@ integration testはfake `gh` fixtureを使い、これらの拒否時に
+ 
+ ## 強制と監査の境界
+ 
+-| Path | Current enforcement | Audit evidence |
+-|---|---|---|
+-| `npm run scwbs -- merge` | aggregate `validate`とhead SHAへfail closed | versioned preflight report、GitHub PR `mergedBy`、Actions run |
+-| direct `gh pr merge` / API merge | repository-localには強制なし | GitHub PR timeline。迂回防止ではない |
+-| direct push / force push | GitHub plan上の保護を確認・強制できない | GitHub commit/event履歴。拒否保証ではない |
+-| `--admin` / ruleset bypass | SC-WBS commandは提供しないがprivileged actorを阻止できない | 利用可能なGitHub audit/event記録 |
++| Path                             | Current enforcement                                        | Audit evidence                                                |
++| -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
++| `npm run scwbs -- merge`         | aggregate `validate`とhead SHAへfail closed                | versioned preflight report、GitHub PR `mergedBy`、Actions run |
++| direct `gh pr merge` / API merge | repository-localには強制なし                               | GitHub PR timeline。迂回防止ではない                          |
++| direct push / force push         | GitHub plan上の保護を確認・強制できない                    | GitHub commit/event履歴。拒否保証ではない                     |
++| `--admin` / ruleset bypass       | SC-WBS commandは提供しないがprivileged actorを阻止できない | 利用可能なGitHub audit/event記録                              |
+ 
+ この境界では完全なmain保護を保証しない。AIと人間は通常経路としてSC-WBS
+ merge commandを使い、迂回を許可してはならない。
+@@ -89,9 +130,9 @@ merge commandを使い、迂回を許可してはならない。
+ 次のいずれかはrepository ownerが明示決定する。AIは実行しない。
+ 
+ 1. GitHub Pro/Team等へ変更し、`main` rulesetで`validate`をrequiredにする
+-2. 情報公開が許容される場合だけrepositoryをpublic化して保護を有効にする
++2. 現在のpublic visibilityを維持したまま、`main` ruleset/branch protectionを設定する
+ 3. merge権限を専用bot/Appへ限定し、server-sideで同じpreflightを実施する
+-4. privateの現状を維持し、本書のlocal enforcementと保証限界を受容する
++4. branch protection未設定を継続し、本書のlocal enforcementと保証限界を受容する
+ 
+ どの選択でも、direct/force push、administrator/bypass、required
+ `validate`、audit retentionを明示的に再評価し、決定理由を記録する。
+diff --git a/tests/integration/workflow-security.test.ts b/tests/integration/workflow-security.test.ts
+index 47eaec8..0525323 100644
+--- a/tests/integration/workflow-security.test.ts
++++ b/tests/integration/workflow-security.test.ts
+@@ -1,12 +1,131 @@
+ import { execFileSync } from "node:child_process";
++import * as crypto from "node:crypto";
+ import { readFileSync } from "node:fs";
+ import path from "node:path";
++import { load } from "js-yaml";
+ import { describe, expect, test } from "vitest";
+ 
+ const DELEGATION_TOKEN_ENV = "SCWBS_APPROVAL_DELEGATION_TOKEN";
+ const workflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs.yml"), "utf8");
+-const reporterWorkflow = readFileSync(path.join(process.cwd(), ".github/workflows/scwbs-readiness-reporter.yml"), "utf8");
++const reporterWorkflow = readFileSync(
++  path.join(process.cwd(), ".github/workflows/scwbs-readiness-reporter.yml"),
++  "utf8"
++);
++const integrityWorkflow = readFileSync(
++  path.join(process.cwd(), ".github/workflows/scwbs-workflow-integrity.yml"),
++  "utf8"
++);
+ const setupAction = readFileSync(path.join(process.cwd(), ".github/actions/setup-toolchain/action.yml"), "utf8");
++const integrityDocument = load(integrityWorkflow) as {
++  on: { workflow_run: { workflows: string[]; types: string[] } };
++  permissions: Record<string, string>;
++  concurrency: { group: string; "cancel-in-progress": boolean };
++  jobs: { receipt: { steps: Array<{ with?: { script?: string } }> } };
++};
++const [receiptStep, , publishStep] = integrityDocument.jobs.receipt.steps;
++const AsyncFunction = Object.getPrototypeOf(async () => undefined).constructor as new (
++  ...args: string[]
++) => (...args: unknown[]) => Promise<unknown>;
++type MockCheck = {
++  id: number;
++  name: string;
++  app: { slug: string };
++  external_id?: string;
++  details_url?: string;
++};
++
++function receiptScript(): (...args: unknown[]) => Promise<unknown> {
++  return new AsyncFunction("github", "context", "core", "require", "process", "Buffer", receiptStep.with!.script!);
++}
++
++function publishScript(): (...args: unknown[]) => Promise<unknown> {
++  return new AsyncFunction("github", "context", "core", "require", "process", "Buffer", publishStep.with!.script!);
++}
++
++function pull(
++  head = "h".repeat(40),
++  base = "b".repeat(40),
++  changedFiles = 0,
++  headRepository = "fork/ACED",
++  headRef = "feature"
++) {
++  return {
++    id: 420,
++    number: 42,
++    state: "open",
++    head: { sha: head, repo: { full_name: headRepository }, ref: headRef },
++    base: { sha: base, ref: "main", repo: { full_name: "xmeta/ACED" } },
++    changed_files: changedFiles
++  };
++}
++
++function runReceipt(
++  options: {
++    associated?: Array<{ number: number }>;
++    files?: Array<Record<string, unknown>>;
++    pulls?: Array<ReturnType<typeof pull>>;
++    error?: Error;
++  } = {}
++) {
++  const files = options.files ?? [];
++  const pulls = [
++    ...(options.pulls ?? [
++      pull("h".repeat(40), "b".repeat(40), files.length),
++      pull("h".repeat(40), "b".repeat(40), files.length),
++      pull("h".repeat(40), "b".repeat(40), files.length)
++    ])
++  ];
++  const written = new Map<string, string>();
++  const outputs = new Map<string, string>();
++  const method = () => undefined;
++  const github = {
++    rest: {
++      actions: {
++        getWorkflowRun: async () => {
++          if (options.error) throw options.error;
++          return {
++            data: {
++              id: 7,
++              event: "pull_request",
++              conclusion: "success",
++              path: ".github/workflows/scwbs.yml",
++              head_sha: "h".repeat(40),
++              head_repository: { full_name: "fork/ACED" },
++              head_branch: "feature",
++              pull_requests: [],
++              html_url: "https://github.com/xmeta/ACED/actions/runs/7"
++            }
++          };
++        }
++      },
++      repos: {
++        listPullRequestsAssociatedWithCommit: method,
++        getContent: async ({ path: filePath }: { path: string }) => ({
++          data: { content: Buffer.from(filePath).toString("base64"), encoding: "base64" }
++        })
++      },
++      pulls: {
++        get: async () => ({ data: pulls.shift() ?? pull("h".repeat(40), "b".repeat(40), files.length) }),
++        listFiles: async ({ page }: { page: number }) => ({ data: page === 1 ? files : [] })
++      }
++    },
++    paginate: async (fn: unknown) => (fn === method ? (options.associated ?? [{ number: 42 }]) : [])
++  };
++  const context = {
++    repo: { owner: "xmeta", repo: "ACED" },
++    runId: 99,
++    serverUrl: "https://github.com",
++    sha: "v".repeat(40)
++  };
++  const core = { setOutput: (key: string, value: string) => outputs.set(key, value) };
++  const requireMock = (name: string) =>
++    name === "crypto" ? crypto : { writeFileSync: (file: string, value: string) => written.set(file, value) };
++  return receiptScript()(github, context, core, requireMock, { env: { TRIGGERING_RUN_ID: "7" } }, Buffer).then(() => ({
++    written,
++    outputs,
++    github
++  }));
++}
+ 
+ describe("workflow secret isolation", () => {
+   test("same-repository and fork pull requests never expose the delegation token to CI code", () => {
+@@ -47,4 +166,248 @@ describe("workflow secret isolation", () => {
+     expect(workflow).toContain("permissions:\n  contents: read\n  checks: read\n  actions: read");
+     expect(workflow).not.toContain("SCWBS_APPROVAL_DELEGATION_TOKEN");
+   });
++
++  test("workflow integrity has an exact trusted trigger, least permissions, and serialized head scope", () => {
++    expect(integrityDocument.on.workflow_run).toEqual({ workflows: ["scwbs"], types: ["completed"] });
++    expect(integrityDocument.permissions).toEqual({
++      actions: "read",
++      checks: "write",
++      contents: "read",
++      "pull-requests": "read"
++    });
++    expect(integrityDocument.concurrency).toEqual({
++      group: "scwbs-workflow-integrity-${{ github.event.workflow_run.head_sha }}",
++      "cancel-in-progress": false
++    });
++    expect(integrityWorkflow).not.toContain("actions/checkout@");
++    expect(integrityWorkflow).not.toContain(DELEGATION_TOKEN_ENV);
++    expect(integrityWorkflow).not.toContain("secrets.");
++  });
++
++  test("receipt script emits a deterministic bounded success receipt", async () => {
++    const { written, outputs } = await runReceipt({
++      files: [
++        { filename: "scripts-evil/ci-helper.mjs", status: "modified", sha: "d".repeat(40) },
++        { filename: "scripts/ci-helper.mjs", status: "modified", sha: "c".repeat(40) }
++      ]
++    });
++    const receipt = JSON.parse(written.get("workflow-integrity-receipt.json")!);
++    expect(outputs.get("artifact_name")).toBe("scwbs-workflow-integrity-v1-7");
++    expect(receipt).toMatchObject({
++      type: "scwbs.workflow-integrity.v1",
++      trustedWorkflow: { path: ".github/workflows/scwbs.yml" },
++      verifier: {
++        workflowPath: ".github/workflows/scwbs-workflow-integrity.yml",
++        sha256: expect.stringMatching(/^sha256:/)
++      },
++      controlSurface: {
++        manifestDigest: expect.stringMatching(/^sha256:/),
++        observedDigest: expect.stringMatching(/^sha256:/)
++      }
++    });
++    expect(receipt.controlSurface.controlFiles).toEqual([
++      {
++        file: "scripts/ci-helper.mjs",
++        kind: "ci-runner",
++        role: "current",
++        counterpart: null,
++        status: "modified",
++        headBlobSha: "c".repeat(40),
++        previousBlobSha: null
++      }
++    ]);
++  });
++
++  test("receipt script fails closed for ambiguous association, API failure, and stale PR state", async () => {
++    await expect(runReceipt({ associated: [] })).rejects.toThrow(/exactly one matching/);
++    await expect(runReceipt({ associated: [{ number: 42 }, { number: 43 }] })).rejects.toThrow(/exactly one matching/);
++    await expect(runReceipt({ error: new Error("API unavailable") })).rejects.toThrow("API unavailable");
++    await expect(runReceipt({ pulls: [pull(), pull(), pull("z".repeat(40))] })).rejects.toThrow(/changed while files/);
++    await expect(
++      runReceipt({ pulls: [pull("h".repeat(40), "b".repeat(40), 0, "other/ACED"), pull(), pull()] })
++    ).rejects.toThrow(/exactly one matching/);
++    await expect(
++      runReceipt({ pulls: [pull("h".repeat(40), "b".repeat(40), 0, "fork/ACED", "other"), pull(), pull()] })
++    ).rejects.toThrow(/exactly one matching/);
++    await expect(runReceipt({ files: [{ filename: "scripts/missing-sha.mjs", status: "modified" }] })).rejects.toThrow(
++      /valid blob SHA/
++    );
++  });
++
++  test("receipt script records both sides of control-surface renames", async () => {
++    const { written } = await runReceipt({
++      files: [
++        {
++          filename: "docs/moved.md",
++          previous_filename: ".github/workflows/old.yml",
++          status: "renamed",
++          sha: "d".repeat(40)
++        },
++        { filename: "src/cli.ts", previous_filename: "docs/old-cli.md", status: "renamed", sha: "e".repeat(40) }
++      ]
++    });
++    const receipt = JSON.parse(written.get("workflow-integrity-receipt.json")!);
++    expect(receipt.controlSurface.controlFiles).toEqual(
++      expect.arrayContaining([
++        expect.objectContaining({
++          file: ".github/workflows/old.yml",
++          role: "previous",
++          counterpart: "docs/moved.md",
++          headBlobSha: null,
++          previousBlobSha: null
++        }),
++        expect.objectContaining({
++          file: "src/cli.ts",
++          role: "current",
++          counterpart: "docs/old-cli.md",
++          headBlobSha: "e".repeat(40),
++          previousBlobSha: null
++        })
++      ])
++    );
++  });
++
++  test("receipt script records removed control files as previous observations", async () => {
++    const { written } = await runReceipt({
++      files: [{ filename: "scripts/removed.mjs", status: "removed", sha: "f".repeat(40) }]
++    });
++    const receipt = JSON.parse(written.get("workflow-integrity-receipt.json")!);
++    expect(receipt.controlSurface.controlFiles).toEqual([
++      {
++        file: "scripts/removed.mjs",
++        kind: "ci-runner",
++        role: "previous",
++        counterpart: null,
++        status: "removed",
++        headBlobSha: null,
++        previousBlobSha: "f".repeat(40)
++      }
++    ]);
++  });
++
++  test("receipt script rejects changed-file and receipt bounds", async () => {
++    const file = (index: number) => ({
++      filename: `scripts/${String(index).padStart(3, "0")}.mjs`,
++      status: "modified",
++      sha: "a".repeat(40)
++    });
++    await expect(runReceipt({ files: Array.from({ length: 257 }, (_, index) => file(index)) })).rejects.toThrow(
++      /changed-file limit exceeded/
++    );
++    await expect(
++      runReceipt({
++        files: [file(1)],
++        pulls: [
++          pull("h".repeat(40), "b".repeat(2), 2),
++          pull("h".repeat(40), "b".repeat(2), 2),
++          pull("h".repeat(40), "b".repeat(2), 2)
++        ]
++      })
++    ).rejects.toThrow(/pagination is incomplete/);
++    const oversized = Array.from({ length: 256 }, (_, index) => ({
++      filename: `scripts/${String(index).padStart(3, "0")}-${"x".repeat(128)}.mjs`,
++      status: "modified",
++      sha: "a".repeat(40)
++    }));
++    await expect(runReceipt({ files: oversized })).rejects.toThrow(/receipt exceeds its bound/);
++  });
++
++  test("publish script uses all checks and rejects duplicate or unmanaged names", async () => {
++    const receipt = JSON.stringify({
++      type: "scwbs.workflow-integrity.v1",
++      repository: "xmeta/ACED",
++      pullRequest: 42,
++      baseCommit: "b".repeat(40),
++      headCommit: "h".repeat(40),
++      triggeringRun: { id: 7 },
++      verifier: { runUrl: "https://github.com/xmeta/ACED/actions/runs/99" }
++    });
++    const calls: Array<Record<string, unknown>> = [];
++    let checkResponses: MockCheck[] = [];
++    const listForRef = () => undefined;
++    const github = {
++      rest: {
++        pulls: { get: async () => ({ data: pull("h".repeat(40), "b".repeat(40)) }) },
++        checks: {
++          listForRef,
++          create: async (input: Record<string, unknown>) => calls.push(input),
++          update: async (input: Record<string, unknown>) => calls.push(input)
++        }
++      },
++      paginate: async (_fn: unknown, input: Record<string, unknown>) => {
++        calls.push(input);
++        return checkResponses;
++      }
++    };
++    const requireMock = (name: string) => (name === "fs" ? { readFileSync: () => receipt } : {});
++    await publishScript()(
++      github,
++      { repo: { owner: "xmeta", repo: "ACED" }, serverUrl: "https://github.com" },
++      {},
++      requireMock,
++      {},
++      Buffer
++    );
++    expect(calls).toEqual(
++      expect.arrayContaining([
++        expect.objectContaining({ filter: "all" }),
++        expect.objectContaining({ name: "workflow-integrity", head_sha: "h".repeat(40) })
++      ])
++    );
++
++    checkResponses = [
++      {
++        id: 1,
++        name: "workflow-integrity",
++        app: { slug: "github-actions" },
++        external_id: "foreign",
++        details_url: "https://github.com/xmeta/ACED/actions/runs/99"
++      }
++    ];
++    await expect(
++      publishScript()(
++        github,
++        { repo: { owner: "xmeta", repo: "ACED" }, serverUrl: "https://github.com" },
++        {},
++        requireMock,
++        {},
++        Buffer
++      )
++    ).rejects.toThrow(/unmanaged/);
++
++    checkResponses = [
++      {
++        id: 1,
++        name: "workflow-integrity",
++        app: { slug: "other-app" },
++        external_id: "scwbs.workflow-integrity.v1:foreign",
++        details_url: "https://github.com/xmeta/ACED/actions/runs/99"
++      }
++    ];
++    await expect(
++      publishScript()(
++        github,
++        { repo: { owner: "xmeta", repo: "ACED" }, serverUrl: "https://github.com" },
++        {},
++        requireMock,
++        {},
++        Buffer
++      )
++    ).rejects.toThrow(/unmanaged/);
++
++    checkResponses = [
++      { id: 1, name: "workflow-integrity", app: { slug: "github-actions" } },
++      { id: 2, name: "workflow-integrity", app: { slug: "github-actions" } }
++    ];
++    await expect(
++      publishScript()(
++        github,
++        { repo: { owner: "xmeta", repo: "ACED" }, serverUrl: "https://github.com" },
++        {},
++        requireMock,
++        {},
++        Buffer
++      )
++    ).rejects.toThrow(/ambiguous/);
++  });
+ });

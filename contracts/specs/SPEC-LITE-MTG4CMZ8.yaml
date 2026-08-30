@@ -1,0 +1,25 @@
+id: SPEC-LITE-MTG4CMZ8
+type: spec-contract
+featureId: F-MTG4CMZ8
+title: "Issue #595 Phase A: trusted workflow integrity verifierをbootstrapする"
+status: approved
+version: 0.1.0
+summary: PR headのvalidateと独立したdefault branch由来のverifierが、CI control surfaceのprovenance receiptをcurrent PR headへ記録する
+approvedBy: xmeta
+approvedAt: "2026-08-31T03:05:00+09:00"
+acceptanceCriteria:
+  - verifierはdefault branchのworkflow_run definitionからのみ起動し、untrusted PR headをcheckoutまたは実行しない
+  - workflow permissionはcontents actions pull-requestsのreadとchecks writeに限定し、secretやdelegation tokenを使用しない
+  - triggering scwbs runがpull_request・success・既知workflow pathであり、repository、PR、base SHA、current head SHAの一意な一致を求める
+  - control surfaceは.github workflows/actions、CI runner script、package/config、merge enforcement実装を明示的に分類する
+  - receiptはversionedかつboundedで、repository、PR、base/head、triggering run、trusted scwbs workflow pathとSHA-256、control files、manifest digestを含む
+  - current head上のworkflow-integrity checkを一意にupsertし、trusted verifier run URLをdetails URLに持つ
+  - changed-filesの欠落・上限超過・API failure・曖昧なPR・stale headはfail closedにする
+  - bootstrap制約、Human Gate、main反映後のPhase B merge-preflight enforcementを文書化する
+  - integration testがworkflow trigger、permission、no-checkout、receipt fields、control paths、failure boundaryを回帰検証する
+nonGoals:
+  - Phase AだけでIssue #595のmerge-preflight enforcement完了を宣言すること
+  - existing scwbs workflow、readiness reporter、local action、source codeを変更すること
+  - PR head codeをtrusted credential付きで実行すること
+  - repository ruleset、branch protection、visibility、planを変更すること
+  - receiptでHuman Approvalを代替すること

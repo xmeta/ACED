@@ -1,0 +1,40 @@
+schemaVersion: 1.0.0
+id: PROBE-issue-595-workflow-trust
+type: discovery-probe
+status: concluded
+question: PRが変更したCI制御面から独立してworkflow trust receiptを生成し、後続merge preflightが検証できる最小bootstrap境界は何か
+hypotheses:
+  - default branch由来workflow_run verifierを先に導入すれば後続Taskでfail-closed enforcementを有効化できる
+  - 初回PRに新verifierを遡及適用することはできない
+activities:
+  - current workflowとmerge preflightを監査する
+  - live rulesetとbranch protectionを確認する
+  - credentialなしのGitHub API receipt設計を決める
+evidenceExpected:
+  - trusted trigger identity
+  - control surface manifest
+  - bootstrap sequencing
+  - negative test boundary
+unknowns:
+  - control surfaceの最小範囲
+  - 初回導入のbootstrap制約
+timebox: 2h
+costLimit: one agent-day
+exitConditions:
+  - trusted verifierのtriggerと権限が確定する
+  - 二段階導入順序が確定する
+  - Human Gate境界が確定する
+nextDecision: Phase Aでread-only integrity verifierを導入しmain反映後にPhase Bでmerge preflight enforcementを実装する
+createdAt: "2026-08-30T18:03:56.560Z"
+startedAt: "2026-08-30T18:04:03.662Z"
+concludedAt: "2026-08-30T18:04:10.680Z"
+exitConditionsMet: true
+factsLearned:
+  - workflow_run verifierはdefault branch definitionから実行できる
+  - mainはpublicかつruleset 0でbranch protectionなし
+  - 既存PR head validateだけではworkflow identityを保証しない
+  - 新verifierは導入PR自身へ遡及適用できないため二段階導入が必要
+hypothesesRejected:
+  - 単一PRで新verifierとその必須化を同時に安全にbootstrapできる
+  - PR head workflowのsuccessだけで独立trustを証明できる
+remainingUnknowns: []

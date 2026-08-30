@@ -1,0 +1,92 @@
+id: EVD-SCWBS-DRAFT-MTG4CMZ8
+type: evidence
+taskId: SCWBS-DRAFT-MTG4CMZ8
+commit: e50746314395eebc019f664dad5fe0a6c6cce053
+subjectHeadCommit: e50746314395eebc019f664dad5fe0a6c6cce053
+diffHash: sha256:9f69e5174e0ce99841ccb42316ace7b16cb281a5f5200e12e9e18c5186487af8
+provenance:
+  schemaVersion: 1.0.0
+  subject:
+    commit: e50746314395eebc019f664dad5fe0a6c6cce053
+    treeHash: 20f3862a5d4f41f7fc69df8747cb8072b15a3f89
+    diffHash: sha256:9f69e5174e0ce99841ccb42316ace7b16cb281a5f5200e12e9e18c5186487af8
+    canonicalization: git-diff-binary-v1
+  retention:
+    mode: patch-artifact
+    locator: repo:contracts/evidence-payloads/SCWBS-DRAFT-MTG4CMZ8.patch
+    manifestHash: sha256:9f69e5174e0ce99841ccb42316ace7b16cb281a5f5200e12e9e18c5186487af8
+git:
+  branch: task/SCWBS-DRAFT-MTG4CMZ8-issue-595-phase-a-trusted-workflow-integrity-ver
+  base: origin/main
+  baseCommit: aad4ea99ea98c939c9bb3aacb970660ec6d321a1
+  changedFilesBasis: branch-diff
+  pullRequest: "612"
+  subjectHeadCommit: e50746314395eebc019f664dad5fe0a6c6cce053
+  diffHash: sha256:9f69e5174e0ce99841ccb42316ace7b16cb281a5f5200e12e9e18c5186487af8
+  headCommit: e50746314395eebc019f664dad5fe0a6c6cce053
+changedFiles:
+  - .github/workflows/scwbs-workflow-integrity.yml
+  - contracts/approvals/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/discovery/PROBE-issue-595-workflow-trust.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MTG4CMZ8.patch
+  - contracts/evidence/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/registry.yaml
+  - contracts/reviews/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/specs/SPEC-LITE-MTG4CMZ8.yaml
+  - contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/tasks/index.yaml
+  - docs/scwbs/merge-protection.md
+  - tests/integration/workflow-security.test.ts
+testQualityObservation:
+  version: "1"
+  status: evaluated
+  subject:
+    baseCommit: aad4ea99ea98c939c9bb3aacb970660ec6d321a1
+    headCommit: e50746314395eebc019f664dad5fe0a6c6cce053
+    diffHash: sha256:9f69e5174e0ce99841ccb42316ace7b16cb281a5f5200e12e9e18c5186487af8
+  tests:
+    filesAdded: 0
+    filesModified: 1
+    filesDeleted: 0
+    skippedMarkersAdded: 0
+  coverage:
+    status: not-evaluated
+    reason: verified base and subject coverage receipts are both required
+  assertionDelta:
+    status: not-evaluated
+    method: phase-2-out-of-scope
+checks:
+  - name: test
+    status: passed
+    source: local
+    command: npm test
+    cacheKey: sha256:bf7981e61f12c5c296cfac6820864db980b1ba4e69d08823c47f29e1f2d537c5
+    durationMilliseconds: 46365
+    executedAt: "2026-08-30T18:58:34.281Z"
+  - name: typecheck
+    status: passed
+    source: local
+    command: npm run typecheck
+    cacheKey: sha256:094a208f6814293a69f9e488b0886725503fe66f9dc84558af3710ee64bde53d
+    durationMilliseconds: 15395
+    executedAt: "2026-08-30T18:58:49.680Z"
+  - name: build
+    status: passed
+    source: local
+    command: npm run build
+    cacheKey: sha256:0ad70bf3b96f38fdf2e17f0033820fe13cb15ec07478632c67e3db0b2772af07
+    durationMilliseconds: 6244
+    executedAt: "2026-08-30T18:58:55.933Z"
+  - name: test:integration
+    status: passed
+    source: local
+    command: npm run test:integration
+    cacheKey: sha256:3c2287b46070cf607f580efd7a6312589a6acaa055bef0aac538b0735ca5057e
+    durationMilliseconds: 197256
+    executedAt: "2026-08-30T19:02:13.195Z"
+testQuality:
+  assertionsAdded: true
+  testsDisabled: false
+  coverageDecreased: false
+  notes:
+    - workflow verifierのsuccessとfail-closed境界をembedded script behavioral testsで11ケース検証し、既存testを無効化せずcoverageを低下させていない。load-sensitive既存unit timeoutを避けるためVitestとintegrationを2 workersで実行

@@ -4,14 +4,14 @@
 
 ## 現在のrepository状態
 
-2026-08-09時点のGitHub API観測では、このrepositoryはpublicである、という
-historical snapshotを記録している。この記録は現在のvisibilityや保護状態を
-保証しないため、作業前に `gh repo view xmeta/ACED --json visibility` と
+2026-08-31時点のGitHub API観測では、このrepositoryはpublic、repository rulesetsは
+0件、`main` branch protection APIは404 `Branch not protected` である。このsnapshotは
+現在のvisibilityや保護状態を保証しないため、作業前に
+`gh repo view xmeta/ACED --json visibility`、`gh api repos/xmeta/ACED/rulesets`、
 `gh api repos/xmeta/ACED/branches/main/protection` を再確認する。
-`main` branch protectionとrepository rulesetsの読取は、どちらも次の403を返す。
 
 ```text
-Upgrade to GitHub Pro or make this repository public to enable this feature.
+Branch not protected
 ```
 
 repository設定ではmerge commit、squash merge、rebase mergeの3方式が有効である。
@@ -59,6 +59,47 @@ gh pr merge <number> --squash --delete-branch \
 commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
 `finish`もchecks成功後のnext actionとしてこのcommandを案内する。
 
+## Phase A: 信頼済みワークフロー整合性receipt
+
+Issue #595 のPhase Aでは、`scwbs` のpull request runがsuccessで完了した後だけ、
+default branch上の `scwbs-workflow-integrity` workflowが動く。このworkflowはPR
+headをcheckoutまたは実行せず、contents/actions/pull-requestsのreadと、current PR headへ
+receiptを記録するためのchecks writeだけで、triggering run、repository、関連PR、base/head
+SHA、changed-filesを再検証する。
+APIのpagination結果、件数、PR head/baseの再読込が一致しない場合、または256 files
+を超える場合はreceiptを生成しない。
+
+同じhead SHAに対するverifier runはconcurrency groupで直列化し、cancelしない。最初の
+stepはreceipt fileだけを生成し、artifact uploadがsuccessになった後の別stepがreceiptを
+再読込してPRのopen/main/base repository/base SHA/head SHAを再確認してからcustom checkを
+create/updateする。この順序によりartifact upload失敗時にsuccess checkを残さない。
+
+receiptはtrusted verifier runのartifactとして保存し、`scwbs.workflow-integrity.v1`
+のtype、repository、PR、base/head、triggering run、base側
+`.github/workflows/scwbs.yml` とverifier definition自身のSHA-256、versioned
+control-surface manifestとdigest、control files、verifier runを含む。control filesは
+filename、status、role、counterpart、head/previous blob SHAをpattern順にdeterministicに
+正規化し、その観測値digestも含む。added/modified/current renameはhead blob SHAを持つ。
+renameのprevious側はhead treeに存在しないため両blob SHAをnullとし、removedは
+`role: previous`、`headBlobSha: null`、`previousBlobSha: file.sha` として記録する。
+control surfaceはworkflow/local action、CI runner、
+package/config、merge enforcement implementationを明示的に分類する。同じreceiptはcurrent
+PR headの `workflow-integrity` custom checkへ一意にupsertし、details URLはtrusted
+verifier runを指す。artifactはPhase Bの独立した再取得候補でもある。forkの
+`workflow_run.pull_requests` payloadにはPR情報がない場合があるため、verifierはpayloadを
+信頼せずCommits APIの `listPullRequestsAssociatedWithCommit` を読み、ちょうど1件であることを
+要求する。custom checkの
+作成自体がGitHub APIで拒否される場合はsuccessを生成せずworkflowをfailureにする。
+main反映後も、same-repository PRとfork PRの双方でcustom checkの作成、artifact取得、
+Phase B API verificationを実際にsmokeするまではfork supportを完了扱いにしない。
+
+このPhase A receiptはHuman Approval、Review、`validate`、merge enforcementを代替しない。
+bootstrap PR自身には新しいdefault-branch verifierを遡及適用できない。main反映後の
+Phase Bで、`scwbs merge --preflight-only` がGitHub APIからtrusted verifier runと
+artifactを取得し、current repository/PR/base/head/run/path/digestを検証して初めて
+workflow-control PRをmerge-readyにできる。Phase Bはcurrent Evidence/Approvalの
+headCommitとdiffHashも検証し、Human Gateをreceiptで置換してはならない。
+
 ## fail-closedとなるケース
 
 次の場合はmerge subprocessを起動しない。
@@ -74,12 +115,12 @@ integration testはfake `gh` fixtureを使い、これらの拒否時に
 
 ## 強制と監査の境界
 
-| Path | Current enforcement | Audit evidence |
-|---|---|---|
-| `npm run scwbs -- merge` | aggregate `validate`とhead SHAへfail closed | versioned preflight report、GitHub PR `mergedBy`、Actions run |
-| direct `gh pr merge` / API merge | repository-localには強制なし | GitHub PR timeline。迂回防止ではない |
-| direct push / force push | GitHub plan上の保護を確認・強制できない | GitHub commit/event履歴。拒否保証ではない |
-| `--admin` / ruleset bypass | SC-WBS commandは提供しないがprivileged actorを阻止できない | 利用可能なGitHub audit/event記録 |
+| Path                             | Current enforcement                                        | Audit evidence                                                |
+| -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| `npm run scwbs -- merge`         | aggregate `validate`とhead SHAへfail closed                | versioned preflight report、GitHub PR `mergedBy`、Actions run |
+| direct `gh pr merge` / API merge | repository-localには強制なし                               | GitHub PR timeline。迂回防止ではない                          |
+| direct push / force push         | GitHub plan上の保護を確認・強制できない                    | GitHub commit/event履歴。拒否保証ではない                     |
+| `--admin` / ruleset bypass       | SC-WBS commandは提供しないがprivileged actorを阻止できない | 利用可能なGitHub audit/event記録                              |
 
 この境界では完全なmain保護を保証しない。AIと人間は通常経路としてSC-WBS
 merge commandを使い、迂回を許可してはならない。
@@ -89,9 +130,9 @@ merge commandを使い、迂回を許可してはならない。
 次のいずれかはrepository ownerが明示決定する。AIは実行しない。
 
 1. GitHub Pro/Team等へ変更し、`main` rulesetで`validate`をrequiredにする
-2. 情報公開が許容される場合だけrepositoryをpublic化して保護を有効にする
+2. 現在のpublic visibilityを維持したまま、`main` ruleset/branch protectionを設定する
 3. merge権限を専用bot/Appへ限定し、server-sideで同じpreflightを実施する
-4. privateの現状を維持し、本書のlocal enforcementと保証限界を受容する
+4. branch protection未設定を継続し、本書のlocal enforcementと保証限界を受容する
 
 どの選択でも、direct/force push、administrator/bypass、required
 `validate`、audit retentionを明示的に再評価し、決定理由を記録する。

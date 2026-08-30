@@ -1,0 +1,78 @@
+id: SCWBS-DRAFT-MTG4CMZ8
+type: task-contract
+wbsNodeId: node-governance-maintenance
+featureId: F-MTG4CMZ8
+branchName: task/SCWBS-DRAFT-MTG4CMZ8-issue-595-phase-a-trusted-workflow-integrity-ver
+status: approved
+approvedBy: xmeta
+sourceIssue: 595
+allowedPaths:
+  - contracts/discovery/PROBE-issue-595-workflow-trust.yaml
+  - .github/workflows/scwbs-workflow-integrity.yml
+  - tests/integration/workflow-security.test.ts
+  - docs/scwbs/merge-protection.md
+forbiddenPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/workflows/scwbs.yml
+  - .github/workflows/scwbs-readiness-reporter.yml
+  - .github/actions/**
+  - src/**
+  - wjs/**
+  - contracts/wbs/project.wbs.json
+humanGateRequiredPaths:
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - vitest.config.ts
+  - .github/**
+stopIf:
+  - untrusted PR code execution is required
+  - secrets or delegation tokens are required
+  - existing workflow or local action must change
+  - repository protection plan or external permissions must change
+  - scope outside allowedPaths is required
+  - bootstrap trust design changes
+requiredChecks:
+  - test
+  - typecheck
+  - build
+  - test:integration
+doneCriteria:
+  - default branch definition由来のworkflow_run verifierがscwbs pull_request runの完了後だけ動作し、PR headのcodeやlocal actionをcheckout・実行しない
+  - verifierはcontents actions pull-requestsのreadとchecks write以外の権限、secret、delegation tokenを持たない
+  - triggering run、repository、PR、base SHA、current head SHAが一意に一致しない場合はworkflow-integrity checkをsuccessにしない
+  - control surfaceはworkflow、local action、CI runner script、package/config、merge enforcement実装を明示的に分類する
+  - versioned bounded receiptがrepository、PR、base/head、triggering run、trusted workflow pathとSHA-256、control files、manifest digestを記録する
+  - workflow-integrity checkはcurrent PR headへ一意にupsertされ、details URLがtrusted verifier runを指す
+  - changed file pagination不整合、API failure、曖昧なPR association、stale headはfail closedになる
+  - bootstrap PR自身へ新verifierを遡及適用できない制約と、main反映後のPhase B enforcementがIssue closeに必要なことを文書化する
+  - workflow security regression testsがpermission、trigger、no-checkout、control surface、bounded receipt、failure boundaryを検証する
+evidenceRequired:
+  - test-result
+  - typecheck-result
+  - build-result
+  - test:integration-result
+  - workflow-security-result
+  - human-approval
+  - registry-check
+managedContractPaths:
+  - contracts/tasks/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/specs/SPEC-LITE-MTG4CMZ8.yaml
+  - contracts/tasks/index.yaml
+  - contracts/blocks/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/evidence/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/evidence-payloads/SCWBS-DRAFT-MTG4CMZ8.patch
+  - contracts/approvals/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/reviews/SCWBS-DRAFT-MTG4CMZ8.yaml
+  - contracts/registry.yaml
+contractLock:
+  lockVersion: "2"
+  wbsScopeRevision: sha256:1a15147d66e7b7e66dadc0e3a3c333baf850c33d938a72bae0802619d3cb89fa
+  wbsGlobalRevision: sha256:1ec3e452163365de9e473830ef3c13ac021f4ac1df8050c9c5ccc58e78d54612
+  wbsNodeId: node-governance-maintenance
+  specVersion: 0.1.0
+  specRevision: sha256:29b19efa1bac10de11dd181dc515ce9ba4343e393bc9d74c188815d499f6410a
+  createdAt: "2026-08-30T18:05:55.151Z"

@@ -1,0 +1,222 @@
+name: scwbs-workflow-integrity
+
+on:
+  workflow_run:
+    workflows: ["scwbs"]
+    types: [completed]
+
+# This workflow is evaluated from the default branch for workflow_run events. It
+# deliberately never checks out or executes the pull request head.
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  checks: write
+
+concurrency:
+  group: scwbs-workflow-integrity-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  receipt:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify triggering run and write bounded integrity receipt
+        id: receipt
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          TRIGGERING_RUN_ID: ${{ github.event.workflow_run.id }}
+        with:
+          script: |
+            const crypto = require("crypto");
+            const fs = require("fs");
+            const WORKFLOW_PATH = ".github/workflows/scwbs.yml";
+            const VERIFIER_PATH = ".github/workflows/scwbs-workflow-integrity.yml";
+            const RECEIPT_VERSION = "scwbs.workflow-integrity.v1";
+            const MAX_CHANGED_FILES = 256;
+            const controlSurface = [
+              { kind: "workflow", pattern: ".github/workflows/**" },
+              { kind: "local-action", pattern: ".github/actions/**" },
+              { kind: "ci-runner", pattern: "scripts/**" },
+              { kind: "package-config", pattern: "package.json" },
+              { kind: "package-config", pattern: "package-lock.json" },
+              { kind: "package-config", pattern: "tsconfig.json" },
+              { kind: "package-config", pattern: "vitest.config.ts" },
+              { kind: "merge-enforcement", pattern: "src/core/merge-preflight.ts" },
+              { kind: "merge-enforcement", pattern: "src/commands/merge.ts" },
+              { kind: "merge-enforcement", pattern: "src/commands/finish.ts" },
+              { kind: "merge-enforcement", pattern: "src/cli.ts" }
+            ];
+            const sha256 = (value) => `sha256:${crypto.createHash("sha256").update(value).digest("hex")}`;
+            const matches = (file, entry) => entry.pattern.endsWith("/**")
+              ? file.startsWith(entry.pattern.slice(0, -2))
+              : file === entry.pattern;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runId = Number(process.env.TRIGGERING_RUN_ID);
+            if (!Number.isInteger(runId) || runId <= 0) throw new Error("workflow-integrity: triggering run id is invalid");
+            const run = (await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId })).data;
+            const headRepository = run.head_repository?.full_name;
+            const headBranch = run.head_branch;
+            if (run.id !== runId || run.event !== "pull_request" || run.conclusion !== "success" || run.path !== WORKFLOW_PATH || typeof headRepository !== "string" || headRepository.length === 0 || typeof headBranch !== "string" || headBranch.length === 0 || !Array.isArray(run.pull_requests)) {
+              throw new Error("workflow-integrity: triggering run identity is invalid");
+            }
+            const associated = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              owner,
+              repo,
+              commit_sha: run.head_sha,
+              per_page: 100
+            });
+            const readPull = async () => (await github.rest.pulls.get({ owner, repo, pull_number: pullNumber })).data;
+            const matchingPulls = [];
+            for (const candidate of associated) {
+              if (!Number.isInteger(candidate?.number)) throw new Error("workflow-integrity: associated pull request is invalid");
+              const candidatePull = await (async () => (await github.rest.pulls.get({ owner, repo, pull_number: candidate.number })).data)();
+              if (candidatePull.state === "open" && candidatePull.base?.ref === "main" && candidatePull.base?.repo?.full_name === `${owner}/${repo}` && candidatePull.head?.sha === run.head_sha && candidatePull.head?.repo?.full_name === headRepository && candidatePull.head?.ref === headBranch) {
+                matchingPulls.push(candidatePull);
+              }
+            }
+            if (matchingPulls.length !== 1 || !Number.isInteger(matchingPulls[0]?.number)) {
+              throw new Error("workflow-integrity: triggering run must have exactly one matching open main pull request");
+            }
+            const pullNumber = matchingPulls[0].number;
+            if (run.pull_requests.length > 0 && (run.pull_requests.length !== 1 || run.pull_requests[0]?.number !== matchingPulls[0].number || run.pull_requests[0]?.id !== matchingPulls[0].id)) {
+              throw new Error("workflow-integrity: triggering run pull request metadata does not match the candidate");
+            }
+            const before = await readPull();
+            if (before.state !== "open" || before.head?.sha !== run.head_sha || before.head?.repo?.full_name !== headRepository || before.head?.ref !== headBranch || before.base?.ref !== "main" || before.base?.repo?.full_name !== `${owner}/${repo}` || !before.base?.sha || !Number.isInteger(before.changed_files)) {
+              throw new Error("workflow-integrity: pull request head/base does not match the triggering run");
+            }
+            const files = [];
+            for (let page = 1; ; page += 1) {
+              const response = await github.rest.pulls.listFiles({ owner, repo, pull_number: pullNumber, per_page: 100, page });
+              files.push(...response.data);
+              if (files.length > MAX_CHANGED_FILES) throw new Error("workflow-integrity: changed-file limit exceeded");
+              if (response.data.length < 100) break;
+            }
+            const after = await readPull();
+            if (after.head?.sha !== before.head.sha || after.head?.repo?.full_name !== headRepository || after.head?.ref !== headBranch || after.base?.sha !== before.base.sha || after.base?.ref !== "main" || after.base?.repo?.full_name !== `${owner}/${repo}` || after.changed_files !== before.changed_files) {
+              throw new Error("workflow-integrity: pull request changed while files were enumerated");
+            }
+            if (files.length !== after.changed_files) throw new Error("workflow-integrity: changed-file pagination is incomplete or exceeds the API limit");
+            const names = files.map((file) => file.filename);
+            if (names.some((file) => typeof file !== "string") || new Set(names).size !== names.length) {
+              throw new Error("workflow-integrity: changed-file list is invalid");
+            }
+            const baseWorkflow = (await github.rest.repos.getContent({ owner, repo, path: WORKFLOW_PATH, ref: after.base.sha })).data;
+            if (Array.isArray(baseWorkflow) || typeof baseWorkflow.content !== "string" || baseWorkflow.encoding !== "base64") {
+              throw new Error("workflow-integrity: trusted base workflow content is unavailable");
+            }
+            const verifierWorkflow = (await github.rest.repos.getContent({ owner, repo, path: VERIFIER_PATH, ref: context.sha })).data;
+            if (Array.isArray(verifierWorkflow) || typeof verifierWorkflow.content !== "string" || verifierWorkflow.encoding !== "base64") {
+              throw new Error("workflow-integrity: verifier workflow content is unavailable");
+            }
+            const controlFiles = files.flatMap((file) => {
+              if (typeof file.filename !== "string" || typeof file.status !== "string") throw new Error("workflow-integrity: changed-file entry is invalid");
+              const renamed = file.status === "renamed";
+              const removed = file.status === "removed";
+              if (!["added", "modified", "removed", "renamed"].includes(file.status)) throw new Error("workflow-integrity: changed-file status is invalid");
+              if (renamed && (typeof file.previous_filename !== "string" || file.previous_filename.length === 0)) throw new Error("workflow-integrity: renamed file is missing previous_filename");
+              if (!renamed && file.previous_filename !== undefined) throw new Error("workflow-integrity: non-renamed file has previous_filename");
+              const currentEntries = controlSurface.filter((entry) => matches(file.filename, entry));
+              const headBlobSha = typeof file.sha === "string" && /^[a-f0-9]{40}$/i.test(file.sha) ? file.sha : null;
+              if (currentEntries.length > 0 && !headBlobSha) throw new Error("workflow-integrity: control file is missing a valid blob SHA");
+              const classify = (name, role, counterpart, observedHeadBlobSha, previousBlobSha) => controlSurface.filter((entry) => matches(name, entry)).map((entry) => ({
+                file: name,
+                kind: entry.kind,
+                role,
+                counterpart,
+                status: file.status,
+                headBlobSha: observedHeadBlobSha,
+                previousBlobSha
+              }));
+              if (removed) return classify(file.filename, "previous", null, null, headBlobSha);
+              const current = classify(file.filename, "current", renamed ? file.previous_filename : null, headBlobSha, null);
+              return renamed ? [...current, ...classify(file.previous_filename, "previous", file.filename, null, null)] : current;
+            }).sort((left, right) => left.file.localeCompare(right.file) || left.kind.localeCompare(right.kind));
+            const manifest = JSON.stringify(controlSurface);
+            const observedDigest = sha256(JSON.stringify(controlFiles));
+            const receipt = {
+              type: RECEIPT_VERSION,
+              repository: `${owner}/${repo}`,
+              pullRequest: pullNumber,
+              baseCommit: after.base.sha,
+              headCommit: after.head.sha,
+              triggeringRun: {
+                id: runId,
+                url: run.html_url,
+                workflowPath: WORKFLOW_PATH,
+                headRepository,
+                headBranch
+              },
+              trustedWorkflow: {
+                path: WORKFLOW_PATH,
+                sha256: sha256(Buffer.from(baseWorkflow.content, "base64"))
+              },
+              controlSurface: {
+                version: "1",
+                manifestDigest: sha256(manifest),
+                observedDigest,
+                controlFiles
+              },
+              verifier: {
+                workflowPath: VERIFIER_PATH,
+                runId: context.runId,
+                runUrl: `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+                definitionCommit: context.sha,
+                sha256: sha256(Buffer.from(verifierWorkflow.content, "base64"))
+              }
+            };
+            const encoded = `${JSON.stringify(receipt, null, 2)}\n`;
+            if (Buffer.byteLength(encoded, "utf8") > 32 * 1024) throw new Error("workflow-integrity: receipt exceeds its bound");
+            fs.writeFileSync("workflow-integrity-receipt.json", encoded);
+            core.setOutput("artifact_name", `scwbs-workflow-integrity-v1-${runId}`);
+      - name: Upload trusted workflow integrity receipt
+        if: ${{ success() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.receipt.outputs.artifact_name }}
+          path: workflow-integrity-receipt.json
+          if-no-files-found: error
+      - name: Publish receipt to the current pull request head
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require("fs");
+            const receipt = JSON.parse(fs.readFileSync("workflow-integrity-receipt.json", "utf8"));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            if (receipt.type !== "scwbs.workflow-integrity.v1" || receipt.repository !== `${owner}/${repo}` || !Number.isInteger(receipt.pullRequest)) {
+              throw new Error("workflow-integrity: persisted receipt identity is invalid");
+            }
+            const current = (await github.rest.pulls.get({ owner, repo, pull_number: receipt.pullRequest })).data;
+            if (current.state !== "open" || current.base?.ref !== "main" || current.base?.repo?.full_name !== `${owner}/${repo}` || current.base?.sha !== receipt.baseCommit || current.head?.sha !== receipt.headCommit) {
+              throw new Error("workflow-integrity: pull request changed before check publication");
+            }
+            const externalId = `${receipt.type}:${receipt.triggeringRun.id}:${receipt.baseCommit}:${receipt.headCommit}`;
+            const checkPayload = {
+              owner,
+              repo,
+              name: "workflow-integrity",
+              head_sha: receipt.headCommit,
+              status: "completed",
+              conclusion: "success",
+              details_url: receipt.verifier.runUrl,
+              external_id: externalId,
+              output: { title: "Trusted workflow integrity receipt", summary: `${JSON.stringify(receipt, null, 2)}\n` }
+            };
+            const existing = await github.paginate(github.rest.checks.listForRef, {
+              owner, repo, ref: receipt.headCommit, check_name: "workflow-integrity", filter: "all", per_page: 100
+            });
+            const named = existing.filter((check) => check.name === "workflow-integrity");
+            if (named.length > 1) throw new Error("workflow-integrity: existing managed checks are ambiguous");
+            if (named.length === 1) {
+              if (named[0].app?.slug !== "github-actions" || typeof named[0].external_id !== "string" || !named[0].external_id.startsWith("scwbs.workflow-integrity.v1:") || typeof named[0].details_url !== "string" || !named[0].details_url.startsWith(`${context.serverUrl}/${owner}/${repo}/actions/runs/`)) {
+                throw new Error("workflow-integrity: existing check is unmanaged");
+              }
+              const { head_sha: _headSha, ...updatePayload } = checkPayload;
+              await github.rest.checks.update({ ...updatePayload, check_run_id: named[0].id });
+            } else {
+              await github.rest.checks.create(checkPayload);
+            }
