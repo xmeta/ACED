@@ -59,7 +59,7 @@ gh pr merge <number> --squash --delete-branch \
 commandは`--admin`、`--auto`、merge commit、rebaseを公開しない。
 `finish`もchecks成功後のnext actionとしてこのcommandを案内する。
 
-## Phase A: trusted workflow integrity receipt
+## Phase A: 信頼済みワークフロー整合性receipt
 
 Issue #595 のPhase Aでは、`scwbs` のpull request runがsuccessで完了した後だけ、
 default branch上の `scwbs-workflow-integrity` workflowが動く。このworkflowはPR
