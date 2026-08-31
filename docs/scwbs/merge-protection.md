@@ -84,8 +84,10 @@ renameのprevious側はhead treeに存在しないため両blob SHAをnullとし
 `role: previous`、`headBlobSha: null`、`previousBlobSha: file.sha` として記録する。
 control surfaceはworkflow/local action、CI runner、
 package/config、merge enforcement implementationを明示的に分類する。同じreceiptはcurrent
-PR headの `workflow-integrity` custom checkへ一意にupsertし、details URLはtrusted
-verifier runを指す。artifactはPhase Bの独立した再取得候補でもある。forkの
+PR headの `workflow-integrity` custom checkへ一意にupsertする。設定上のdetails URLはtrusted
+verifier run URLだが、GitHub APIが返す同一repositoryの実check IDによるcanonical
+`https://github.com/{repository}/runs/{check.id}` もPhase Bで許可する。信頼元runはartifact
+receiptとrun APIで独立検証する。artifactはPhase Bの独立した再取得候補でもある。forkの
 `workflow_run.pull_requests` payloadにはPR情報がない場合があるため、verifierはpayloadを
 信頼せずCommits APIの `listPullRequestsAssociatedWithCommit` を読み、ちょうど1件であることを
 要求する。custom checkの

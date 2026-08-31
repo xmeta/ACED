@@ -651,12 +651,19 @@ function workflowTrust(
       throw new Error("workflow-integrity check summary does not match artifact bytes");
     const receipt = object(JSON.parse(artifactBytes.toString("utf8")));
     const expectedExternalId = `scwbs.workflow-integrity.v1:${triggeringRunId}:${view.baseRefOid}:${view.headRefOid}`;
+    const checkId = check.id;
+    const canonicalCheckUrl =
+      typeof checkId === "number" && Number.isSafeInteger(checkId) && checkId > 0
+        ? `https://github.com/${repository}/runs/${checkId}`
+        : undefined;
+    const detailsUrlValid =
+      check.details_url === verifierUrl || (canonicalCheckUrl !== undefined && check.details_url === canonicalCheckUrl);
     if (
       check.status !== "completed" ||
       check.conclusion !== "success" ||
       text(object(check.app).slug) !== "github-actions" ||
       (check.head_sha !== undefined && check.head_sha !== view.headRefOid) ||
-      check.details_url !== verifierUrl ||
+      !detailsUrlValid ||
       check.external_id !== expectedExternalId ||
       receipt.type !== "scwbs.workflow-integrity.v1" ||
       receipt.repository !== repository ||

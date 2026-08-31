@@ -1065,6 +1065,51 @@ describe("merge preflight", () => {
     }
   });
 
+  test("accepts GitHub's canonical check-run /runs/{check.id} details URL", () => {
+    const fixture = validControlFixture();
+    const api = JSON.parse(process.env.SCWBS_TEST_GH_API!) as Record<string, unknown>;
+    const key = Object.keys(api).find((item) => item.includes("check-runs?"))!;
+    const check = (api[key] as { check_runs: Array<Record<string, unknown>> }).check_runs[0]!;
+    check.id = 99352861563;
+    check.details_url = `https://github.com/${REPOSITORY}/runs/99352861563`;
+    process.env.SCWBS_TEST_GH_API = JSON.stringify(api);
+    const output: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
+    try {
+      expect(main(["merge", "--pr", "42", "--json"], fixture.root)).toBe(0);
+      expect(JSON.parse(output.join(""))).toMatchObject({ status: "pass", execution: { executed: true } });
+    } finally {
+      log.mockRestore();
+      fixture.fake.restore();
+    }
+  });
+
+  test.each([
+    ["noncanonical repository", 99352861563, `https://github.com/other/repo/runs/99352861563`],
+    ["missing check id", undefined, `https://github.com/${REPOSITORY}/runs/99352861563`],
+    ["missing check id and details URL", undefined, undefined],
+    ["query suffix", 99352861563, `https://github.com/${REPOSITORY}/runs/99352861563?foo=bar`]
+  ])("rejects a %s details URL", (_name, id, detailsUrl) => {
+    const fixture = validControlFixture();
+    const api = JSON.parse(process.env.SCWBS_TEST_GH_API!) as Record<string, unknown>;
+    const key = Object.keys(api).find((item) => item.includes("check-runs?"))!;
+    const check = (api[key] as { check_runs: Array<Record<string, unknown>> }).check_runs[0]!;
+    if (id === undefined) delete check.id;
+    else check.id = id;
+    check.details_url = detailsUrl;
+    process.env.SCWBS_TEST_GH_API = JSON.stringify(api);
+    const output: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((value) => output.push(String(value)));
+    try {
+      expect(main(["merge", "--pr", "42", "--preflight-only", "--json"], fixture.root)).toBe(1);
+      expect(JSON.parse(output.join("")).violations[0].message).toContain("check or receipt provenance");
+      expect(readFileSync(fixture.fake.log, "utf8")).not.toContain("pr merge");
+    } finally {
+      log.mockRestore();
+      fixture.fake.restore();
+    }
+  });
+
   test("accepts a fork head when the triggering run has no pull request association", () => {
     const fixture = validControlFixture();
     const api = JSON.parse(process.env.SCWBS_TEST_GH_API!) as Record<string, unknown>;
