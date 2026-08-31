@@ -84,8 +84,10 @@ renameのprevious側はhead treeに存在しないため両blob SHAをnullとし
 `role: previous`、`headBlobSha: null`、`previousBlobSha: file.sha` として記録する。
 control surfaceはworkflow/local action、CI runner、
 package/config、merge enforcement implementationを明示的に分類する。同じreceiptはcurrent
-PR headの `workflow-integrity` custom checkへ一意にupsertし、details URLはtrusted
-verifier runを指す。artifactはPhase Bの独立した再取得候補でもある。forkの
+PR headの `workflow-integrity` custom checkへ一意にupsertする。設定上のdetails URLはtrusted
+verifier run URLだが、GitHub APIが返す同一repositoryの実check IDによるcanonical
+`https://github.com/{repository}/runs/{check.id}` もPhase Bで許可する。信頼元runはartifact
+receiptとrun APIで独立検証する。artifactはPhase Bの独立した再取得候補でもある。forkの
 `workflow_run.pull_requests` payloadにはPR情報がない場合があるため、verifierはpayloadを
 信頼せずCommits APIの `listPullRequestsAssociatedWithCommit` を読み、ちょうど1件であることを
 要求する。custom checkの
@@ -99,6 +101,32 @@ Phase Bで、`scwbs merge --preflight-only` がGitHub APIからtrusted verifier 
 artifactを取得し、current repository/PR/base/head/run/path/digestを検証して初めて
 workflow-control PRをmerge-readyにできる。Phase Bはcurrent Evidence/Approvalの
 headCommitとdiffHashも検証し、Human Gateをreceiptで置換してはならない。
+
+## フェーズB: merge preflightによる強制
+
+`merge --preflight-only` は現在のPR filesをGitHub APIからboundedに再取得し、workflow、
+local action、CI runner、package/config、merge enforcementのcontrol surfaceを再分類する。
+source-only PRは従来どおりaggregate `validate` のexact-head successだけを要求する。control
+surfaceがあるPRでは、current headの `workflow-integrity` check、receipt、trusted base
+workflow digest、verifier definition digest、verifier run、triggering `scwbs` runを現在の
+GitHub API stateへ再検証する。check-runsとartifactsは各ページの`total_count`、filesはPRの
+`changed_files`と再照合し、重複、上限超過、再読込中のPR変更を拒否する。receiptはcheck
+summaryをbounded locatorとしてのみ使い、trusted verifier runのexpected name artifactを
+一意に取得する。artifact IDのraw ZIPを再取得し、API digestと照合したうえで、メモリ上で
+単一の通常ファイル`workflow-integrity-receipt.json`（32 KiB以下）を厳密に展開・検証する。
+展開したbytesを正本とし、summary bytesとの完全一致、run所属、期限、symlink/extra fileを
+検証する。missing、pending、複数、digest/PR/base/head/run不一致、API failureは
+fail-closedである。
+
+control surface PRは、current PR番号を記録したTask Evidenceを一意に解決でき、Evidenceの
+subject head `S` がPR final head `H` のancestorで、`S..H` の差分が当該TaskのEvidence、
+payload、Approval、Review、registryだけであり、Evidence diffHashをbase merge-baseから
+再計算して一致し、Human Approval scopeが一致する場合だけmerge-readyになる。Task契約の
+`humanGateRequiredPaths` が空でもcontrol surface全体を強制gateとして評価する。local
+Task/Evidence/ApprovalはPR headのcommitted metadataと一致するものだけを読む。JSON reportの
+`workflowTrust`は`not-required`、`verified`、`blocked`とcontrol files、trusted base、
+verifier run、next actionを返す。Phase B PRではmain由来verifierのcheck/artifactをlive smokeし、
+main反映後の次control PRでenforcementを確認する。
 
 ## fail-closedとなるケース
 

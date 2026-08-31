@@ -1,0 +1,25 @@
+id: SPEC-LITE-MTG793F3
+type: spec-contract
+featureId: F-MTG793F3
+title: "Issue #595 Phase B: workflow-integrity receiptをmerge preflightで強制する"
+status: approved
+version: 0.1.0
+summary: main由来verifierのreceiptとHuman Approvalを独立再検証し、CI control変更PRをvalidate成功だけではmerge-readyにしない
+approvedBy: xmeta
+approvedAt: "2026-08-31T04:25:56+09:00"
+acceptanceCriteria:
+  - current PR filesをGitHub APIからboundedに取得し、Phase Aと同じcontrol surfaceをpreflight自身が分類する
+  - control変更時はcurrent headのworkflow-integrity checkを一意に要求し、GitHub Actions app、external id、details URL、statusを検証する
+  - versioned receiptのrepository、PR、base/head、control files、observed digestがcurrent PR stateと一致する
+  - trusted scwbs workflowとverifier definitionのcontent digestを指定commitから再取得して一致確認する
+  - verifier runとtriggering scwbs runのrepository、workflow path、event、status、head repository/ref/SHAを再検証する
+  - receipt/check/runがmissing、pending、failed、malformed、stale、ambiguous、API unavailableならmergeを実行しない
+  - control変更時はPR番号からTaskを一意に解決し、EvidenceとHuman ApprovalのPR、subject head、diff hash scope一致を要求する
+  - source-only PRは既存exact-head validate pathを維持し、workflow-integrityを要求しない
+  - preflight JSON schemaと文書がworkflow trust判定、trusted revision、reason codes、remediationを表現する
+  - integration testがvalidate成功だけのcontrol変更、check/run/digest/pagination/approval不一致を拒否し、valid control変更とsource-onlyを通す
+nonGoals:
+  - Phase Bで既存GitHub workflow、local action、repository ruleset、branch protection、visibility、planを変更すること
+  - untrusted PR codeへwrite token、secret、delegation token、signing authorityを渡すこと
+  - workflow-integrity receiptだけでHuman Approvalを代替すること
+  - src/cli.tsやcheck coverage policyを変更して新しいtask指定optionを追加すること

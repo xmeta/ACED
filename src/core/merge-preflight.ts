@@ -11,6 +11,7 @@ export type MergePullRequestView = {
   state?: string;
   isDraft?: boolean;
   baseRefName?: string;
+  baseRefOid?: string;
   headRefOid?: string;
   mergeStateStatus?: string;
   statusCheckRollup?: MergeStatusCheck[];
@@ -22,7 +23,7 @@ export type MergePreflightViolation = {
 };
 
 export type MergePreflightReport = {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.1.0";
   status: "pass" | "blocked";
   repository: string | null;
   pullRequest: number;
@@ -34,6 +35,13 @@ export type MergePreflightReport = {
     conclusion: string | null;
     workflow: string | null;
     url: string | null;
+  };
+  workflowTrust: {
+    status: "not-required" | "verified" | "blocked";
+    controlFiles: string[];
+    trustedBaseCommit: string | null;
+    verifierRunUrl: string | null;
+    nextAction: string | null;
   };
   violations: MergePreflightViolation[];
   enforcement: {
@@ -48,6 +56,19 @@ export type MergePreflightReport = {
     command: string | null;
   };
 };
+
+export type WorkflowTrustResult = MergePreflightReport["workflowTrust"] & { violations: MergePreflightViolation[] };
+
+export function noWorkflowTrust(): WorkflowTrustResult {
+  return {
+    status: "not-required",
+    controlFiles: [],
+    trustedBaseCommit: null,
+    verifierRunUrl: null,
+    nextAction: null,
+    violations: []
+  };
+}
 
 export type MergeReadinessSummary = {
   status: "ready" | "blocked";
@@ -71,7 +92,7 @@ export function unavailableMergeReport(
   repository: string | null = null
 ): MergePreflightReport {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     status: "blocked",
     repository,
     pullRequest,
@@ -79,6 +100,13 @@ export function unavailableMergeReport(
     headCommit: null,
     mergeState: null,
     validate: { status: "missing", conclusion: null, workflow: null, url: null },
+    workflowTrust: {
+      status: "not-required",
+      controlFiles: [],
+      trustedBaseCommit: null,
+      verifierRunUrl: null,
+      nextAction: null
+    },
     violations: [{ code: "merge.github.unavailable", message }],
     enforcement: {
       mode: "local-command",
@@ -93,20 +121,31 @@ export function unavailableMergeReport(
 export function evaluateMergePreflight(
   pullRequest: number,
   view: MergePullRequestView,
-  repository: string | null = null
+  repository: string | null = null,
+  workflowTrust: WorkflowTrustResult = noWorkflowTrust()
 ): MergePreflightReport {
   const violations: MergePreflightViolation[] = [];
+  violations.push(...workflowTrust.violations);
   if (view.number !== pullRequest) {
-    violations.push({ code: "merge.pr.number", message: `Expected PR #${pullRequest}, received #${view.number ?? "unknown"}` });
+    violations.push({
+      code: "merge.pr.number",
+      message: `Expected PR #${pullRequest}, received #${view.number ?? "unknown"}`
+    });
   }
   if (view.state !== "OPEN") {
-    violations.push({ code: "merge.pr.state", message: `PR #${pullRequest} must be OPEN, received ${view.state ?? "unknown"}` });
+    violations.push({
+      code: "merge.pr.state",
+      message: `PR #${pullRequest} must be OPEN, received ${view.state ?? "unknown"}`
+    });
   }
   if (view.isDraft !== false) {
     violations.push({ code: "merge.pr.draft", message: `PR #${pullRequest} must not be a draft` });
   }
   if (view.baseRefName !== "main") {
-    violations.push({ code: "merge.pr.base", message: `PR #${pullRequest} must target main, received ${view.baseRefName ?? "unknown"}` });
+    violations.push({
+      code: "merge.pr.base",
+      message: `PR #${pullRequest} must target main, received ${view.baseRefName ?? "unknown"}`
+    });
   }
   if (!view.headRefOid || !SHA.test(view.headRefOid)) {
     violations.push({ code: "merge.pr.head", message: `PR #${pullRequest} has no valid 40-character head commit` });
@@ -158,7 +197,7 @@ export function evaluateMergePreflight(
   }
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     status: violations.length === 0 ? "pass" : "blocked",
     repository,
     pullRequest,
@@ -170,6 +209,13 @@ export function evaluateMergePreflight(
       conclusion: validate?.conclusion ?? null,
       workflow: validate?.workflowName ?? null,
       url: validate?.detailsUrl ?? null
+    },
+    workflowTrust: {
+      status: workflowTrust.status,
+      controlFiles: workflowTrust.controlFiles,
+      trustedBaseCommit: workflowTrust.trustedBaseCommit,
+      verifierRunUrl: workflowTrust.verifierRunUrl,
+      nextAction: workflowTrust.nextAction
     },
     violations,
     enforcement: {
